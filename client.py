@@ -1,0 +1,397 @@
+import cgi
+import datetime
+import json
+import logging
+import os
+import posixpath
+import threading
+import requests
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
+
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
+try:
+    from xml.etree import cElementTree as et
+except:
+    from xml.etree import ElementTree as et
+
+from io import BytesIO
+
+from conf import settings
+from media import Media
+from player import playerManager
+from subscribers import remoteSubscriberManager, RemoteSubscriber
+from timeline import timelineManager
+
+log = logging.getLogger("client")
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
+class HttpHandler(SimpleHTTPRequestHandler):
+    xmlOutput   = None
+    completed   = False
+    
+    handlers    = (
+        (("/resources",),                       "resources"),
+        (("/player/playback/playMedia",
+          "/player/application/playMedia",),    "playMedia"),
+        (("/player/playback/stepForward",
+          "/player/playback/stepBack",),        "stepFunction"),
+        (("/player/playback/skipNext",),        "skipNext"),
+        (("/player/playback/skipPrevious",),    "skipPrevious"),
+        (("/player/playback/stop",),            "stop"),
+        (("/player/playback/seekTo",),          "seekTo"),
+        (("/player/playback/skipTo",),          "skipTo"),
+        (("/player/playback/setParameters",),   "set"),
+        (("/player/playback/setStreams",),      "setStreams"),
+        (("/player/playback/pause",
+          "/player/playback/play",),            "pausePlay"),
+        (("/player/timeline/subscribe",),       "subscribe"),
+        (("/player/timeline/unsubscribe",),     "unsubscribe"),
+        (("/player/timeline/poll",),            "poll"),
+        (("/player/application/setText",
+          "/player/application/sendString",),   "sendString"),
+        (("/player/application/sendVirtualKey",
+          "/player/application/sendKey",),      "sendVKey"),
+        (("/player/playback/bigStepForward",
+          "/player/playback/bigStepBack",),     "stepFunction"),
+        #(("/player/mirror/details",),           "mirror"),
+    )
+
+    def log_request(self, *args, **kwargs):
+        pass
+
+    def setStandardResponse(self, code=200, status="OK"):
+        el = et.Element("Response")
+        el.set("code",      str(code))
+        el.set("status",    str(status))
+
+        if self.xmlOutput:
+            self.xmlOutput.append(el)
+        else:
+            self.xmlOutput = el
+
+    def getSubFromRequest(self, arguments):
+        uuid = self.headers.get("X-Plex-Client-Identifier", None)
+        name = self.headers.get("X-Plex-Device-Name",  None)
+        if not name:
+            name = arguments.get("X-Plex-Device-Name")
+
+        if not uuid:
+            log.warn("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Client-Identifier")
+            self.setStandardResponse(500, "subscriber didn't set X-Plex-Client-Identifier")
+            return
+
+        if not name:
+            log.warn("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Device-Name")
+            self.setStandardResponse(500, "subscriber didn't set X-Plex-Device-Name")
+            return
+
+        port        = int(arguments.get("port", 32400))
+        commandID   = int(arguments.get("commandID", -1))
+        protocol    = arguments.get("protocol", "http")
+        ipaddress   = self.client_address[0]
+
+        return RemoteSubscriber(uuid, commandID, ipaddress, port, protocol, name)
+
+    def get_querydict(self, query):
+        querydict = {}
+        for key, value in urllib.parse.parse_qsl(query):
+            querydict[key] = value
+        return querydict
+
+    def updateCommandID(self, arguments):
+        if "commandID" not in arguments:
+            if self.path.find("unsubscribe") < 0:
+                log.warn("HttpHandler::updateCommandID no commandID sent to this request!")
+            return
+
+        commandID = -1
+        try:
+            commandID = int(arguments["commandID"])
+        except:
+            log.error("HttpHandler::updateCommandID invalid commandID: %s" % arguments["commandID"])
+            return
+
+        uuid = self.headers.get("X-Plex-Client-Identifier", None)
+        if not uuid:
+            log.warn("HttpHandler::updateCommandID subscriber didn't set X-Plex-Client-Identifier")
+            self.setStandardResponse(500, "When commandID is set you also need to specify X-Plex-Client-Identifier")
+            return
+
+        sub = remoteSubscriberManager.findSubscriberByUUID(uuid)
+        if sub:
+            sub.commandID = commandID
+
+    def handle_request(self, method):
+        if 'X-Plex-Device-Name' in self.headers:
+            log.debug("HttpHandler::handle_request request from '%s' to '%s'" % (self.headers["X-Plex-Device-Name"], self.path))
+        else:
+            log.debug("HttpHandler::handle_request request to '%s'" % self.path)
+
+        path  = urllib.parse.urlparse(self.path)
+        query = self.get_querydict(path.query)
+
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Plex-Client-Identifier",    settings.client_uuid)
+
+        if method == "OPTIONS" and "Access-Control-Request-Method" in self.headers:
+            # TODO: This isn't working...
+
+            #self.protocol_version = "HTTP/1.1"
+
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT, HEAD")
+            self.send_header("Access-Control-Max-Age", "1209600")
+            self.send_header("Connection", "close")
+
+            if "Access-Control-Request-Headers" in self.headers:
+                self.send_header("Access-Control-Allow-Headers", self.headers["Access-Control-Request-Headers"])
+
+            self.end_headers()
+            self.send_response(200)
+            self.wfile.flush()
+
+            return
+
+        self.send_header("Content-type", "text/xml")
+        self.setStandardResponse()
+
+        self.updateCommandID(query)
+
+        match = False
+        for paths, handler in self.handlers:
+            if path.path in paths:
+                match = True
+                getattr(self, handler)(path, query)
+                break
+
+        if not match:
+            if path.path.startswith("/player/navigation"):
+                self.navigation(path, query)
+            else:
+                self.setStandardResponse(500, "Nope, not implemented, sorry!")
+
+        self.send_end()
+
+    def translate_path(self, path):
+        path = path.split('?',1)[0]
+        path = path.split('#',1)[0]
+        path = posixpath.normpath(urllib.parse.unquote(path))
+        return os.path.join(STATIC_DIR, path.lstrip("/"))
+
+
+    def do_OPTIONS(self):
+        self.handle_request("OPTIONS")
+
+    def do_POST(self):
+        ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+        if ctype == 'multipart/form-data':
+            postvars = cgi.parse_multipart(self.rfile, pdict)
+        elif ctype == 'application/x-www-form-urlencoded':
+            length = int(self.headers.getheader('content-length'))
+            postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
+        else:
+            postvars = {}
+
+        if self.path == "/data/settings/":
+            response = {
+                "success": True,
+                "message": ""
+            }
+            try:
+                myplex_username = postvars.get("myplex_username")[0]
+                myplex_password = postvars.get("myplex_password")[0]
+                player_name     = postvars.get("player_name")[0]
+                audio_output    = postvars.get("audio_output")[0]
+            except:
+                response.update({
+                    "success": False,
+                    "message": "Invalid data"
+                })
+
+            if response["success"]:
+                if not settings.login_myplex(myplex_username, myplex_password):
+                    response.update({
+                        "success": False,
+                        "message": "Invalid MyPlex Credentials"
+                    })
+
+            if response["success"]:
+                settings.myplex_username = myplex_username
+                settings.myplex_password = myplex_password
+                settings.player_name     = player_name
+                settings.audio_output    = audio_output
+
+            data = json.dumps(response)
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            
+            self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path == "/":           
+            f = self.send_head()
+            if f:
+                self.copyfile(f, self.wfile)
+                f.close()
+        elif self.path == "/data/settings/":
+            data = json.dumps(settings._data)
+            
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            
+            self.wfile.write(data)
+        else:
+            self.handle_request("GET")
+    
+    def send_end(self):
+        if self.completed:
+            return
+
+        response = BytesIO()
+        tree     = et.ElementTree(self.xmlOutput)
+        tree.write(response, encoding="utf-8", xml_declaration=True)
+        response.seek(0)
+
+        xmlData = response.read()
+
+        self.send_response(200)
+
+        self.send_header("Date", datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT"))
+        self.send_header("Content-Length", str(len(xmlData)))
+        #self.send_header("Connection", 'Close')
+        
+        self.end_headers()
+
+        self.wfile.write(xmlData)
+        self.wfile.flush()
+        #self.wfile.close()
+
+        self.completed = True
+
+    #--------------------------------------------------------------------------
+    #   URL Handlers
+    #--------------------------------------------------------------------------
+    def subscribe(self, path, arguments):
+        sub = self.getSubFromRequest(arguments)
+        if sub:
+            remoteSubscriberManager.addSubscriber(sub)
+            
+            self.send_end()
+
+            timelineManager.SendTimelineToSubscriber(sub)
+
+    def unsubscribe(self, path, arguments):
+        remoteSubscriberManager.removeSubscriber(self.getSubFromRequest(arguments))
+
+    def poll(self, path, arguments):
+        uuid = self.headers.get("X-Plex-Client-Identifier", None)
+        name = self.headers.get("X-Plex-Device-Name", "")
+
+        commandID = -1
+        try:
+            commandID = int(arguments.get("commandID", -1))
+        except:
+            pass
+
+        if commandID == -1 or not uuid:
+            log.warn("HttpHandler::poll the poller needs to set both X-Plex-Client-Identifier header and commandID arguments.")
+            self.setStandardResponse(500, "You need to specify both x-Plex-Client-Identifier as a header and commandID as a argument")
+            return
+
+        pollSubscriber = RemoteSubscriber(uuid, commandID, name=name)
+        remoteSubscriberManager.addSubscriber(pollSubscriber)
+
+        if "wait" in arguments and arguments["wait"] in ("1", "true"):
+            self.xmlOutput = timelineManager.WaitForTimeline(pollSubscriber)
+        else:
+            self.xmlOutput = timelineManager.GetCurrentTimeLinesXML(pollSubscriber)
+
+        self.send_header("Access-Control-Expose-Headers", "X-Plex-Client-Identifier")
+
+    def resources(self, path, arguments):
+        pass
+
+    def playMedia(self, path, arguments):
+        address     = arguments.get("address",      None)
+        protocol    = arguments.get("protocol",     "http")
+        port        = arguments.get("port",         "32400")
+        key         = arguments.get("key",          None)
+        offset      = int(int(arguments.get("offset",   0))/1e3)
+        url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
+        media       = Media(url)
+
+        log.debug("HttpHandler::playMedia %s" % media)
+
+        # TODO: Select video, media and part here based off user settings
+        video = media.get_video(0)
+        if video:
+            playerManager.play(video, offset)
+            timelineManager.SendTimelineToSubscribers()
+
+    def stop(self, path, arguments):
+        playerManager.stop()
+
+        timelineManager.SendTimelineToSubscribers()
+
+    def pausePlay(self, path, arguments):
+        playerManager.toggle_pause()
+
+    def stepFunction(self, path, arguments):
+        log.info("HttpHandler::stepFunction not implemented yet")
+
+    def seekTo(self, path, arguments):
+        offset = int(int(arguments.get("offset", 0))*1e-3)
+        log.debug("HttpHandler::seekTo offset %ss" % offset)
+        playerManager.seek(offset)
+
+    def set(self, path, arguments):
+        if "volume" in arguments:
+            volume = arguments["volume"]
+            log.debug("HttpHandler::set settings volume to %s" % volume)
+            playerManager.set_volume(float(volume)/100.0)
+
+    def setStreams(self, path, arguments):
+        audioStreamID = None
+        subtitleStreamID = None
+        if "audioStreamID" in arguments:
+            audioStreamID = arguments["audioStreamID"]
+        if "subtitleStreamID" in arguments:
+            subtitleStreamID = arguments["subtitleStreamID"]
+        playerManager.set_streams(audioStreamID, subtitleStreamID)
+
+    def mirror(self, path, arguments):
+        pass
+
+    def navigation(self, path, query):
+        pass
+
+class HttpSocketServer(ThreadingMixIn, HTTPServer):
+    allow_reuse_address = True
+
+class HttpServer(threading.Thread):
+    def __init__(self, queue, port):
+        super(HttpServer, self).__init__(name="HTTP Server")
+
+        self.daemon         = True
+        self.port           = port
+        self.queue          = queue
+        self.server         = HttpSocketServer(("", self.port), HttpHandler)
+        self.server.queue   = queue
+
+    def run(self):
+        log.info("Started HTTP server")
+        self.server.serve_forever()
+
+    def stop(self):
+        log.info("Stopping HTTP server...")
+        self.server.shutdown()
