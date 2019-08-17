@@ -19,8 +19,11 @@ for platform, directory in confdirs:
     if sys.platform.startswith(platform):
         confdir = directory
 
-def get(app, conf_file):
+def get(app, conf_file, create=False):
     conf_folder = confdir(app)
     if not os.path.isdir(conf_folder):
         os.makedirs(conf_folder)
-    return os.path.join(conf_folder,conf_file)
+    conf_file = os.path.join(conf_folder,conf_file)
+    if create and not os.path.isfile(conf_file):
+        open(conf_file, 'w').close()
+    return conf_file

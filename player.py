@@ -3,6 +3,7 @@ import math
 import os
 import re
 import mpv
+import conffile
 
 from threading import Thread, RLock
 from time import sleep
@@ -12,6 +13,7 @@ from utils import synchronous, Timer
 
 # Scrobble progress to Plex server at most every 5 seconds
 SCROBBLE_INTERVAL = 5
+APP_NAME = 'plex-mpv-shim'
 
 # Mark the item as watch when it is at 95% 
 COMPLETE_PERCENT  = 0.95
@@ -28,7 +30,8 @@ class PlayerManager(object):
     ``media`` are thread safe.
     """
     def __init__(self):
-        self._player = mpv.MPV(input_default_bindings=True,input_vo_keyboard=True,osc=True)
+        mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
+        self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True, include=mpv_config)
         self.url = None
 
         @self._player.on_key_press('q')
