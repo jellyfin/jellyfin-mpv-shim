@@ -135,14 +135,8 @@ class HttpHandler(SimpleHTTPRequestHandler):
         path  = urllib.parse.urlparse(self.path)
         query = self.get_querydict(path.query)
 
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("X-Plex-Client-Identifier",    settings.client_uuid)
-
         if method == "OPTIONS" and "Access-Control-Request-Method" in self.headers:
-            # TODO: This isn't working...
-
-            #self.protocol_version = "HTTP/1.1"
-
+            self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT, HEAD")
             self.send_header("Access-Control-Max-Age", "1209600")
@@ -152,12 +146,10 @@ class HttpHandler(SimpleHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Headers", self.headers["Access-Control-Request-Headers"])
 
             self.end_headers()
-            self.send_response(200)
             self.wfile.flush()
 
             return
 
-        self.send_header("Content-type", "text/xml")
         self.setStandardResponse()
 
         self.updateCommandID(query)
@@ -266,15 +258,17 @@ class HttpHandler(SimpleHTTPRequestHandler):
 
         self.send_response(200)
 
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Expose-Headers", "X-Plex-Client-Identifier")
+        self.send_header("X-Plex-Client-Identifier",    settings.client_uuid)
+        self.send_header("Content-type", "text/xml")
         self.send_header("Date", datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT"))
         self.send_header("Content-Length", str(len(xmlData)))
-        #self.send_header("Connection", 'Close')
         
         self.end_headers()
 
         self.wfile.write(xmlData)
         self.wfile.flush()
-        #self.wfile.close()
 
         self.completed = True
 
@@ -315,8 +309,6 @@ class HttpHandler(SimpleHTTPRequestHandler):
             self.xmlOutput = timelineManager.WaitForTimeline(pollSubscriber)
         else:
             self.xmlOutput = timelineManager.GetCurrentTimeLinesXML(pollSubscriber)
-
-        self.send_header("Access-Control-Expose-Headers", "X-Plex-Client-Identifier")
 
     def resources(self, path, arguments):
         pass

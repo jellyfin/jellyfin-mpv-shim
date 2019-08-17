@@ -48,6 +48,8 @@ class TimelineManager(threading.Thread):
             self.SendTimelineToSubscriber(sub)
 
     def SendTimelineToSubscriber(self, subscriber):
+        if subscriber.url == "":
+            return
         timelineXML = self.GetCurrentTimeLinesXML(subscriber)
         url = "%s/:/timeline" % subscriber.url
 
@@ -69,7 +71,8 @@ class TimelineManager(threading.Thread):
         })
 
     def WaitForTimeline(self, subscriber):
-        log.info("TimelineManager::WaitForTimeline not implemented...")
+        time.sleep(1)
+        return self.GetCurrentTimeLinesXML(subscriber)
 
     def GetCurrentTimeLinesXML(self, subscriber):
         tlines = self.GetCurrentTimeline()
