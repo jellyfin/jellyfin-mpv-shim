@@ -11,7 +11,6 @@ except:
 from io import BytesIO
 
 from conf import settings
-from display import display
 from player import playerManager
 from subscribers import remoteSubscriberManager
 from utils import Timer
@@ -41,12 +40,6 @@ class TimelineManager(threading.Thread):
                     self.SendTimelineToSubscribers()
                 playerManager.update()
                 self.idleTimer.restart()
-            else:
-                if settings.display_sleep > 0 and self.idleTimer.elapsed() >= settings.display_sleep:
-                    if display.is_on:
-                        log.debug("TimelineManager::run putting display to sleep")
-                        display.power_off()
-
             time.sleep(1)
 
     def SendTimelineToSubscribers(self):
