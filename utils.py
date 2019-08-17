@@ -7,6 +7,7 @@ from datetime import datetime
 from functools import wraps
 
 log = logging.getLogger("utils")
+plex_eph_tokens = {}
 
 class Timer(object):
     def __init__(self):
@@ -39,8 +40,16 @@ def synchronous(tlockname):
         return _synchronizer
     return _synched
 
+def upd_token(domain, token):
+    plex_eph_tokens[domain] = token
+
 def get_plex_url(url, data={}):
-    if settings.myplex_token:
+    domain = urllib.parse.urlsplit(url).hostname
+    if domain in plex_eph_tokens:
+        data.update({
+            "X-Plex-Token": plex_eph_tokens[domain]
+        })
+    elif settings.myplex_token:
         data.update({
             "X-Plex-Token": settings.myplex_token
         })

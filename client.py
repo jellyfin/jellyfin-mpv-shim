@@ -12,6 +12,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
+from utils import upd_token
 
 try:
     from xml.etree import cElementTree as et
@@ -320,6 +321,11 @@ class HttpHandler(SimpleHTTPRequestHandler):
         key         = arguments.get("key",          None)
         offset      = int(int(arguments.get("offset",   0))/1e3)
         url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
+
+        token = arguments.get("token", None)
+        if token:
+            upd_token(address, token)
+
         media       = Media(url)
 
         log.debug("HttpHandler::playMedia %s" % media)
