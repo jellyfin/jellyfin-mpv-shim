@@ -5,6 +5,8 @@ import queue
 import logging
 import sys
 import time
+import conffile
+import os.path
 
 from client import HttpServer
 from conf import settings
@@ -14,6 +16,7 @@ from timeline import timelineManager
 
 
 HTTP_PORT   = 3000
+APP_NAME = 'plex-mpv-shim'
 
 log = logging.getLogger('')
 
@@ -26,7 +29,10 @@ def update_gdm_settings(name=None, value=None):
 def main():
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
-    settings.load("settings.dat")
+    conf_file = conffile.get(APP_NAME,'conf.json')
+    if os.path.isfile('settings.dat'):
+        settings.migrate_config('settings.dat', conf_file)
+    settings.load(conf_file)
     if not settings.myplex_token:
         while True:
             username = input("MyPlex Username: ")

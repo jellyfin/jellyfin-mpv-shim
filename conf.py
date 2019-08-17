@@ -5,6 +5,8 @@ import uuid
 import xml.etree.ElementTree as ET
 import pickle as pickle
 import socket
+import json
+import os.path
 
 log = logging.getLogger('conf')
 
@@ -43,7 +45,7 @@ class Settings(object):
         else:
             super(Settings, self).__setattr__(name, value)
 
-    def __get_file(self, path, mode="rb+", create=True):
+    def __get_file(self, path, mode="r", create=True):
         created = False
 
         if not os.path.exists(path):
@@ -51,8 +53,8 @@ class Settings(object):
                 fh = open(path, mode)
             except IOError as e:
                 if e.errno == 2 and create:
-                    fh = open(path, 'wb+')
-                    pickle.dump(self._data, fh)
+                    fh = open(path, 'w')
+                    json.dump(self._data, fh, indent=4, sort_keys=True)
                     fh.close()
                     created = True
                 else:
@@ -64,11 +66,29 @@ class Settings(object):
         # This should work now
         return open(path, mode), created
 
-    def load(self, path, create=True):
-        fh, created = self.__get_file(path, "rb+", create)
+    def migrate_config(self, old_path, new_path):
+        fh, created = self.__get_file(old_path, "rb+", False)
         if not created:
             try:
                 data = pickle.load(fh)
+                self._data.update(data)
+            except Exception as e:
+                log.error("Error loading settings from pickle: %s" % e)
+                fh.close()
+                return False
+        
+        os.remove(old_path)
+        self._path = new_path
+        fh.close()
+        self.save()
+        return True
+
+
+    def load(self, path, create=True):
+        fh, created = self.__get_file(path, "r", create)
+        if not created:
+            try:
+                data = json.load(fh)
                 self._data.update(data)
             except Exception as e:
                 log.error("Error loading settings from pickle: %s" % e)
@@ -80,10 +100,10 @@ class Settings(object):
         return True
 
     def save(self):
-        fh, created = self.__get_file(self._path, "wb+", True)
+        fh, created = self.__get_file(self._path, "w", True)
 
         try:
-            pickle.dump(self._data, fh)
+            json.dump(self._data, fh, indent=4, sort_keys=True)
             fh.flush()
             fh.close()
         except Exception as e:
