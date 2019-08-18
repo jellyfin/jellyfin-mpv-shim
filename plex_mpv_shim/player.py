@@ -6,6 +6,7 @@ import mpv
 
 from threading import Thread, RLock
 from time import sleep
+from queue import Queue
 
 from . import conffile
 from .conf import settings
@@ -33,18 +34,24 @@ class PlayerManager(object):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True, include=mpv_config)
         self.url = None
-        self.finished = False
+        self.evt_queue = Queue()
 
         @self._player.on_key_press('q')
         def handle_stop():
             self.stop()
 
+        @self._player.on_key_press('<')
+        def handle_prev():
+            self.put_task(self.play_prev)
+
+        @self._player.on_key_press('>')
+        def handle_next():
+            self.put_task(self.play_next)
+
         @self._player.event_callback('idle')
         def handle_end(event):
             if self._video:
-                # For some reason, if I call self.finished_callback()
-                # in here, it kills the connection to mpv.
-                self.finished = True
+                self.put_task(self.finished_callback)
 
         self._video       = None
         self._lock        = RLock()
@@ -52,13 +59,15 @@ class PlayerManager(object):
 
         self.__part      = 1
 
+    def put_task(self, func, *args):
+        self.evt_queue.put([func, args])
+
     @synchronous('_lock')
     def update(self):
-        if self._video and self.finished:
-            self.finished = False
-            self._video.set_played()
-            self.finished_callback()
-        elif self._video and not self._player.playback_abort:
+        while not self.evt_queue.empty():
+            func, args = self.evt_queue.get()
+            func(*args)
+        if self._video and not self._player.playback_abort:
             if self.last_update.elapsed() > SCROBBLE_INTERVAL and not self.is_paused():
                 if not self._video.played:
                     position = self._player.playback_time
@@ -78,7 +87,6 @@ class PlayerManager(object):
             log.error("PlayerManager::play no URL found")
             return
 
-        self.finished = False
         self._player.play(self.url)
         self._player.wait_for_property("duration")
         self._player.fs = True
@@ -109,7 +117,6 @@ class PlayerManager(object):
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
         self._video  = None
-        self.finished = False
         self._player.command("stop")
         self._player.pause = False
 
@@ -158,7 +165,9 @@ class PlayerManager(object):
     def finished_callback(self):
         if not self._video:
             return
-        
+       
+        self._video.set_played()
+
         if self._video.is_multipart():
             log.debug("PlayerManager::finished_callback media is multi-part, checking for next part")
             # Try to select the next part
