@@ -17,6 +17,7 @@ The project supports the following:
  - Autoplaying the next video. (Can be disabled.)
  - Extra keyboard shortcuts: < > skip, u unwatched/stop, w watched/next
  - Playing multiple videos in a queue.
+ - The app doesn't require or save any Plex passwords or tokens.
 
 You can install this project with the following commands:
 ```bash
