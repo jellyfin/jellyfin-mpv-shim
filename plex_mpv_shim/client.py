@@ -363,6 +363,9 @@ class HttpHandler(SimpleHTTPRequestHandler):
         log.debug("HttpHandler::seekTo offset %ss" % offset)
         playerManager.seek(offset)
 
+    def skipTo(self, path, arguments):
+        playerManager.skip_to(arguments["key"])
+
     def set(self, path, arguments):
         if "volume" in arguments:
             volume = arguments["volume"]

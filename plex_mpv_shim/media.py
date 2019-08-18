@@ -375,6 +375,16 @@ class Media(XMLCollection):
             prev_video = self.series[self.seq-1]
             return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml)
 
+    def get_from_key(self, key):
+        if self.play_queue:
+            self.upd_play_queue()
+            for i, video in enumerate(self.series):
+                if video.get("key") == key:
+                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml)
+            return None
+        else:
+            return Media(self.get_path(key))
+
     def get_video(self, index, media=0, part=0):
         if index == 0 and self.video:
             return Video(self.video, self, media, part)

@@ -138,6 +138,7 @@ class TimelineManager(threading.Thread):
             controllable.append("subtitleStream")
             controllable.append("audioStream")
             controllable.append("seekTo")
+            controllable.append("skipTo")
 
             if video.parent.has_next:
                 controllable.append("skipNext")

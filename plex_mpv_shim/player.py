@@ -216,6 +216,14 @@ class PlayerManager(object):
         return False
 
     @synchronous('_lock')
+    def skip_to(self, key):
+        media = self._video.parent.get_from_key(key)
+        if media:
+            self.play(media.get_video(0))
+            return True
+        return False
+
+    @synchronous('_lock')
     def play_prev(self):
         if self._video.parent.has_prev:
             self.play(self._video.parent.get_prev().get_video(0))
