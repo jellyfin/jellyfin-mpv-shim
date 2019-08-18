@@ -344,6 +344,12 @@ class HttpHandler(SimpleHTTPRequestHandler):
     def pausePlay(self, path, arguments):
         playerManager.toggle_pause()
 
+    def skipNext(self, path, arguments):
+        playerManager.play_next()
+
+    def skipPrevious(self, path, arguments):
+        playerManager.play_prev()
+
     def stepFunction(self, path, arguments):
         log.info("HttpHandler::stepFunction not implemented yet")
 

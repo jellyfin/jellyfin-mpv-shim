@@ -270,7 +270,7 @@ class Video(object):
         self.played = safe_urlopen(url, data)
         return self.played
 
-class Media(object):
+class XMLCollection(object):
     def __init__(self, url):
         """
         ``url`` should be a URL to the Plex XML media item.
@@ -279,10 +279,65 @@ class Media(object):
         self.server_url = self.path.scheme + "://" + self.path.netloc
         self.tree       = et.parse(urllib.request.urlopen(get_plex_url(url)))
 
+    def get_path(self, path):
+        return urllib.parse.urlunparse((self.path.scheme, self.path.netloc, path,
+            self.path.params, self.path.query, self.path.fragment))
+
     def __str__(self):
         return self.path.path
 
+class Media(XMLCollection):
+    def __init__(self, url, series=None, seq=None):
+        XMLCollection.__init__(self, url)
+        self.video = self.tree.find('./Video')
+        self.is_tv = self.video.get("type") == "episode"
+        self.seq = None
+        self.has_next = False
+        self.has_prev = False
+
+        if self.is_tv:
+            if series:
+                self.series = series
+                self.seq = seq
+            else:
+                self.series = []
+                specials = []
+                series_xml = XMLCollection(self.get_path(self.video.get("grandparentKey")+"/allLeaves"))
+                videos = series_xml.tree.findall('./Video')
+                
+                # This part is kind of nasty, so we only try to do it once per cast session.
+                key = self.video.get('key')
+                is_special = False
+                for i, video in enumerate(videos):
+                    if video.get('key') == key:
+                        self.seq = i
+                        is_special = video.get('parentIndex') == '0'
+                    if video.get('parentIndex') == '0':
+                        specials.append(video)
+                    else:
+                        self.series.append(video)
+                if is_special:
+                    self.seq += len(self.series)
+                else:
+                    self.seq -= len(specials)
+                self.series.extend(specials)
+            self.has_next = self.seq < len(self.series)
+            self.has_prev = self.seq > 0
+
+    def get_next(self):
+        if self.has_next:
+            next_video = self.series[self.seq+1]
+            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1)
+    
+    def get_prev(self):
+        if self.has_prev:
+            prev_video = self.series[self.seq-1]
+            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1)
+
     def get_video(self, index, media=0, part=0):
+        if index == 0 and self.video:
+            return Video(self.video, self, media, part)
+        
         video = self.tree.find('./Video[%s]' % (index+1))
         if video:
             return Video(video, self, media, part)
@@ -295,3 +350,4 @@ class Media(object):
             tree = et.parse(doc)
             setattr(self, "_machine_identifier", tree.find('.').get("machineIdentifier"))
         return getattr(self, "_machine_identifier", None)
+

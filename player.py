@@ -68,8 +68,6 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def play(self, video, offset=0):
-        self.stop()
-
         self.url = video.get_playback_url()
         if not self.url:
             log.error("PlayerManager::play no URL found")
@@ -160,8 +158,26 @@ class PlayerManager(object):
                 self.__part = next_part
                 log.debug("PlayerManager::finished_callback starting next part")
                 self.play(self._video)
+        
+        elif self._video.parent.has_next:
+            log.debug("PlayerManager::finished_callback starting next episode")
+            self.play(self._video.parent.get_next().get_video(0))
 
-            log.debug("PlayerManager::finished_callback no more parts found")
+        log.debug("PlayerManager::finished_callback reached end")
+
+    @synchronous('_lock')
+    def play_next(self):
+        if self._video.parent.has_next:
+            self.play(self._video.parent.get_next().get_video(0))
+            return True
+        return False
+
+    @synchronous('_lock')
+    def play_prev(self):
+        if self._video.parent.has_prev:
+            self.play(self._video.parent.get_prev().get_video(0))
+            return True
+        return False
 
     @synchronous('_lock')
     def get_video_attr(self, attr, default=None):

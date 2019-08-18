@@ -136,6 +136,12 @@ class TimelineManager(threading.Thread):
             controllable.append("audioStream")
             controllable.append("seekTo")
 
+            if video.parent.has_next:
+                controllable.append("skipNext")
+            
+            if video.parent.has_prev:
+                controllable.append("skipPrevious")
+
             # If the duration is unknown, disable seeking
             if options["duration"] == "0":
                 options.pop("duration")
