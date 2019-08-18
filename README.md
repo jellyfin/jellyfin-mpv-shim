@@ -15,6 +15,9 @@ cd plex-mpv-shim
 sudo pip3 install --upgrade .
 ```
 
+After installing the project, you can run it with `plex-mpv-shim`.
+If you'd like to run it without installing it, run `./run.py`.
+
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License.
 
