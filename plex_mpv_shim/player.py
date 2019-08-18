@@ -36,6 +36,7 @@ class PlayerManager(object):
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True, include=mpv_config)
         self.url = None
         self.evt_queue = Queue()
+        self.auto_play = True
 
         @self._player.on_key_press('q')
         def handle_stop():
@@ -186,7 +187,7 @@ class PlayerManager(object):
                 log.debug("PlayerManager::finished_callback starting next part")
                 self.play(self._video)
         
-        elif self._video.parent.has_next:
+        elif self._video.parent.has_next and self.auto_play:
             log.debug("PlayerManager::finished_callback starting next episode")
             self.play(self._video.parent.get_next().get_video(0))
 

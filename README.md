@@ -14,7 +14,7 @@ The project supports the following:
  - Connecting to shared servers.
  - Installing the package system-wide.
  - Skipping between videos.
- - Autoplaying the next video.
+ - Autoplaying the next video. (Can be disabled.)
  - Extra keyboard shortcuts: < > skip, u unwatched/stop, w watched/next
  - Playing multiple videos in a queue.
 
@@ -37,5 +37,6 @@ Keyboard Shortcuts:
 
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported
-to python3 and modified to use mpv as the player.
+to python3, modified to use mpv as the player, and updated to allow all
+features of the remote control api for video playback.
 

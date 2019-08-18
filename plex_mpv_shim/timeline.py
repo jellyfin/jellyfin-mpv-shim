@@ -111,6 +111,7 @@ class TimelineManager(threading.Thread):
             options["location"]          = "fullScreenVideo"
 
             options["time"]              = player.playback_time * 1e3
+            options["autoPlay"]          = '1' if playerManager.auto_play else '0'
             if player.sub != 'no':
                 options["subtitleStreamID"] = video.subtitle_uid.get(player.sub, '')
 
@@ -139,6 +140,7 @@ class TimelineManager(threading.Thread):
             controllable.append("audioStream")
             controllable.append("seekTo")
             controllable.append("skipTo")
+            controllable.append("autoPlay")
 
             if video.parent.has_next:
                 controllable.append("skipNext")

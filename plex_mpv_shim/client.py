@@ -371,6 +371,8 @@ class HttpHandler(SimpleHTTPRequestHandler):
             volume = arguments["volume"]
             log.debug("HttpHandler::set settings volume to %s" % volume)
             playerManager.set_volume(float(volume)/100.0)
+        if "autoPlay" in arguments:
+            playerManager.auto_play = arguments["autoPlay"] == "1"
 
     def setStreams(self, path, arguments):
         audioStreamID = None
