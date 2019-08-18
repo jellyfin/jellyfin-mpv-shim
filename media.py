@@ -97,7 +97,7 @@ class Video(object):
     def is_multipart(self):
         if not self._media_node:
             return False
-        return len(self._media_node.findall("./Part",[])) > 1
+        return len(self._media_node.findall("./Part")) > 1
 
     def get_proper_title(self):
         if not hasattr(self, "_title"):
