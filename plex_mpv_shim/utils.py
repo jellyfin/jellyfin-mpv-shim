@@ -49,10 +49,8 @@ def get_plex_url(url, data={}):
         data.update({
             "X-Plex-Token": plex_eph_tokens[domain]
         })
-    elif settings.myplex_token:
-        data.update({
-            "X-Plex-Token": settings.myplex_token
-        })
+    else:
+        log.error("get_plex_url No token for: %s" % domain)
 
     data.update({
         "X-Plex-Version":           "1.0",

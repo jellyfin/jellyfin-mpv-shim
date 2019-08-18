@@ -33,15 +33,6 @@ def main():
     if os.path.isfile('settings.dat'):
         settings.migrate_config('settings.dat', conf_file)
     settings.load(conf_file)
-    if not settings.myplex_token:
-        while True:
-            username = input("MyPlex Username: ")
-            password = getpass.getpass("MyPlex Password: ")
-            if settings.login_myplex(username, password):
-                print("Logged in!")
-                break
-            print("Error logging in...")
-
     settings.add_listener(update_gdm_settings)
     
     update_gdm_settings()

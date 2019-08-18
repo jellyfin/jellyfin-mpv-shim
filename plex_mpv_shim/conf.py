@@ -15,9 +15,6 @@ class Settings(object):
 
     _path = None
     _data = {
-        "myplex_username":      "",
-        "myplex_password":      "",
-        "myplex_token":         "",
         "player_name":          socket.gethostname(),
         "plex_server":          "",
         "http_port":            "3000",
@@ -112,39 +109,6 @@ class Settings(object):
             return False
 
         return True
-
-    def login_myplex(self, username, password, test=False):
-        url     = "https://my.plexapp.com/users/sign_in.xml"
-        auth    = (username, password)
-        token   = None
-        headers = {
-            "Content-Type":             "application/xml",
-            "X-Plex-Client-Identifier": self.client_uuid,
-            "X-Plex-Product":           "Plex Media Player",
-            "X-Plex-Version":           "1.0",
-            "X-Plex-Provides":          "player",
-            "X-Plex-Platform":          "Raspberry Pi"
-        }
-
-        try:
-            response = requests.post(url, auth=auth, headers=headers)
-            root     = ET.fromstring(response.text)
-            token    = root.findall('authentication-token')[0].text
-            user     = root.findall('username')[0].text
-            log.info("Logged in to myPlex as %s" % user)
-        except Exception as e:
-            log.error("Error logging into MyPlex: %s" % e)
-
-        if not test and token:
-            self.myplex_token = token
-
-        if token is not None:
-            self.myplex_token    = token
-            self.myplex_username = username
-            self.myplex_password = password
-            return True
-
-        return False
 
     def add_listener(self, callback):
         """

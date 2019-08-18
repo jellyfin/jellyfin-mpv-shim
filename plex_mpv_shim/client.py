@@ -181,54 +181,6 @@ class HttpHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.handle_request("OPTIONS")
 
-    def do_POST(self):
-        ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-        if ctype == 'multipart/form-data':
-            postvars = cgi.parse_multipart(self.rfile, pdict)
-        elif ctype == 'application/x-www-form-urlencoded':
-            length = int(self.headers.getheader('content-length'))
-            postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
-        else:
-            postvars = {}
-
-        if self.path == "/data/settings/":
-            response = {
-                "success": True,
-                "message": ""
-            }
-            try:
-                myplex_username = postvars.get("myplex_username")[0]
-                myplex_password = postvars.get("myplex_password")[0]
-                player_name     = postvars.get("player_name")[0]
-                audio_output    = postvars.get("audio_output")[0]
-            except:
-                response.update({
-                    "success": False,
-                    "message": "Invalid data"
-                })
-
-            if response["success"]:
-                if not settings.login_myplex(myplex_username, myplex_password):
-                    response.update({
-                        "success": False,
-                        "message": "Invalid MyPlex Credentials"
-                    })
-
-            if response["success"]:
-                settings.myplex_username = myplex_username
-                settings.myplex_password = myplex_password
-                settings.player_name     = player_name
-                settings.audio_output    = audio_output
-
-            data = json.dumps(response)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            
-            self.wfile.write(data)
-
     def do_GET(self):
         if self.path == "/":           
             f = self.send_head()
