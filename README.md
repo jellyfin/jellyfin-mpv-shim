@@ -1,11 +1,22 @@
 # Plex MPV Shim
 
-This project aims to allow casting of content from a Plex server to MPV, with
+This project allows casting of content from a Plex server to MPV, with
 minimal dependencies to prevent the project from becoming unmaintained.
 
-Currently this software has been tested to work with direct play through
-the Plex iOS app. I have fixed support for some features, such as subtitle
-selection. I have also ported everything to python3.
+The project supports the following:
+ - Direct play of HEVC mkv files with subtitles.
+ - Switching of subtitles and audio tracks.
+ - Casting videos from the iOS mobile app and web app.
+ - Seeking within a video using the seek bar and buttons.
+ - Play, pause, and stop.
+ - Using the built-in MPV controls. (OSD and keyboard shortcuts.)
+ - Configuration of mpv via mpv.conf.
+ - Connecting to shared servers.
+ - Installing the package system-wide.
+ - Skipping between videos.
+ - Autoplaying the next video.
+ - Extra keyboard shortcuts: < > skip, u unwatched/stop, w watched/next
+ - Playing multiple videos in a queue.
 
 You can install this project with the following commands:
 ```bash
@@ -25,5 +36,6 @@ Keyboard Shortcuts:
  - u to mark unwatched and quit
 
 This project is based on https://github.com/wnielson/omplex, which
-is available under the terms of the MIT License.
+is available under the terms of the MIT License. The project was ported
+to python3 and modified to use mpv as the player.
 
