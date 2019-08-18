@@ -254,14 +254,19 @@ class Video(object):
         
         return safe_urlopen(url, data)
 
-    def set_played(self):
+    def set_played(self, watched=True):
         rating_key = self.get_rating_key()
 
         if rating_key is None:
             log.error("No 'ratingKey' could be found in XML from URL '%s'" % (self.parent.path.geturl()))
             return False
 
-        url  = urllib.parse.urljoin(self.parent.server_url, '/:/scrobble')
+        if watched:
+            act = '/:/scrobble'
+        else:
+            act = '/:/unscrobble'
+
+        url  = urllib.parse.urljoin(self.parent.server_url, act)
         data = {
             "key":          rating_key,
             "identifier":   "com.plexapp.plugins.library"

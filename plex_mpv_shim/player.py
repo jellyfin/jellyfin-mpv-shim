@@ -48,6 +48,14 @@ class PlayerManager(object):
         def handle_next():
             self.put_task(self.play_next)
 
+        @self._player.on_key_press('w')
+        def handle_watched():
+            self.put_task(self.watched_skip)
+
+        @self._player.on_key_press('u')
+        def handle_unwatched():
+            self.put_task(self.unwatched_quit)
+
         @self._player.event_callback('idle')
         def handle_end(event):
             if self._video:
@@ -182,6 +190,22 @@ class PlayerManager(object):
             self.play(self._video.parent.get_next().get_video(0))
 
         log.debug("PlayerManager::finished_callback reached end")
+
+    @synchronous('_lock')
+    def watched_skip(self):
+        if not self._video:
+            return
+
+        self._video.set_played()
+        self.play_next()
+
+    @synchronous('_lock')
+    def unwatched_quit(self):
+        if not self._video:
+            return
+
+        self._video.set_played(False)
+        self.stop()
 
     @synchronous('_lock')
     def play_next(self):
