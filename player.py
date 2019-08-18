@@ -33,17 +33,18 @@ class PlayerManager(object):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True, include=mpv_config)
         self.url = None
+        self.finished = False
 
         @self._player.on_key_press('q')
         def handle_stop():
-            self._player.command("stop")
-            self._player.pause = False
-            self._video = None
+            self.stop()
 
-        @self._player.property_observer('path')
-        def handle_end(_name, value):
-            if self.url != value:
-                self.finished_callback()
+        @self._player.event_callback('idle')
+        def handle_end(event):
+            if self._video:
+                # For some reason, if I call self.finished_callback()
+                # in here, it kills the connection to mpv.
+                self.finished = True
 
         self._video       = None
         self._lock        = RLock()
@@ -53,7 +54,11 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def update(self):
-        if self._video and not self._player.playback_abort:
+        if self._video and self.finished:
+            self.finished = False
+            self._video.set_played()
+            self.finished_callback()
+        elif self._video and not self._player.playback_abort:
             if self.last_update.elapsed() > SCROBBLE_INTERVAL and not self.is_paused():
                 if not self._video.played:
                     position = self._player.playback_time
@@ -72,7 +77,8 @@ class PlayerManager(object):
         if not self.url:
             log.error("PlayerManager::play no URL found")
             return
-        
+
+        self.finished = False
         self._player.play(self.url)
         self._player.wait_for_property("duration")
         self._player.fs = True
@@ -92,6 +98,7 @@ class PlayerManager(object):
         else:
             self._player.sub = 'no'
 
+        self._player.pause = False
         self._video  = video
 
     @synchronous('_lock')
@@ -101,8 +108,10 @@ class PlayerManager(object):
 
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
-        self._player.command("stop")
         self._video  = None
+        self.finished = False
+        self._player.command("stop")
+        self._player.pause = False
 
     @synchronous('_lock')
     def get_volume(self, percent=False):
