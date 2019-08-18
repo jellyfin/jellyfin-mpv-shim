@@ -26,7 +26,8 @@ class Settings(object):
         "audio_dtspassthrough": False,
         "client_uuid":          str(uuid.uuid4()),
         "display_sleep":        0,
-        "display_mode":         ""
+        "display_mode":         "",
+        "enable_play_queue":    True
     }
 
     def __getattr__(self, name):

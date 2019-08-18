@@ -128,6 +128,9 @@ class TimelineManager(threading.Thread):
             options["machineIdentifier"] = media.get_machine_identifier()
             options["seekRange"]         = "0-%s" % options["duration"]
 
+            if media.play_queue:
+                options.update(media.get_queue_info())
+
             controllable.append("playPause")
             controllable.append("stop")
             controllable.append("stepBack")

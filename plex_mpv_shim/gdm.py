@@ -31,6 +31,7 @@ import re
 import threading
 import time
 import urllib.request, urllib.error, urllib.parse
+from .conf import settings
 
 class PlexGDM:
 
@@ -61,6 +62,10 @@ class PlexGDM:
             print("PlexGDM: %s" % message)
 
     def clientDetails(self, c_id, c_name, c_port, c_product, c_version):
+        capabilities = b"timeline,playback,navigation"
+        if settings.enable_play_queue:
+            capabilities = b"timeline,playback,navigation,playqueues"
+        
         data = {
             b"Name":                  str(c_name).encode("utf-8"),
             b"Port":                  str(c_port).encode("utf-8"),
@@ -68,7 +73,7 @@ class PlexGDM:
             b"Content-Type":          b"plex/media-player",
             b"Protocol":              b"plex",
             b"Protocol-Version":      b"1",
-            b"Protocol-Capabilities": b"timeline,playback,navigation",
+            b"Protocol-Capabilities": capabilities,
             b"Version":               str(c_version).encode("utf-8"),
             b"Resource-Identifier":   str(c_id).encode("utf-8"),
             b"Device-Class":          b"HTPC"

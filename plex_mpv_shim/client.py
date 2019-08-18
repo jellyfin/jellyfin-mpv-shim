@@ -59,6 +59,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
           "/player/application/sendKey",),      "sendVKey"),
         (("/player/playback/bigStepForward",
           "/player/playback/bigStepBack",),     "stepFunction"),
+        (("/player/playback/refreshPlayQueue",),"refreshPlayQueue"),
         #(("/player/mirror/details",),           "mirror"),
     )
 
@@ -321,12 +322,16 @@ class HttpHandler(SimpleHTTPRequestHandler):
         key         = arguments.get("key",          None)
         offset      = int(int(arguments.get("offset",   0))/1e3)
         url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
+        playQueue   = arguments.get("containerKey", None)
 
         token = arguments.get("token", None)
         if token:
             upd_token(address, token)
 
-        media       = Media(url)
+        if settings.enable_play_queue and playQueue.startswith("/playQueue"):
+            media = Media(url, play_queue=playQueue)
+        else:
+            media = Media(url)
 
         log.debug("HttpHandler::playMedia %s" % media)
 
@@ -372,6 +377,10 @@ class HttpHandler(SimpleHTTPRequestHandler):
         if "subtitleStreamID" in arguments:
             subtitleStreamID = arguments["subtitleStreamID"]
         playerManager.set_streams(audioStreamID, subtitleStreamID)
+
+    def refreshPlayQueue(self, path, arguments):
+        playerManager._video.parent.upd_play_queue()
+        timelineManager.SendTimelineToSubscribers()
 
     def mirror(self, path, arguments):
         pass

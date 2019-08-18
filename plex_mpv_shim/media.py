@@ -292,15 +292,25 @@ class XMLCollection(object):
         return self.path.path
 
 class Media(XMLCollection):
-    def __init__(self, url, series=None, seq=None):
+    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None):
         XMLCollection.__init__(self, url)
         self.video = self.tree.find('./Video')
         self.is_tv = self.video.get("type") == "episode"
         self.seq = None
         self.has_next = False
         self.has_prev = False
+        self.play_queue = play_queue
+        self.play_queue_xml = play_queue_xml
 
-        if self.is_tv:
+        if self.play_queue:
+            if not series:
+                self.upd_play_queue()
+            else:
+                self.series = series
+                self.seq = seq
+                self.has_next = self.seq < len(self.series)
+                self.has_prev = self.seq > 0
+        elif self.is_tv:
             if series:
                 self.series = series
                 self.seq = seq
@@ -329,15 +339,41 @@ class Media(XMLCollection):
             self.has_next = self.seq < len(self.series)
             self.has_prev = self.seq > 0
 
+    def upd_play_queue(self):
+        if self.play_queue:
+            self.play_queue_xml = XMLCollection(self.get_path(self.play_queue))
+            videos = self.play_queue_xml.tree.findall('./Video')
+            self.series = []
+
+            key = self.video.get('key')
+            for i, video in enumerate(videos):
+                if video.get('key') == key:
+                    self.seq = i
+                self.series.append(video)
+
+            self.has_next = self.seq < len(self.series)
+            self.has_prev = self.seq > 0
+
+    def get_queue_info(self):
+        return {
+            "playQueueID": self.play_queue_xml.tree.find(".").get("playQueueID"),
+            "playQueueVersion": self.play_queue_xml.tree.find(".").get("playQueueVersion"),
+            "playQueueItemID": self.series[self.seq].get("playQueueItemID")
+        }
+
     def get_next(self):
         if self.has_next:
+            if self.play_queue and self.seq+1 == len(self.series):
+                self.upd_play_queue()
             next_video = self.series[self.seq+1]
-            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1)
+            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml)
     
     def get_prev(self):
         if self.has_prev:
+            if self.play_queue and self.seq-1 == 0:
+                self.upd_play_queue()
             prev_video = self.series[self.seq-1]
-            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1)
+            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml)
 
     def get_video(self, index, media=0, part=0):
         if index == 0 and self.video:
