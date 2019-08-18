@@ -19,7 +19,7 @@ The project supports the following:
  - Playing multiple videos in a queue.
  - The app doesn't require or save any Plex passwords or tokens.
 
-You can install this project with the following commands:
+You'll need to install [mpv](https://mpv.io/). Then run:
 ```bash
 git clone https://github.com/iwalton3/plex-mpv-shim
 cd plex-mpv-shim
