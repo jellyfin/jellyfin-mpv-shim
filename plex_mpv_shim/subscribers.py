@@ -6,7 +6,7 @@ Modeled after Plex Home Theater Remote implementation:
 """
 import logging
 
-from utils import Timer
+from .utils import Timer
 
 # give clients 90 seconds before we time them out
 SUBSCRIBER_REMOVE_INTERVAL = 90

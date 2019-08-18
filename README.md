@@ -8,9 +8,12 @@ the Plex iOS app. I have fixed support for some features, such as subtitle
 selection. I have also ported everything to python3. Most controls work, with
 the notable exceptions being skipping between videos.
 
-You'll need to install the following pip3 packages:
- - python-mpv
- - requests
+You can install this project with the following commands:
+```bash
+git clone https://github.com/iwalton3/plex-mpv-shim
+cd plex-mpv-shim
+sudo pip3 install --upgrade .
+```
 
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License.

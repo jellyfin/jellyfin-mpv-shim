@@ -12,7 +12,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from utils import upd_token
+from .utils import upd_token
 
 try:
     from xml.etree import cElementTree as et
@@ -21,11 +21,11 @@ except:
 
 from io import BytesIO
 
-from conf import settings
-from media import Media
-from player import playerManager
-from subscribers import remoteSubscriberManager, RemoteSubscriber
-from timeline import timelineManager
+from .conf import settings
+from .media import Media
+from .player import playerManager
+from .subscribers import remoteSubscriberManager, RemoteSubscriber
+from .timeline import timelineManager
 
 log = logging.getLogger("client")
 

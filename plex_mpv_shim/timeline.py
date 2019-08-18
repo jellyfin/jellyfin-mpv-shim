@@ -10,10 +10,10 @@ except:
 
 from io import BytesIO
 
-from conf import settings
-from player import playerManager
-from subscribers import remoteSubscriberManager
-from utils import Timer
+from .conf import settings
+from .player import playerManager
+from .subscribers import remoteSubscriberManager
+from .utils import Timer
 
 log = logging.getLogger("timeline")
 

@@ -5,14 +5,14 @@ import queue
 import logging
 import sys
 import time
-import conffile
 import os.path
 
-from client import HttpServer
-from conf import settings
-from gdm import gdm
-from player import playerManager
-from timeline import timelineManager
+from . import conffile
+from .client import HttpServer
+from .conf import settings
+from .gdm import gdm
+from .player import playerManager
+from .timeline import timelineManager
 
 
 HTTP_PORT   = 3000

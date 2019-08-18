@@ -2,7 +2,7 @@ import logging
 import os
 import urllib.request, urllib.parse, urllib.error
 
-from conf import settings
+from .conf import settings
 from datetime import datetime
 from functools import wraps
 

@@ -7,8 +7,8 @@ try:
 except:
     import xml.etree.ElementTree as et
 
-from conf import settings
-from utils import get_plex_url, safe_urlopen
+from .conf import settings
+from .utils import get_plex_url, safe_urlopen
 
 log = logging.getLogger('media')
 

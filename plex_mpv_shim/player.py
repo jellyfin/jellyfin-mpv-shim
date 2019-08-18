@@ -3,13 +3,13 @@ import math
 import os
 import re
 import mpv
-import conffile
 
 from threading import Thread, RLock
 from time import sleep
 
-from conf import settings
-from utils import synchronous, Timer
+from . import conffile
+from .conf import settings
+from .utils import synchronous, Timer
 
 # Scrobble progress to Plex server at most every 5 seconds
 SCROBBLE_INTERVAL = 5
