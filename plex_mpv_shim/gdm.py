@@ -68,15 +68,16 @@ class PlexGDM:
         
         data = {
             b"Name":                  str(c_name).encode("utf-8"),
+            b"RawName":               str(c_name).encode("utf-8"),
             b"Port":                  str(c_port).encode("utf-8"),
-            b"Product":               str(c_product).encode("utf-8"),
             b"Content-Type":          b"plex/media-player",
+            b"Product":               str(c_product).encode("utf-8"),
             b"Protocol":              b"plex",
             b"Protocol-Version":      b"1",
             b"Protocol-Capabilities": capabilities,
             b"Version":               str(c_version).encode("utf-8"),
             b"Resource-Identifier":   str(c_id).encode("utf-8"),
-            b"Device-Class":          b"HTPC"
+            b"Device-Class":          b"pc"
         }
         
         self.client_data = b""

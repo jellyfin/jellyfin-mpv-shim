@@ -24,7 +24,7 @@ logging.getLogger('requests').setLevel(logging.CRITICAL)
 
 def update_gdm_settings(name=None, value=None):
     gdm.clientDetails(settings.client_uuid, settings.player_name,
-        settings.http_port, "RaspberryPi", "1.0")
+        settings.http_port, "Plex MPV Shim", "1.0")
 
 def main():
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")

@@ -265,7 +265,26 @@ class HttpHandler(SimpleHTTPRequestHandler):
             self.xmlOutput = timelineManager.GetCurrentTimeLinesXML(pollSubscriber)
 
     def resources(self, path, arguments):
-        pass
+        mediaContainer = et.Element("MediaContainer")
+        player = et.Element("Player")
+
+        capabilities = "timeline,playback,navigation"
+        if settings.enable_play_queue:
+            capabilities = "timeline,playback,navigation,playqueues"
+
+        info = (("deviceClass",               "pc"),
+                ("machineIdentifier",         settings.client_uuid),
+                ("product",                   "Plex MPV Shim"),
+                ("protocolCapabilities",      capabilities),
+                ("protocolVersion",           "1"),
+                ("title",                     settings.player_name),
+                ("version",                   "1.0"))
+
+        for key, value in info:
+            player.set(key, value)
+
+        mediaContainer.append(player)
+        self.xmlOutput = mediaContainer
 
     def playMedia(self, path, arguments):
         address     = arguments.get("address",      None)
