@@ -5,8 +5,7 @@ minimal dependencies to prevent the project from becoming unmaintained.
 
 Currently this software has been tested to work with direct play through
 the Plex iOS app. I have fixed support for some features, such as subtitle
-selection. I have also ported everything to python3. Most controls work, with
-the notable exceptions being skipping between videos.
+selection. I have also ported everything to python3.
 
 You can install this project with the following commands:
 ```bash
