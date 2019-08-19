@@ -314,11 +314,11 @@ class HttpHandler(SimpleHTTPRequestHandler):
 
     def stop(self, path, arguments):
         playerManager.stop()
-
         timelineManager.SendTimelineToSubscribers()
 
     def pausePlay(self, path, arguments):
         playerManager.toggle_pause()
+        timelineManager.SendTimelineToSubscribers()
 
     def skipNext(self, path, arguments):
         playerManager.play_next()
