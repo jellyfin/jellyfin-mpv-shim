@@ -24,7 +24,8 @@ class Settings(object):
         "client_uuid":          str(uuid.uuid4()),
         "display_sleep":        0,
         "display_mode":         "",
-        "enable_play_queue":    True
+        "enable_play_queue":    True,
+        "allow_http":           False
     }
 
     def __getattr__(self, name):

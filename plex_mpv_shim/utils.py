@@ -44,7 +44,12 @@ def upd_token(domain, token):
     plex_eph_tokens[domain] = token
 
 def get_plex_url(url, data={}):
-    domain = urllib.parse.urlsplit(url).hostname
+    parsed_url = urllib.parse.urlsplit(url)
+    domain = parsed_url.hostname
+
+    if parsed_url.scheme != "https" and not settings.allow_http:
+        raise ValueError("HTTP is not enabled in the configuration.")
+
     if domain in plex_eph_tokens:
         data.update({
             "X-Plex-Token": plex_eph_tokens[domain]
