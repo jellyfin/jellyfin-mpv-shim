@@ -19,11 +19,22 @@ The project supports the following:
  - Playing multiple videos in a queue.
  - The app doesn't require or save any Plex passwords or tokens.
 
-You'll need to install [mpv](https://mpv.io/). Then run:
+You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash
 git clone https://github.com/iwalton3/plex-mpv-shim
 cd plex-mpv-shim
 sudo pip3 install --upgrade .
+```
+
+The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
+```bash
+sudo apt install autoconf automake libtool libharfbuzz-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libvdpau-dev libva-dev mesa-common-dev libegl1-mesa-dev yasm libasound2-dev libpulse-dev libuchardet-dev zlib1g-dev libfribidi-dev git libgnutls28-dev libgl1-mesa-dev libsdl2-dev cmake wget python g++ libluajit-5.1-dev
+git clone https://github.com/mpv-player/mpv-build.git
+cd mpv-build
+echo --enable-libmpv-shared > mpv_options
+./rebuild -j4
+sudo ./install
+sudo ldconfig
 ```
 
 After installing the project, you can run it with `plex-mpv-shim`.
