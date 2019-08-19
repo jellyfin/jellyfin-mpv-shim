@@ -221,9 +221,9 @@ class PlexGDM:
                 update = { 'server' : response.get('from')[0] }
 
                 #Check if we had a positive HTTP response                        
-                if "200 OK" in response.get('data'):
+                if bytes("200 OK",'utf-8') in response.get('data'):
             
-                    for each in response.get('data').split('\n'):
+                    for each in str(response.get('data')).split('\\r\\n'):
 
                         update['discovery'] = "auto"
                         update['owned']='1'
