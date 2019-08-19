@@ -204,6 +204,7 @@ class Video(object):
             return
 
         match = False
+        index = None
         for index, stream in enumerate(self._part_node.findall("./Stream[@streamType='2']") or []):
             if stream.get('selected') == "1":
                 match = True
@@ -217,6 +218,7 @@ class Video(object):
             return
 
         match = False
+        index = None
         for index, sub in enumerate(self._part_node.findall("./Stream[@streamType='3']") or []):
             if sub.get('selected') == "1":
                 match = True

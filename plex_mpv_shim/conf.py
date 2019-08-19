@@ -1,8 +1,6 @@
 import logging
 import os
-import requests
 import uuid
-import xml.etree.ElementTree as ET
 import pickle as pickle
 import socket
 import json

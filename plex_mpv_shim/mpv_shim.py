@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import getpass
 import queue
 import logging
 import sys

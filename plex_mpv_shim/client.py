@@ -1,15 +1,13 @@
-import cgi
 import datetime
 import json
 import logging
 import os
 import posixpath
 import threading
-import requests
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from .utils import upd_token
@@ -83,12 +81,12 @@ class HttpHandler(SimpleHTTPRequestHandler):
             name = arguments.get("X-Plex-Device-Name")
 
         if not uuid:
-            log.warn("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Client-Identifier")
+            log.warning("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Client-Identifier")
             self.setStandardResponse(500, "subscriber didn't set X-Plex-Client-Identifier")
             return
 
         if not name:
-            log.warn("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Device-Name")
+            log.warning("HttpHandler::getSubFromRequest subscriber didn't set X-Plex-Device-Name")
             self.setStandardResponse(500, "subscriber didn't set X-Plex-Device-Name")
             return
 
@@ -108,7 +106,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
     def updateCommandID(self, arguments):
         if "commandID" not in arguments:
             if self.path.find("unsubscribe") < 0:
-                log.warn("HttpHandler::updateCommandID no commandID sent to this request!")
+                log.warning("HttpHandler::updateCommandID no commandID sent to this request!")
             return
 
         commandID = -1
@@ -120,7 +118,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
 
         uuid = self.headers.get("X-Plex-Client-Identifier", None)
         if not uuid:
-            log.warn("HttpHandler::updateCommandID subscriber didn't set X-Plex-Client-Identifier")
+            log.warning("HttpHandler::updateCommandID subscriber didn't set X-Plex-Client-Identifier")
             self.setStandardResponse(500, "When commandID is set you also need to specify X-Plex-Client-Identifier")
             return
 
@@ -252,7 +250,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
             pass
 
         if commandID == -1 or not uuid:
-            log.warn("HttpHandler::poll the poller needs to set both X-Plex-Client-Identifier header and commandID arguments.")
+            log.warning("HttpHandler::poll the poller needs to set both X-Plex-Client-Identifier header and commandID arguments.")
             self.setStandardResponse(500, "You need to specify both x-Plex-Client-Identifier as a header and commandID as a argument")
             return
 

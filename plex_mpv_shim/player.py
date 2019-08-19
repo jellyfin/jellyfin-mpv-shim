@@ -1,15 +1,10 @@
 import logging
-import math
-import os
-import re
 import mpv
 
-from threading import Thread, RLock
-from time import sleep
+from threading import RLock
 from queue import Queue
 
 from . import conffile
-from .conf import settings
 from .utils import synchronous, Timer
 
 # Scrobble progress to Plex server at most every 5 seconds
@@ -37,7 +32,7 @@ class PlayerManager(object):
         if hasattr(self._player, 'osc'):
             self._player.osc = True
         else:
-            log.warn("This mpv version doesn't support on-screen controller.")
+            log.warning("This mpv version doesn't support on-screen controller.")
 
         self.url = None
         self.evt_queue = Queue()

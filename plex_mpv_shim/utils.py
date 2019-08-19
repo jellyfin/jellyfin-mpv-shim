@@ -43,7 +43,10 @@ def synchronous(tlockname):
 def upd_token(domain, token):
     plex_eph_tokens[domain] = token
 
-def get_plex_url(url, data={}):
+def get_plex_url(url, data=None):
+    if not data:
+        data = {}
+
     parsed_url = urllib.parse.urlsplit(url)
     domain = parsed_url.hostname
 
@@ -82,11 +85,14 @@ def get_plex_url(url, data={}):
 
     return url
 
-def safe_urlopen(url, data={}):
+def safe_urlopen(url, data=None):
     """
     Opens a url and returns True if an HTTP 200 code is returned,
     otherwise returns False.
     """
+    if not data:
+        data = {}
+
     url = get_plex_url(url, data)
 
     try:
@@ -110,6 +116,7 @@ def find_exe(filename, search_path=None):
     if search_path is None:
         search_path = os.environ.get("PATH", "")
 
+    path = None
     paths = search_path.split(os.pathsep)
     for path in paths:
         if os.access(os.path.join(path, filename), os.X_OK):

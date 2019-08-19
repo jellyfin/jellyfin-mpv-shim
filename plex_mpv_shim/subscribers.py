@@ -31,7 +31,7 @@ class RemoteSubscriberManager(object):
             self.subscribers[subscriber.uuid].commandID = subscriber.commandID
 
     def removeSubscriber(self, subscriber):
-        if subscriber != None and subscriber.uuid in self.subscribers:
+        if subscriber is not None and subscriber.uuid in self.subscribers:
             log.debug("RemoteSubscriberManager::removeSubscriber removing subscriber %s [%s]" % (subscriber.url, subscriber.uuid))
             self.subscribers.pop(subscriber.uuid)
 
@@ -72,10 +72,13 @@ class RemoteSubscriber(object):
 
     def shouldRemove(self):
         if self.lastUpdated.elapsed() > SUBSCRIBER_REMOVE_INTERVAL:
-            log.debug("RemoteSubscriber::shouldRemove removing %s because elapsed: %lld" % (self.uuid, self.lastUpdated.elapsed()))
+            log.debug("RemoteSubscriber::shouldRemove "
+                      "removing %s because elapsed: %d" % (self.uuid, self.lastUpdated.elapsed()))
             return True
 
-        log.debug("RemoteSubscriber::shouldRemove will not remove %s because elapsed: %lld" % (self.uuid, self.lastUpdated.elapsed()))
+        log.debug("RemoteSubscriber::shouldRemove will not "
+                  "remove %s because elapsed: %d" % (self.uuid, self.lastUpdated.elapsed()))
         return False
+
 
 remoteSubscriberManager = RemoteSubscriberManager()
