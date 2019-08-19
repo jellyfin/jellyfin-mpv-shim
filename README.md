@@ -2,6 +2,7 @@
 
 This project allows casting of content from a Plex server to MPV, with
 minimal dependencies to prevent the project from becoming unmaintained.
+This project is 1/17th the size of Plex Media Player and is all python.
 
 The project supports the following:
  - Direct play of HEVC mkv files with subtitles.
