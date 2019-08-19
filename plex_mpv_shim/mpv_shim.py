@@ -7,6 +7,8 @@ import sys
 import time
 import os.path
 
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
+
 from . import conffile
 from .client import HttpServer
 from .conf import settings
@@ -27,8 +29,6 @@ def update_gdm_settings(name=None, value=None):
         settings.http_port, "Plex MPV Shim", "1.0")
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
-
     conf_file = conffile.get(APP_NAME,'conf.json')
     if os.path.isfile('settings.dat'):
         settings.migrate_config('settings.dat', conf_file)

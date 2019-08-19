@@ -33,7 +33,12 @@ class PlayerManager(object):
     """
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
-        self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True, include=mpv_config)
+        self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, include=mpv_config)
+        if hasattr(self._player, 'osc'):
+            self._player.osc = True
+        else:
+            log.warn("This mpv version doesn't support on-screen controller.")
+
         self.url = None
         self.evt_queue = Queue()
         self.auto_play = True
