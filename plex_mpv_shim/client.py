@@ -12,6 +12,7 @@ from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from .utils import upd_token
+from .conf import settings
 
 try:
     from xml.etree import cElementTree as et
@@ -308,6 +309,8 @@ class HttpHandler(SimpleHTTPRequestHandler):
         # TODO: Select video, media and part here based off user settings
         video = media.get_video(0)
         if video:
+            if settings.pre_media_cmd:
+                os.system(settings.pre_media_cmd)
             playerManager.play(video, offset)
             timelineManager.SendTimelineToSubscribers()
 

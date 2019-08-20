@@ -19,6 +19,7 @@ The project supports the following:
  - Extra keyboard shortcuts: < > skip, u unwatched/stop, w watched/next
  - Playing multiple videos in a queue.
  - The app doesn't require or save any Plex passwords or tokens.
+ - Executing commands before playing, after media end, and when stopped.
 
 You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash
@@ -47,6 +48,11 @@ Keyboard Shortcuts:
  - q to close player
  - w to mark watched and skip
  - u to mark unwatched and quit
+
+You can execute shell commands on media state using the config file:
+ - media_ended_cmd - When all media has played.
+ - pre_media_cmd - Before the player displays. (Will wait for finish.)
+ - stop_cmd - After stopping the player.
 
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported

@@ -23,7 +23,10 @@ class Settings(object):
         "display_sleep":        0,
         "display_mode":         "",
         "enable_play_queue":    True,
-        "allow_http":           False
+        "allow_http":           False,
+        "media_ended_cmd":      None,
+        "pre_media_cmd":        None,
+        "stop_cmd":             None
     }
 
     def __getattr__(self, name):

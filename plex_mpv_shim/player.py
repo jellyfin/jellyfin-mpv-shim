@@ -1,11 +1,13 @@
 import logging
 import mpv
+import os
 
 from threading import RLock
 from queue import Queue
 
 from . import conffile
 from .utils import synchronous, Timer
+from .conf import settings
 
 # Scrobble progress to Plex server at most every 5 seconds
 SCROBBLE_INTERVAL = 5
@@ -140,9 +142,14 @@ class PlayerManager(object):
         self._player.pause = False
         self._video  = video
 
+    def exec_stop_cmd(self):
+        if settings.stop_cmd:
+            os.system(settings.stop_cmd)
+
     @synchronous('_lock')
     def stop(self):
         if not self._video or self._player.playback_abort:
+            self.exec_stop_cmd()
             return
 
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
@@ -150,6 +157,7 @@ class PlayerManager(object):
         self._video  = None
         self._player.command("stop")
         self._player.pause = False
+        self.exec_stop_cmd()
 
     @synchronous('_lock')
     def get_volume(self, percent=False):
@@ -212,7 +220,10 @@ class PlayerManager(object):
             log.debug("PlayerManager::finished_callback starting next episode")
             self.play(self._video.parent.get_next().get_video(0))
 
-        log.debug("PlayerManager::finished_callback reached end")
+        else:
+            if settings.media_ended_cmd:
+                os.system(settings.media_ended_cmd)
+            log.debug("PlayerManager::finished_callback reached end")
 
     @synchronous('_lock')
     def watched_skip(self):
