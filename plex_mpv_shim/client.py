@@ -6,6 +6,7 @@ import posixpath
 import threading
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
+import socket
 
 from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
@@ -366,19 +367,47 @@ class HttpSocketServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
 
 class HttpServer(threading.Thread):
-    def __init__(self, queue, port):
+    def __init__(self, port):
         super(HttpServer, self).__init__(name="HTTP Server")
-
-        self.daemon         = True
-        self.port           = port
-        self.queue          = queue
-        self.server         = HttpSocketServer(("", self.port), HttpHandler)
-        self.server.queue   = queue
-
+        self.port = port
+        self.sock = None
+        self.addr = ('', port)
+    
     def run(self):
         log.info("Started HTTP server")
-        self.server.serve_forever()
+        self.sock = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(self.addr)
+        self.sock.listen(5)
+
+        self.servers = [HttpServerThread(i, self.sock, self.addr) for i in range(5)]
 
     def stop(self):
         log.info("Stopping HTTP server...")
+        for server in self.servers:
+            server.stop()
+
+        self.sock.close()
+
+# Adapted from https://stackoverflow.com/a/46224191
+class HttpServerThread(threading.Thread):
+    def __init__(self, i, sock, addr):
+        super(HttpServerThread, self).__init__(name="HTTP Server %s" % i)
+
+        self.i              = i
+        self.daemon         = True
+        self.server         = None
+        self.addr           = addr
+        self.sock           = sock
+
+        self.start()
+
+    def run(self):
+        self.server = HttpSocketServer(self.addr, HttpHandler, False)
+        self.server.socket = self.sock
+        self.server.server_bind = self.server_close = lambda self: None
+        self.server.serve_forever()
+
+    def stop(self):
         self.server.shutdown()
+

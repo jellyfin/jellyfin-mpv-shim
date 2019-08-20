@@ -26,6 +26,7 @@ class TimelineManager(threading.Thread):
         self.serverTimer    = Timer()
         self.stopped        = False
         self.halt           = False
+        self.trigger        = threading.Event()
 
         threading.Thread.__init__(self)
 
@@ -34,13 +35,17 @@ class TimelineManager(threading.Thread):
         self.join()
 
     def run(self):
+        force_next = False
         while not self.halt:
-            if playerManager._player and playerManager._video:
-                if not playerManager.is_paused():
-                    self.SendTimelineToSubscribers()
+            if (playerManager._player and playerManager._video) or force_next:
                 playerManager.update()
+                if not playerManager.is_paused() or force_next:
+                    self.SendTimelineToSubscribers()
                 self.idleTimer.restart()
-            time.sleep(1)
+            force_next = False
+            if self.trigger.wait(1):
+                force_next = True
+                self.trigger.clear()
 
     def SendTimelineToSubscribers(self):
         log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")
@@ -48,8 +53,10 @@ class TimelineManager(threading.Thread):
             self.SendTimelineToSubscriber(sub)
 
     def SendTimelineToSubscriber(self, subscriber):
+        subscriber.set_poll_evt()
         if subscriber.url == "":
             return
+
         timelineXML = self.GetCurrentTimeLinesXML(subscriber)
         url = "%s/:/timeline" % subscriber.url
 
@@ -71,7 +78,7 @@ class TimelineManager(threading.Thread):
         })
 
     def WaitForTimeline(self, subscriber):
-        time.sleep(1)
+        subscriber.get_poll_evt().wait(30)
         return self.GetCurrentTimeLinesXML(subscriber)
 
     def GetCurrentTimeLinesXML(self, subscriber):

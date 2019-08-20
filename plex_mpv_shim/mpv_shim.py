@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import queue
 import logging
 import sys
 import time
@@ -39,17 +38,16 @@ def main():
 
     log.info("Started GDM service")
 
-    myqueue = queue.Queue()
-
     while not gdm.discovery_complete:
         time.sleep(1)
 
     gdm.discover()
 
-    server = HttpServer(myqueue, int(settings.http_port))
+    server = HttpServer(int(settings.http_port))
     server.start()
 
     timelineManager.start()
+    playerManager.timeline_trigger = timelineManager.trigger
 
     try:
         while True:

@@ -5,6 +5,7 @@ Modeled after Plex Home Theater Remote implementation:
     https://github.com/plexinc/plex-home-theater-public/blob/pht-frodo/plex/Remote/
 """
 import logging
+from threading import Event
 
 from .utils import Timer
 
@@ -12,6 +13,7 @@ from .utils import Timer
 SUBSCRIBER_REMOVE_INTERVAL = 90
 
 log = logging.getLogger('subscribers')
+subscriber_events = {}
 
 class RemoteSubscriberManager(object):
     subscribers = {}
@@ -69,6 +71,16 @@ class RemoteSubscriber(object):
             self.commandID = sub.commandID
 
         self.lastUpdated.restart()
+
+    def get_poll_evt(self):
+        if not self.uuid in subscriber_events:
+            subscriber_events[self.uuid] = Event()
+        return subscriber_events[self.uuid]
+
+    def set_poll_evt(self):
+        if self.uuid in subscriber_events:
+            subscriber_events[self.uuid].set()
+        subscriber_events[self.uuid] = Event()
 
     def shouldRemove(self):
         if self.lastUpdated.elapsed() > SUBSCRIBER_REMOVE_INTERVAL:

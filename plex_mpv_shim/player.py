@@ -29,6 +29,7 @@ class PlayerManager(object):
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, include=mpv_config)
+        self.timeline_trigger = None
         if hasattr(self._player, 'osc'):
             self._player.osc = True
         else:
@@ -41,27 +42,38 @@ class PlayerManager(object):
         @self._player.on_key_press('q')
         def handle_stop():
             self.stop()
+            self.timeline_handle()
 
         @self._player.on_key_press('<')
         def handle_prev():
             self.put_task(self.play_prev)
+            self.timeline_handle()
 
         @self._player.on_key_press('>')
         def handle_next():
             self.put_task(self.play_next)
+            self.timeline_handle()
 
         @self._player.on_key_press('w')
         def handle_watched():
             self.put_task(self.watched_skip)
+            self.timeline_handle()
 
         @self._player.on_key_press('u')
         def handle_unwatched():
             self.put_task(self.unwatched_quit)
+            self.timeline_handle()
+
+        @self._player.on_key_press('space')
+        def handle_unwatched():
+            self.toggle_pause()
+            self.timeline_handle()
 
         @self._player.event_callback('idle')
         def handle_end(event):
             if self._video:
                 self.put_task(self.finished_callback)
+                self.timeline_handle()
 
         self._video       = None
         self._lock        = RLock()
@@ -71,6 +83,10 @@ class PlayerManager(object):
 
     def put_task(self, func, *args):
         self.evt_queue.put([func, args])
+
+    def timeline_handle(self):
+        if self.timeline_trigger:
+            self.timeline_trigger.set()
 
     @synchronous('_lock')
     def update(self):
@@ -90,12 +106,17 @@ class PlayerManager(object):
                         self._video.update_position(position)
                 self.last_update.restart()
 
-    @synchronous('_lock')
     def play(self, video, offset=0):
-        self.url = video.get_playback_url()
-        if not self.url:
+        url = video.get_playback_url()
+        if not url:        
             log.error("PlayerManager::play no URL found")
             return
+
+        self._play_media(video, url, offset)
+
+    @synchronous('_lock')
+    def _play_media(self, video, url, offset=0):
+        self.url = url
 
         self._player.play(self.url)
         self._player.wait_for_property("duration")
