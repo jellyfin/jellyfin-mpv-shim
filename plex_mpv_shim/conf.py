@@ -26,7 +26,8 @@ class Settings(object):
         "allow_http":           False,
         "media_ended_cmd":      None,
         "pre_media_cmd":        None,
-        "stop_cmd":             None
+        "stop_cmd":             None,
+        "auto_play":            True
     }
 
     def __getattr__(self, name):

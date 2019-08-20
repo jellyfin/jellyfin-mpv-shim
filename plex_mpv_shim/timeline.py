@@ -118,7 +118,7 @@ class TimelineManager(threading.Thread):
             options["location"]          = "fullScreenVideo"
 
             options["time"]              = player.playback_time * 1e3
-            options["autoPlay"]          = '1' if playerManager.auto_play else '0'
+            options["autoPlay"]          = '1' if settings.auto_play else '0'
             if player.sub != 'no':
                 options["subtitleStreamID"] = video.subtitle_uid.get(player.sub, '')
 
