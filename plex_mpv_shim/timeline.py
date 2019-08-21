@@ -70,12 +70,15 @@ class TimelineManager(threading.Thread):
         xmlData = tmp.read()
 
         # TODO: Abstract this into a utility function and add other X-Plex-XXX fields
-        requests.post(url, data=xmlData, headers={
-            "Content-Type":             "application/x-www-form-urlencoded",
-            "Connection":               "keep-alive",
-            "Content-Range":            "bytes 0-/-1",
-            "X-Plex-Client-Identifier": settings.client_uuid
-        })
+        try:
+            requests.post(url, data=xmlData, headers={
+                "Content-Type":             "application/x-www-form-urlencoded",
+                "Connection":               "keep-alive",
+                "Content-Range":            "bytes 0-/-1",
+                "X-Plex-Client-Identifier": settings.client_uuid
+            }, timeout=10)
+        except requests.exceptions.ConnectTimeout:
+            log.warning("TimelineManager::SendTimelineToSubscriber timeout sending to %s" % url)
 
     def WaitForTimeline(self, subscriber):
         subscriber.get_poll_evt().wait(30)
