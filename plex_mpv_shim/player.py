@@ -97,7 +97,7 @@ class PlayerManager(object):
         if self._video and not self._player.playback_abort:
             if self.last_update.elapsed() > SCROBBLE_INTERVAL and not self.is_paused():
                 if not self._video.played:
-                    position = self._player.playback_time
+                    position = self._player.playback_time * 1e3
                     duration = self._video.get_duration()
                     if float(position)/float(duration)  >= COMPLETE_PERCENT:
                         log.info("PlayerManager::update setting media as watched")
