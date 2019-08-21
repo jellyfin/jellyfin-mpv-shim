@@ -60,7 +60,6 @@ class HttpHandler(SimpleHTTPRequestHandler):
         (("/player/playback/bigStepForward",
           "/player/playback/bigStepBack",),     "stepFunction"),
         (("/player/playback/refreshPlayQueue",),"refreshPlayQueue"),
-        #(("/player/mirror/details",),           "mirror"),
     )
 
     def log_request(self, *args, **kwargs):
@@ -182,22 +181,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         self.handle_request("OPTIONS")
 
     def do_GET(self):
-        if self.path == "/":           
-            f = self.send_head()
-            if f:
-                self.copyfile(f, self.wfile)
-                f.close()
-        elif self.path == "/data/settings/":
-            data = json.dumps(settings._data)
-            
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            
-            self.wfile.write(data)
-        else:
-            self.handle_request("GET")
+        self.handle_request("GET")
     
     def send_end(self):
         if self.completed:
