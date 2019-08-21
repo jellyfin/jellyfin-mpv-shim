@@ -91,7 +91,7 @@ class PlexGDM:
 
         return self.client_data
 
-    def client_update (self):
+    def client_update(self):
         update_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         
         # Set socket reuse, may not work on all OSs.
@@ -151,7 +151,6 @@ class PlexGDM:
         self.client_registered = False
                            
     def check_client_registration(self):
-        
         if self.client_registered and self.discovery_complete:
         
             if not self.server_list:
@@ -179,100 +178,11 @@ class PlexGDM:
         
         return False
             
-    def getServerList (self):
-        return self.server_list
-        
-    def discover(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # Set a timeout so the socket does not block indefinitely
-        sock.settimeout(0.6)
-
-        # Set the time-to-live for messages to 1 for local network
-        ttl = struct.pack('b', 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-
-        returnData = []
-        try:
-            # Send data to the multicast group
-            self.__printDebug("Sending discovery messages: %s" % self.discover_message, 2)
-            sent = sock.sendto(self.discover_message, self.discover_group)
-
-            # Look for responses from all recipients
-            while True:
-                try:
-                    data, server = sock.recvfrom(1024)
-                    self.__printDebug("Received data from %s, %s" % server, 3)
-                    self.__printDebug("Data received is:\n %s" % data, 3)
-                    returnData.append( { 'from' : server,
-                                         'data' : data } )
-                except socket.timeout:
-                    break
-        finally:
-            sock.close()
-
-        self.discovery_complete = True
-
-        discovered_servers = []
-
-        if returnData:
-
-            for response in returnData:
-                update = { 'server' : response.get('from')[0] }
-
-                #Check if we had a positive HTTP response                        
-                if b"200 OK" in response.get('data'):
-            
-                    for each in response.get('data').decode('utf-8').splitlines():
-
-                        update['discovery'] = "auto"
-                        update['owned']='1'
-                        update['master']= 1
-                        update['role']='master'
-                        update['class']=None
-                    
-                        if "Content-Type:" in each:
-                            update['content-type'] = each.split(':')[1].strip()
-                        elif "Resource-Identifier:" in each:
-                            update['uuid'] = each.split(':')[1].strip()
-                        elif "Name:" in each:
-                            update['serverName'] = each.split(':')[1].strip()
-                        elif "Port:" in each:
-                            update['port'] = each.split(':')[1].strip()
-                        elif "Updated-At:" in each:
-                            update['updated'] = each.split(':')[1].strip()
-                        elif "Version:" in each:
-                            update['version'] = each.split(':')[1].strip()
-                        elif "Server-Class:" in each:
-                            update['class'] = each.split(':')[1].strip()
-
-                discovered_servers.append(update)                    
-
-        self.server_list = discovered_servers
-        
-        if not self.server_list:
-            self.__printDebug("No servers have been discovered",1)
-        else:
-            self.__printDebug("Number of servers Discovered: %s" % len(self.server_list),1)
-            for items in self.server_list:
-                self.__printDebug("Server Discovered: %s" % items['serverName'] ,2)
-                
-
     def setInterval(self, interval):
         self.discovery_interval = interval
 
     def stop_all(self):
-        self.stop_discovery()
         self.stop_registration()
-
-    def stop_discovery(self):
-        if self._discovery_is_running:
-            self.__printDebug("Discovery shutting down", 1)
-            self._discovery_is_running = False
-            self.discover_t.join()
-            del self.discover_t
-        else:
-            self.__printDebug("Discovery not running", 1)
 
     def stop_registration(self):
         if self._registration_is_running:
@@ -283,28 +193,6 @@ class PlexGDM:
         else:
             self.__printDebug("Registration not running", 1)
 
-    def run_discovery_loop(self):
-        #Run initial discovery
-        self.discover()
-
-        discovery_count=0
-        while self._discovery_is_running:
-            discovery_count+=1
-            if discovery_count > self.discovery_interval:
-                self.discover()
-                discovery_count=0
-            time.sleep(1)
-
-    def start_discovery(self, daemon = False):
-        if not self._discovery_is_running:
-            self.__printDebug("Discovery starting up", 1)
-            self._discovery_is_running = True
-            self.discover_t = threading.Thread(target=self.run_discovery_loop)
-            self.discover_t.setDaemon(daemon)
-            self.discover_t.start()
-        else:
-            self.__printDebug("Discovery already running", 1)
-        
     def start_registration(self, daemon = False):
         if not self._registration_is_running:
             self.__printDebug("Registration starting up", 1)
@@ -316,7 +204,6 @@ class PlexGDM:
             self.__printDebug("Registration already running", 1)
              
     def start_all(self, daemon = False):
-        self.start_discovery(daemon)
         self.start_registration(daemon)
 
 gdm = PlexGDM()

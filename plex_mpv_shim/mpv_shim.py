@@ -38,11 +38,6 @@ def main():
 
     log.info("Started GDM service")
 
-    while not gdm.discovery_complete:
-        time.sleep(1)
-
-    gdm.discover()
-
     server = HttpServer(int(settings.http_port))
     server.start()
 
