@@ -129,10 +129,8 @@ class Video(object):
         return getattr(self, "_title")
 
     def is_transcode_suggested(self):
-        if self._part_node:
-            if self._part_node.get("container") == "mov":
-                log.info("Video::is_transcode_suggested part container is mov, suggesting transcode")
-                return True
+        # TODO: Implement transcode suggestion.
+        # (Previous code just suggested to transcode if it was mov.)
         return False
 
     def get_playback_url(self, direct_play=None, offset=0,
@@ -150,6 +148,8 @@ class Video(object):
                 return
             url  = urllib.parse.urljoin(self.parent.server_url, self._part_node.get("key", ""))
             return get_plex_url(url)
+
+        # TODO: Need to figure out how to set subtitle and audio streams.
 
         url = "/video/:/transcode/universal/start.m3u8"
         args = {
@@ -182,19 +182,7 @@ class Video(object):
             args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
             args["X-Plex-Client-Capabilities"]  = protocols
 
-        # OMXPlayer seems to have an issue playing the "start.m3u8" file
-        # directly, so we need to extract the index file
-        r = urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args))
-        try:
-            for line in r.readlines():
-                line = line.strip()
-                if line and line[0] != "#" and line.find("m3u8") > 0:
-                    base = urllib.parse.urljoin(self.parent.server_url, "/video/:/transcode/universal/")
-                    return urllib.parse.urljoin(base, line)
-        except Exception as e:
-            log.error("Video::get_playback_url error processing response: %s" % str(e))
-
-        log.error("Video::get_playback_url couldn't generate playback url")
+        return get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args)
 
     def get_audio_idx(self):
         """
