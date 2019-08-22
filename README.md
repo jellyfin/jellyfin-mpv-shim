@@ -50,9 +50,10 @@ Keyboard Shortcuts:
  - u to mark unwatched and quit
 
 You can execute shell commands on media state using the config file:
- - media_ended_cmd - When all media has played.
- - pre_media_cmd - Before the player displays. (Will wait for finish.)
- - stop_cmd - After stopping the player.
+ - media\_ended\_cmd - When all media has played.
+ - pre\_media\_cmd - Before the player displays. (Will wait for finish.)
+ - stop\_cmd - After stopping the player.
+ - idle\_cmd - After no activity for idle\_cmd\_delay seconds.
 
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported

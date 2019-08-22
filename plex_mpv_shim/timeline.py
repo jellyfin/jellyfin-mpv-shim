@@ -2,6 +2,7 @@ import logging
 import requests
 import threading
 import time
+import os
 
 try:
     from xml.etree import cElementTree as et
@@ -27,6 +28,7 @@ class TimelineManager(threading.Thread):
         self.stopped        = False
         self.halt           = False
         self.trigger        = threading.Event()
+        self.is_idle        = True
 
         threading.Thread.__init__(self)
 
@@ -41,11 +43,18 @@ class TimelineManager(threading.Thread):
                 playerManager.update()
                 if not playerManager.is_paused() or force_next:
                     self.SendTimelineToSubscribers()
-                self.idleTimer.restart()
+                self.delay_idle()
             force_next = False
+            if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle and settings.idle_cmd:
+                os.system(settings.idle_cmd)
+                self.is_idle = True
             if self.trigger.wait(1):
                 force_next = True
                 self.trigger.clear()
+
+    def delay_idle(self):
+        self.idleTimer.restart()
+        self.is_idle = False
 
     def SendTimelineToSubscribers(self):
         log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")

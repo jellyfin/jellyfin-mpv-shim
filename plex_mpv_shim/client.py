@@ -60,6 +60,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         (("/player/playback/bigStepForward",
           "/player/playback/bigStepBack",),     "stepFunction"),
         (("/player/playback/refreshPlayQueue",),"refreshPlayQueue"),
+        (("/player/mirror/details",),           "mirror"),
     )
 
     def log_request(self, *args, **kwargs):
@@ -346,7 +347,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         timelineManager.SendTimelineToSubscribers()
 
     def mirror(self, path, arguments):
-        pass
+        timelineManager.delay_idle()
 
     def navigation(self, path, query):
         pass

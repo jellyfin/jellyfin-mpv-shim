@@ -14,21 +14,20 @@ class Settings(object):
     _path = None
     _data = {
         "player_name":          socket.gethostname(),
-        "plex_server":          "",
         "http_port":            "3000",
         "audio_output":         "hdmi",
         "audio_ac3passthrough": False,
         "audio_dtspassthrough": False,
         "client_uuid":          str(uuid.uuid4()),
-        "display_sleep":        0,
-        "display_mode":         "",
         "enable_play_queue":    True,
         "allow_http":           False,
         "media_ended_cmd":      None,
         "pre_media_cmd":        None,
         "stop_cmd":             None,
         "auto_play":            True,
-        "progress_save_delay":  90
+        "progress_save_delay":  90,
+        "idle_cmd":             None,
+        "idle_cmd_delay":       60
     }
 
     def __getattr__(self, name):
