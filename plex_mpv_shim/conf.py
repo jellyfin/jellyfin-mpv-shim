@@ -88,16 +88,19 @@ class Settings(object):
 
     def load(self, path, create=True):
         fh, created = self.__get_file(path, "r", create)
+        self._path = path
         if not created:
             try:
                 data = json.load(fh)
                 self._data.update(data)
+                log.info("Loaded settings from json: %s" % path)
+                if len(data) < len(self._data):
+                    self.save()
             except Exception as e:
-                log.error("Error loading settings from pickle: %s" % e)
+                log.error("Error loading settings from json: %s" % e)
                 fh.close()
                 return False
 
-        self._path = path
         fh.close()
         return True
 
@@ -109,7 +112,7 @@ class Settings(object):
             fh.flush()
             fh.close()
         except Exception as e:
-            log.error("Error saving settings to pickle: %s" % e)
+            log.error("Error saving settings to json: %s" % e)
             return False
 
         return True
