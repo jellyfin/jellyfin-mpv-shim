@@ -155,11 +155,13 @@ class TimelineManager(threading.Thread):
             controllable.append("stop")
             controllable.append("stepBack")
             controllable.append("stepForward")
-            controllable.append("subtitleStream")
-            controllable.append("audioStream")
             controllable.append("seekTo")
             controllable.append("skipTo")
             controllable.append("autoPlay")
+
+            if not video.is_transcode:
+                controllable.append("subtitleStream")
+                controllable.append("audioStream")
 
             if video.parent.has_next:
                 controllable.append("skipNext")

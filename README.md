@@ -20,6 +20,7 @@ The project supports the following:
  - Playing multiple videos in a queue.
  - The app doesn't require or save any Plex passwords or tokens.
  - Executing commands before playing, after media end, and when stopped.
+ - Configurable transcoding support based on remote server and bitrate.
 
 You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash

@@ -8,7 +8,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_resolution
 
 log = logging.getLogger('media')
 
@@ -30,6 +30,7 @@ class Video(object):
         self.subtitle_uid  = {}
         self.audio_seq     = {}
         self.audio_uid     = {}
+        self.is_transcode  = False
 
         if media:
             self.select_media(media, part)
@@ -129,13 +130,17 @@ class Video(object):
         return getattr(self, "_title")
 
     def is_transcode_suggested(self):
-        # TODO: Implement transcode suggestion.
-        # (Previous code just suggested to transcode if it was mov.)
+        if settings.always_transcode:
+            return True
+        elif (settings.remote_transcode and not is_local_domain(self.parent.path.hostname)
+              and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh*1024):
+            print("TRS",self.node.find("./Media").get("bitrate"),is_local_domain(self.parent.path.hostname))
+            return True
         return False
 
     def get_playback_url(self, direct_play=None, offset=0,
-                         video_height=1080,      video_width=1920,
-                         video_bitrate=20000,    video_quality=100):
+                         video_height=None,      video_width=None,
+                         video_bitrate=None,    video_quality=100):
         """
         Returns the URL to use for the trancoded file.
         """
@@ -146,10 +151,17 @@ class Video(object):
         if direct_play:
             if not self._part_node:
                 return
+            self.is_transcode = False
             url  = urllib.parse.urljoin(self.parent.server_url, self._part_node.get("key", ""))
             return get_plex_url(url)
 
-        # TODO: Need to figure out how to set subtitle and audio streams.
+        self.is_transcode = True
+
+        if video_height is None or video_width is None:
+            video_width, video_height = get_resolution(settings.transcode_res)
+
+        if video_bitrate is None:
+            video_bitrate = settings.transcode_kbps
 
         url = "/video/:/transcode/universal/start.m3u8"
         args = {

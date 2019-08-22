@@ -125,17 +125,18 @@ class PlayerManager(object):
         if offset > 0:
             self._player.playback_time = offset
 
-        audio_idx = video.get_audio_idx()
-        if audio_idx is not None:
-            log.debug("PlayerManager::play selecting audio stream index=%s" % audio_idx)
-            self._player.audio = audio_idx
+        if not video.is_transcode:
+            audio_idx = video.get_audio_idx()
+            if audio_idx is not None:
+                log.debug("PlayerManager::play selecting audio stream index=%s" % audio_idx)
+                self._player.audio = audio_idx
 
-        sub_idx = video.get_subtitle_idx()
-        if sub_idx is not None:
-            log.debug("PlayerManager::play selecting subtitle index=%s" % sub_idx)
-            self._player.sub = sub_idx
-        else:
-            self._player.sub = 'no'
+            sub_idx = video.get_subtitle_idx()
+            if sub_idx is not None:
+                log.debug("PlayerManager::play selecting subtitle index=%s" % sub_idx)
+                self._player.sub = sub_idx
+            else:
+                self._player.sub = 'no'
 
         self._player.pause = False
         self._video  = video

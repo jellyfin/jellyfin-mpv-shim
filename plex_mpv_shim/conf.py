@@ -27,7 +27,12 @@ class Settings(object):
         "auto_play":            True,
         "progress_save_delay":  90,
         "idle_cmd":             None,
-        "idle_cmd_delay":       60
+        "idle_cmd_delay":       60,
+        "always_transcode":     False,
+        "remote_transcode":     True,
+        "remote_kbps_thresh":   5000,
+        "transcode_kbps":       2000,
+        "transcode_res":        "720p",
     }
 
     def __getattr__(self, name):
