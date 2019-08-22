@@ -63,7 +63,7 @@ def get_plex_url(url, data=None):
         log.error("get_plex_url No token for: %s" % domain)
 
     data.update({
-        "X-Plex-Version":           "1.0",
+        "X-Plex-Version":           "2.0",
         "X-Plex-Client-Identifier": settings.client_uuid,
         "X-Plex-Provides":          "player",
         "X-Plex-Device-Name":       settings.player_name,

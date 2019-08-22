@@ -52,6 +52,12 @@ class Video(object):
             self.subtitle_uid[index+1] = sub.attrib["id"]
             self.subtitle_seq[sub.attrib["id"]] = index+1
 
+    def get_transcode_streams(self):
+        audio_obj = self._part_node.find("./Stream[@streamType='2'][@selected='1']")
+        subtitle_obj = self._part_node.find("./Stream[@streamType='3'][@selected='1']")
+        return (audio_obj.get("id") if audio_obj else None,
+                subtitle_obj.get("id") if subtitle_obj else None)
+
     def select_best_media(self, part=0):
         """
         Nodes are accessed via XPath, which is technically 1-indexed, while
@@ -133,8 +139,7 @@ class Video(object):
         if settings.always_transcode:
             return True
         elif (settings.remote_transcode and not is_local_domain(self.parent.path.hostname)
-              and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh*1024):
-            print("TRS",self.node.find("./Media").get("bitrate"),is_local_domain(self.parent.path.hostname))
+              and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh):
             return True
         return False
 
