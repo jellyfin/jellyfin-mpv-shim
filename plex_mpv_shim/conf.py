@@ -27,7 +27,8 @@ class Settings(object):
         "media_ended_cmd":      None,
         "pre_media_cmd":        None,
         "stop_cmd":             None,
-        "auto_play":            True
+        "auto_play":            True,
+        "progress_save_delay":  90
     }
 
     def __getattr__(self, name):

@@ -15,7 +15,6 @@ APP_NAME = 'plex-mpv-shim'
 
 # Mark the item as watch when it is at 95% 
 COMPLETE_PERCENT  = 0.95
-FIVE_MINUTES = 300
 
 log = logging.getLogger('player')
 
@@ -102,7 +101,7 @@ class PlayerManager(object):
                     if float(position)/float(duration)  >= COMPLETE_PERCENT:
                         log.info("PlayerManager::update setting media as watched")
                         self._video.set_played()
-                    elif position > FIVE_MINUTES:
+                    elif position > settings.progress_save_delay:
                         log.info("PlayerManager::update updating media position")
                         self._video.update_position(position)
                 self.last_update.restart()
