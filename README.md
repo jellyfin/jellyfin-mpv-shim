@@ -61,3 +61,6 @@ is available under the terms of the MIT License. The project was ported
 to python3, modified to use mpv as the player, and updated to allow all
 features of the remote control api for video playback.
 
+UPDATE: It looks like we have a reversal on the Plex Media Player situation.
+That being said, this project has proven to be interesting as a hackable
+Plex client, so I’ll probably still continue to add features.
