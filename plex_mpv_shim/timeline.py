@@ -61,10 +61,11 @@ class TimelineManager(threading.Thread):
         for sub in list(remoteSubscriberManager.subscribers.values()):
             self.SendTimelineToSubscriber(sub)
 
+
     def SendTimelineToSubscriber(self, subscriber):
         subscriber.set_poll_evt()
         if subscriber.url == "":
-            return
+            return True
 
         timelineXML = self.GetCurrentTimeLinesXML(subscriber)
         url = "%s/:/timeline" % subscriber.url
@@ -85,9 +86,14 @@ class TimelineManager(threading.Thread):
                 "Connection":               "keep-alive",
                 "Content-Range":            "bytes 0-/-1",
                 "X-Plex-Client-Identifier": settings.client_uuid
-            }, timeout=10)
+            }, timeout=5)
+            return True
         except requests.exceptions.ConnectTimeout:
             log.warning("TimelineManager::SendTimelineToSubscriber timeout sending to %s" % url)
+            return False
+        except Exception:
+            log.warning("TimelineManager::SendTimelineToSubscriber error sending to %s" % url)
+            return False
 
     def WaitForTimeline(self, subscriber):
         subscriber.get_poll_evt().wait(30)
