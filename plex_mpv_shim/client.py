@@ -373,9 +373,9 @@ class HttpServer(threading.Thread):
 
     def stop(self):
         log.info("Stopping HTTP server...")
-        for server in self.servers:
-            server.stop()
-
+        
+        # Note: All of the server threads will die after the socket closes.
+        # Attempting to stop a waiting thread prior will block indefinitely.
         self.sock.close()
 
 # Adapted from https://stackoverflow.com/a/46224191
@@ -397,6 +397,4 @@ class HttpServerThread(threading.Thread):
         self.server.server_bind = self.server_close = lambda self: None
         self.server.serve_forever()
 
-    def stop(self):
-        self.server.shutdown()
 
