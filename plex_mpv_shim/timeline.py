@@ -130,11 +130,12 @@ class TimelineManager(threading.Thread):
         video  = playerManager._video
         player = playerManager._player
 
-        if video and not player.playback_abort:
+        # The playback_time value can take on the value of none, probably
+        # when playback is complete. This avoids the thread crashing.
+        if video and not player.playback_abort and player.playback_time:
             media = playerManager._video.parent
 
             options["location"]          = "fullScreenVideo"
-
             options["time"]              = player.playback_time * 1e3
             options["autoPlay"]          = '1' if settings.auto_play else '0'
             
