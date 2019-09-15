@@ -24,9 +24,7 @@ The project supports the following:
 
 You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash
-git clone https://github.com/iwalton3/plex-mpv-shim
-cd plex-mpv-shim
-sudo pip3 install --upgrade .
+sudo pip3 install --upgrade plex-mpv-shim
 ```
 
 The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
