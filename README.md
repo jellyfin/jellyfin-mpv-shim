@@ -61,4 +61,5 @@ features of the remote control api for video playback.
 
 UPDATE: It looks like we have a reversal on the Plex Media Player situation.
 That being said, this project has proven to be interesting as a hackable
-Plex client, so I’ll probably still continue to add features.
+Plex client. **I plan to maintain this client, although I may not work on
+adding new features unless someone requests them.**
