@@ -101,7 +101,7 @@ class PlayerManager(object):
                     if float(position)/float(duration)  >= COMPLETE_PERCENT:
                         log.info("PlayerManager::update setting media as watched")
                         self._video.set_played()
-                    elif position > settings.progress_save_delay:
+                    elif self._player.playback_time > settings.progress_save_delay:
                         log.info("PlayerManager::update updating media position")
                         self._video.update_position(position)
                 self.last_update.restart()
