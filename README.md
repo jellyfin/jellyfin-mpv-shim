@@ -63,3 +63,16 @@ UPDATE: It looks like we have a reversal on the Plex Media Player situation.
 That being said, this project has proven to be interesting as a hackable
 Plex client. **I plan to maintain this client, although I may not work on
 adding new features unless someone requests them.**
+
+# Building on Windows
+
+There is a prebuilt version for Windows in the releases section.
+
+1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
+2. After installing python3, open `cmd` as admin and run `pip install pyinstaller python-mpv requests`.
+3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
+4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
+5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
+6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." run.py`.
+
+

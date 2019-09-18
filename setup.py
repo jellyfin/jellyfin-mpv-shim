@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='plex-mpv-shim',
-    version='1.0.0',
+    version='1.0.1',
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Plex Mobile and Web apps to MPV. (Unofficial)",
