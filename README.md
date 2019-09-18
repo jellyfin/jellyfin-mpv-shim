@@ -73,6 +73,6 @@ There is a prebuilt version for Windows in the releases section.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
-6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." run.py`.
+6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
 
 
