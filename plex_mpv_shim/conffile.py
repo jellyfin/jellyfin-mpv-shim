@@ -6,11 +6,19 @@ import getpass
 # If no platform is matched, use the current directory.
 confdir = lambda app: ''
 username = getpass.getuser()
-posix = lambda app: os.path.join(os.path.expanduser("~"),'.config',app)
+
+def posix(app):
+    return os.path.join(os.path.expanduser("~"),'.config',app)
+
+def win32(app):
+    if os.environ.get("APPDATA"):
+        return os.path.join(os.environ["APPDATA"], app)
+    else:
+        return os.path.join(r'C:\Users', username, r'AppData\Roaming', app)
 
 confdirs = (
         ('linux', posix),
-        ('win32', lambda app: os.path.join(r'C:\Users',username,r'AppData\Local',app)),
+        ('win32', win32),
         ('cygwin', posix),
         ('darwin', lambda app: os.path.join('/Users',username,'Library/Application Support',app))
     )
