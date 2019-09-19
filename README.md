@@ -64,9 +64,11 @@ That being said, this project has proven to be interesting as a hackable
 Plex client. **I plan to maintain this client, although I may not work on
 adding new features unless someone requests them.**
 
-# Building on Windows
+## Building on Windows
 
-There is a prebuilt version for Windows in the releases section.
+There is a prebuilt version for Windows in the releases section. When
+following these directions, please take care to ensure both the python
+and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
 2. After installing python3, open `cmd` as admin and run `pip install pyinstaller python-mpv requests`.
