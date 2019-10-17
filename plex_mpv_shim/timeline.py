@@ -30,6 +30,7 @@ class TimelineManager(threading.Thread):
         self.trigger        = threading.Event()
         self.is_idle        = True
         self.last_video     = None
+        self.last_server_url = None
 
         threading.Thread.__init__(self)
 
