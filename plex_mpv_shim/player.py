@@ -9,12 +9,7 @@ from . import conffile
 from .utils import synchronous, Timer
 from .conf import settings
 
-# Scrobble progress to Plex server at most every 5 seconds
-SCROBBLE_INTERVAL = 5
 APP_NAME = 'plex-mpv-shim'
-
-# Mark the item as watch when it is at 95% 
-COMPLETE_PERCENT  = 0.95
 
 log = logging.getLogger('player')
 
@@ -94,16 +89,7 @@ class PlayerManager(object):
             func, args = self.evt_queue.get()
             func(*args)
         if self._video and not self._player.playback_abort:
-            if self.last_update.elapsed() > SCROBBLE_INTERVAL and not self.is_paused():
-                if not self._video.played:
-                    position = self._player.playback_time * 1e3
-                    duration = self._video.get_duration()
-                    if float(position)/float(duration)  >= COMPLETE_PERCENT:
-                        log.info("PlayerManager::update setting media as watched")
-                        self._video.set_played()
-                    elif self._player.playback_time > settings.progress_save_delay:
-                        log.info("PlayerManager::update updating media position")
-                        self._video.update_position(position)
+            if not self.is_paused():
                 self.last_update.restart()
 
     def play(self, video, offset=0):

@@ -45,7 +45,7 @@ def synchronous(tlockname):
 def upd_token(domain, token):
     plex_eph_tokens[domain] = token
 
-def get_plex_url(url, data=None):
+def get_plex_url(url, data=None, quiet=False):
     if not data:
         data = {}
 
@@ -83,11 +83,12 @@ def get_plex_url(url, data=None):
     if data:
         url = "%s%s%s" % (url, sep, urllib.parse.urlencode(data))
 
-    log.debug("get_plex_url Created URL: %s" % url)
+    if not quiet:
+        log.debug("get_plex_url Created URL: %s" % url)
 
     return url
 
-def safe_urlopen(url, data=None):
+def safe_urlopen(url, data=None, quiet=False):
     """
     Opens a url and returns True if an HTTP 200 code is returned,
     otherwise returns False.
@@ -95,7 +96,7 @@ def safe_urlopen(url, data=None):
     if not data:
         data = {}
 
-    url = get_plex_url(url, data)
+    url = get_plex_url(url, data, quiet)
 
     try:
         page = urllib.request.urlopen(url)

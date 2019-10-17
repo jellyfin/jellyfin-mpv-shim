@@ -1,6 +1,7 @@
 import logging
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
+import uuid
 
 try:
     import xml.etree.cElementTree as et
@@ -299,7 +300,7 @@ class XMLCollection(object):
         return self.path.path
 
 class Media(XMLCollection):
-    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None):
+    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None, session=None):
         XMLCollection.__init__(self, url)
         self.video = self.tree.find('./Video')
         self.is_tv = self.video.get("type") == "episode"
@@ -308,6 +309,11 @@ class Media(XMLCollection):
         self.has_prev = False
         self.play_queue = play_queue
         self.play_queue_xml = play_queue_xml
+
+        if session:
+            self.session = session
+        else:
+            self.session = str(uuid.uuid4())
 
         if self.play_queue:
             if not series:
@@ -373,21 +379,21 @@ class Media(XMLCollection):
             if self.play_queue and self.seq+1 == len(self.series):
                 self.upd_play_queue()
             next_video = self.series[self.seq+1]
-            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml)
+            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml, session=self.session)
     
     def get_prev(self):
         if self.has_prev:
             if self.play_queue and self.seq-1 == 0:
                 self.upd_play_queue()
             prev_video = self.series[self.seq-1]
-            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml)
+            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml, session=self.session)
 
     def get_from_key(self, key):
         if self.play_queue:
             self.upd_play_queue()
             for i, video in enumerate(self.series):
                 if video.get("key") == key:
-                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml)
+                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml, session=self.session)
             return None
         else:
             return Media(self.get_path(key))

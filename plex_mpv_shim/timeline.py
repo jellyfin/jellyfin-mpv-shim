@@ -14,7 +14,7 @@ from io import BytesIO
 from .conf import settings
 from .player import playerManager
 from .subscribers import remoteSubscriberManager
-from .utils import Timer
+from .utils import Timer, safe_urlopen
 
 log = logging.getLogger("timeline")
 
@@ -29,6 +29,7 @@ class TimelineManager(threading.Thread):
         self.halt           = False
         self.trigger        = threading.Event()
         self.is_idle        = True
+        self.last_video     = None
 
         threading.Thread.__init__(self)
 
@@ -60,7 +61,23 @@ class TimelineManager(threading.Thread):
         log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")
         for sub in list(remoteSubscriberManager.subscribers.values()):
             self.SendTimelineToSubscriber(sub)
-
+        
+        # Also send timeline to plex server.
+        video  = playerManager._video
+        options = self.GetCurrentTimeline()
+        session = None
+        server_url = None
+        if video:
+            server_url = video.parent.server_url
+            self.last_server_url = video.parent.server_url
+            session = video.parent.session
+            self.last_session = video.parent.session
+        elif self.last_server_url and self.last_session:
+            server_url = self.last_server_url
+            session = self.last_session
+        if server_url and session:
+            options["X-Plex-Session-Identifier"] = session
+            url = safe_urlopen("%s/:/timeline" % server_url, options, quiet=True)
 
     def SendTimelineToSubscriber(self, subscriber):
         subscriber.set_poll_evt()
@@ -133,10 +150,11 @@ class TimelineManager(threading.Thread):
         # The playback_time value can take on the value of none, probably
         # when playback is complete. This avoids the thread crashing.
         if video and not player.playback_abort and player.playback_time:
+            self.last_video = video
             media = playerManager._video.parent
 
             options["location"]          = "fullScreenVideo"
-            options["time"]              = player.playback_time * 1e3
+            options["time"]              = int(player.playback_time * 1e3)
             options["autoPlay"]          = '1' if settings.auto_play else '0'
             
             if video.is_transcode:
@@ -199,7 +217,14 @@ class TimelineManager(threading.Thread):
 
             options["controllable"] = ",".join(controllable)
         else:
-            options["time"] = 0
+            if self.last_video:
+                video = self.last_video
+                options["ratingKey"]         = video.get_video_attr("ratingKey")
+                options["key"]               = video.get_video_attr("key")
+                options["containerKey"]      = video.get_video_attr("key")
+                if video.parent.play_queue:
+                    options.update(video.parent.get_queue_info())
+            options["state"] = "stopped"
 
         return options
 

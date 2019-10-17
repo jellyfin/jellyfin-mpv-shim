@@ -25,7 +25,6 @@ class Settings(object):
         "pre_media_cmd":        None,
         "stop_cmd":             None,
         "auto_play":            True,
-        "progress_save_delay":  90,
         "idle_cmd":             None,
         "idle_cmd_delay":       60,
         "always_transcode":     False,
