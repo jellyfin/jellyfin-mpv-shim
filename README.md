@@ -21,6 +21,13 @@ The project supports the following:
  - The app doesn't require or save any Plex passwords or tokens.
  - Executing commands before playing, after media end, and when stopped.
  - Configurable transcoding support based on remote server and bitrate.
+ - The application shows up in Plex dashboard and usage tracking.
+
+Transcoding is supported, but needs work:
+ - Transcode bandwidth decisions are currently based on values in the config file.
+ - Playback of videos can fail on remote servers if the available bandwidth is lower. 
+ - Changing subtitle/audio tracks cannot be done after starting transcode playback.
+ - The only way to control transcode video quality is using the config file.
 
 You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash
