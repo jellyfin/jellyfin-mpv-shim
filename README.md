@@ -1,8 +1,12 @@
 # Plex MPV Shim
 
-This project allows casting of content from a Plex server to MPV, with
-minimal dependencies to prevent the project from becoming unmaintained.
-This project is 1/17th the size of Plex Media Player and is all python.
+Plex MPV Shim is a simple and lightweight Plex client. It supports Windows and
+Linux and is easy to install. The project offers an experience similar to
+Chromecast, but with direct play and subtitle support. The application requires
+another app to play content and does not save login information, making it
+ideal for applications where security is a concern. This project is
+significantly smaller and less complicated than Plex Media Player, and is
+written entirely in open-source Python.
 
 The project supports the following:
  - Direct play of HEVC mkv files with subtitles.
