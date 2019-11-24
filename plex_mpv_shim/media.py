@@ -369,6 +369,7 @@ class Media(XMLCollection):
 
     def get_queue_info(self):
         return {
+            "containerKey": self.play_queue,
             "playQueueID": self.play_queue_xml.tree.find(".").get("playQueueID"),
             "playQueueVersion": self.play_queue_xml.tree.find(".").get("playQueueVersion"),
             "playQueueItemID": self.series[self.seq].get("playQueueItemID")
