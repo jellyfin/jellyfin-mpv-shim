@@ -88,4 +88,8 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
 6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
 
+## Usage
 
+To use `plex-mpv-shim` you merely need to start the application.
+
+Your firewall will need to allow inbound TCP 3000 (for this application's web server) and inbound UDP 32410, 32412, 32413, 32414 ([Plex's GDM ports](https://support.plex.tv/articles/201543147-what-network-ports-do-i-need-to-allow-through-my-firewall/)).
