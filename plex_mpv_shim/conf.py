@@ -28,10 +28,13 @@ class Settings(object):
         "idle_cmd":             None,
         "idle_cmd_delay":       60,
         "always_transcode":     False,
+        "auto_transcode":       True,
+        "adaptive_transcode":   False,
         "remote_transcode":     True,
         "remote_kbps_thresh":   5000,
         "transcode_kbps":       2000,
         "transcode_res":        "720p",
+        "client_profile":       "Plex Home Theater",
     }
 
     def __getattr__(self, name):

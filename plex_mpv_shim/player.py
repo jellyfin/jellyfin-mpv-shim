@@ -1,12 +1,14 @@
 import logging
 import mpv
 import os
+import requests
+import urllib.parse
 
 from threading import RLock
 from queue import Queue
 
 from . import conffile
-from .utils import synchronous, Timer
+from .utils import synchronous, Timer, get_plex_url
 from .conf import settings
 
 APP_NAME = 'plex-mpv-shim'
@@ -249,6 +251,12 @@ class PlayerManager(object):
         return False
 
     @synchronous('_lock')
+    def restart_playback(self):
+        current_time = self._player.playback_time
+        self.play(self._video, current_time)
+        return True
+
+    @synchronous('_lock')
     def get_video_attr(self, attr, default=None):
         if self._video:
             return self._video.get_video_attr(attr, default)
@@ -256,16 +264,22 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def set_streams(self, audio_uid, sub_uid):
-        if audio_uid is not None:
-            log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
-            self._player.audio = self._video.audio_seq[audio_uid]
+        if not self._video.is_transcode:
+            if audio_uid is not None:
+                log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
+                self._player.audio = self._video.audio_seq[audio_uid]
 
-        if sub_uid == '0':
-            log.debug("PlayerManager::play selecting subtitle stream (none)")
-            self._player.sub = 'no'
-        elif sub_uid is not None:
-            log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
-            self._player.sub = self._video.subtitle_seq[sub_uid]
+            if sub_uid == '0':
+                log.debug("PlayerManager::play selecting subtitle stream (none)")
+                self._player.sub = 'no'
+            elif sub_uid is not None:
+                log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
+                self._player.sub = self._video.subtitle_seq[sub_uid]
+
+        self._video.set_streams(audio_uid, sub_uid)
+
+        if self._video.is_transcode:
+            self.restart_playback()
 
 playerManager = PlayerManager()
 

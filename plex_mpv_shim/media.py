@@ -1,6 +1,7 @@
 import logging
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
+import requests
 import uuid
 
 try:
@@ -9,7 +10,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_resolution
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_resolution, get_session, reset_session
 
 log = logging.getLogger('media')
 
@@ -32,6 +33,8 @@ class Video(object):
         self.audio_seq     = {}
         self.audio_uid     = {}
         self.is_transcode  = False
+        self.trs_aid       = None
+        self.trs_sid       = None
 
         if media:
             self.select_media(media, part)
@@ -54,10 +57,13 @@ class Video(object):
             self.subtitle_seq[sub.attrib["id"]] = index+1
 
     def get_transcode_streams(self):
-        audio_obj = self._part_node.find("./Stream[@streamType='2'][@selected='1']")
-        subtitle_obj = self._part_node.find("./Stream[@streamType='3'][@selected='1']")
-        return (audio_obj.get("id") if audio_obj else None,
-                subtitle_obj.get("id") if subtitle_obj else None)
+        if not self.trs_aid:
+            audio_obj = self._part_node.find("./Stream[@streamType='2'][@selected='1']")
+            self.trs_aid = audio_obj.get("id") if audio_obj is not None else None
+        if not self.trs_sid:
+            subtitle_obj = self._part_node.find("./Stream[@streamType='3'][@selected='1']")
+            self.trs_sid = subtitle_obj.get("id") if subtitle_obj is not None else None
+        return self.trs_aid, self.trs_sid
 
     def select_best_media(self, part=0):
         """
@@ -107,6 +113,22 @@ class Video(object):
             return False
         return len(self._media_node.findall("./Part")) > 1
 
+    def set_streams(self, audio_uid, sub_uid):
+        args = {"allParts": "1"}
+
+        if audio_uid is not None:
+            args["audioStreamID"] = audio_uid
+            self.trs_aid = audio_uid
+
+        if sub_uid is not None:
+            args["subtitleStreamID"] = sub_uid
+            self.trs_sid = sub_uid
+
+        if self._part_node != None:
+            partid = self._part_node.get("id")
+            url = "/library/parts/{0}".format(partid)
+            requests.put(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), data=None)
+
     def get_proper_title(self):
         if not hasattr(self, "_title"):
             media_type = self.node.get('type')
@@ -136,12 +158,80 @@ class Video(object):
             setattr(self, "_title", title)
         return getattr(self, "_title")
 
-    def is_transcode_suggested(self):
+    def get_formats(self):
+        audio_formats = []
+        protocols = "protocols=http-video,http-live-streaming,http-mp4-streaming,http-mp4-video,http-mp4-video-720p,http-streaming-video,http-streaming-video-720p;videoDecoders=mpeg4,h264{profile:high&resolution:1080&level:51};audioDecoders=mp3,aac{channels:8}"
+        if settings.audio_ac3passthrough:
+            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=ac3)")
+            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=eac3)")
+            protocols += ",ac3{bitrate:800000&channels:8}"
+        if settings.audio_dtspassthrough:
+            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=dca)")
+            protocols += ",dts{bitrate:800000&channels:8}"
+
+        return audio_formats, protocols
+
+    def is_transcode_suggested(self, video_height=None, video_width=None,
+                               video_bitrate=None, video_quality=100):
+        request_direct_play = "1"
+        request_subtitle_mode = "none"
+        is_local = is_local_domain(self.parent.path.hostname)
+
+        # User would like us to always transcode.
         if settings.always_transcode:
-            return True
-        elif (settings.remote_transcode and not is_local_domain(self.parent.path.hostname)
+            request_direct_play = "0"
+            request_subtitle_mode = "auto"
+        # Check locally if we should transcode or direct play. (Legacy)
+        elif (settings.remote_transcode and not settings.auto_transcode and not is_local
               and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh):
+            request_direct_play = "0"
+            request_subtitle_mode = "auto"
+
+        # Regardless of if we need the data from the decision, Plex will sometimes deny access
+        # if there is no decision for the current session.
+        audio_formats, protocols = self.get_formats()
+
+        url = "/video/:/transcode/universal/decision"
+        args = {
+            "hasMDE":             "1",
+            "path":               self.node.get("key"),
+            "session":            get_session(self.parent.path.hostname),
+            "protocol":           "hls",
+            "directPlay":         request_direct_play,
+            "directStream":       "1",
+            "fastSeek":           "1",
+            "maxVideoBitrate":    str(video_bitrate),
+            "videoQuality":       str(video_quality),
+            "videoResolution":    "%sx%s" % (video_width, video_height),
+            "mediaIndex":         self._media or 0,
+            "partIndex":          self._part or 0,
+            "location":           "lan" if is_local else "wan",
+            "autoAdjustQuality":  str(int(settings.adaptive_transcode)),
+            "directStreamAudio":  "1",
+            "subtitles":          request_subtitle_mode, # Setting this to auto or burn breaks direct play.
+            "copyts":             "1",
+        }
+
+        if audio_formats:
+            args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
+            args["X-Plex-Client-Capabilities"]  = protocols
+
+        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args)))
+        treeRoot = tree.getroot()
+        decisionText = treeRoot.get("generalDecisionText") or treeRoot.get("mdeDecisionText")
+        decision = treeRoot.get("generalDecisionCode") or treeRoot.get("mdeDecisionCode")
+        log.debug("Decision: {0}: {1}".format(decision, decisionText))
+
+        if request_direct_play == "0":
             return True
+        # Use the decision from the Plex server.
+        elif settings.auto_transcode:
+            if decision == "1000":
+                return False
+            elif decision == "1001":
+                return True
+            else:
+                log.error("Server reports that file cannot be streamed.")
         return False
 
     def get_playback_url(self, direct_play=None, offset=0,
@@ -150,9 +240,18 @@ class Video(object):
         """
         Returns the URL to use for the trancoded file.
         """
+        reset_session(self.parent.path.hostname)
+        
+        if video_height is None or video_width is None:
+            video_width, video_height = get_resolution(settings.transcode_res)
+
+        if video_bitrate is None:
+            video_bitrate = settings.transcode_kbps
+
         if direct_play is None:
             # See if transcoding is suggested
-            direct_play = not self.is_transcode_suggested()
+            direct_play = not self.is_transcode_suggested(video_height, video_width,
+                                                          video_bitrate, video_quality)
 
         if direct_play:
             if not self._part_node:
@@ -162,39 +261,31 @@ class Video(object):
             return get_plex_url(url)
 
         self.is_transcode = True
-
-        if video_height is None or video_width is None:
-            video_width, video_height = get_resolution(settings.transcode_res)
-
-        if video_bitrate is None:
-            video_bitrate = settings.transcode_kbps
+        is_local = is_local_domain(self.parent.path.hostname)
 
         url = "/video/:/transcode/universal/start.m3u8"
         args = {
-            "path":             self.node.get("key"),
-            "session":          settings.client_uuid,
-            "protocol":         "hls",
-            "directPlay":       "0",
-            "directStream":     "1",
-            "fastSeek":         "1",
-            "maxVideoBitrate":  str(video_bitrate),
-            "videoQuality":     str(video_quality),
-            "videoResolution":  "%sx%s" % (video_width,video_height),
-            "mediaIndex":       self._media or 0,
-            "partIndex":        self._part or 0,
-            "offset":           offset,
+            "path":               self.node.get("key"),
+            "session":            get_session(self.parent.path.hostname),
+            "protocol":           "hls",
+            "directPlay":         "0",
+            "directStream":       "1",
+            "fastSeek":           "1",
+            "maxVideoBitrate":    str(video_bitrate),
+            "videoQuality":       str(video_quality),
+            "videoResolution":    "%sx%s" % (video_width,video_height),
+            "mediaIndex":         self._media or 0,
+            "partIndex":          self._part or 0,
+            "location":           "lan" if is_local else "wan",
+            "offset":             offset,
+            "autoAdjustQuality":  str(int(settings.adaptive_transcode)),
+            "directStreamAudio":  "1",
+            "subtitles":          "auto",
+            "copyts":             "1",
             #"skipSubtitles":    "1",
         }
 
-        audio_formats = []
-        protocols = "protocols=http-live-streaming,http-mp4-streaming,http-mp4-video,http-mp4-video-720p,http-streaming-video,http-streaming-video-720p;videoDecoders=mpeg4,h264{profile:high&resolution:1080&level:51};audioDecoders=mp3,aac{channels:8}"
-        if settings.audio_ac3passthrough:
-            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=ac3)")
-            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=eac3)")
-            protocols += ",ac3{bitrate:800000&channels:8}"
-        if settings.audio_dtspassthrough:
-            audio_formats.append("add-transcode-target-audio-codec(type=videoProfile&context=streaming&protocol=hls&audioCodec=dca)")
-            protocols += ",dts{bitrate:800000&channels:8}"
+        audio_formats, protocols = self.get_formats()
 
         if audio_formats:
             args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
@@ -300,7 +391,7 @@ class XMLCollection(object):
         return self.path.path
 
 class Media(XMLCollection):
-    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None, session=None):
+    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None):
         XMLCollection.__init__(self, url)
         self.video = self.tree.find('./Video')
         self.is_tv = self.video.get("type") == "episode"
@@ -309,11 +400,6 @@ class Media(XMLCollection):
         self.has_prev = False
         self.play_queue = play_queue
         self.play_queue_xml = play_queue_xml
-
-        if session:
-            self.session = session
-        else:
-            self.session = str(uuid.uuid4())
 
         if self.play_queue:
             if not series:
@@ -380,21 +466,21 @@ class Media(XMLCollection):
             if self.play_queue and self.seq+1 == len(self.series):
                 self.upd_play_queue()
             next_video = self.series[self.seq+1]
-            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml, session=self.session)
+            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml)
     
     def get_prev(self):
         if self.has_prev:
             if self.play_queue and self.seq-1 == 0:
                 self.upd_play_queue()
             prev_video = self.series[self.seq-1]
-            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml, session=self.session)
+            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml)
 
     def get_from_key(self, key):
         if self.play_queue:
             self.upd_play_queue()
             for i, video in enumerate(self.series):
                 if video.get("key") == key:
-                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml, session=self.session)
+                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml)
             return None
         else:
             return Media(self.get_path(key))

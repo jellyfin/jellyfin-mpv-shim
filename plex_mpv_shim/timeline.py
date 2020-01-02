@@ -66,18 +66,13 @@ class TimelineManager(threading.Thread):
         # Also send timeline to plex server.
         video  = playerManager._video
         options = self.GetCurrentTimeline()
-        session = None
         server_url = None
         if video:
             server_url = video.parent.server_url
             self.last_server_url = video.parent.server_url
-            session = video.parent.session
-            self.last_session = video.parent.session
-        elif self.last_server_url and self.last_session:
+        elif self.last_server_url:
             server_url = self.last_server_url
-            session = self.last_session
-        if server_url and session:
-            options["X-Plex-Session-Identifier"] = session
+        if server_url:
             url = safe_urlopen("%s/:/timeline" % server_url, options, quiet=True)
 
     def SendTimelineToSubscriber(self, subscriber):
@@ -193,9 +188,8 @@ class TimelineManager(threading.Thread):
             controllable.append("skipTo")
             controllable.append("autoPlay")
 
-            if not video.is_transcode:
-                controllable.append("subtitleStream")
-                controllable.append("audioStream")
+            controllable.append("subtitleStream")
+            controllable.append("audioStream")
 
             if video.parent.has_next:
                 controllable.append("skipNext")
@@ -225,7 +219,10 @@ class TimelineManager(threading.Thread):
                 options["containerKey"]      = video.get_video_attr("key")
                 if video.parent.play_queue:
                     options.update(video.parent.get_queue_info())
-            options["state"] = "stopped"
+            if player.playback_abort:
+                options["state"] = "stopped"
+            else:
+                options["state"] = "buffering"
 
         return options
 

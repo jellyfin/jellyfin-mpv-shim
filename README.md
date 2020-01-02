@@ -24,14 +24,8 @@ The project supports the following:
  - Playing multiple videos in a queue.
  - The app doesn't require or save any Plex passwords or tokens.
  - Executing commands before playing, after media end, and when stopped.
- - Configurable transcoding support based on remote server and bitrate.
+ - Configurable transcoding support. (Please see the section below.)
  - The application shows up in Plex dashboard and usage tracking.
-
-Transcoding is supported, but needs work:
- - Transcode bandwidth decisions are currently based on values in the config file.
- - Playback of videos can fail on remote servers if the available bandwidth is lower. 
- - Changing subtitle/audio tracks cannot be done after starting transcode playback.
- - The only way to control transcode video quality is using the config file.
 
 You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv). To install `plex-mpv-shim`, run:
 ```bash
@@ -60,20 +54,35 @@ Keyboard Shortcuts:
  - u to mark unwatched and quit
 
 You can execute shell commands on media state using the config file:
- - media\_ended\_cmd - When all media has played.
- - pre\_media\_cmd - Before the player displays. (Will wait for finish.)
- - stop\_cmd - After stopping the player.
- - idle\_cmd - After no activity for idle\_cmd\_delay seconds.
+ - `media_ended_cmd` - When all media has played.
+ - `pre_media_cmd` - Before the player displays. (Will wait for finish.)
+ - `stop_cmd` - After stopping the player.
+ - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
 
 This project is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported
 to python3, modified to use mpv as the player, and updated to allow all
 features of the remote control api for video playback.
 
-UPDATE: It looks like we have a reversal on the Plex Media Player situation.
-That being said, this project has proven to be interesting as a hackable
-Plex client. **I plan to maintain this client, although I may not work on
-adding new features unless someone requests them.**
+## Transcoding Support
+
+Plex-MPV-Shim 1.2 introduces revamped transcoding support. It will automatically ask the server to see if transcoding is suggested, which enables Plex-MPV-Shim to play more of your library on the go. You can configure this or switch to the old local transcode decision system.
+
+- `always_transcode`: This will tell the client to always transcode, without asking. Default: `false`
+    - This may be useful if you are using limited hardware that cannot handle advanced codecs.
+    - You may have some luck changing `client_profile` in the configuration to a more restrictive one.
+- `auto_transcode`: This will ask the server to determine if transcoding is suggested. Default: `true`
+    - `transcode_kbps`: Transcode bandwidth to request. Default: `2000`
+    - `transcode_res`: Transcode resolution to request. Default: `720p`
+- `remote_transcode`: This will check for transcoding using locally available metadata for remote servers only. Default: `true`
+    - This will not take effect if `auto_transcode` is enabled.
+    - Configuration options from `auto_transcode` are also used.
+    - `remote_kbps_thresh`: The threshold to force transcoding. If this is lower than the configured server bandwidth, playback may fail.
+- `adaptive_transcode`: Tell the server to adjust the quality while streaming. Default: `false`
+
+Caveats:
+ - Controlling Plex-MPV-Shim from the Plex web application only works on a LAN where a Plex Server resides. It does NOT have to be the one you are streaming from. An empty server will work.
+ - The only way to configure transcode quality is the config file. There is no native way to configure transcode quality from the Plex remote control interface. I may implement an on-screen menu to adjust this and other settings.
 
 ## Building on Windows
 

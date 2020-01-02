@@ -3,6 +3,7 @@ import os
 import urllib.request, urllib.parse, urllib.error
 import socket
 import ipaddress
+import uuid
 
 from .conf import settings
 from datetime import datetime
@@ -10,6 +11,7 @@ from functools import wraps
 
 log = logging.getLogger("utils")
 plex_eph_tokens = {}
+plex_sessions = {}
 
 class Timer(object):
     def __init__(self):
@@ -45,6 +47,17 @@ def synchronous(tlockname):
 def upd_token(domain, token):
     plex_eph_tokens[domain] = token
 
+def get_session(domain):
+    if domain not in plex_sessions:
+        session = str(uuid.uuid4())
+        plex_sessions[domain] = session
+    return plex_sessions[domain]
+
+def reset_session(domain):
+    session = str(uuid.uuid4())
+    plex_sessions[domain] = session
+    return session
+
 def get_plex_url(url, data=None, quiet=False):
     if not data:
         data = {}
@@ -62,17 +75,23 @@ def get_plex_url(url, data=None, quiet=False):
     else:
         log.error("get_plex_url No token for: %s" % domain)
 
+    if domain in plex_sessions:
+        data.update({
+            "X-Plex-Session-Identifier": plex_sessions[domain]
+        })
+
     data.update({
-        "X-Plex-Version":           "2.0",
-        "X-Plex-Client-Identifier": settings.client_uuid,
-        "X-Plex-Provides":          "player",
-        "X-Plex-Device-Name":       settings.player_name,
-        "X-Plex-Model":             "RaspberryPI",
-        "X-Plex-Device":            "RaspberryPI",
+        "X-Plex-Version":             "2.0",
+        "X-Plex-Client-Identifier":   settings.client_uuid,
+        "X-Plex-Provides":            "player",
+        "X-Plex-Device-Name":         settings.player_name,
+        "X-Plex-Model":               "RaspberryPI",
+        "X-Plex-Device":              "RaspberryPI",
 
         # Lies
-        "X-Plex-Product":           "Plex Home Theater",
-        "X-Plex-Platform":          "Plex Home Theater"
+        "X-Plex-Product":             "Plex MPV Shim",
+        "X-Plex-Platform":            "Plex Home Theater",
+        "X-Plex-Client-Profile-Name": settings.client_profile,
     })
 
     # Kinda ghetto...
