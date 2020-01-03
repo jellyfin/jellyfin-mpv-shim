@@ -94,9 +94,7 @@ Plex-MPV-Shim 1.2 introduces revamped transcoding support. It will automatically
     - `remote_kbps_thresh`: The threshold to force transcoding. If this is lower than the configured server bandwidth, playback may fail.
 - `adaptive_transcode`: Tell the server to adjust the quality while streaming. Default: `false`
 
-Caveats:
- - Controlling Plex-MPV-Shim from the Plex web application only works on a LAN where a Plex Server resides. It does NOT have to be the one you are streaming from. An empty server will work.
- - The only way to configure transcode quality is the config file. There is no native way to configure transcode quality from the Plex remote control interface. I may implement an on-screen menu to adjust this and other settings.
+Pleas Note: Controlling Plex-MPV-Shim from the Plex web application only works on a LAN where a Plex Server resides. It does NOT have to be the one you are streaming from. An empty server will work.
 
 ## Building on Windows
 
