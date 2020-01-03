@@ -33,7 +33,6 @@ class Settings(object):
         "remote_transcode":     True,
         "remote_kbps_thresh":   5000,
         "transcode_kbps":       2000,
-        "transcode_res":        "720p",
         "client_profile":       "Plex Home Theater",
     }
 

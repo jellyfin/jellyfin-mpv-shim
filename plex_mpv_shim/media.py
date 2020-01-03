@@ -10,7 +10,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_resolution, get_session, reset_session
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_session, reset_session
 
 log = logging.getLogger('media')
 
@@ -171,14 +171,13 @@ class Video(object):
 
         return audio_formats, protocols
 
-    def is_transcode_suggested(self, video_height=None, video_width=None,
-                               video_bitrate=None, video_quality=100):
+    def is_transcode_suggested(self, video_bitrate=None, force_transcode=False, force_bitrate=False):
         request_direct_play = "1"
         request_subtitle_mode = "none"
         is_local = is_local_domain(self.parent.path.hostname)
 
         # User would like us to always transcode.
-        if settings.always_transcode:
+        if settings.always_transcode or force_transcode:
             request_direct_play = "0"
             request_subtitle_mode = "auto"
         # Check locally if we should transcode or direct play. (Legacy)
@@ -200,9 +199,6 @@ class Video(object):
             "directPlay":         request_direct_play,
             "directStream":       "1",
             "fastSeek":           "1",
-            "maxVideoBitrate":    str(video_bitrate),
-            "videoQuality":       str(video_quality),
-            "videoResolution":    "%sx%s" % (video_width, video_height),
             "mediaIndex":         self._media or 0,
             "partIndex":          self._part or 0,
             "location":           "lan" if is_local else "wan",
@@ -211,6 +207,9 @@ class Video(object):
             "subtitles":          request_subtitle_mode, # Setting this to auto or burn breaks direct play.
             "copyts":             "1",
         }
+
+        if not is_local or force_bitrate:
+            args[maxVideoBitrate] = str(video_bitrate)
 
         if audio_formats:
             args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
@@ -234,24 +233,18 @@ class Video(object):
                 log.error("Server reports that file cannot be streamed.")
         return False
 
-    def get_playback_url(self, direct_play=None, offset=0,
-                         video_height=None,      video_width=None,
-                         video_bitrate=None,    video_quality=100):
+    def get_playback_url(self, direct_play=None, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False):
         """
         Returns the URL to use for the trancoded file.
         """
         reset_session(self.parent.path.hostname)
         
-        if video_height is None or video_width is None:
-            video_width, video_height = get_resolution(settings.transcode_res)
-
         if video_bitrate is None:
             video_bitrate = settings.transcode_kbps
 
         if direct_play is None:
             # See if transcoding is suggested
-            direct_play = not self.is_transcode_suggested(video_height, video_width,
-                                                          video_bitrate, video_quality)
+            direct_play = not self.is_transcode_suggested(video_bitrate, force_transcode, force_bitrate)
 
         if direct_play:
             if not self._part_node:
@@ -271,9 +264,6 @@ class Video(object):
             "directPlay":         "0",
             "directStream":       "1",
             "fastSeek":           "1",
-            "maxVideoBitrate":    str(video_bitrate),
-            "videoQuality":       str(video_quality),
-            "videoResolution":    "%sx%s" % (video_width,video_height),
             "mediaIndex":         self._media or 0,
             "partIndex":          self._part or 0,
             "location":           "lan" if is_local else "wan",
@@ -284,6 +274,9 @@ class Video(object):
             "copyts":             "1",
             #"skipSubtitles":    "1",
         }
+
+        if not is_local or force_bitrate:
+            args[maxVideoBitrate] = str(video_bitrate)
 
         audio_formats, protocols = self.get_formats()
 

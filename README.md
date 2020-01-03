@@ -73,7 +73,6 @@ Plex-MPV-Shim 1.2 introduces revamped transcoding support. It will automatically
     - You may have some luck changing `client_profile` in the configuration to a more restrictive one.
 - `auto_transcode`: This will ask the server to determine if transcoding is suggested. Default: `true`
     - `transcode_kbps`: Transcode bandwidth to request. Default: `2000`
-    - `transcode_res`: Transcode resolution to request. Default: `720p`
 - `remote_transcode`: This will check for transcoding using locally available metadata for remote servers only. Default: `true`
     - This will not take effect if `auto_transcode` is enabled.
     - Configuration options from `auto_transcode` are also used.

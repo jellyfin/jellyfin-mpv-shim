@@ -131,19 +131,3 @@ def safe_urlopen(url, data=None, quiet=False):
 def is_local_domain(domain):
     return ipaddress.ip_address(socket.gethostbyname(domain)).is_private
 
-resolutions = {
-    "240p": (320, 240),
-    "360p": (640, 360),
-    "480p": (848, 480),
-    "720p": (1280, 720),
-    "1080p": (1920, 1080),
-    "1440p": (2560, 1440),
-    "2160p": (3840, 2160),
-    "4320p": (7680, 4320),
-}
-
-def get_resolution(name):
-    if name in resolutions:
-        return resolutions[name]
-    return (1280, 720)
-
