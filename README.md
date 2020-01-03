@@ -64,6 +64,21 @@ is available under the terms of the MIT License. The project was ported
 to python3, modified to use mpv as the player, and updated to allow all
 features of the remote control api for video playback.
 
+## Interactive Menu
+
+Plex-MPV-Shim 1.3 introduces the interactive menu. This allows for features that
+would be impossible to support through the remote control interface normally, such as:
+ - Change subtitle or audio tracks. The full titles from the media file are shown.
+ - Automatically change the subtitle and audio streams for an entire series at once.
+ - Adjust video transcoding quality without restarting.
+ - Change transcoding preferences without editing the config file.
+ - Quit the player, marking the current video unwatched.
+
+The interactive menu supports both the keyboard and the remote control. To open the menu
+from a phone, press the ok or home button. Press back to go back or close the menu. The
+keyboard shortcut to open the menu is `c`. Use the arrow keys, escape, and enter/space
+to navigate the menu. 
+
 ## Transcoding Support
 
 Plex-MPV-Shim 1.2 introduces revamped transcoding support. It will automatically ask the server to see if transcoding is suggested, which enables Plex-MPV-Shim to play more of your library on the go. You can configure this or switch to the old local transcode decision system.

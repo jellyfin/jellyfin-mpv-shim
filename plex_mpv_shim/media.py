@@ -35,6 +35,7 @@ class Video(object):
         self.is_transcode  = False
         self.trs_aid       = None
         self.trs_sid       = None
+        self.trs_ovr       = None
 
         if media:
             self.select_media(media, part)
@@ -158,6 +159,26 @@ class Video(object):
             setattr(self, "_title", title)
         return getattr(self, "_title")
 
+    def set_trs_override(self, video_bitrate, force_transcode, force_bitrate):
+        if force_transcode:
+            self.trs_ovr = (video_bitrate, force_transcode, force_bitrate)
+        else:
+            self.trs_ovr = None
+
+    def get_transcode_bitrate(self):
+        if not self.is_transcode:
+            return "none"
+        elif self.trs_ovr is not None:
+            if self.trs_ovr[0] is not None:
+                return self.trs_ovr[0]
+            elif self.trs_ovr[1]:
+                return "max"
+        elif is_local_domain(self.parent.path.hostname):
+            return "max"
+        else:
+            return settings.transcode_kbps
+        
+
     def get_formats(self):
         audio_formats = []
         protocols = "protocols=http-video,http-live-streaming,http-mp4-streaming,http-mp4-video,http-mp4-video-720p,http-streaming-video,http-streaming-video-720p;videoDecoders=mpeg4,h264{profile:high&resolution:1080&level:51};audioDecoders=mp3,aac{channels:8}"
@@ -208,8 +229,8 @@ class Video(object):
             "copyts":             "1",
         }
 
-        if not is_local or force_bitrate:
-            args[maxVideoBitrate] = str(video_bitrate)
+        if video_bitrate is not None and (not is_local or force_bitrate):
+            args["maxVideoBitrate"] = str(video_bitrate)
 
         if audio_formats:
             args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
@@ -238,8 +259,10 @@ class Video(object):
         Returns the URL to use for the trancoded file.
         """
         reset_session(self.parent.path.hostname)
-        
-        if video_bitrate is None:
+
+        if self.trs_ovr:
+            video_bitrate, force_transcode, force_bitrate = self.trs_ovr
+        elif video_bitrate is None:
             video_bitrate = settings.transcode_kbps
 
         if direct_play is None:
@@ -275,8 +298,8 @@ class Video(object):
             #"skipSubtitles":    "1",
         }
 
-        if not is_local or force_bitrate:
-            args[maxVideoBitrate] = str(video_bitrate)
+        if video_bitrate is not None and (not is_local or force_bitrate):
+            args["maxVideoBitrate"] = str(video_bitrate)
 
         audio_formats, protocols = self.get_formats()
 

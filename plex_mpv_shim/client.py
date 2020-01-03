@@ -31,6 +31,16 @@ log = logging.getLogger("client")
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
+NAVIGATION_DICT = {
+    "/player/navigation/moveDown": "down",
+    "/player/navigation/moveUp": "up",
+    "/player/navigation/select": "ok",
+    "/player/navigation/moveLeft": "left",
+    "/player/navigation/moveRight": "right",
+    "/player/navigation/home": "home",
+    "/player/navigation/back": "back"
+}
+
 class HttpHandler(SimpleHTTPRequestHandler):
     xmlOutput   = None
     completed   = False
@@ -349,8 +359,10 @@ class HttpHandler(SimpleHTTPRequestHandler):
     def mirror(self, path, arguments):
         timelineManager.delay_idle()
 
-    def navigation(self, path, query):
-        pass
+    def navigation(self, path, arguments):
+        path = path.path
+        if path in NAVIGATION_DICT:
+            playerManager.menu_action(NAVIGATION_DICT[path])
 
 class HttpSocketServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True

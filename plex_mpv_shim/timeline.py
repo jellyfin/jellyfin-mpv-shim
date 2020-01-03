@@ -153,18 +153,12 @@ class TimelineManager(threading.Thread):
             options["time"]              = int(player.playback_time * 1e3)
             options["autoPlay"]          = '1' if settings.auto_play else '0'
             
-            if video.is_transcode:
-                trs_audio, trs_subtitle = video.get_transcode_streams()
-                if trs_subtitle:
-                    options["subtitleStreamID"] = trs_subtitle
-                if trs_audio:
-                    options["audioStreamID"] = trs_audio
-            else:
-                if player.sub != 'no':
-                    options["subtitleStreamID"] = video.subtitle_uid.get(player.sub, '')
+            aid, sid = playerManager.get_track_ids()
 
-                if player.audio != 'no':
-                    options["audioStreamID"] = video.audio_uid.get(player.audio, '')
+            if aid:
+                options["audioStreamID"] = aid
+            if sid:
+                options["subtitleStreamID"] = sid
 
             options["ratingKey"]         = video.get_video_attr("ratingKey")
             options["key"]               = video.get_video_attr("key")
