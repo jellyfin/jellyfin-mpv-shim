@@ -2,8 +2,8 @@
 
 Plex MPV Shim is a simple and lightweight Plex client, with support for Windows
 and Linux. Think of it as an open source Chromecast for Plex. You can cast almost
-anything from Plex and it will Direct Play. Subtitles are fully supported, and
-there are tools to manage them like no other Plex client.
+anything from Plex and it will Direct Play. Embedded subtitles are fully supported,
+and there are tools to manage them like no other Plex client.
 
 ## Getting Started
 
