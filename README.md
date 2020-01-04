@@ -52,6 +52,7 @@ Keyboard Shortcuts:
  - q to close player
  - w to mark watched and skip
  - u to mark unwatched and quit
+ - c to open the interactive menu
 
 You can execute shell commands on media state using the config file:
  - `media_ended_cmd` - When all media has played.
