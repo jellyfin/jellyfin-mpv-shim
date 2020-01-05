@@ -2,8 +2,8 @@
 
 Plex MPV Shim is a simple and lightweight Plex client, with support for Windows
 and Linux. Think of it as an open source Chromecast for Plex. You can cast almost
-anything from Plex and it will Direct Play. Embedded subtitles are fully supported,
-and there are tools to manage them like no other Plex client.
+anything from Plex and it will Direct Play. Subtitles are fully supported, and
+there are tools to manage them like no other Plex client.
 
 ## Getting Started
 
@@ -35,6 +35,10 @@ On your computer, use the arrow keys, enter, and escape to navigate. On your pho
 the arrow buttons, ok, back, and home to navigate. (The option for remote controls is
 shown next to the name of the client when you select it from the cast menu.)
 
+Please also note that the on-screen controller for MPV (if available) cannot change the
+audio and subtitle track configurations for transcoded media. It also cannot load external
+subtitles. You must either use the menu or the application you casted from.
+
 ### Keyboard Shortcuts
 
 This program supports most of the [keyboard shortcuts from MPV](https://mpv.io/manual/stable/#interactive-control). The custom keyboard shortcuts are:
@@ -59,6 +63,7 @@ Here are the notable MPV keyboard shortcuts:
  - backspace - Reset speed
  - m - Mute
  - d - Enable/disable deinterlace
+ - Ctrl+Shift+Left/Right - Adjust subtitle delay.
 
 ## Configuration
 

@@ -8,7 +8,7 @@ from threading import RLock
 from queue import Queue
 
 from . import conffile
-from .utils import synchronous, Timer, get_plex_url
+from .utils import synchronous, Timer
 from .conf import settings
 from .menu import OSDMenu
 
@@ -35,6 +35,8 @@ class PlayerManager(object):
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, include=mpv_config)
         self.timeline_trigger = None
         self.action_trigger = None
+        self.external_subtitles = {}
+        self.external_subtitles_rev = {}
         self.menu = OSDMenu(self)
 
         if hasattr(self._player, 'osc'):
@@ -172,6 +174,9 @@ class PlayerManager(object):
         self._player.play(self.url)
         self._player.wait_for_property("duration")
         self._player.fs = True
+        self.external_subtitles = {}
+        self.external_subtitles_rev = {}
+        self._video  = video
 
         if offset > 0:
             self._player.playback_time = offset
@@ -183,14 +188,17 @@ class PlayerManager(object):
                 self._player.audio = audio_idx
 
             sub_idx = video.get_subtitle_idx()
+            xsub_id = video.get_external_sub_id()
             if sub_idx is not None:
                 log.debug("PlayerManager::play selecting subtitle index=%s" % sub_idx)
                 self._player.sub = sub_idx
+            elif xsub_id is not None:
+                log.debug("PlayerManager::play selecting external subtitle id=%s" % xsub_id)
+                self.load_external_sub(xsub_id)
             else:
                 self._player.sub = 'no'
 
         self._player.pause = False
-        self._video  = video
         self.timeline_handle()
 
     def exec_stop_cmd(self):
@@ -342,7 +350,11 @@ class PlayerManager(object):
                 self._player.sub = 'no'
             elif sub_uid is not None:
                 log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
-                self._player.sub = self._video.subtitle_seq[sub_uid]
+                if sub_uid in self._video.subtitle_seq:
+                    self._player.sub = self._video.subtitle_seq[sub_uid]
+                else:
+                    log.debug("PlayerManager::play selecting external subtitle id=%s" % sub_uid)
+                    self.load_external_sub(sub_uid)
 
         self._video.set_streams(audio_uid, sub_uid)
 
@@ -350,17 +362,31 @@ class PlayerManager(object):
             self.restart_playback()
         self.timeline_handle()
     
+    @synchronous('_lock')
+    def load_external_sub(self, sub_id):
+        if sub_id in self.external_subtitles:
+            self._player.sub = self.external_subtitles[sub_id]
+        else:
+            try:
+                self._player.sub_add(self._video.get_external_sub(sub_id))
+                self.external_subtitles[sub_id] = self._player.sub
+                self.external_subtitles_rev[self._player.sub] = sub_id
+            except SystemError:
+                log.debug("PlayerManager::could not load external subtitle")
+
     def get_track_ids(self):
         if self._video.is_transcode:
             return self._video.get_transcode_streams()
         else:
             aid, sid = None, None
             if self._player.sub != 'no':
-                sid = self._video.subtitle_uid.get(self._player.sub, '')
+                if self._player.sub in self.external_subtitles_rev:
+                    sid = self.external_subtitles_rev.get(self._player.sub, '')
+                else:
+                    sid = self._video.subtitle_uid.get(self._player.sub, '')
 
             if self._player.audio != 'no':
                 aid = self._video.audio_uid.get(self._player.audio, '')
             return aid, sid
 
 playerManager = PlayerManager()
-

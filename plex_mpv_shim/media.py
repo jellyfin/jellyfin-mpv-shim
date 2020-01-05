@@ -48,14 +48,15 @@ class Video(object):
     def map_streams(self):
         if not self._part_node:
             return
-        
+
         for index, stream in enumerate(self._part_node.findall("./Stream[@streamType='2']") or []):
             self.audio_uid[index+1] = stream.attrib["id"]
             self.audio_seq[stream.attrib["id"]] = index+1
 
         for index, sub in enumerate(self._part_node.findall("./Stream[@streamType='3']") or []):
-            self.subtitle_uid[index+1] = sub.attrib["id"]
-            self.subtitle_seq[sub.attrib["id"]] = index+1
+            if sub.attrib.get("key") is None:
+                self.subtitle_uid[index+1] = sub.attrib["id"]
+                self.subtitle_seq[sub.attrib["id"]] = index+1
 
     def get_transcode_streams(self):
         if not self.trs_aid:
@@ -326,6 +327,7 @@ class Video(object):
         if match:
             return index+1
 
+
     def get_subtitle_idx(self):
         if not self._part_node:
             return
@@ -333,12 +335,24 @@ class Video(object):
         match = False
         index = None
         for index, sub in enumerate(self._part_node.findall("./Stream[@streamType='3']") or []):
-            if sub.get('selected') == "1":
+            if sub.get('selected') == "1" and sub.get('key') is None:
                 match = True
                 break
-
+        
         if match:
             return index+1
+
+    def get_external_sub_id(self):
+        if not self._part_node:
+            return
+
+        for sub in self._part_node.findall("./Stream[@streamType='3']") or []:
+            if sub.get('selected') == "1" and sub.get('key') is not None:
+                return sub.get("id")
+
+    def get_external_sub(self, id):
+        url = "/library/streams/{0}".format(id)
+        return get_plex_url(urllib.parse.urljoin(self.parent.server_url, url))
 
     def get_duration(self):
         return self.node.get("duration")
