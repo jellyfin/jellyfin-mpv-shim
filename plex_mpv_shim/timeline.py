@@ -42,7 +42,6 @@ class TimelineManager(threading.Thread):
         force_next = False
         while not self.halt:
             if (playerManager._player and playerManager._video) or force_next:
-                playerManager.update()
                 if not playerManager.is_paused() or force_next:
                     self.SendTimelineToSubscribers()
                 self.delay_idle()
@@ -73,7 +72,7 @@ class TimelineManager(threading.Thread):
         elif self.last_server_url:
             server_url = self.last_server_url
         if server_url:
-            url = safe_urlopen("%s/:/timeline" % server_url, options, quiet=True)
+            safe_urlopen("%s/:/timeline" % server_url, options, quiet=True)
 
     def SendTimelineToSubscriber(self, subscriber):
         subscriber.set_poll_evt()

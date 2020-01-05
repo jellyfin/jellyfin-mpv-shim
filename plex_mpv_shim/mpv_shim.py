@@ -13,7 +13,7 @@ from .conf import settings
 from .gdm import gdm
 from .player import playerManager
 from .timeline import timelineManager
-
+from .action_thread import actionThread
 
 HTTP_PORT   = 3000
 APP_NAME = 'plex-mpv-shim'
@@ -43,6 +43,8 @@ def main():
 
     timelineManager.start()
     playerManager.timeline_trigger = timelineManager.trigger
+    actionThread.start()
+    playerManager.action_trigger = actionThread.trigger
 
     try:
         while True:

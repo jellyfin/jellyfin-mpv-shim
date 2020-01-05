@@ -16,7 +16,7 @@ APP_NAME = 'plex-mpv-shim'
 
 log = logging.getLogger('player')
 
-# Q: What is with the put_task and timeline_handle?
+# Q: What is with the put_task call?
 # A: If something that modifies the url is called from a keybind
 #    directly, it crashes the input handling. If you know why,
 #    please tell me. I'd love to get rid of it.
@@ -34,6 +34,7 @@ class PlayerManager(object):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, include=mpv_config)
         self.timeline_trigger = None
+        self.action_trigger = None
         self.menu = OSDMenu(self)
 
         if hasattr(self._player, 'osc'):
@@ -52,22 +53,18 @@ class PlayerManager(object):
         @self._player.on_key_press('<')
         def handle_prev():
             self.put_task(self.play_prev)
-            self.timeline_handle()
 
         @self._player.on_key_press('>')
         def handle_next():
             self.put_task(self.play_next)
-            self.timeline_handle()
 
         @self._player.on_key_press('w')
         def handle_watched():
             self.put_task(self.watched_skip)
-            self.timeline_handle()
 
         @self._player.on_key_press('u')
         def handle_unwatched():
             self.put_task(self.unwatched_quit)
-            self.timeline_handle()
 
         @self._player.on_key_press('c')
         def menu_open():
@@ -118,7 +115,6 @@ class PlayerManager(object):
                 self.menu.menu_action('ok')
             else:    
                 self.toggle_pause()
-                self.timeline_handle()
 
         # This gives you an interactive python debugger prompt.
         @self._player.on_key_press('~')
@@ -130,7 +126,6 @@ class PlayerManager(object):
         def handle_end(event):
             if self._video:
                 self.put_task(self.finished_callback)
-                self.timeline_handle()
 
         self._video       = None
         self._lock        = RLock()
@@ -138,9 +133,16 @@ class PlayerManager(object):
 
         self.__part      = 1
 
+    # Put a task to the event queue.
+    # This ensures the task executes outside
+    # of an event handler, which causes a crash.
     def put_task(self, func, *args):
         self.evt_queue.put([func, args])
+        if self.action_trigger:
+            self.action_trigger.set()
 
+    # Trigger the timeline to update all
+    # clients immediately.
     def timeline_handle(self):
         if self.timeline_trigger:
             self.timeline_trigger.set()
@@ -189,6 +191,7 @@ class PlayerManager(object):
 
         self._player.pause = False
         self._video  = video
+        self.timeline_handle()
 
     def exec_stop_cmd(self):
         if settings.stop_cmd:
@@ -205,6 +208,7 @@ class PlayerManager(object):
         self._video  = None
         self._player.command("stop")
         self._player.pause = False
+        self.timeline_handle()
         self.exec_stop_cmd()
 
     @synchronous('_lock')
@@ -218,6 +222,7 @@ class PlayerManager(object):
     def toggle_pause(self):
         if not self._player.playback_abort:
             self._player.pause = not self._player.pause
+        self.timeline_handle()
 
     @synchronous('_lock')
     def seek(self, offset):
@@ -226,11 +231,13 @@ class PlayerManager(object):
         """
         if not self._player.playback_abort:
             self._player.playback_time = offset
+        self.timeline_handle()
 
     @synchronous('_lock')
     def set_volume(self, pct):
         if not self._player.playback_abort:
             self._player.volume = pct
+        self.timeline_handle()
 
     @synchronous('_lock')
     def get_state(self):
@@ -341,6 +348,7 @@ class PlayerManager(object):
 
         if self._video.is_transcode:
             self.restart_playback()
+        self.timeline_handle()
     
     def get_track_ids(self):
         if self._video.is_transcode:
