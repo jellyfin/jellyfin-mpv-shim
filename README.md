@@ -8,7 +8,7 @@ and there are tools to manage them like no other Plex client.
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/plex-mpv-shim/releases).
-If you are using Linux, please see the **Linux Installation** section below.
+If you are using Linux, please see the [Linux Installation](https://github.com/iwalton3/plex-mpv-shim/blob/master/README.md#linux-installation) section below.
 
 To use the client, simply launch it and cast your media from another Plex application.
 The mobile and web applications are supported. You do not have to log in to the client
