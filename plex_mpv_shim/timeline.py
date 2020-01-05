@@ -74,7 +74,8 @@ class TimelineManager(threading.Thread):
         # Also send timeline to plex server.
         # Do not send the timeline if the last one if still sending.
         # (Plex servers can get overloaded... We don't want the UI to freeze.)
-        if self.sending_to_ps.acquire(False):
+        # Note that we send anyway if the state is stopped. We don't want that to get lost.
+        if self.sending_to_ps.acquire(False) or timeline["state"] == "stopped":
             self.sender_pool.apply_async(self.SendTimelineToPlexServer, (timeline,))
 
     def SendTimelineToPlexServer(self, timeline):
