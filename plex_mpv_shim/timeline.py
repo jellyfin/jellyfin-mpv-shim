@@ -3,6 +3,7 @@ import requests
 import threading
 import time
 import os
+from threading import Lock
 
 try:
     from xml.etree import cElementTree as et
@@ -10,6 +11,7 @@ except:
     from xml.etree import ElementTree as et
 
 from io import BytesIO
+from multiprocessing.dummy import Pool
 
 from .conf import settings
 from .player import playerManager
@@ -30,6 +32,8 @@ class TimelineManager(threading.Thread):
         self.trigger        = threading.Event()
         self.is_idle        = True
         self.last_video     = None
+        self.sender_pool    = Pool(5)
+        self.sending_to_ps  = Lock()
         self.last_server_url = None
 
         threading.Thread.__init__(self)
@@ -60,20 +64,32 @@ class TimelineManager(threading.Thread):
     def SendTimelineToSubscribers(self):
         timeline = self.GetCurrentTimeline()
 
+        # The sender_pool prevents the timeline from freezing
+        # if a client times out or takes a while to respond.
+
         log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")
         for sub in list(remoteSubscriberManager.subscribers.values()):
-            self.SendTimelineToSubscriber(sub, timeline)
+            self.sender_pool.apply_async(self.SendTimelineToSubscriber, (sub, timeline))
         
         # Also send timeline to plex server.
-        video  = playerManager._video
-        server_url = None
-        if video:
-            server_url = video.parent.server_url
-            self.last_server_url = video.parent.server_url
-        elif self.last_server_url:
-            server_url = self.last_server_url
-        if server_url:
-            safe_urlopen("%s/:/timeline" % server_url, timeline, quiet=True)
+        # Do not send the timeline if the last one if still sending.
+        # (Plex servers can get overloaded... We don't want the UI to freeze.)
+        if self.sending_to_ps.acquire(False):
+            self.sender_pool.apply_async(self.SendTimelineToPlexServer, (timeline,))
+
+    def SendTimelineToPlexServer(self, timeline):
+        try:
+            video  = playerManager._video
+            server_url = None
+            if video:
+                server_url = video.parent.server_url
+                self.last_server_url = video.parent.server_url
+            elif self.last_server_url:
+                server_url = self.last_server_url
+            if server_url:
+                safe_urlopen("%s/:/timeline" % server_url, timeline, quiet=True)
+        finally:
+            self.sending_to_ps.release()
 
     def SendTimelineToSubscriber(self, subscriber, timeline=None):
         subscriber.set_poll_evt()
