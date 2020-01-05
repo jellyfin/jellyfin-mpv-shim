@@ -58,13 +58,14 @@ class TimelineManager(threading.Thread):
         self.is_idle = False
 
     def SendTimelineToSubscribers(self):
+        timeline = self.GetCurrentTimeline()
+
         log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")
         for sub in list(remoteSubscriberManager.subscribers.values()):
-            self.SendTimelineToSubscriber(sub)
+            self.SendTimelineToSubscriber(sub, timeline)
         
         # Also send timeline to plex server.
         video  = playerManager._video
-        options = self.GetCurrentTimeline()
         server_url = None
         if video:
             server_url = video.parent.server_url
@@ -72,14 +73,14 @@ class TimelineManager(threading.Thread):
         elif self.last_server_url:
             server_url = self.last_server_url
         if server_url:
-            safe_urlopen("%s/:/timeline" % server_url, options, quiet=True)
+            safe_urlopen("%s/:/timeline" % server_url, timeline, quiet=True)
 
-    def SendTimelineToSubscriber(self, subscriber):
+    def SendTimelineToSubscriber(self, subscriber, timeline=None):
         subscriber.set_poll_evt()
         if subscriber.url == "":
             return True
 
-        timelineXML = self.GetCurrentTimeLinesXML(subscriber)
+        timelineXML = self.GetCurrentTimeLinesXML(subscriber, timeline)
         url = "%s/:/timeline" % subscriber.url
 
         log.debug("TimelineManager::SendTimelineToSubscriber sending timeline to %s" % url)
@@ -111,8 +112,9 @@ class TimelineManager(threading.Thread):
         subscriber.get_poll_evt().wait(30)
         return self.GetCurrentTimeLinesXML(subscriber)
 
-    def GetCurrentTimeLinesXML(self, subscriber):
-        tlines = self.GetCurrentTimeline()
+    def GetCurrentTimeLinesXML(self, subscriber, tlines=None):
+        if tlines is None:
+            tlines = self.GetCurrentTimeline()
 
         #
         # Only "video" is supported right now
