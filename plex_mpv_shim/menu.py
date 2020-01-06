@@ -277,6 +277,7 @@ class OSDMenu(object):
         self.put_menu("Preferences", [
             self.get_settings_toggle("Adaptive Transcode", "adaptive_transcode"),
             self.get_settings_toggle("Always Transcode", "always_transcode"),
+            self.get_settings_toggle("Limit Direct Play", "direct_limit"),
             self.get_settings_toggle("Auto Play", "auto_play"),
             ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu)
         ])

@@ -31,6 +31,7 @@ class Settings(object):
         "auto_transcode":       True,
         "adaptive_transcode":   False,
         "remote_transcode":     True,
+        "direct_limit":         False,
         "remote_kbps_thresh":   5000,
         "transcode_kbps":       2000,
         "client_profile":       "Plex Home Theater",

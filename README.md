@@ -83,6 +83,9 @@ You can adjust the basic transcoder settings via the menu.
     - You may have some luck changing `client_profile` in the configuration to a more restrictive one.
 - `auto_transcode` - This will ask the server to determine if transcoding is suggested. Default: `true`
     - `transcode_kbps` - Transcode bandwidth to request. Default: `2000`
+    - `direct_limit` - Also limit direct play to `transcode_kbps`. Default: `false`
+    - Note that `direct_limit` cannot be overriden without changing `transcode_kbps`.
+    - If `direct_limit` is not set, the player assumes the server will set the limit.
 - `remote_transcode` - This will check for transcoding using locally available metadata for remote servers only. Default: `true`
     - This will not take effect if `auto_transcode` is enabled.
     - This is a legacy feature. It is not regularly tested.
