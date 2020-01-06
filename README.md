@@ -86,11 +86,6 @@ You can adjust the basic transcoder settings via the menu.
     - `direct_limit` - Also limit direct play to `transcode_kbps`. Default: `false`
     - Note that `direct_limit` cannot be overriden without changing `transcode_kbps`.
     - If `direct_limit` is not set, the player assumes the server will set the limit.
-- `remote_transcode` - This will check for transcoding using locally available metadata for remote servers only. Default: `true`
-    - This will not take effect if `auto_transcode` is enabled.
-    - This is a legacy feature. It is not regularly tested.
-    - Configuration options from `auto_transcode` are also used.
-    - `remote_kbps_thresh` - The threshold to force transcoding. If this is lower than the configured server bandwidth, playback may fail.
 - `adaptive_transcode` - Tell the server to adjust the quality while streaming. Default: `false`
 
 ### Shell Command Triggers

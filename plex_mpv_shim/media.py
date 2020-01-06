@@ -214,11 +214,6 @@ class Video(object):
              int(self.node.find("./Media").get("bitrate")) > settings.transcode_kbps):
             request_direct_play = "0"
             request_subtitle_mode = "burn"
-        # Check locally if we should transcode or direct play. (Legacy)
-        elif (settings.remote_transcode and not settings.auto_transcode and not is_local
-              and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh):
-            request_direct_play = "0"
-            request_subtitle_mode = "burn"
 
         # Regardless of if we need the data from the decision, Plex will sometimes deny access
         # if there is no decision for the current session.
