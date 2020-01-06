@@ -14,6 +14,12 @@ from .menu import OSDMenu
 
 APP_NAME = 'plex-mpv-shim'
 
+SUBTITLE_POS = {
+    "top": 0,
+    "bottom": 100,
+    "middle": 80,
+}
+
 log = logging.getLogger('player')
 
 # Q: What is with the put_task call?
@@ -175,9 +181,10 @@ class PlayerManager(object):
         self._player.wait_for_property("duration")
         self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
+        self._video  = video
+        self.update_subtitle_visuals(False)
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
-        self._video  = video
 
         if offset > 0:
             self._player.playback_time = offset
@@ -390,5 +397,15 @@ class PlayerManager(object):
             if self._player.audio != 'no':
                 aid = self._video.audio_uid.get(self._player.audio, '')
             return aid, sid
+
+    def update_subtitle_visuals(self, restart_transcode=True):
+        if self._video.is_transcode:
+            if restart_transcode:
+                self.restart_playback()
+        else:
+            self._player.sub_pos = SUBTITLE_POS[settings.subtitle_position]
+            self._player.sub_scale = settings.subtitle_size / 100
+            self._player.sub_color = settings.subtitle_color
+        self.timeline_handle()
 
 playerManager = PlayerManager()

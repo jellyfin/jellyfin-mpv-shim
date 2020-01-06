@@ -193,6 +193,14 @@ class Video(object):
 
         return audio_formats, protocols
 
+    def get_decision(self, url, args):
+        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args)))
+        treeRoot = tree.getroot()
+        decisionText = treeRoot.get("generalDecisionText") or treeRoot.get("mdeDecisionText")
+        decision = treeRoot.get("generalDecisionCode") or treeRoot.get("mdeDecisionCode")
+        log.debug("Decision: {0}: {1}".format(decision, decisionText))
+        return decision
+
     def is_transcode_suggested(self, video_bitrate=None, force_transcode=False, force_bitrate=False):
         request_direct_play = "1"
         request_subtitle_mode = "none"
@@ -230,7 +238,8 @@ class Video(object):
             "location":           "lan" if is_local else "wan",
             "autoAdjustQuality":  str(int(settings.adaptive_transcode)),
             "directStreamAudio":  "1",
-            "subtitles":          request_subtitle_mode, # Setting this to auto or burn breaks direct play.
+            "subtitles":          request_subtitle_mode, # Set to none first.
+            "subtitleSize":       settings.subtitle_size,
             "copyts":             "1",
         }
 
@@ -241,11 +250,7 @@ class Video(object):
             args["X-Plex-Client-Profile-Extra"] = "+".join(audio_formats)
             args["X-Plex-Client-Capabilities"]  = protocols
 
-        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args)))
-        treeRoot = tree.getroot()
-        decisionText = treeRoot.get("generalDecisionText") or treeRoot.get("mdeDecisionText")
-        decision = treeRoot.get("generalDecisionCode") or treeRoot.get("mdeDecisionCode")
-        log.debug("Decision: {0}: {1}".format(decision, decisionText))
+        decision = self.get_decision(url, args)
 
         if request_direct_play == "0":
             return True
@@ -254,6 +259,14 @@ class Video(object):
             if decision == "1000":
                 return False
             elif decision == "1001":
+                # Need to request again or it will remember to use no subtitles...
+                # There is almost certainly a better way to do this.
+                if request_subtitle_mode == "none":
+                    args["directPlay"] = "0"
+                    args["subtitles"] = "burn"
+                    decision = self.get_decision(url, args)
+                    if decision != "1001":
+                        log.error("Server reports that file cannot be streamed.")
                 return True
             else:
                 log.error("Server reports that file cannot be streamed.")
@@ -310,6 +323,7 @@ class Video(object):
             "directStreamAudio":  "1",
             "subtitles":          "burn",
             "copyts":             "1",
+            "subtitleSize":       settings.subtitle_size,
             #"skipSubtitles":    "1",
         }
 

@@ -102,6 +102,14 @@ You can execute shell commands on media state using the config file:
  - `stop_cmd` - After stopping the player.
  - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
 
+### Subtitle Visual Settings
+
+All of these settings apply to direct play and are adjustable through the controlling app. Note that some may not work depending on the subtitle codec. Subtitle position and color are not available for transcodes.
+
+ - `subtitle_size` - The size of the subtitles, in percent. Default: `100`
+ - `subtitle_color` - The color of the subtitles, in hex. Default: `#FFFFFFFF`
+ - `subtitle_position` - The position (top, bottom, middle). Default: `bottom`
+
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.

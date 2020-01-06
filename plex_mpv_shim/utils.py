@@ -142,3 +142,9 @@ def sanitize_msg(text):
     if settings.sanitize_output:
         return re.sub(PLEX_TOKEN_RE, "\\1=REDACTED", text)
     return text
+
+def mpv_color_to_plex(color):
+    return '#'+color.lower()[3:]
+
+def plex_color_to_mpv(color):
+    return '#FF'+color.upper()[1:]

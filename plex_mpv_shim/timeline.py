@@ -16,7 +16,7 @@ from multiprocessing.dummy import Pool
 from .conf import settings
 from .player import playerManager
 from .subscribers import remoteSubscriberManager
-from .utils import Timer, safe_urlopen
+from .utils import Timer, safe_urlopen, mpv_color_to_plex
 
 log = logging.getLogger("timeline")
 
@@ -178,6 +178,14 @@ class TimelineManager(threading.Thread):
                 options["audioStreamID"] = aid
             if sid:
                 options["subtitleStreamID"] = sid
+                options["subtitleSize"] = settings.subtitle_size
+                controllable.append("subtitleSize")
+                
+                if not video.is_transcode:
+                    options["subtitlePosition"] = settings.subtitle_position
+                    options["subtitleColor"] = mpv_color_to_plex(settings.subtitle_color)
+                    controllable.append("subtitlePosition")
+                    controllable.append("subtitleColor")
 
             options["ratingKey"]         = video.get_video_attr("ratingKey")
             options["key"]               = video.get_video_attr("key")

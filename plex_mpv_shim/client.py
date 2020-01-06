@@ -11,7 +11,7 @@ import socket
 from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from .utils import upd_token, sanitize_msg
+from .utils import upd_token, sanitize_msg, plex_color_to_mpv
 from .conf import settings
 
 try:
@@ -342,6 +342,19 @@ class HttpHandler(SimpleHTTPRequestHandler):
         if "autoPlay" in arguments:
             settings.auto_play = arguments["autoPlay"] == "1"
             settings.save()
+        subtitle_settings_upd = False
+        if "subtitleSize" in arguments:
+            subtitle_settings_upd = True
+            settings.subtitle_size = int(arguments["subtitleSize"])
+        if "subtitlePosition" in arguments:
+            subtitle_settings_upd = True
+            settings.subtitle_position = arguments["subtitlePosition"]
+        if "subtitleColor" in arguments:
+            subtitle_settings_upd = True
+            settings.subtitle_color = plex_color_to_mpv(arguments["subtitleColor"])
+        if subtitle_settings_upd:
+            settings.save()
+            playerManager.update_subtitle_visuals()
 
     def setStreams(self, path, arguments):
         audioStreamID = None

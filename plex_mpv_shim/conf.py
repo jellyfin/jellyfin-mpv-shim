@@ -36,6 +36,9 @@ class Settings(object):
         "transcode_kbps":       2000,
         "client_profile":       "Plex Home Theater",
         "sanitize_output":      True,
+        "subtitle_size":        100,
+        "subtitle_color":       "#FFFFFFFF",
+        "subtitle_position":    "bottom",
     }
 
     def __getattr__(self, name):

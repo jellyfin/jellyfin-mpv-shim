@@ -1,6 +1,7 @@
 from queue import Queue, LifoQueue
 from .bulk_subtitle import process_series
 from .conf import settings
+from .utils import mpv_color_to_plex
 
 TRANSCODE_LEVELS = (
     ("1080p 20 Mbps", 20000),
@@ -14,6 +15,28 @@ TRANSCODE_LEVELS = (
     ("240p 0.3 Mbps", 320),
     ("160p 0.2 Mbps", 208),
 )
+
+COLOR_LIST = (
+    ("White", "#FFFFFFFF"),
+    ("Yellow", "#FFFFEE00"),
+    ("Black", "#FF000000"),
+    ("Cyan", "#FF00FFFF"),
+    ("Blue", "#FF0000FF"),
+    ("Green", "#FF00FF00"),
+    ("Magenta", "#FFEE00EE"),
+    ("Red", "#FFFF0000"),
+    ("Gray", "#FF808080"),
+)
+
+SIZE_LIST = (
+    ("Tiny", 50),
+    ("Small", 75),
+    ("Normal", 100),
+    ("Large", 125),
+    ("Huge", 200),
+)
+
+HEX_TO_COLOR = {v:c for c,v in COLOR_LIST}
 
 class OSDMenu(object):
     def __init__(self, playerManager):
@@ -274,13 +297,58 @@ class OSDMenu(object):
             if settings.transcode_kbps == item[1]:
                 self.menu_selection = i
 
+    def get_subtitle_color(self, color):
+        if color in HEX_TO_COLOR:
+            return HEX_TO_COLOR[color]
+        else:
+            return mpv_color_to_plex(color)
+
+    def sub_settings_handle(self):
+        setting_name = self.menu_list[self.menu_selection][2]
+        value = self.menu_list[self.menu_selection][3]
+        setattr(settings, setting_name, value)
+        settings.save()
+
+        # Need to re-render preferences menu.
+        for i in range(2):
+            self.menu_action("back")
+        self.preferences_menu()
+
+        if self.playerManager._video.is_transcode:
+            if setting_name == "subtitle_size":
+                self.playerManager.put_task(self.playerManager.update_subtitle_visuals)
+        else:
+            self.playerManager.update_subtitle_visuals()
+
+    def subtitle_color_menu(self):
+        self.put_menu("Select Subtitle Color", [
+            (name, self.sub_settings_handle, "subtitle_color", color)
+            for name, color in COLOR_LIST
+        ])
+
+    def subtitle_size_menu(self):
+        self.put_menu("Select Subtitle Size", [
+            (name, self.sub_settings_handle, "subtitle_size", size)
+            for name, size in SIZE_LIST
+        ], selected=2)
+
+    def subtitle_position_menu(self):
+        self.put_menu("Select Subtitle Position", [
+            ("Bottom", self.sub_settings_handle, "subtitle_position", "bottom"),
+            ("Top", self.sub_settings_handle, "subtitle_position", "top"),
+            ("Middle", self.sub_settings_handle, "subtitle_position", "middle"),
+        ])
+
     def preferences_menu(self):
         self.put_menu("Preferences", [
             self.get_settings_toggle("Adaptive Transcode", "adaptive_transcode"),
             self.get_settings_toggle("Always Transcode", "always_transcode"),
             self.get_settings_toggle("Limit Direct Play", "direct_limit"),
             self.get_settings_toggle("Auto Play", "auto_play"),
-            ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu)
+            ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu),
+            ("Subtitle Size: {0}".format(settings.subtitle_size), self.subtitle_size_menu),
+            ("Subtitle Position: {0}".format(settings.subtitle_position), self.subtitle_position_menu),
+            ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
         ])
 
     def unwatched_menu_handle(self):
