@@ -375,7 +375,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
     def navigation(self, path, arguments):
         path = path.path
         if path in NAVIGATION_DICT:
-            playerManager.menu_action(NAVIGATION_DICT[path])
+            playerManager.menu.menu_action(NAVIGATION_DICT[path])
 
 class HttpSocketServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
