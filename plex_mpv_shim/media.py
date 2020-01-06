@@ -153,7 +153,7 @@ class Video(object):
                     episode_number = int(self.node.get("index"))
                     season_number  = int(self.node.get("parentIndex"))
                     series_name    = self.node.get("grandparentTitle")
-                    title = "%s - %dx%.2d - %s" % (series_name, season_number, episode_number, episode_name)
+                    title = "%s - s%de%.2d - %s" % (series_name, season_number, episode_number, episode_name)
                 else:
                     # "clip", ...
                     title = self.node.get("title")

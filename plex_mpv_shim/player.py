@@ -174,6 +174,7 @@ class PlayerManager(object):
         self._player.play(self.url)
         self._player.wait_for_property("duration")
         self._player.fs = True
+        self._player.force_media_title = video.get_proper_title()
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
         self._video  = video
