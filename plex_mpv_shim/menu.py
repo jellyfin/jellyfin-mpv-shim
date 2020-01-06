@@ -71,9 +71,10 @@ class OSDMenu(object):
                 ("Change Audio", self.change_audio_menu),
                 ("Change Subtitles", self.change_subtitle_menu),
                 ("Change Video Quality", self.change_transcode_quality),
-                ("Auto Set Audio/Subtitles (Entire Series)", self.change_tracks_menu),
-                ("Quit and Mark Unwatched", self.unwatched_menu_handle),
             ]
+            if self.playerManager._video.parent.is_tv:
+                self.menu_list.append(("Auto Set Audio/Subtitles (Entire Series)", self.change_tracks_menu))
+            self.menu_list.append(("Quit and Mark Unwatched", self.unwatched_menu_handle))
         else:
             self.menu_list = []
 
