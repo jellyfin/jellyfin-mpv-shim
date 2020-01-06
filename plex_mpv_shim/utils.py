@@ -4,10 +4,13 @@ import urllib.request, urllib.parse, urllib.error
 import socket
 import ipaddress
 import uuid
+import re
 
 from .conf import settings
 from datetime import datetime
 from functools import wraps
+
+PLEX_TOKEN_RE = re.compile("(token|X-Plex-Token)=[^&]*")
 
 log = logging.getLogger("utils")
 plex_eph_tokens = {}
@@ -103,7 +106,7 @@ def get_plex_url(url, data=None, quiet=False):
         url = "%s%s%s" % (url, sep, urllib.parse.urlencode(data))
 
     if not quiet:
-        log.debug("get_plex_url Created URL: %s" % url)
+        log.debug("get_plex_url Created URL: %s" % sanitize_msg(url))
 
     return url
 
@@ -121,13 +124,17 @@ def safe_urlopen(url, data=None, quiet=False):
         page = urllib.request.urlopen(url)
         if page.code == 200:
             return True
-        log.error("Error opening URL '%s': page returned %d" % (url,
+        log.error("Error opening URL '%s': page returned %d" % (sanitize_msg(url),
                                                                 page.code))
     except Exception as e:
-        log.error("Error opening URL '%s':  %s" % (url, e))
+        log.error("Error opening URL '%s':  %s" % (sanitize_msg(url), e))
 
     return False
 
 def is_local_domain(domain):
     return ipaddress.ip_address(socket.gethostbyname(domain)).is_private
 
+def sanitize_msg(text):
+    if settings.sanitize_output:
+        return re.sub(PLEX_TOKEN_RE, "\\1=REDACTED", text)
+    return text

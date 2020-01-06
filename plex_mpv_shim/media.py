@@ -10,7 +10,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_session, reset_session
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_session, reset_session, sanitize_msg
 
 log = logging.getLogger('media')
 
@@ -370,7 +370,7 @@ class Video(object):
         rating_key = self.get_rating_key()
 
         if rating_key is None:
-            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (self.parent.path.geturl()))
+            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (sanitize_msg(self.parent.path.geturl())))
             return False
 
         url  = urllib.parse.urljoin(self.parent.server_url, '/:/progress')
@@ -387,7 +387,7 @@ class Video(object):
         rating_key = self.get_rating_key()
 
         if rating_key is None:
-            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (self.parent.path.geturl()))
+            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (sanitize_msg(self.parent.path.geturl())))
             return False
 
         if watched:

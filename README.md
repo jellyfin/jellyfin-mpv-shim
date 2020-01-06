@@ -115,6 +115,7 @@ You can execute shell commands on media state using the config file:
  - `client_profile` - The client profile for transcoding. Default: `Plex Home Theater`
     - It may be useful to change this on limited hardware.
     - If you change this, it should be changed to a profile that supports `hls` streaming.
+ - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
 
 ### MPV Configuration
 

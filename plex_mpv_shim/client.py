@@ -11,7 +11,7 @@ import socket
 from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from .utils import upd_token
+from .utils import upd_token, sanitize_msg
 from .conf import settings
 
 try:
@@ -140,9 +140,9 @@ class HttpHandler(SimpleHTTPRequestHandler):
 
     def handle_request(self, method):
         if 'X-Plex-Device-Name' in self.headers:
-            log.debug("HttpHandler::handle_request request from '%s' to '%s'" % (self.headers["X-Plex-Device-Name"], self.path))
+            log.debug("HttpHandler::handle_request request from '%s' to '%s'" % (self.headers["X-Plex-Device-Name"], sanitize_msg(self.path)))
         else:
-            log.debug("HttpHandler::handle_request request to '%s'" % self.path)
+            log.debug("HttpHandler::handle_request request to '%s'" % sanitize_msg(self.path))
 
         path  = urllib.parse.urlparse(self.path)
         query = self.get_querydict(path.query)

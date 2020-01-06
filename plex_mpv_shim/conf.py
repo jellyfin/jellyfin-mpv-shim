@@ -34,6 +34,7 @@ class Settings(object):
         "remote_kbps_thresh":   5000,
         "transcode_kbps":       2000,
         "client_profile":       "Plex Home Theater",
+        "sanitize_output":      True,
     }
 
     def __getattr__(self, name):
