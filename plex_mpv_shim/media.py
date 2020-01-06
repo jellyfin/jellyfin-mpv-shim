@@ -201,12 +201,12 @@ class Video(object):
         # User would like us to always transcode.
         if settings.always_transcode or force_transcode:
             request_direct_play = "0"
-            request_subtitle_mode = "auto"
+            request_subtitle_mode = "burn"
         # Check locally if we should transcode or direct play. (Legacy)
         elif (settings.remote_transcode and not settings.auto_transcode and not is_local
               and int(self.node.find("./Media").get("bitrate")) > settings.remote_kbps_thresh):
             request_direct_play = "0"
-            request_subtitle_mode = "auto"
+            request_subtitle_mode = "burn"
 
         # Regardless of if we need the data from the decision, Plex will sometimes deny access
         # if there is no decision for the current session.
@@ -304,7 +304,7 @@ class Video(object):
             "offset":             offset,
             "autoAdjustQuality":  str(int(settings.adaptive_transcode)),
             "directStreamAudio":  "1",
-            "subtitles":          "auto",
+            "subtitles":          "burn",
             "copyts":             "1",
             #"skipSubtitles":    "1",
         }
