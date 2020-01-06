@@ -10,7 +10,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_session, reset_session, sanitize_msg
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_transcode_session, clear_transcode_session, sanitize_msg
 
 log = logging.getLogger('media')
 
@@ -216,7 +216,7 @@ class Video(object):
         args = {
             "hasMDE":             "1",
             "path":               self.node.get("key"),
-            "session":            get_session(self.parent.path.hostname),
+            "session":            get_transcode_session(self.parent.path.hostname),
             "protocol":           "hls",
             "directPlay":         request_direct_play,
             "directStream":       "1",
@@ -255,11 +255,21 @@ class Video(object):
                 log.error("Server reports that file cannot be streamed.")
         return False
 
+    def terminate_transcode(self):
+        if get_transcode_session(self.parent.path.hostname, False):
+            if self.is_transcode:
+                url = "/video/:/transcode/universal/stop"
+                args = {
+                    "session":            get_transcode_session(self.parent.path.hostname),
+                }
+                safe_urlopen(urllib.parse.urljoin(self.parent.server_url, url), args)
+            clear_transcode_session(self.parent.path.hostname)
+
     def get_playback_url(self, direct_play=None, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False):
         """
         Returns the URL to use for the trancoded file.
         """
-        reset_session(self.parent.path.hostname)
+        self.terminate_transcode()
 
         if self.trs_ovr:
             video_bitrate, force_transcode, force_bitrate = self.trs_ovr
@@ -283,7 +293,7 @@ class Video(object):
         url = "/video/:/transcode/universal/start.m3u8"
         args = {
             "path":               self.node.get("key"),
-            "session":            get_session(self.parent.path.hostname),
+            "session":            get_transcode_session(self.parent.path.hostname),
             "protocol":           "hls",
             "directPlay":         "0",
             "directStream":       "1",

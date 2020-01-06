@@ -15,6 +15,7 @@ PLEX_TOKEN_RE = re.compile("(token|X-Plex-Token)=[^&]*")
 log = logging.getLogger("utils")
 plex_eph_tokens = {}
 plex_sessions = {}
+plex_transcode_sessions = {}
 
 class Timer(object):
     def __init__(self):
@@ -50,16 +51,23 @@ def synchronous(tlockname):
 def upd_token(domain, token):
     plex_eph_tokens[domain] = token
 
+def get_transcode_session(domain, create=True):
+    if domain not in plex_transcode_sessions:
+        if not create:
+            return
+        session = str(uuid.uuid4())
+        plex_transcode_sessions[domain] = session
+    return plex_transcode_sessions[domain]
+
+def clear_transcode_session(domain):
+    if domain in plex_transcode_sessions:
+        del plex_transcode_sessions[domain]
+
 def get_session(domain):
     if domain not in plex_sessions:
         session = str(uuid.uuid4())
         plex_sessions[domain] = session
     return plex_sessions[domain]
-
-def reset_session(domain):
-    session = str(uuid.uuid4())
-    plex_sessions[domain] = session
-    return session
 
 def get_plex_url(url, data=None, quiet=False):
     if not data:
@@ -78,11 +86,6 @@ def get_plex_url(url, data=None, quiet=False):
     else:
         log.error("get_plex_url No token for: %s" % domain)
 
-    if domain in plex_sessions:
-        data.update({
-            "X-Plex-Session-Identifier": plex_sessions[domain]
-        })
-
     data.update({
         "X-Plex-Version":             "2.0",
         "X-Plex-Client-Identifier":   settings.client_uuid,
@@ -90,6 +93,7 @@ def get_plex_url(url, data=None, quiet=False):
         "X-Plex-Device-Name":         settings.player_name,
         "X-Plex-Model":               "RaspberryPI",
         "X-Plex-Device":              "RaspberryPI",
+        "X-Plex-Session-Identifier":  get_session(domain),
 
         # Lies
         "X-Plex-Product":             "Plex MPV Shim",

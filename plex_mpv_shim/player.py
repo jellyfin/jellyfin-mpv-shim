@@ -213,6 +213,7 @@ class PlayerManager(object):
 
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
+        self._video.terminate_transcode()
         self._video  = None
         self._player.command("stop")
         self._player.pause = False
