@@ -56,6 +56,7 @@ def main():
         playerManager.stop()
         server.stop()
         timelineManager.stop()
+        actionThread.stop()
         gdm.stop_all()
 
 if __name__ == "__main__":

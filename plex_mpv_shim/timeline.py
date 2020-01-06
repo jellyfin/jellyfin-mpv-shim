@@ -40,6 +40,7 @@ class TimelineManager(threading.Thread):
 
     def stop(self):
         self.halt = True
+        self.sender_pool.close()
         self.join()
 
     def run(self):
