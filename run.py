@@ -4,8 +4,13 @@
 import os
 import sys
 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
-    os.environ["PATH"] = os.path.dirname(__file__) + os.pathsep + os.environ["PATH"]
+    # Detect if bundled via pyinstaller.
+    # From: https://stackoverflow.com/questions/404744/
+    if getattr(sys, 'frozen', False):
+        application_path = sys._MEIPASS
+    else:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+    os.environ["PATH"] = application_path + os.pathsep + os.environ["PATH"]
 
 from plex_mpv_shim.mpv_shim import main
 main()
-
