@@ -174,7 +174,7 @@ following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install pyinstaller python-mpv requests`.
+2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
