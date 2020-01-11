@@ -1,28 +1,25 @@
-# Plex MPV Shim
+# Jellyfin MPV Shim
 
-Plex MPV Shim is a simple and lightweight Plex client, with support for Windows
-and Linux. Think of it as an open source Chromecast for Plex. You can cast almost
-anything from Plex and it will Direct Play. Subtitles are fully supported, and
-there are tools to manage them like no other Plex client.
+Jellyfin MPV Shim is a simple and lightweight Jellyfin client, with support for Windows
+and Linux. Think of it as an open source Chromecast for Jellyfin. You can cast almost
+anything from Jellyfin and it will Direct Play. Subtitles are fully supported, and
+there are tools to manage them like no other Jellyfin client.
 
 ## Getting Started
 
-If you are on Windows, simply [download the binary](https://github.com/iwalton3/plex-mpv-shim/releases).
-If you are using Linux, please see the [Linux Installation](https://github.com/iwalton3/plex-mpv-shim/blob/master/README.md#linux-installation) section below.
+If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
+If you are using Linux, please see the [Linux Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation) section below.
 
-To use the client, simply launch it and cast your media from another Plex application.
-The mobile and web applications are supported. You do not have to log in to the client
-or set it up in any other way.
-
-If you are using the web application to cast, please note that the client must be running
-on a network where there is a Plex server present. It does not have to be the plex server
-that the media you are casting resides on. An empty Plex server will work.
+To use the client, simply launch it and log into your Jellyfin server. You can then cast your media
+from another Jellyfin application. Unlike Plex MPV Shim, authorization tokens for your server
+are stored on your device, but you are able to cast to the player regardless of location.
 
 ## Advanced Features
 
 ### Menu
 
-To open the menu, press **c** on your computer or **home** within the Plex mobile apps.
+To open the menu, press **c** on your computer. Opening the menu via the mobile app is not
+currently possible, as Jellyfin does not support those controls.
 
 The menu enabled you to:
  - Adjust video transcoding quality.
@@ -69,10 +66,10 @@ Here are the notable MPV keyboard shortcuts:
 
 The configuration file is located in different places depending on your platform. When you
 launch the program, the location of the config file will be printed. The locations are:
- - Windows - `%appdata%\plex-mpv-shim\conf.json`
- - Linux - `~/.config/plex-mpv-shim/conf.json`
- - Mac OSX - `Library/Application Support/plex-mpv-shim/conf.json`
- - CygWin - `~/.config/plex-mpv-shim/conf.json`
+ - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
+ - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
+ - Mac OSX - `Library/Application Support/jellyfin-mpv-shim/conf.json`
+ - CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
 
 ### Transcoding
 
@@ -108,20 +105,10 @@ All of these settings apply to direct play and are adjustable through the contro
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
- - `http_port` - The TCP port to listen on for Plex to control the player. Default: `3000`
- - `enable_play_queue` - Enable play queue support. Default: `true`
-    - If you disable this, the application will queue media based on the series.
-    - This is a legacy feature. It is not regularly tested.
+ - `http_port` - The TCP port to listen on for Jellyfin to control the player. Default: `3000`
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - If set to `hdmi` it disables volume adjustment. Default: `hdmi`
- - `audio_ac3passthrough` - Does not work. Currently only changes transcoder settings. Default: `false`
- - `audio_dtspassthrough` - Does not work. Currently only changes transcoder settings. Default: `false`
- - `allow_http` - Allow insecure Plex server connections. Default: `false`
-    - This may be useful if you are using a Plex server offline or not signed in.
- - `client_profile` - The client profile for transcoding. Default: `Plex Home Theater`
-    - It may be useful to change this on limited hardware.
-    - If you change this, it should be changed to a profile that supports `hls` streaming.
- - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
+ - `allow_http` - Allow insecure Jellyfin server connections. Default: `true`
 
 ### MPV Configuration
 
@@ -138,21 +125,15 @@ components in this project. It is fully hackable.
 The project is dependent on `python-mpv` and `requests`. There are no other
 external dependencies.
 
-If you are using a local firewall, you'll want to allow inbound connections on
-TCP 3000 and UDP 32410, 32412, 32413, and 32414. The TCP port is for the web
-server the client uses to recieve commands. The UDP ports are for the [GDM
-discovery protocol](https://support.plex.tv/articles/201543147-what-network-ports-do-i-need-to-allow-through-my-firewall/).
-
-This project is based on https://github.com/wnielson/omplex, which
-is available under the terms of the MIT License. The project was ported
-to python3, modified to use mpv as the player, and updated to allow all
-features of the remote control api for video playback.
+This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
+is available under the terms of the MIT License. The project was ported to python3, modified to
+use mpv as the player, and updated to allow all features of the remote control api for video playback.
 
 ## Linux Installation
 
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv).
 ```bash
-sudo pip3 install --upgrade plex-mpv-shim
+sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
 
 The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
@@ -176,6 +157,6 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
 2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
-5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
+4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
+5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
 6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
