@@ -14,6 +14,9 @@ To use the client, simply launch it and log into your Jellyfin server. You can t
 from another Jellyfin application. Unlike Plex MPV Shim, authorization tokens for your server
 are stored on your device, but you are able to cast to the player regardless of location.
 
+If you want to add multiple servers, you can do so when you initially log in. You can also
+start the program with the `add` parameter to add more servers at a later time.
+
 ## Advanced Features
 
 ### Menu
@@ -105,7 +108,6 @@ All of these settings apply to direct play and are adjustable through the contro
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
- - `http_port` - The TCP port to listen on for Jellyfin to control the player. Default: `3000`
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - If set to `hdmi` it disables volume adjustment. Default: `hdmi`
  - `allow_http` - Allow insecure Jellyfin server connections. Default: `true`
@@ -122,7 +124,7 @@ If you'd like to run the application without installing it, run `./run.py`.
 The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
-The project is dependent on `python-mpv` and `requests`. There are no other
+The project is dependent on `python-mpv`, `requests`, `websocket_client`, `urllib3`, and `six`. There are no other
 external dependencies.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
@@ -157,7 +159,7 @@ following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests`.
+2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests websocket_client urllib3 six`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.

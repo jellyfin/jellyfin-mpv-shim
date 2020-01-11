@@ -7,7 +7,7 @@ import json
 import logging
 import threading
 
-from . import websocket
+import websocket
 
 ##################################################################################################
 
@@ -46,9 +46,9 @@ class WSClient(threading.Thread):
         LOG.info("Websocket url: %s", wsc_url)
 
         self.wsc = websocket.WebSocketApp(wsc_url,
-                                          on_message=self.on_message,
-                                          on_error=self.on_error)
-        self.wsc.on_open = self.on_open
+                                          on_message=lambda ws, message: self.on_message(ws, message),
+                                          on_error=lambda ws, error: self.on_error(ws, error))
+        self.wsc.on_open = lambda ws: self.on_open(ws)
 
         while not self.stop:
 

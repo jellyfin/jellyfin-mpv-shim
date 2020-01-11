@@ -14,7 +14,6 @@ class Settings(object):
     _path = None
     _data = {
         "player_name":          socket.gethostname(),
-        "http_port":            "3000",
         "audio_output":         "hdmi",
         "client_uuid":          str(uuid.uuid4()),
         "allow_http":           True,

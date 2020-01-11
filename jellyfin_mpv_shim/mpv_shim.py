@@ -3,32 +3,29 @@
 import logging
 import sys
 import time
-import os.path
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
 from . import conffile
-from .client import HttpServer
 from .conf import settings
 from .player import playerManager
 from .timeline import timelineManager
 from .action_thread import actionThread
+from .clients import clientManager
 
-HTTP_PORT   = 3000
 APP_NAME = 'jellyfin-mpv-shim'
-
 log = logging.getLogger('')
-
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 
 def main():
     conf_file = conffile.get(APP_NAME,'conf.json')
-    if os.path.isfile('settings.dat'):
-        settings.migrate_config('settings.dat', conf_file)
     settings.load(conf_file)
 
-    server = HttpServer(int(settings.http_port))
-    server.start()
+    def callback(client, event_name, data):
+        print(client, event_name, data)
+
+    clientManager.callback = callback
+    clientManager.connect()
 
     timelineManager.start()
     playerManager.timeline_trigger = timelineManager.trigger
@@ -43,9 +40,9 @@ def main():
         log.info("Stopping services...")
     finally:
         playerManager.stop()
-        server.stop()
         timelineManager.stop()
         actionThread.stop()
+        clientManager.stop()
 
 if __name__ == "__main__":
     main()
