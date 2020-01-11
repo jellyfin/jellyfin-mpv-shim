@@ -16,7 +16,7 @@ from .timeline import timelineManager
 from .action_thread import actionThread
 
 HTTP_PORT   = 3000
-APP_NAME = 'plex-mpv-shim'
+APP_NAME = 'jellyfin-mpv-shim'
 
 log = logging.getLogger('')
 

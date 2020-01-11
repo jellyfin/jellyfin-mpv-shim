@@ -12,7 +12,7 @@ from .utils import synchronous, Timer
 from .conf import settings
 from .menu import OSDMenu
 
-APP_NAME = 'plex-mpv-shim'
+APP_NAME = 'jellyfin-mpv-shim'
 
 SUBTITLE_POS = {
     "top": 0,

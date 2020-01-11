@@ -12,5 +12,5 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
         application_path = os.path.dirname(os.path.abspath(__file__))
     os.environ["PATH"] = application_path + os.pathsep + os.environ["PATH"]
 
-from plex_mpv_shim.mpv_shim import main
+from jellyfin_mpv_shim.mpv_shim import main
 main()
