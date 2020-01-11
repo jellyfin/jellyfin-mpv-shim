@@ -25,5 +25,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'requests']
+    install_requires=['python-mpv', 'requests', 'urllib3', 'six']
 )
