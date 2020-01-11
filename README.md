@@ -129,6 +129,8 @@ This project is based Plex MPV Shim, which is based on https://github.com/wniels
 is available under the terms of the MIT License. The project was ported to python3, modified to
 use mpv as the player, and updated to allow all features of the remote control api for video playback.
 
+The Jellyfin API client comes from [Jellyfin for Kodi](https://github.com/jellyfin/jellyfin-kodi/tree/master/jellyfin_kodi).
+
 ## Linux Installation
 
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv).
