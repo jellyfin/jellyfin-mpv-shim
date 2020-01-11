@@ -9,19 +9,19 @@ setup(
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV. (Unofficial)",
-    license='MIT',
+    license='GPLv3',
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://github.com/iwalton3/jellyfin-mpv-shim",
-    packages=['plex_mpv_shim'],
+    packages=['jellyfin_mpv_shim'],
     entry_points={
         'console_scripts': [
-            'plex-mpv-shim=jellyfin_mpv_shim.mpv_shim:main',
+            'jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main',
         ]
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
