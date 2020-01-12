@@ -1,7 +1,7 @@
 from queue import Queue, LifoQueue
 from .bulk_subtitle import process_series
 from .conf import settings
-from .utils import mpv_color_to_plex
+from .utils import mpv_color_to_plex, get_sub_display_title
 
 TRANSCODE_LEVELS = (
     ("1080p 20 Mbps", 20000),
@@ -157,22 +157,20 @@ class OSDMenu(object):
             self.refresh_menu()
 
     def change_audio_menu_handle(self):
-        if self.playerManager._video.is_transcode:
-            self.playerManager.put_task(self.playerManager.set_streams, self.menu_list[self.menu_selection][2], None)
-            self.playerManager.timeline_handle()
-        else:
-            self.playerManager.set_streams(self.menu_list[self.menu_selection][2], None)
+        self.playerManager.put_task(self.playerManager.set_streams, self.menu_list[self.menu_selection][2], None)
+        self.playerManager.timeline_handle()
         self.menu_action("back")
 
     def change_audio_menu(self):
         self.put_menu("Select Audio Track")
 
-        selected_aid, _ = self.playerManager.get_track_ids()
-        audio_streams = self.playerManager._video._part_node.findall("./Stream[@streamType='2']")
+        selected_aid = self.playerManager._video.aid
+        audio_streams = [s for s in self.playerManager._video.media_source["MediaStreams"]
+                         if s.get("Type") == "Audio"]
         for i, audio_track in enumerate(audio_streams):
-            aid = audio_track.get("id")
+            aid = audio_track.get("Index")
             self.menu_list.append([
-                "{0} ({1})".format(audio_track.get("displayTitle"), audio_track.get("title")),
+                "{0} ({1})".format(audio_track.get("DisplayTitle"), audio_track.get("Title")),
                 self.change_audio_menu_handle,
                 aid
             ])
@@ -180,23 +178,21 @@ class OSDMenu(object):
                 self.menu_selection = i
     
     def change_subtitle_menu_handle(self):
-        if self.playerManager._video.is_transcode:
-            self.playerManager.put_task(self.playerManager.set_streams, None, self.menu_list[self.menu_selection][2])
-            self.playerManager.timeline_handle()
-        else:
-            self.playerManager.set_streams(None, self.menu_list[self.menu_selection][2])
+        self.playerManager.put_task(self.playerManager.set_streams, None, self.menu_list[self.menu_selection][2])
+        self.playerManager.timeline_handle()
         self.menu_action("back")
 
     def change_subtitle_menu(self):
         self.put_menu("Select Subtitle Track")
 
-        _, selected_sid = self.playerManager.get_track_ids()
-        subtitle_streams = self.playerManager._video._part_node.findall("./Stream[@streamType='3']")
-        self.menu_list.append(["None", self.change_subtitle_menu_handle, "0"])
+        selected_sid = self.playerManager._video.sid
+        subtitle_streams = [s for s in self.playerManager._video.media_source["MediaStreams"]
+                            if s.get("Type") == "Subtitle"]
+        self.menu_list.append(["None", self.change_subtitle_menu_handle, -1])
         for i, subtitle_track in enumerate(subtitle_streams):
-            sid = subtitle_track.get("id")
+            sid = subtitle_track.get("Index")
             self.menu_list.append([
-                "{0} ({1})".format(subtitle_track.get("displayTitle"), subtitle_track.get("title")),
+                "{0} ({1})".format(get_sub_display_title(subtitle_track), subtitle_track.get("Title")),
                 self.change_subtitle_menu_handle,
                 sid
             ])
@@ -206,11 +202,11 @@ class OSDMenu(object):
     def change_transcode_quality_handle(self):
         bitrate = self.menu_list[self.menu_selection][2]
         if bitrate == "none":
-            self.playerManager._video.set_trs_override(None, False, False)
+            self.playerManager._video.set_trs_override(None, False)
         elif bitrate == "max":
-            self.playerManager._video.set_trs_override(None, True, False)
+            self.playerManager._video.set_trs_override(None, True)
         else:
-            self.playerManager._video.set_trs_override(bitrate, True, True)
+            self.playerManager._video.set_trs_override(bitrate, True)
         
         self.menu_action("back")
         self.playerManager.put_task(self.playerManager.restart_playback)
@@ -234,9 +230,7 @@ class OSDMenu(object):
 
     def change_tracks_handle(self):
         mode = self.menu_list[self.menu_selection][2]
-        parentSeriesKey = self.playerManager._video.parent.tree.find("./").get("parentKey") + "/children"
-        url = self.playerManager._video.parent.get_path(parentSeriesKey)
-        process_series(mode, url, self.playerManager)
+        process_series(mode, self.playerManager)
 
     def change_tracks_manual_s1(self):
         self.change_audio_menu()
@@ -254,9 +248,7 @@ class OSDMenu(object):
         # Pop 3 menu items.
         for i in range(3):
             self.menu_action("back")
-        parentSeriesKey = self.playerManager._video.parent.tree.find("./").get("parentKey") + "/children"
-        url = self.playerManager._video.parent.get_path(parentSeriesKey)
-        process_series("manual", url, self.playerManager, aid, sid)
+        process_series("manual", self.playerManager, aid, sid)
 
     def change_tracks_menu(self):
         self.put_menu("Select Audio/Subtitle for Series", [

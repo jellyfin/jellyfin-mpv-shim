@@ -1,11 +1,12 @@
 from collections import namedtuple
+from .utils import get_sub_display_title
 import urllib.parse
 import requests
 import time
 
 Part = namedtuple("Part", ["id", "audio", "subtitle"])
-Audio = namedtuple("Audio", ["id", "language_code", "name", "plex_name"])
-Subtitle = namedtuple("Subtitle", ["id", "language_code", "name", "is_forced", "plex_name"])
+Audio = namedtuple("Audio", ["id", "language_code", "name", "display_name"])
+Subtitle = namedtuple("Subtitle", ["id", "language_code", "name", "is_forced", "display_name"])
 
 messages = []
 keep_messages = 6
@@ -17,43 +18,46 @@ def render_message(message, show_text):
         text += "\n   " + message
     show_text(text,2**30,1)
 
-def process_series(mode, url, player, m_raid=None, m_rsid=None):
+def process_series(mode, player, m_raid=None, m_rsid=None):
     messages.clear()
+    media = player._video
+    client = media.client
     show_text = player._player.show_text
     c_aid, c_sid = None, None
-    c_pid = player._video._part_node.get("id")
+    c_pid = player._video.media_source.get("Id")
 
     success_ct = 0
     partial_ct = 0
     count = 0
 
-    xml = XMLCollection(url)
-    for video in xml.tree.findall("./Video"):
-        name = "s{0}e{1:02}".format(int(video.get("parentIndex")), int(video.get("index")))
-        video = XMLCollection(xml.get_path(video.get("key"))).tree.find("./")
-        for partxml in video.findall("./Media/Part"):
+    videos = client.jellyfin.get_season(media.item["SeriesId"], media.item["SeasonId"])["Items"]
+    for video in videos:
+        name = "s{0}e{1:02}".format(video.get("ParentIndexNumber"), video.get("IndexNumber"))
+        video = client.jellyfin.get_item(video.get("Id"))
+        for media_source in video["MediaSources"]:
             count += 1
-            audio_list = [Audio(s.get("id"), s.get("languageCode"), s.get("title"),
-                          s.get("displayTitle")) for s in partxml.findall("./Stream[@streamType='2']")]
-            subtitle_list =  [Subtitle(s.get("id"), s.get("languageCode"), s.get("title"),
-                              "Forced" in s.get("displayTitle"), s.get("displayTitle"))
-                              for s in partxml.findall("./Stream[@streamType='3']")]
-            part = Part(partxml.get("id"), audio_list, subtitle_list)
+            audio_list = [Audio(s.get("Index"), s.get("Language"), s.get("Title"),
+                          s.get("DisplayTitle")) for s in media_source["MediaStreams"]
+                          if s.get("Type") == "Audio"]
+            subtitle_list =  [Subtitle(s.get("Index"), s.get("Language"), s.get("Title"), s.get("IsForced"),
+                              get_sub_display_title(s)) for s in media_source["MediaStreams"]
+                              if s.get("Type") == "Subtitle"]
+            part = Part(media_source.get("Id"), audio_list, subtitle_list)
 
             aid = None
-            sid = "0"
+            sid = -1
             if mode == "subbed":
                 audio, subtitle = get_subbed(part)
                 if audio and subtitle:
                     render_message("{0}: {1} ({2})".format(
-                        name, subtitle.plex_name, subtitle.name), show_text)
+                        name, subtitle.display_name, subtitle.name), show_text)
                     aid, sid = audio.id, subtitle.id
                     success_ct += 1
             elif mode == "dubbed":
                 audio, subtitle = get_dubbed(part)
                 if audio and subtitle:
                     render_message("{0}: {1} ({2})".format(
-                        name, subtitle.plex_name, subtitle.name), show_text)
+                        name, subtitle.display_name, subtitle.name), show_text)
                     aid, sid = audio.id, subtitle.id
                     success_ct += 1
                 elif audio:
@@ -65,25 +69,26 @@ def process_series(mode, url, player, m_raid=None, m_rsid=None):
                     audio = part.audio[m_raid]
                     aid = audio.id
                     render_message("{0} a: {1} ({2})".format(
-                            name, audio.plex_name, audio.name), show_text)
+                            name, audio.display_name, audio.name), show_text)
                     if m_rsid != -1:
                         subtitle = part.subtitle[m_rsid]
                         sid = subtitle.id
                         render_message("{0} s: {1} ({2})".format(
-                            name, subtitle.plex_name, subtitle.name), show_text)
+                            name, subtitle.display_name, subtitle.name), show_text)
                     success_ct += 1
             
             if aid:
                 if c_pid == part.id:
                     c_aid, c_sid = aid, sid
 
-                args = {
-                    "allParts": "1",
-                    "audioStreamID": aid,
-                    "subtitleStreamID": sid
-                }
-                url = "/library/parts/{0}".format(part.id)
-                requests.put(get_plex_url(urllib.parse.urljoin(xml.server_url, url), args), data=None)
+                # This is a horrible hack to change the audio/subtitle settings without playing
+                # the media. I checked the jelyfin source code and didn't find a better way.
+                client.jellyfin.session_progress({
+                    "ItemId":part.id,
+                    "AudioStreamIndex": aid,
+                    "SubtitleStreamIndex": sid
+                })
+
             else:
                 render_message("{0}: Fail".format(name), show_text)
     
@@ -99,11 +104,8 @@ def process_series(mode, url, player, m_raid=None, m_rsid=None):
     time.sleep(3)
     if c_aid:
         render_message("Setting Current...", show_text)
-        if player._video.is_transcode:
-            player.put_task(player.set_streams, c_aid, c_sid)
-            player.timeline_handle()
-        else:
-            player.set_streams(c_aid, c_sid)
+        player.put_task(player.set_streams, c_aid, c_sid)
+        player.timeline_handle()
   
 def get_subbed(part):
     japanese_audio = None

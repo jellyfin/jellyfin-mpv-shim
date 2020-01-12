@@ -347,6 +347,8 @@ class PlayerManager(object):
 
         if need_restart:
             self.restart_playback()
+        else:
+            self.configure_streams()
         self.timeline_handle()
     
     @synchronous('_lock')

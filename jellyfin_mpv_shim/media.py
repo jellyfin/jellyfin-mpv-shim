@@ -179,12 +179,12 @@ class Video(object):
     def set_streams(self, aid, sid):
         need_restart = False
         
-        if self.aid != aid:
+        if aid is not None and self.aid != aid:
             self.aid = aid
             if self.is_transcode:
                 need_restart = True
         
-        if self.sid != sid:
+        if sid is not None and self.sid != sid:
             self.sid = sid
             if sid in self.subtitle_enc:
                 need_restart = True

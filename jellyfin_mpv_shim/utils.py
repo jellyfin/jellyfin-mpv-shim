@@ -218,3 +218,10 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
         })
 
     return profile
+
+def get_sub_display_title(stream):
+    return "{0}{1} ({2})".format(
+        stream.get("Language").capitalize(),
+        " Forced" if stream.get("IsForced") else "",
+        stream.get("Codec")
+    )

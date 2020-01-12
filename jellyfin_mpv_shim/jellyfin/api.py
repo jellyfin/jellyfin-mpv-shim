@@ -169,6 +169,12 @@ class API(object):
             'Fields': "Overview"
         })
 
+    def get_season(self, show_id, season_id):
+        return self.shows("/%s/Episodes" % show_id, {
+            'UserId': "{UserId}",
+            'SeasonId': season_id
+        })
+
     def get_genres(self, parent_id=None):
         return self._get("Genres", {
             'ParentId': parent_id,
