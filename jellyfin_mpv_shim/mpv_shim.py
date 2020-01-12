@@ -12,6 +12,7 @@ from .player import playerManager
 from .timeline import timelineManager
 from .action_thread import actionThread
 from .clients import clientManager
+from .event_handler import eventHandler
 
 APP_NAME = 'jellyfin-mpv-shim'
 log = logging.getLogger('')
@@ -21,10 +22,7 @@ def main():
     conf_file = conffile.get(APP_NAME,'conf.json')
     settings.load(conf_file)
 
-    def callback(client, event_name, data):
-        print(client, event_name, data)
-
-    clientManager.callback = callback
+    clientManager.callback = eventHandler.handle_event
     clientManager.connect()
 
     timelineManager.start()

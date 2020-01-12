@@ -1,22 +1,11 @@
 import logging
-import requests
 import threading
 import time
 import os
-from threading import Lock
-
-try:
-    from xml.etree import cElementTree as et
-except:
-    from xml.etree import ElementTree as et
-
-from io import BytesIO
-from multiprocessing.dummy import Pool
 
 from .conf import settings
 from .player import playerManager
-from .subscribers import remoteSubscriberManager
-from .utils import Timer, safe_urlopen, mpv_color_to_plex
+from .utils import Timer, mpv_color_to_plex
 
 log = logging.getLogger("timeline")
 
@@ -25,22 +14,17 @@ class TimelineManager(threading.Thread):
         self.currentItems   = {}
         self.currentStates  = {}
         self.idleTimer      = Timer()
-        self.subTimer       = Timer()
-        self.serverTimer    = Timer()
         self.stopped        = False
         self.halt           = False
         self.trigger        = threading.Event()
         self.is_idle        = True
         self.last_video     = None
-        self.sender_pool    = Pool(5)
-        self.sending_to_ps  = Lock()
-        self.last_server_url = None
+        self.client = None
 
         threading.Thread.__init__(self)
 
     def stop(self):
         self.halt = True
-        self.sender_pool.close()
         self.join()
 
     def run(self):
@@ -48,7 +32,7 @@ class TimelineManager(threading.Thread):
         while not self.halt:
             if (playerManager._player and playerManager._video) or force_next:
                 if not playerManager.is_paused() or force_next:
-                    self.SendTimelineToSubscribers()
+                    self.SendTimeline()
                 self.delay_idle()
             force_next = False
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle and settings.idle_cmd:
@@ -62,92 +46,9 @@ class TimelineManager(threading.Thread):
         self.idleTimer.restart()
         self.is_idle = False
 
-    def SendTimelineToSubscribers(self):
-        timeline = self.GetCurrentTimeline()
-
-        # The sender_pool prevents the timeline from freezing
-        # if a client times out or takes a while to respond.
-
-        log.debug("TimelineManager::SendTimelineToSubscribers updating all subscribers")
-        for sub in list(remoteSubscriberManager.subscribers.values()):
-            self.sender_pool.apply_async(self.SendTimelineToSubscriber, (sub, timeline))
-        
-        # Also send timeline to plex server.
-        # Do not send the timeline if the last one if still sending.
-        # (Plex servers can get overloaded... We don't want the UI to freeze.)
-        # Note that we send anyway if the state is stopped. We don't want that to get lost.
-        if self.sending_to_ps.acquire(False) or timeline["state"] == "stopped":
-            self.sender_pool.apply_async(self.SendTimelineToPlexServer, (timeline,))
-
-    def SendTimelineToPlexServer(self, timeline):
-        try:
-            video  = playerManager._video
-            server_url = None
-            if video:
-                server_url = video.parent.server_url
-                self.last_server_url = video.parent.server_url
-            elif self.last_server_url:
-                server_url = self.last_server_url
-            if server_url:
-                safe_urlopen("%s/:/timeline" % server_url, timeline, quiet=True)
-        finally:
-            self.sending_to_ps.release()
-
-    def SendTimelineToSubscriber(self, subscriber, timeline=None):
-        subscriber.set_poll_evt()
-        if subscriber.url == "":
-            return True
-
-        timelineXML = self.GetCurrentTimeLinesXML(subscriber, timeline)
-        url = "%s/:/timeline" % subscriber.url
-
-        log.debug("TimelineManager::SendTimelineToSubscriber sending timeline to %s" % url)
-
-        tree = et.ElementTree(timelineXML)
-        tmp  = BytesIO()
-        tree.write(tmp, encoding="utf-8", xml_declaration=True)
-
-        tmp.seek(0)
-        xmlData = tmp.read()
-
-        # TODO: Abstract this into a utility function and add other X-Plex-XXX fields
-        try:
-            requests.post(url, data=xmlData, headers={
-                "Content-Type":             "application/x-www-form-urlencoded",
-                "Connection":               "keep-alive",
-                "Content-Range":            "bytes 0-/-1",
-                "X-Plex-Client-Identifier": settings.client_uuid
-            }, timeout=5)
-            return True
-        except requests.exceptions.ConnectTimeout:
-            log.warning("TimelineManager::SendTimelineToSubscriber timeout sending to %s" % url)
-            return False
-        except Exception:
-            log.warning("TimelineManager::SendTimelineToSubscriber error sending to %s" % url)
-            return False
-
-    def WaitForTimeline(self, subscriber):
-        subscriber.get_poll_evt().wait(30)
-        return self.GetCurrentTimeLinesXML(subscriber)
-
-    def GetCurrentTimeLinesXML(self, subscriber, tlines=None):
-        if tlines is None:
-            tlines = self.GetCurrentTimeline()
-
-        #
-        # Only "video" is supported right now
-        #
-        mediaContainer = et.Element("MediaContainer")
-        if subscriber.commandID is not None:
-            mediaContainer.set("commandID", str(subscriber.commandID))
-        mediaContainer.set("location", tlines["location"])
-
-        lineEl = et.Element("Timeline")
-        for key, value in list(tlines.items()):
-            lineEl.set(key, str(value))
-        mediaContainer.append(lineEl)
-
-        return mediaContainer
+    def SendTimeline(self):
+        if self.client is not None:
+            pass
 
     def GetCurrentTimeline(self):
         # https://github.com/plexinc/plex-home-theater-public/blob/pht-frodo/plex/Client/PlexTimelineManager.cpp#L142

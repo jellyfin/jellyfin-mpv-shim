@@ -1,5 +1,4 @@
 from .media import XMLCollection
-from .utils import get_plex_url
 
 from collections import namedtuple
 import urllib.parse

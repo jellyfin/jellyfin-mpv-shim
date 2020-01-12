@@ -1,23 +1,11 @@
 import logging
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
 import requests
 import uuid
 
-try:
-    import xml.etree.cElementTree as et
-except:
-    import xml.etree.ElementTree as et
-
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_transcode_session, clear_transcode_session, sanitize_msg
+from .utils import is_local_domain
 
 log = logging.getLogger('media')
-
-# http://192.168.0.12:32400/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%3A32400%2F%3A%2Fresources%2Fvideo.png&width=75&height=75
-
-class MediaItem(object):
-    pass
 
 class Video(object):
     def __init__(self, node, parent, media=0, part=0):
