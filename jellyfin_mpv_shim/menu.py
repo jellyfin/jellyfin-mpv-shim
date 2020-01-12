@@ -280,7 +280,7 @@ class OSDMenu(object):
         )
 
     def transcode_settings_handle(self):
-        settings.transcode_kbps = self.menu_list[self.menu_selection][2]
+        settings.remote_kbps = self.menu_list[self.menu_selection][2]
         settings.save()
 
         # Need to re-render preferences menu.
@@ -294,7 +294,7 @@ class OSDMenu(object):
 
         for i, item in enumerate(TRANSCODE_LEVELS):
             self.menu_list.append((item[0], handle, item[1]))
-            if settings.transcode_kbps == item[1]:
+            if settings.remote_kbps == item[1]:
                 self.menu_selection = i
 
     def get_subtitle_color(self, color):
@@ -341,14 +341,14 @@ class OSDMenu(object):
 
     def preferences_menu(self):
         self.put_menu("Preferences", [
-            self.get_settings_toggle("Adaptive Transcode", "adaptive_transcode"),
-            self.get_settings_toggle("Always Transcode", "always_transcode"),
-            self.get_settings_toggle("Limit Direct Play", "direct_limit"),
+            self.get_settings_toggle("Always Transcode", "always_transcode"),            
             self.get_settings_toggle("Auto Play", "auto_play"),
-            ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu),
+            ("Remote Transcode Quality: {0:0.1f} Mbps".format(settings.remote_kbps/1000), self.transcode_settings_menu),
             ("Subtitle Size: {0}".format(settings.subtitle_size), self.subtitle_size_menu),
             ("Subtitle Position: {0}".format(settings.subtitle_position), self.subtitle_position_menu),
             ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
+            self.get_settings_toggle("Transcode H265", "transcode_h265"),
+            self.get_settings_toggle("Transcode Hi10p", "transcode_hi10p"),
         ])
 
     def unwatched_menu_handle(self):

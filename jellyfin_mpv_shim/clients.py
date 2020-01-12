@@ -10,7 +10,6 @@ import os.path
 import json
 
 CLIENT_VERSION = "1.0.0"
-APP_NAME = 'jellyfin-mpv-shim'
 
 CONNECTION_STATE = {
     'Unavailable': 0,
@@ -26,14 +25,14 @@ class ClientManager(object):
     
     def connect(self):
         credentials = None
-        credentials_location = conffile.get(APP_NAME,'cred.json')
+        credentials_location = conffile.get("jellyfin-mpv-shim",'cred.json')
         if os.path.exists(credentials_location):
             with open(credentials_location) as cf:
                 credentials = json.load(cf)
 
         client = Jellyfin(None)
         client.config.data['app.default'] = True
-        client.config.app(APP_NAME, CLIENT_VERSION, settings.player_name, settings.client_uuid)
+        client.config.app("Jellyfin MPV Shim", CLIENT_VERSION, settings.player_name, settings.client_uuid)
         client.config.data['http.user_agent'] = "Jellyfin-MPV-Shim/%s" % CLIENT_VERSION
         client.config.data['auth.ssl'] = not settings.allow_http
 

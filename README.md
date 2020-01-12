@@ -92,13 +92,10 @@ You can adjust the basic transcoder settings via the menu.
 
 - `always_transcode` - This will tell the client to always transcode, without asking. Default: `false`
     - This may be useful if you are using limited hardware that cannot handle advanced codecs.
-    - You may have some luck changing `client_profile` in the configuration to a more restrictive one.
-- `auto_transcode` - This will ask the server to determine if transcoding is suggested. Default: `true`
-    - `transcode_kbps` - Transcode bandwidth to request. Default: `2000`
-    - `direct_limit` - Also limit direct play to `transcode_kbps`. Default: `false`
-    - Note that `direct_limit` cannot be overriden without changing `transcode_kbps`.
-    - If `direct_limit` is not set, the player assumes the server will set the limit.
-- `adaptive_transcode` - Tell the server to adjust the quality while streaming. Default: `false`
+- `transcode_h265` - Transcode HEVC videos. Default: `false`
+- `transcode_hi10p` - Transcode 10 bit color videos. Default: `false`
+- `remote_kbps` - Bandwidth to permit for remote streaming. Default: `2000`
+- `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 
 ### Shell Command Triggers
 
