@@ -1,5 +1,3 @@
-from .media import XMLCollection
-
 from collections import namedtuple
 import urllib.parse
 import requests

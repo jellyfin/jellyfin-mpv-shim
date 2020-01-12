@@ -1,6 +1,7 @@
 import socket
 import ipaddress
 import urllib.request
+import urllib.parse
 
 from .conf import settings
 from datetime import datetime
@@ -39,10 +40,13 @@ def synchronous(tlockname):
         return _synchronizer
     return _synched
 
-def is_local_domain(domain):
+def is_local_domain(client):
     # With Jellyfin, it is significantly more likely the user will be using
     # an address that is a hairpin NAT. We want to detect this and avoid
     # imposing limits in this case.
+    url = client.config.data.get("auth.server", "")
+    domain = urllib.parse.urlparse(url).hostname
+
     ip = socket.gethostbyname(domain)
     is_local = ipaddress.ip_address(ip).is_private
 

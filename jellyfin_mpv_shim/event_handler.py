@@ -21,28 +21,14 @@ class EventHandler(object):
         else:
             log.debug("Unhandled Event {0}: {1}".format(event_name, arguments))
 
-    def playMedia(self, client, event_name, arguments):
-        address     = arguments.get("address",      None)
-        protocol    = arguments.get("protocol",     "http")
-        port        = arguments.get("port",         "32400")
-        key         = arguments.get("key",          None)
-        offset      = int(int(arguments.get("offset",   0))/1e3)
-        url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
-        playQueue   = arguments.get("containerKey", None)
-
-        token = arguments.get("token", None)
-        if token:
-            upd_token(address, token)
-
-        if settings.enable_play_queue and playQueue.startswith("/playQueue"):
-            media = Media(url, play_queue=playQueue)
-        else:
-            media = Media(url)
+    @bind("Play")
+    def play_media(self, client, event_name, arguments):
+        media = Media(client, arguments.get("ItemIds"), seq=0, user_id=arguments.get("ControllingUserId"),
+                      aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"))
 
         log.debug("EventHandler::playMedia %s" % media)
 
-        # TODO: Select video, media and part here based off user settings
-        video = media.get_video(0)
+        video = media.video
         if video:
             if settings.pre_media_cmd:
                 os.system(settings.pre_media_cmd)
