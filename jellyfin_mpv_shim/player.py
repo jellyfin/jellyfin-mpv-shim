@@ -330,7 +330,7 @@ class PlayerManager(object):
                 log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
                 self._player.audio = self._video.audio_seq[audio_uid]
         
-        if sub_uid is None:
+        if sub_uid is None or sub_uid == -1:
             log.debug("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = 'no'
         else:

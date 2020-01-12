@@ -79,8 +79,9 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
                 "Type": "Audio"
             },
             {
-                "Container": "m3u8",
+                "Container": "ts",
                 "Type": "Video",
+                "Protocol": "hls",
                 "AudioCodec": "aac,mp3,ac3,opus,flac,vorbis",
                 "VideoCodec": "h264,mpeg4,mpeg2video",
                 "MaxAudioChannels": "6"
@@ -145,30 +146,31 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
                 "Format": "smi",
                 "Method": "External"
             },
+            # Jellyfin currently refuses to serve these subtitle types as external.
             {
                 "Format": "pgssub",
                 "Method": "Embed"
             },
-            {
-                "Format": "pgssub",
-                "Method": "External"
-            },
+            #{
+            #    "Format": "pgssub",
+            #    "Method": "External"
+            #},
             {
                 "Format": "dvdsub",
                 "Method": "Embed"
             },
-            {
-                "Format": "dvdsub",
-                "Method": "External"
-            },
+            #{
+            #    "Format": "dvdsub",
+            #    "Method": "External"
+            #},
             {
                 "Format": "pgs",
                 "Method": "Embed"
             },
-            {
-                "Format": "pgs",
-                "Method": "External"
-            }
+            #{
+            #    "Format": "pgs",
+            #    "Method": "External"
+            #}
         ]
     }
 
@@ -176,8 +178,9 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
         profile['DirectPlayProfiles'][0]['VideoCodec'] = "h264,mpeg4,mpeg2video"
     else:
         profile['TranscodingProfiles'].insert(0, {
-            "Container": "m3u8",
+            "Container": "ts",
             "Type": "Video",
+            "Protocol": "hls",
             "AudioCodec": "aac,mp3,ac3,opus,flac,vorbis",
             "VideoCodec": "h264,h265,hevc,mpeg4,mpeg2video",
             "MaxAudioChannels": "6"

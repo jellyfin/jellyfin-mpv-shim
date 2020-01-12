@@ -80,10 +80,10 @@ class Video(object):
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")
 
-        if user_aid is not None:
+        if user_aid is not None and self.aid is None:
             self.aid = user_aid
         
-        if user_sid is not None:
+        if user_sid is not None and self.sid is None:
             self.sid = user_sid
 
     def get_current_streams(self):
@@ -125,7 +125,7 @@ class Video(object):
 
     def terminate_transcode(self):
         if self.is_transcode:
-            self.client.jellyfin.close_transcode(client.config.data["app.device_id"])
+            self.client.jellyfin.close_transcode(self.client.config.data["app.device_id"])
 
     def _get_url_from_source(self, source):
         if self.media_source['SupportsDirectStream']:
@@ -138,7 +138,7 @@ class Video(object):
             )
         elif self.media_source['SupportsTranscoding']:
             self.is_transcode = True
-            return self.media_source.get("TranscodingUrl")
+            return self.client.config.data["auth.server"] + self.media_source.get("TranscodingUrl")
 
     def get_playback_url(self, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False):
         """
