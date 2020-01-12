@@ -65,9 +65,9 @@ def plex_color_to_mpv(color):
 def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_tv=False):
     if video_bitrate is None:
         if is_remote:
-            bitrate = settings.remote_kbps
+            video_bitrate = settings.remote_kbps
         else:
-            bitrate = settings.local_kbps
+            video_bitrate = settings.local_kbps
 
     profile = {
         "Name": APP_NAME,

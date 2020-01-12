@@ -181,30 +181,15 @@ class PlayerManager(object):
         self._player.wait_for_property("duration")
         self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
-        self._video  = video
-        self.update_subtitle_visuals(False)
+        self._video = video
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 
-        if offset > 0:
+        self.configure_streams()
+        self.update_subtitle_visuals()
+
+        if offset is not None and offset > 0:
             self._player.playback_time = offset
-
-        if not video.is_transcode:
-            audio_idx = video.get_audio_idx()
-            if audio_idx is not None:
-                log.debug("PlayerManager::play selecting audio stream index=%s" % audio_idx)
-                self._player.audio = audio_idx
-
-            sub_idx = video.get_subtitle_idx()
-            xsub_id = video.get_external_sub_id()
-            if sub_idx is not None:
-                log.debug("PlayerManager::play selecting subtitle index=%s" % sub_idx)
-                self._player.sub = sub_idx
-            elif xsub_id is not None:
-                log.debug("PlayerManager::play selecting external subtitle id=%s" % xsub_id)
-                self.load_external_sub(xsub_id)
-            else:
-                self._player.sub = 'no'
 
         self._player.pause = False
         self.timeline_handle()
@@ -278,20 +263,9 @@ class PlayerManager(object):
             return
        
         self._video.set_played()
-
-        if self._video.is_multipart():
-            log.debug("PlayerManager::finished_callback media is multi-part, checking for next part")
-            # Try to select the next part
-            next_part = self.__part+1
-            if self._video.select_part(next_part):
-                self.__part = next_part
-                log.debug("PlayerManager::finished_callback starting next part")
-                self.play(self._video)
-        
-        elif self._video.parent.has_next and settings.auto_play:
+        if self._video.parent.has_next and settings.auto_play:
             log.debug("PlayerManager::finished_callback starting next episode")
-            self.play(self._video.parent.get_next().get_video(0))
-
+            self.play(self._video.parent.get_next().video)
         else:
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
@@ -316,7 +290,7 @@ class PlayerManager(object):
     @synchronous('_lock')
     def play_next(self):
         if self._video.parent.has_next:
-            self.play(self._video.parent.get_next().get_video(0))
+            self.play(self._video.parent.get_next().video)
             return True
         return False
 
@@ -331,7 +305,7 @@ class PlayerManager(object):
     @synchronous('_lock')
     def play_prev(self):
         if self._video.parent.has_prev:
-            self.play(self._video.parent.get_prev().get_video(0))
+            self.play(self._video.parent.get_prev().video)
             return True
         return False
 
@@ -348,26 +322,30 @@ class PlayerManager(object):
         return default
 
     @synchronous('_lock')
-    def set_streams(self, audio_uid, sub_uid):
-        if not self._video.is_transcode:
-            if audio_uid is not None:
+    def configure_streams(self):
+        audio_uid = self._video.aid
+        sub_uid = self._video.sid
+
+        if audio_uid is not None and not self._video.is_transcode:
                 log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
                 self._player.audio = self._video.audio_seq[audio_uid]
+        
+        if sub_uid is None:
+            log.debug("PlayerManager::play selecting subtitle stream (none)")
+            self._player.sub = 'no'
+        else:
+            log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
+            if sub_uid in self._video.subtitle_seq:
+                self._player.sub = self._video.subtitle_seq[sub_uid]
+            elif sub_uid in self._video.subtitle_url:
+                log.debug("PlayerManager::play selecting external subtitle id=%s" % sub_uid)
+                self.load_external_sub(sub_uid)
 
-            if sub_uid == '0':
-                log.debug("PlayerManager::play selecting subtitle stream (none)")
-                self._player.sub = 'no'
-            elif sub_uid is not None:
-                log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
-                if sub_uid in self._video.subtitle_seq:
-                    self._player.sub = self._video.subtitle_seq[sub_uid]
-                else:
-                    log.debug("PlayerManager::play selecting external subtitle id=%s" % sub_uid)
-                    self.load_external_sub(sub_uid)
+    @synchronous('_lock')
+    def set_streams(self, audio_uid, sub_uid):
+        need_restart = self._video.set_streams(audio_uid, sub_uid)
 
-        self._video.set_streams(audio_uid, sub_uid)
-
-        if self._video.is_transcode:
+        if need_restart:
             self.restart_playback()
         self.timeline_handle()
     
@@ -377,35 +355,19 @@ class PlayerManager(object):
             self._player.sub = self.external_subtitles[sub_id]
         else:
             try:
-                self._player.sub_add(self._video.get_external_sub(sub_id))
+                self._player.sub_add(self._video.subtitle_url[sub_id])
                 self.external_subtitles[sub_id] = self._player.sub
                 self.external_subtitles_rev[self._player.sub] = sub_id
             except SystemError:
                 log.debug("PlayerManager::could not load external subtitle")
 
     def get_track_ids(self):
-        if self._video.is_transcode:
-            return self._video.get_transcode_streams()
-        else:
-            aid, sid = None, None
-            if self._player.sub != 'no':
-                if self._player.sub in self.external_subtitles_rev:
-                    sid = self.external_subtitles_rev.get(self._player.sub, '')
-                else:
-                    sid = self._video.subtitle_uid.get(self._player.sub, '')
+        return self._video.aid, self._video.sid
 
-            if self._player.audio != 'no':
-                aid = self._video.audio_uid.get(self._player.audio, '')
-            return aid, sid
-
-    def update_subtitle_visuals(self, restart_transcode=True):
-        if self._video.is_transcode:
-            if restart_transcode:
-                self.restart_playback()
-        else:
-            self._player.sub_pos = SUBTITLE_POS[settings.subtitle_position]
-            self._player.sub_scale = settings.subtitle_size / 100
-            self._player.sub_color = settings.subtitle_color
+    def update_subtitle_visuals(self):
+        self._player.sub_pos = SUBTITLE_POS[settings.subtitle_position]
+        self._player.sub_scale = settings.subtitle_size / 100
+        self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
 
 playerManager = PlayerManager()

@@ -1,14 +1,10 @@
 # Under Development/Not Working
-This is a fork of Plex-MPV-Shim that has the Jellyfin API client added. No actual player
-logic has been implemented. (What is in the repository is specific to Plex and needs to be
-made to work with Jellyfin.) Login, player advertisement, and the ability to recieve
-commands over the websocket connection have been tested. It should be practical to
-implement most of the Plex-MPV-Shim features for this client.
+This is a fork of Plex-MPV-Shim that has the Jellyfin API client added.
 
-I plan on working on this client when I have extra time. Pull requests are welcome.
-Should something terrible happen to Plex, you can expect that this client will probably
-be fully working within a week or two of that happening. I do not plan on stopping
-development of Plex-MPV-Shim unless circumstances make development on it impossible.
+Basic player functionality and subtitle/audio selection is working. Full remote control
+and menu functionality is under development.
+
+This software is under active development.
 
 # Jellyfin MPV Shim
 

@@ -319,12 +319,20 @@ class API(object):
     def get_server_time(self):
         return self._get("Jellyfin.Plugin.KodiSyncQueue/GetServerDateTime")
 
-    def get_play_info(self, item_id, profile):
-        return self.items("/%s/PlaybackInfo" % item_id, "POST", json={
+    def get_play_info(self, item_id, profile, aid=None, sid=None, start_time_ticks=None, is_playback=True):
+        args = {
             'UserId': "{UserId}",
             'DeviceProfile': profile,
-            'AutoOpenLiveStream': True
-        })
+            'AutoOpenLiveStream': is_playback,
+            'IsPlayback': is_playback
+        }
+        if sid:
+            args['SubtitleStreamIndex'] = sid
+        if aid:
+            args['AudioStreamIndex'] = aid
+        if start_time_ticks:
+            args['StartTimeTicks'] = start_time_ticks
+        return self.items("/%s/PlaybackInfo" % item_id, "POST", json=args)
 
     def get_live_stream(self, item_id, play_id, token, profile):
         return self._post("LiveStreams/Open", json={

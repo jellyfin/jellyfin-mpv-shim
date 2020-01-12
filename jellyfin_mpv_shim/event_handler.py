@@ -12,6 +12,7 @@ def bind(event_name):
     def decorator(func):
         bindings[event_name] = func
         return func
+    return decorator
 
 class EventHandler(object):
     def handle_event(self, client, event_name, arguments):
@@ -27,6 +28,9 @@ class EventHandler(object):
                       aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"))
 
         log.debug("EventHandler::playMedia %s" % media)
+        offset = arguments.get('StartPositionTicks')
+        if offset is not None:
+            offset /= 10000000
 
         video = media.video
         if video:
