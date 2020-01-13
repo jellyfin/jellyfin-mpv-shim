@@ -1,10 +1,18 @@
 # Under Development/Not Working
-This is a fork of Plex-MPV-Shim that has the Jellyfin API client added.
+This is a fork of Plex-MPV-Shim that has the Jellyfin API client added. It is under development
+and is not fully functional yet.
 
-Basic player functionality and subtitle/audio selection is working. Full remote control
-and menu functionality is under development.
+What works:
+ - Playing media
+ - Direct Play and Transcoding
+ - Selecting audio/subtitle tracks through the built-in menu
+ - Batch-setting audio/subtitle tracks for an entire season
+ - Playing queues of items
+ - Video progress saving
 
-This software is under active development.
+What does not work:
+ - Remote controlling the application (apart from initial cast)
+ - Seeing the progress of playback (The now-playing bar/remote is broken.)
 
 # Jellyfin MPV Shim
 
