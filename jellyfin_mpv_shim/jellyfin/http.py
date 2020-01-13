@@ -8,7 +8,6 @@ import logging
 import time
 
 import requests
-from six import string_types
 
 from .exceptions import HTTPException
 
@@ -190,7 +189,7 @@ class HTTP(object):
             if isinstance(value, dict):
                 self._process_params(value)
 
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 params[key] = self._replace_user_info(value)
 
     def _get_header(self, data):
