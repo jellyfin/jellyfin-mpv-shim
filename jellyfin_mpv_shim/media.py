@@ -46,9 +46,6 @@ class Video(object):
             if stream.get("Type") != "Audio":
                 continue
 
-            if stream.get("IsDefault") and self.aid is None:
-                self.aid = stream["Index"]
-
             self.audio_uid[index] = stream["Index"]
             self.audio_seq[stream["Index"]] = index
 
@@ -59,9 +56,6 @@ class Video(object):
         for sub in self.media_source["MediaStreams"]:
             if sub.get("Type") != "Subtitle":
                 continue
-            
-            if sub.get("IsDefault") and self.sid is None:
-                self.sid = sub["Index"]
 
             if sub.get("DeliveryMethod") == "Embed":
                 self.subtitle_uid[index] = sub["Index"]
