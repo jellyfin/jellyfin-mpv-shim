@@ -8,6 +8,16 @@ from .timeline import timelineManager
 log = logging.getLogger("event_handler")
 bindings = {}
 
+NAVIGATION_DICT = {
+    "Back": "back",
+    "Select": "ok",
+    "MoveUp": "up",
+    "MoveDown": "down",
+    "MoveRight": "right",
+    "MoveLeft": "left",
+    "GoHome": "home",
+}
+
 def bind(event_name):
     def decorator(func):
         bindings[event_name] = func
@@ -24,81 +34,73 @@ class EventHandler(object):
 
     @bind("Play")
     def play_media(self, client, event_name, arguments):
-        media = Media(client, arguments.get("ItemIds"), seq=0, user_id=arguments.get("ControllingUserId"),
-                      aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"))
+        play_command = arguments.get('PlayCommand')
+        if not playerManager._video:
+            play_command = "PlayNow"
 
-        log.debug("EventHandler::playMedia %s" % media)
-        offset = arguments.get('StartPositionTicks')
-        if offset is not None:
-            offset /= 10000000
+        if play_command == "PlayNow":
+            media = Media(client, arguments.get("ItemIds"), seq=0, user_id=arguments.get("ControllingUserId"),
+                        aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"))
 
-        video = media.video
-        if video:
-            if settings.pre_media_cmd:
-                os.system(settings.pre_media_cmd)
-            playerManager.play(video, offset)
-            timelineManager.SendTimeline()
+            log.debug("EventHandler::playMedia %s" % media)
+            offset = arguments.get('StartPositionTicks')
+            if offset is not None:
+                offset /= 10000000
 
-    def stop(self, client, event_name, arguments):
-        playerManager.stop()
-        timelineManager.SendTimeline()
+            video = media.video
+            if video:
+                if settings.pre_media_cmd:
+                    os.system(settings.pre_media_cmd)
+                playerManager.play(video, offset)
+                timelineManager.SendTimeline()
+        elif play_command == "PlayLast":
+            playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=True)
+        elif play_command == "PlayNext":
+            playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=False)
+
+    @bind("GeneralCommand")
+    def general_command(self, client, event_name, arguments):
+        command = arguments.get("Name")
+        if command == "SetVolume":
+            # There is currently a bug that causes this to be spammed, so we
+            # only update it if the value actually changed.
+            if playerManager.get_volume(True) != int(arguments["Arguments"]["Volume"]):
+                playerManager.set_volume(int(arguments["Arguments"]["Volume"]))
+        elif command == "SetAudioStreamIndex":
+            playerManager.set_streams(int(arguments["Arguments"]["Index"]), None)
+        elif command == "SetSubtitleStreamIndex":
+            playerManager.set_streams(None, int(arguments["Arguments"]["Index"]))
+        elif command == "DisplayContent":
+            # If you have an idle command set, this will delay it.
+            timelineManager.delay_idle()
+        elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome"):
+            playerManager.menu.menu_action(NAVIGATION_DICT[command])
+        elif command in ("Mute", "Unmute"):
+            playerManager.set_mute(command == "Mute")
+        elif command == "TakeScreenshot":
+            playerManager.screenshot()
+        elif command == "ToggleFullscreen" or command is None:
+            # Currently when you hit the fullscreen button, no command is specified...
+            playerManager.toggle_fullscreen()
+
+    @bind("Playstate")
+    def play_state(self, client, event_name, arguments):
+        command = arguments.get("Command")
+        if command == "PlayPause":
+            playerManager.toggle_pause()
+        elif command == "PreviousTrack":
+            playerManager.play_prev()
+        elif command == "NextTrack":
+            playerManager.play_next()
+        elif command == "Stop":
+            playerManager.stop()
+        elif command == "Seek":
+            playerManager.seek(arguments.get("SeekPositionTicks") / 10000000)
 
     @bind("PlayPause")
     def pausePlay(self, client, event_name, arguments):
         playerManager.toggle_pause()
         timelineManager.SendTimeline()
-
-    def skipNext(self, client, event_name, arguments):
-        playerManager.play_next()
-
-    def skipPrevious(self, client, event_name, arguments):
-        playerManager.play_prev()
-
-    def seekTo(self, client, event_name, arguments):
-        offset = int(int(arguments.get("offset", 0))*1e-3)
-        log.debug("EventHandler::seekTo offset %ss" % offset)
-        playerManager.seek(offset)
-
-    def skipTo(self, client, event_name, arguments):
-        playerManager.skip_to(arguments["key"])
-
-    def set(self, client, event_name, arguments):
-        if "volume" in arguments:
-            volume = arguments["volume"]
-            log.debug("EventHandler::set settings volume to %s" % volume)
-            playerManager.set_volume(float(volume)/100.0)
-        if "autoPlay" in arguments:
-            settings.auto_play = arguments["autoPlay"] == "1"
-            settings.save()
-        subtitle_settings_upd = False
-        if "subtitleSize" in arguments:
-            subtitle_settings_upd = True
-            settings.subtitle_size = int(arguments["subtitleSize"])
-        if "subtitlePosition" in arguments:
-            subtitle_settings_upd = True
-            settings.subtitle_position = arguments["subtitlePosition"]
-        if "subtitleColor" in arguments:
-            subtitle_settings_upd = True
-            settings.subtitle_color = plex_color_to_mpv(arguments["subtitleColor"])
-        if subtitle_settings_upd:
-            settings.save()
-            playerManager.update_subtitle_visuals()
-
-    def setStreams(self, client, event_name, arguments):
-        audioStreamID = None
-        subtitleStreamID = None
-        if "audioStreamID" in arguments:
-            audioStreamID = arguments["audioStreamID"]
-        if "subtitleStreamID" in arguments:
-            subtitleStreamID = arguments["subtitleStreamID"]
-        playerManager.set_streams(audioStreamID, subtitleStreamID)
-
-    def refreshPlayQueue(self, client, event_name, arguments):
-        playerManager._video.parent.upd_play_queue()
-        timelineManager.SendTimelineToSubscribers()
-
-    def mirror(self, client, event_name, arguments):
-        timelineManager.delay_idle()
 
     def navigation(self, client, event_name, arguments):
         path = path.path

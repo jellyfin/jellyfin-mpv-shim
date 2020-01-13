@@ -2,12 +2,15 @@ import socket
 import ipaddress
 import urllib.request
 import urllib.parse
+from threading import Lock
 
 from .conf import settings
 from datetime import datetime
 from functools import wraps
 
 APP_NAME = 'Jellyfin MPV Shim'
+seq_num = 0
+seq_num_lock = Lock()
 
 class Timer(object):
     def __init__(self):
@@ -225,3 +228,16 @@ def get_sub_display_title(stream):
         " Forced" if stream.get("IsForced") else "",
         stream.get("Codec")
     )
+
+def get_seq():
+    global seq_num
+    seq_num_lock.acquire()
+    current = seq_num
+    seq_num += 1
+    seq_num_lock.release()
+    return current
+
+def none_fallback(value, fallback):
+    if value is None:
+        return fallback
+    return value

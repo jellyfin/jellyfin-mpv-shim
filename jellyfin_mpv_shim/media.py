@@ -3,7 +3,7 @@ import requests
 import uuid
 
 from .conf import settings
-from .utils import is_local_domain, get_profile
+from .utils import is_local_domain, get_profile, get_seq
 
 log = logging.getLogger('media')
 
@@ -186,13 +186,16 @@ class Video(object):
         return need_restart
 
 class Media(object):
-    def __init__(self, client, queue, seq=0, user_id=None, aid=None, sid=None):
-        self.queue = queue
+    def __init__(self, client, queue, seq=0, user_id=None, aid=None, sid=None, queue_override=True):
+        if queue_override:
+            self.queue = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in queue]
+        else:
+            self.queue = queue
         self.client = client
         self.seq = seq
         self.user_id = user_id
 
-        self.video = Video(queue[seq], self, aid, sid)
+        self.video = Video(self.queue[seq]["Id"], self, aid, sid)
         self.is_tv = self.video.is_tv
         self.is_local = is_local_domain(client)
         self.has_next = seq < len(queue) - 1
@@ -200,16 +203,16 @@ class Media(object):
 
     def get_next(self):
         if self.has_next:
-            return Media(self.client, self.queue, self.seq+1, self.user_id)
+            return Media(self.client, self.queue, self.seq+1, self.user_id, queue_override=False)
     
     def get_prev(self):
         if self.has_prev:
-            return Media(self.client, self.queue, self.seq-1, self.user_id)
+            return Media(self.client, self.queue, self.seq-1, self.user_id, queue_override=False)
 
     def get_from_key(self, item_id):
         for i, video in enumerate(self.queue):
-            if video == item_id:
-                return Media(self.client, self.queue, i, self.user_id)
+            if video["Id"] == item_id:
+                return Media(self.client, self.queue, i, self.user_id, queue_override=False)
         return None
 
     def get_video(self, index):
@@ -217,6 +220,14 @@ class Media(object):
             return self.video
         
         if index < len(self.queue):
-            return Video(queue[index], self)
+            return Video(queue[index]["Id"], self)
 
         log.error("Media::get_video couldn't find video at index %s" % video)
+    
+    def insert_items(self, items, append=False):
+        items = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in items]
+        if append:
+            self.queue.extend(items)
+        else:
+            self.queue = self.queue[0:self.seq+1] + items + self.queue[self.seq+1:]
+        self.has_next = self.seq < len(self.queue) - 1

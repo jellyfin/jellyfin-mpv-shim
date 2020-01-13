@@ -1,25 +1,12 @@
-# Under Development/Not Working
-This is a fork of Plex-MPV-Shim that has the Jellyfin API client added. It is under development
-and is not fully functional yet.
-
-What works:
- - Playing media
- - Direct Play and Transcoding
- - Selecting audio/subtitle tracks through the built-in menu
- - Batch-setting audio/subtitle tracks for an entire season
- - Playing queues of items
- - Video progress saving
-
-What does not work:
- - Remote controlling the application (apart from initial cast)
- - Seeing the progress of playback (The now-playing bar/remote is broken.)
-
 # Jellyfin MPV Shim
 
 Jellyfin MPV Shim is a simple and lightweight Jellyfin client, with support for Windows
 and Linux. Think of it as an open source Chromecast for Jellyfin. You can cast almost
 anything from Jellyfin and it will Direct Play. Subtitles are fully supported, and
 there are tools to manage them like no other Jellyfin client.
+
+This project is new, but all the major features should now be working! Please let me
+know if you have any problems.
 
 ## Getting Started
 
@@ -37,8 +24,9 @@ start the program with the `add` parameter to add more servers at a later time.
 
 ### Menu
 
-To open the menu, press **c** on your computer. Opening the menu via the mobile app is not
-currently possible, as Jellyfin does not support those controls.
+To open the menu, press **c** on your computer. Depending on what app you are
+using to control Jellyfin, you may also be able to open the menu using that app.
+The web application currently doesn't have the required buttons to do so.
 
 The menu enabled you to:
  - Adjust video transcoding quality.

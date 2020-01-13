@@ -79,13 +79,11 @@ class ClientManager(object):
                 'SupportsMediaControl': True,
                 'SupportedCommands': (
                     "MoveUp,MoveDown,MoveLeft,MoveRight,Select,"
-                    "Back,ToggleContextMenu,ToggleFullscreen,ToggleOsdMenu,"
-                    "GoHome,PageUp,NextLetter,GoToSearch,"
-                    "GoToSettings,PageDown,PreviousLetter,TakeScreenshot,"
-                    "VolumeUp,VolumeDown,ToggleMute,SendString,DisplayMessage,"
+                    "Back,ToggleFullscreen,"
+                    "GoHome,GoToSettings,TakeScreenshot,"
+                    "VolumeUp,VolumeDown,ToggleMute,"
                     "SetAudioStreamIndex,SetSubtitleStreamIndex,"
-                    "SetRepeatMode,"
-                    "Mute,Unmute,SetVolume,"
+                    "Mute,Unmute,SetVolume,DisplayContent,"
                     "Play,Playstate,PlayNext,PlayMediaSource"
                 ),
             })

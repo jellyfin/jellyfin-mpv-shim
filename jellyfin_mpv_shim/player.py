@@ -9,7 +9,7 @@ from threading import RLock
 from queue import Queue
 
 from . import conffile
-from .utils import synchronous, Timer
+from .utils import synchronous, Timer, none_fallback
 from .conf import settings
 from .menu import OSDMenu
 
@@ -218,7 +218,6 @@ class PlayerManager(object):
         self._player.pause = False
         self.exec_stop_cmd()
 
-    @synchronous('_lock')
     def get_volume(self, percent=False):
         if self._player:
             if not percent:
@@ -370,6 +369,18 @@ class PlayerManager(object):
             except SystemError:
                 log.debug("PlayerManager::could not load external subtitle")
 
+    @synchronous('_lock')
+    def toggle_fullscreen(self):
+        self._player.fs = not self._player.fs
+
+    @synchronous('_lock')
+    def set_mute(self, mute):
+        self._player.mute = mute
+
+    @synchronous('_lock')
+    def screenshot(self):
+        self._player.screenshot()
+
     def get_track_ids(self):
         return self._video.aid, self._video.sid
 
@@ -389,24 +400,21 @@ class PlayerManager(object):
             "IsPaused": player.pause,
             "RepeatMode": "RepeatNone",
             #"MaxStreamingBitrate": 140000000,
-            "PositionTicks": int(player.time_pos * 10000000),
+            "PositionTicks": int(player.time_pos * 1000) * 10000,
             "PlaybackStartTimeTicks": int(self.start_time * 1000) * 10000,
-            "SubtitleStreamIndex":4,
-            "AudioStreamIndex":2,
+            "SubtitleStreamIndex": none_fallback(self._video.sid, -1),
+            "AudioStreamIndex": none_fallback(self._video.aid, -1),
             "BufferedRanges":[{
                 "start": int(player.time_pos * 1000) * 10000,
                 "end": int(((player.duration - player.time_pos * player.cache_buffering_state / 100) + player.time_pos) * 1000) * 10000
             }],
             "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
             "PlaySessionId": self._video.playback_info["PlaySessionId"],
-            "PlaylistItemId": "playlistItem{0}".format(self._video.parent.seq),
+            "PlaylistItemId": self._video.parent.queue[self._video.parent.seq]["PlaylistItemId"],
             "MediaSourceId": self._video.media_source["Id"],
             "CanSeek": True,
             "ItemId": self._video.item_id,
-            "NowPlayingQueue": [{
-                "Id": item_id,
-                "PlaylistItemId": "playlistItem{0}".format(i)
-            } for i, item_id in enumerate(self._video.parent.queue)],
+            "NowPlayingQueue": self._video.parent.queue,
         }
         return options
 
