@@ -20,6 +20,14 @@ are stored on your device, but you are able to cast to the player regardless of 
 If you want to add multiple servers, you can do so when you initially log in. You can also
 start the program with the `add` parameter to add more servers at a later time.
 
+## Limitations
+
+ - This software is currently in the first major release and may have bugs.
+ - Audio playback and Live TV are not supported.
+ - Multi-user support hasn't been implemented yet.
+ - Deletion of servers from the client requires deleting the `cred.json` config file.
+ - Multi-server support should work but has not been tested.
+
 ## Advanced Features
 
 ### Menu
