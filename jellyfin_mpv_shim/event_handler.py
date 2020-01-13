@@ -43,6 +43,7 @@ class EventHandler(object):
         playerManager.stop()
         timelineManager.SendTimeline()
 
+    @bind("PlayPause")
     def pausePlay(self, client, event_name, arguments):
         playerManager.toggle_pause()
         timelineManager.SendTimeline()

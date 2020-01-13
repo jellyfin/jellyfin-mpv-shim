@@ -3,6 +3,7 @@ import mpv
 import os
 import requests
 import urllib.parse
+import time
 
 from threading import RLock
 from queue import Queue
@@ -44,6 +45,8 @@ class PlayerManager(object):
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
         self.menu = OSDMenu(self)
+        self.should_send_timeline = False
+        self.start_time = None
 
         if hasattr(self._player, 'osc'):
             self._player.osc = True
@@ -56,7 +59,6 @@ class PlayerManager(object):
         @self._player.on_key_press('q')
         def handle_stop():
             self.stop()
-            self.timeline_handle()
 
         @self._player.on_key_press('<')
         def handle_prev():
@@ -165,6 +167,8 @@ class PlayerManager(object):
                 self.last_update.restart()
 
     def play(self, video, offset=0):
+        self.should_send_timeline = False
+        self.start_time = time.time()
         url = video.get_playback_url()
         if not url:        
             log.error("PlayerManager::play no URL found")
@@ -191,8 +195,9 @@ class PlayerManager(object):
         if offset is not None and offset > 0:
             self._player.playback_time = offset
 
+        self.send_timeline_initial()
         self._player.pause = False
-        self.timeline_handle()
+        self.should_send_timeline = True
 
     def exec_stop_cmd(self):
         if settings.stop_cmd:
@@ -207,10 +212,10 @@ class PlayerManager(object):
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
         self._video.terminate_transcode()
-        self._video  = None
+        self.send_timeline_stopped()
+        self._video = None
         self._player.command("stop")
         self._player.pause = False
-        self.timeline_handle()
         self.exec_stop_cmd()
 
     @synchronous('_lock')
@@ -270,6 +275,7 @@ class PlayerManager(object):
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
             log.debug("PlayerManager::finished_callback reached end")
+            self.send_timeline_stopped()
 
     @synchronous('_lock')
     def watched_skip(self):
@@ -284,8 +290,9 @@ class PlayerManager(object):
         if not self._video:
             return
 
-        self._video.set_played(False)
+        video = self._video
         self.stop()
+        video.set_played(False)
 
     @synchronous('_lock')
     def play_next(self):
@@ -371,5 +378,46 @@ class PlayerManager(object):
         self._player.sub_scale = settings.subtitle_size / 100
         self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
+    
+    def get_timeline_options(self):
+        # PlaylistItemId is dynamicallt generated. A more stable Id will be used
+        # if queue manipulation is added as a feature.
+        player = self._player
+        options = {
+            "VolumeLevel": int(player.volume),
+            "IsMuted": player.mute,
+            "IsPaused": player.pause,
+            "RepeatMode": "RepeatNone",
+            #"MaxStreamingBitrate": 140000000,
+            "PositionTicks": int(player.time_pos * 10000000),
+            "PlaybackStartTimeTicks": int(self.start_time * 1000) * 10000,
+            "SubtitleStreamIndex":4,
+            "AudioStreamIndex":2,
+            "BufferedRanges":[{
+                "start": int(player.time_pos * 1000) * 10000,
+                "end": int(((player.duration - player.time_pos * player.cache_buffering_state / 100) + player.time_pos) * 1000) * 10000
+            }],
+            "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
+            "PlaySessionId": self._video.playback_info["PlaySessionId"],
+            "PlaylistItemId": "playlistItem{0}".format(self._video.parent.seq),
+            "MediaSourceId": self._video.media_source["Id"],
+            "CanSeek": True,
+            "ItemId": self._video.item_id,
+            "NowPlayingQueue": [{
+                "Id": item_id,
+                "PlaylistItemId": "playlistItem{0}".format(i)
+            } for i, item_id in enumerate(self._video.parent.queue)],
+        }
+        return options
+
+    def send_timeline(self):
+        if self.should_send_timeline and self._video and not self._player.playback_abort:
+            self._video.client.jellyfin.session_progress(self.get_timeline_options())
+        
+    def send_timeline_initial(self):
+        self._video.client.jellyfin.session_playing(self.get_timeline_options())
+    
+    def send_timeline_stopped(self):
+        self._video.client.jellyfin.session_stop(self.get_timeline_options())
 
 playerManager = PlayerManager()
