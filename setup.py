@@ -13,7 +13,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://github.com/iwalton3/jellyfin-mpv-shim",
-    packages=['jellyfin_mpv_shim'],
+    packages=['jellyfin_mpv_shim', 'jellyfin_mpv_shim.jellyfin'],
     entry_points={
         'console_scripts': [
             'jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main',

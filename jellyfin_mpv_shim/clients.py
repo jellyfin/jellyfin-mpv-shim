@@ -1,6 +1,5 @@
 from .jellyfin import Jellyfin
 from .jellyfin.connection_manager import CONNECTION_STATE
-from .jellyfin.exceptions import HTTPException
 from .conf import settings
 from . import conffile
 from getpass import getpass
@@ -10,13 +9,6 @@ import os.path
 import json
 
 CLIENT_VERSION = "1.0.0"
-
-CONNECTION_STATE = {
-    'Unavailable': 0,
-    'ServerSelection': 1,
-    'ServerSignIn': 2,
-    'SignedIn': 3
-}
 
 class ClientManager(object):
     def __init__(self):
