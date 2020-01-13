@@ -90,7 +90,7 @@ launch the program, the location of the config file will be printed. The locatio
 
 You can adjust the basic transcoder settings via the menu.
 
-- `always_transcode` - This will tell the client to always transcode, without asking. Default: `false`
+- `always_transcode` - This will tell the client to always transcode. Default: `false`
     - This may be useful if you are using limited hardware that cannot handle advanced codecs.
 - `transcode_h265` - Transcode HEVC videos. Default: `false`
 - `transcode_hi10p` - Transcode 10 bit color videos. Default: `false`
@@ -118,7 +118,7 @@ All of these settings apply to direct play and are adjustable through the contro
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
- - `audio_output` - If set to `hdmi` it disables volume adjustment. Default: `hdmi`
+ - `audio_output` - Currently has no effect. Default: `hdmi`
  - `allow_http` - Allow insecure Jellyfin server connections. Default: `true`
 
 ### MPV Configuration
@@ -126,6 +126,12 @@ All of these settings apply to direct play and are adjustable through the contro
 You can configure mpv directly using the `mpv.conf` file. (It is in the same folder as `conf.json`.)
 This may be useful for customizing video upscaling, keyboard shortcuts, or controlling the application
 via the mpv IPC server.
+
+### Authorization
+
+The `cred.json` file contains the authorization information. If you are having problems with the client,
+such as the Now Playing not appearing or want to delete a server, you can delete this file and add the
+servers again.
 
 ## Development
 
