@@ -102,9 +102,4 @@ class EventHandler(object):
         playerManager.toggle_pause()
         timelineManager.SendTimeline()
 
-    def navigation(self, client, event_name, arguments):
-        path = path.path
-        if path in NAVIGATION_DICT:
-            playerManager.menu.menu_action(NAVIGATION_DICT[path])
-
 eventHandler = EventHandler()
