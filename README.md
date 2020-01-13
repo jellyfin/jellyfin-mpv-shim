@@ -36,7 +36,7 @@ To open the menu, press **c** on your computer. Depending on what app you are
 using to control Jellyfin, you may also be able to open the menu using that app.
 The web application currently doesn't have the required buttons to do so.
 
-The menu enabled you to:
+The menu enables you to:
  - Adjust video transcoding quality.
  - Change the default transcoder settings.
  - Change subtitles or audio, while knowing the track names.
