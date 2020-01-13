@@ -23,18 +23,15 @@ class TimelineManager(threading.Thread):
         self.join()
 
     def run(self):
-        force_next = False
         while not self.halt:
-            if (playerManager._player and playerManager._video) or force_next:
-                if not playerManager.is_paused() or force_next:
-                    self.SendTimeline()
+            if playerManager._player and playerManager._video:
+                self.SendTimeline()
                 self.delay_idle()
             force_next = False
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle and settings.idle_cmd:
                 os.system(settings.idle_cmd)
                 self.is_idle = True
             if self.trigger.wait(5):
-                force_next = True
                 self.trigger.clear()
 
     def delay_idle(self):
