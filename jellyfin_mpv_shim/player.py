@@ -56,6 +56,7 @@ class PlayerManager(object):
         self.url = None
         self.evt_queue = Queue()
 
+        @self._player.on_key_press('CLOSE_WIN')
         @self._player.on_key_press('q')
         def handle_stop():
             self.stop()
