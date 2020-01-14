@@ -192,7 +192,8 @@ class PlayerManager(object):
 
         self._player.play(self.url)
         self._player.wait_for_property("duration")
-        self._player.fs = True
+        if settings.fullscreen:
+            self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
         self.external_subtitles = {}

@@ -31,6 +31,7 @@ class Settings(object):
         "subtitle_size":        100,
         "subtitle_color":       "#FFFFFFFF",
         "subtitle_position":    "bottom",
+        "fullscreen":           True,
     }
 
     def __getattr__(self, name):

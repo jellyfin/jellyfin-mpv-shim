@@ -120,6 +120,7 @@ All of these settings apply to direct play and are adjustable through the contro
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - Currently has no effect. Default: `hdmi`
  - `allow_http` - Allow insecure Jellyfin server connections. Default: `true`
+ - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
 
 ### MPV Configuration
 

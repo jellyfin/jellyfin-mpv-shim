@@ -82,7 +82,8 @@ class OSDMenu(object):
             player.force_window = True
             player.keep_open = True
             player.play("")
-            player.fs = True
+            if settings.fullscreen:
+                player.fs = True
         else:
             player.pause = True
         
@@ -341,6 +342,7 @@ class OSDMenu(object):
             ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
             self.get_settings_toggle("Transcode H265", "transcode_h265"),
             self.get_settings_toggle("Transcode Hi10p", "transcode_hi10p"),
+            self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
         ])
 
     def unwatched_menu_handle(self):
