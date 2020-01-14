@@ -133,9 +133,9 @@ class PlayerManager(object):
             import pdb
             pdb.set_trace()
 
-        @self._player.event_callback('idle')
-        def handle_end(event):
-            if self._video:
+        @self._player.property_observer('eof-reached')
+        def handle_end(_name, reached_end):
+            if self._video and reached_end:
                 self.put_task(self.finished_callback)
 
         self._video       = None
@@ -190,6 +190,7 @@ class PlayerManager(object):
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 
+        self.upd_player_hide()
         self.configure_streams()
         self.update_subtitle_visuals()
 
@@ -395,19 +396,20 @@ class PlayerManager(object):
         # PlaylistItemId is dynamicallt generated. A more stable Id will be used
         # if queue manipulation is added as a feature.
         player = self._player
+        safe_pos = player.playback_time or 0
         options = {
             "VolumeLevel": int(player.volume),
             "IsMuted": player.mute,
             "IsPaused": player.pause,
             "RepeatMode": "RepeatNone",
             #"MaxStreamingBitrate": 140000000,
-            "PositionTicks": int(player.time_pos * 1000) * 10000,
+            "PositionTicks": int(safe_pos * 1000) * 10000,
             "PlaybackStartTimeTicks": int(self.start_time * 1000) * 10000,
             "SubtitleStreamIndex": none_fallback(self._video.sid, -1),
             "AudioStreamIndex": none_fallback(self._video.aid, -1),
             "BufferedRanges":[{
                 "start": int(player.time_pos * 1000) * 10000,
-                "end": int(((player.duration - player.time_pos * player.cache_buffering_state / 100) + player.time_pos) * 1000) * 10000
+                "end": int(((player.duration - safe_pos * none_fallback(player.cache_buffering_state, 0) / 100) + safe_pos) * 1000) * 10000
             }],
             "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
             "PlaySessionId": self._video.playback_info["PlaySessionId"],
@@ -428,5 +430,8 @@ class PlayerManager(object):
     
     def send_timeline_stopped(self):
         self._video.client.jellyfin.session_stop(self.get_timeline_options())
+
+    def upd_player_hide(self):
+        self._player.keep_open = self._video.parent.has_next
 
 playerManager = PlayerManager()

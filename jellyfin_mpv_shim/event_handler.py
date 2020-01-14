@@ -55,8 +55,10 @@ class EventHandler(object):
                 timelineManager.SendTimeline()
         elif play_command == "PlayLast":
             playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=True)
+            playerManager.upd_player_hide()
         elif play_command == "PlayNext":
             playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=False)
+            playerManager.upd_player_hide()
 
     @bind("GeneralCommand")
     def general_command(self, client, event_name, arguments):
