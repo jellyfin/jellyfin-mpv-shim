@@ -140,7 +140,7 @@ The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `requests`, `websocket_client`, and `urllib3`. If you are
-using Windows and would like mpv to be maximize properly, `win32gui` is also needed.
+using Windows and would like mpv to be maximize properly, `pywin32` is also needed.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
@@ -174,7 +174,7 @@ following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests websocket_client urllib win32gui`.
+2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests websocket_client urllib pywin32`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
