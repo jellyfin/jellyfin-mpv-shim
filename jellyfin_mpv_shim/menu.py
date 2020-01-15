@@ -343,6 +343,7 @@ class OSDMenu(object):
             self.get_settings_toggle("Transcode H265", "transcode_h265"),
             self.get_settings_toggle("Transcode Hi10p", "transcode_hi10p"),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
+            self.get_settings_toggle("Share with All Users", "shared_client"),
         ])
 
     def unwatched_menu_handle(self):

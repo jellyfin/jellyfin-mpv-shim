@@ -120,6 +120,10 @@ All of these settings apply to direct play and are adjustable through the contro
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - Currently has no effect. Default: `hdmi`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
+ - `shared_client` - Allow any user to cast to the client. Default: `false`
+    - This will increase the load time for the client for a lot of users.
+ - `allowed_users` - List of usernames to allow to cast to client. Default: `[]`
+    - More performant than `shared_client`, which will allow all users.
 
 ### MPV Configuration
 

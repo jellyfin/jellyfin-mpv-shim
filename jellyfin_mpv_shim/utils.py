@@ -241,3 +241,21 @@ def none_fallback(value, fallback):
     if value is None:
         return fallback
     return value
+
+def lock_session(client, user):
+    if settings.shared_client or len(settings.allowed_users) > 0:
+        current_user = client.config.data["auth.user_id"]
+        allowed_users = set(settings.allowed_users)
+        session = client.jellyfin.get_device(client.config.data["app.device_id"])[0]['Id']
+        for user in client.jellyfin.get_users():
+            if (settings.shared_client or user["Name"] in allowed_users) and current_user != user["Id"]:
+                client.jellyfin.session_add_user(session, user["Id"])
+
+def open_session(client):
+    if settings.shared_client or len(settings.allowed_users) > 0:
+        current_user = client.config.data["auth.user_id"]
+        allowed_users = set(settings.allowed_users)
+        session = client.jellyfin.get_device(client.config.data["app.device_id"])[0]['Id']
+        for user in client.jellyfin.get_users():
+            if (settings.shared_client or user["Name"] in allowed_users) and current_user != user["Id"]:
+                client.jellyfin.session_add_user(session, user["Id"])

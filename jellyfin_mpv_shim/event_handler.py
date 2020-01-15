@@ -47,6 +47,8 @@ class EventHandler(object):
             if offset is not None:
                 offset /= 10000000
 
+            client.config.data['auth.user_id'] = arguments.get("ControllingUserId")
+
             video = media.video
             if video:
                 if settings.pre_media_cmd:

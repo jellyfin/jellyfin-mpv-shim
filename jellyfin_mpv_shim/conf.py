@@ -31,6 +31,8 @@ class Settings(object):
         "subtitle_color":       "#FFFFFFFF",
         "subtitle_position":    "bottom",
         "fullscreen":           True,
+        "shared_client":        False,
+        "allowed_users":        [],
     }
 
     def __getattr__(self, name):

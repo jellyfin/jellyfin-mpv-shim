@@ -24,7 +24,7 @@ class TimelineManager(threading.Thread):
 
     def run(self):
         while not self.halt:
-            if playerManager._player and playerManager._video:
+            if playerManager._player and playerManager._video and not playerManager._player.playback_abort:
                 self.SendTimeline()
                 self.delay_idle()
             force_next = False
