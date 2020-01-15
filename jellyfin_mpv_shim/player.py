@@ -419,10 +419,7 @@ class PlayerManager(object):
             "PlaybackStartTimeTicks": int(self.start_time * 1000) * 10000,
             "SubtitleStreamIndex": none_fallback(self._video.sid, -1),
             "AudioStreamIndex": none_fallback(self._video.aid, -1),
-            "BufferedRanges":[{
-                "start": int(safe_pos * 1000) * 10000,
-                "end": int(((player.duration - safe_pos * none_fallback(player.cache_buffering_state, 0) / 100) + safe_pos) * 1000) * 10000
-            }],
+            "BufferedRanges":[],
             "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
             "PlaySessionId": self._video.playback_info["PlaySessionId"],
             "PlaylistItemId": self._video.parent.queue[self._video.parent.seq]["PlaylistItemId"],
@@ -431,6 +428,11 @@ class PlayerManager(object):
             "ItemId": self._video.item_id,
             "NowPlayingQueue": self._video.parent.queue,
         }
+        if player.duration is not None:
+            options["BufferedRanges"] = [{
+                "start": int(safe_pos * 1000) * 10000,
+                "end": int(((player.duration - safe_pos * none_fallback(player.cache_buffering_state, 0) / 100) + safe_pos) * 1000) * 10000
+            }]
         return options
 
     @synchronous('_tl_lock')
