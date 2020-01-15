@@ -147,6 +147,7 @@ class PlayerManager(object):
 
         self._video       = None
         self._lock        = RLock()
+        self._tl_lock        = RLock()
         self.last_update = Timer()
 
         self.__part      = 1
@@ -432,14 +433,18 @@ class PlayerManager(object):
         }
         return options
 
+    @synchronous('_tl_lock')
     def send_timeline(self):
         if self.should_send_timeline and self._video and not self._player.playback_abort:
             self._video.client.jellyfin.session_progress(self.get_timeline_options())
-        
+
+    @synchronous('_tl_lock')
     def send_timeline_initial(self):
         self._video.client.jellyfin.session_playing(self.get_timeline_options())
     
+    @synchronous('_tl_lock')
     def send_timeline_stopped(self):
+        self.should_send_timeline = False
         self._video.client.jellyfin.session_stop(self.get_timeline_options())
 
     def upd_player_hide(self):
