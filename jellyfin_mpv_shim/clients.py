@@ -1,5 +1,5 @@
-from .jellyfin import Jellyfin
-from .jellyfin.connection_manager import CONNECTION_STATE
+from jellyfin_apiclient_python import Jellyfin
+from jellyfin_apiclient_python.connection_manager import CONNECTION_STATE
 from .conf import settings
 from . import conffile
 from getpass import getpass

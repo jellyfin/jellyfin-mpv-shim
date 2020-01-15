@@ -2,7 +2,6 @@ import logging
 import mpv
 import os
 import sys
-import requests
 import urllib.parse
 import time
 

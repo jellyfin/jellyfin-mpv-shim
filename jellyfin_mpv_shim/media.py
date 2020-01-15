@@ -1,5 +1,4 @@
 import logging
-import requests
 import uuid
 
 from .conf import settings

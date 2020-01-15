@@ -1,7 +1,6 @@
 from collections import namedtuple
 from .utils import get_sub_display_title
 import urllib.parse
-import requests
 import time
 
 Part = namedtuple("Part", ["id", "audio", "subtitle"])

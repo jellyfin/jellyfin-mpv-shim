@@ -13,7 +13,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://github.com/iwalton3/jellyfin-mpv-shim",
-    packages=['jellyfin_mpv_shim', 'jellyfin_mpv_shim.jellyfin'],
+    packages=['jellyfin_mpv_shim'],
     entry_points={
         'console_scripts': [
             'jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main',
@@ -25,5 +25,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'requests', 'urllib3', 'websocket_client']
+    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.0.0']
 )
