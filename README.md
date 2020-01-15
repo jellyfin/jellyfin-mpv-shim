@@ -119,7 +119,6 @@ All of these settings apply to direct play and are adjustable through the contro
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - Currently has no effect. Default: `hdmi`
- - `allow_http` - Allow insecure Jellyfin server connections. Default: `true`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
 
 ### MPV Configuration

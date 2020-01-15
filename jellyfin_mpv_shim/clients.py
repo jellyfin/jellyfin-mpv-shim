@@ -26,7 +26,7 @@ class ClientManager(object):
         client.config.data['app.default'] = True
         client.config.app("Jellyfin MPV Shim", CLIENT_VERSION, settings.player_name, settings.client_uuid)
         client.config.data['http.user_agent'] = "Jellyfin-MPV-Shim/%s" % CLIENT_VERSION
-        client.config.data['auth.ssl'] = not settings.allow_http
+        client.config.data['auth.ssl'] = True
 
         is_logged_in = False
 

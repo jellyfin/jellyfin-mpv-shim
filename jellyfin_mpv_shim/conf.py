@@ -16,7 +16,6 @@ class Settings(object):
         "player_name":          socket.gethostname(),
         "audio_output":         "hdmi",
         "client_uuid":          str(uuid.uuid4()),
-        "allow_http":           True,
         "media_ended_cmd":      None,
         "pre_media_cmd":        None,
         "stop_cmd":             None,
