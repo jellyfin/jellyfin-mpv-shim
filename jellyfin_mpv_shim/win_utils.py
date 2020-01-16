@@ -1,5 +1,7 @@
 import win32gui
-import traceback
+import logging
+
+log = logging.getLogger('win_utils')
 
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
@@ -20,6 +22,4 @@ def raise_mpv():
                 break
 
     except Exception:
-        print("Could not raise MPV.")
-        traceback.print_exc()
-
+        log.error("Could not raise MPV.", exc_info=True)

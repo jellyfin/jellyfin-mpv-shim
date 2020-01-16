@@ -12,8 +12,7 @@ from . import conffile
 from .utils import synchronous, Timer, none_fallback
 from .conf import settings
 from .menu import OSDMenu
-
-APP_NAME = 'jellyfin-mpv-shim'
+from .constants import APP_NAME
 
 SUBTITLE_POS = {
     "top": 0,

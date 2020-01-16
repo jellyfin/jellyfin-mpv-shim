@@ -120,6 +120,7 @@ All of these settings apply to direct play and are adjustable through the contro
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
  - `audio_output` - Currently has no effect. Default: `hdmi`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
+ - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
 
 ### MPV Configuration
 
@@ -155,6 +156,11 @@ If you are on Linux, you can install via pip. You'll need [libmpv1](https://gith
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
+If you would like the GUI and systray features, also install:
+```bash
+sudo pip3 install pystray
+sudo apt install python3-tk
+```
 
 The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
 ```bash
@@ -175,8 +181,8 @@ following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32`.
+2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
+6. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --icon media.ico run.py`.

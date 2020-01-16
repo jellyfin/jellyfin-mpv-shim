@@ -7,8 +7,8 @@ from threading import Lock
 from .conf import settings
 from datetime import datetime
 from functools import wraps
+from .constants import USER_APP_NAME
 
-APP_NAME = 'Jellyfin MPV Shim'
 seq_num = 0
 seq_num_lock = Lock()
 
@@ -73,7 +73,7 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
             video_bitrate = settings.local_kbps
 
     profile = {
-        "Name": APP_NAME,
+        "Name": USER_APP_NAME,
         "MaxStreamingBitrate": video_bitrate * 1000,
         "MusicStreamingTranscodingBitrate": 1280000,
         "TimelineOffsetSeconds": 5,
