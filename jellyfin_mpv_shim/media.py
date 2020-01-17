@@ -7,7 +7,7 @@ from .utils import is_local_domain, get_profile, get_seq
 log = logging.getLogger('media')
 
 class Video(object):
-    def __init__(self, item_id, parent, aid=None, sid=None, src_seq=0):
+    def __init__(self, item_id, parent, aid=None, sid=None, srcid=None):
         self.item_id       = item_id
         self.parent        = parent
         self.client        = parent.client
@@ -27,7 +27,7 @@ class Video(object):
         self.trs_ovr       = None
         self.playback_info = None
         self.media_source  = None
-        self.src_seq       = src_seq
+        self.srcid         = srcid
 
     def map_streams(self):
         self.subtitle_seq  = {}
@@ -133,6 +133,25 @@ class Video(object):
             self.is_transcode = True
             return self.client.config.data["auth.server"] + self.media_source.get("TranscodingUrl")
 
+    def get_best_media_source(self, preferred=None):
+        weight_selected = 0
+        preferred_selected = None
+        selected = None
+        for media_source in self.playback_info["MediaSources"]:
+            if media_source.get("Id") == preferred:
+                preferred_selected = media_source
+            # Prefer the highest bitrate file that will direct play.
+            weight = (media_source.get("SupportsDirectPlay") or 0) * 50000 + (media_source.get("Bitrate") or 0) / 1000
+            if weight > weight_selected:
+                weight_selected = weight
+                selected = media_source
+        if preferred_selected:
+            return preferred_selected
+        else:
+            if preferred is not None:
+                log.warning("Preferred media source is unplayable.")
+            return selected
+
     def get_playback_url(self, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False):
         """
         Returns the URL to use for the trancoded file.
@@ -145,15 +164,16 @@ class Video(object):
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
         self.playback_info = self.client.jellyfin.get_play_info(self.item_id, profile, self.aid, self.sid)
         
-        self.media_source = self.playback_info["MediaSources"][self.src_seq]
+        self.media_source = self.get_best_media_source(self.srcid)
         self.map_streams()
         url = self._get_url_from_source(self.media_source)
 
         # If there are more media sources and the default one fails, try all of them.
         if url is None and len(self.playback_info["MediaSources"]) > 1:
-            for i, media_source in enumerate(self.playback_info["MediaSources"]):
-                if i != self.src_seq:
-                    self.media_source = self.playback_info["MediaSources"][self.src_seq]
+            log.warning("Selected media source is unplayable.")
+            for media_source in self.playback_info["MediaSources"]:
+                if media_source["Id"] != self.srcid:
+                    self.media_source = media_source
                     self.map_streams()
                     url = self._get_url_from_source(self.media_source)
                     if url is not None:
@@ -185,7 +205,7 @@ class Video(object):
         return need_restart
 
 class Media(object):
-    def __init__(self, client, queue, seq=0, user_id=None, aid=None, sid=None, queue_override=True):
+    def __init__(self, client, queue, seq=0, user_id=None, aid=None, sid=None, srcid=None, queue_override=True):
         if queue_override:
             self.queue = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in queue]
         else:
@@ -194,7 +214,7 @@ class Media(object):
         self.seq = seq
         self.user_id = user_id
 
-        self.video = Video(self.queue[seq]["Id"], self, aid, sid)
+        self.video = Video(self.queue[seq]["Id"], self, aid, sid, srcid)
         self.is_tv = self.video.is_tv
         self.is_local = is_local_domain(client)
         self.has_next = seq < len(queue) - 1

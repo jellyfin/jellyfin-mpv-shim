@@ -40,7 +40,7 @@ class EventHandler(object):
 
         if play_command == "PlayNow":
             media = Media(client, arguments.get("ItemIds"), seq=0, user_id=arguments.get("ControllingUserId"),
-                        aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"))
+                        aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"), srcid=arguments.get("MediaSourceId"))
 
             log.debug("EventHandler::playMedia %s" % media)
             offset = arguments.get('StartPositionTicks')
