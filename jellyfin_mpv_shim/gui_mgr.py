@@ -321,7 +321,7 @@ class UserInterface:
 
         if open_config:
             menu_items.append(MenuItem("Open Config Folder", open_config))
-
+        menu_items.append(MenuItem("Quit", self.stop))
         icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
         icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop

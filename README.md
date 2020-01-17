@@ -17,16 +17,15 @@ To use the client, simply launch it and log into your Jellyfin server. You can t
 from another Jellyfin application. Unlike Plex MPV Shim, authorization tokens for your server
 are stored on your device, but you are able to cast to the player regardless of location.
 
-If you want to add multiple servers, you can do so when you initially log in. You can also
-start the program with the `add` parameter to add more servers at a later time.
+The application runs with a notification icon by default. You can use this to edit the server settings,
+view the application log, open the config folder, and open the application menu.
 
 ## Limitations
 
- - This software is currently in the first major release and may have bugs.
+ - This software is currently relatively new and may have bugs.
  - Audio playback and Live TV are not supported.
- - Multi-user support hasn't been implemented yet.
- - Deletion of servers from the client requires deleting the `cred.json` config file.
- - Multi-server support should work but has not been tested.
+ - Multi-user support cannot be implemented at this time.
+ - If you try to add multiple users for the same user, only the last will succeed.
 
 ## Advanced Features
 
