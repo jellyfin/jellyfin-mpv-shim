@@ -45,6 +45,7 @@ class PlayerManager(object):
     """
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
+        self._video = None
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True, include=mpv_config)
         self.timeline_trigger = None
         self.action_trigger = None
@@ -144,7 +145,6 @@ class PlayerManager(object):
             if self._video and reached_end:
                 self.put_task(self.finished_callback)
 
-        self._video       = None
         self._lock        = RLock()
         self._tl_lock        = RLock()
         self.last_update = Timer()
