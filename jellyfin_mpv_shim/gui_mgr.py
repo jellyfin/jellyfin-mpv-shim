@@ -198,8 +198,11 @@ class PreferencesWindowProcess(Process):
                 action, param = self.queue.get_nowait()
                 if action == "upd":
                     self.update_servers(param)
+                    self.add_button.config(state=tk.NORMAL)
+                    self.remove_button.config(state=tk.NORMAL)
                 elif action == "error":
                     messagebox.showerror("Add Server", "Could not add server.\nPlease check your connection infomation.")
+                    self.add_button.config(state=tk.NORMAL)
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
@@ -259,6 +262,7 @@ class PreferencesWindowProcess(Process):
         password_box.grid(column=2, row=2)
 
         def add_server():
+            self.add_button.config(state=tk.DISABLED)
             self.r_queue.put(("add", (
                 self.servername.get(),
                 self.username.get(),
@@ -266,17 +270,18 @@ class PreferencesWindowProcess(Process):
             )))
 
         def remove_server():
+            self.remove_button.config(state=tk.DISABLED)
             self.r_queue.put(("remove", self.current_uuid))
 
         def close():
             self.r_queue.put(("die", None))
 
-        add_button = ttk.Button(c, text='Add Server', command=add_server)
-        add_button.grid(column=2, row=3, pady=5, sticky=tk.E)
-        remove_button = ttk.Button(c, text='Remove Server', command=remove_server)
-        remove_button.grid(column=1, row=4, padx=5, pady=10, sticky=(tk.E, tk.S))
-        remove_button = ttk.Button(c, text='Close', command=close)
-        remove_button.grid(column=2, row=4, pady=10, sticky=(tk.E, tk.S))
+        self.add_button = ttk.Button(c, text='Add Server', command=add_server)
+        self.add_button.grid(column=2, row=3, pady=5, sticky=tk.E)
+        self.remove_button = ttk.Button(c, text='Remove Server', command=remove_server)
+        self.remove_button.grid(column=1, row=4, padx=5, pady=10, sticky=(tk.E, tk.S))
+        close_button = ttk.Button(c, text='Close', command=close)
+        close_button.grid(column=2, row=4, pady=10, sticky=(tk.E, tk.S))
 
         serverlist.bind('<<ListboxSelect>>', serverSelect)
         self.update()
