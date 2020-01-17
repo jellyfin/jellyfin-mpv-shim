@@ -2,7 +2,7 @@ from pystray import Icon, MenuItem, Menu
 from PIL import Image
 from collections import deque
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import subprocess
 from multiprocessing import Process, Queue
 import threading
@@ -92,7 +92,7 @@ class LoggerWindow(threading.Thread):
                 self._die()
                 break
     
-    def handle(self, action, params):
+    def handle(self, action, params=None):
         self.queue.put((action, params))
 
     def stop(self, is_source=False):
@@ -100,7 +100,7 @@ class LoggerWindow(threading.Thread):
     
     def _die(self):
         guiHandler.callback = None
-        self.handle("die", None)
+        self.handle("die")
         self.process.terminate()
         self.dead = True
 
@@ -155,20 +155,34 @@ class PreferencesWindow(threading.Thread):
         self.r_queue = Queue()
         self.process = PreferencesWindowProcess(self.queue, self.r_queue)
         self.process.start()
+        self.handle("upd", clientManager.credentials)
         while True:
             action, param = self.r_queue.get()
             if action == "die":
                 self._die()
                 break
+            elif action == "add":
+                try:
+                    is_logged_in = clientManager.login(*param)
+                    if is_logged_in:
+                        self.handle("upd", clientManager.credentials)
+                    else:
+                        self.handle("error")
+                except Exception:
+                    log.error("Error while adding server.", exc_info=1)
+                    self.handle("error")
+            elif action == "remove":
+                clientManager.remove_client(param)
+                self.handle("upd", clientManager.credentials)
     
-    def handle(self, action, params):
+    def handle(self, action, params=None):
         self.queue.put((action, params))
 
     def stop(self, is_source=False):
         self.r_queue.put(("die", None))
     
     def _die(self):
-        self.handle("die", None)
+        self.handle("die")
         self.process.terminate()
         self.dead = True
 
@@ -180,35 +194,91 @@ class PreferencesWindowProcess(Process):
 
     def update(self):
         try:
-            self.text.config(state=tk.NORMAL)
             while True:
                 action, param = self.queue.get_nowait()
-                if action == "append":
-                    self.text.config(state=tk.NORMAL)
-                    self.text.insert(tk.END, "\n")
-                    self.text.insert(tk.END, param)
+                if action == "upd":
+                    self.update_servers(param)
+                elif action == "error":
+                    messagebox.showerror("Add Server", "Could not add server.\nPlease check your connection infomation.")
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
                     return
         except queue.Empty:
             pass
-        self.text.config(state=tk.DISABLED)
-        self.text.see(tk.END)
-        self.text.after(100, self.update)
+        self.root.after(100, self.update)
+
+    def update_servers(self, server_list):
+        self.servers = server_list
+        self.server_ids = [x["uuid"] for x in self.servers]
+        self.serverList.set(["{0} ({1}, {2})".format(
+                server["Name"],
+                server["username"],
+                "Ok" if server["connected"] else "Fail"
+            ) for server in self.servers])
 
     def run(self):
         root = tk.Tk()
-        self.root = root
         root.title("Server Configuration")
-        text = tk.Text(root)
-        text.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
-        text.config(wrap=tk.WORD)
-        self.text = text
-        yscroll = tk.Scrollbar(command=text.yview)
-        text['yscrollcommand'] = yscroll.set
-        yscroll.pack(side=tk.RIGHT, fill=tk.Y)
-        text.config(state=tk.DISABLED)
+        self.root = root
+
+        self.servers = {}
+        self.server_ids = []
+        self.serverList = tk.StringVar(value=[])
+        self.current_uuid = None
+
+        def serverSelect(_):
+            idxs = serverlist.curselection()
+            if len(idxs)==1:
+                self.current_uuid = self.server_ids[idxs[0]]
+
+        c = ttk.Frame(root, padding=(5, 5, 12, 0))
+        c.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_rowconfigure(0,weight=1)
+
+        serverlist = tk.Listbox(c, listvariable=self.serverList, height=10, width=40)
+        serverlist.grid(column=0, row=0, rowspan=6, sticky=(tk.N,tk.S,tk.E,tk.W))
+        c.grid_columnconfigure(0, weight=1)
+        c.grid_rowconfigure(4, weight=1)
+
+        servername_label = ttk.Label(c, text='Server:')
+        servername_label.grid(column=1, row=0, sticky=tk.E)
+        self.servername = tk.StringVar()
+        servername_box = ttk.Entry(c, textvariable=self.servername)
+        servername_box.grid(column=2, row=0)
+        username_label = ttk.Label(c, text='Username:')
+        username_label.grid(column=1, row=1, sticky=tk.E)
+        self.username = tk.StringVar()
+        username_box = ttk.Entry(c, textvariable=self.username)
+        username_box.grid(column=2, row=1)
+        password_label = ttk.Label(c, text='Password:')
+        password_label.grid(column=1, row=2, sticky=tk.E)
+        self.password = tk.StringVar()
+        password_box = ttk.Entry(c, textvariable=self.password, show="*")
+        password_box.grid(column=2, row=2)
+
+        def add_server():
+            self.r_queue.put(("add", (
+                self.servername.get(),
+                self.username.get(),
+                self.password.get()
+            )))
+
+        def remove_server():
+            self.r_queue.put(("remove", self.current_uuid))
+
+        def close():
+            self.r_queue.put(("die", None))
+
+        add_button = ttk.Button(c, text='Add Server', command=add_server)
+        add_button.grid(column=2, row=3, pady=5, sticky=tk.E)
+        remove_button = ttk.Button(c, text='Remove Server', command=remove_server)
+        remove_button.grid(column=1, row=4, padx=5, pady=10, sticky=(tk.E, tk.S))
+        remove_button = ttk.Button(c, text='Close', command=close)
+        remove_button.grid(column=2, row=4, pady=10, sticky=(tk.E, tk.S))
+
+        serverlist.bind('<<ListboxSelect>>', serverSelect)
         self.update()
         root.mainloop()
         self.r_queue.put(("die", None))
@@ -221,7 +291,9 @@ class UserInterface:
         self.preferences_window = None
 
     def login_servers(self):
-        clientManager.cli_connect()
+        is_logged_in = clientManager.try_connect()
+        if not is_logged_in:
+            self.show_preferences()
 
     def stop(self):
         if self.log_window and not self.log_window.dead:
