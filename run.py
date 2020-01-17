@@ -3,6 +3,7 @@
 # Newer revisions of python-mpv require mpv-1.dll in the PATH.
 import os
 import sys
+import multiprocessing
 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
@@ -14,4 +15,7 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 
 from jellyfin_mpv_shim.mpv_shim import main
 if __name__ == '__main__':
+    # https://stackoverflow.com/questions/24944558/pyinstaller-built-windows-exe-fails-with-multiprocessing
+    multiprocessing.freeze_support()
+    
     main()
