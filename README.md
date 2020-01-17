@@ -184,4 +184,4 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-6. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
+6. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-binary "jellyfin_mpv_shim\systray.png;." --icon media.ico run.py`.
