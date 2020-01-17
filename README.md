@@ -24,7 +24,7 @@ view the application log, open the config folder, and open the application menu.
 
  - This software is currently relatively new and may have bugs.
  - Audio playback and Live TV are not supported.
- - Multi-user support cannot be implemented at this time.
+ - Multi-user support (on a single computer at once) cannot be implemented at this time.
  - If you try to add multiple users for the same user, only the last will succeed.
 
 ## Advanced Features
