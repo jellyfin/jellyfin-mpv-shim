@@ -15,8 +15,6 @@ from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
 
-import os
-import sys
 if (sys.platform.startswith("win32") or sys.platform.startswith("cygwin")) and getattr(sys, 'frozen', False):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
