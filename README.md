@@ -140,7 +140,8 @@ The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv` and `jellyfin-apiclient-python`. If you are
-using Windows and would like mpv to be maximize properly, `pywin32` is also needed.
+using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
+component uses `pystray` and `tkinter`, but there is a fallback cli mode.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
