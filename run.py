@@ -13,4 +13,5 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
     os.environ["PATH"] = application_path + os.pathsep + os.environ["PATH"]
 
 from jellyfin_mpv_shim.mpv_shim import main
-main()
+if __name__ == '__main__':
+    main()
