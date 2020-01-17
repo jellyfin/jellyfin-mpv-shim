@@ -13,6 +13,8 @@ import os.path
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
+from .clients import clientManager
+
 
 icon_file = os.path.join(os.path.dirname(__file__), "systray.png")
 log = logging.getLogger('gui_mgr')
@@ -117,14 +119,14 @@ class LoggerWindowProcess(Process):
                     self.text.config(state=tk.NORMAL)
                     self.text.insert(tk.END, "\n")
                     self.text.insert(tk.END, param)
+                    self.text.config(state=tk.DISABLED)
+                    self.text.see(tk.END)
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
                     return
         except queue.Empty:
             pass
-        self.text.config(state=tk.DISABLED)
-        self.text.see(tk.END)
         self.text.after(100, self.update)
 
     def run(self):
@@ -219,7 +221,7 @@ class UserInterface:
         self.preferences_window = None
 
     def login_servers(self):
-        pass
+        clientManager.cli_connect()
 
     def stop(self):
         if self.log_window and not self.log_window.dead:

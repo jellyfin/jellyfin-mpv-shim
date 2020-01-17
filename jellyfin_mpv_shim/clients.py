@@ -1,4 +1,4 @@
-from jellyfin_apiclient_python import Jellyfin
+from jellyfin_apiclient_python import JellyfinClient
 from jellyfin_apiclient_python.connection_manager import CONNECTION_STATE
 from .conf import settings
 from . import conffile
@@ -8,69 +8,96 @@ from .constants import CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
 import sys
 import os.path
 import json
+import uuid
 
 class ClientManager(object):
     def __init__(self):
-        self.default_client = None
         self.callback = lambda client, event_name, data: None
+        self.credentials = []
+        self.clients = {}
     
     def cli_connect(self):
         is_logged_in = self.try_connect()
+        add_another = False
 
         if len(sys.argv) > 1 and sys.argv[1] == "add":
-            is_logged_in = False
+            add_another = True
 
-        while not is_logged_in:
+        while not is_logged_in or add_another:
             server = input("Server URL: ")
             username = input("Username: ")
             password = getpass("Password: ")
 
-            self.login(server, username, password)
+            is_logged_in = self.login(server, username, password)
 
-            add_another = input("Add another server? [y/N] ")
-            if add_another in ("y", "Y", "yes", "Yes"):
-                is_logged_in = False
-        
-        self.setup_clients()
+            if is_logged_in:
+                print("Successfully added server.")
+                add_another = input("Add another server? [y/N] ")
+                add_another = add_another in ("y", "Y", "yes", "Yes")
+            else:
+                print("Adding server failed.")        
 
-    def try_connect(self):
-        credentials = None
-        credentials_location = conffile.get(APP_NAME,'cred.json')
-        if os.path.exists(credentials_location):
-            with open(credentials_location) as cf:
-                credentials = json.load(cf)
-
-        client = Jellyfin(None)
-        self.default_client = client
+    def client_factory(self):
+        client = JellyfinClient()
         client.config.data['app.default'] = True
         client.config.app(USER_APP_NAME, CLIENT_VERSION, settings.player_name, settings.client_uuid)
         client.config.data['http.user_agent'] = USER_AGENT
         client.config.data['auth.ssl'] = True
+        return client
+
+    def try_connect(self):
+        self.credentials = []
+        credentials_location = conffile.get(APP_NAME,'cred.json')            
+        if os.path.exists(credentials_location):
+            with open(credentials_location) as cf:
+                self.credentials = json.load(cf)
+
+        if "Servers" in self.credentials:
+            credentials_old = self.credentials
+            self.credentials = []
+            for server in credentials_old["Servers"]:
+                server["uuid"] = uuid.uuid4()
+                server["username"] = ""
+                self.credentials.append(server)
 
         is_logged_in = False
-
-        if credentials is not None:
-            state = client.authenticate(credentials)
-            is_logged_in = state['State'] == CONNECTION_STATE['SignedIn']
+        for server in self.credentials:
+            client = self.client_factory()
+            state = client.authenticate({"Servers":[server]})
+            server["connected"] = state['State'] == CONNECTION_STATE['SignedIn']
+            if server["connected"]:
+                is_logged_in = True
+                self.clients[server["uuid"]] = client
+                self.setup_client(client)
 
         return is_logged_in
 
+    def save_credentials(self):
+        credentials_location = conffile.get(APP_NAME,'cred.json')
+        with open(credentials_location, "w") as cf:
+            json.dump(self.credentials, cf)
+
     def login(self, server, username, password):
-        client = self.default_client
+        client = self.client_factory()
         client.auth.connect_to_address(server)
         client.auth.login(server, username, password)
         state = client.auth.connect()
         is_logged_in = state['State'] == CONNECTION_STATE['SignedIn']
         if is_logged_in:
             credentials = client.auth.credentials.get_credentials()
-            credentials_location = conffile.get(APP_NAME,'cred.json')
-            with open(credentials_location, "w") as cf:
-                json.dump(credentials, cf)
             client.authenticate(credentials)
+            server = credentials["Servers"][0]
+            server["connected"] = True
+            server["uuid"] = uuid.uuid4()
+            server["username"] = ""
+            self.clients[server["uuid"]] = client
+            self.credentials.append(server)
+            self.save_credentials()
+            self.setup_client(client)
+        return is_logged_in
 
-    def setup_clients(self):
-        clients = self.default_client.get_active_clients()
-        for name, client in clients.items():
+    def setup_client(self, client):
+        for client in self.clients.values():
             def event(event_name, data):
                 self.callback(client, event_name, data)
 
@@ -92,9 +119,14 @@ class ClientManager(object):
                 ),
             })
 
+    def remove_client(self, uuid):
+        self.clients[uuid].stop()
+        del self.clients[uuid]
+        self.credentials = [server for server in self.credentials if server["uuid"] != uuid]
+        self.save_credentials()
+
     def stop(self):
-        clients = self.default_client.get_active_clients()
-        for _, client in clients.items():
+        for client in self.clients.values():
             client.stop()
 
 clientManager = ClientManager()
