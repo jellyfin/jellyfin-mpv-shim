@@ -409,7 +409,7 @@ class PlayerManager(object):
         player = self._player
         safe_pos = player.playback_time or 0
         options = {
-            "VolumeLevel": int(player.volume),
+            "VolumeLevel": int(player.volume or 100),
             "IsMuted": player.mute,
             "IsPaused": player.pause,
             "RepeatMode": "RepeatNone",

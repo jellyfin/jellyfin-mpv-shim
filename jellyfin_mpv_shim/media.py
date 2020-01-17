@@ -85,7 +85,8 @@ class Video(object):
     def get_proper_title(self):
         if not hasattr(self, "_title"):
             title = self.item.get("Name")
-            if self.is_tv:
+            if (self.is_tv and self.item.get("IndexNumber") is not None
+                and self.item.get("ParentIndexNumber") is not None):
                 episode_number = int(self.item.get("IndexNumber"))
                 season_number  = int(self.item.get("ParentIndexNumber"))
                 series_name    = self.item.get("SeriesName")
