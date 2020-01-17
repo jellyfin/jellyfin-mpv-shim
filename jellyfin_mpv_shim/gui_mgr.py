@@ -26,13 +26,13 @@ log = logging.getLogger('gui_mgr')
 # From https://stackoverflow.com/questions/6631299/
 # This is for opening the config directory.
 def _show_file_darwin(path):
-    subprocess.check_call(["open", path])
+    subprocess.Popen(["open", path])
 
 def _show_file_linux(path):
-    subprocess.check_call(["xdg-open", path])
+    subprocess.Popen(["xdg-open", path])
 
 def _show_file_win32(path):
-    subprocess.check_call(["explorer", "/select", path])
+    subprocess.Popen(["explorer", path])
 
 _show_file_func = {'darwin': _show_file_darwin, 
                    'linux': _show_file_linux,
