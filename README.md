@@ -156,7 +156,7 @@ If you are on Linux, you can install via pip. You'll need [libmpv1](https://gith
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
-If you would like the GUI and systray features, also install:
+If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
 sudo pip3 install pystray
 sudo apt install python3-tk
