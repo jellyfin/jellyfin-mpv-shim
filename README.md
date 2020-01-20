@@ -24,8 +24,7 @@ view the application log, open the config folder, and open the application menu.
 
  - This software is currently relatively new and may have bugs.
  - Audio playback and Live TV are not supported.
- - Multi-user support (on a single computer at once) cannot be implemented at this time.
- - If you try to add multiple users for the same server, only the last will succeed.
+ - The client can’t be shared seamlessly between multiple users on the same server. ([Link to issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
 
 ## Advanced Features
 
