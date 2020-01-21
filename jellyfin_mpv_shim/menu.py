@@ -342,6 +342,7 @@ class OSDMenu(object):
             ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
             self.get_settings_toggle("Transcode H265", "transcode_h265"),
             self.get_settings_toggle("Transcode Hi10p", "transcode_hi10p"),
+            self.get_settings_toggle("Direct Paths", "direct_paths"),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
         ])
 
