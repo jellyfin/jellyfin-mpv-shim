@@ -122,7 +122,12 @@ class Video(object):
             self.client.jellyfin.close_transcode(self.client.config.data["app.device_id"])
 
     def _get_url_from_source(self, source):
-        if settings.direct_paths:
+        # Only use Direct Paths if:
+        # - The media source supports direct paths.
+        # - Direct paths are enabled in the config.
+        # - The server is local or the override config is set.
+        if ((self.media_source.get('Protocol') == "Http" or self.media_source['SupportsDirectPlay'])
+            and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
             self.is_transcode = False
             return self.media_source['Path']
         elif self.media_source['SupportsDirectStream']:
