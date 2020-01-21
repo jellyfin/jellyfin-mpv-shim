@@ -92,7 +92,7 @@ You can adjust the basic transcoder settings via the menu.
     - This may be useful if you are using limited hardware that cannot handle advanced codecs.
 - `transcode_h265` - Transcode HEVC videos. Default: `false`
 - `transcode_hi10p` - Transcode 10 bit color videos. Default: `false`
-- `remote_kbps` - Bandwidth to permit for remote streaming. Default: `2000`
+- `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 
 ### Shell Command Triggers

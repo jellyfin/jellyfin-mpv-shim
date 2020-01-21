@@ -26,7 +26,7 @@ class Settings(object):
         "always_transcode":     False,
         "transcode_h265":       False,
         "transcode_hi10p":      False,
-        "remote_kbps":          2000,
+        "remote_kbps":          10000,
         "local_kbps":           2147483,
         "subtitle_size":        100,
         "subtitle_color":       "#FFFFFFFF",
