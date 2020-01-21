@@ -9,12 +9,27 @@ import sys
 import os.path
 import json
 import uuid
+import time
+import logging
+
+log = logging.getLogger("clients")
+
+def expo(max_value=None):
+    n = 0
+    while True:
+        a = 2 ** n
+        if max_value is None or a < max_value:
+            yield a
+            n += 1
+        else:
+            yield max_value
 
 class ClientManager(object):
     def __init__(self):
         self.callback = lambda client, event_name, data: None
         self.credentials = []
         self.clients = {}
+        self.is_stopping = False
     
     def cli_connect(self):
         is_logged_in = self.try_connect()
@@ -62,13 +77,8 @@ class ClientManager(object):
 
         is_logged_in = False
         for server in self.credentials:
-            client = self.client_factory()
-            state = client.authenticate({"Servers":[server]})
-            server["connected"] = state['State'] == CONNECTION_STATE['SignedIn']
-            if server["connected"]:
+            if self._connect_client(server):
                 is_logged_in = True
-                self.clients[server["uuid"]] = client
-                self.setup_client(client)
 
         return is_logged_in
 
@@ -85,20 +95,28 @@ class ClientManager(object):
         is_logged_in = state['State'] == CONNECTION_STATE['SignedIn']
         if is_logged_in:
             credentials = client.auth.credentials.get_credentials()
-            client.authenticate(credentials)
             server = credentials["Servers"][0]
-            server["connected"] = True
             server["uuid"] = str(uuid.uuid4())
             server["username"] = username
-            self.clients[server["uuid"]] = client
+            self._connect_client(server)
             self.credentials.append(server)
             self.save_credentials()
-            self.setup_client(client)
+
         return is_logged_in
 
-    def setup_client(self, client):
+    def setup_client(self, client, server):
         def event(event_name, data):
-            self.callback(client, event_name, data)
+            if event_name == 'WebSocketDisconnect':
+                timeout_gen = expo(100)
+                while not self.is_stopping:
+                    timeout = next(timeout_gen)
+                    log.info("No connection to server. Next try in {0} second(s)".format(timeout))
+                    self._disconnect_client(server=server)
+                    time.sleep(timeout)
+                    if self._connect_client(server):
+                        break
+            else:
+                self.callback(client, event_name, data)
 
         client.callback = event
         client.callback_ws = event
@@ -121,14 +139,38 @@ class ClientManager(object):
     def remove_client(self, uuid):
         self.credentials = [server for server in self.credentials if server["uuid"] != uuid]
         self.save_credentials()
+        self._disconnect_client(uuid=uuid)
 
+    def _connect_client(self, server):
+        if self.is_stopping:
+            return False
+
+        is_logged_in = False
+        client = self.client_factory()
+        state = client.authenticate({"Servers":[server]})
+        server["connected"] = state['State'] == CONNECTION_STATE['SignedIn']
+        if server["connected"]:
+            is_logged_in = True
+            self.clients[server["uuid"]] = client
+            self.setup_client(client, server)
+            
+        return is_logged_in
+
+    def _disconnect_client(self, uuid=None, server=None):
+        if uuid is None and server is not None:
+            uuid = server["uuid"]
+            
         if not uuid in self.clients:
             return
+
+        if server is not None:
+            server["connected"] = False
 
         self.clients[uuid].stop()
         del self.clients[uuid]
 
     def stop(self):
+        self.is_stopping = True
         for client in self.clients.values():
             client.stop()
 
