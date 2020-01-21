@@ -22,6 +22,7 @@ class Settings(object):
         "auto_play":            True,
         "idle_cmd":             None,
         "idle_cmd_delay":       60,
+        "direct_paths":         False,
         "always_transcode":     False,
         "transcode_h265":       False,
         "transcode_hi10p":      False,

@@ -122,7 +122,10 @@ class Video(object):
             self.client.jellyfin.close_transcode(self.client.config.data["app.device_id"])
 
     def _get_url_from_source(self, source):
-        if self.media_source['SupportsDirectStream']:
+        if settings.direct_paths:
+            self.is_transcode = False
+            return self.media_source['Path']
+        elif self.media_source['SupportsDirectStream']:
             self.is_transcode = False
             return "%s/Videos/%s/stream?static=true&MediaSourceId=%s&api_key=%s" % (
                 self.client.config.data["auth.server"],
