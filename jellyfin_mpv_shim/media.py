@@ -96,7 +96,7 @@ class Video(object):
                 if year is not None:
                     title = "%s (%s)" % (title, year)
             setattr(self, "_title", title)
-        return getattr(self, "_title")
+        return getattr(self, "_title") + (" (Transcode)" if self.is_transcode else "")
 
     def set_trs_override(self, video_bitrate, force_transcode):
         if force_transcode:
