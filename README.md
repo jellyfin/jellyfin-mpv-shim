@@ -121,6 +121,7 @@ All of these settings apply to direct play and are adjustable through the contro
  - `audio_output` - Currently has no effect. Default: `hdmi`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+ - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 
 ### MPV Configuration
 

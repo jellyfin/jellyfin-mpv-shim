@@ -344,6 +344,7 @@ class OSDMenu(object):
             self.get_settings_toggle("Transcode Hi10p", "transcode_hi10p"),
             self.get_settings_toggle("Direct Paths", "direct_paths"),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
+            self.get_settings_toggle("Media Key Seek", "media_key_seek"),
         ])
 
     def unwatched_menu_handle(self):

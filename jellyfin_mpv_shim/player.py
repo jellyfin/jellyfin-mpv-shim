@@ -76,6 +76,20 @@ class PlayerManager(object):
         def handle_next():
             self.put_task(self.play_next)
 
+        @self._player.on_key_press('XF86_PREV')
+        def handle_media_prev():
+            if settings.media_key_seek:
+                self._player.command("seek", -15)
+            else:
+                self.put_task(self.play_prev)
+
+        @self._player.on_key_press('XF86_NEXT')
+        def handle_media_next():
+            if settings.media_key_seek:
+                self._player.command("seek", 30)
+            else:
+                self.put_task(self.play_next)
+
         @self._player.on_key_press('w')
         def handle_watched():
             self.put_task(self.watched_skip)

@@ -34,6 +34,7 @@ class Settings(object):
         "subtitle_position":    "bottom",
         "fullscreen":           True,
         "enable_gui":           True,
+        "media_key_seek":       False,
     }
 
     def __getattr__(self, name):
