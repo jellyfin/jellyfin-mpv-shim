@@ -2,6 +2,7 @@ from queue import Queue, LifoQueue
 from .bulk_subtitle import process_series
 from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
+import time
 
 TRANSCODE_LEVELS = (
     ("1080p 20 Mbps", 20000),
@@ -77,15 +78,6 @@ class OSDMenu(object):
 
         if hasattr(player, 'osc'):
             player.osc = False
-
-        if player.playback_abort:
-            player.force_window = True
-            player.keep_open = True
-            player.play("")
-            if settings.fullscreen:
-                player.fs = True
-        else:
-            player.pause = True
         
         self.menu_title = "Main Menu"
         self.menu_selection = 0
@@ -107,8 +99,17 @@ class OSDMenu(object):
             ("Close Menu", self.hide_menu)
         ])
 
-        self.playerManager.put_task(self.unhide_menu)
         self.refresh_menu()
+
+        time.sleep(0.2)
+        if player.playback_abort:
+            player.force_window = True
+            player.keep_open = True
+            player.play("")
+            if settings.fullscreen:
+                player.fs = True
+        else:
+            player.pause = True
 
     def hide_menu(self):
         player = self.playerManager._player
@@ -350,8 +351,3 @@ class OSDMenu(object):
     def unwatched_menu_handle(self):
         self.playerManager.put_task(self.playerManager.unwatched_quit)
         self.playerManager.timeline_handle()
-
-    def unhide_menu(self):
-        # Sometimes, mpv completely ignores the OSD text.
-        # Setting this value usually causes it to appear...
-        self.playerManager._player.osd_align_x = 'left'
