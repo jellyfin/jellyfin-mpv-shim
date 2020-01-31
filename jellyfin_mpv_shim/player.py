@@ -76,6 +76,7 @@ class PlayerManager(object):
         def handle_next():
             self.put_task(self.play_next)
 
+        @self._player.on_key_press('PREV')
         @self._player.on_key_press('XF86_PREV')
         def handle_media_prev():
             if settings.media_key_seek:
@@ -83,6 +84,7 @@ class PlayerManager(object):
             else:
                 self.put_task(self.play_prev)
 
+        @self._player.on_key_press('NEXT')
         @self._player.on_key_press('XF86_NEXT')
         def handle_media_next():
             if settings.media_key_seek:
