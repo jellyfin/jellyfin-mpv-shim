@@ -114,6 +114,23 @@ All of these settings apply to direct play and are adjustable through the contro
  - `subtitle_color` - The color of the subtitles, in hex. Default: `#FFFFFFFF`
  - `subtitle_position` - The position (top, bottom, middle). Default: `bottom`
 
+### External MPV
+
+The client now supports using an external copy of MPV, including one that is running prior to starting
+the client. This may be useful if your distribution only provides MPV as a binary executable (instead
+of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
+strange behaviour when controlled in this manner.
+
+- `mpv_ext` - Enable usage of the external player by default. Default: `false`
+    - The external player may still be used by default if `libmpv1` is not available.
+- `mpv_ext_path` - The path to the `mpv` binary to use. By default it uses the one in the PATH. Default: `null`
+- `mpv_ext_ipc` - The path to the socket to control MPV. Default: `null`
+    - If unset, the socket is a randomly selected temp file.
+    - On Windows, this is just a name for the socket, not a path like on Linux.
+- `mpv_ext_start` - Start a managed copy of MPV with the client. Default: `true`
+    - If not specified, the user must start MPV prior to launching the client.
+    - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
+
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.

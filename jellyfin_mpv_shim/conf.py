@@ -35,6 +35,10 @@ class Settings(object):
         "fullscreen":           True,
         "enable_gui":           True,
         "media_key_seek":       False,
+        "mpv_ext":              False,
+        "mpv_ext_path":         None,
+        "mpv_ext_ipc":          None,
+        "mpv_ext_start":        True,
     }
 
     def __getattr__(self, name):
