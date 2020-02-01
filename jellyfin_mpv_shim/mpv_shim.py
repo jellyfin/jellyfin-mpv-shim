@@ -8,10 +8,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s 
 
 from . import conffile
 from .conf import settings
-from .timeline import timelineManager
-from .action_thread import actionThread
 from .clients import clientManager
-from .event_handler import eventHandler
 from .constants import APP_NAME
 
 log = logging.getLogger('')
@@ -33,6 +30,9 @@ def main():
         from .cli_mgr import userInterface
 
     from .player import playerManager
+    from .action_thread import actionThread
+    from .event_handler import eventHandler
+    from .timeline import timelineManager
 
     clientManager.callback = eventHandler.handle_event
     timelineManager.start()
