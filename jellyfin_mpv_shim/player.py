@@ -15,10 +15,11 @@ from .constants import APP_NAME
 
 python_mpv_available=True
 is_using_ext_mpv=False
-try:
-    import mpv
-except OSError:
-    python_mpv_available=False
+if not settings.mpv_ext:
+    try:
+        import mpv
+    except OSError:
+        python_mpv_available=False
 
 if settings.mpv_ext or not python_mpv_available:
     import python_mpv_jsonipc as mpv
