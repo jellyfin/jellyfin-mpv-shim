@@ -48,7 +48,7 @@ def main():
         print("")
         log.info("Stopping services...")
     finally:
-        playerManager.stop()
+        playerManager.terminate()
         timelineManager.stop()
         actionThread.stop()
         clientManager.stop()

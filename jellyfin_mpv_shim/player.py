@@ -62,7 +62,8 @@ class PlayerManager(object):
             extra_options = {
                 "start_mpv": settings.mpv_ext_start,
                 "ipc_socket": settings.mpv_ext_ipc,
-                "mpv_location": settings.mpv_ext_path
+                "mpv_location": settings.mpv_ext_path,
+                "player-operation-mode": "cplayer"
             }
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
                                input_media_keys=True, include=mpv_config, **extra_options)
@@ -486,5 +487,10 @@ class PlayerManager(object):
 
     def upd_player_hide(self):
         self._player.keep_open = self._video.parent.has_next
+
+    def terminate(self):
+        self.stop()
+        if is_using_ext_mpv:
+            self._player.terminate()
 
 playerManager = PlayerManager()
