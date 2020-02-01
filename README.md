@@ -158,7 +158,7 @@ If you'd like to run the application without installing it, run `./run.py`.
 The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
-The project is dependent on `python-mpv` and `jellyfin-apiclient-python`. If you are
+The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
 using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
 component uses `pystray` and `tkinter`, but there is a fallback cli mode.
 
@@ -171,7 +171,7 @@ The API client was originally forked for this project and is now a [separate pac
 
 ## Linux Installation
 
-If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv).
+If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
@@ -181,7 +181,7 @@ sudo pip3 install pystray
 sudo apt install python3-tk
 ```
 
-The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
+You can build mpv from source to get better codec support. Execute the following:
 ```bash
 sudo pip3 install --upgrade python-mpv
 sudo apt install autoconf automake libtool libharfbuzz-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libvdpau-dev libva-dev mesa-common-dev libegl1-mesa-dev yasm libasound2-dev libpulse-dev libuchardet-dev zlib1g-dev libfribidi-dev git libgnutls28-dev libgl1-mesa-dev libsdl2-dev cmake wget python g++ libluajit-5.1-dev
