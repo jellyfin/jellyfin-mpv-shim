@@ -76,7 +76,7 @@ class PlayerManager(object):
         self.start_time = None
 
         if hasattr(self._player, 'osc'):
-            self._player.osc = True
+            self._player.osc = settings.enable_osc
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 

@@ -140,6 +140,8 @@ strange behaviour when controlled in this manner.
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
  - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
+ - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
+    - It may be useful to disable this if you are using an external player that already provides a user interface.
 
 ### MPV Configuration
 

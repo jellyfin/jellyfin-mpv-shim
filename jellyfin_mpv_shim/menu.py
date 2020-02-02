@@ -123,7 +123,7 @@ class OSDMenu(object):
             player.keep_open = False
 
             if hasattr(player, 'osc'):
-                player.osc = True
+                player.osc = settings.enable_osc
 
             if player.playback_abort:
                 player.play("")

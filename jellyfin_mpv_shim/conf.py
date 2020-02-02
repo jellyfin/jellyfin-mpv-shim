@@ -39,6 +39,7 @@ class Settings(object):
         "mpv_ext_path":         None,
         "mpv_ext_ipc":          None,
         "mpv_ext_start":        True,
+        "enable_osc":           True,
     }
 
     def __getattr__(self, name):
