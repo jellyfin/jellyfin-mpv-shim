@@ -101,7 +101,9 @@ class OSDMenu(object):
 
         self.refresh_menu()
 
+        # Wait until the menu renders to pause.
         time.sleep(0.2)
+
         if player.playback_abort:
             player.force_window = True
             player.keep_open = True

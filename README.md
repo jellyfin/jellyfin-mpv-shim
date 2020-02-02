@@ -49,9 +49,6 @@ Please also note that the on-screen controller for MPV (if available) cannot cha
 audio and subtitle track configurations for transcoded media. It also cannot load external
 subtitles. You must either use the menu or the application you casted from.
 
-If the menu does not appear when you open it, but the video pauses, try
-pressing the up or down arrow keys or remote control buttons.
-
 ### Keyboard Shortcuts
 
 This program supports most of the [keyboard shortcuts from MPV](https://mpv.io/manual/stable/#interactive-control). The custom keyboard shortcuts are:
