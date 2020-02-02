@@ -102,9 +102,13 @@ class Settings(object):
         if not created:
             try:
                 data = json.load(fh)
-                self._data.update(data)
+                input_params = 0
+                for key, value in data.items():
+                    if key in self._data:
+                        input_params += 1
+                        self._data[key] = value
                 log.info("Loaded settings from json: %s" % path)
-                if len(data) < len(self._data):
+                if input_params < len(self._data):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
