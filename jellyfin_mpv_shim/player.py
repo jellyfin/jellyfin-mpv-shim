@@ -177,22 +177,10 @@ class PlayerManager(object):
             import pdb
             pdb.set_trace()
 
-        # External MPV did not emit the eof-reached event, despite
-        # the property observer being fully functional. So instead,
-        # we assume that if playback becomes paused wihin 2 seconds
-        # of the end of the video, that means it hit the end.
-        if is_using_ext_mpv:
-            @self._player.property_observer('pause')
-            def handle_end(_name, paused):
-                if (self._video and paused and self._player.playback_time and 
-                    self._player.duration and
-                    (self._player.duration - self._player.playback_time < 2)):
-                    self.put_task(self.finished_callback)
-        else:
-            @self._player.property_observer('eof-reached')
-            def handle_end(_name, reached_end):
-                if self._video and reached_end:
-                    self.put_task(self.finished_callback)
+        @self._player.property_observer('eof-reached')
+        def handle_end(_name, reached_end):
+            if self._video and reached_end:
+                self.put_task(self.finished_callback)
 
         self._lock        = RLock()
         self._tl_lock        = RLock()
