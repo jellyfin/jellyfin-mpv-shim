@@ -124,6 +124,7 @@ strange behaviour when controlled in this manner.
 - `mpv_ext` - Enable usage of the external player by default. Default: `false`
     - The external player may still be used by default if `libmpv1` is not available.
 - `mpv_ext_path` - The path to the `mpv` binary to use. By default it uses the one in the PATH. Default: `null`
+    - If you are using Windows, make sure to use two backslashes. Example: `C:\\path\\to\\mpv.exe`
 - `mpv_ext_ipc` - The path to the socket to control MPV. Default: `null`
     - If unset, the socket is a randomly selected temp file.
     - On Windows, this is just a name for the socket, not a path like on Linux.
