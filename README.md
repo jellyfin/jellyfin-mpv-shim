@@ -23,7 +23,7 @@ view the application log, open the config folder, and open the application menu.
 ## Limitations
 
  - This software is currently relatively new and may have bugs.
- - Audio playback and Live TV are not supported.
+ - Music playback and Live TV are not supported.
  - The client can’t be shared seamlessly between multiple users on the same server. ([Link to issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
 
 ## Advanced Features
