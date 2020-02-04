@@ -5,9 +5,6 @@ and Linux. Think of it as an open source Chromecast for Jellyfin. You can cast a
 anything from Jellyfin and it will Direct Play. Subtitles are fully supported, and
 there are tools to manage them like no other Jellyfin client.
 
-This project is new, but all the major features should now be working! Please let me
-know if you have any problems.
-
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
@@ -22,7 +19,6 @@ view the application log, open the config folder, and open the application menu.
 
 ## Limitations
 
- - This software is currently relatively new and may have bugs.
  - Music playback and Live TV are not supported.
  - The client can’t be shared seamlessly between multiple users on the same server. ([Link to issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
 
