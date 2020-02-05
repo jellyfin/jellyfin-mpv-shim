@@ -41,9 +41,9 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
         log.warning("win_utils is not available.")
 
 # Q: What is with the put_task call?
-# A: If something that modifies the url is called from a keybind
-#    directly, it crashes the input handling. If you know why,
-#    please tell me. I'd love to get rid of it.
+# A: Some calls to python-mpv require event processing.
+#    put_task is used to deal with the events originating from
+#    the event thread, which would cause deadlock if they run there.
 
 class PlayerManager(object):
     """
@@ -101,7 +101,8 @@ class PlayerManager(object):
         @self._player.on_key_press('XF86_PREV')
         def handle_media_prev():
             if settings.media_key_seek:
-                self._player.command("seek", -15)
+                seektime, _ = self.get_seek_times()
+                self._player.command("seek", seektime)
             else:
                 self.put_task(self.play_prev)
 
@@ -109,7 +110,8 @@ class PlayerManager(object):
         @self._player.on_key_press('XF86_NEXT')
         def handle_media_next():
             if settings.media_key_seek:
-                self._player.command("seek", 30)
+                _, seektime = self.get_seek_times()
+                self._player.command("seek", seektime)
             else:
                 self.put_task(self.play_next)
 
@@ -141,14 +143,20 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action('left')
             else:
-                self._player.command("seek", -5)
+                seektime = -5
+                if settings.use_web_seek:
+                    seektime, _ = self.get_seek_times()
+                self._player.command("seek", seektime)
         
         @self._player.on_key_press('right')
         def menu_right():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('right')
             else:
-                self._player.command("seek", 5)
+                seektime = 5
+                if settings.use_web_seek:
+                    _, seektime = self.get_seek_times()
+                self._player.command("seek", seektime)
 
         @self._player.on_key_press('up')
         def menu_up():
@@ -185,6 +193,7 @@ class PlayerManager(object):
         self._lock        = RLock()
         self._tl_lock        = RLock()
         self.last_update = Timer()
+        self._jf_settings = None
 
         self.__part      = 1
 
@@ -492,5 +501,13 @@ class PlayerManager(object):
         self.stop()
         if is_using_ext_mpv:
             self._player.terminate()
+
+    def get_seek_times(self):
+        if self._jf_settings is None:
+            self._jf_settings = self._video.client.jellyfin.get_user_settings()
+        custom_prefs = self._jf_settings.get("CustomPrefs") or {}
+        seek_left = custom_prefs.get("skipBackLength") or 15000
+        seek_right = custom_prefs.get("skipForwardLength") or 30000
+        return - int(seek_left) / 1000, int(seek_right) / 1000
 
 playerManager = PlayerManager()
