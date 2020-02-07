@@ -185,9 +185,16 @@ class PlayerManager(object):
             import pdb
             pdb.set_trace()
 
+        # Fires between episodes.
         @self._player.property_observer('eof-reached')
         def handle_end(_name, reached_end):
             if self._video and reached_end:
+                self.put_task(self.finished_callback)
+
+        # Fires at the end.
+        @self._player.event_callback('idle')
+        def handle_end_idle(event):
+            if self._video:
                 self.put_task(self.finished_callback)
 
         self._lock        = RLock()
