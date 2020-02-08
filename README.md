@@ -13,11 +13,12 @@ If you are using Linux, please see the [Linux Installation](https://github.com/i
 To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
 URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
 include the subdirectory and port number if applicable. You can then cast your media
-from another Jellyfin application. Unlike Plex MPV Shim, authorization tokens for your server
-are stored on your device, but you are able to cast to the player regardless of location.
+from another Jellyfin application.
 
 The application runs with a notification icon by default. You can use this to edit the server settings,
-view the application log, open the config folder, and open the application menu.
+view the application log, open the config folder, and open the application menu. Unlike Plex MPV Shim,
+authorization tokens for your server are stored on your device, but you are able to cast to the player
+regardless of location.
 
 ## Limitations
 
