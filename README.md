@@ -10,7 +10,9 @@ there are tools to manage them like no other Jellyfin client.
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
 If you are using Linux, please see the [Linux Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation) section below.
 
-To use the client, simply launch it and log into your Jellyfin server. You can then cast your media
+To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
+URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
+include the subdirectory and port number if applicable. You can then cast your media
 from another Jellyfin application. Unlike Plex MPV Shim, authorization tokens for your server
 are stored on your device, but you are able to cast to the player regardless of location.
 
