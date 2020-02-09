@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='jellyfin-mpv-shim',
-    version='1.3.5',
+    version='1.3.6',
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV. (Unofficial)",
@@ -25,6 +25,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.2'],
+    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.3'],
     include_package_data=True
 )
