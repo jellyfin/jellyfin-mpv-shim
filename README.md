@@ -205,6 +205,7 @@ are two known solutions:
 
  - Disable the GUI and systray by setting the option `enable_gui` to false.
  - Use external MPV. Ensure you can run MPV using `mpv` and then set `mpv_ext` to true.
+ - If you right click the tray icon before casting something, the issue does not occur.
 
 ## Building on Windows
 
