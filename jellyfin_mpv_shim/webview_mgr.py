@@ -19,7 +19,7 @@ class UserInterface(object):
     def run(self):
         # Webview needs to be run in the MainThread.
         # Which is the only reason this is being done in the userinterface part anyway
-        webview.create_window('')
+        webview.create_window("Jellyfin MPV Shim", fullscreen=True)
         # FIXME: Do I need to also run webview.start() here?
         #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
 

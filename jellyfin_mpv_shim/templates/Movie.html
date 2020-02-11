@@ -2,15 +2,31 @@
     <!-- NOTE: Most class names and such taken from the Jellyfin HTML so as to allow Jellyfin's css to be useful -->
     <head>
         <!-- FIXME: Load the specific theme configured for the current Jellyfin user -->
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/components/backdrop/backdrop.css">
         <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/site.css">
         <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/fonts.css">
         <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/librarybrowser.css">
-        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/themes/dark/theme.css">
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/themes/purplehaze/theme.css">
         <style>
             html {
-                background-image: url("{{base_url}}/Items/{{Id}}/Images/Backdrop");
-                background-size: cover;
+                /* Jellyfin-web's CSS is not designed for a 10-foot/3-meter UX, instead of patching it everywhere we can just zoom it */
+                zoom: 200%;
             }
+            .overview {
+                /* FIXME: Should I really be adding this? It makes some overviews much more readable, but it's inconsistent with Jellyfin's rendering. */
+                /*        Perhaps it should be pushed upstream? */
+                white-space: pre-wrap
+            }
+            .backdropImage {
+                background-image: url("{{base_url}}/Items/{{Id}}/Images/Backdrop");
+            }
+            .backgroundContainer {
+                /* Why wasn't this already set? */
+                z-index: -1;
+            }
+            /* We're not scrolling, using position:sticky would be silly anyway. It was also getting in the way though */
+            .detailPagePrimaryContainer { position: unset; }
+            /* Copied from the itemdetails.html page's style= html attributes */
             .parentName { margin: .1em 0 .25em }
             .itemName .infoText {
                 margin: .1em 0 .5em
@@ -18,14 +34,32 @@
         </style>
     </head>
     <body>
-        <div class="detailImageContainer portraitDetailImageContainer">
-            <img class="itemDetailImage" src="{{base_url}}/Items/{{Id}}/Images/Primary">
+        <!-- Backdrop -->
+        <div class="backdropContainer"><div class="backdropImage displayingBackdropImage"></div></div>
+        <div class="backgroundContainer withBackdrop"></div>
+
+        <!-- Header -->
+        <div class="detailPagePrimaryContainer">
+            <div class="infoWrapper infoText">
+                <div class="nameContainer">
+                    <h1 class="itemName infoText">{{Name}}</h1>
+                </div>
+            </div>
+            <div class="detailLogo"></div>
         </div>
-        <h1 class="itemName infoText">{{Name}}</h1>
-        {% if Taglines %}
-            <!-- FIXME: Include multiple tag lines? Pick a random tagline? -->
-            <h3 class="tagline">{{Taglines[0]}}</h3>
-        {% endif %}
-        <p class="overview">{{Overview}}</p>
+
+        <!-- Info -->
+        <div class="detailPageSecondaryContainer">
+            <div class="detailImageContainer portraitDetailImageContainer">
+                <img class="itemDetailImage" src="{{base_url}}/Items/{{Id}}/Images/Primary">
+            </div>
+            <div class="detailPageContent">
+                {% if Taglines %}
+                    <!-- FIXME: Include multiple tag lines? Pick a random tagline? -->
+                    <h3 class="tagline">{{Taglines[0]}}</h3>
+                {% endif %}
+                <p class="overview">{{Overview}}</p>
+            </div>
+        </div>
     </body>
 </html>
