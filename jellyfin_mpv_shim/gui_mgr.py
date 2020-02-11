@@ -10,17 +10,12 @@ import sys
 import logging
 import queue
 import os.path
+import importlib.resources
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
 
-if (sys.platform.startswith("win32") or sys.platform.startswith("cygwin")) and getattr(sys, 'frozen', False):
-    # Detect if bundled via pyinstaller.
-    # From: https://stackoverflow.com/questions/404744/
-    icon_file = os.path.join(sys._MEIPASS, "systray.png")
-else:
-    icon_file = os.path.join(os.path.dirname(__file__), "systray.png")
 log = logging.getLogger('gui_mgr')
 
 # From https://stackoverflow.com/questions/6631299/
@@ -389,7 +384,8 @@ class STrayProcess(Process):
         ]
 
         icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
-        icon.icon = Image.open(icon_file)
+        with importlib.resources.path(jellyfin_mpv_client, 'systray.png') as icon_file:
+            icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop
         icon.run()
         self.r_queue.put(("die", None))
