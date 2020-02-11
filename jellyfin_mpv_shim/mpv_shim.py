@@ -27,7 +27,10 @@ def main():
             log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
 
     if not use_gui:
-        from .cli_mgr import userInterface
+        try:
+            from .webview_mgr import userInterface
+        except ImportError:
+            from .cli_mgr import userInterface
 
     from .player import playerManager
     from .action_thread import actionThread

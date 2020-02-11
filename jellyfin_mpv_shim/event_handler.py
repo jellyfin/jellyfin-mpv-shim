@@ -1,4 +1,6 @@
 import logging
+
+from .webview_mgr import DisplayContent
 from .utils import plex_color_to_mpv
 from .conf import settings
 from .media import Media
@@ -75,6 +77,7 @@ class EventHandler(object):
         elif command == "DisplayContent":
             # If you have an idle command set, this will delay it.
             timelineManager.delay_idle()
+            DisplayContent(client, arguments)
         elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome"):
             playerManager.menu.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
