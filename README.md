@@ -196,17 +196,6 @@ sudo ./install
 sudo ldconfig
 ```
 
-## Known Issues
-### Player segfaults on Linux
-If you are using the player with the GUI and it becomes unresponsive or
-right clicking on the tray icon causes it to disappear, this is a known issue.
-It is caused by the `pystray` library that provides the tray icon support. There
-are two known solutions:
-
- - Disable the GUI and systray by setting the option `enable_gui` to false.
- - Use external MPV. Ensure you can run MPV using `mpv` and then set `mpv_ext` to true.
- - If you right click the tray icon before casting something, the issue does not occur.
-
 ## Building on Windows
 
 There is a prebuilt version for Windows in the releases section. When
