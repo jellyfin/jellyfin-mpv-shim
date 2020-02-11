@@ -292,24 +292,64 @@ class PreferencesWindowProcess(Process):
         root.mainloop()
         self.r_queue.put(("die", None))
 
+# Q: OK. So you put Tkinter in it's own process.
+#    Now why is Pystray in another process too?!
+# A: Because if I don't, MPV and GNOME Appindicator
+#    try to access the same resources and cause the
+#    entire application to segfault.
+#
+# I suppose this means I can put the Tkinter GUI back
+# into the main process. This is true, but then the
+# two need to be merged, which is non-trivial.
+
 class UserInterface:
     def __init__(self):
+        self.dead = False
         self.open_player_menu = lambda: None
         self.icon_stop = lambda: None
         self.log_window = None
         self.preferences_window = None
 
-    def login_servers(self):
-        is_logged_in = clientManager.try_connect()
-        if not is_logged_in:
-            self.show_preferences()
+        threading.Thread.__init__(self)
+
+    def run(self):
+        self.queue = Queue()
+        self.r_queue = Queue()
+        self.process = STrayProcess(self.queue, self.r_queue)
+        self.process.start()
+
+        while True:
+            try:
+                action, param = self.r_queue.get()
+                if hasattr(self, action):
+                    getattr(self, action)()
+                elif action == "die":
+                    self._die()
+                    break
+            except KeyboardInterrupt:
+                log.info("Stopping due to CTRL+C.")
+                self._die()
+                break
+    
+    def handle(self, action, params=None):
+        self.queue.put((action, params))
 
     def stop(self):
+        self.handle("die")
+    
+    def _die(self):
+        self.process.terminate()
+        self.dead = True
+
         if self.log_window and not self.log_window.dead:
             self.log_window.stop()
         if self.preferences_window and not self.preferences_window.dead:
             self.preferences_window.stop()
-        self.icon_stop()
+
+    def login_servers(self):
+        is_logged_in = clientManager.try_connect()
+        if not is_logged_in:
+            self.show_preferences()
 
     def show_console(self):
         if self.log_window is None or self.log_window.dead:
@@ -320,20 +360,40 @@ class UserInterface:
         if self.preferences_window is None or self.preferences_window.dead:
             self.preferences_window = PreferencesWindow()
             self.preferences_window.start()
+    
+    def open_config_brs(self):
+        if open_config:
+            open_config()
+        else:
+            log.error("Config opening is not available.")
+
+class STrayProcess(Process):
+    def __init__(self, queue, r_queue):
+        self.queue = queue
+        self.r_queue = r_queue
+        Process.__init__(self)
 
     def run(self):
+        def get_wrapper(command):
+            def wrapper():
+                self.r_queue.put((command, None))
+            return wrapper
+
+        def die():
+            self.icon_stop()
+
         menu_items = [
-            MenuItem("Configure Servers", self.show_preferences),
-            MenuItem("Show Console", self.show_console),
-            MenuItem("Application Menu", self.open_player_menu),
+            MenuItem("Configure Servers", get_wrapper("show_preferences")),
+            MenuItem("Show Console", get_wrapper("show_console")),
+            MenuItem("Application Menu", get_wrapper("open_player_menu")),
+            MenuItem("Open Config Folder", get_wrapper("open_config_brs")),
+            MenuItem("Quit", die)
         ]
 
-        if open_config:
-            menu_items.append(MenuItem("Open Config Folder", open_config))
-        menu_items.append(MenuItem("Quit", self.stop))
         icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
         icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop
         icon.run()
+        self.r_queue.put(("die", None))
 
 userInterface = UserInterface()
