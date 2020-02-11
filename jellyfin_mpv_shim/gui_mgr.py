@@ -310,8 +310,6 @@ class UserInterface:
         self.log_window = None
         self.preferences_window = None
 
-        threading.Thread.__init__(self)
-
     def run(self):
         self.queue = Queue()
         self.r_queue = Queue()
