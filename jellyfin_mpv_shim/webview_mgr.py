@@ -1,4 +1,5 @@
 import pprint
+import importlib.resources
 
 import webview  # Python3-webview in Debian, pywebview in pypi
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
@@ -26,60 +27,23 @@ class UserInterface(object):
 userInterface = UserInterface()
 
 
-# FIXME: This should be a real file somewhere.
-#        Support selecting different files based on config for theming.
-# FIXME: Just use separate files/templates for separate content types
-# Types seen so far: Movie, Episode, Series, Season, Video
-template = jinja2.Template("""<html>
-    <!-- NOTE: Most class names and such taken from the Jellyfin HTML so as to allow Jellyfin's css to be useful -->
-    <head>
-        <!-- FIXME: Load the specific theme configured for the current Jellyfin user -->
-        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/site.css">
-        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/fonts.css">
-        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/librarybrowser.css">
-        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/themes/dark/theme.css">
-        <style>
-            html {
-                background-image: url("{{base_url}}/Items/{{Id}}/Images/Backdrop");
-                background-size: cover;
-            }
-            .parentName { margin: .1em 0 .25em }
-            .itemName .infoText {
-                {% if Type == 'Episode' %}
-                    margin: .25em 0 .5em;
-                {% elif Type == 'Movie' %}
-                    margin: .1em 0 .5em
-                {% endif %}
-            }
-        </style>
-    </head>
-    <body>
-        <div class="detailImageContainer portraitDetailImageContainer">
-            <img class="itemDetailImage" src="{{base_url}}/Items/{{Id}}/Images/Primary">
-        </div>
-        {% if Type == 'Episode' %}
-            <h1 class="parentName">{{SeriesName}} - {{SeasonName}}</h1>
-            <!-- FIXME: Get the episode number -->
-            <h3 class="itemName infoText">#. {{Name}}</h1>
-        {% elif Type == 'Movie' %}
-            <h1 class="itemName infoText">{{Name}}</h1>
-        {% endif %}
-        {% if Taglines %}
-            <!-- FIXME: Include multiple tag lines? Pick a random tagline? -->
-            <h3 class="tagline">{{Taglines[0]}}</h3>
-        {% endif %}
-        <p class="overview">{{Overview}}</p>
-    </body>
-</html>""")
+# FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
+def get_html(jinja_vars):
+    template_filename = f"{jinja_vars['Type']}.html"
+    if importlib.resources.is_resource('jellyfin_mpv_shim.templates', template_filename):
+        tpl = jinja2.Template(importlib.resources.read_text('jellyfin_mpv_shim.templates', template_filename))
+        return tpl.render(jinja_vars, theme='dark')
+    else:
+        # FIXME: This is just for debugging
+        return "<pre>" + pprint.pformat(jinja_vars) + "</pre>"
 
 
 def DisplayContent(client, arguments):
     print("Displaying Content:", arguments)
     item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
     item['base_url'] = client.config.data["auth.server"]
-    html = template.render(item)
+    html = get_html(item)
     webview.load_html(html)
     # print(html)
-    # pprint.pprint(item)
     # breakpoint()
     return

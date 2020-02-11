@@ -1,0 +1,31 @@
+<html>
+    <!-- NOTE: Most class names and such taken from the Jellyfin HTML so as to allow Jellyfin's css to be useful -->
+    <head>
+        <!-- FIXME: Load the specific theme configured for the current Jellyfin user -->
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/site.css">
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/fonts.css">
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/assets/css/librarybrowser.css">
+        <link rel="stylesheet" type="text/css" href="{{base_url}}/web/themes/dark/theme.css">
+        <style>
+            html {
+                background-image: url("{{base_url}}/Items/{{Id}}/Images/Backdrop");
+                background-size: cover;
+            }
+            .parentName { margin: .1em 0 .25em }
+            .itemName .infoText {
+                margin: .1em 0 .5em
+            }
+        </style>
+    </head>
+    <body>
+        <div class="detailImageContainer portraitDetailImageContainer">
+            <img class="itemDetailImage" src="{{base_url}}/Items/{{Id}}/Images/Primary">
+        </div>
+        <h1 class="itemName infoText">{{Name}}</h1>
+        {% if Taglines %}
+            <!-- FIXME: Include multiple tag lines? Pick a random tagline? -->
+            <h3 class="tagline">{{Taglines[0]}}</h3>
+        {% endif %}
+        <p class="overview">{{Overview}}</p>
+    </body>
+</html>
