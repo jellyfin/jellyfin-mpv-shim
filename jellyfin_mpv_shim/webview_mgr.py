@@ -28,6 +28,7 @@ userInterface = UserInterface()
 
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
+# FIXME: jellyfin-chromecast uses html & CSS, should've started from there
 def get_html(jinja_vars):
     template_filename = f"{jinja_vars['Type']}.html"
     if importlib.resources.is_resource('jellyfin_mpv_shim.templates', template_filename):
