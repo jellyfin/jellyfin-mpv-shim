@@ -4,7 +4,7 @@ import importlib.resources
 import webview  # Python3-webview in Debian, pywebview in pypi
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
 
-from .clients import clientManager
+from ..clients import clientManager
 
 
 class UserInterface(object):
@@ -31,8 +31,8 @@ userInterface = UserInterface()
 # FIXME: jellyfin-chromecast uses html & CSS, should've started from there
 def get_html(jinja_vars):
     template_filename = f"{jinja_vars['Type']}.html"
-    if importlib.resources.is_resource('jellyfin_mpv_shim.templates', template_filename):
-        tpl = jinja2.Template(importlib.resources.read_text('jellyfin_mpv_shim.templates', template_filename))
+    if importlib.resources.is_resource('jellyfin_mpv_shim.display_mirror', template_filename):
+        tpl = jinja2.Template(importlib.resources.read_text('jellyfin_mpv_shim.display_mirror', template_filename))
         return tpl.render(jinja_vars, theme='dark')
     else:
         # FIXME: This is just for debugging

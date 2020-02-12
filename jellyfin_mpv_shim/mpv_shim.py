@@ -28,7 +28,7 @@ def main():
 
     if not use_gui:
         try:
-            from .webview_mgr import userInterface
+            from .display_mirror import userInterface
         except ImportError:
             from .cli_mgr import userInterface
 

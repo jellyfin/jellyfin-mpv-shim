@@ -1,6 +1,6 @@
 import logging
 
-from .webview_mgr import DisplayContent
+from .display_mirror import DisplayContent
 from .utils import plex_color_to_mpv
 from .conf import settings
 from .media import Media
