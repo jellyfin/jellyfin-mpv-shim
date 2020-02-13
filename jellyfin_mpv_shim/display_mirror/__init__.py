@@ -40,6 +40,14 @@ def get_html(jinja_vars):
 
 
 def DisplayContent(client, arguments):
+    # If the webview isn't ready yet, just don't bother.
+    # I could try and be more clever and check if we've loaded this module first,
+    # but more complexity leaves more room for bugs and I don't think we need to care about DisplayContent() happening too early.
+    #
+    # NOTE: timeout=0 and timeout=None mean 2 different things.
+    if not webview.webview_ready(timeout=0):
+        return
+
     print("Displaying Content:", arguments)
     item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
     item['base_url'] = client.config.data["auth.server"]
