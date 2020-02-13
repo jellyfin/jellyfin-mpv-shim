@@ -31,8 +31,8 @@ userInterface = UserInterface()
 # FIXME: jellyfin-chromecast uses html & CSS, should've started from there
 def get_html(jinja_vars):
     template_filename = f"{jinja_vars['Type']}.html"
-    if importlib.resources.is_resource('jellyfin_mpv_shim.display_mirror', template_filename):
-        tpl = jinja2.Template(importlib.resources.read_text('jellyfin_mpv_shim.display_mirror', template_filename))
+    if importlib.resources.is_resource(__package__, template_filename):
+        tpl = jinja2.Template(importlib.resources.read_text(__package__, template_filename))
         return tpl.render(jinja_vars, theme='dark')
     else:
         # FIXME: This is just for debugging
