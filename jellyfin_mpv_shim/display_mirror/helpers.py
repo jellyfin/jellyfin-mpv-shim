@@ -1,3 +1,4 @@
+import logging
 # This is a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
 # Only reason their not put straight into __init__.py is to keep the same logical separation that jellyfin-chromecast has.
 #
@@ -89,8 +90,87 @@ def getRatingHtml(item):
     #     if item['Metascore'] >= 60:
     #         html += '<div class="metascore metascorehigh" title="Metascore">' + item['Metascore'] + '</div>'
     #     elif item['Metascore'] >= 40):
-    #         html += '<div class="metascore metascoremid"  title="Metascore">' + item['Metascore'] + '</div>';
+    #         html += '<div class="metascore metascoremid"  title="Metascore">' + item['Metascore'] + '</div>'
     #     else:
-    #         html += '<div class="metascore metascorelow"  title="Metascore">' + item['Metascore'] + '</div>';
+    #         html += '<div class="metascore metascorelow"  title="Metascore">' + item['Metascore'] + '</div>'
 
     return html
+
+
+def getMiscInfoHtml(item, datetime):
+
+    miscInfo = []
+#    var text, date
+
+#FIXME
+#    if item['Type'] == "Episode":
+#
+#        if item.get('PremiereDate'):
+#
+#            try:
+#                date = datetime.parseISO8601Date(item['PremiereDate'])
+#
+#                text = date.toLocaleDateString()
+#                miscInfo.append(text)
+#            except:
+#                logging.log("Error parsing date: " + item['PremiereDate'])
+#            }
+#        }
+#    }
+
+    if item.get('StartDate'):
+
+        try:
+            date = datetime.fromisoformat(item['StartDate'])
+
+            text = str(date.date())
+            miscInfo.push(text)
+
+            if item['Type'] != "Recording":
+                pass
+                # text = LiveTvHelpers.getDisplayTime(date)
+                # miscInfo.push(text)
+        except Exception:
+            logging.log("Error parsing date: " + item['PremiereDate'])
+
+    if item.get('ProductionYear') and item['Type'] == "Series":
+        if item['Status'] == "Continuing":
+            miscInfo.append(item['ProductionYear'] + "-Present")
+        elif item['ProductionYear']:
+            text = item['ProductionYear']
+            if item.get('EndDate'):
+                try:
+                    endYear = datetime.datetime.fromisoformat(item['EndDate']).yearear()
+                    if endYear != item['ProductionYear']:
+                        text += "-" + datetime.datetime.fromisoformat(item['EndDate']).year()
+                except Exception:
+                    logging.log("Error parsing date: " + item['EndDate'])
+            miscInfo.append(text)
+
+    if item['Type'] != "Series" and item['Type'] != "Episode":
+        if item.get('ProductionYear'):
+            miscInfo.append(item['ProductionYear'])
+        elif item.get('PremiereDate'):
+            try:
+                text = datetime.datetime.fromisoformat(item['PremiereDate']).year()
+                miscInfo.append(text)
+            except Exception:
+                logging.log("Error parsing date: " + item['PremiereDate'])
+    if item['RunTimeTicks'] and item['Type'] != "Series":
+        if item['Type'] == "Audio":
+            # FIXME
+            miscInfo.append(datetime.getDisplayRunningTime(item['RunTimeTicks']))
+        else:
+            minutes = item['RunTimeTicks'] / 600000000
+
+            # FIXME
+            #minutes = minutes || 1
+
+            miscInfo.append(round(minutes) + "min")
+    if item['OfficialRating'] and item['Type'] != "Season" and item['Type'] != "Episode":
+        miscInfo.append(item['OfficialRating'])
+
+    if item['Video3DFormat']:
+        miscInfo.append("3D")
+
+    return '&nbsp;&nbsp;&nbsp;&nbsp;'.join(miscInfo)
