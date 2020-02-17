@@ -58,9 +58,9 @@ def getDisplayName(item):
         else:
             return name
     # NOTE: Must compare to None here because 0 is a legitimate option
-    elif item['Type'] == "Episode" and item['IndexNumber'] is not None and item['ParentIndexNumber'] is not None:
-        number = "S" + item['ParentIndexNumber'] + ", " + "E" + item['indexNumber']
-        if item['IndexNumberEnd']:
+    elif item['Type'] == "Episode" and item.get('IndexNumber') is not None and item.get('ParentIndexNumber') is not None:
+        number = f"S{item['ParentIndexNumber']} E{item['IndexNumber']}"
+        if item.get('IndexNumberEnd'):
             number += "-" + item['IndexNumberEnd']
         name = number + " - " + name
 
