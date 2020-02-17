@@ -1,10 +1,10 @@
-import pprint
 import importlib.resources
 
 import webview  # Python3-webview in Debian, pywebview in pypi
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
 
 from ..clients import clientManager
+from . import helpers
 
 
 class UserInterface(object):
@@ -29,14 +29,37 @@ userInterface = UserInterface()
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
 # FIXME: jellyfin-chromecast uses html & CSS, should've started from there
-def get_html(jinja_vars):
-    template_filename = f"{jinja_vars['Type']}.html"
-    if importlib.resources.is_resource(__package__, template_filename):
-        tpl = jinja2.Template(importlib.resources.read_text(__package__, template_filename))
+def get_html(item: dict, server_address: str):
+    jinja_vars = {
+        # 'waiting_backdrop_src':
+        'backdrop_src': helpers.getBackdropUrl(item, server_address) or '',
+        'image_src': helpers.getPrimaryImageUrl(item, server_address),
+        'logo_src': helpers.getLogoUrl(item, server_address),
+        'played': item['UserData'].get('Played', False),
+        'played_percentage': item['UserData'].get('PlayedPercentage', 0),
+        'unplayed_items': item['UserData'].get('UnplayedItemCount', 0),
+        'is_folder': item['IsFolder'],
+        'display_name': helpers.getDisplayName(item) or '',
+        'overview': item.get('Overview', ''),
+        # I think this would be better with ', ' but jellyfin-chromecast used ' / '
+        'genres': ' / '.join(item['Genres']),
+
+        # I believe these are all specifically for albums
+        'poster_src': helpers.getPrimaryImageUrl(item, server_address) or '',
+        'title': 'title',  # FIXME
+        'secondary_title': 'secondary',  # FIXME
+        'artist': 'artist',  # FIXME
+        'album_title': 'album',  # FIXME
+
+        # FIXME: Use a <link> thing to load this directly
+        'chromecast_css': importlib.resources.read_text(__package__, 'index.css'),
+    }
+
+    try:
+        tpl = jinja2.Template(importlib.resources.read_text(__package__, 'index.html'))
         return tpl.render(jinja_vars, theme='dark')
-    else:
-        # FIXME: This is just for debugging
-        return "<pre>" + pprint.pformat(jinja_vars) + "</pre>"
+    except Exception:
+        breakpoint()
 
 
 def DisplayContent(client, arguments):
@@ -48,10 +71,8 @@ def DisplayContent(client, arguments):
     if not webview.webview_ready(timeout=0):
         return
 
-    print("Displaying Content:", arguments)
     item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
-    item['base_url'] = client.config.data["auth.server"]
-    html = get_html(item)
+    html = get_html(item, server_address=client.config.data["auth.server"])
     webview.load_html(html)
     # print(html)
     # breakpoint()

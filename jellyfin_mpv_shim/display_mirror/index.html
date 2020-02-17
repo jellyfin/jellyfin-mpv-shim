@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jellyfin</title>
+    <!--
+        <link rel="stylesheet" href="css/glyphicons.css">
+        <link rel="stylesheet" href="css/jellyfin.css?hash=001">
+    -->
+    <style>
+## FIXME: <link> this file directly
+{{chromecast_css}}
+    </style>
+    <style>
+        #backdrop,
+        .detailContent,
+        .detailLogo {
+            display: unset;
+        }
+        .overview {
+            /* FIXME: Should I really be adding this? It makes some overviews much more readable, but it's inconsistent with Jellyfin's rendering. */
+            /*        Perhaps it should be pushed upstream? */
+            white-space: pre-wrap
+        }
+        #playedIndicator {
+            /* FIXME: Why does jellyfin-chromecast not need to do this? */
+            zoom: 150%;
+        }
+    </style>
+</head>
+<body>
+    <!-- FIXME: Figure out how to implement the idle/waiting backdrops
+    <div id="waiting-container-backdrop" style="background-image: url(&quot;{{waiting_backdrop_src}}&quot;)"></div>
+    <div id="waiting-container">
+        <div class="waitingContent">
+            <img class="logo" src="img/logo.png" />
+
+            <h1>Ready to cast</h1>
+            <h2>Select your media in Jellyfin and play it here</h2>
+        </div>
+        <div class="timeOfDay"><span class="timePrefix"></span> <span class="timeSuffix"></span></div>
+    </div>
+    <img id="photo">
+    -->
+    <div id="backdrop" style="background-image: url(&quot;{{backdrop_src}}&quot;)">
+        <img class="spinner" src="img/spinner.png" />
+        <div class="gradient">
+            <!-- CONFIRM: I believe all of this is for music, or perhaps for while the media is playing
+            <img class="media-poster" src="{{poster_src}}"/>
+            <h2>
+                <span class="media-title">{{title}}</span>
+                <span class="media-secondary-title">{{secondary_title}}</span>
+                <span class="media-artist">{{artist}}</span>
+                <span class="media-album-title"><em>{{album_title}}</em></span>
+            </h2>
+            -->
+        </div>
+    </div>
+    <div class="detailContent">
+        <div class="timeOfDay"><span class="timePrefix"></span> <span class="timeSuffix"></span></div>
+		
+        <!-- FIXME: I hate this '&PercentPlayed=' in the url, it should instead be done with a <progress> overlay.
+                    Only accepting it as a starting point because jellyfin-chromecast does it that way
+        -->
+        <div class="detailImage"
+             {% if image_src and played_percentage and played_percentage != 100 and not is_folder %}
+                 style="background-image: url(&quot;{{image_src}}&PercentPlayed={{played_percentage}}&quot;)"
+             {% elif image_src %}
+                 style="background-image: url(&quot;{{image_src}}&quot;)"
+             {% endif %}
+             >
+                 <div id="playedIndicator" style="display: {{'block' if played or unplayed_items else 'none'}};">
+                     {% if played and not unplayed_items %}
+                         &checkmark;
+                         <!-- NOTE jellyfin-chomecast uses the glyphicons font, I haven't tried to make that work here yet, and I think the checkmark is plenty good enough for this specific case though.
+                         <span class="glyphicon glyphicon-ok"></span>
+                         -->
+                     {% elif unplayed_items %}
+                         {{unplayed_items}}
+                     {% endif %}
+                 </div>
+
+                 <!-- FIXME: Jellyfin-chromecast seems to not render this at all, and instead does it by adding "&PercentPlayed={{played_percentage}}" to image_src. I'm doing this in the Python at the moment
+                 <div class="detailImageProgressContainer"><progress class="itemProgressBar" value="{{played_percentage}}" min="0" max="100"></progress></div>
+                 -->
+        </div>
+
+        <div class="detailInfo">
+            <p class="displayNameContainer"><span class="displayName">{{display_name}}</span><span id="miscInfo"><!--FIXME: getMiscInfoHTML()?--></span></p>
+            <div id="detailRating"></div>
+            <p class="genres">{{genres}}</p>
+            <!-- word-wrap: no-newline? -->
+            <p class="overview">{{overview}}</p>
+        </div>
+    </div>
+    <div class="detailLogo" style="background-image: url(&quot;{{logo_src}}&quot;)"></div>
+</body>
+</html>
