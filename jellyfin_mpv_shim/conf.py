@@ -5,6 +5,7 @@ import pickle as pickle
 import socket
 import json
 import os.path
+import sys
 
 log = logging.getLogger('conf')
 
@@ -35,7 +36,7 @@ class Settings(object):
         "fullscreen":           True,
         "enable_gui":           True,
         "media_key_seek":       False,
-        "mpv_ext":              False,
+        "mpv_ext":              sys.platform.startswith("darwin"),
         "mpv_ext_path":         None,
         "mpv_ext_ipc":          None,
         "mpv_ext_start":        True,
