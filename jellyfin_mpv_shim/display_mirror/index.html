@@ -2,10 +2,6 @@
 <html>
 <head>
     <title>Jellyfin</title>
-    <!--
-        <link rel="stylesheet" href="css/glyphicons.css">
-        <link rel="stylesheet" href="css/jellyfin.css?hash=001">
-    -->
     <script type="text/javascript">
         // Copied from jellyfin-chromecast's helpers.js
         // FIXME: I reckon this could be made much more efficient
@@ -57,10 +53,8 @@
         }
         setInterval(updateTimeOfDay, 40000);
     </script>
-    <style>
-{# FIXME: <link> this file directly #}
-{{chromecast_css}}
-    </style>
+    <link rel="stylesheet" href="{{glyphicons_css}}">
+    <link rel="stylesheet" href="{{jellyfin_css}}">
     <style>
         #backdrop,
         .detailContent,
@@ -147,7 +141,7 @@
         <div class="detailInfo">
             <p class="displayNameContainer"><span class="displayName">{{display_name}}</span><span id="miscInfo"><!--FIXME: getMiscInfoHTML()?--></span></p>
             <div id="detailRating"></div>
-            <p class="genres">{{genres}}</p>
+            <p class="genres">{{' / '.join(genres)}}</p>
             <!-- word-wrap: no-newline? -->
             <p class="overview">{{overview}}</p>
         </div>
