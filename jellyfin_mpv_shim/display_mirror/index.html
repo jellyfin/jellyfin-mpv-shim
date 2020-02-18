@@ -6,6 +6,57 @@
         <link rel="stylesheet" href="css/glyphicons.css">
         <link rel="stylesheet" href="css/jellyfin.css?hash=001">
     -->
+    <script type="text/javascript">
+        // Copied from jellyfin-chromecast's helpers.js
+        // FIXME: I reckon this could be made much more efficient
+        function setInnerHTML(selector, html, autoHide) {
+            var elems = document.querySelectorAll(selector);
+            for (var i = 0, length = elems.length; i < length; i++) {
+
+                elems[i].innerHTML = html || ''
+
+                if (autoHide) {
+                    if (html) {
+                        elems[i].classList.remove('hide');
+                    } else {
+                        elems[i].classList.add('hide');
+                    }
+                }
+            }
+        }
+        function updateTimeOfDay() {
+
+            var now = new Date();
+
+            var time = now.toLocaleTimeString().toLowerCase();
+
+            var text = time.split(':');
+            var suffix = '';
+
+            if (text.length == 3) {
+
+                // Fix for toLocaleTimeString returning wrong hour
+                if (time.indexOf('pm') != -1 || time.indexOf('am') != -1) {
+                    text[0] = (now.getHours() % 12) || 12;
+                }
+
+                text = text[0] + ':' + text[1];
+
+                if (time.indexOf('pm') != -1) {
+                    suffix = 'pm';
+                }
+                else if (time.indexOf('am') != -1) {
+                    suffix = 'am';
+                }
+
+                time = text;
+            }
+
+            setInnerHTML('.timePrefix', time);
+            setInnerHTML('.timeSuffix', suffix);
+        }
+        setInterval(updateTimeOfDay, 40000);
+    </script>
     <style>
 {# FIXME: <link> this file directly #}
 {{chromecast_css}}
@@ -58,7 +109,14 @@
     </div>
     <div class="detailContent">
         <div class="timeOfDay"><span class="timePrefix"></span> <span class="timeSuffix"></span></div>
-		
+        <script type="text/javascript">
+            // This must be run here because the timeOfDay div doesn't exist when the script in <head> is run.
+            //
+            // setInterval doesn't call the function immediately,
+            // jellyfin-chromecast seems to ignore that and just wait 40s before the time is shown.
+            updateTimeOfDay();
+        </script>
+
         <!-- FIXME: I hate this '&PercentPlayed=' in the url, it should instead be done with a <progress> overlay.
                     Only accepting it as a starting point because jellyfin-chromecast does it that way
         -->
