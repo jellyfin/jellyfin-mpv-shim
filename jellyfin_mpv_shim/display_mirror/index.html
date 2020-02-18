@@ -7,13 +7,14 @@
         <link rel="stylesheet" href="css/jellyfin.css?hash=001">
     -->
     <style>
-## FIXME: <link> this file directly
+{# FIXME: <link> this file directly #}
 {{chromecast_css}}
     </style>
     <style>
         #backdrop,
         .detailContent,
         .detailLogo {
+            /* jellyfin.css hides all these for the JS to unhide them, I'm not using JS for this. */
             display: unset;
         }
         .overview {
@@ -68,6 +69,7 @@
                  style="background-image: url(&quot;{{image_src}}&quot;)"
              {% endif %}
              >
+                 {# FIXME: This should be blue, not green #}
                  <div id="playedIndicator" style="display: {{'block' if played or unplayed_items else 'none'}};">
                      {% if played and not unplayed_items %}
                          &checkmark;
