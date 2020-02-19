@@ -41,15 +41,17 @@ def get_html(server_address=None, item=None):
     if item:
         jinja_vars = {
             'backdrop_src': helpers.getBackdropUrl(item, server_address) or '',
-            'image_src': helpers.getPrimaryImageUrl(item, server_address),
-            'logo_src': helpers.getLogoUrl(item, server_address),
+            'image_src': helpers.getPrimaryImageUrl(item, server_address) or '',
+            'logo_src': helpers.getLogoUrl(item, server_address) or '',
             'played': item['UserData'].get('Played', False),
             'played_percentage': item['UserData'].get('PlayedPercentage', 0),
             'unplayed_items': item['UserData'].get('UnplayedItemCount', 0),
             'is_folder': item['IsFolder'],
-            'display_name': helpers.getDisplayName(item) or '',
-            'overview': item.get('Overview', ''),
+            'display_name': helpers.getDisplayName(item),
+            'misc_info_html': helpers.getMiscInfoHtml(item),
+            'rating_html': helpers.getRatingHtml(item),
             'genres': item['Genres'],
+            'overview': item.get('Overview', ''),
 
             # I believe these are all specifically for albums
             'poster_src': helpers.getPrimaryImageUrl(item, server_address) or '',

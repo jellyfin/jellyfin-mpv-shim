@@ -1,5 +1,6 @@
 import random
-import logging
+import datetime
+import math
 
 from ..clients import clientManager
 # This is a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
@@ -75,20 +76,21 @@ def getRatingHtml(item):
     html = ""
 
     if item.get('CommunityRating'):
-        html += "<div class='starRating' title='" + item['CommunityRating'] + "'></div>"
+        html += "<div class='starRating' title='" + str(item['CommunityRating']) + "'></div>"
         html += '<div class="starRatingValue">'
-        html += round(item['CommunityRating'], 1)
+        html += str(round(item['CommunityRating'], 1))
         html += '</div>'
 
     if item.get('CriticRating') is not None:
-
-        if (item['CriticRating'] >= 60):
+        # FIXME: This doesn't seem to ever be triggering. Is that actually a problem?
+        if item['CriticRating'] >= 60:
             html += '<div class="fresh rottentomatoesicon" title="fresh"></div>'
         else:
             html += '<div class="rotten rottentomatoesicon" title="rotten"></div>'
 
-        html += '<div class="criticRating">' + item['CriticRating'] + '%</div>'
+        html += '<div class="criticRating">' + str(item['CriticRating']) + '%</div>'
 
+    # Jellyfin-chromecast had this commented out already
     # # Where's the metascore variable supposed to come from?
     # if item.get(Metascore) and metascore !== false: {
     #     if item['Metascore'] >= 60:
@@ -101,80 +103,69 @@ def getRatingHtml(item):
     return html
 
 
-def getMiscInfoHtml(item, datetime):
+def __convert_jf_str_datetime(jf_string):
+    # datetime doesn't quite support fractions of a second the same way Jellyfin does them.
+    # Best we can do is strip them out entirely.
+    # FIXME: I think this loses timezone information, but are we getting any at all anyway?
+    return datetime.datetime.strptime(jf_string.partition('.')[0], '%Y-%m-%dT%H:%M:%S')
+
+
+def getMiscInfoHtml(item):
+    # FIXME: Flake8 is complaining this function is too complex.
+    #        I agree, this needs to be cleaned up, a lot.
+    # FIXME: This shouldn't return HTML, the template should take care of that.
 
     miscInfo = []
-#    var text, date
 
-# FIXME
-#    if item['Type'] == "Episode":
-#
-#        if item.get('PremiereDate'):
-#
-#            try:
-#                date = datetime.parseISO8601Date(item['PremiereDate'])
-#
-#                text = date.toLocaleDateString()
-#                miscInfo.append(text)
-#            except:
-#                logging.log("Error parsing date: " + item['PremiereDate'])
-#            }
-#        }
-#    }
+    if item['Type'] == "Episode":
+        if item.get('PremiereDate'):
+            date = __convert_jf_str_datetime(item['PremiereDate'])
+            text = date.strftime('%x')
+            miscInfo.append(text)
 
     if item.get('StartDate'):
+        date = __convert_jf_str_datetime(item['StartDate'])
+        text = date.strftime('%x')
+        miscInfo.push(text)
 
-        try:
-            date = datetime.fromisoformat(item['StartDate'])
-
-            text = str(date.date())
-            miscInfo.push(text)
-
-            if item['Type'] != "Recording":
-                pass
-                # text = LiveTvHelpers.getDisplayTime(date)
-                # miscInfo.push(text)
-        except Exception:
-            logging.log("Error parsing date: " + item['PremiereDate'])
+        if item['Type'] != "Recording":
+            # Jellyfin-chromecast had this commented out already
+            pass
+            # text = LiveTvHelpers.getDisplayTime(date)
+            # miscInfo.push(text)
 
     if item.get('ProductionYear') and item['Type'] == "Series":
         if item['Status'] == "Continuing":
-            miscInfo.append(item['ProductionYear'] + "-Present")
+            miscInfo.append(f"{item['ProductionYear']}-Present")
         elif item['ProductionYear']:
-            text = item['ProductionYear']
+            text = str(item['ProductionYear'])
             if item.get('EndDate'):
-                try:
-                    endYear = datetime.datetime.fromisoformat(item['EndDate']).yearear()
-                    if endYear != item['ProductionYear']:
-                        text += "-" + datetime.datetime.fromisoformat(item['EndDate']).year()
-                except Exception:
-                    logging.log("Error parsing date: " + item['EndDate'])
+                endYear = __convert_jf_str_datetime(item['EndDate']).year
+                if endYear != item['ProductionYear']:
+                    text += "-" + str(endYear)
             miscInfo.append(text)
 
     if item['Type'] != "Series" and item['Type'] != "Episode":
         if item.get('ProductionYear'):
-            miscInfo.append(item['ProductionYear'])
+            miscInfo.append(str(item['ProductionYear']))
         elif item.get('PremiereDate'):
-            try:
-                text = datetime.datetime.fromisoformat(item['PremiereDate']).year()
-                miscInfo.append(text)
-            except Exception:
-                logging.log("Error parsing date: " + item['PremiereDate'])
-    if item['RunTimeTicks'] and item['Type'] != "Series":
+            text = str(__convert_jf_str_datetime(item['PremiereDate']).year)
+            miscInfo.append(text)
+    if item.get('RunTimeTicks') and item['Type'] != "Series":
         if item['Type'] == "Audio":
             # FIXME
+            raise Exception("Haven't translated this to Python yet")
             miscInfo.append(datetime.getDisplayRunningTime(item['RunTimeTicks']))
         else:
-            minutes = item['RunTimeTicks'] / 600000000
+            # Using math.ceil instead of round because I want the minutes rounded *up* specifically,
+            # mostly because '1min' makes more sense than '0min' for a 1-59sec clip
+            minutes = math.ceil(item['RunTimeTicks'] / 600000000)
+            miscInfo.append(f"{minutes}min")
 
-            # # FIXME
-            # minutes = minutes || 1
-
-            miscInfo.append(round(minutes) + "min")
-    if item['OfficialRating'] and item['Type'] != "Season" and item['Type'] != "Episode":
+    if item.get('OfficialRating') and item['Type'] != "Season" and item['Type'] != "Episode":
         miscInfo.append(item['OfficialRating'])
 
-    if item['Video3DFormat']:
+    if item.get('Video3DFormat'):
         miscInfo.append("3D")
 
     return '&nbsp;&nbsp;&nbsp;&nbsp;'.join(miscInfo)
