@@ -106,7 +106,7 @@ def getMiscInfoHtml(item, datetime):
     miscInfo = []
 #    var text, date
 
-#FIXME
+# FIXME
 #    if item['Type'] == "Episode":
 #
 #        if item.get('PremiereDate'):
@@ -167,8 +167,8 @@ def getMiscInfoHtml(item, datetime):
         else:
             minutes = item['RunTimeTicks'] / 600000000
 
-            # FIXME
-            #minutes = minutes || 1
+            # # FIXME
+            # minutes = minutes || 1
 
             miscInfo.append(round(minutes) + "min")
     if item['OfficialRating'] and item['Type'] != "Season" and item['Type'] != "Episode":
@@ -178,6 +178,7 @@ def getMiscInfoHtml(item, datetime):
         miscInfo.append("3D")
 
     return '&nbsp;&nbsp;&nbsp;&nbsp;'.join(miscInfo)
+
 
 # For some reason the webview js api will send a positional argument of None when there are no arguments being passed in.
 # This really long argument name is here to catch that and hopefully not eat other intentional arguments.
