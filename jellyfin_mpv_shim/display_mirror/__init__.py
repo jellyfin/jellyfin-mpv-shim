@@ -20,18 +20,16 @@ class UserInterface(object):
     def run(self):
         # Since webview.create_window takes exclusive and permanent lock on the main thread,
         # we need to start this wait_load function before we start webview itself.
-        threading.Thread(target=self.wait_load).start()
+        threading.Thread(target=wait_load_home).start()
+
+        # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers
+        helpers.on_escape = lambda _: wait_load_home()
 
         # Webview needs to be run in the MainThread.
         # Which is the only reason this is being done in the userinterface part anyway
         webview.create_window("Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
         # FIXME: Do I need to also run webview.start() here?
         #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
-
-    def wait_load(self):
-        webview.webview_ready()
-        html = get_html()
-        webview.load_html(html)
 
 
 userInterface = UserInterface()
@@ -97,3 +95,12 @@ def DisplayContent(client, arguments):
     # print(html)
     # breakpoint()
     return
+
+
+def wait_load_home():
+    # Wait for webview to be ready, then load the home page.
+    # Useful for loading the initial page before displaying any content,
+    # and for refreshing to a blank page after idling.
+    webview.webview_ready()
+    html = get_html()
+    webview.load_html(html)

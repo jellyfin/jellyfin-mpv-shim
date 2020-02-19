@@ -64,6 +64,12 @@
             });
         }
         setInterval(updateRandomBackdrop, 40000);
+
+        window.addEventListener("keyup", function(e) {
+            if (e.key == 'Escape') {
+                pywebview.api.on_escape();
+            }
+        });
     </script>
     <link rel="stylesheet" href="{{glyphicons_css}}">
     <link rel="stylesheet" href="{{jellyfin_css}}">

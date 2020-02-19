@@ -27,7 +27,8 @@ def getBackdropUrl(item, serverAddress):
     if item.get('BackdropImageTags'):
         return getUrl(serverAddress, 'Items/' + item['Id'] + '/Images/Backdrop/0?tag=' + item['BackdropImageTags'][0])
     elif item.get('ParentBackdropItemId'):
-        return getUrl(serverAddress, 'Items/' + item['ParentBackdropItemId'] + '/Images/Backdrop/0?tag=' + item['ParentBackdropImageTags'][0])
+        return getUrl(serverAddress,
+                      'Items/' + item['ParentBackdropItemId'] + '/Images/Backdrop/0?tag=' + item['ParentBackdropImageTags'][0])
     else:
         return None
 
