@@ -21,6 +21,9 @@
             }
         }
         function updateTimeOfDay() {
+            // FIXME: This is hardly making use of toLocalTimeString() if it's just rewriting the string anyway.
+            //        Either make it use the locale *properly* or just get now.getHours() & now.getMinutes().
+            //        Perhaps use a monospaced font?
 
             var now = new Date();
 

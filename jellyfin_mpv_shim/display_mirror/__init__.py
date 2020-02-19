@@ -22,7 +22,8 @@ class UserInterface(object):
         # we need to start this wait_load function before we start webview itself.
         threading.Thread(target=wait_load_home).start()
 
-        # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers
+        # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
+        # Lambda needed because the JS api adds an argument even when not used.
         helpers.on_escape = lambda _: wait_load_home()
 
         # Webview needs to be run in the MainThread.
@@ -36,11 +37,9 @@ userInterface = UserInterface()
 
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
-# FIXME: jellyfin-chromecast uses html & CSS, should've started from there
 def get_html(server_address=None, item=None):
     if item:
         jinja_vars = {
-            # 'waiting_backdrop_src':
             'backdrop_src': helpers.getBackdropUrl(item, server_address) or '',
             'image_src': helpers.getPrimaryImageUrl(item, server_address),
             'logo_src': helpers.getLogoUrl(item, server_address),
