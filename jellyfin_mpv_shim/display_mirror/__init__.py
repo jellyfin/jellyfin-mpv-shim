@@ -66,10 +66,8 @@ def get_html(server_address=None, item=None):
             'display_name': "Ready to cast",
             'overview': "\n\nSelect your media in Jellyfin and play it here",  # FIME: Mention the player_name here
         }
-    with importlib.resources.path(__package__, 'glyphicons.css') as glyphicons_css, \
-            importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
+    with importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
         jinja_vars.update({
-            'glyphicons_css': str(glyphicons_css),
             'jellyfin_css': str(jellyfin_css),
         })
 
