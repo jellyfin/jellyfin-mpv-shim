@@ -63,13 +63,23 @@
                 document.querySelector('#backdrop').style.backgroundImage = 'url(' + src + ')';
             });
         }
-        setInterval(updateRandomBackdrop, 40000);
-
         window.addEventListener("keyup", function(e) {
             if (e.key == 'Escape') {
                 pywebview.api.on_escape();
             }
         });
+
+        {% if random_backdrop %}
+            setInterval(updateRandomBackdrop, 40000);
+        {% else %}
+            // Reset back to idle page after 4 minutes
+            // FIXME: magic number. Chosen because the math was easier, make it configurable.
+            //        Perhaps use settings.idle_cmd_delay?
+            // Extra function needed as a lambda because pywebview isn't actually ready yet,
+            // so can't be directly referenced.
+            setTimeout(function() {pywebview.api.on_escape();}, 240000);
+        {% endif %}
+
     </script>
     <link rel="stylesheet" href="{{jellyfin_css}}">
     <style>
