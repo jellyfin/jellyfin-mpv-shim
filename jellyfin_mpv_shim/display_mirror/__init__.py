@@ -1,4 +1,3 @@
-import random
 import threading
 import importlib.resources
 
@@ -25,15 +24,13 @@ class UserInterface(object):
 
         # Webview needs to be run in the MainThread.
         # Which is the only reason this is being done in the userinterface part anyway
-        webview.create_window("Jellyfin MPV Shim", fullscreen=True)
+        webview.create_window("Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
         # FIXME: Do I need to also run webview.start() here?
         #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
 
     def wait_load(self):
         webview.webview_ready()
-        # Pick a random connected client for loading the backdrop data from
-        client = random.choice(list(clientManager.clients.values()))
-        html = get_html(client=client)
+        html = get_html()
         webview.load_html(html)
 
 
@@ -42,10 +39,8 @@ userInterface = UserInterface()
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
 # FIXME: jellyfin-chromecast uses html & CSS, should've started from there
-def get_html(client, item_id: str = ''):
-    server_address = client.config.data["auth.server"]
-    if item_id:
-        item = client.jellyfin.get_item(item_id)
+def get_html(server_address=None, item=None):
+    if item:
         jinja_vars = {
             # 'waiting_backdrop_src':
             'backdrop_src': helpers.getBackdropUrl(item, server_address) or '',
@@ -67,24 +62,14 @@ def get_html(client, item_id: str = ''):
             'album_title': 'album',  # FIXME
         }
     else:
-        # Get a single random movie or TV series available to the current user with PG-13 or less rating.
-        # PG-13 because even though the current user might be 18+, that doesn't mean the device isn't in a shared location.
-        # This logic is copied from jellyfin-chromecast.
-        item = client.jellyfin.user_items(params={
-            'SortBy': "Random",
-            'IncludeItemTypes': "Movie,Series",
-            'ImageTypes': 'Backdrop',
-            'Recursive': True,
-            'MaxOfficialRating': 'PG-13',
-            'Limit': 1,
-        })['Items'][0]
         jinja_vars = {
-            'backdrop_src': helpers.getBackdropUrl(item, server_address),
-            'logo_src': server_address + ('/' if not server_address.endswith('/') else '') + "favicon.ico",
+            'random_backdrop': True,  # Make the jinja template load some extra JS code for random backdrops
+            'backdrop_src': helpers.getRandomBackdropUrl(),  # Preinitialise it with a random backdrop though
             'display_name': "Ready to cast",
-            'overview': "\n\nSelect your media in Jellyfin and play it here",
+            'overview': "\n\nSelect your media in Jellyfin and play it here",  # FIME: Mention the player_name here
         }
-    with importlib.resources.path(__package__, 'glyphicons.css') as glyphicons_css, importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
+    with importlib.resources.path(__package__, 'glyphicons.css') as glyphicons_css, \
+            importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
         jinja_vars.update({
             'glyphicons_css': str(glyphicons_css),
             'jellyfin_css': str(jellyfin_css),
@@ -106,7 +91,8 @@ def DisplayContent(client, arguments):
     if not webview.webview_ready(timeout=0):
         return
 
-    html = get_html(client=client, item_id=arguments['Arguments']['ItemId'])
+    item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
+    html = get_html(server_address=client.config.data["auth.server"], item=item)
     webview.load_html(html)
     # print(html)
     # breakpoint()

@@ -1,4 +1,7 @@
+import random
 import logging
+
+from ..clients import clientManager
 # This is a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
 # Only reason their not put straight into __init__.py is to keep the same logical separation that jellyfin-chromecast has.
 #
@@ -174,3 +177,24 @@ def getMiscInfoHtml(item, datetime):
         miscInfo.append("3D")
 
     return '&nbsp;&nbsp;&nbsp;&nbsp;'.join(miscInfo)
+
+# For some reason the webview js api will send a positional argument of None when there are no arguments being passed in.
+# This really long argument name is here to catch that and hopefully not eat other intentional arguments.
+def getRandomBackdropUrl(positional_arg_that_is_never_used=None, **params):
+    # This function is to get 1 random item, so ignore those arguments
+    params['SortBy'] = "Random"
+    params['Limit'] = 1
+
+    # Use sensible defaults for all other arguments.
+    # Based on jellyfin-chromecast's behaviour.
+    params['IncludeItemTypes'] = params.get('IncludeItemTypes', 'Movie,Series')
+    params['ImageTypes'] = params.get('ImageTypes', 'Backdrop')
+    params['Recursive'] = params.get('Recursive', True)
+    params['MaxOfficialRating'] = params.get('MaxOfficialRating', 'PG-13')
+
+    # This application can have multiple client connections different servers at the same time.
+    # So just pick a random one of those clients to query for the random item.
+    client = random.choice(list(clientManager.clients.values()))
+    item = client.jellyfin.user_items(params=params)['Items'][0]
+
+    return getBackdropUrl(item, client.config.data["auth.server"])
