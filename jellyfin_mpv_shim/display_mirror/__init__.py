@@ -1,16 +1,27 @@
 import threading
 import importlib.resources
 
-import webview  # Python3-webview in Debian, pywebview in pypi
+import webview as webview_module  # Python3-webview in Debian, pywebview in pypi
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
 
 from ..clients import clientManager
 from . import helpers
 
+import threading
+
+helpers.on_escape = lambda _: wait_load_home()
+webview = webview_module.create_window("Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
+
+webview_ready_event = threading.Event()
+webview.loaded += webview_ready_event.set
+
+def webview_ready(timeout=None):
+    return webview_ready_event.wait(timeout)
 
 class UserInterface(object):
     """Mostly copied from cli_mgr.py"""
     def __init__(self):
+        global horrible_hack
         self.open_player_menu = lambda: None
         self.stop = lambda: None
 
@@ -24,11 +35,11 @@ class UserInterface(object):
 
         # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
         # Lambda needed because the JS api adds an argument even when not used.
-        helpers.on_escape = lambda _: wait_load_home()
 
         # Webview needs to be run in the MainThread.
         # Which is the only reason this is being done in the userinterface part anyway
-        webview.create_window("Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
+        webview_module.start()
+
         # FIXME: Do I need to also run webview.start() here?
         #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
 
@@ -85,7 +96,7 @@ def DisplayContent(client, arguments):
     # but more complexity leaves more room for bugs and I don't think we need to care about DisplayContent() happening too early.
     #
     # NOTE: timeout=0 and timeout=None mean 2 different things.
-    if not webview.webview_ready(timeout=0):
+    if not webview_ready(timeout=0):
         return
 
     item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
@@ -100,6 +111,7 @@ def wait_load_home():
     # Wait for webview to be ready, then load the home page.
     # Useful for loading the initial page before displaying any content,
     # and for refreshing to a blank page after idling.
-    webview.webview_ready()
+    webview_ready()
+
     html = get_html()
     webview.load_html(html)
