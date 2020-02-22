@@ -104,7 +104,7 @@ def get_html(server_address=None, item=None):
         }
     with importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
         jinja_vars.update({
-            'jellyfin_css': str(jellyfin_css),
+            'jellyfin_css': str(open(jellyfin_css).read()),
         })
 
         try:
