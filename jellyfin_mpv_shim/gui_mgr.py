@@ -384,7 +384,7 @@ class STrayProcess(Process):
         ]
 
         icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
-        with importlib.resources.path(__package__, 'systray.png') as icon_file:
+        with importlib.resources.path(jellyfin_mpv_client, 'systray.png') as icon_file:
             icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop
         icon.run()
