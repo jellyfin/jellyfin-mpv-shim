@@ -116,6 +116,7 @@ def get_html(server_address=None, item=None):
 
 
 def load_idle():
+    # FIXME: Add support for not actually having an idle screen and instead hide/close/something the window
     # Load the initial page before displaying any content,
     # and when refreshing to a blank page after idling.
     html = get_html()
