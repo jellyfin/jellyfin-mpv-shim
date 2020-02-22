@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='jellyfin-mpv-shim',
-    version='1.3.10',
+    version='1.4.0',
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV. (Unofficial)",
@@ -14,7 +14,10 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/iwalton3/jellyfin-mpv-shim",
     packages=['jellyfin_mpv_shim', 'jellyfin_mpv_shim.display_mirror'],
-    package_data={'jellyfin_mpv_shim.display_mirror': ['*.css', '*.html']},
+    package_data={
+        'jellyfin_mpv_shim.display_mirror': ['*.css', '*.html'],
+        'jellyfin_mpv_shim': ['systray.png'],
+    },
     entry_points={
         'console_scripts': [
             'jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main',
@@ -25,6 +28,11 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
+    extras_require = {
+        'gui':  ['pystray'],
+        'mirror':  ['Jinja2', 'pywebview'],
+        'all': ['Jinja2', 'pywebview', 'pystray'],
+    },
     python_requires='>=3.6',
     install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.5'],
     include_package_data=True
