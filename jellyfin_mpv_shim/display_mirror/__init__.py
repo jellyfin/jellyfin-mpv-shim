@@ -1,25 +1,34 @@
 import threading
 import importlib.resources
 
-import webview as webview_module  # Python3-webview in Debian, pywebview in pypi
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
+
+# So, most of my use of the webview library is ugly but there's a reason for this!
+# Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
+# I would just say "fuck it, install from testing/backports/unstable" except that's not any newer either.
+# So instead I'm going to try supporting *both* here, which gets rather ugly because they made very significant changes.
+#
+# The key differences seem to be:
+# 3.2's create_window() returns a Window object immediately, then you need to call start()
+# 2.3's create_window() blocks forever effectivelly calling start() itself
+#
+# 3.2's Window has a .loaded Event that you need to subscribe to notice when the window is ready for input
+# 2.3 has a webview_ready() function that blocks until webview is ready (or timeout is passed)
+import webview  # Python3-webview in Debian, pywebview in pypi
 
 from ..clients import clientManager
 from . import helpers
 
-import threading
 
-helpers.on_escape = lambda _: wait_load_home()
-webview = webview_module.create_window("Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
+# This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
+# Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
+helpers.on_escape = lambda _=None: load_idle()
 
-webview_ready_event = threading.Event()
-webview.loaded += webview_ready_event.set
-
-def webview_ready(timeout=None):
-    return webview_ready_event.wait(timeout)
 
 class UserInterface(object):
     """Mostly copied from cli_mgr.py"""
+    display_window = None
+
     def __init__(self):
         global horrible_hack
         self.open_player_menu = lambda: None
@@ -29,16 +38,26 @@ class UserInterface(object):
         clientManager.cli_connect()
 
     def run(self):
-        # Since webview.create_window takes exclusive and permanent lock on the main thread,
-        # we need to start this wait_load function before we start webview itself.
-        threading.Thread(target=wait_load_home).start()
-
-        # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
-        # Lambda needed because the JS api adds an argument even when not used.
-
         # Webview needs to be run in the MainThread.
         # Which is the only reason this is being done in the userinterface part anyway
-        webview_module.start()
+
+        # Prepare for version 2.3 before calling create_window(), which might block forever.
+        self.display_window = webview
+        # Since webview.create_window might take exclusive and permanent lock on the main thread,
+        # we need to start this wait_load function before we start webview itself.
+        if 'webview_ready' in dir(webview):
+            threading.Thread(target=lambda: (webview.webview_ready(), load_idle())).start()
+
+        maybe_display_window = webview.create_window(title="Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
+        if maybe_display_window is not None:
+            # It returned a Window object instead of blocking, we're running on 3.2 (or compatible)
+            self.display_window = maybe_display_window
+
+            # 3.2's .loaded event runs every time a new DOM is loaded as well, so not suitable for this purpose
+            # However, 3.2's load_html waits for the DOM to be ready, so we can completely skip waiting for that ourselves.
+            threading.Thread(target=load_idle).start()
+
+            webview.start()
 
         # FIXME: Do I need to also run webview.start() here?
         #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
@@ -91,27 +110,16 @@ def get_html(server_address=None, item=None):
 
 
 def DisplayContent(client, arguments):
-    # If the webview isn't ready yet, just don't bother.
-    # I could try and be more clever and check if we've loaded this module first,
-    # but more complexity leaves more room for bugs and I don't think we need to care about DisplayContent() happening too early.
-    #
-    # NOTE: timeout=0 and timeout=None mean 2 different things.
-    if not webview_ready(timeout=0):
-        return
-
     item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
     html = get_html(server_address=client.config.data["auth.server"], item=item)
-    webview.load_html(html)
+    userInterface.display_window.load_html(html)
     # print(html)
     # breakpoint()
     return
 
 
-def wait_load_home():
-    # Wait for webview to be ready, then load the home page.
-    # Useful for loading the initial page before displaying any content,
-    # and for refreshing to a blank page after idling.
-    webview_ready()
-
+def load_idle():
+    # Load the initial page before displaying any content,
+    # and when refreshing to a blank page after idling.
     html = get_html()
-    webview.load_html(html)
+    userInterface.display_window.load_html(html)
