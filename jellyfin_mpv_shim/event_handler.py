@@ -1,4 +1,5 @@
 import logging
+import os
 
 from .utils import plex_color_to_mpv
 from .conf import settings

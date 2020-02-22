@@ -3,6 +3,7 @@
 import logging
 import sys
 import time
+import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
@@ -17,6 +18,9 @@ logging.getLogger('requests').setLevel(logging.CRITICAL)
 def main():
     conf_file = conffile.get(APP_NAME, 'conf.json')
     settings.load(conf_file)
+
+    if sys.platform.startswith("darwin"):
+        multiprocessing.set_start_method('forkserver')
 
     userInterface = None
     use_gui = False
