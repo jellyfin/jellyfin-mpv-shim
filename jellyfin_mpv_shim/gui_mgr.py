@@ -147,6 +147,7 @@ class LoggerWindowProcess(Process):
 class PreferencesWindow(threading.Thread):
     def __init__(self):
         self.dead = False
+        self.dead_trigger = threading.Event()
         threading.Thread.__init__(self)
 
     def run(self):
@@ -180,7 +181,11 @@ class PreferencesWindow(threading.Thread):
     def stop(self, is_source=False):
         self.r_queue.put(("die", None))
     
+    def block_until_close(self):
+        self.dead_trigger.wait()
+
     def _die(self):
+        self.dead_trigger.set()
         self.handle("die")
         self.process.terminate()
         self.dead = True
@@ -344,6 +349,7 @@ class UserInterface(threading.Thread):
         is_logged_in = clientManager.try_connect()
         if not is_logged_in:
             self.show_preferences()
+            self.preferences_window.block_until_close()
 
     def show_console(self):
         if self.log_window is None or self.log_window.dead:
