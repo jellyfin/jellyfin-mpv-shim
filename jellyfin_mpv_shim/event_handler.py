@@ -1,11 +1,17 @@
 import logging
 
-from .display_mirror import DisplayContent
 from .utils import plex_color_to_mpv
 from .conf import settings
 from .media import Media
 from .player import playerManager
 from .timeline import timelineManager
+try:
+    from .display_mirror import DisplayContent
+except ImportError:
+    # If the webview library is unavailable display_mirror fails to import.
+    # We don't care here because we'll just disable that functionality.
+    # FIXME: DisplayContent should be a function on the userInterface
+    DisplayContent = lambda: None
 
 log = logging.getLogger("event_handler")
 bindings = {}
