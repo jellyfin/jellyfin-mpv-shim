@@ -1,5 +1,7 @@
 import logging
 import uuid
+import urllib.parse
+import os.path
 
 from .conf import settings
 from .utils import is_local_domain, get_profile, get_seq
@@ -126,11 +128,19 @@ class Video(object):
         # - The media source supports direct paths.
         # - Direct paths are enabled in the config.
         # - The server is local or the override config is set.
+        # - If there's a scheme specified or the path exists as a local file.
         if ((self.media_source.get('Protocol') == "Http" or self.media_source['SupportsDirectPlay'])
             and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
-            self.is_transcode = False
-            return self.media_source['Path']
-        elif self.media_source['SupportsDirectStream']:
+            if urllib.parse.urlparse(self.media_source['Path']).scheme:
+                self.is_transcode = False
+                return self.media_source['Path']
+            else:
+                # If there's no uri scheme, check if the file exixsts because it might not be mounted
+                if os.path.isfile(self.media_source['Path']):
+                    self.is_transcode = False
+                    return self.media_source['Path']
+
+        if self.media_source['SupportsDirectStream']:
             self.is_transcode = False
             return "%s/Videos/%s/stream?static=true&MediaSourceId=%s&api_key=%s" % (
                 self.client.config.data["auth.server"],
