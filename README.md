@@ -21,6 +21,10 @@ view the application log, open the config folder, and open the application menu.
 authorization tokens for your server are stored on your device, but you are able to cast to the player
 regardless of location.
 
+Note: Due to the huge number of questions and issues that have been submitted about URLs, I now tolerate
+bare IP addresses and not specifying the port by default. If you want to connect to port 80 instead of
+8096, you must add the `:80` to the URL because `:8096` is now the default.
+
 ## Limitations
 
  - Music playback and Live TV are not supported.
@@ -48,6 +52,16 @@ shown next to the name of the client when you select it from the cast menu.)
 Please also note that the on-screen controller for MPV (if available) cannot change the
 audio and subtitle track configurations for transcoded media. It also cannot load external
 subtitles. You must either use the menu or the application you casted from.
+
+### Display Mirroring
+
+This feature allows media previews to show on your display before you cast the media,
+similar to Chromecast. It is not enabled by default. To enable it, do one of the following:
+
+ - Using the systray icon, click "Application Menu". Go to preferences and enable display mirroring.
+     - Use the arrow keys, escape, and enter to navigate the menu.
+ - Cast media to the player and press `c`. Go to preferences and enable display mirroring.
+ - In the config file (see below), change `display_mirroring` to `true`.
 
 ### Keyboard Shortcuts
 
@@ -144,6 +158,7 @@ for media playback on OSX.
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.
  - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
+ - `display_mirroring` - Enable webview-based display mirroring (content preview).
 
 ### MPV Configuration
 
@@ -187,6 +202,13 @@ If you would like the GUI and systray features, also install `pystray` and `tkin
 sudo pip3 install pystray
 sudo apt install python3-tk
 ```
+If you would like display mirroring support, install the mirroring dependencies:
+```bash
+sudo apt install python3-jinja2 python3-webview
+# -- OR --
+sudo pip3 install jellyfin-mpv-shim[mirror]
+sudo apt install gir1.2-webkit2-4.0
+```
 
 You can build mpv from source to get better codec support. Execute the following:
 ```bash
@@ -216,8 +238,10 @@ If you'd like to install the GUI version, you need a working copy of tkinter.
 2. Install TK and mpv. `brew install tcl-tk mpv`
 3. Install python3 with TK support. `FLAGS="-I$(brew --prefix tcl-tk)/include" pyenv install 3.8.1`
 4. Set this python3 as the default. `pyenv global 3.8.1`
-5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade jellyfin-mpv-shim pystray`
+5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade jellyfin-mpv-shim[gui]`
 6. Run `jellyfin-mpv-shim`.
+
+Display mirroring is not tested on OSX, but may be installable with 'pip3 install --upgrade jellyfin-mpv-shim[mirror]`.
 
 ## Building on Windows
 
@@ -225,9 +249,12 @@ There is a prebuilt version for Windows in the releases section. When
 following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
-1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray`.
-3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-4. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
-5. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-6. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-binary "jellyfin_mpv_shim\systray.png;." --icon media.ico run.py`.
+1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim; git submodule update --init`.
+2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
+3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview`.
+4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
+5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
+6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
+7. Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
+8. Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
+7. Run `build-win.bat`.
