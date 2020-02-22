@@ -23,3 +23,15 @@ def raise_mpv():
 
     except Exception:
         log.error("Could not raise MPV.", exc_info=True)
+
+def mirror_act(state):
+    try:
+        top_windows = []
+        win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+        for i in top_windows:
+            if "Jellyfin MPV Shim Mirror" in i[1]:
+                win32gui.ShowWindow(i[0], 9 if state else 6)
+                break
+
+    except Exception:
+        log.error("Could not raise/lower MPV mirror.", exc_info=True)

@@ -41,7 +41,7 @@ class DisplayMirror(object):
         if 'webview_ready' in dir(webview):
             threading.Thread(target=lambda: (webview.webview_ready(), load_idle())).start()
 
-        maybe_display_window = webview.create_window(title="Jellyfin MPV Shim", js_api=helpers, fullscreen=True)
+        maybe_display_window = webview.create_window(title="Jellyfin MPV Shim Mirror", js_api=helpers, fullscreen=True)
         if maybe_display_window is not None:
             # It returned a Window object instead of blocking, we're running on 3.2 (or compatible)
             self.display_window = maybe_display_window

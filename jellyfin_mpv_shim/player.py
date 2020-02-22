@@ -256,6 +256,8 @@ class PlayerManager(object):
         self.update_subtitle_visuals()
 
         if win_utils:
+            if settings.display_mirroring:
+                win_utils.mirror_act(False)
             win_utils.raise_mpv()
 
         if offset is not None and offset > 0:
@@ -500,6 +502,9 @@ class PlayerManager(object):
     def send_timeline_stopped(self):
         self.should_send_timeline = False
         self._video.client.jellyfin.session_stop(self.get_timeline_options())
+        
+        if win_utils and settings.display_mirroring:
+            win_utils.mirror_act(True)
 
     def upd_player_hide(self):
         self._player.keep_open = self._video.parent.has_next
