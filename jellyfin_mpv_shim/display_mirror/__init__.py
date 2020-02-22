@@ -25,21 +25,14 @@ from . import helpers
 helpers.on_escape = lambda _=None: load_idle()
 
 
-class UserInterface(object):
-    """Mostly copied from cli_mgr.py"""
+class DisplayMirror(object):
     display_window = None
 
     def __init__(self):
         self.open_player_menu = lambda: None
-        self.stop = lambda: None
-
-    def login_servers(self):
-        # FIXME: Implement the login as a HTML thing
-        clientManager.cli_connect()
 
     def run(self):
         # Webview needs to be run in the MainThread.
-        # Which is the only reason this is being done in the userinterface part anyway
 
         # Prepare for version 2.3 before calling create_window(), which might block forever.
         self.display_window = webview
@@ -59,6 +52,9 @@ class UserInterface(object):
 
             webview.start()
 
+    def stop(self):
+        webview.destroy_window()
+
     def DisplayContent(self, client, arguments):
         item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
         html = get_html(server_address=client.config.data["auth.server"], item=item)
@@ -68,7 +64,7 @@ class UserInterface(object):
         return
 
 
-userInterface = UserInterface()
+mirror = DisplayMirror()
 
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
@@ -119,4 +115,4 @@ def load_idle():
     # Load the initial page before displaying any content,
     # and when refreshing to a blank page after idling.
     html = get_html()
-    userInterface.display_window.load_html(html)
+    mirror.display_window.load_html(html)

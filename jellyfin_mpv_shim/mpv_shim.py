@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import multiprocessing
+from threading import Event
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
@@ -23,21 +24,22 @@ def main():
         multiprocessing.set_start_method('forkserver')
 
     userInterface = None
+    mirror = None
     use_gui = False
-    if settings.enable_gui and settings.display_mirroring:
-        # FIXME: Fix this
-        log.warning("Cannot support GUI and display mirror at the same time. Falling back to command line interface.", exc_info=1)
-    elif settings.enable_gui:
+    if settings.enable_gui:
         try:
             from .gui_mgr import userInterface
             use_gui = True
+            gui_ready = Event()
+            userInterface.gui_ready = gui_ready
         except Exception:
             log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
-    elif settings.display_mirroring:
+    
+    if settings.display_mirroring:
         try:
-            from .display_mirror import userInterface
+            from .display_mirror import mirror
         except ImportError:
-            log.warning("Cannot load display mirror. Falling back to command line interface.", exc_info=1)
+            log.warning("Cannot load display mirror.", exc_info=1)
 
     if not userInterface:
         from .cli_mgr import userInterface
@@ -54,18 +56,30 @@ def main():
     playerManager.action_trigger = actionThread.trigger
     userInterface.open_player_menu = playerManager.menu.show_menu
     userInterface.login_servers()
-    eventHandler.userInterface = userInterface
+    eventHandler.mirror = mirror
+    userInterface.start()
 
     try:
-        userInterface.run()
-    except KeyboardInterrupt:
-        print("")
-        log.info("Stopping services...")
+        if mirror:
+            userInterface.stop_callback = mirror.stop
+            # If the webview runs before the systray icon, it fails.
+            if use_gui:
+                gui_ready.wait()
+            mirror.run()
+        else:
+            halt = Event()
+            userInterface.stop_callback = halt.set
+            try:
+                halt.wait()
+            except KeyboardInterrupt:
+                print("")
+                log.info("Stopping services...")
     finally:
         playerManager.terminate()
         timelineManager.stop()
         actionThread.stop()
         clientManager.stop()
+        userInterface.stop()
 
 if __name__ == "__main__":
     main()

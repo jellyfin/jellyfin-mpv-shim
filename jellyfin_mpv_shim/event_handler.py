@@ -27,7 +27,7 @@ def bind(event_name):
     return decorator
 
 class EventHandler(object):
-    userInterface = None
+    mirror = None
 
     def handle_event(self, client, event_name, arguments):
         if event_name in bindings:
@@ -79,8 +79,8 @@ class EventHandler(object):
         elif command == "DisplayContent":
             # If you have an idle command set, this will delay it.
             timelineManager.delay_idle()
-            if 'DisplayContent' in dir(self.userInterface):
-                self.userInterface.DisplayContent(client, arguments)
+            if self.mirror:
+                self.mirror.DisplayContent(client, arguments)
         elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome"):
             playerManager.menu.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):

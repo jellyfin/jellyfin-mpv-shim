@@ -9,8 +9,10 @@ class UserInterface(object):
     def login_servers(self):
         clientManager.cli_connect()
 
-    def run(self):
-        while True:
-            time.sleep(1)
+    def start(self):
+        pass
+    
+    def stop(self):
+        pass
 
 userInterface = UserInterface()

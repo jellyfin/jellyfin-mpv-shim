@@ -1,8 +1,5 @@
-from pystray import Icon, MenuItem, Menu
 from PIL import Image
 from collections import deque
-import tkinter as tk
-from tkinter import ttk, messagebox
 import subprocess
 from multiprocessing import Process, Queue
 import threading
@@ -111,15 +108,15 @@ class LoggerWindowProcess(Process):
 
     def update(self):
         try:
-            self.text.config(state=tk.NORMAL)
+            self.text.config(state=self.tk.NORMAL)
             while True:
                 action, param = self.queue.get_nowait()
                 if action == "append":
-                    self.text.config(state=tk.NORMAL)
-                    self.text.insert(tk.END, "\n")
-                    self.text.insert(tk.END, param)
-                    self.text.config(state=tk.DISABLED)
-                    self.text.see(tk.END)
+                    self.text.config(state=self.tk.NORMAL)
+                    self.text.insert(self.tk.END, "\n")
+                    self.text.insert(self.tk.END, param)
+                    self.text.config(state=self.tk.DISABLED)
+                    self.text.see(self.tk.END)
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
@@ -129,6 +126,9 @@ class LoggerWindowProcess(Process):
         self.text.after(100, self.update)
 
     def run(self):
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        self.tk = tk
         root = tk.Tk()
         self.root = root
         root.title("Application Log")
@@ -197,11 +197,11 @@ class PreferencesWindowProcess(Process):
                 action, param = self.queue.get_nowait()
                 if action == "upd":
                     self.update_servers(param)
-                    self.add_button.config(state=tk.NORMAL)
-                    self.remove_button.config(state=tk.NORMAL)
+                    self.add_button.config(state=self.tk.NORMAL)
+                    self.remove_button.config(state=self.tk.NORMAL)
                 elif action == "error":
-                    messagebox.showerror("Add Server", "Could not add server.\nPlease check your connection infomation.")
-                    self.add_button.config(state=tk.NORMAL)
+                    self.messagebox.showerror("Add Server", "Could not add server.\nPlease check your connection infomation.")
+                    self.add_button.config(state=self.tk.NORMAL)
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
@@ -220,6 +220,10 @@ class PreferencesWindowProcess(Process):
             ) for server in self.servers])
 
     def run(self):
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        self.tk = tk
+        self.messagebox = messagebox
         root = tk.Tk()
         root.title("Server Configuration")
         self.root = root
@@ -297,38 +301,35 @@ class PreferencesWindowProcess(Process):
 # into the main process. This is true, but then the
 # two need to be merged, which is non-trivial.
 
-class UserInterface:
+class UserInterface(threading.Thread):
     def __init__(self):
         self.dead = False
         self.open_player_menu = lambda: None
         self.icon_stop = lambda: None
         self.log_window = None
         self.preferences_window = None
+        self.stop_callback = None
+        self.gui_ready = None
+
+        threading.Thread.__init__(self)
 
     def run(self):
-        self.queue = Queue()
         self.r_queue = Queue()
-        self.process = STrayProcess(self.queue, self.r_queue)
+        self.process = STrayProcess(self.r_queue)
         self.process.start()
 
         while True:
-            try:
-                action, param = self.r_queue.get()
-                if hasattr(self, action):
-                    getattr(self, action)()
-                elif action == "die":
-                    self._die()
-                    break
-            except KeyboardInterrupt:
-                log.info("Stopping due to CTRL+C.")
+            action, param = self.r_queue.get()
+            if hasattr(self, action):
+                getattr(self, action)()
+            elif action == "die":
                 self._die()
+                if self.stop_callback:
+                    self.stop_callback()
                 break
-    
-    def handle(self, action, params=None):
-        self.queue.put((action, params))
 
     def stop(self):
-        self.handle("die")
+        self.r_queue.put(("die", None))
     
     def _die(self):
         self.process.terminate()
@@ -354,6 +355,10 @@ class UserInterface:
             self.preferences_window = PreferencesWindow()
             self.preferences_window.start()
     
+    def ready(self):
+        if self.gui_ready:
+            self.gui_ready.set()
+
     def open_config_brs(self):
         if open_config:
             open_config()
@@ -361,12 +366,12 @@ class UserInterface:
             log.error("Config opening is not available.")
 
 class STrayProcess(Process):
-    def __init__(self, queue, r_queue):
-        self.queue = queue
+    def __init__(self, r_queue):
         self.r_queue = r_queue
         Process.__init__(self)
 
     def run(self):
+        from pystray import Icon, MenuItem, Menu
         def get_wrapper(command):
             def wrapper():
                 self.r_queue.put((command, None))
@@ -387,7 +392,10 @@ class STrayProcess(Process):
         with importlib.resources.path(__package__, 'systray.png') as icon_file:
             icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop
-        icon.run()
+        def setup(icon):
+            icon.visible = True
+            self.r_queue.put(("ready", None))
+        icon.run(setup=setup)
         self.r_queue.put(("die", None))
 
 userInterface = UserInterface()
