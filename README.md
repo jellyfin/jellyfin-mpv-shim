@@ -63,6 +63,8 @@ similar to Chromecast. It is not enabled by default. To enable it, do one of the
  - Cast media to the player and press `c`. Go to preferences and enable display mirroring.
  - In the config file (see below), change `display_mirroring` to `true`.
 
+Then restart the application for the change to take effect.
+
 ### Keyboard Shortcuts
 
 This program supports most of the [keyboard shortcuts from MPV](https://mpv.io/manual/stable/#interactive-control). The custom keyboard shortcuts are:
@@ -182,7 +184,9 @@ components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
 using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
-component uses `pystray` and `tkinter`, but there is a fallback cli mode.
+component uses `pystray` and `tkinter`, but there is a fallback cli mode. The mirroring dependencies
+are `Jinja2` and `pywebview`, along with platform-specific dependencies. (See the installation and building
+guides for details on platform-specific dependencies for display mirroring.)
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
