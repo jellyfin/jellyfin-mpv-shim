@@ -41,7 +41,7 @@ class Settings(object):
         "mpv_ext_start":        True,
         "enable_osc":           True,
         "use_web_seek":         False,
-        "display_mirroring":    True,
+        "display_mirroring":    False,
     }
 
     def __getattr__(self, name):
