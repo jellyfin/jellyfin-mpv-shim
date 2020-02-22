@@ -59,9 +59,6 @@ class UserInterface(object):
 
             webview.start()
 
-        # FIXME: Do I need to also run webview.start() here?
-        #        Documentation implies I do, but that function doesn't exist for me, perhaps I'm running an older version
-
 
 userInterface = UserInterface()
 
