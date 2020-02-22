@@ -63,7 +63,8 @@ similar to Chromecast. It is not enabled by default. To enable it, do one of the
  - Cast media to the player and press `c`. Go to preferences and enable display mirroring.
  - In the config file (see below), change `display_mirroring` to `true`.
 
-Then restart the application for the change to take effect.
+Then restart the application for the change to take effect. To quit the application on Windows with
+display mirroring enabled, press Alt+F4.
 
 ### Keyboard Shortcuts
 
