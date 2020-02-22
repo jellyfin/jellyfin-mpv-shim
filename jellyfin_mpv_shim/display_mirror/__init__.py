@@ -35,6 +35,7 @@ class UserInterface(object):
         self.stop = lambda: None
 
     def login_servers(self):
+        # FIXME: Implement the login as a HTML thing
         clientManager.cli_connect()
 
     def run(self):
