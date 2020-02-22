@@ -22,15 +22,24 @@ def main():
     if sys.platform.startswith("darwin"):
         multiprocessing.set_start_method('forkserver')
 
+    userInterface = None
     use_gui = False
-    if settings.enable_gui:
+    if settings.enable_gui and settings.display_mirroring:
+        # FIXME: Fix this
+        log.warning("Cannot support GUI and display mirror at the same time. Falling back to command line interface.", exc_info=1)
+    elif settings.enable_gui:
         try:
             from .gui_mgr import userInterface
             use_gui = True
         except Exception:
             log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
+    elif settings.display_mirroring:
+        try:
+            from .display_mirror import userInterface
+        except ImportError:
+            log.warning("Cannot load display mirror. Falling back to command line interface.", exc_info=1)
 
-    if not use_gui:
+    if not userInterface:
         from .cli_mgr import userInterface
 
     from .player import playerManager
@@ -45,6 +54,7 @@ def main():
     playerManager.action_trigger = actionThread.trigger
     userInterface.open_player_menu = playerManager.menu.show_menu
     userInterface.login_servers()
+    eventHandler.userInterface = userInterface
 
     try:
         userInterface.run()

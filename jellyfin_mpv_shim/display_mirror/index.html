@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jellyfin</title>
+    <script type="text/javascript">
+        // Copied from jellyfin-chromecast's helpers.js
+        // FIXME: I reckon this could be made much more efficient
+        function setInnerHTML(selector, html, autoHide) {
+            var elems = document.querySelectorAll(selector);
+            for (var i = 0, length = elems.length; i < length; i++) {
+
+                elems[i].innerHTML = html || ''
+
+                if (autoHide) {
+                    if (html) {
+                        elems[i].classList.remove('hide');
+                    } else {
+                        elems[i].classList.add('hide');
+                    }
+                }
+            }
+        }
+        function updateTimeOfDay() {
+            // FIXME: This is hardly making use of toLocalTimeString() if it's just rewriting the string anyway.
+            //        Either make it use the locale *properly* or just get now.getHours() & now.getMinutes().
+            //        Perhaps use a monospaced font?
+
+            var now = new Date();
+
+            var time = now.toLocaleTimeString().toLowerCase();
+
+            var text = time.split(':');
+            var suffix = '';
+
+            if (text.length == 3) {
+
+                // Fix for toLocaleTimeString returning wrong hour
+                if (time.indexOf('pm') != -1 || time.indexOf('am') != -1) {
+                    text[0] = (now.getHours() % 12) || 12;
+                }
+
+                text = text[0] + ':' + text[1];
+
+                if (time.indexOf('pm') != -1) {
+                    suffix = 'pm';
+                }
+                else if (time.indexOf('am') != -1) {
+                    suffix = 'am';
+                }
+
+                time = text;
+            }
+
+            setInnerHTML('.timePrefix', time);
+            setInnerHTML('.timeSuffix', suffix);
+        }
+        // FIXME: Can I make this run on every minute change rather than every 40s?
+        setInterval(updateTimeOfDay, 40000);
+        // setInterval doesn't call the function immediately on page load,
+        // jellyfin-chromecast seems to ignore that and just wait 40s before the time is shown.
+        window.addEventListener("load", updateTimeOfDay);
+
+        function updateRandomBackdrop() {
+            // FIXME: The transition looks ugly
+            pywebview.api.getRandomBackdropUrl().then(function(src) {
+                document.querySelector('#backdrop').style.backgroundImage = 'url(' + src + ')';
+            });
+        }
+        window.addEventListener("keyup", function(e) {
+            if (e.key == 'Escape') {
+                pywebview.api.on_escape();
+            }
+        });
+
+        {% if random_backdrop %}
+            setInterval(updateRandomBackdrop, 40000);
+        {% else %}
+            // Reset back to idle page after 4 minutes
+            // FIXME: magic number. Chosen because the math was easier, make it configurable.
+            //        Perhaps use settings.idle_cmd_delay?
+            // Extra function needed as a lambda because pywebview isn't actually ready yet,
+            // so can't be directly referenced.
+            setTimeout(function() {pywebview.api.on_escape();}, 240000);
+        {% endif %}
+
+    </script>
+    <link rel="stylesheet" href="{{jellyfin_css}}">
+    <style>
+        #backdrop,
+        .detailContent,
+        .detailLogo {
+            /* jellyfin.css hides all these for the JS to unhide them, I'm not using JS for this. */
+            display: unset;
+        }
+        .overview {
+            /* FIXME: Should I really be adding this? It makes some overviews much more readable, but it's inconsistent with Jellyfin's rendering. */
+            /*        Perhaps it should be pushed upstream? */
+            white-space: pre-wrap
+        }
+        #playedIndicator {
+            /* FIXME: Why does jellyfin-chromecast not need to do this? */
+            zoom: 150%;
+        }
+    </style>
+</head>
+<body>
+    <!-- FIXME: Figure out how to implement the idle/waiting backdrops
+    <div id="waiting-container-backdrop" style="background-image: url(&quot;{{waiting_backdrop_src}}&quot;)"></div>
+    <div id="waiting-container">
+        <div class="waitingContent">
+            <img class="logo" src="img/logo.png" />
+
+            <h1>Ready to cast</h1>
+            <h2>Select your media in Jellyfin and play it here</h2>
+        </div>
+        <div class="timeOfDay"><span class="timePrefix"></span> <span class="timeSuffix"></span></div>
+    </div>
+    <img id="photo">
+    -->
+    <div id="backdrop" style="background-image: url(&quot;{{backdrop_src}}&quot;)">
+        <img class="spinner" src="img/spinner.png" />
+        <div class="gradient">
+            <!-- CONFIRM: I believe all of this is for music, or perhaps for while the media is playing
+            <img class="media-poster" src="{{poster_src}}"/>
+            <h2>
+                <span class="media-title">{{title}}</span>
+                <span class="media-secondary-title">{{secondary_title}}</span>
+                <span class="media-artist">{{artist}}</span>
+                <span class="media-album-title"><em>{{album_title}}</em></span>
+            </h2>
+            -->
+        </div>
+    </div>
+    <div class="detailContent">
+        <div class="timeOfDay"><span class="timePrefix"></span> <span class="timeSuffix"></span></div>
+
+        <!-- FIXME: I hate this '&PercentPlayed=' in the url, it should instead be done with a <progress> overlay.
+                    Only accepting it as a starting point because jellyfin-chromecast does it that way
+        -->
+        <div class="detailImage"
+             {% if image_src and played_percentage and played_percentage != 100 and not is_folder %}
+                 style="background-image: url(&quot;{{image_src}}&PercentPlayed={{played_percentage}}&quot;)"
+             {% elif image_src %}
+                 style="background-image: url(&quot;{{image_src}}&quot;)"
+             {% endif %}
+             >
+                 {# FIXME: This should be blue, not green #}
+                 <div id="playedIndicator" style="display: {{'block' if played or unplayed_items else 'none'}};">
+                     {% if played and not unplayed_items %}
+                         &checkmark;
+                         <!-- NOTE jellyfin-chomecast uses the glyphicons font, I haven't tried to make that work here yet, and I think the checkmark is plenty good enough for this specific case though.
+                         <span class="glyphicon glyphicon-ok"></span>
+                         -->
+                     {% elif unplayed_items %}
+                         {{unplayed_items}}
+                     {% endif %}
+                 </div>
+
+                 <!-- FIXME: Jellyfin-chromecast seems to not render this at all, and instead does it by adding "&PercentPlayed={{played_percentage}}" to image_src. I'm doing this in the Python at the moment
+                 <div class="detailImageProgressContainer"><progress class="itemProgressBar" value="{{played_percentage}}" min="0" max="100"></progress></div>
+                 -->
+        </div>
+
+        <div class="detailInfo">
+            <p class="displayNameContainer"><span class="displayName">{{display_name}}</span><span id="miscInfo">{{misc_info_html}}</span></p>
+            <div id="detailRating">{{rating_html}}</div>
+            <p class="genres">{{' / '.join(genres)}}</p>
+            <!-- word-wrap: no-newline? -->
+            <p class="overview">{{overview}}</p>
+        </div>
+    </div>
+    <div class="detailLogo" style="background-image: url(&quot;{{logo_src}}&quot;)"></div>
+</body>
+</html>

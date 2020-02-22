@@ -3,6 +3,8 @@ import threading
 import time
 import os
 
+import jellyfin_apiclient_python.exceptions
+
 from .conf import settings
 from .player import playerManager
 from .utils import Timer, mpv_color_to_plex
@@ -39,6 +41,12 @@ class TimelineManager(threading.Thread):
         self.is_idle = False
 
     def SendTimeline(self):
-        playerManager.send_timeline()
+        try:
+            # Send_timeline sometimes (once every couple hours) gets a 404 response from Jellyfin.
+            # Without this try/except that would cause this entire thread to crash keeping it from self-healing.
+            playerManager.send_timeline()
+        except jellyfin_apiclient_python.exceptions.HTTPException:
+            # FIXME: Log this
+            pass
 
 timelineManager = TimelineManager()
