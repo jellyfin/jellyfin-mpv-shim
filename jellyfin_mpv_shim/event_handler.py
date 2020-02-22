@@ -5,13 +5,6 @@ from .conf import settings
 from .media import Media
 from .player import playerManager
 from .timeline import timelineManager
-try:
-    from .display_mirror import DisplayContent
-except ImportError:
-    # If the webview library is unavailable display_mirror fails to import.
-    # We don't care here because we'll just disable that functionality.
-    # FIXME: DisplayContent should be a function on the userInterface
-    DisplayContent = lambda: None
 
 log = logging.getLogger("event_handler")
 bindings = {}
@@ -33,6 +26,8 @@ def bind(event_name):
     return decorator
 
 class EventHandler(object):
+    userInterface = None
+
     def handle_event(self, client, event_name, arguments):
         if event_name in bindings:
             log.debug("Handled Event {0}: {1}".format(event_name, arguments))
@@ -83,7 +78,8 @@ class EventHandler(object):
         elif command == "DisplayContent":
             # If you have an idle command set, this will delay it.
             timelineManager.delay_idle()
-            DisplayContent(client, arguments)
+            if 'DisplayContent' in dir(self.userInterface):
+                self.userInterface.DisplayContent(client, arguments)
         elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome"):
             playerManager.menu.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):

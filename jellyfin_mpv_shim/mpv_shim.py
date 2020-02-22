@@ -44,6 +44,7 @@ def main():
     playerManager.action_trigger = actionThread.trigger
     userInterface.open_player_menu = playerManager.menu.show_menu
     userInterface.login_servers()
+    eventHandler.userInterface = userInterface
 
     try:
         userInterface.run()

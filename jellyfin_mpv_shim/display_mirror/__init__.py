@@ -59,6 +59,14 @@ class UserInterface(object):
 
             webview.start()
 
+    def DisplayContent(self, client, arguments):
+        item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
+        html = get_html(server_address=client.config.data["auth.server"], item=item)
+        self.display_window.load_html(html)
+        # print(html)
+        # breakpoint()
+        return
+
 
 userInterface = UserInterface()
 
@@ -104,15 +112,6 @@ def get_html(server_address=None, item=None):
             return tpl.render(jinja_vars)
         except Exception:
             breakpoint()
-
-
-def DisplayContent(client, arguments):
-    item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
-    html = get_html(server_address=client.config.data["auth.server"], item=item)
-    userInterface.display_window.load_html(html)
-    # print(html)
-    # breakpoint()
-    return
 
 
 def load_idle():
