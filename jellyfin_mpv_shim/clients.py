@@ -88,6 +88,16 @@ class ClientManager(object):
             json.dump(self.credentials, cf)
 
     def login(self, server, username, password):
+        # Too many people are messing this up and I'm
+        # tired of being asked about it!
+        if not server.startswith("http"):
+            server = "http://" + server
+
+        # If you want to connect over port 80 insecurely, you
+        # should have to specify it manually, because that is bad!
+        if not server.startswith("https://") and len(server.split(":")) < 3:
+            server = server + ":8096"
+
         client = self.client_factory()
         client.auth.connect_to_address(server)
         client.auth.login(server, username, password)
