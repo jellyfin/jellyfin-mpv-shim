@@ -30,7 +30,6 @@ class UserInterface(object):
     display_window = None
 
     def __init__(self):
-        global horrible_hack
         self.open_player_menu = lambda: None
         self.stop = lambda: None
 
