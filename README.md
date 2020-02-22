@@ -157,6 +157,8 @@ servers again.
 
 ## Development
 
+Make sure you pull the submodules using `git submodule init && git submodule update`.
+
 If you'd like to run the application without installing it, run `./run.py`.
 The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
