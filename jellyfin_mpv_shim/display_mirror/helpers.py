@@ -3,8 +3,10 @@ import datetime
 import math
 
 from ..clients import clientManager
-# This is a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
+# This started as a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
 # Only reason their not put straight into __init__.py is to keep the same logical separation that jellyfin-chromecast has.
+#
+# I've since added some extra functions, and completely reworked some of the old ones such that it's not directly compatible.
 #
 # Should this stuff be in jellyfin_apiclient_python instead?
 # Is this stuff in there already?
@@ -91,14 +93,14 @@ def getRatingHtml(item):
         html += '<div class="criticRating">' + str(item['CriticRating']) + '%</div>'
 
     # Jellyfin-chromecast had this commented out already
-    # # Where's the metascore variable supposed to come from?
-    # if item.get(Metascore) and metascore !== false: {
-    #     if item['Metascore'] >= 60:
-    #         html += '<div class="metascore metascorehigh" title="Metascore">' + item['Metascore'] + '</div>'
-    #     elif item['Metascore'] >= 40):
-    #         html += '<div class="metascore metascoremid"  title="Metascore">' + item['Metascore'] + '</div>'
-    #     else:
-    #         html += '<div class="metascore metascorelow"  title="Metascore">' + item['Metascore'] + '</div>'
+    # Where's the metascore variable supposed to come from?
+    # # if item.get(Metascore) and metascore !== false: {
+    # #     if item['Metascore'] >= 60:
+    # #         html += '<div class="metascore metascorehigh" title="Metascore">' + item['Metascore'] + '</div>'
+    # #     elif item['Metascore'] >= 40):
+    # #         html += '<div class="metascore metascoremid"  title="Metascore">' + item['Metascore'] + '</div>'
+    # #     else:
+    # #         html += '<div class="metascore metascorelow"  title="Metascore">' + item['Metascore'] + '</div>'
 
     return html
 
@@ -129,10 +131,10 @@ def getMiscInfoHtml(item):
         miscInfo.push(text)
 
         if item['Type'] != "Recording":
-            # Jellyfin-chromecast had this commented out already
             pass
-            # text = LiveTvHelpers.getDisplayTime(date)
-            # miscInfo.push(text)
+            # Jellyfin-chromecast had this commented out already
+            # # text = LiveTvHelpers.getDisplayTime(date)
+            # # miscInfo.push(text)
 
     if item.get('ProductionYear') and item['Type'] == "Series":
         if item['Status'] == "Continuing":
@@ -159,6 +161,7 @@ def getMiscInfoHtml(item):
         else:
             # Using math.ceil instead of round because I want the minutes rounded *up* specifically,
             # mostly because '1min' makes more sense than '0min' for a 1-59sec clip
+            # FIXME: Alternatively, display '<1min' if it's 0?
             minutes = math.ceil(item['RunTimeTicks'] / 600000000)
             miscInfo.append(f"{minutes}min")
 
@@ -171,7 +174,7 @@ def getMiscInfoHtml(item):
     return '&nbsp;&nbsp;&nbsp;&nbsp;'.join(miscInfo)
 
 
-# For some reason the webview js api will send a positional argument of None when there are no arguments being passed in.
+# For some reason the webview 2.3 js api will send a positional argument of None when there are no arguments being passed in.
 # This really long argument name is here to catch that and hopefully not eat other intentional arguments.
 def getRandomBackdropUrl(positional_arg_that_is_never_used=None, **params):
     # This function is to get 1 random item, so ignore those arguments
