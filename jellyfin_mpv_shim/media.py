@@ -131,7 +131,6 @@ class Video(object):
         # - If there's a scheme specified or the path exists as a local file.
         if ((self.media_source.get('Protocol') == "Http" or self.media_source['SupportsDirectPlay'])
             and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
-            breakpoint()
             if urllib.parse.urlparse(self.media_source['Path']).scheme:
                 self.is_transcode = False
                 return self.media_source['Path']
