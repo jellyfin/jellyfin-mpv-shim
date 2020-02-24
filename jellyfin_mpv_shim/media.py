@@ -133,15 +133,18 @@ class Video(object):
             and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
             if urllib.parse.urlparse(self.media_source['Path']).scheme:
                 self.is_transcode = False
+                log.debug("Using remote direct path.")
                 return self.media_source['Path']
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
                 if os.path.isfile(self.media_source['Path']):
+                    log.debug("Using local direct path.")
                     self.is_transcode = False
                     return self.media_source['Path']
 
         if self.media_source['SupportsDirectStream']:
             self.is_transcode = False
+            log.debug("Using direct url.")
             return "%s/Videos/%s/stream?static=true&MediaSourceId=%s&api_key=%s" % (
                 self.client.config.data["auth.server"],
                 self.item_id,
@@ -149,6 +152,7 @@ class Video(object):
                 self.client.config.data["auth.token"]
             )
         elif self.media_source['SupportsTranscoding']:
+            log.debug("Using transcode url.")
             self.is_transcode = True
             return self.client.config.data["auth.server"] + self.media_source.get("TranscodingUrl")
 
@@ -180,6 +184,7 @@ class Video(object):
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr
         
+        log.debug("Bandwidth: local={0}, bitrate={1}, force={2}".format(self.parent.is_local, video_bitrate, force_transcode))
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
         self.playback_info = self.client.jellyfin.get_play_info(self.item_id, profile, self.aid, self.sid)
         
@@ -198,6 +203,10 @@ class Video(object):
                     if url is not None:
                         break
         
+        if settings.log_decisions:
+            if len(self.playback_info["MediaSources"]) > 1:
+                log.debug("Full Playback Info: {0}".format(self.playback_info))
+            log.debug("Media Decision: {0}".format(self.media_source))
         return url
 
     def get_duration(self):

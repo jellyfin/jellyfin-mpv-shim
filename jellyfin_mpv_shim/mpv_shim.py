@@ -6,7 +6,7 @@ import time
 import multiprocessing
 from threading import Event
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(name)s: %(message)s")
 
 from . import conffile
 from .conf import settings

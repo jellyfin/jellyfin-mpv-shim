@@ -43,6 +43,8 @@ class Settings(object):
         "enable_osc":           True,
         "use_web_seek":         False,
         "display_mirroring":    False,
+        "log_decisions":        False,
+        "mpv_log_level":        "info",
     }
 
     def __getattr__(self, name):
