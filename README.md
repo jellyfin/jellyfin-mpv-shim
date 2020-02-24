@@ -161,7 +161,10 @@ for media playback on OSX.
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.
  - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
- - `display_mirroring` - Enable webview-based display mirroring (content preview).
+ - `display_mirroring` - Enable webview-based display mirroring (content preview). Default: `false`
+ - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
+ - `mpv_log_level` - Log level to use for mpv. Default: `info`
+    - Options: fatal, error, warn, info, v, debug, trace
 
 ### MPV Configuration
 
