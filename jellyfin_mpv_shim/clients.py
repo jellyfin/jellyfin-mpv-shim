@@ -11,8 +11,10 @@ import json
 import uuid
 import time
 import logging
+import re
 
 log = logging.getLogger("clients")
+path_regex = re.compile("^(https?://)?([^/:]+)(:[0-9]+)?(/.*)?$")
 
 def expo(max_value=None):
     n = 0
@@ -46,11 +48,11 @@ class ClientManager(object):
             is_logged_in = self.login(server, username, password)
 
             if is_logged_in:
-                print("Successfully added server.")
+                log.info("Successfully added server.")
                 add_another = input("Add another server? [y/N] ")
                 add_another = add_another in ("y", "Y", "yes", "Yes")
             else:
-                print("Adding server failed.")        
+                log.warning("Adding server failed.")
 
     def client_factory(self):
         client = JellyfinClient()
@@ -88,15 +90,18 @@ class ClientManager(object):
             json.dump(self.credentials, cf)
 
     def login(self, server, username, password):
-        # Too many people are messing this up and I'm
-        # tired of being asked about it!
-        if not server.startswith("http"):
-            server = "http://" + server
+        protocol, host, port, path = path_regex.match(server).groups()
 
-        # If you want to connect over port 80 insecurely, you
-        # should have to specify it manually, because that is bad!
-        if not server.startswith("https://") and len(server.split(":")) < 3:
-            server = server + ":8096"
+        if not protocol:
+            log.warning("Adding http:// because it was not provided.")
+            protocol = "http://"
+
+        if protocol == "http://" and not port:
+            log.warning("Adding port 8096 for insecure local http connection.")
+            log.warning("If you want to connect to standard http port 80, use :80 in the url.")
+            port = ":8096"
+
+        server = "".join(filter(bool, (protocol, host, port, path)))
 
         client = self.client_factory()
         client.auth.connect_to_address(server)
