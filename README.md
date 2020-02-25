@@ -46,8 +46,7 @@ The menu enables you to:
  - Mark the media as unwatched and quit.
 
 On your computer, use the arrow keys, enter, and escape to navigate. On your phone, use
-the arrow buttons, ok, back, and home to navigate. (The option for remote controls is
-shown next to the name of the client when you select it from the cast menu.)
+the arrow buttons, ok, back, and home to navigate.
 
 Please also note that the on-screen controller for MPV (if available) cannot change the
 audio and subtitle track configurations for transcoded media. It also cannot load external
@@ -94,8 +93,9 @@ Here are the notable MPV keyboard shortcuts:
 
 ## Configuration
 
-The configuration file is located in different places depending on your platform. When you
-launch the program, the location of the config file will be printed. The locations are:
+The configuration file is located in different places depending on your platform. You can open the
+configuration folder using the systray icon. When you launch the program on Linux or OSX from the terminal,
+the location of the config file will be printed. The locations are:
  - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
  - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
  - Mac OSX - `Library/Application Support/jellyfin-mpv-shim/conf.json`
@@ -125,7 +125,8 @@ You can execute shell commands on media state using the config file:
 
 ### Subtitle Visual Settings
 
-All of these settings apply to direct play and are adjustable through the controlling app. Note that some may not work depending on the subtitle codec. Subtitle position and color are not available for transcodes.
+These settings may not works for some subtitle codecs or if subtitles are being burned in
+during a transcode. You can configure custom styled subtitle settings through the MPV config file.
 
  - `subtitle_size` - The size of the subtitles, in percent. Default: `100`
  - `subtitle_color` - The color of the subtitles, in hex. Default: `#FFFFFFFF`
