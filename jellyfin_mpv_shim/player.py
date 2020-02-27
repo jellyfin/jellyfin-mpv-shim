@@ -75,6 +75,19 @@ class PlayerManager(object):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         self._video = None
         extra_options = {}
+        self.timeline_trigger = None
+        self.action_trigger = None
+        self.external_subtitles = {}
+        self.external_subtitles_rev = {}
+        self.should_send_timeline = False
+        self.start_time = None
+        self.url = None
+        self.evt_queue = Queue()
+        self._lock = RLock()
+        self._tl_lock = RLock()
+        self.last_update = Timer()
+        self._jf_settings = None
+
         if is_using_ext_mpv:
             extra_options = {
                 "start_mpv": settings.mpv_ext_start,
@@ -86,21 +99,12 @@ class PlayerManager(object):
                                input_media_keys=True, include=mpv_config,
                                log_handler=mpv_log_handler, loglevel=settings.mpv_log_level,
                                **extra_options)
-        self.timeline_trigger = None
-        self.action_trigger = None
-        self.external_subtitles = {}
-        self.external_subtitles_rev = {}
         self.menu = OSDMenu(self)
-        self.should_send_timeline = False
-        self.start_time = None
 
         if hasattr(self._player, 'osc'):
             self._player.osc = settings.enable_osc
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
-
-        self.url = None
-        self.evt_queue = Queue()
 
         @self._player.on_key_press('CLOSE_WIN')
         @self._player.on_key_press('STOP')
@@ -215,13 +219,6 @@ class PlayerManager(object):
         def handle_end_idle(event):
             if self._video:
                 self.put_task(self.finished_callback)
-
-        self._lock        = RLock()
-        self._tl_lock        = RLock()
-        self.last_update = Timer()
-        self._jf_settings = None
-
-        self.__part      = 1
 
     # Put a task to the event queue.
     # This ensures the task executes outside
