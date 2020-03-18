@@ -49,6 +49,8 @@ class OSDMenu(object):
         self.menu_list = []
         self.menu_selection = 0
         self.menu_tmp = None
+        self.original_osd_color = playerManager._player.osd_back_color
+        self.original_osd_size = playerManager._player.osd_font_size
 
     # The menu is a bit of a hack...
     # It works using multiline OSD.
@@ -116,8 +118,8 @@ class OSDMenu(object):
     def hide_menu(self):
         player = self.playerManager._player
         if self.is_menu_shown:
-            player.osd_back_color = '#00000000'
-            player.osd_font_size = 55
+            player.osd_back_color = self.original_osd_color
+            player.osd_font_size = self.original_osd_size
             player.show_text("",0,0)
             player.force_window = False
             player.keep_open = False
