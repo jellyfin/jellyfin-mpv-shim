@@ -34,6 +34,6 @@ setup(
         'all': ['Jinja2', 'pywebview', 'pystray'],
     },
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.7'],
+    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.8'],
     include_package_data=True
 )
