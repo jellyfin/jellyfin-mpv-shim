@@ -50,13 +50,17 @@ def is_local_domain(client):
     url = client.config.data.get("auth.server", "")
     domain = urllib.parse.urlparse(url).hostname
 
-    ip = socket.gethostbyname(domain)
+    addr_info = socket.getaddrinfo(domain,8096)[0]
+    ip = addr_info[4][0]
     is_local = ipaddress.ip_address(ip).is_private
 
     if not is_local:
-        wan_ip = (urllib.request.urlopen("https://checkip.amazonaws.com/")
-                  .read().decode('ascii').replace('\n','').replace('\r',''))
-        return ip == wan_ip
+        if addr_info[0] == socket.AddressFamily.AF_INET:
+            wan_ip = (urllib.request.urlopen("https://checkip.amazonaws.com/")
+                   .read().decode('ascii').replace('\n','').replace('\r',''))
+            return ip == wan_ip
+        elif addr_info[0] == socket.AddressFamily.AF_INET6:
+            return False
     return True
 
 def mpv_color_to_plex(color):
