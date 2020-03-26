@@ -32,7 +32,7 @@ class ClientManager(object):
         self.credentials = []
         self.clients = {}
         self.is_stopping = False
-    
+
     def cli_connect(self):
         is_logged_in = self.try_connect()
         add_another = False
@@ -123,13 +123,14 @@ class ClientManager(object):
         def event(event_name, data):
             if event_name == 'WebSocketDisconnect':
                 timeout_gen = expo(100)
-                while not self.is_stopping:
-                    timeout = next(timeout_gen)
-                    log.info("No connection to server. Next try in {0} second(s)".format(timeout))
-                    self._disconnect_client(server=server)
-                    time.sleep(timeout)
-                    if self._connect_client(server):
-                        break
+                if server["uuid"] in self.clients:
+                    while not self.is_stopping:
+                        timeout = next(timeout_gen)
+                        log.info("No connection to server. Next try in {0} second(s)".format(timeout))
+                        self._disconnect_client(server=server)
+                        time.sleep(timeout)
+                        if self._connect_client(server):
+                            break
             else:
                 self.callback(client, event_name, data)
 
@@ -168,7 +169,7 @@ class ClientManager(object):
             is_logged_in = True
             self.clients[server["uuid"]] = client
             self.setup_client(client, server)
-            
+
         return is_logged_in
 
     def _disconnect_client(self, uuid=None, server=None):
@@ -181,8 +182,9 @@ class ClientManager(object):
         if server is not None:
             server["connected"] = False
 
-        self.clients[uuid].stop()
+        client = self.clients[uuid]
         del self.clients[uuid]
+        client.stop()
 
     def stop(self):
         self.is_stopping = True
