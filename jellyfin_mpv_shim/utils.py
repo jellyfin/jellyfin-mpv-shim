@@ -3,11 +3,14 @@ import ipaddress
 import urllib.request
 import urllib.parse
 from threading import Lock
+import logging
 
 from .conf import settings
 from datetime import datetime
 from functools import wraps
 from .constants import USER_APP_NAME
+
+log = logging.getLogger('win_utils')
 
 seq_num = 0
 seq_num_lock = Lock()
@@ -56,9 +59,13 @@ def is_local_domain(client):
 
     if not is_local:
         if addr_info[0] == socket.AddressFamily.AF_INET:
-            wan_ip = (urllib.request.urlopen("https://checkip.amazonaws.com/")
+            try:
+                wan_ip = (urllib.request.urlopen("https://checkip.amazonaws.com/")
                    .read().decode('ascii').replace('\n','').replace('\r',''))
-            return ip == wan_ip
+                return ip == wan_ip
+            except Exception:
+                log.warning("checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.", exc_info=True)
+                return False
         elif addr_info[0] == socket.AddressFamily.AF_INET6:
             return False
     return True
