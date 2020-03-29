@@ -14,6 +14,13 @@ If you are on Windows, simply [download the binary](https://github.com/iwalton3/
 If you are using Linux or OSX, please see the [Linux Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation) or [OSX Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
 sections below.
 
+### Desktop Client
+
+Launch the client. You should see the Jellyfin web app. Log in to your server and use it as normal.
+All videos will load in MPV just like MPV Shim.
+
+### MPV Shim
+
 To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
 URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
 include the subdirectory and port number if applicable. You can then cast your media
@@ -169,6 +176,9 @@ for media playback on OSX.
  - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
  - `mpv_log_level` - Log level to use for mpv. Default: `info`
     - Options: fatal, error, warn, info, v, debug, trace
+ - `enable_desktop` - Use the desktop client.
+    - You can also use it by running the `jellyfin-mpv-desktop`.
+    - If you are using the Windows build, you must download the desktop version.
 
 ### MPV Configuration
 
@@ -209,6 +219,10 @@ If you are on Linux, you can install via pip. You'll need [libmpv1](https://gith
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
+If you would like the Desktop client (run with `jellyfin-mpv-desktop`), also install:
+```
+sudo apt install python3-flask python3-webview
+```
 If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
 sudo pip3 install pystray
@@ -244,6 +258,13 @@ To install the CLI version:
 3. Install jellyfin-mpv-shim. `pip3 install --upgrade jellyfin-mpv-shim`
 4. Run `jellyfin-mpv-shim`.
 
+If you'd like to install the desktop client:
+
+1. Install brew. ([Instructions](https://brew.sh/))
+2. Install python3 and mpv. `brew install python mpv`
+3. Install jellyfin-mpv-shim. `pip3 install --upgrade jellyfin-mpv-shim[desktop]`
+4. Run `jellyfin-mpv-desktop`.
+
 If you'd like to install the GUI version, you need a working copy of tkinter.
 
 1. Install pyenv. ([Instructions](https://medium.com/python-every-day/python-development-on-macos-with-pyenv-2509c694a808))
@@ -263,10 +284,11 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim; git submodule update --init`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc`.
+3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug`.
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
 7. Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
 8. Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
-7. Run `build-win.bat`.
+9. Download the web [client build](https://github.com/iwalton3/jellyfin-web/releases/tag/jwc1.5.2) and unzip it into `jellyfin_mpv_shim\webclient_view\webclient`.
+10. Run `build-win.bat`.

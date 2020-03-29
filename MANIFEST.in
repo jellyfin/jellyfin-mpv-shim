@@ -1,1 +1,2 @@
 include jellyfin_mpv_shim/systray.png
+recursive-include jellyfin_mpv_shim/webclient_view/webclient *

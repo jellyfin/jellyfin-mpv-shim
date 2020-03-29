@@ -1,0 +1,99 @@
+import threading
+import importlib.resources
+from datetime import date
+from werkzeug.serving import make_server
+from flask import Flask, request, jsonify
+
+# So, most of my use of the webview library is ugly but there's a reason for this!
+# Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
+# I would just say "fuck it, install from testing/backports/unstable" except that's not any newer either.
+# So instead I'm going to try supporting *both* here, which gets rather ugly because they made very significant changes.
+#
+# The key differences seem to be:
+# 3.2's create_window() returns a Window object immediately, then you need to call start()
+# 2.3's create_window() blocks forever effectivelly calling start() itself
+#
+# 3.2's Window has a .loaded Event that you need to subscribe to notice when the window is ready for input
+# 2.3 has a webview_ready() function that blocks until webview is ready (or timeout is passed)
+import webview  # Python3-webview in Debian, pywebview in pypi
+
+from ..clients import clientManager
+from ..conf import settings
+from ..constants import USER_APP_NAME
+
+# Based on https://stackoverflow.com/questions/15562446/
+class Server(threading.Thread):
+    def __init__(self):
+        self.srv = None
+
+        threading.Thread.__init__(self)
+    
+    def stop(self):
+        if (self.srv is not None):
+            self.srv.shutdown()
+        self.join()
+
+    def run(self):
+        with importlib.resources.path(__package__, 'webclient') as static_wc:
+            app = Flask(__name__, static_url_path='',
+                static_folder=static_wc)
+            
+            @app.route('/mpv_shim_callback', methods=['POST'])
+            def callback():
+                print(request)
+                if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                    return "Go Away"
+                server = request.json
+                print(server)
+                x = clientManager.try_connect(credentials=[{
+                    "address": server.get("ManualAddress") or server.get("LocalAddress"),
+                    "Name": server["Name"],
+                    "Id": server["Id"],
+                    "DateLastAccessed": date.fromtimestamp(server["DateLastAccessed"]//1000)
+                                        .strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "UserId": server["UserId"],
+                    "AccessToken": server["AccessToken"],
+                    "Users": [{"Id": server["UserId"], "IsSignedInOffline": True}],
+                    "connected": True
+                }])
+                print(x)
+                resp = jsonify({
+                    "appName": USER_APP_NAME,
+                    "deviceName": settings.player_name
+                })
+                resp.status_code = 200
+                return resp
+
+            self.srv = make_server('127.0.0.1', 18096, app)
+            self.ctx = app.app_context()
+            self.ctx.push()
+            self.srv.serve_forever()
+
+# This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
+# Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
+class WebviewClient(object):
+    def __init__(self):
+        self.open_player_menu = lambda: None
+        self.server = Server()
+
+    def start(self):
+        pass
+
+    def login_servers(self):
+        pass
+
+    def run(self):
+        self.server.start()
+
+        # Webview needs to be run in the MainThread.
+        maybe_display_window = webview.create_window(url="http://127.0.0.1:18096/index.html", title="Jellyfin MPV Shim")
+        if maybe_display_window is not None:
+            webview.start()
+        self.server.stop()
+
+    def stop(self):
+        webview.destroy_window()
+        self.server.stop()
+
+userInterface = WebviewClient()
+

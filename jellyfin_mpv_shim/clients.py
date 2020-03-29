@@ -62,8 +62,8 @@ class ClientManager(object):
         client.config.data['auth.ssl'] = True
         return client
 
-    def try_connect(self):
-        self.credentials = []
+    def try_connect(self, credentials=[]):
+        self.credentials = credentials
         credentials_location = conffile.get(APP_NAME,'cred.json')            
         if os.path.exists(credentials_location):
             with open(credentials_location) as cf:
