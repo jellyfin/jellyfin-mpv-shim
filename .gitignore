@@ -2,3 +2,4 @@ __pycache__
 dist
 build
 jellyfin_mpv_shim.egg-info
+webclient

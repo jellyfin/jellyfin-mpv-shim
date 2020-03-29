@@ -16,7 +16,7 @@ from .constants import APP_NAME
 log = logging.getLogger('')
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 
-def main():
+def main(desktop=False):
     conf_file = conffile.get(APP_NAME, 'conf.json')
     settings.load(conf_file)
 
@@ -26,7 +26,10 @@ def main():
     userInterface = None
     mirror = None
     use_gui = False
-    if settings.enable_gui:
+    use_webview = desktop or settings.enable_desktop
+    if use_webview:
+        from .webclient_view import userInterface
+    elif settings.enable_gui:
         try:
             from .gui_mgr import userInterface
             use_gui = True
@@ -60,7 +63,9 @@ def main():
     userInterface.login_servers()
 
     try:
-        if mirror:
+        if use_webview:
+            userInterface.run()
+        elif mirror:
             userInterface.stop_callback = mirror.stop
             # If the webview runs before the systray icon, it fails.
             if use_gui:
@@ -80,6 +85,9 @@ def main():
         actionThread.stop()
         clientManager.stop()
         userInterface.stop()
+
+def main_desktop():
+    main(desktop=True)
 
 if __name__ == "__main__":
     main()

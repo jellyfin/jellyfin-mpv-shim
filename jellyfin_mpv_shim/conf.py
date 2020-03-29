@@ -45,6 +45,7 @@ class Settings(object):
         "display_mirroring":    False,
         "log_decisions":        False,
         "mpv_log_level":        "info",
+        "enable_desktop":       False,
     }
 
     def __getattr__(self, name):
