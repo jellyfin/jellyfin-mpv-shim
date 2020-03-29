@@ -10,7 +10,7 @@ from datetime import datetime
 from functools import wraps
 from .constants import USER_APP_NAME
 
-log = logging.getLogger('win_utils')
+log = logging.getLogger('utils')
 
 seq_num = 0
 seq_num_lock = Lock()
