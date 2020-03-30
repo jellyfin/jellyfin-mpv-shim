@@ -1,8 +1,10 @@
 import threading
 import importlib.resources
+import urllib.request
 from datetime import date
 from werkzeug.serving import make_server
 from flask import Flask, request, jsonify
+from time import sleep
 
 # So, most of my use of the webview library is ugly but there's a reason for this!
 # Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
@@ -38,7 +40,6 @@ class Server(threading.Thread):
         with importlib.resources.path(__package__, 'webclient') as static_wc:
             app = Flask(__name__, static_url_path='',
                 static_folder=static_wc)
-            
             @app.after_request
             def add_header(response):
                 if request.path == "/index.html":
@@ -124,8 +125,17 @@ class WebviewClient(object):
             qt.BrowserView.on_load_finished = lambda self: None
         except Exception: pass
 
+        url = "http://127.0.0.1:18096/index.html"
+        # Wait until the server is ready.
+        while True:
+            try:
+                urllib.request.urlopen(url)
+                break
+            except Exception: pass
+            sleep(0.1)
+
         # Webview needs to be run in the MainThread.
-        maybe_display_window = webview.create_window(url="http://127.0.0.1:18096/index.html", title="Jellyfin MPV Shim")
+        maybe_display_window = webview.create_window(url=url, title="Jellyfin MPV Shim")
         if maybe_display_window is not None:
             webview.start()
         self.server.stop()
