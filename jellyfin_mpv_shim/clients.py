@@ -187,8 +187,8 @@ class ClientManager(object):
         client.stop()
 
     def remove_all_clients(self):
-        for client in self.clients.values():
-            del self.clients[client["uuid"]]
+        for key, client in self.clients.items():
+            del self.clients[key]
             client.stop()
 
     def stop(self):
