@@ -5,9 +5,6 @@ and Linux. Think of it as an open source Chromecast for Jellyfin. You can cast a
 anything from Jellyfin and it will Direct Play. Subtitles are fully supported, and
 there are tools to manage them like no other Jellyfin client.
 
-**Note: Jellyfin MPV Shim has no navigation UI. You must cast your media from another application
-such as the web or mobile application.**
-
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
