@@ -52,7 +52,8 @@ class Server(threading.Thread):
                 if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
                     return "Go Away"
                 server = request.json
-                x = clientManager.try_connect(credentials=[{
+                clientManager.remove_all_clients()
+                clientManager.try_connect(credentials=[{
                     "address": server.get("ManualAddress") or server.get("LocalAddress"),
                     "Name": server["Name"],
                     "Id": server["Id"],
@@ -61,7 +62,8 @@ class Server(threading.Thread):
                     "UserId": server["UserId"],
                     "AccessToken": server["AccessToken"],
                     "Users": [{"Id": server["UserId"], "IsSignedInOffline": True}],
-                    "connected": True
+                    "connected": True,
+                    "uuid": server["Id"]
                 }])
                 resp = jsonify({
                     "appName": USER_APP_NAME,
