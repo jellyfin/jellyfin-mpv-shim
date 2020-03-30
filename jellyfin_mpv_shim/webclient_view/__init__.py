@@ -103,6 +103,27 @@ class WebviewClient(object):
             except Exception:
                 pass
 
+        # Apparently pywebview3 breaks everywhere, not just on Windows.
+        try:
+            from webview.platforms import cef
+            cef.Browser.initialize = lambda self: None
+        except Exception: pass
+        try:
+            from webview.platforms import cocoa
+            cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = lambda self, webview, nav: None
+        except Exception: pass
+        try:
+            from webview.platforms import gtk
+            def override_gtk(self, webview, status):
+                if not webview.props.opacity:
+                    gtk.glib.idle_add(webview.set_opacity, 1.0)
+            gtk.BrowserView.on_load_finish = override_gtk
+        except Exception: pass
+        try:
+            from webview.platforms import qt
+            qt.BrowserView.on_load_finished = lambda self: None
+        except Exception: pass
+
         # Webview needs to be run in the MainThread.
         maybe_display_window = webview.create_window(url="http://127.0.0.1:18096/index.html", title="Jellyfin MPV Shim")
         if maybe_display_window is not None:
