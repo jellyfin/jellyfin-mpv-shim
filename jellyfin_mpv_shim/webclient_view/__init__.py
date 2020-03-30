@@ -66,7 +66,7 @@ class Server(threading.Thread):
                     "deviceName": settings.player_name
                 })
                 resp.status_code = 200
-                response.cache_control.no_store = True
+                resp.cache_control.no_store = True
                 return resp
 
             self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
