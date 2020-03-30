@@ -223,6 +223,9 @@ sudo pip3 install --upgrade jellyfin-mpv-shim
 If you would like the Desktop client (run with `jellyfin-mpv-desktop`), also install:
 ```
 sudo apt install python3-flask python3-webview python3-werkzeug
+# -- OR --
+sudo pip3 install jellyfin-mpv-shim[desktop]
+sudo apt install gir1.2-webkit2-4.0
 ```
 If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
