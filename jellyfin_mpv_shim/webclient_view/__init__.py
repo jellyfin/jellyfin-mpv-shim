@@ -16,6 +16,7 @@ from flask import Flask, request, jsonify
 # 3.2's Window has a .loaded Event that you need to subscribe to notice when the window is ready for input
 # 2.3 has a webview_ready() function that blocks until webview is ready (or timeout is passed)
 import webview  # Python3-webview in Debian, pywebview in pypi
+import sys
 
 from ..clients import clientManager
 from ..conf import settings
@@ -38,13 +39,17 @@ class Server(threading.Thread):
             app = Flask(__name__, static_url_path='',
                 static_folder=static_wc)
             
+            @app.after_request
+            def add_header(response):
+                if not response.cache_control.no_store:
+                    response.cache_control.max_age = 2592000
+                return response
+
             @app.route('/mpv_shim_callback', methods=['POST'])
             def callback():
-                print(request)
                 if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
                     return "Go Away"
                 server = request.json
-                print(server)
                 x = clientManager.try_connect(credentials=[{
                     "address": server.get("ManualAddress") or server.get("LocalAddress"),
                     "Name": server["Name"],
@@ -56,15 +61,15 @@ class Server(threading.Thread):
                     "Users": [{"Id": server["UserId"], "IsSignedInOffline": True}],
                     "connected": True
                 }])
-                print(x)
                 resp = jsonify({
                     "appName": USER_APP_NAME,
                     "deviceName": settings.player_name
                 })
                 resp.status_code = 200
+                resp.cache_control.no_store = True
                 return resp
 
-            self.srv = make_server('127.0.0.1', 18096, app)
+            self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
             self.ctx = app.app_context()
             self.ctx.push()
             self.srv.serve_forever()
@@ -85,6 +90,15 @@ class WebviewClient(object):
     def run(self):
         self.server.start()
 
+        if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+            # I wasted half a day here. Turns out that pywebview does something that
+            # breaks Jellyfin on Windows in both EdgeHTML and CEF. This kills that.
+            try:
+                from webview.platforms import winforms
+                winforms.BrowserView.EdgeHTML.on_navigation_completed = lambda: None
+            except Exception:
+                pass
+
         # Webview needs to be run in the MainThread.
         maybe_display_window = webview.create_window(url="http://127.0.0.1:18096/index.html", title="Jellyfin MPV Shim")
         if maybe_display_window is not None:
@@ -92,7 +106,6 @@ class WebviewClient(object):
         self.server.stop()
 
     def stop(self):
-        webview.destroy_window()
         self.server.stop()
 
 userInterface = WebviewClient()
