@@ -204,7 +204,8 @@ The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-ap
 using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
 component uses `pystray` and `tkinter`, but there is a fallback cli mode. The mirroring dependencies
 are `Jinja2` and `pywebview`, along with platform-specific dependencies. (See the installation and building
-guides for details on platform-specific dependencies for display mirroring.)
+guides for details on platform-specific dependencies for display mirroring.) The desktop client depends on
+`pywebview`, `Flask`, and `Werkzeug`.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
@@ -221,7 +222,7 @@ sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
 If you would like the Desktop client (run with `jellyfin-mpv-desktop`), also install:
 ```
-sudo apt install python3-flask python3-webview
+sudo apt install python3-flask python3-webview python3-werkzeug
 ```
 If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
