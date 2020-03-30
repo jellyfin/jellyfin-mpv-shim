@@ -64,7 +64,7 @@ class Server(threading.Thread):
                 resp.status_code = 200
                 return resp
 
-            self.srv = make_server('127.0.0.1', 18096, app)
+            self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
             self.ctx = app.app_context()
             self.ctx.push()
             self.srv.serve_forever()
@@ -92,7 +92,6 @@ class WebviewClient(object):
         self.server.stop()
 
     def stop(self):
-        webview.destroy_window()
         self.server.stop()
 
 userInterface = WebviewClient()
