@@ -41,6 +41,8 @@ class Server(threading.Thread):
             
             @app.after_request
             def add_header(response):
+                if request.path == "/index.html":
+                    return response
                 if not response.cache_control.no_store:
                     response.cache_control.max_age = 2592000
                 return response
