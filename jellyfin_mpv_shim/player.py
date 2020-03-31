@@ -276,6 +276,8 @@ class PlayerManager(object):
         if win_utils:
             if settings.display_mirroring:
                 win_utils.mirror_act(False)
+            elif settings.desktop_fullscreen:
+                win_utils.mirror_act(False, "Jellyfin MPV Desktop")
             win_utils.raise_mpv()
 
         if offset is not None and offset > 0:
@@ -526,6 +528,8 @@ class PlayerManager(object):
         
         if win_utils and settings.display_mirroring:
             win_utils.mirror_act(True)
+        elif win_utils and settings.desktop_fullscreen:
+            win_utils.mirror_act(True, "Jellyfin MPV Desktop")
 
     def upd_player_hide(self):
         self._player.keep_open = self._video.parent.has_next

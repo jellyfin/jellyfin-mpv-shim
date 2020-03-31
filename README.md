@@ -176,9 +176,11 @@ for media playback on OSX.
  - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
  - `mpv_log_level` - Log level to use for mpv. Default: `info`
     - Options: fatal, error, warn, info, v, debug, trace
- - `enable_desktop` - Use the desktop client.
+ - `enable_desktop` - Use the desktop client. Default: `false`
     - You can also use it by running the `jellyfin-mpv-desktop`.
     - If you are using the Windows build, you must download the desktop version.
+ - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
+ - `desktop_remember_pos` - Remember the position of the desktop client. Default: `true`
 
 ### MPV Configuration
 

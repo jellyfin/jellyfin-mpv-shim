@@ -25,9 +25,8 @@ from threading import Event
 
 from ..clients import clientManager
 from ..conf import settings
-from ..constants import USER_APP_NAME
+from ..constants import USER_APP_NAME, APP_NAME
 from .. import conffile
-from ..constants import APP_NAME
 
 remember_layout = conffile.get(APP_NAME, 'layout.json')
 loaded = Event()
@@ -117,7 +116,7 @@ class WebviewClient(object):
         self.server.start()
 
         extra_options = {}
-        if os.path.exists(remember_layout):
+        if os.path.exists(remember_layout) and settings.desktop_remember_pos:
             with open(remember_layout) as fh:
                 extra_options = json.load(fh)
         if not self.cef and sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
@@ -164,7 +163,8 @@ class WebviewClient(object):
             sleep(0.1)
 
         # Webview needs to be run in the MainThread.
-        window = webview.create_window(url=url, title="Jellyfin MPV Shim", **extra_options)
+        window = webview.create_window(url=url, title="Jellyfin MPV Desktop",
+                    fullscreen=settings.desktop_fullscreen, **extra_options)
         if window is not None:
             def handle_close():
                 x, y = window.x, window.y

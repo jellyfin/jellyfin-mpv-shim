@@ -46,6 +46,8 @@ class Settings(object):
         "log_decisions":        False,
         "mpv_log_level":        "info",
         "enable_desktop":       False,
+        "desktop_fullscreen":   False,
+        "desktop_remember_pos": True,
     }
 
     def __getattr__(self, name):
