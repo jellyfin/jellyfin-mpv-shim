@@ -21,6 +21,7 @@ import json
 # 2.3 has a webview_ready() function that blocks until webview is ready (or timeout is passed)
 import webview  # Python3-webview in Debian, pywebview in pypi
 import sys
+from threading import Event
 
 from ..clients import clientManager
 from ..conf import settings
@@ -29,6 +30,7 @@ from .. import conffile
 from ..constants import APP_NAME
 
 remember_layout = conffile.get(APP_NAME, 'layout.json')
+loaded = Event()
 
 # Based on https://stackoverflow.com/questions/15562446/
 class Server(threading.Thread):
@@ -49,29 +51,32 @@ class Server(threading.Thread):
             @app.after_request
             def add_header(response):
                 if request.path == "/index.html":
+                    response.cache_control.no_store = True
                     return response
                 if not response.cache_control.no_store:
                     response.cache_control.max_age = 2592000
                 return response
 
-            @app.route('/mpv_shim_callback', methods=['POST'])
-            def callback():
+            @app.route('/mpv_shim_password', methods=['POST'])
+            def mpv_shim_password():
                 if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
                     return "Go Away"
-                server = request.json
-                clientManager.remove_all_clients()
-                clientManager.try_connect(credentials=[{
-                    "address": server.get("ManualAddress") or server.get("LocalAddress"),
-                    "Name": server["Name"],
-                    "Id": server["Id"],
-                    "DateLastAccessed": date.fromtimestamp(server["DateLastAccessed"]//1000)
-                                        .strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "UserId": server["UserId"],
-                    "AccessToken": server["AccessToken"],
-                    "Users": [{"Id": server["UserId"], "IsSignedInOffline": True}],
-                    "connected": True,
-                    "uuid": server["Id"]
-                }])
+                login_req = request.json
+                success = clientManager.login(login_req["server"], login_req["username"], login_req["password"], True)
+                if success:
+                    loaded.set()
+                resp = jsonify({
+                    "success": success
+                })
+                resp.status_code = 200
+                resp.cache_control.no_store = True
+                return resp
+
+            @app.route('/mpv_shim_id', methods=['POST'])
+            def mpv_shim_id():
+                if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                    return "Go Away"
+                loaded.wait()
                 resp = jsonify({
                     "appName": USER_APP_NAME,
                     "deviceName": settings.player_name
@@ -97,7 +102,9 @@ class WebviewClient(object):
         pass
 
     def login_servers(self):
-        pass
+        success = clientManager.try_connect()
+        if success:
+            loaded.set()
 
     def run(self):
         self.server.start()

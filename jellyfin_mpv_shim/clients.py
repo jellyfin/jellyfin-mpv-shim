@@ -62,8 +62,7 @@ class ClientManager(object):
         client.config.data['auth.ssl'] = True
         return client
 
-    def try_connect(self, credentials=[]):
-        self.credentials = credentials
+    def try_connect(self):
         credentials_location = conffile.get(APP_NAME,'cred.json')            
         if os.path.exists(credentials_location):
             with open(credentials_location) as cf:
@@ -89,7 +88,7 @@ class ClientManager(object):
         with open(credentials_location, "w") as cf:
             json.dump(self.credentials, cf)
 
-    def login(self, server, username, password):
+    def login(self, server, username, password, force_unique=False):
         protocol, host, port, path = path_regex.match(server).groups()
 
         if not protocol:
@@ -111,8 +110,13 @@ class ClientManager(object):
         if is_logged_in:
             credentials = client.auth.credentials.get_credentials()
             server = credentials["Servers"][0]
-            server["uuid"] = str(uuid.uuid4())
+            if force_unique:
+                server["uuid"] = server["Id"]
+            else:
+                server["uuid"] = str(uuid.uuid4())
             server["username"] = username
+            if force_unique and server["Id"] in self.clients:
+                return True
             self._connect_client(server)
             self.credentials.append(server)
             self.save_credentials()
