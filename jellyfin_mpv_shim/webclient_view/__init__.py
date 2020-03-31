@@ -5,6 +5,8 @@ from datetime import date
 from werkzeug.serving import make_server
 from flask import Flask, request, jsonify
 from time import sleep
+import os.path
+import json
 
 # So, most of my use of the webview library is ugly but there's a reason for this!
 # Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
@@ -23,6 +25,10 @@ import sys
 from ..clients import clientManager
 from ..conf import settings
 from ..constants import USER_APP_NAME
+from .. import conffile
+from ..constants import APP_NAME
+
+remember_layout = conffile.get(APP_NAME, 'layout.json')
 
 # Based on https://stackoverflow.com/questions/15562446/
 class Server(threading.Thread):
@@ -82,9 +88,10 @@ class Server(threading.Thread):
 # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
 # Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
 class WebviewClient(object):
-    def __init__(self):
+    def __init__(self, cef=False):
         self.open_player_menu = lambda: None
         self.server = Server()
+        self.cef = cef
 
     def start(self):
         pass
@@ -95,7 +102,11 @@ class WebviewClient(object):
     def run(self):
         self.server.start()
 
-        if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+        extra_options = {}
+        if os.path.exists(remember_layout):
+            with open(remember_layout) as fh:
+                extra_options = json.load(fh)
+        if not self.cef and sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
             # I wasted half a day here. Turns out that pywebview does something that
             # breaks Jellyfin on Windows in both EdgeHTML and CEF. This kills that.
             try:
@@ -105,10 +116,14 @@ class WebviewClient(object):
                 pass
 
         # Apparently pywebview3 breaks everywhere, not just on Windows.
-        try:
-            from webview.platforms import cef
-            cef.Browser.initialize = lambda self: None
-        except Exception: pass
+        if self.cef:
+            try:
+                from webview.platforms import cef
+                cef.settings.update({
+                    'cache_path': conffile.get(APP_NAME, 'cache')
+                })
+                cef.Browser.initialize = lambda self: None
+            except Exception: pass
         try:
             from webview.platforms import cocoa
             cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = lambda self, webview, nav: None
@@ -135,13 +150,29 @@ class WebviewClient(object):
             sleep(0.1)
 
         # Webview needs to be run in the MainThread.
-        maybe_display_window = webview.create_window(url=url, title="Jellyfin MPV Shim")
-        if maybe_display_window is not None:
-            webview.start()
+        window = webview.create_window(url=url, title="Jellyfin MPV Shim", **extra_options)
+        if window is not None:
+            def handle_close():
+                x, y = window.x, window.y
+                # For some reason it seems like X and Y are swapped?
+                # https://github.com/r0x0r/pywebview/issues/480
+                if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+                    x, y = y, x
+                extra_options = {
+                    "x": x,
+                    "y": y,
+                    "width": window.width,
+                    "height": window.height
+                }
+                with open(remember_layout, "w") as fh:
+                    json.dump(extra_options, fh)
+            window.closing += handle_close
+            if self.cef:
+                webview.start(gui='cef')
+            else:
+                webview.start()
         self.server.stop()
 
     def stop(self):
         self.server.stop()
-
-userInterface = WebviewClient()
 

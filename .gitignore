@@ -3,3 +3,7 @@ dist
 build
 jellyfin_mpv_shim.egg-info
 webclient
+cefpython3
+*.dll
+*.spec
+*.pyc

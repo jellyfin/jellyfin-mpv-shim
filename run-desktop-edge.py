@@ -18,4 +18,4 @@ if __name__ == '__main__':
     # https://stackoverflow.com/questions/24944558/pyinstaller-built-windows-exe-fails-with-multiprocessing
     multiprocessing.freeze_support()
     
-    main_desktop(cef=True)
+    main_desktop()

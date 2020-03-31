@@ -16,7 +16,7 @@ from .constants import APP_NAME
 log = logging.getLogger('')
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 
-def main(desktop=False):
+def main(desktop=False, cef=False):
     conf_file = conffile.get(APP_NAME, 'conf.json')
     settings.load(conf_file)
 
@@ -28,7 +28,8 @@ def main(desktop=False):
     use_gui = False
     use_webview = desktop or settings.enable_desktop
     if use_webview:
-        from .webclient_view import userInterface
+        from .webclient_view import WebviewClient
+        userInterface = WebviewClient(cef=cef)
     elif settings.enable_gui:
         try:
             from .gui_mgr import userInterface
@@ -86,8 +87,8 @@ def main(desktop=False):
         clientManager.stop()
         userInterface.stop()
 
-def main_desktop():
-    main(desktop=True)
+def main_desktop(cef=False):
+    main(desktop=True, cef=cef)
 
 if __name__ == "__main__":
     main()
