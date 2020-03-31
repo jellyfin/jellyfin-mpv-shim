@@ -34,8 +34,10 @@ loaded = Event()
 
 def do_not_cache(response):
     response.cache_control.no_store = True
-    response.cache_control.max_age = None
-    response.cache_control.public = False
+    if response.cache_control.max_age:
+        response.cache_control.max_age = None
+    if response.cache_control.public:
+        response.cache_control.public = False
 
 # Based on https://stackoverflow.com/questions/15562446/
 class Server(threading.Thread):
