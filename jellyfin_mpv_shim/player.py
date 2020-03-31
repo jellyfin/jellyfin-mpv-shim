@@ -87,6 +87,7 @@ class PlayerManager(object):
         self._tl_lock = RLock()
         self.last_update = Timer()
         self._jf_settings = None
+        self.get_webview = lambda: None
 
         if is_using_ext_mpv:
             extra_options = {
@@ -273,11 +274,11 @@ class PlayerManager(object):
         self.configure_streams()
         self.update_subtitle_visuals()
 
+        print(self.get_webview())
+        if (self.get_webview() is not None and
+            (settings.display_mirroring or settings.desktop_fullscreen)):
+            self.get_webview().hide()
         if win_utils:
-            if settings.display_mirroring:
-                win_utils.mirror_act(False)
-            elif settings.desktop_fullscreen:
-                win_utils.mirror_act(False, "Jellyfin MPV Desktop")
             win_utils.raise_mpv()
 
         if offset is not None and offset > 0:
@@ -526,10 +527,9 @@ class PlayerManager(object):
         self.should_send_timeline = False
         self._video.client.jellyfin.session_stop(self.get_timeline_options())
         
-        if win_utils and settings.display_mirroring:
-            win_utils.mirror_act(True)
-        elif win_utils and settings.desktop_fullscreen:
-            win_utils.mirror_act(True, "Jellyfin MPV Desktop")
+        if (self.get_webview() is not None and
+            (settings.display_mirroring or settings.desktop_fullscreen)):
+            self.get_webview().show()
 
     def upd_player_hide(self):
         self._player.keep_open = self._video.parent.has_next

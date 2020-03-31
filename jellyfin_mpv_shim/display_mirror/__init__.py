@@ -30,6 +30,10 @@ class DisplayMirror(object):
 
     def __init__(self):
         self.open_player_menu = lambda: None
+        self.webview = None
+
+    def get_webview(self):
+        return self.webview
 
     def run(self):
         # Webview needs to be run in the MainThread.
@@ -41,10 +45,11 @@ class DisplayMirror(object):
         if 'webview_ready' in dir(webview):
             threading.Thread(target=lambda: (webview.webview_ready(), load_idle())).start()
 
-        maybe_display_window = webview.create_window(title="Jellyfin MPV Shim Mirror", js_api=helpers, fullscreen=True)
-        if maybe_display_window is not None:
+        window = webview.create_window(title="Jellyfin MPV Shim Mirror", js_api=helpers, fullscreen=True)
+        if window is not None:
             # It returned a Window object instead of blocking, we're running on 3.2 (or compatible)
-            self.display_window = maybe_display_window
+            self.display_window = window
+            self.webview = window
 
             # 3.2's .loaded event runs every time a new DOM is loaded as well, so not suitable for this purpose
             # However, 3.2's load_html waits for the DOM to be ready, so we can completely skip waiting for that ourselves.

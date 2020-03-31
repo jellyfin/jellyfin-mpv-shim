@@ -103,6 +103,7 @@ class WebviewClient(object):
         self.open_player_menu = lambda: None
         self.server = Server()
         self.cef = cef
+        self.webview = None
 
     def start(self):
         pass
@@ -111,6 +112,9 @@ class WebviewClient(object):
         success = clientManager.try_connect()
         if success:
             loaded.set()
+
+    def get_webview(self):
+        return self.webview
 
     def run(self):
         self.server.start()
@@ -166,6 +170,7 @@ class WebviewClient(object):
         window = webview.create_window(url=url, title="Jellyfin MPV Desktop",
                     fullscreen=settings.desktop_fullscreen, **extra_options)
         if window is not None:
+            self.webview = window
             def handle_close():
                 x, y = window.x, window.y
                 # For some reason it seems like X and Y are swapped?

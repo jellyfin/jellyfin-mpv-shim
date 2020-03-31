@@ -27,9 +27,11 @@ def main(desktop=False, cef=False):
     mirror = None
     use_gui = False
     use_webview = desktop or settings.enable_desktop
+    get_webview = lambda: None
     if use_webview:
         from .webclient_view import WebviewClient
         userInterface = WebviewClient(cef=cef)
+        get_webview = userInterface.get_webview
     elif settings.enable_gui:
         try:
             from .gui_mgr import userInterface
@@ -39,9 +41,10 @@ def main(desktop=False, cef=False):
         except Exception:
             log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
     
-    if settings.display_mirroring:
+    if settings.display_mirroring and not use_webview:
         try:
             from .display_mirror import mirror
+            get_webview = mirror.get_webview
         except ImportError:
             log.warning("Cannot load display mirror.", exc_info=1)
 
@@ -58,6 +61,7 @@ def main(desktop=False, cef=False):
     playerManager.timeline_trigger = timelineManager.trigger
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
+    playerManager.get_webview = get_webview
     userInterface.open_player_menu = playerManager.menu.show_menu
     eventHandler.mirror = mirror
     userInterface.start()

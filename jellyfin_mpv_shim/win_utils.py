@@ -30,6 +30,7 @@ def mirror_act(state, name="Jellyfin MPV Shim Mirror"):
         win32gui.EnumWindows(windowEnumerationHandler, top_windows)
         for i in top_windows:
             if name in i[1]:
+                print(i)
                 win32gui.ShowWindow(i[0], 9 if state else 6)
                 break
 
