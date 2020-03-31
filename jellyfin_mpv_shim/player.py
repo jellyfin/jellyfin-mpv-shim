@@ -261,6 +261,10 @@ class PlayerManager(object):
 
         if settings.log_decisions:
             log.debug("Playing: {0}".format(url))
+        if (self.get_webview() is not None and
+            (settings.display_mirroring or settings.desktop_fullscreen)):
+            self.get_webview().hide()
+
         self._player.play(self.url)
         self._player.wait_for_property("duration")
         if settings.fullscreen:
@@ -274,10 +278,6 @@ class PlayerManager(object):
         self.configure_streams()
         self.update_subtitle_visuals()
 
-        print(self.get_webview())
-        if (self.get_webview() is not None and
-            (settings.display_mirroring or settings.desktop_fullscreen)):
-            self.get_webview().hide()
         if win_utils:
             win_utils.raise_mpv()
 
