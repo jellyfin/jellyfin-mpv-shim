@@ -13,6 +13,8 @@ sections below.
 
 ### Desktop Client
 
+# ATTENTION: The new desktop client is broken for all users who have not used the regular MPV Shim application. I will work on a fix tomorrow.
+
 Launch the client. You should see the Jellyfin web app. Log in to your server and use it as normal.
 All videos will load in MPV just like MPV Shim.
 
