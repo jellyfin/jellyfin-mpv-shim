@@ -32,6 +32,11 @@ from ..constants import APP_NAME
 remember_layout = conffile.get(APP_NAME, 'layout.json')
 loaded = Event()
 
+def do_not_cache(response):
+    response.cache_control.no_store = True
+    response.cache_control.max_age = None
+    response.cache_control.public = False
+
 # Based on https://stackoverflow.com/questions/15562446/
 class Server(threading.Thread):
     def __init__(self):
@@ -51,7 +56,7 @@ class Server(threading.Thread):
             @app.after_request
             def add_header(response):
                 if request.path == "/index.html":
-                    response.cache_control.no_store = True
+                    do_not_cache(response)
                     return response
                 if not response.cache_control.no_store:
                     response.cache_control.max_age = 2592000
@@ -69,7 +74,7 @@ class Server(threading.Thread):
                     "success": success
                 })
                 resp.status_code = 200
-                resp.cache_control.no_store = True
+                do_not_cache(resp)
                 return resp
 
             @app.route('/mpv_shim_id', methods=['POST'])
@@ -82,7 +87,7 @@ class Server(threading.Thread):
                     "deviceName": settings.player_name
                 })
                 resp.status_code = 200
-                resp.cache_control.no_store = True
+                do_not_cache(resp)
                 return resp
 
             self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
