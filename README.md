@@ -17,7 +17,7 @@ Launch the client. You should see the Jellyfin web app. Log in to your server an
 All videos will load in MPV just like MPV Shim.
 
 Please note: The desktop client for Windows contains significantly more files than MPV Shim, so it
-is distributed as a zip file. Run the file "run-desktop.exe" in the folder to launch the client.
+is distributed as an installer. It will work without admin rights.
 
 ### MPV Shim
 
