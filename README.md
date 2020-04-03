@@ -216,6 +216,19 @@ use mpv as the player, and updated to allow all features of the remote control a
 The Jellyfin API client comes from [Jellyfin for Kodi](https://github.com/jellyfin/jellyfin-kodi/tree/master/jellyfin_kodi).
 The API client was originally forked for this project and is now a [separate package](https://github.com/iwalton3/jellyfin-apiclient-python).
 
+### Local Dev Installation
+
+If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
+
+1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug`.
+2. Clone this repository: `git clone https://github.com/iwalton3/jellyfin-mpv-shim`
+3. `cd` to the repository: `cd jellyfin-mpv-shim`
+4. Init the submodule: `git submodule update --init`
+5. Download the [web client](https://github.com/iwalton3/jellyfin-web/releases) and place the contents of the dist folder inside a folder named `webclient` in the `webclient_view` folder.
+6. Ensure you have a copy of `libmpv1` or `mpv` available.
+7. Install any platform-specific dependencies from the respective install tutorials.
+8. You should now be able to run the program with `./run.py` or `./run-desktop.py`.
+
 ## Linux Installation
 
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
