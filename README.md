@@ -17,7 +17,7 @@ Launch the client. You should see the Jellyfin web app. Log in to your server an
 All videos will load in MPV just like MPV Shim.
 
 Please note: The desktop client for Windows contains significantly more files than MPV Shim, so it
-is distributed as a zip file. Run the file "run-desktop.exe" in the folder to launch the client.
+is distributed as an installer. It will work without admin rights.
 
 ### MPV Shim
 
@@ -300,6 +300,11 @@ Display mirroring is not tested on OSX, but may be installable with 'pip3 instal
 There is a prebuilt version for Windows in the releases section. When
 following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
+
+If you'd like to build the installer, please install [NSIS](https://nsis.sourceforge.io/Main_Page) to build
+the installer. If you'd like to build a 32 bit version, download the 32 bit version of mpv-1.dll and
+copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll?raw=true).
+You may also need to edit the batch file for 32 bit builds to point to the right python executable.
 
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim; git submodule update --init`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).

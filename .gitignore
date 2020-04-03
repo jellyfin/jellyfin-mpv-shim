@@ -7,3 +7,4 @@ cefpython3
 *.dll
 *.spec
 *.pyc
+mpv32
