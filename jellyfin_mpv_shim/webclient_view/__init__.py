@@ -143,7 +143,15 @@ class WebviewClient(object):
             except Exception: pass
         try:
             from webview.platforms import cocoa
-            cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = lambda self, webview, nav: None
+            def override_cocoa(self, webview, nav):
+                # Add the webview to the window if it's not yet the contentView
+                i = cocoa.BrowserView.get_instance('webkit', webview)
+
+                if i:
+                    if not webview.window():
+                        i.window.setContentView_(webview)
+                        i.window.makeFirstResponder_(webview)
+            cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = override_cocoa
         except Exception: pass
         try:
             from webview.platforms import gtk
