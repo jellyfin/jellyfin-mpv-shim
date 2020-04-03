@@ -41,7 +41,9 @@ Current Dependencies:
  - `pystray` - Provides systray icon. (Optional)
  - `tkinter` - Provides GUI for adding servers and viewing logs. (Optional)
  - `Jinja2` - Renders HTML for display mirroring. (Optional)
- - `pywebview` - Displays HTML for display mirroring. (Optional)
+ - `pywebview` - Displays HTML for display mirroring or webclient. (Optional)
+ - `Flask` - Used to serve the webclient in desktop mode. (Optional)
+ - `Werkzeug` - Used to serve the webclient in desktop mode. (Optional)
 
 ## Project Overview
 
@@ -65,7 +67,8 @@ Current Dependencies:
      - Note: `player.py` is where the actual response is created.
  - `utils.py` - Contains the playback profile and various utilities for other modules.
  - `win_utils.py` - Implements window management workarounds for Windows.
- - `display_mirror` - Package that implements the full-screen disaply mirroring.
+ - `display_mirror` - Package that implements the full-screen display mirroring.
+ - `webclient_view` - Package that implements the webclient UI. (The actual webclient is a [separate repo](https://github.com/iwalton3/jellyfin-web).)
 
 ## Building the Project
 
