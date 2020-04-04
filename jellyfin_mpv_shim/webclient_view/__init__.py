@@ -53,7 +53,7 @@ class Server(threading.Thread):
     def run(self):
         with importlib.resources.path(__package__, 'webclient') as static_wc:
             app = Flask(__name__, static_url_path='',
-                static_folder=static_wc)
+                static_folder=str(static_wc))
             @app.after_request
             def add_header(response):
                 if request.path == "/index.html":
