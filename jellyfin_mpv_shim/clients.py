@@ -37,7 +37,7 @@ class ClientManager(object):
         is_logged_in = self.try_connect()
         add_another = False
 
-        if len(sys.argv) > 1 and sys.argv[1] == "add":
+        if "add" in sys.argv:
             add_another = True
 
         while not is_logged_in or add_another:

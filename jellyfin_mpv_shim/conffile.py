@@ -27,8 +27,16 @@ for platform, directory in confdirs:
     if sys.platform.startswith(platform):
         confdir = directory
 
+custom_config = None
+for i, arg in enumerate(sys.argv):
+    if arg == "--config" and len(sys.argv) > i+1:
+        custom_config = sys.argv[i+1]
+
 def get(app, conf_file, create=False):
-    conf_folder = confdir(app)
+    if custom_config is not None:
+        conf_folder = custom_config
+    else:
+        conf_folder = confdir(app)
     if not os.path.isdir(conf_folder):
         os.makedirs(conf_folder)
     conf_file = os.path.join(conf_folder,conf_file)

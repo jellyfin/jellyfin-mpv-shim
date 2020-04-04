@@ -111,6 +111,8 @@ the location of the config file will be printed. The locations are:
  - Mac OSX - `Library/Application Support/jellyfin-mpv-shim/conf.json`
  - CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
 
+You can specify a custom configuration folder with the `--config` option.
+
 ### Transcoding
 
 You can adjust the basic transcoder settings via the menu.
