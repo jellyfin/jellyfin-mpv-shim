@@ -198,8 +198,6 @@ servers again.
 
 ## Development
 
-Make sure you pull the submodules using `git submodule init && git submodule update`.
-
 If you'd like to run the application without installing it, run `./run.py`.
 The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
@@ -218,6 +216,8 @@ use mpv as the player, and updated to allow all features of the remote control a
 The Jellyfin API client comes from [Jellyfin for Kodi](https://github.com/jellyfin/jellyfin-kodi/tree/master/jellyfin_kodi).
 The API client was originally forked for this project and is now a [separate package](https://github.com/iwalton3/jellyfin-apiclient-python).
 
+The css file for desktop mirroring is from [jellyfin-chromecast](https://github.com/jellyfin/jellyfin-chromecast/tree/5194d2b9f0120e0eb8c7a81fe546cb9e92fcca2b) and is subject to GPL v2.0.
+
 ### Local Dev Installation
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
@@ -225,11 +225,10 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug`.
 2. Clone this repository: `git clone https://github.com/iwalton3/jellyfin-mpv-shim`
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
-4. Init the submodule: `git submodule update --init`
-5. Download the [web client](https://github.com/iwalton3/jellyfin-web/releases) and place the contents of the dist folder inside a folder named `webclient` in the `webclient_view` folder.
-6. Ensure you have a copy of `libmpv1` or `mpv` available.
-7. Install any platform-specific dependencies from the respective install tutorials.
-8. You should now be able to run the program with `./run.py` or `./run-desktop.py`.
+4. Download the [web client](https://github.com/iwalton3/jellyfin-web/releases) and place the contents of the dist folder inside a folder named `webclient` in the `webclient_view` folder.
+5. Ensure you have a copy of `libmpv1` or `mpv` available.
+6. Install any platform-specific dependencies from the respective install tutorials.
+7. You should now be able to run the program with `./run.py` or `./run-desktop.py`.
 
 ## Linux Installation
 
@@ -308,7 +307,7 @@ the installer. If you'd like to build a 32 bit version, download the 32 bit vers
 copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll?raw=true).
 You may also need to edit the batch file for 32 bit builds to point to the right python executable.
 
-1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim; git submodule update --init`.
+1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
 3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview[cef] python-mpv-jsonipc Flask Werkzeug`.
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).

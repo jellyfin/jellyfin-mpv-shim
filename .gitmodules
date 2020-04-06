@@ -1,3 +1,0 @@
-[submodule "jellyfin-chromecast"]
-	path = jellyfin-chromecast
-	url = https://github.com/jellyfin/jellyfin-chromecast
