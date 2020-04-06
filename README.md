@@ -186,7 +186,7 @@ for media playback on OSX.
 
 ### MPV Configuration
 
-You can configure mpv directly using the `mpv.conf` file. (It is in the same folder as `conf.json`.)
+You can configure mpv directly using the `mpv.conf` and `input.conf` files. (It is in the same folder as `conf.json`.)
 This may be useful for customizing video upscaling, keyboard shortcuts, or controlling the application
 via the mpv IPC server.
 

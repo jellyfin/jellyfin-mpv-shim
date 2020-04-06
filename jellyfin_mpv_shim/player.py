@@ -73,6 +73,7 @@ class PlayerManager(object):
     """
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
+        input_config = conffile.get(APP_NAME,"input.conf", True)
         self._video = None
         extra_options = {}
         self.timeline_trigger = None
@@ -97,7 +98,7 @@ class PlayerManager(object):
                 "player-operation-mode": "cplayer"
             }
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, include=mpv_config,
+                               input_media_keys=True, include=mpv_config, input_conf=input_config,
                                log_handler=mpv_log_handler, loglevel=settings.mpv_log_level,
                                **extra_options)
         self.menu = OSDMenu(self)
