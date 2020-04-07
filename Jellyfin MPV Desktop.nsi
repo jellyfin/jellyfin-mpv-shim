@@ -94,8 +94,8 @@ WriteUninstaller "$INSTDIR\uninstall.exe"
 !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
 CreateDirectory "$SMPROGRAMS\$SM_Folder"
 CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
+CreateShortCut "$SMPROGRAMS\$SM_Folder\Jellyfin MPV Shim.lnk" "$INSTDIR\${MAIN_APP_EXE}" --shim
 CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
-CreateShortCut "$DESKTOP\Jellyfin MPV Shim.lnk" "$INSTDIR\${MAIN_APP_EXE} --shim"
 CreateShortCut "$SMPROGRAMS\$SM_Folder\Uninstall ${APP_NAME}.lnk" "$INSTDIR\uninstall.exe"
 
 !ifdef WEB_SITE
@@ -108,6 +108,7 @@ CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk" "$INSTDIR\${APP_
 !ifndef REG_START_MENU
 CreateDirectory "$SMPROGRAMS\Jellyfin MPV Desktop"
 CreateShortCut "$SMPROGRAMS\Jellyfin MPV Desktop\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
+CreateShortCut "$SMPROGRAMS\Jellyfin MPV Desktop\Jellyfin MPV Shim.lnk" "$INSTDIR\${MAIN_APP_EXE}" --shim
 CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
 CreateShortCut "$SMPROGRAMS\Jellyfin MPV Desktop\Uninstall ${APP_NAME}.lnk" "$INSTDIR\uninstall.exe"
 
