@@ -90,6 +90,18 @@ class Server(threading.Thread):
             do_not_cache(resp)
             return resp
 
+        @app.route('/destroy_session', methods=['POST'])
+        def mpv_shim_destroy_session():
+            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                return "Go Away"
+            clientManager.remove_all_clients()
+            resp = jsonify({
+                "success": True
+            })
+            resp.status_code = 200
+            do_not_cache(resp)
+            return resp
+
         self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
         self.ctx = app.app_context()
         self.ctx.push()
