@@ -8,7 +8,7 @@
 !define COMP_NAME "Ian Walton"
 !define WEB_SITE "https://iwalton.com"
 !define VERSION "1.05.05.00"
-!define COPYRIGHT "Ian Walton © 2020"
+!define COPYRIGHT "Ian Walton ï¿½ 2020"
 !define DESCRIPTION "Client for Jellyfin"
 !define LICENSE_TXT "LICENSE.md"
 !define INSTALLER_NAME "dist\setup.exe"
@@ -17,7 +17,7 @@
 !define REG_ROOT "HKCU"
 !define REG_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAIN_APP_EXE}"
 !define UNINSTALL_PATH "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
-!define MUI_ICON "dist\run-desktop\jellyfin_mpv_shim\webclient_view\webclient\favicon.ico"
+!define MUI_ICON "jellyfin.ico"
 
 ######################################################################
 
