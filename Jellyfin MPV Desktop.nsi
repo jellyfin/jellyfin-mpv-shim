@@ -139,6 +139,7 @@ RmDir /r "$INSTDIR"
 !ifdef REG_START_MENU
 !insertmacro MUI_STARTMENU_GETFOLDER "Application" $SM_Folder
 Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk"
+Delete "$SMPROGRAMS\$SM_Folder\Jellyfin MPV Shim.lnk"
 Delete "$SMPROGRAMS\$SM_Folder\Uninstall ${APP_NAME}.lnk"
 !ifdef WEB_SITE
 Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk"
@@ -150,6 +151,7 @@ RmDir "$SMPROGRAMS\$SM_Folder"
 
 !ifndef REG_START_MENU
 Delete "$SMPROGRAMS\Jellyfin MPV Desktop\${APP_NAME}.lnk"
+Delete "$SMPROGRAMS\Jellyfin MPV Desktop\Jellyfin MPV Shim.lnk"
 Delete "$SMPROGRAMS\Jellyfin MPV Desktop\Uninstall ${APP_NAME}.lnk"
 !ifdef WEB_SITE
 Delete "$SMPROGRAMS\Jellyfin MPV Desktop\${APP_NAME} Website.lnk"
