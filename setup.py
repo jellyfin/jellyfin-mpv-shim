@@ -37,7 +37,7 @@ setup(
         'gui':  ['pystray'],
         'mirror':  ['Jinja2', 'pywebview'],
         'desktop':  ['Flask', 'pywebview', 'Werkzeug'],
-        'all': ['Jinja2', 'pywebview', 'pystray', 'flask'],
+        'all': ['Jinja2', 'pywebview', 'pystray', 'Flask', 'Werkzeug'],
     },
     python_requires='>=3.6',
     install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.8'],
