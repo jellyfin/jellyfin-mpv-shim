@@ -7,11 +7,11 @@ import sys
 import logging
 import queue
 import os.path
-import importlib.resources
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
+from .utils import get_resource
 
 log = logging.getLogger('gui_mgr')
 
@@ -395,8 +395,7 @@ class STrayProcess(Process):
         ]
 
         icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
-        with importlib.resources.path(__package__, 'systray.png') as icon_file:
-            icon.icon = Image.open(icon_file)
+        icon.icon = Image.open(get_resource("systray.png"))
         self.icon_stop = icon.stop
         def setup(icon):
             icon.visible = True

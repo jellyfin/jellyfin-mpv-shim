@@ -1,5 +1,4 @@
 import threading
-import importlib.resources
 import urllib.request
 from datetime import date
 from werkzeug.serving import make_server
@@ -26,6 +25,7 @@ from threading import Event
 from ..clients import clientManager
 from ..conf import settings
 from ..constants import USER_APP_NAME, APP_NAME
+from ..utils import get_resource
 from .. import conffile
 
 remember_layout = conffile.get(APP_NAME, 'layout.json')
@@ -51,50 +51,49 @@ class Server(threading.Thread):
         self.join()
 
     def run(self):
-        with importlib.resources.path(__package__, 'webclient') as static_wc:
-            app = Flask(__name__, static_url_path='',
-                static_folder=str(static_wc))
-            @app.after_request
-            def add_header(response):
-                if request.path == "/index.html":
-                    do_not_cache(response)
-                    return response
-                if not response.cache_control.no_store:
-                    response.cache_control.max_age = 2592000
+        app = Flask(__name__, static_url_path='',
+            static_folder=get_resource("webclient_view", "webclient"))
+        @app.after_request
+        def add_header(response):
+            if request.path == "/index.html":
+                do_not_cache(response)
                 return response
+            if not response.cache_control.no_store:
+                response.cache_control.max_age = 2592000
+            return response
 
-            @app.route('/mpv_shim_password', methods=['POST'])
-            def mpv_shim_password():
-                if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
-                    return "Go Away"
-                login_req = request.json
-                success = clientManager.login(login_req["server"], login_req["username"], login_req["password"], True)
-                if success:
-                    loaded.set()
-                resp = jsonify({
-                    "success": success
-                })
-                resp.status_code = 200
-                do_not_cache(resp)
-                return resp
+        @app.route('/mpv_shim_password', methods=['POST'])
+        def mpv_shim_password():
+            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                return "Go Away"
+            login_req = request.json
+            success = clientManager.login(login_req["server"], login_req["username"], login_req["password"], True)
+            if success:
+                loaded.set()
+            resp = jsonify({
+                "success": success
+            })
+            resp.status_code = 200
+            do_not_cache(resp)
+            return resp
 
-            @app.route('/mpv_shim_id', methods=['POST'])
-            def mpv_shim_id():
-                if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
-                    return "Go Away"
-                loaded.wait()
-                resp = jsonify({
-                    "appName": USER_APP_NAME,
-                    "deviceName": settings.player_name
-                })
-                resp.status_code = 200
-                do_not_cache(resp)
-                return resp
+        @app.route('/mpv_shim_id', methods=['POST'])
+        def mpv_shim_id():
+            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                return "Go Away"
+            loaded.wait()
+            resp = jsonify({
+                "appName": USER_APP_NAME,
+                "deviceName": settings.player_name
+            })
+            resp.status_code = 200
+            do_not_cache(resp)
+            return resp
 
-            self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
-            self.ctx = app.app_context()
-            self.ctx.push()
-            self.srv.serve_forever()
+        self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
+        self.ctx = app.app_context()
+        self.ctx.push()
+        self.srv.serve_forever()
 
 # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
 # Lambda needed because the 2.3 version of the JS api adds an argument even when not used.

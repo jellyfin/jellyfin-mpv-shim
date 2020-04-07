@@ -1,5 +1,4 @@
 import threading
-import importlib.resources
 
 import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
 
@@ -17,6 +16,7 @@ import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
 import webview  # Python3-webview in Debian, pywebview in pypi
 
 from ..clients import clientManager
+from ..utils import get_text
 from . import helpers
 
 
@@ -103,16 +103,16 @@ def get_html(server_address=None, item=None):
             'display_name': "Ready to cast",
             'overview': "\n\nSelect your media in Jellyfin and play it here",  # FIME: Mention the player_name here
         }
-    with importlib.resources.path(__package__, 'jellyfin.css') as jellyfin_css:
-        jinja_vars.update({
-            'jellyfin_css': str(open(jellyfin_css).read()),
-        })
 
-        try:
-            tpl = jinja2.Template(importlib.resources.read_text(__package__, 'index.html'))
-            return tpl.render(jinja_vars)
-        except Exception:
-            breakpoint()
+    jinja_vars.update({
+        'jellyfin_css': get_text("display_mirror", "jellyfin.css"),
+    })
+
+    try:
+        tpl = jinja2.Template(get_text("display_mirror", "index.html"))
+        return tpl.render(jinja_vars)
+    except Exception:
+        pass
 
 
 def load_idle():
