@@ -7,7 +7,7 @@
 !define APP_NAME "Jellyfin MPV Desktop"
 !define COMP_NAME "Ian Walton"
 !define WEB_SITE "https://iwalton.com"
-!define VERSION "1.05.05.00"
+!define VERSION "1.05.06.00"
 !define COPYRIGHT "Ian Walton � 2020"
 !define DESCRIPTION "Client for Jellyfin"
 !define LICENSE_TXT "LICENSE.md"
