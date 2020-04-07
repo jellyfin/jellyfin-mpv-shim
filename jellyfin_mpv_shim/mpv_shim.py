@@ -92,7 +92,8 @@ def main(desktop=False, cef=False):
         userInterface.stop()
 
 def main_desktop(cef=False):
-    main(desktop=True, cef=cef)
+    desktop = "--shim" not in sys.argv
+    main(desktop, cef)
 
 if __name__ == "__main__":
     main()
