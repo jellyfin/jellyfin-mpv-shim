@@ -258,13 +258,12 @@ def none_fallback(value, fallback):
 def get_resource(*path):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, '_MEIPASS', False):
         application_path = os.path.join(sys._MEIPASS, "jellyfin_mpv_shim")
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 
-    path_list = [application_path] + path
-    return os.path.join(*path_list)
+    return os.path.join(application_path, *path)
 
 def get_text(*path):
     with open(get_resource(*path)) as fh:
