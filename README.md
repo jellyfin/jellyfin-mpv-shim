@@ -302,7 +302,7 @@ There is a prebuilt version for Windows in the releases section. When
 following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
-If you'd like to build the installer, please install [NSIS](https://nsis.sourceforge.io/Main_Page) to build
+If you'd like to build the installer, please install [Inno Setup](https://jrsoftware.org/isinfo.php) to build
 the installer. If you'd like to build a 32 bit version, download the 32 bit version of mpv-1.dll and
 copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll?raw=true).
 You may also need to edit the batch file for 32 bit builds to point to the right python executable.
