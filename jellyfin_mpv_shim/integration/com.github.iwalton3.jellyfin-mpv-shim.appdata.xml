@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2020 Ian Walton <ian@iwalton.com> -->
+<component type="desktop-application">
+  <id>com.github.iwalton3.jellyfin-mpv-shim</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <name>Jellyfin MPV Shim</name>
+  <summary>MPV Client for Jellyfin Media Server</summary>
+
+  <description>
+    <p>
+        Jellyfin MPV Shim is a client for the Jellyfin media server which plays media in the
+        MPV media player. There is a desktop client mode which displays the Jellyfin Web App,
+        as well as a less resource-intensive background shim application which opens MPV only
+        when media is cast to the player. The player supports most file formats, allowing you
+        to prevent needless transcoding of your media files on the server. The player also has
+        advanced features, such as bulk subtitle updates and launching commands on events. 
+    </p>
+  </description>
+
+<screenshots>
+  <screenshot type="default">
+    <caption>The desktop client</caption>
+    <image type="source" width="802" height="602">https://user-images.githubusercontent.com/8078788/78717835-392d2c00-78ef-11ea-9731-7fd4a1d8ebbe.png</image>
+  </screenshot>
+  <screenshot>
+    <caption>The application playing the MKV Test Suite</caption>
+    <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/blender.png</image>
+  </screenshot>
+  <screenshot>
+    <caption>The built-in menu inside MPV</caption>
+    <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/menu.png</image>
+  </screenshot>
+ </screenshots>
+
+  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
+  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop-player.desktop</launchable>
+
+  <url type="homepage">https://github.com/iwalton3/jellyfin-mpv-shim</url>
+
+  <provides>
+    <binary>jellyfin-mpv-desktop</binary>
+  </provides>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.5.7" date="2020-04-09">
+      <description>
+        <p>This is the first build of Jellyfin MPV Shim to be release to flathub.</p>
+        <p>Changes:</p>
+        <ul>
+            <li>Add integration data to pip distribution.</li>
+            <li>Read environment if defined for configuration.</li>
+            <li>Use most recent jsonipc library.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.5.6" date="2020-04-07">
+      <description>
+        <p>Changes:</p>
+        <ul>
+            <li>Fix user switching in the desktop client.</li>
+            <li>Add --shim option to desktop launcher to launch shim version.</li>
+            <li>Add shortcut option to desktop version to launch shim version.</li>
+            <li>Make compatible with Python 3.6.</li>
+            <li>Add support for input.conf.</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>
