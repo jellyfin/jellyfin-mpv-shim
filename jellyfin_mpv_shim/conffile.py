@@ -8,7 +8,10 @@ confdir = lambda app: ''
 username = getpass.getuser()
 
 def posix(app):
-    return os.path.join(os.path.expanduser("~"),'.config',app)
+    if os.environ.get("XDG_CONFIG_HOME"):
+        return os.path.join(os.environ["XDG_CONFIG_HOME"], app)
+    else:
+        return os.path.join(os.path.expanduser("~"),'.config',app)
 
 def win32(app):
     if os.environ.get("APPDATA"):
