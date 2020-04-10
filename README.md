@@ -108,6 +108,7 @@ configuration folder using the systray icon. When you launch the program on Linu
 the location of the config file will be printed. The locations are:
  - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
  - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
+ - Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
  - Mac OSX - `Library/Application Support/jellyfin-mpv-shim/conf.json`
  - CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
 
