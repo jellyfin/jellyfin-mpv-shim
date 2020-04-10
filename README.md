@@ -8,8 +8,8 @@ there are tools to manage them like no other Jellyfin client.
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
-If you are using Linux or OSX, please see the [Linux Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation) or [OSX Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
-sections below.
+If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation). If you are on OSX, see the [OSX Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
+section below.
 
 ### Desktop Client
 
@@ -232,6 +232,8 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 
 ## Linux Installation
 
+You can [install the software from flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim). The pip installation is less integrated but takes up less space if you're not already using flatpak.
+
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
@@ -302,7 +304,7 @@ There is a prebuilt version for Windows in the releases section. When
 following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
-If you'd like to build the installer, please install [NSIS](https://nsis.sourceforge.io/Main_Page) to build
+If you'd like to build the installer, please install [Inno Setup](https://jrsoftware.org/isinfo.php) to build
 the installer. If you'd like to build a 32 bit version, download the 32 bit version of mpv-1.dll and
 copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll?raw=true).
 You may also need to edit the batch file for 32 bit builds to point to the right python executable.

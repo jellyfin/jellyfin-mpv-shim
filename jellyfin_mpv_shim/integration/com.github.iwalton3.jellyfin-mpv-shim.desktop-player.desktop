@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Jellyfin MPV Desktop
+Exec=jellyfin-mpv-desktop
+Type=Application
+Icon=com.github.iwalton3.jellyfin-mpv-shim
+Categories=Video;AudioVideo;TV;Player
