@@ -103,9 +103,9 @@ Here are the notable MPV keyboard shortcuts:
 
 ## Configuration
 
-The configuration file is located in different places depending on your platform. You can open the
-configuration folder using the systray icon. When you launch the program on Linux or OSX from the terminal,
-the location of the config file will be printed. The locations are:
+The configuration file is located in different places depending on your platform. You can also open the
+configuration folder using the systray icon if you are using the shim version. When you launch the program
+on Linux or OSX from the terminal, the location of the config file will be printed. The locations are:
  - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
  - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
  - Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
