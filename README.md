@@ -281,11 +281,11 @@ To install the CLI version:
 3. Install jellyfin-mpv-shim. `pip3 install --upgrade jellyfin-mpv-shim`
 4. Run `jellyfin-mpv-shim`.
 
-If you'd like to install the desktop client:
+If you'd like to install the desktop client (currently requires python from brew):
 
 1. Install brew. ([Instructions](https://brew.sh/))
 2. Install python3 and mpv. `brew install python mpv`
-3. Install jellyfin-mpv-shim. `pip3 install --upgrade jellyfin-mpv-shim[desktop]`
+3. Install jellyfin-mpv-shim. `pip3 install --upgrade 'jellyfin-mpv-shim[desktop]'`
 4. Run `jellyfin-mpv-desktop`.
 
 If you'd like to install the GUI version, you need a working copy of tkinter.
@@ -294,10 +294,10 @@ If you'd like to install the GUI version, you need a working copy of tkinter.
 2. Install TK and mpv. `brew install tcl-tk mpv`
 3. Install python3 with TK support. `FLAGS="-I$(brew --prefix tcl-tk)/include" pyenv install 3.8.1`
 4. Set this python3 as the default. `pyenv global 3.8.1`
-5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade jellyfin-mpv-shim[gui]`
+5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade 'jellyfin-mpv-shim[gui]'`
 6. Run `jellyfin-mpv-shim`.
 
-Display mirroring is not tested on OSX, but may be installable with 'pip3 install --upgrade jellyfin-mpv-shim[mirror]`.
+Display mirroring is not tested on OSX, but may be installable with 'pip3 install --upgrade 'jellyfin-mpv-shim[mirror]'`.
 
 ## Building on Windows
 
