@@ -43,7 +43,7 @@ class EventHandler(object):
             play_command = "PlayNow"
 
         if play_command == "PlayNow":
-            media = Media(client, arguments.get("ItemIds"), seq=0, user_id=arguments.get("ControllingUserId"),
+            media = Media(client, arguments.get("ItemIds"), seq=arguments.get("StartIndex", 0), user_id=arguments.get("ControllingUserId"),
                         aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"), srcid=arguments.get("MediaSourceId"))
 
             log.debug("EventHandler::playMedia %s" % media)
