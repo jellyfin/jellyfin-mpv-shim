@@ -45,6 +45,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.5.8" date="2020-04-16">
+      <description>
+        <p>Changes:</p>
+        <ul>
+            <li>Fix playlists always playing first file instead of selected one. (#34 #53)</li>
+            <li>Fix systray to open --config directory. (#45)</li>
+            <li>Fix HiDPI support on Windows. (#51)</li>
+            <li>Add system-wide install mode for Windows. (#49)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.7" date="2020-04-09">
       <description>
         <p>This is the first build of Jellyfin MPV Shim to be release to flathub.</p>

@@ -8,3 +8,4 @@ cefpython3
 *.spec
 *.pyc
 mpv32
+.eggs
