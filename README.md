@@ -197,6 +197,75 @@ The `cred.json` file contains the authorization information. If you are having p
 such as the Now Playing not appearing or want to delete a server, you can delete this file and add the
 servers again.
 
+## Tips and Tricks
+
+Various tips have been found that allow the media player to support special
+functionality, albeit with more configuration required.
+
+### Open on Specific Monitor (#19)
+
+Please note: Edits to the `mpv.conf` will not take effect until you restart the application. You can open the config directory by using the menu option in the system tray icon.
+
+**Option 1**: Select fullscreen output screen through MPV.
+Determine which screen you would like MPV to show up on.
+ - If you are on Windows, right click the desktop and select "Display Settings". Take the monitor number and subtract one.
+ - If you are on Linux, run `xrandr`. The screen number is the number you want. If there is only one proceed to **Option 2**.
+
+Add the following to your `mpv.conf` in the [config directory](https://github.com/iwalton3/jellyfin-mpv-shim#mpv-configuration), replacing `0` with the number from the previous step:
+```
+fs=yes
+fs-screen=0
+```
+
+**Option 2**: (Linux Only) If option 1 does not work, both of your monitors are likely configured as a single "screen".
+
+Run `xrandr`. It should look something like this:
+
+```
+Screen 0: minimum 8 x 8, current 3520 x 1080, maximum 16384 x 16384
+VGA-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 521mm x 293mm
+   1920x1080     60.00*+
+   1680x1050     59.95  
+   1440x900      59.89  
+   1280x1024     75.02    60.02  
+   1280x960      60.00  
+   1280x800      59.81  
+   1280x720      60.00  
+   1152x864      75.00  
+   1024x768      75.03    70.07    60.00  
+   800x600       75.00    72.19    60.32    56.25  
+   640x480       75.00    59.94  
+LVDS-0 connected 1600x900+1920+180 (normal left inverted right x axis y axis) 309mm x 174mm
+   1600x900      59.98*+
+```
+
+If you want MPV to open on VGA-0 for instance, add the following to your `mpv.conf` in the [config directory](https://github.com/iwalton3/jellyfin-mpv-shim#mpv-configuration):
+```
+fs=yes
+geometry=1920x1080+0+0
+```
+**Option 3**: (Linux Only) If your window manager supports it, you can tell the window manager to always open on a specific screen.
+
+ - For OpenBox: https://forums.bunsenlabs.org/viewtopic.php?id=1199
+ - For i3: https://unix.stackexchange.com/questions/96798/i3wm-start-applications-on-specific-workspaces-when-i3-starts/363848#363848
+
+### Control Volume with Mouse Wheel (#48)
+
+Add the following to `input.conf`:
+```
+WHEEL_UP add volume 5
+WHEEL_DOWN add volume -5
+```
+
+### MPRIS Plugin (#54)
+
+Set `mpv_ext` to `true` in the config. Add `script=/path/to/mpris.so` to `mpv.conf`.
+
+### Run Multiple Instances (#45)
+
+You can pass `--config /path/to/folder` to run another copy of the player. Please 
+note that running multiple copies of the desktop client is currently not supported. 
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
