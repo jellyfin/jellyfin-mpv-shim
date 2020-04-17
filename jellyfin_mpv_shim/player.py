@@ -321,6 +321,20 @@ class PlayerManager(object):
         self.timeline_handle()
 
     @synchronous('_lock')
+    def pause_if_playing(self):
+        if not self._player.playback_abort:
+            if not self._player.pause:
+                self._player.pause = not self._player.pause
+        self.timeline_handle()
+
+    @synchronous('_lock')
+    def play_if_paused(self):
+        if not self._player.playback_abort:
+            if self._player.pause:
+                self._player.pause = not self._player.pause
+        self.timeline_handle()
+
+    @synchronous('_lock')
     def seek(self, offset):
         """
         Seek to ``offset`` seconds
