@@ -135,6 +135,8 @@ You can execute shell commands on media state using the config file:
  - `pre_media_cmd` - Before the player displays. (Will wait for finish.)
  - `stop_cmd` - After stopping the player.
  - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
+ - `idle_when_paused` - Consider the player idle when paused. Default: `false`
+ - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
 
 ### Subtitle Visual Settings
 

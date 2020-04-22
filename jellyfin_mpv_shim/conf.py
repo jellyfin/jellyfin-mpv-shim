@@ -48,6 +48,8 @@ class Settings(object):
         "enable_desktop":       False,
         "desktop_fullscreen":   False,
         "desktop_remember_pos": True,
+        "idle_when_paused":     False,
+        "stop_idle":            False,
     }
 
     def __getattr__(self, name):
