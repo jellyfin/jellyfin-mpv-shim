@@ -268,6 +268,15 @@ Set `mpv_ext` to `true` in the config. Add `script=/path/to/mpris.so` to `mpv.co
 You can pass `--config /path/to/folder` to run another copy of the player. Please 
 note that running multiple copies of the desktop client is currently not supported. 
 
+### Audio Passthrough
+
+You can edit `mpv.conf` to support audio passthrough. A [user on Reddit](https://reddit.com/r/jellyfin/comments/fru6xo/new_cross_platform_desktop_client_jellyfin_mpv/fns7vyp) had luck with this config:
+```
+audio-spdif=ac3,dts,eac3 # (to use the passthrough to receiver over hdmi)
+audio-channels=2 # (not sure this is necessary, but i keep it in because it works)
+af=scaletempo,lavcac3enc=yes:640:3 # (for aac 5.1 tracks to the receiver)
+```
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
