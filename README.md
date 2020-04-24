@@ -277,6 +277,10 @@ audio-channels=2 # (not sure this is necessary, but i keep it in because it work
 af=scaletempo,lavcac3enc=yes:640:3 # (for aac 5.1 tracks to the receiver)
 ```
 
+### MPV Crashes with "The sub-scale option must be a floating point number or a ratio"
+
+Run the jellyfin-mpv-shim program with LC_NUMERIC=C.
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
