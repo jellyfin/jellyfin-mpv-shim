@@ -281,6 +281,25 @@ af=scaletempo,lavcac3enc=yes:640:3 # (for aac 5.1 tracks to the receiver)
 
 Run the jellyfin-mpv-shim program with LC_NUMERIC=C.
 
+### Use with gnome-mpv/celluloid (#61)
+
+You can use `gnome-mpv` with MPV Shim, but you must launch `gnome-mpv` separately before MPV Shim. (`gnome-mpv` doesn't support the MPV command options directly.)
+
+Configure MPV Shim with the following options (leave the other ones):
+```json
+{
+    "mpv_ext": true,
+    "mpv_ext_ipc": "/tmp/gmpv-socket",
+    "mpv_ext_path": null,
+    "mpv_ext_start": false,
+    "enable_osc": false
+}
+```
+Then within `gnome-mpv`, click the application icon (top left) > Preferences. Configure the following Extra MPV Options:
+```
+--idle --input-ipc-server=/tmp/gmpv-socket
+```
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
