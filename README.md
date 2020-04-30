@@ -333,7 +333,7 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 4. Download the [web client](https://github.com/iwalton3/jellyfin-web/releases) and place the contents of the dist folder inside a folder named `webclient` in the `webclient_view` folder.
 5. Ensure you have a copy of `libmpv1` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
-7. You should now be able to run the program with `./run.py` or `./run-desktop.py`.
+7. You should now be able to run the program with `./run.py` or `./run-desktop.py`. Installation is possible with `sudo pip3 install .`.
 
 ## Linux Installation
 
