@@ -50,6 +50,7 @@ class Settings(object):
         "desktop_remember_pos": True,
         "idle_when_paused":     False,
         "stop_idle":            False,
+        "transcode_to_h265":    False,
     }
 
     def __getattr__(self, name):

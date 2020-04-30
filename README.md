@@ -126,6 +126,7 @@ You can adjust the basic transcoder settings via the menu.
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
     - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
+- `transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
 
 ### Shell Command Triggers
 

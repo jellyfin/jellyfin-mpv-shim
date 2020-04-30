@@ -85,6 +85,13 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
         else:
             video_bitrate = settings.local_kbps
 
+    if settings.transcode_h265:
+        transcode_codecs = "h264,mpeg4,mpeg2video"
+    elif settings.transcode_to_h265:
+        transcode_codecs = "h265,hevc,h264,mpeg4,mpeg2video"
+    else:
+        transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
+
     profile = {
         "Name": USER_APP_NAME,
         "MaxStreamingBitrate": video_bitrate * 1000,
@@ -99,7 +106,7 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
                 "Type": "Video",
                 "Protocol": "hls",
                 "AudioCodec": "aac,mp3,ac3,opus,flac,vorbis",
-                "VideoCodec": "h264,mpeg4,mpeg2video",
+                "VideoCodec": transcode_codecs,
                 "MaxAudioChannels": "6"
             },
             {
@@ -189,18 +196,6 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
             #}
         ]
     }
-
-    if settings.transcode_h265:
-        profile['DirectPlayProfiles'][0]['VideoCodec'] = "h264,mpeg4,mpeg2video"
-    else:
-        profile['TranscodingProfiles'].insert(0, {
-            "Container": "ts",
-            "Type": "Video",
-            "Protocol": "hls",
-            "AudioCodec": "aac,mp3,ac3,opus,flac,vorbis",
-            "VideoCodec": "h264,h265,hevc,mpeg4,mpeg2video",
-            "MaxAudioChannels": "6"
-        })
 
     if settings.transcode_hi10p:
         profile['CodecProfiles'].append(
