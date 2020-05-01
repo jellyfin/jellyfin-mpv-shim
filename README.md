@@ -120,8 +120,8 @@ You can adjust the basic transcoder settings via the menu.
 
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
     - This may be useful if you are using limited hardware that cannot handle advanced codecs.
-- `transcode_h265` - Transcode HEVC videos. Default: `false`
-- `transcode_hi10p` - Transcode 10 bit color videos. Default: `false`
+- `transcode_h265` - Force transcode HEVC videos to h264. Default: `false`
+- `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
 - `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
