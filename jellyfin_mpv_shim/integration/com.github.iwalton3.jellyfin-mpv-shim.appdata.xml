@@ -6,6 +6,7 @@
   <project_license>GPL-3.0</project_license>
   <name>Jellyfin MPV Shim</name>
   <summary>MPV Client for Jellyfin Media Server</summary>
+  <developer_name>Ian Walton</developer_name>
 
   <description>
     <p>
@@ -16,22 +17,37 @@
         to prevent needless transcoding of your media files on the server. The player also has
         advanced features, such as bulk subtitle updates and launching commands on events. 
     </p>
+    <p>
+        Please read the detailed instructions on GitHub for more details, including usage
+        instructions and configuration details.
+    </p>
   </description>
 
-<screenshots>
-  <screenshot type="default">
-    <caption>The desktop client</caption>
-    <image type="source" width="802" height="602">https://user-images.githubusercontent.com/8078788/78717835-392d2c00-78ef-11ea-9731-7fd4a1d8ebbe.png</image>
-  </screenshot>
-  <screenshot>
-    <caption>The application playing the MKV Test Suite</caption>
-    <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/blender.png</image>
-  </screenshot>
-  <screenshot>
-    <caption>The built-in menu inside MPV</caption>
-    <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/menu.png</image>
-  </screenshot>
- </screenshots>
+  <categories>
+    <category>Video</category>
+    <category>AudioVideo</category>
+    <category>TV</category>
+    <category>Player</category>
+  ​</categories>
+
+  <url type="homepage">https://github.com/iwalton3/jellyfin-mpv-shim</url>
+  <url type="help">https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md</url>
+  <url type="bugtracker">https://github.com/iwalton3/jellyfin-mpv-shim/issues</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The desktop client</caption>
+      <image type="source" width="802" height="602">https://user-images.githubusercontent.com/8078788/78717835-392d2c00-78ef-11ea-9731-7fd4a1d8ebbe.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The application playing the MKV Test Suite</caption>
+      <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/blender.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The built-in menu inside MPV</caption>
+      <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/menu.png</image>
+    </screenshot>
+  </screenshots>
 
   <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
   <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop-player.desktop</launchable>
@@ -45,6 +61,16 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.5.9" date="2020-05-01">
+      <description>
+        <p>
+          This version allows you to optionally use HEVC instead of H264 for transcoded videos.
+          This allows for better quality streaming or more concurrent users over a slow connection,
+          provided the server has the processing power or acceleration hardware to be able to handle it.
+          You must enable this feature to avoid overloading servers that cannot handle it.
+        </p>
+      </description>
+    </release>
     <release version="1.5.8" date="2020-04-16">
       <description>
         <p>Changes:</p>
