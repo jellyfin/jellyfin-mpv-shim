@@ -157,7 +157,10 @@ class PlayerManager(object):
         
         @self._player.on_key_press('esc')
         def menu_back():
-            self.menu.menu_action('back')
+            if self.menu.is_menu_shown:
+                self.menu.menu_action('back')
+            else:
+                self._player.command('set', 'fullscreen', 'no')
 
         @self._player.on_key_press('enter')
         def menu_ok():
