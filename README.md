@@ -167,6 +167,29 @@ for media playback on OSX.
     - If not specified, the user must start MPV prior to launching the client.
     - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
 
+### Keyboard Shortcuts
+
+You can reconfigure the custom keyboard shortcuts. You can also set them to `null` to disable the shortcut. Please note that disabling keyboard shortcuts may make some features unusable. Additionally, if you remap `q`, using the default shortcut will crash the player.
+
+ - `kb_stop` - Stop playback and close MPV. (Default: `q`)
+ - `kb_prev` - Go to the previous video. (Default: `<`)
+ - `kb_next` - Go to the next video. (Default: `>`)
+ - `kb_watched` - Mark the video as watched and skip. (Default: `w`)
+ - `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
+ - `kb_menu` - Open the configuration menu. (Default: `c`)
+ - `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
+ - `kb_menu_ok` - "ok" for menu. (Default: `enter`)
+ - `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)
+ - `kb_menu_right` - "right" for menu. Seeks otherwise. (Default: `right`)
+ - `kb_menu_up` - "up" for menu. Seeks otherwise. (Default: `up`)
+ - `kb_menu_down` - "down" for menu. Seeks otherwise. (Default: `down`)
+ - `kb_pause` - Pause. Also "ok" for menu. (Default: `space`)
+ - `kb_debug` - Trigger `pdb` debugger. (Default: `~`)
+ - `seek_up` - Time to seek for "up" key. (Default: `60`)
+ - `seek_down` - Time to seek for "down" key. (Default: `-60`)
+ - `seek_right` - Time to seek for "right" key. (Default: `5`)
+ - `seek_left` - Time to seek for "left" key. (Default: `-5`)
+
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.

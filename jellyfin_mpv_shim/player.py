@@ -108,17 +108,25 @@ class PlayerManager(object):
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 
+        # Wrapper for on_key_press that ignores None.
+        def keypress(key):
+            def wrapper(func):
+                if key is not None:
+                    self._player.on_key_press(key)(func)
+                return func
+            return wrapper
+
         @self._player.on_key_press('CLOSE_WIN')
         @self._player.on_key_press('STOP')
-        @self._player.on_key_press('q')
+        @keypress(settings.kb_stop)
         def handle_stop():
             self.stop()
 
-        @self._player.on_key_press('<')
+        @keypress(settings.kb_prev)
         def handle_prev():
             self.put_task(self.play_prev)
 
-        @self._player.on_key_press('>')
+        @keypress(settings.kb_next)
         def handle_next():
             self.put_task(self.play_next)
 
@@ -140,67 +148,67 @@ class PlayerManager(object):
             else:
                 self.put_task(self.play_next)
 
-        @self._player.on_key_press('w')
+        @keypress(settings.kb_watched)
         def handle_watched():
             self.put_task(self.watched_skip)
 
-        @self._player.on_key_press('u')
+        @keypress(settings.kb_unwatched)
         def handle_unwatched():
             self.put_task(self.unwatched_quit)
 
-        @self._player.on_key_press('c')
+        @keypress(settings.kb_menu)
         def menu_open():
             if not self.menu.is_menu_shown:
                 self.menu.show_menu()
             else:
                 self.menu.hide_menu()
         
-        @self._player.on_key_press('esc')
+        @keypress(settings.kb_menu_esc)
         def menu_back():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('back')
             else:
                 self._player.command('set', 'fullscreen', 'no')
 
-        @self._player.on_key_press('enter')
+        @keypress(settings.kb_menu_ok)
         def menu_ok():
             self.menu.menu_action('ok')
         
-        @self._player.on_key_press('left')
+        @keypress(settings.kb_menu_left)
         def menu_left():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('left')
             else:
-                seektime = -5
+                seektime = settings.seek_left
                 if settings.use_web_seek:
                     seektime, _ = self.get_seek_times()
                 self._player.command("seek", seektime)
         
-        @self._player.on_key_press('right')
+        @keypress(settings.kb_menu_right)
         def menu_right():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('right')
             else:
-                seektime = 5
+                seektime = settings.seek_right
                 if settings.use_web_seek:
                     _, seektime = self.get_seek_times()
                 self._player.command("seek", seektime)
 
-        @self._player.on_key_press('up')
+        @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('up')
             else:
-                self._player.command("seek", 60)
+                self._player.command("seek", settings.seek_up)
 
-        @self._player.on_key_press('down')
+        @keypress(settings.kb_menu_down)
         def menu_down():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('down')
             else:
-                self._player.command("seek", -60)
+                self._player.command("seek", settings.seek_down)
 
-        @self._player.on_key_press('space')
+        @keypress(settings.kb_pause)
         def handle_pause():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('ok')
@@ -208,7 +216,7 @@ class PlayerManager(object):
                 self.toggle_pause()
 
         # This gives you an interactive python debugger prompt.
-        @self._player.on_key_press('~')
+        @keypress(settings.kb_debug)
         def handle_debug():
             import pdb
             pdb.set_trace()
