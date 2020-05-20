@@ -324,6 +324,25 @@ Then within `gnome-mpv`, click the application icon (top left) > Preferences. Co
 --idle --input-ipc-server=/tmp/gmpv-socket
 ```
 
+### Heavy Memory Usage
+
+A problem has been identified where MPV can use a ton of RAM after media has been played,
+and this RAM is not always freed when the player goes into idle mode. Some users have
+found that using external MPV lessens the memory leak. To enable external MPV on Windows:
+
+ - [Download a copy of MPV](https://sourceforge.net/projects/mpv-player-windows/files/64bit/)
+ - Unzip it with 7zip.
+ - Configure `mpv_ext` to `true`. (See the config section.)
+ - Configure `mpv_ext_path` to `C:\\replace\\with\\path\\to\\mpv.exe`. (Note usage of two `\\`.)
+ - Run the program and wait. (You'll probably have to use it for a while.)
+ - Let me know if the high memory usage is with `mpv.exe` or the shim itself.
+
+On Linux, the process is similar, except that you don't need to set the `mpv_ext_path` variable.
+On OSX, external MPV is already the default and is the only supported player mode.
+
+In the long term, I may look into a method of terminating MPV when not in use. This will require
+a lot of changes to the software. 
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
