@@ -61,6 +61,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.5.10" date="2020-05-20">
+      <description>
+        <p>Changes:</p>
+        <ul>
+            <li>Make esc key exit fullscreen when no menu is open.</li>
+            <li>Handle seq being null on Nightly. (#63)</li>
+            <li>Allow changing built-in keyboard shortcuts.</li>
+            <li>Allow changing seek amount of arrow keys.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.9" date="2020-05-01">
       <description>
         <p>
