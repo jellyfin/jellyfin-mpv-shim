@@ -2,6 +2,8 @@ import logging
 import uuid
 import urllib.parse
 import os.path
+import re 
+from sys import platform
 
 from .conf import settings
 from .utils import is_local_domain, get_profile, get_seq
@@ -134,6 +136,14 @@ class Video(object):
             if urllib.parse.urlparse(self.media_source['Path']).scheme:
                 self.is_transcode = False
                 log.debug("Using remote direct path.")
+                # translate path for windows 
+                # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo, 
+                # translate it to mediaserver/foo 
+                if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+                    match = re.search('(?:(?:\\\\)|(?:\/\/)).+:.*@(.+)', self.media_source['Path'])
+                    if match:
+                        # replace forward slash to backward slashes
+                        return '\\\\' + match.groups()[0].replace('/', '\\')
                 return self.media_source['Path']
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
