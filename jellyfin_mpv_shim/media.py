@@ -3,6 +3,7 @@ import uuid
 import urllib.parse
 import os.path
 import re 
+import pathlib
 from sys import platform
 
 from .conf import settings
@@ -140,11 +141,12 @@ class Video(object):
                 # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo, 
                 # translate it to mediaserver/foo 
                 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
-                    match = re.search('(?:(?:\\\\)|(?:\/\/)).+:.*@(.+)', self.media_source['Path'])
+                    # matches on SMB scheme
+                    match = re.search('(?:\\\\).+:.*@(.+)', self.media_source['Path'])
                     if match:
                         # replace forward slash to backward slashes
-                        return '\\\\' + match.groups()[0].replace('/', '\\')
-                return self.media_source['Path']
+                        return pathlib.Path('\\\\' + match.groups()[0]
+                return pathlib.Path(self.media_source['Path'])
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
                 if os.path.isfile(self.media_source['Path']):
