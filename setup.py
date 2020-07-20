@@ -40,6 +40,6 @@ setup(
         'all': ['Jinja2', 'pywebview', 'pystray', 'Flask', 'Werkzeug'],
     },
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.4.0', 'python-mpv-jsonipc>=1.1.9'],
+    install_requires=['python-mpv', 'jellyfin-apiclient-python>=1.5.1', 'python-mpv-jsonipc>=1.1.9'],
     include_package_data=True
 )
