@@ -4,7 +4,7 @@ import sys
 import urllib.parse
 import time
 
-from threading import RLock
+from threading import RLock, Lock
 from queue import Queue
 
 from . import conffile
@@ -86,6 +86,7 @@ class PlayerManager(object):
         self.evt_queue = Queue()
         self._lock = RLock()
         self._tl_lock = RLock()
+        self._finished_lock = Lock()
         self.last_update = Timer()
         self._jf_settings = None
         self.get_webview = lambda: None
@@ -225,13 +226,15 @@ class PlayerManager(object):
         @self._player.property_observer('eof-reached')
         def handle_end(_name, reached_end):
             if self._video and reached_end:
-                self.put_task(self.finished_callback)
+                has_lock = self._finished_lock.acquire(False)
+                self.put_task(self.finished_callback, has_lock)
 
         # Fires at the end.
         @self._player.event_callback('idle')
         def handle_end_idle(event):
             if self._video:
-                self.put_task(self.finished_callback)
+                has_lock = self._finished_lock.acquire(False)
+                self.put_task(self.finished_callback, has_lock)
 
     # Put a task to the event queue.
     # This ensures the task executes outside
@@ -299,6 +302,8 @@ class PlayerManager(object):
         self.send_timeline_initial()
         self._player.pause = False
         self.should_send_timeline = True
+        if self._finished_lock.locked():
+            self._finished_lock.release()
 
     def exec_stop_cmd(self):
         if settings.stop_cmd:
@@ -377,14 +382,17 @@ class PlayerManager(object):
         return False
 
     @synchronous('_lock')
-    def finished_callback(self):
+    def finished_callback(self, has_lock):
         if not self._video:
             return
        
         self._video.set_played()
         if self._video.parent.has_next and settings.auto_play:
-            log.debug("PlayerManager::finished_callback starting next episode")
-            self.play(self._video.parent.get_next().video)
+            if has_lock:
+                log.debug("PlayerManager::finished_callback starting next episode")
+                self.play(self._video.parent.get_next().video)
+            else:
+                log.debug("PlayerManager::finished_callback No lock, skipping...")
         else:
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
