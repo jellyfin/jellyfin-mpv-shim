@@ -145,7 +145,7 @@ class Video(object):
                     match = re.search('(?:\\\\).+:.*@(.+)', self.media_source['Path'])
                     if match:
                         # replace forward slash to backward slashes
-                        return pathlib.Path('\\\\' + match.groups()[0]
+                        return pathlib.Path('\\\\' + match.groups()[0])
                 return pathlib.Path(self.media_source['Path'])
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
