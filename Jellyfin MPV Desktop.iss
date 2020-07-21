@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Jellyfin MPV Desktop"
-#define MyAppVersion "1.5.10"
+#define MyAppVersion "1.5.11"
 #define MyAppPublisher "Ian Walton"
 #define MyAppURL "https://iwalton.com/"
 #define MyAppExeName "run-desktop.exe"

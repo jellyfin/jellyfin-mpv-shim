@@ -61,6 +61,19 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.5.11" date="2020-07-20">
+      <description>
+        <p>This is a maintenance release. Changes:</p>
+        <ul>
+            <li>Upgrade pywebview to fix resize hang. (#40)</li>
+            <li>Upgrade web client to latest version.</li>
+            <li>Prevent skipping videos when seeking too much. (#83)</li>
+            <li>Improve handling of direct path SMB urls. (#84)</li>
+            <li>Fix errors when websocket data is not a dict.</li>
+            <li>Update resolution presets to real resolutions.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.10" date="2020-05-20">
       <description>
         <p>Changes:</p>
