@@ -194,6 +194,7 @@ class ClientManager(object):
         for key, client in list(self.clients.items()):
             del self.clients[key]
             client.stop()
+        self.credentials = []
         self.save_credentials()
 
     def stop(self):
