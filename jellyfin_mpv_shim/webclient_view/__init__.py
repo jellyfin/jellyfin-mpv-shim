@@ -192,10 +192,6 @@ class WebviewClient(object):
             self.webview = window
             def handle_close():
                 x, y = window.x, window.y
-                # For some reason it seems like X and Y are swapped?
-                # https://github.com/r0x0r/pywebview/issues/480
-                if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
-                    x, y = y, x
                 extra_options = {
                     "x": x,
                     "y": y,
