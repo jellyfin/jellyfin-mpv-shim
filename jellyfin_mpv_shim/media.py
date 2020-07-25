@@ -134,18 +134,21 @@ class Video(object):
         # - If there's a scheme specified or the path exists as a local file.
         if ((self.media_source.get('Protocol') == "Http" or self.media_source['SupportsDirectPlay'])
             and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
+
+            if platform.startswith("win32") or platform.startswith("cygwin"):
+                    # matches on SMB scheme
+                    match = re.search('(?:\\\\).+:.*@(.+)', self.media_source['Path'])
+                    if match:
+                        # replace forward slash to backward slashes
+                        log.debug("cleaned up credentials from path")
+                        self.media_source['Path'] = str(pathlib.Path('\\\\' + match.groups()[0]))
+
             if urllib.parse.urlparse(self.media_source['Path']).scheme:
                 self.is_transcode = False
                 log.debug("Using remote direct path.")
                 # translate path for windows 
                 # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo, 
                 # translate it to mediaserver/foo 
-                if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
-                    # matches on SMB scheme
-                    match = re.search('(?:\\\\).+:.*@(.+)', self.media_source['Path'])
-                    if match:
-                        # replace forward slash to backward slashes
-                        return pathlib.Path('\\\\' + match.groups()[0])
                 return pathlib.Path(self.media_source['Path'])
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
