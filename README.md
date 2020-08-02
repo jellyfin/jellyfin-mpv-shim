@@ -529,4 +529,5 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 9. (CEF Desktop Client) Copy the folder `AppData\Local\Programs\Python\Python37\Lib\site-packages\cefpython3` to `cef\cefpython3`.
 10. Download the web [client build](https://github.com/iwalton3/jellyfin-web/releases/tag/jwc1.5.2) and unzip it into `jellyfin_mpv_shim\webclient_view\webclient`.
 11. If you would like the shader pack included, [download it](https://github.com/iwalton3/default-shader-pack) and put the contents into `jellyfin_mpv_shim\default_shader_pack`.
-12. Run `build-win.bat`.
+12. Remove `libEGL.dll` from `cef\cefpython3`, as it breaks mpv's glsl support. (How CEF works without this is a mystery to me.)
+13. Run `build-win.bat`.
