@@ -1,13 +1,13 @@
 from .conf import settings
 from . import conffile
 from .utils import get_resource
+from .constants import APP_NAME
 import logging
 import os.path
 import shutil
 import json
 import time
 
-APP_NAME = 'plex-mpv-shim'
 log = logging.getLogger('video_profile')
 
 class MPVSettingError(Exception):

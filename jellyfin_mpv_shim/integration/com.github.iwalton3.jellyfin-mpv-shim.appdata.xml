@@ -61,6 +61,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.6.0" date="2020-08-02">
+      <description>
+        <p>This release adds shader packs and SPV integration. Changes:</p>
+        <ul>
+            <li>Add support for glsl shader packs.</li>
+            <li>Add support for controlling SVP.</li>
+            <li>Don't crash with unset subtitle language. (#93)</li>
+            <li>Make the settings button in the mobile app open settings.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.11" date="2020-07-20">
       <description>
         <p>This is a maintenance release. Changes:</p>
