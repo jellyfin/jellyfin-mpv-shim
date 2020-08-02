@@ -69,6 +69,7 @@
             <li>Add support for controlling SVP.</li>
             <li>Don't crash with unset subtitle language. (#93)</li>
             <li>Make the settings button in the mobile app open settings.</li>
+            <li>Upgrade web client. (Fixes issues with subtitles and stuck dialogs.)</li>
         </ul>
       </description>
     </release>
