@@ -2,7 +2,12 @@ from queue import Queue, LifoQueue
 from .bulk_subtitle import process_series
 from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
+from .video_profile import VideoProfileManager
+from .svp_integration import SVPManager
 import time
+import logging
+
+log = logging.getLogger('menu')
 
 TRANSCODE_LEVELS = (
     ("1080p 20 Mbps", 20000),
@@ -52,6 +57,20 @@ class OSDMenu(object):
         self.original_osd_color = playerManager._player.osd_back_color
         self.original_osd_size = playerManager._player.osd_font_size
 
+        self.profile_menu = None
+        if settings.shader_pack_enable:
+            try:
+                profile_manager = VideoProfileManager(self, playerManager)
+                self.profile_menu = profile_manager.menu_action
+            except Exception:
+                log.error("Could not load profile manager.", exc_info=True)
+        
+        self.svp_menu = None
+        try:
+            self.svp_menu = SVPManager(self, playerManager)
+        except Exception:
+            log.error("Could not load SVP integration.", exc_info=True)
+
     # The menu is a bit of a hack...
     # It works using multiline OSD.
     # We also have to force the window to open.
@@ -90,11 +109,18 @@ class OSDMenu(object):
                 ("Change Subtitles", self.change_subtitle_menu),
                 ("Change Video Quality", self.change_transcode_quality),
             ]
+            if self.profile_menu is not None:
+                self.menu_list.append(("Change Video Playback Profile", self.profile_menu))
             if self.playerManager._video.parent.is_tv:
                 self.menu_list.append(("Auto Set Audio/Subtitles (Entire Series)", self.change_tracks_menu))
             self.menu_list.append(("Quit and Mark Unwatched", self.unwatched_menu_handle))
         else:
             self.menu_list = []
+            if self.profile_menu is not None:
+                self.menu_list.append(("Video Playback Profiles", self.profile_menu))
+
+        if self.svp_menu is not None and self.svp_menu.is_available():
+            self.menu_list.append(("SVP Settings", self.svp_menu.menu_action))
 
         self.menu_list.extend([
             ("Preferences", self.preferences_menu),

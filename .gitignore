@@ -9,3 +9,4 @@ cefpython3
 *.pyc
 mpv32
 .eggs
+jellyfin_mpv_shim/default_shader_pack/*

@@ -54,6 +54,7 @@ The menu enables you to:
  - Change subtitles or audio, while knowing the track names.
  - Change subtitles or audio for an entire series at once.
  - Mark the media as unwatched and quit.
+ - Configure shader packs and SVP profiles.
 
 On your computer, use the arrow keys, enter, and escape to navigate. On your phone, use
 the arrow buttons, ok, back, and home to navigate.
@@ -61,6 +62,26 @@ the arrow buttons, ok, back, and home to navigate.
 Please also note that the on-screen controller for MPV (if available) cannot change the
 audio and subtitle track configurations for transcoded media. It also cannot load external
 subtitles. You must either use the menu or the application you casted from.
+
+### Shader Packs 
+
+Shader packs are a recent feature addition that allows you to easily use advanced video
+shaders and video quality settings. These usually require a lot of configuration to use,
+but MPV Shim's default shader pack comes with [FSRCNNX](https://github.com/igv/FSRCNN-TensorFlow)
+and [Anime4K](https://github.com/bloc97/Anime4K) preconfigured. Try experimenting with video
+profiles! It may greatly improve your experience.
+
+Shader Packs are ready to use as of the most recent MPV Shim version. To use, simply
+navigate to the **Video Playback Profiles** option and select a profile.
+
+For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
+If you would like to customize the shader pack, there are details in the configuration section.
+
+### SVP Integration
+
+SVP integration allows you to easily configure SVP support, change profiles, and enable/disable
+SVP without having to exit the player. It is not enabled by default, please see the configuration
+instructions for instructions on how to enable it.
 
 ### Display Mirroring
 
@@ -189,6 +210,44 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
  - `seek_down` - Time to seek for "down" key. (Default: `-60`)
  - `seek_right` - Time to seek for "right" key. (Default: `5`)
  - `seek_left` - Time to seek for "left" key. (Default: `-5`)
+
+### Shader Packs
+
+Shader packs allow you to import MPV config and shader presets into MPV Shim and easily switch
+between them at runtime through the built-in menu. This enables easy usage and switching of
+advanced MPV video playback options, such as video upscaling, while being easy to use.
+
+If you select one of the presets from the shader pack, it will override some MPV configurations
+and any shaders manually specified in `mpv.conf`. If you would like to customize the shader pack,
+use `shader_pack_custom`.
+
+ - `shader_pack_enable` - Enable shader pack. (Default: `true`)
+ - `shader_pack_custom` - Enable to use a custom shader pack. (Default: `false`)
+    - If you enable this, it will copy the default shader pack to the `shader_pack` config folder.
+    - This initial copy will only happen if the `shader_pack` folder didn't exist.
+    - This shader pack will then be used instead of the built-in one from then on.
+ - `shader_pack_remember` - Automatically remember the last used shader profile. (Default: `true`)
+ - `shader_pack_profile` - The default profile to use. (Default: `null`)
+    - If you use `shader_pack_remember`, this will be updated when you set a profile through the UI.
+
+### SVP Integration
+
+To enable SVP integration, set `svp_enable` to `true` and enable "External control via HTTP" within SVP
+under Settings > Control options. Adjust the `svp_url` and `svp_socket` settings if needed.
+
+ - `svp_enable` - Enable SVP integration. (Default: `false`)
+ - `svp_url` - URL for SVP web API. (Default: `http://127.0.0.1:9901/`)
+ - `svp_socket` - Custom MPV socket to use for SVP.
+    - Default on Windows: `mpvpipe`
+    - Default on other platforms: `/tmp/mpvsocket`
+
+Currently on Windows the built-in MPV does now work with SVP. You must download MPV yourself.
+
+ - Download the latest MPV build [from here](https://sourceforge.net/projects/mpv-player-windows/files/64bit/).
+ - Follow the [vapoursynth instructions](https://github.com/shinchiro/mpv-winbuild-cmake/wiki/Setup-vapoursynth-for-mpv).
+     - Make sure to use the latest Python, not Python 3.7.
+ - In the config file, set `mpv_ext` to `true` and `mpv_ext_path` to the path to `mpv.exe`.
+     - Make sure to use two backslashes per each backslash in the path.
 
 ### Other Configuration Options
 
@@ -365,6 +424,9 @@ The API client was originally forked for this project and is now a [separate pac
 
 The css file for desktop mirroring is from [jellyfin-chromecast](https://github.com/jellyfin/jellyfin-chromecast/tree/5194d2b9f0120e0eb8c7a81fe546cb9e92fcca2b) and is subject to GPL v2.0.
 
+The shaders included in the shader pack are also available under verious open source licenses,
+[which you can read about here](https://github.com/iwalton3/default-shader-pack/blob/master/LICENSE.md).
+
 ### Local Dev Installation
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
@@ -466,4 +528,5 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 8. (Edge Build, disabled by default) Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
 9. (CEF Desktop Client) Copy the folder `AppData\Local\Programs\Python\Python37\Lib\site-packages\cefpython3` to `cef\cefpython3`.
 10. Download the web [client build](https://github.com/iwalton3/jellyfin-web/releases/tag/jwc1.5.2) and unzip it into `jellyfin_mpv_shim\webclient_view\webclient`.
-11. Run `build-win.bat`.
+11. If you would like the shader pack included, [download it](https://github.com/iwalton3/default-shader-pack) and put the contents into `jellyfin_mpv_shim\default_shader_pack`.
+12. Run `build-win.bat`.

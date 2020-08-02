@@ -69,6 +69,13 @@ class Settings(object):
         "seek_down":            -60,
         "seek_right":           5,
         "seek_left":            -5,
+        "shader_pack_enable":   True,
+        "shader_pack_custom":   False,
+        "shader_pack_remember": True,
+        "shader_pack_profile":  None,
+        "svp_enable":           False,
+        "svp_url":              "http://127.0.0.1:9901/",
+        "svp_socket":           None,
     }
 
     def __getattr__(self, name):
