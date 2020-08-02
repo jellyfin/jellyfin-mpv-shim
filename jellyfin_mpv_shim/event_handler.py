@@ -18,6 +18,7 @@ NAVIGATION_DICT = {
     "MoveRight": "right",
     "MoveLeft": "left",
     "GoHome": "home",
+    "GoToSettings": "home"
 }
 
 def bind(event_name):
@@ -84,7 +85,7 @@ class EventHandler(object):
             timelineManager.delay_idle()
             if self.mirror:
                 self.mirror.DisplayContent(client, arguments)
-        elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome"):
+        elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome", "GoToSettings"):
             playerManager.menu.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
             playerManager.set_mute(command == "Mute")
