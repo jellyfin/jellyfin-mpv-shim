@@ -12,6 +12,7 @@ from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
 from .utils import get_resource
+from .log_utils import CustomFormatter
 
 log = logging.getLogger('gui_mgr')
 
@@ -59,7 +60,7 @@ class GUILogHandler(logging.Handler):
                 pass
 
 guiHandler = GUILogHandler()
-guiHandler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)8s] %(message)s"))
+guiHandler.setFormatter(CustomFormatter())
 root_logger.addHandler(guiHandler)
 
 # Why am I using another process for the GUI windows?

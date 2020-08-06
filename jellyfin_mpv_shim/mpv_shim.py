@@ -6,19 +6,27 @@ import time
 import multiprocessing
 from threading import Event
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(name)s: %(message)s")
-
 from . import conffile
 from .conf import settings
 from .clients import clientManager
 from .constants import APP_NAME
+from .log_utils import configure_log, enable_sanitization, configure_log_file
 
+configure_log(sys.stdout)
 log = logging.getLogger('')
 logging.getLogger('requests').setLevel(logging.CRITICAL)
+
 
 def main(desktop=False, cef=False):
     conf_file = conffile.get(APP_NAME, 'conf.json')
     settings.load(conf_file)
+
+    if settings.sanitize_output:
+        enable_sanitization()
+
+    if settings.write_logs:
+        log_file = conffile.get(APP_NAME, 'log.txt')
+        configure_log_file(log_file)
 
     if sys.platform.startswith("darwin"):
         multiprocessing.set_start_method('forkserver')
@@ -39,14 +47,14 @@ def main(desktop=False, cef=False):
             gui_ready = Event()
             userInterface.gui_ready = gui_ready
         except Exception:
-            log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
+            log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=True)
     
     if settings.display_mirroring and not use_webview:
         try:
             from .display_mirror import mirror
             get_webview = mirror.get_webview
         except ImportError:
-            log.warning("Cannot load display mirror.", exc_info=1)
+            log.warning("Cannot load display mirror.", exc_info=True)
 
     if not userInterface:
         from .cli_mgr import userInterface

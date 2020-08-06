@@ -269,6 +269,8 @@ Currently on Windows the built-in MPV does now work with SVP. You must download 
     - If you are using the Windows build, you must download the desktop version.
  - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
  - `desktop_remember_pos` - Remember the position of the desktop client. Default: `true`
+ - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
+ - `write_logs` - Write logs to the config directory for debugging. Default: `false`
 
 ### MPV Configuration
 

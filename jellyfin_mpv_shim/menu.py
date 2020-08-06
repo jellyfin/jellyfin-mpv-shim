@@ -379,6 +379,7 @@ class OSDMenu(object):
             self.get_settings_toggle("Use Web Seek Pref", "use_web_seek"),
             self.get_settings_toggle("Display Mirroring", "display_mirroring"),
             self.get_settings_toggle("Transcode to H265", "transcode_to_h265"),
+            self.get_settings_toggle("Write Logs to File", "write_logs"),
         ])
 
     def unwatched_menu_handle(self):
