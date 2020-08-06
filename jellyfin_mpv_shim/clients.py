@@ -55,7 +55,7 @@ class ClientManager(object):
                 log.warning("Adding server failed.")
 
     def client_factory(self):
-        client = JellyfinClient()
+        client = JellyfinClient(allow_multiple_clients=True)
         client.config.data['app.default'] = True
         client.config.app(USER_APP_NAME, CLIENT_VERSION, settings.player_name, settings.client_uuid)
         client.config.data['http.user_agent'] = USER_AGENT
