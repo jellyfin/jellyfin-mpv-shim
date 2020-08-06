@@ -4,7 +4,7 @@ import sys
 import urllib.parse
 import time
 
-from threading import RLock, Lock
+from threading import RLock, Lock, Event
 from queue import Queue
 
 from . import conffile
@@ -44,11 +44,38 @@ mpv_log_levels = {
     "info": mpv_log.info
 }
 
+
 def mpv_log_handler(level, prefix, text):
     if level in mpv_log_levels:
         mpv_log_levels[level]("{0}: {1}".format(prefix, text))
     else:
         mpv_log.debug("{0}: {1}".format(prefix, text))
+
+
+def wait_property(instance, name, cond=lambda x: True, timeout=None):
+    success = True
+    event = Event()
+
+    def handler(_name, value):
+        if cond(value):
+            event.set()
+
+    if is_using_ext_mpv:
+        observer_id = instance.bind_property_observer(name, handler)
+        if timeout:
+            success = event.wait(timeout=timeout)
+        else:
+            event.wait()
+        instance.unbind_property_observer(observer_id)
+    else:
+        instance.observe_property(name, handler)
+        if timeout:
+            success = event.wait(timeout=timeout)
+        else:
+            event.wait()
+        instance.unobserve_property(name, handler)
+    return success
+
 
 win_utils = None
 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
@@ -64,12 +91,9 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 
 class PlayerManager(object):
     """
-    Manages the relationship between a ``Player`` instance and a ``Media``
-    item.  This is designed to be used as a singleton via the ``playerManager``
-    instance in this module.  All communication between a caller and either the
-    current ``player`` or ``media`` instance should be done through this class
-    for thread safety reasons as all methods that access the ``player`` or
-    ``media`` are thread safe.
+    The underlying player is thread safe, however, locks are used in this
+    class to prevent concurrent control events hitting the player, which
+    violates assumptions.
     """
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
@@ -236,6 +260,11 @@ class PlayerManager(object):
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
+        @self._player.property_observer("pause")
+        def pause_handler(_name, value):
+            if not self._player.playback_abort:
+                self.timeline_handle()
+
     # Put a task to the event queue.
     # This ensures the task executes outside
     # of an event handler, which causes a crash.
@@ -281,7 +310,12 @@ class PlayerManager(object):
             self.get_webview().hide()
 
         self._player.play(self.url)
-        self._player.wait_for_property("duration")
+        if not wait_property(self._player, "duration", lambda x: x is not None, 10):
+            # Timeout playback attempt after 10 seconds
+            log.error("Timeout when waiting for media duration. Stopping playback!")
+            self.stop()
+            return
+        log.debug("Finished waiting for media duration.")
         if settings.fullscreen:
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
@@ -334,7 +368,6 @@ class PlayerManager(object):
     def toggle_pause(self):
         if not self._player.playback_abort:
             self._player.pause = not self._player.pause
-        self.timeline_handle()
 
     @synchronous('_lock')
     def pause_if_playing(self):
