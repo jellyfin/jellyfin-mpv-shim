@@ -385,7 +385,12 @@ class STrayProcess(Process):
             return wrapper
 
         def die():
-            self.icon_stop()
+            # We don't call self.icon_stop() because it crashes on Linux now...
+            if sys.platform == "linux":
+                # This kills the status icon uncleanly.
+                self.r_queue.put(("die", None))
+            else:
+                self.icon_stop()
 
         menu_items = [
             MenuItem("Configure Servers", get_wrapper("show_preferences")),
