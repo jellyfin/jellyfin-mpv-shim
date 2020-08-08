@@ -44,9 +44,8 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 ### Menu
 
-To open the menu, press **c** on your computer. Depending on what app you are
-using to control Jellyfin, you may also be able to open the menu using that app.
-The web application currently doesn't have the required buttons to do so.
+To open the menu, press **c** on your computer or use the navigation controls
+in the mobile/web app.
 
 The menu enables you to:
  - Adjust video transcoding quality.
@@ -54,7 +53,9 @@ The menu enables you to:
  - Change subtitles or audio, while knowing the track names.
  - Change subtitles or audio for an entire series at once.
  - Mark the media as unwatched and quit.
+ - Enable and disable SyncPlay.
  - Configure shader packs and SVP profiles.
+ - Take screenshots.
 
 On your computer, use the arrow keys, enter, and escape to navigate. On your phone, use
 the arrow buttons, ok, back, and home to navigate.
