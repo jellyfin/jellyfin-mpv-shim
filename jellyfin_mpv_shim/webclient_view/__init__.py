@@ -23,6 +23,7 @@ import sys
 from threading import Event
 
 from ..clients import clientManager
+from ..player import playerManager
 from ..conf import settings
 from ..constants import USER_APP_NAME, APP_NAME
 from ..utils import get_resource
@@ -86,6 +87,19 @@ class Server(threading.Thread):
                 "appName": USER_APP_NAME,
                 "deviceName": settings.player_name
             })
+            resp.status_code = 200
+            do_not_cache(resp)
+            return resp
+
+        @app.route('/mpv_shim_syncplay_join', methods=['POST'])
+        def mpv_shim_join():
+            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+                return "Go Away"
+            req = request.json
+            client = list(clientManager.clients.values())[0]
+            playerManager.syncplay.client = client
+            playerManager.syncplay.join_group(req["GroupId"])
+            resp = jsonify({})
             resp.status_code = 200
             do_not_cache(resp)
             return resp

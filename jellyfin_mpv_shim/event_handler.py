@@ -61,6 +61,8 @@ class EventHandler(object):
                     os.system(settings.pre_media_cmd)
                 playerManager.play(video, offset)
                 timelineManager.SendTimeline()
+                if arguments.get("SyncPlayGroup") is not None:
+                    playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
         elif play_command == "PlayLast":
             playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=True)
             playerManager.upd_player_hide()
@@ -111,11 +113,22 @@ class EventHandler(object):
         elif command == "Stop":
             playerManager.stop()
         elif command == "Seek":
-            playerManager.seek(arguments.get("SeekPositionTicks") / 10000000)
+            playerManager.seek(arguments.get("SeekPositionTicks") / 10000000, absolute=True)
 
     @bind("PlayPause")
     def pausePlay(self, client, event_name, arguments):
         playerManager.toggle_pause()
         timelineManager.SendTimeline()
+
+    @bind("SyncPlayGroupUpdate")
+    def sync_play_group_update(self, client, event_name, arguments):
+        playerManager.syncplay.client = client
+        playerManager.syncplay.process_group_update(arguments)
+
+    @bind("SyncPlayCommand")
+    def sync_play_command(self, client, event_name, arguments):
+        playerManager.syncplay.client = client
+        playerManager.syncplay.process_command(arguments)
+
 
 eventHandler = EventHandler()

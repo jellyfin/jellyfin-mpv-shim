@@ -249,6 +249,23 @@ Currently on Windows the built-in MPV does now work with SVP. You must download 
  - In the config file, set `mpv_ext` to `true` and `mpv_ext_path` to the path to `mpv.exe`.
      - Make sure to use two backslashes per each backslash in the path.
 
+### SyncPlay
+
+You probably don't need to change these, but they are defined here in case you
+need to.
+
+ - `sync_max_delay_speed` - Delay in ms before changing video speed to sync playback. Default: `50`
+ - `sync_max_delay_skip` - Delay in ms before changing video speed to sync playback. Default: `300`
+ - `sync_method_thresh` - Delay in ms before switching sync method. Default: `2000`
+ - `sync_speed_time` - Duration in ms to change playback speed. Default: `1000`
+ - `sync_speed_attempts` - Number of attempts before speed changes are disabled. Default: `3`
+ - `sync_attempts` - Number of attempts before disabling sync play. Default: `5`
+ - `sync_timeout` - Seconds to wait for events. Default: `30`
+ - `sync_pl_timeout` - Max number of seconds to wait for player events. Default: `0.5`
+ - `sync_revert_seek` - Attempt to revert seek via MPV OSC. Default: `true`
+     - This could break if you use revert-seek markers or scripts that use it.
+ - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
+
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
@@ -271,6 +288,10 @@ Currently on Windows the built-in MPV does now work with SVP. You must download 
  - `desktop_remember_pos` - Remember the position of the desktop client. Default: `true`
  - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
  - `write_logs` - Write logs to the config directory for debugging. Default: `false`
+ - `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
+    - If you're hitting this, it means files on your server probably got corrupted or deleted.
+    - It could also happen if you try to play an unsupported video format. These are rare.
+ - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
 
 ### MPV Configuration
 

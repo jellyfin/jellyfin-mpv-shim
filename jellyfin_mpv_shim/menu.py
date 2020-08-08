@@ -89,7 +89,7 @@ class OSDMenu(object):
                 fmt = "\n   **{0}**"
             menu_text += fmt.format(item[0])
 
-        self.playerManager._player.show_text(menu_text,2**30,1)
+        self.playerManager._player.show_text(menu_text, 2**30, 1)
 
     def show_menu(self):
         self.is_menu_shown = True
@@ -108,12 +108,15 @@ class OSDMenu(object):
                 ("Change Audio", self.change_audio_menu),
                 ("Change Subtitles", self.change_subtitle_menu),
                 ("Change Video Quality", self.change_transcode_quality),
+                ("SyncPlay", self.playerManager.syncplay.menu_action),
             ]
             if self.profile_menu is not None:
                 self.menu_list.append(("Change Video Playback Profile", self.profile_menu))
             if self.playerManager._video.parent.is_tv:
                 self.menu_list.append(("Auto Set Audio/Subtitles (Entire Series)", self.change_tracks_menu))
             self.menu_list.append(("Quit and Mark Unwatched", self.unwatched_menu_handle))
+            if settings.screenshot_menu:
+                self.menu_list.append(("Screenshot", self.screenshot))
         else:
             self.menu_list = []
             if self.profile_menu is not None:
@@ -139,14 +142,15 @@ class OSDMenu(object):
             if settings.fullscreen:
                 player.fs = True
         else:
-            player.pause = True
+            if not self.playerManager.syncplay.is_enabled():
+                player.pause = True
 
     def hide_menu(self):
         player = self.playerManager._player
         if self.is_menu_shown:
             player.osd_back_color = self.original_osd_color
             player.osd_font_size = self.original_osd_size
-            player.show_text("",0,0)
+            player.show_text("", 0, 0)
             player.force_window = False
             player.keep_open = False
 
@@ -156,9 +160,16 @@ class OSDMenu(object):
             if player.playback_abort:
                 player.play("")
             else:
-                player.pause = False
+                if not self.playerManager.syncplay.is_enabled():
+                    player.pause = False
 
         self.is_menu_shown = False
+
+    def screenshot(self):
+        self.playerManager._player.show_text("", 0, 0)
+        time.sleep(0.5)
+        self.playerManager.screenshot()
+        self.hide_menu()
 
     def put_menu(self, title, entries=None, selected=0):
         if entries is None:
