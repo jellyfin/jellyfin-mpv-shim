@@ -61,6 +61,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.7.0" date="2020-08-07">
+      <description>
+        <p>This release adds SyncPlay support and better logging. Changes:</p>
+        <ul>
+            <li>Add support for SyncPlay!</li>
+            <li>Add ability to log to disk.</li>
+            <li>Remove API keys from logs by default.</li>
+            <li>Possibly fix multi-server support.</li>
+            <li>Upgrade web client.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.0" date="2020-08-02">
       <description>
         <p>This release adds shader packs and SPV integration. Changes:</p>
