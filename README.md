@@ -431,6 +431,15 @@ On OSX, external MPV is already the default and is the only supported player mod
 In the long term, I may look into a method of terminating MPV when not in use. This will require
 a lot of changes to the software. 
 
+### Player Sizing (#91)
+
+MPV by default may force the window size to match the video aspect ratio, instead of allowing
+resizing and centering the video accordingly. Add the following to `mpv.conf` to enable resizing
+of the window freely, if desired:
+```
+no-keepaspect-window
+```
+
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
