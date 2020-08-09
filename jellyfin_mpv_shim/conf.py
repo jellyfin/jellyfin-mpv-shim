@@ -90,6 +90,8 @@ class Settings(object):
         "sync_revert_seek":     True,
         "sync_osd_message":     True,
         "screenshot_menu":      True,
+        "check_updates":        True,
+        "notify_updates":       True,
     }
 
     def __getattr__(self, name):

@@ -13,6 +13,7 @@ from .conf import settings
 from .menu import OSDMenu
 from .constants import APP_NAME
 from .syncplay import SyncPlayManager
+from .update_check import UpdateChecker
 
 log = logging.getLogger('player')
 mpv_log = logging.getLogger('mpv')
@@ -117,6 +118,7 @@ class PlayerManager(object):
         self.get_webview = lambda: None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
         self.last_seek = None
+        self.update_check = UpdateChecker(self)
 
         if is_using_ext_mpv:
             extra_options = {
@@ -369,6 +371,8 @@ class PlayerManager(object):
         self.should_send_timeline = True
         if self._finished_lock.locked():
             self._finished_lock.release()
+
+        self.update_check.check()
 
     def exec_stop_cmd(self):
         if settings.stop_cmd:

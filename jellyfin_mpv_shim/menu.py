@@ -4,6 +4,7 @@ from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
 from .video_profile import VideoProfileManager
 from .svp_integration import SVPManager
+
 import time
 import logging
 
@@ -110,6 +111,11 @@ class OSDMenu(object):
                 ("Change Video Quality", self.change_transcode_quality),
                 ("SyncPlay", self.playerManager.syncplay.menu_action),
             ]
+            if self.playerManager.update_check.new_version is not None:
+                self.menu_list.insert(0, (
+                    "MPV Shim v{0} Release Info/Download".format(self.playerManager.update_check.new_version),
+                    self.playerManager.update_check.open
+                ))
             if self.profile_menu is not None:
                 self.menu_list.append(("Change Video Playback Profile", self.profile_menu))
             if self.playerManager._video.parent.is_tv:

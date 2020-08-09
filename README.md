@@ -293,6 +293,11 @@ need to.
     - If you're hitting this, it means files on your server probably got corrupted or deleted.
     - It could also happen if you try to play an unsupported video format. These are rare.
  - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
+ - `check_updates` - Check for updates via GitHub. Default: `true`
+    - This requests the GitHub releases page and checks for a new version.
+    - Update checks are performed when playing media, once per day.
+ - `notify_updates` - Display update notification when playing media. Default: `true`
+    - Notification will only display once until the application is restarted. 
 
 ### MPV Configuration
 
