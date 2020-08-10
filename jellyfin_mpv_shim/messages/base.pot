@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-08-10 02:57+EDT\n"
+"POT-Creation-Date: 2020-08-10 18:08+EDT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -326,63 +326,63 @@ msgid "Middle"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:386
-msgid "Always Transcode"
-msgstr ""
-
-#: jellyfin_mpv_shim/menu.py:387
 msgid "Auto Play"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:388
+#: jellyfin_mpv_shim/menu.py:387
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:389
+#: jellyfin_mpv_shim/menu.py:388
 msgid "Subtitle Size: {0}"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:390
+#: jellyfin_mpv_shim/menu.py:389
 msgid "Subtitle Position: {0}"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:391
+#: jellyfin_mpv_shim/menu.py:390
 msgid "Subtitle Color: {0}"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:392
+#: jellyfin_mpv_shim/menu.py:391
 msgid "Transcode H265 to H264"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:393
+#: jellyfin_mpv_shim/menu.py:392
 msgid "Transcode Hi10p to 8bit"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:394
+#: jellyfin_mpv_shim/menu.py:393
 msgid "Direct Paths"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:395
+#: jellyfin_mpv_shim/menu.py:394
 msgid "Auto Fullscreen"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:396
+#: jellyfin_mpv_shim/menu.py:395
 msgid "Media Key Seek"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:397
+#: jellyfin_mpv_shim/menu.py:396
 msgid "Use Web Seek Pref"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:398
+#: jellyfin_mpv_shim/menu.py:397
 msgid "Display Mirroring"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:399
+#: jellyfin_mpv_shim/menu.py:398
 msgid "Transcode to H265"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:400
+#: jellyfin_mpv_shim/menu.py:399
 msgid "Write Logs to File"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:400
+msgid "Disable Direct Play"
 msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:36
