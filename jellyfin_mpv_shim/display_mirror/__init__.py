@@ -22,7 +22,7 @@ from . import helpers
 
 # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
 # Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
-helpers.on_escape = lambda _=None: load_idle()
+helpers.on_escape = lambda _x=None: load_idle()
 
 
 class DisplayMirror(object):

@@ -307,7 +307,7 @@ class OSDMenu(object):
         ])
 
     def settings_toggle_bool(self):
-        _, _, key, name = self.menu_list[self.menu_selection]
+        _x, _x, key, name = self.menu_list[self.menu_selection]
         setattr(settings, key, not getattr(settings, key))
         settings.save()
         self.menu_list[self.menu_selection] = self.get_settings_toggle(name, key)

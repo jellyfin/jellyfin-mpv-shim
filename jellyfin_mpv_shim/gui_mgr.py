@@ -239,7 +239,7 @@ class PreferencesWindowProcess(Process):
         self.serverList = tk.StringVar(value=[])
         self.current_uuid = None
 
-        def serverSelect(_):
+        def serverSelect(_x):
             idxs = serverlist.curselection()
             if len(idxs)==1:
                 self.current_uuid = self.server_ids[idxs[0]]

@@ -165,7 +165,7 @@ class PlayerManager(object):
         @self._player.on_key_press('XF86_PREV')
         def handle_media_prev():
             if settings.media_key_seek:
-                seektime, _ = self.get_seek_times()
+                seektime, _x = self.get_seek_times()
                 self.seek(seektime)
             else:
                 self.put_task(self.play_prev)
@@ -174,7 +174,7 @@ class PlayerManager(object):
         @self._player.on_key_press('XF86_NEXT')
         def handle_media_next():
             if settings.media_key_seek:
-                _, seektime = self.get_seek_times()
+                _x, seektime = self.get_seek_times()
                 self.seek(seektime)
             else:
                 self.put_task(self.play_next)
@@ -212,7 +212,7 @@ class PlayerManager(object):
             else:
                 seektime = settings.seek_left
                 if settings.use_web_seek:
-                    seektime, _ = self.get_seek_times()
+                    seektime, _x = self.get_seek_times()
                 self.seek(seektime)
 
         @keypress(settings.kb_menu_right)
@@ -222,7 +222,7 @@ class PlayerManager(object):
             else:
                 seektime = settings.seek_right
                 if settings.use_web_seek:
-                    _, seektime = self.get_seek_times()
+                    _x, seektime = self.get_seek_times()
                 self.seek(seektime)
 
         @keypress(settings.kb_menu_up)
