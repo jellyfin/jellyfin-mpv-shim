@@ -383,7 +383,6 @@ class OSDMenu(object):
 
     def preferences_menu(self):
         self.put_menu(_("Preferences"), [
-            self.get_settings_toggle(_("Always Transcode"), "always_transcode"),
             self.get_settings_toggle(_("Auto Play"), "auto_play"),
             (_("Remote Transcode Quality: {0:0.1f} Mbps").format(settings.remote_kbps/1000), self.transcode_settings_menu),
             (_("Subtitle Size: {0}").format(settings.subtitle_size), self.subtitle_size_menu),
@@ -398,6 +397,7 @@ class OSDMenu(object):
             self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
             self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
             self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
+            self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
         ])
 
     def unwatched_menu_handle(self):

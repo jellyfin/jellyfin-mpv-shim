@@ -142,6 +142,9 @@ You can adjust the basic transcoder settings via the menu.
 
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
     - This may be useful if you are using limited hardware that cannot handle advanced codecs.
+    - Please note that Jellyfin may still direct play files that meet the transcode profile
+      requirements. There is nothing I can do on my end to disable this, but you can reduce
+      the bandwidth setting to force a transcode.
 - `transcode_h265` - Force transcode HEVC videos to h264. Default: `false`
 - `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
 - `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
