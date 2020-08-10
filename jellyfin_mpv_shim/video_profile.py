@@ -2,11 +2,23 @@ from .conf import settings
 from . import conffile
 from .utils import get_resource
 from .constants import APP_NAME
+from .i18n import _
 import logging
 import os.path
 import shutil
 import json
 import time
+
+profile_name_translation = {
+    "Generic (FSRCNNX)": _("Generic (FSRCNNX)"),
+    "Generic High (FSRCNNX x16)": _("Generic High (FSRCNNX x16)"),
+    "Anime4K x4 Faithful (For SD)": _("Anime4K x4 Faithful (For SD)"),
+    "Anime4K x4 Perceptual (For SD)": _("Anime4K x4 Perceptual (For SD)"),
+    "Anime4K x4 Perceptual + Deblur (For SD)": _("Anime4K x4 Perceptual + Deblur (For SD)"),
+    "Anime4K x2 Faithful (For HD)": _("Anime4K x2 Faithful (For HD)"),
+    "Anime4K x2 Perceptual (For HD)": _("Anime4K x2 Perceptual (For HD)"),
+    "Anime4K x2 Perceptual + Deblur (For HD)": _("Anime4K x2 Perceptual + Deblur (For HD)")
+}
 
 log = logging.getLogger('video_profile')
 
@@ -54,7 +66,7 @@ class VideoProfileManager:
                 try:
                     self.defaults[key] = getattr(self.playerManager._player, key)
                 except Exception:
-                    log.warning("Your MPV does not support setting {0} used in shader pack.".format(key), exc_info=1)
+                    log.warning("Your MPV does not support setting {0} used in shader pack.".format(key), exc_info=True)
 
         if settings.shader_pack_profile is not None:
             self.load_profile(settings.shader_pack_profile, reset=False)
@@ -102,15 +114,15 @@ class VideoProfileManager:
             self.current_profile = profile_name
             return True
         except MPVSettingError as ex:
-            log.error("Could not apply shader profile.", exc_info=1)
+            log.error("Could not apply shader profile.", exc_info=True)
             return False
 
     def unload_profile(self):
         log.info("Unloading shader profile.")
         self.playerManager._player.glsl_shaders = []
         for setting in self.used_settings:
+            value = self.defaults[setting]
             try:
-                value = self.defaults[setting]
                 setattr(self.playerManager._player, setting, value)
             except Exception:
                 log.warning("Default setting {0} value {1} is invalid.".format(setting, value))
@@ -134,12 +146,15 @@ class VideoProfileManager:
     def menu_action(self):
         selected = 0
         profile_option_list = [
-            ("None (Disabled)", self.menu_handle, None)
+            (_("None (Disabled)"), self.menu_handle, None)
         ]
         for i, (profile_name, profile) in enumerate(self.profiles.items()):
+            name = profile["displayname"]
+            if name in profile_name_translation:
+                name = profile_name_translation[name]
             profile_option_list.append(
-                (profile["displayname"], self.menu_handle, profile_name)
+                (name, self.menu_handle, profile_name)
             )
             if profile_name == self.current_profile:
                 selected = i+1
-        self.menu.put_menu("Select Shader Profile", profile_option_list, selected)
+        self.menu.put_menu(_("Select Shader Profile"), profile_option_list, selected)

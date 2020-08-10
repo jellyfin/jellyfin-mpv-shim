@@ -1,4 +1,6 @@
 from .conf import settings
+from .i18n import _
+
 import urllib.request
 import urllib.error
 import logging
@@ -12,7 +14,7 @@ def list_request(path):
         response = urllib.request.urlopen(settings.svp_url + "?" + path)
         return response.read().decode('utf-8').replace('\r\n', '\n').split('\n')
     except urllib.error.URLError as ex:
-        log.error("Could not reach SVP API server.", exc_info=1)
+        log.error("Could not reach SVP API server.", exc_info=True)
         return None
 
 def simple_request(path):
@@ -31,7 +33,7 @@ def get_profiles():
         if profile_id == "predef":
             continue
         if profile_id == "P10000001_1001_1001_1001_100000000001":
-            profile_name = "Automatic"
+            profile_name = _("Automatic")
         else:
             profile_name = simple_request("profiles.{0}.title".format(profile_id))
         if simple_request("profiles.{0}.on".format(profile_id)) == "false":
@@ -43,7 +45,7 @@ def get_profiles():
 def get_name_from_guid(profile_id):
     profile_id = "P" + profile_id[1:-1].replace("-", "_")
     if profile_id == "P10000001_1001_1001_1001_100000000001":
-        return  "Automatic"
+        return _("Automatic")
     else:
         return simple_request("profiles.{0}.title".format(profile_id))
 
@@ -55,7 +57,7 @@ def is_svp_alive():
         response = list_request("")
         return response is not None
     except Exception:
-        log.error("Could not reach SVP API server.", exc_info=1)
+        log.error("Could not reach SVP API server.", exc_info=True)
         return False
 
 def is_svp_enabled():
@@ -131,7 +133,7 @@ class SVPManager:
             selected = 0
             active_profile = get_last_profile()
             profile_option_list = [
-                ("Disabled", self.menu_set_profile, None)
+                (_("Disabled"), self.menu_set_profile, None)
             ]
             for i, (profile_id, profile_name) in enumerate(get_profiles().items()):
                 profile_option_list.append(
@@ -139,14 +141,14 @@ class SVPManager:
                 )
                 if profile_id == active_profile:
                     selected = i+1
-            self.menu.put_menu("Select SVP Profile", profile_option_list, selected)
+            self.menu.put_menu(_("Select SVP Profile"), profile_option_list, selected)
         else:
             if is_svp_enabled():
-                self.menu.put_menu("SVP is Not Active", [
-                    ("Disable", self.menu_set_profile, None),
-                    ("Retry", self.menu_set_enabled)
+                self.menu.put_menu(_("SVP is Not Active"), [
+                    (_("Disable"), self.menu_set_profile, None),
+                    (_("Retry"), self.menu_set_enabled)
                 ], selected=1)
             else:
-                self.menu.put_menu("SVP is Disabled", [
-                    ("Enable SVP", self.menu_set_enabled)
+                self.menu.put_menu(_("SVP is Disabled"), [
+                    (_("Enable SVP"), self.menu_set_enabled)
                 ])

@@ -8,6 +8,7 @@ from sys import platform
 
 from .conf import settings
 from .utils import is_local_domain, get_profile, get_seq
+from .i18n import _
 
 log = logging.getLogger('media')
 
@@ -101,7 +102,7 @@ class Video(object):
                 if year is not None:
                     title = "%s (%s)" % (title, year)
             setattr(self, "_title", title)
-        return getattr(self, "_title") + (" (Transcode)" if self.is_transcode else "")
+        return getattr(self, "_title") + (_(" (Transcode)") if self.is_transcode else "")
 
     def set_trs_override(self, video_bitrate, force_transcode):
         if force_transcode:
@@ -282,9 +283,9 @@ class Media(object):
             return self.video
         
         if index < len(self.queue):
-            return Video(queue[index]["Id"], self)
+            return Video(self.queue[index]["Id"], self)
 
-        log.error("Media::get_video couldn't find video at index %s" % video)
+        log.error("Media::get_video couldn't find video at index %s" % index)
     
     def insert_items(self, items, append=False):
         items = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in items]

@@ -298,6 +298,7 @@ need to.
     - Update checks are performed when playing media, once per day.
  - `notify_updates` - Display update notification when playing media. Default: `true`
     - Notification will only display once until the application is restarted. 
+ - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
 
 ### MPV Configuration
 
@@ -476,6 +477,25 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 5. Ensure you have a copy of `libmpv1` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
 7. You should now be able to run the program with `./run.py` or `./run-desktop.py`. Installation is possible with `sudo pip3 install .`.
+
+### Translation
+
+This project uses gettext for translation. The current template language file is `base.pot` in `jellyfin_mpv_shim/messages/`.
+
+To regenerate `base.pot`:
+```bash
+pygettext --default-domain=base -o jellyfin_mpv_shim/messages/base.pot jellyfin_mpv_shim/*.py jellyfin_mpv_shim/**/*.py
+```
+
+To update an existing translation with new strings:
+```bash
+msgmerge --update jellyfin_mpv_shim/messages/es/LC_MESSAGES/base.po jellyfin_mpv_shim/messages/base.pot
+```
+
+To compile all `*.po` files to `*.mo`:
+```bash
+find -iname '*.po' | while read -r file; do msgfmt "$file" -o "${file%.*}.mo"; done
+```
 
 ## Linux Installation
 

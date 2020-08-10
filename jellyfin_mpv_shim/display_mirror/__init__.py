@@ -17,8 +17,8 @@ import webview  # Python3-webview in Debian, pywebview in pypi
 
 from ..clients import clientManager
 from ..utils import get_text
+from ..i18n import _
 from . import helpers
-
 
 # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
 # Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
@@ -100,8 +100,8 @@ def get_html(server_address=None, item=None):
         jinja_vars = {
             'random_backdrop': True,  # Make the jinja template load some extra JS code for random backdrops
             'backdrop_src': helpers.getRandomBackdropUrl(),  # Preinitialise it with a random backdrop though
-            'display_name': "Ready to cast",
-            'overview': "\n\nSelect your media in Jellyfin and play it here",  # FIME: Mention the player_name here
+            'display_name': _("Ready to cast"),
+            'overview': "\n\n" + _("Select your media in Jellyfin and play it here"),  # FIME: Mention the player_name here
         }
 
     jinja_vars.update({

@@ -5,6 +5,7 @@ import webbrowser
 
 from .constants import CLIENT_VERSION
 from .conf import settings
+from .i18n import _
 log = logging.getLogger("update_check")
 
 release_url = "https://github.com/iwalton3/jellyfin-mpv-shim/releases/"
@@ -43,7 +44,7 @@ class UpdateChecker:
                 self.has_notified = True
                 log.info("Update Available: {0}".format(self.new_version))
                 self.playerManager._player.show_text(
-                    "MPV Shim v{0} Update Available\nOpen menu (press c) for details.".format(self.new_version),
+                    _("MPV Shim v{0} Update Available\nOpen menu (press c) for details.").format(self.new_version),
                     5000, 1
                 )
 

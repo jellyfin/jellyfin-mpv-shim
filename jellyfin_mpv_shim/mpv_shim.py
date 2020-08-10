@@ -7,6 +7,7 @@ import multiprocessing
 from threading import Event
 
 from . import conffile
+from . import i18n
 from .conf import settings
 from .clients import clientManager
 from .constants import APP_NAME
@@ -20,6 +21,7 @@ logging.getLogger('requests').setLevel(logging.CRITICAL)
 def main(desktop=False, cef=False):
     conf_file = conffile.get(APP_NAME, 'conf.json')
     settings.load(conf_file)
+    i18n.configure()
 
     if settings.sanitize_output:
         enable_sanitization()

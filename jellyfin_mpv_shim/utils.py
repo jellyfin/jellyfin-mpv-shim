@@ -11,6 +11,7 @@ from .conf import settings
 from datetime import datetime
 from functools import wraps
 from .constants import USER_APP_NAME
+from .i18n import _
 
 log = logging.getLogger('utils')
 
@@ -232,8 +233,8 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
 
 def get_sub_display_title(stream):
     return "{0}{1} ({2})".format(
-        stream.get("Language", "Unkn").capitalize(),
-        " Forced" if stream.get("IsForced") else "",
+        stream.get("Language", _("Unkn")).capitalize(),
+        _(" Forced") if stream.get("IsForced") else "",
         stream.get("Codec")
     )
 

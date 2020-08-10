@@ -3,6 +3,7 @@ import threading
 import os
 from datetime import datetime, timedelta
 from .media import Media
+from .i18n import _
 from time import sleep
 
 # This is based on: https://github.com/jellyfin/jellyfin-web/blob/master/src/components/syncPlay/syncPlayManager.js
@@ -12,10 +13,10 @@ from .conf import settings
 log = logging.getLogger('syncplay')
 seconds_in_ticks = 10000000
 info_commands = {
-    "GroupDoesNotExist": "The specified SyncPlay group does not exist.",
-    "CreateGroupDenied": "Creating SyncPlay groups is not allowed.",
-    "JoinGroupDenied": "SyncPlay group access was denied.",
-    "LibraryAccessDenied": "Access to the SyncPlay library was denied."
+    "GroupDoesNotExist": _("The specified SyncPlay group does not exist."),
+    "CreateGroupDenied": _("Creating SyncPlay groups is not allowed."),
+    "JoinGroupDenied": _("SyncPlay group access was denied."),
+    "LibraryAccessDenied": _("Access to the SyncPlay library was denied.")
 }
 
 
@@ -124,7 +125,7 @@ class SyncPlayManager:
                 self.sync_enabled = False
                 self.attempts += 1
                 log.info("SyncPlay Speed to Sync rate: {0}".format(speed))
-                self.player_message("SpeedToSync (x{0})".format(speed))
+                self.player_message(_("SpeedToSync (x{0})").format(speed))
 
                 def callback():
                     self.player.speed = 1
@@ -134,7 +135,7 @@ class SyncPlayManager:
                 if self.attempts > settings.sync_attempts:
                     self.sync_enabled = False
                     log.info("SyncPlay Sync Disabled due to too many attempts.")
-                    self.player_message("Sync Disabled (Too Many Attempts)")
+                    self.player_message(_("Sync Disabled (Too Many Attempts)"))
                     return
 
                 # Skip To Sync Method
@@ -142,7 +143,7 @@ class SyncPlayManager:
                 self.sync_enabled = False
                 self.attempts += 1
                 log.info("SyncPlay Skip to Sync Activated")
-                self.player_message("SkipToSync (x{0})".format(self.attempts))
+                self.player_message(_("SkipToSync (x{0})").format(self.attempts))
 
                 def callback():
                     self.sync_enabled = True
@@ -195,7 +196,7 @@ class SyncPlayManager:
 
         log.info("Syncplay enabled.")
         if from_server:
-            self.player_message("SyncPlay enabled.")
+            self.player_message(_("SyncPlay enabled."))
 
     def disable_sync_play(self, from_server):
         self.player.speed = self.playback_rate
@@ -214,7 +215,7 @@ class SyncPlayManager:
 
         log.info("Syncplay disabled.")
         if from_server:
-            self.player_message("SyncPlay disabled.")
+            self.player_message(_("SyncPlay disabled."))
 
     # On Buffer
     def on_buffer(self):
@@ -248,11 +249,11 @@ class SyncPlayManager:
         elif command_type == "GroupLeft" or command_type == "NotInGroup":
             self.disable_sync_play(True)
         elif command_type == "UserJoined":
-            self.player_message("{0} has joined.".format(command["Data"]))
+            self.player_message(_("{0} has joined.").format(command["Data"]))
         elif command_type == "UserLeft":
-            self.player_message("{0} has left.".format(command["Data"]))
+            self.player_message(_("{0} has left.").format(command["Data"]))
         elif command_type == "GroupWait":
-            self.player_message("{0} is buffering.".format(command["Data"]))
+            self.player_message(_("{0} is buffering.").format(command["Data"]))
         else:
             log.error("Unknown SyncPlay command {0} payload {1}.".format(command_type, command))
 
@@ -449,11 +450,11 @@ class SyncPlayManager:
         selected = 0
         offset = 1
         group_option_list = [
-            ("None (Disabled)", self.menu_disable, None),
+            (_("None (Disabled)"), self.menu_disable, None),
         ]
         if not self.is_enabled():
             offset = 2
-            group_option_list.append(("New Group", self.menu_create_group, None))
+            group_option_list.append((_("New Group"), self.menu_create_group, None))
         groups = self.client.jellyfin.get_sync_play(self.playerManager._video.item_id)
         for i, group in enumerate(groups):
             group_option_list.append(
@@ -461,4 +462,4 @@ class SyncPlayManager:
             )
             if group["GroupId"] == self.current_group:
                 selected = i + offset
-        self.menu.put_menu("SyncPlay", group_option_list, selected)
+        self.menu.put_menu(_("SyncPlay"), group_option_list, selected)

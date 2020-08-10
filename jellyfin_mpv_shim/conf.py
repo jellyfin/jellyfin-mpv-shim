@@ -92,6 +92,7 @@ class Settings(object):
         "screenshot_menu":      True,
         "check_updates":        True,
         "notify_updates":       True,
+        "lang":                 None,
     }
 
     def __getattr__(self, name):

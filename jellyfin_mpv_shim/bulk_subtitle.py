@@ -1,6 +1,8 @@
 from collections import namedtuple
 from .utils import get_sub_display_title
-import urllib.parse
+from .i18n import _
+# TODO: Should probably support automatic profiles for languages other than English and Japanese...
+
 import time
 import logging
 
@@ -15,7 +17,7 @@ keep_messages = 6
 def render_message(message, show_text):
     log.info(message)
     messages.append(message)
-    text = "Selecting Tracks..."
+    text = _("Selecting Tracks...")
     for message in messages[-6:]:
         text += "\n   " + message
     show_text(text,2**30,1)
@@ -41,9 +43,9 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
             audio_list = [Audio(s.get("Index"), s.get("Language"), s.get("Title"),
                           s.get("DisplayTitle")) for s in media_source["MediaStreams"]
                           if s.get("Type") == "Audio"]
-            subtitle_list =  [Subtitle(s.get("Index"), s.get("Language"), s.get("Title"), s.get("IsForced"),
-                              get_sub_display_title(s)) for s in media_source["MediaStreams"]
-                              if s.get("Type") == "Subtitle"]
+            subtitle_list = [Subtitle(s.get("Index"), s.get("Language"), s.get("Title"), s.get("IsForced"),
+                             get_sub_display_title(s)) for s in media_source["MediaStreams"]
+                             if s.get("Type") == "Subtitle"]
             part = Part(media_source.get("Id"), audio_list, subtitle_list)
 
             aid = None
@@ -63,7 +65,7 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
                     aid, sid = audio.id, subtitle.id
                     success_ct += 1
                 elif audio:
-                    render_message("{0}: No Subtitles".format(name), show_text)
+                    render_message(_("{0}: No Subtitles").format(name), show_text)
                     aid = audio.id
                     partial_ct += 1
             elif mode == "manual":
@@ -86,26 +88,26 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
                 # This is a horrible hack to change the audio/subtitle settings without playing
                 # the media. I checked the jelyfin source code and didn't find a better way.
                 client.jellyfin.session_progress({
-                    "ItemId":part.id,
+                    "ItemId": part.id,
                     "AudioStreamIndex": aid,
                     "SubtitleStreamIndex": sid
                 })
 
             else:
-                render_message("{0}: Fail".format(name), show_text)
+                render_message(_("{0}: Fail").format(name), show_text)
     
     if mode == "subbed":
-        render_message("Set Subbed: {0} ok, {1} fail".format(
+        render_message(_("Set Subbed: {0} ok, {1} fail").format(
             success_ct, count-success_ct), show_text)
     elif mode == "dubbed":
-        render_message("Set Dubbed: {0} ok, {1} audio only, {2} fail".format(
+        render_message(_("Set Dubbed: {0} ok, {1} audio only, {2} fail").format(
             success_ct, partial_ct, count-success_ct-partial_ct), show_text)
     elif mode == "manual":
-        render_message("Manual: {0} ok, {1} fail".format(
+        render_message(_("Manual: {0} ok, {1} fail").format(
             success_ct, count-success_ct), show_text)
     time.sleep(3)
     if c_aid:
-        render_message("Setting Current...", show_text)
+        render_message(_("Setting Current..."), show_text)
         player.put_task(player.set_streams, c_aid, c_sid)
         player.timeline_handle()
   
@@ -116,7 +118,7 @@ def get_subbed(part):
 
     for audio in part.audio:
         lower_title = audio.name.lower() if audio.name is not None else ""
-        if audio.language_code != "jpn" and not "japan" in lower_title:
+        if audio.language_code != "jpn" and "japan" not in lower_title:
             continue
         if "commentary" in lower_title:
             continue
@@ -127,7 +129,7 @@ def get_subbed(part):
     
     for subtitle in part.subtitle:
         lower_title = subtitle.name.lower() if subtitle.name is not None else ""
-        if subtitle.language_code != "eng" and not "english" in lower_title:
+        if subtitle.language_code != "eng" and "english" not in lower_title:
             continue
         if subtitle.is_forced:
             continue
@@ -148,7 +150,7 @@ def get_dubbed(part):
 
     for audio in part.audio:
         lower_title = audio.name.lower() if audio.name is not None else ""
-        if audio.language_code != "eng" and not "english" in lower_title:
+        if audio.language_code != "eng" and "english" not in lower_title:
             continue
         if "commentary" in lower_title:
             continue
@@ -159,7 +161,7 @@ def get_dubbed(part):
     
     for subtitle in part.subtitle:
         lower_title = subtitle.name.lower() if subtitle.name is not None else ""
-        if subtitle.language_code != "eng" and not "english" in lower_title:
+        if subtitle.language_code != "eng" and "english" not in lower_title:
             continue
         if subtitle.is_forced:
             sign_subtitles = subtitle
