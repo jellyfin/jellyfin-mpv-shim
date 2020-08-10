@@ -58,6 +58,12 @@ class Server(threading.Thread):
         def add_header(response):
             if request.path == "/index.html":
                 do_not_cache(response)
+                if settings.desktop_scale != 1.0:
+                    f_scale = float(settings.desktop_scale)
+                    response.make_sequence()
+                    response.set_data(response.get_data().replace(
+                        b"</body>", b"""<style>body { zoom: %.2f; }</style></body>""" % f_scale
+                    ))
                 return response
             if not response.cache_control.no_store:
                 response.cache_control.max_age = 2592000

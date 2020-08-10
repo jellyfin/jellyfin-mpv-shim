@@ -93,6 +93,7 @@ class Settings(object):
         "check_updates":        True,
         "notify_updates":       True,
         "lang":                 None,
+        "desktop_scale":        1.0,
     }
 
     def __getattr__(self, name):
