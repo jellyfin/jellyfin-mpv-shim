@@ -260,9 +260,9 @@ class PlayerManager(object):
                 self.put_task(self.finished_callback, has_lock)
 
         # Fires at the end.
-        @self._player.event_callback('idle')
-        def handle_end_idle(event):
-            if self._video:
+        @self._player.property_observer('playback-abort')
+        def handle_end_idle(name, value):
+            if self._video and value:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
