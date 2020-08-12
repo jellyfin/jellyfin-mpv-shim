@@ -85,8 +85,6 @@ class Settings(object):
         "sync_speed_time":      1000,
         "sync_speed_attempts":  3,
         "sync_attempts":        5,
-        "sync_timeout":         30,
-        "sync_pl_timeout":      0.5,
         "sync_revert_seek":     True,
         "sync_osd_message":     True,
         "screenshot_menu":      True,

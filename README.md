@@ -264,8 +264,6 @@ need to.
  - `sync_speed_time` - Duration in ms to change playback speed. Default: `1000`
  - `sync_speed_attempts` - Number of attempts before speed changes are disabled. Default: `3`
  - `sync_attempts` - Number of attempts before disabling sync play. Default: `5`
- - `sync_timeout` - Seconds to wait for events. Default: `30`
- - `sync_pl_timeout` - Max number of seconds to wait for player events. Default: `0.5`
  - `sync_revert_seek` - Attempt to revert seek via MPV OSC. Default: `true`
      - This could break if you use revert-seek markers or scripts that use it.
  - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
