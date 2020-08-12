@@ -245,7 +245,7 @@ under Settings > Control options. Adjust the `svp_url` and `svp_socket` settings
     - Default on Windows: `mpvpipe`
     - Default on other platforms: `/tmp/mpvsocket`
 
-Currently on Windows the built-in MPV does now work with SVP. You must download MPV yourself.
+Currently on Windows the built-in MPV does not work with SVP. You must download MPV yourself.
 
  - Download the latest MPV build [from here](https://sourceforge.net/projects/mpv-player-windows/files/64bit/).
  - Follow the [vapoursynth instructions](https://github.com/shinchiro/mpv-winbuild-cmake/wiki/Setup-vapoursynth-for-mpv).
