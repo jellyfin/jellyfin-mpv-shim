@@ -398,6 +398,7 @@ class OSDMenu(object):
             self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
             self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
             self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
+            self.get_settings_toggle(_("Check for Updates"), "check_updates"),
         ])
 
     def unwatched_menu_handle(self):

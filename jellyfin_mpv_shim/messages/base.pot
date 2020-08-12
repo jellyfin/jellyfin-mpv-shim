@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-08-10 18:08+EDT\n"
+"POT-Creation-Date: 2020-08-12 12:47+EDT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -383,6 +383,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:400
 msgid "Disable Direct Play"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:401
+msgid "Check for Updates"
 msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:36
