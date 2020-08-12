@@ -61,6 +61,20 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.7.1" date="2020-08-12">
+      <description>
+        <p>This is a maintenance update. Changes:</p>
+        <ul>
+            <li>Increase the timeout for logins. (#99)</li>
+            <li>Add update check using GitHub. (#50)</li>
+            <li>Prepare application for translation. (#68)</li>
+            <li>Clarify the "Always Transcode" option. (#72)</li>
+            <li>Add option to scale web client. (#90)</li>
+            <li>Migrate from deprecated idle event to observer.</li>
+            <li>Remove unused SyncPlay config options.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.0" date="2020-08-07">
       <description>
         <p>This release adds SyncPlay support and better logging. Changes:</p>
