@@ -399,6 +399,7 @@ class OSDMenu(object):
             self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
             self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
             self.get_settings_toggle(_("Check for Updates"), "check_updates"),
+            self.get_settings_toggle(_("Discord Rich Presence"), "discord_presence"),
         ])
 
     def unwatched_menu_handle(self):

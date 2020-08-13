@@ -304,6 +304,7 @@ need to.
  - `notify_updates` - Display update notification when playing media. Default: `true`
     - Notification will only display once until the application is restarted. 
  - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
+ - `discord_presence` - Enable Discord rich presence support. Default: `false`
 
 ### MPV Configuration
 
@@ -529,7 +530,10 @@ sudo apt install python3-jinja2 python3-webview
 sudo pip3 install jellyfin-mpv-shim[mirror]
 sudo apt install gir1.2-webkit2-4.0
 ```
-
+Discord rich presence support:
+```bash
+sudo pip3 install jellyfin-mpv-shim[discord]
+```
 You can build mpv from source to get better codec support. Execute the following:
 ```bash
 sudo pip3 install --upgrade python-mpv

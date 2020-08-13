@@ -92,6 +92,7 @@ class Settings(object):
         "notify_updates":       True,
         "lang":                 None,
         "desktop_scale":        1.0,
+        "discord_presence":     False,
     }
 
     def __getattr__(self, name):

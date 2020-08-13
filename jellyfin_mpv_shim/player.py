@@ -14,9 +14,19 @@ from .menu import OSDMenu
 from .constants import APP_NAME
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
+from .i18n import _
 
 log = logging.getLogger('player')
 mpv_log = logging.getLogger('mpv')
+
+
+discord_presence = False
+if settings.discord_presence:
+    try:
+        from .rich_presence import send_presence, clear_presence
+        discord_presence = True
+    except Exception:
+        log.error("Could not enable Discord Rich Presence.", exc_info=True)
 
 python_mpv_available=True
 is_using_ext_mpv=False
@@ -649,6 +659,21 @@ class PlayerManager(object):
                 "start": int(safe_pos * 10000000),
                 "end": int(((player.duration - safe_pos * none_fallback(player.cache_buffering_state, 0) / 100) + safe_pos) * 10000000)
             }]
+        if discord_presence:
+            try:
+                if (self._video.is_tv and self._video.item.get("IndexNumber") is not None
+                        and self._video.item.get("ParentIndexNumber") is not None):
+                    title = self._video.item.get("SeriesName")
+                    subtitle = _("Season {0} - Episode {1}").format(
+                        self._video.item.get("ParentIndexNumber"),
+                        self._video.item.get("IndexNumber")
+                    )
+                else:
+                    title = self._video.item.get("Name")
+                    subtitle = str(self._video.item.get("ProductionYear", ""))
+                send_presence(title, subtitle, player.playback_time, player.duration, not player.pause)
+            except Exception:
+                log.error("Could not send Discord Rich Presence.", exc_info=True)
         return options
 
     @synchronous('_tl_lock')
@@ -670,6 +695,12 @@ class PlayerManager(object):
         if (self.get_webview() is not None and
             (settings.display_mirroring or settings.desktop_fullscreen)):
             self.get_webview().show()
+
+        if discord_presence:
+            try:
+                clear_presence()
+            except Exception:
+                log.error("Could not clear Discord Rich Presence.", exc_info=True)
 
     def upd_player_hide(self):
         self._player.keep_open = self._video.parent.has_next
