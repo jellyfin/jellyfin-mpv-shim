@@ -6,13 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-12 12:47+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2020-08-13 09:11+0000\n"
+"Last-Translator: Dengkailin <303526708@qq.com>\n"
+"Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
+"jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 3.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
@@ -45,27 +48,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
-msgstr ""
+msgstr "服务器 URL: "
 
 #: jellyfin_mpv_shim/clients.py:46
 msgid "Username: "
-msgstr ""
+msgstr "用户名: "
 
 #: jellyfin_mpv_shim/clients.py:47
 msgid "Password: "
-msgstr ""
+msgstr "密码: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Successfully added server."
-msgstr ""
+msgstr "成功添加服务器。"
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server? [y/N] "
-msgstr ""
+msgstr "添加其它服务器? [是/否] "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
-msgstr ""
+msgstr "添加服务器失败。"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:103
 msgid "Ready to cast"
@@ -73,149 +76,151 @@ msgstr ""
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "在Jellyfin中选择您的媒体并在此处播放"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
-msgstr ""
+msgstr "程序日志"
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr ""
+msgstr "添加服务器"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
 "Could not add server.\n"
 "Please check your connection infomation."
 msgstr ""
+"无法添加服务器。 \n"
+"请检查您的连接信息。"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
-msgstr ""
+msgstr "连接失败"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
-msgstr ""
+msgstr "已连接"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr ""
+msgstr "服务器配置"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
-msgstr ""
+msgstr "服务器地址:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:265
 msgid "Username:"
-msgstr ""
+msgstr "用户名:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:270
 msgid "Password:"
-msgstr ""
+msgstr "密码:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr ""
+msgstr "移除服务器"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
-msgstr ""
+msgstr "关闭"
 
 #: jellyfin_mpv_shim/gui_mgr.py:399
 msgid "Configure Servers"
-msgstr ""
+msgstr "配置服务器"
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr ""
+msgstr "显示控制台"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
-msgstr ""
+msgstr "程序配置菜单"
 
 #: jellyfin_mpv_shim/gui_mgr.py:402
 msgid "Open Config Folder"
-msgstr ""
+msgstr "打开配置文件夹"
 
 #: jellyfin_mpv_shim/gui_mgr.py:403
 msgid "Quit"
-msgstr ""
+msgstr "退出"
 
 #: jellyfin_mpv_shim/media.py:105
 msgid " (Transcode)"
-msgstr ""
+msgstr " (转码)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "白色"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "黄色"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "黑色"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "青色"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "蓝色"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "绿色"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "紫色"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "红色"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "灰色"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "非常小"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "小"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "标准"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "大"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "非常大"
 
 #: jellyfin_mpv_shim/menu.py:105
 msgid "Main Menu"
-msgstr ""
+msgstr "主菜单"
 
 #: jellyfin_mpv_shim/menu.py:110
 msgid "Change Audio"
-msgstr ""
+msgstr "更换音轨"
 
 #: jellyfin_mpv_shim/menu.py:111
 msgid "Change Subtitles"
-msgstr ""
+msgstr "更换字幕"
 
 #: jellyfin_mpv_shim/menu.py:112
 msgid "Change Video Quality"
-msgstr ""
+msgstr "更换视频质量"
 
 #: jellyfin_mpv_shim/menu.py:113 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
@@ -223,67 +228,67 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:117
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} 发布信息/下载"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "更改视频播放预设"
 
 #: jellyfin_mpv_shim/menu.py:123
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "自动设置音频/字幕（整个系列）"
 
 #: jellyfin_mpv_shim/menu.py:124
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "退出并标记未观看"
 
 #: jellyfin_mpv_shim/menu.py:126
 msgid "Screenshot"
-msgstr ""
+msgstr "截图"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "视频播放预设"
 
 #: jellyfin_mpv_shim/menu.py:133
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP 设置"
 
 #: jellyfin_mpv_shim/menu.py:136 jellyfin_mpv_shim/menu.py:385
 msgid "Preferences"
-msgstr ""
+msgstr "偏好设置"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Close Menu"
-msgstr ""
+msgstr "关闭菜单"
 
 #: jellyfin_mpv_shim/menu.py:215
 msgid "Select Audio Track"
-msgstr ""
+msgstr "选择音频轨道"
 
 #: jellyfin_mpv_shim/menu.py:236
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "选择字幕轨道"
 
 #: jellyfin_mpv_shim/menu.py:241
 msgid "None"
-msgstr ""
+msgstr "无"
 
 #: jellyfin_mpv_shim/menu.py:267
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "选择转码质量"
 
 #: jellyfin_mpv_shim/menu.py:268
 msgid "No Transcode"
-msgstr ""
+msgstr "未转码"
 
 #: jellyfin_mpv_shim/menu.py:269
 msgid "Maximum"
-msgstr ""
+msgstr "Maximum"
 
 #: jellyfin_mpv_shim/menu.py:304
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "选择系列的音频/字幕"
 
 #: jellyfin_mpv_shim/menu.py:305
 msgid "English Audio"
@@ -299,59 +304,59 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:334
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "选择默认转码预设"
 
 #: jellyfin_mpv_shim/menu.py:366
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "选择字幕颜色"
 
 #: jellyfin_mpv_shim/menu.py:372
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "选择字幕大小"
 
 #: jellyfin_mpv_shim/menu.py:378
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "选择字幕位置"
 
 #: jellyfin_mpv_shim/menu.py:379
 msgid "Bottom"
-msgstr ""
+msgstr "底部"
 
 #: jellyfin_mpv_shim/menu.py:380
 msgid "Top"
-msgstr ""
+msgstr "顶部"
 
 #: jellyfin_mpv_shim/menu.py:381
 msgid "Middle"
-msgstr ""
+msgstr "中间"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Auto Play"
-msgstr ""
+msgstr "自动播放"
 
 #: jellyfin_mpv_shim/menu.py:387
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "远程转码质量: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:388
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "字幕大小: {0}"
 
 #: jellyfin_mpv_shim/menu.py:389
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "字幕位置: {0}"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "字幕颜色: {0}"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "将H265转码为H264"
 
 #: jellyfin_mpv_shim/menu.py:392
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "将Hi10p转码为8bit"
 
 #: jellyfin_mpv_shim/menu.py:393
 msgid "Direct Paths"
@@ -359,84 +364,84 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:394
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "自动全屏"
 
 #: jellyfin_mpv_shim/menu.py:395
 msgid "Media Key Seek"
-msgstr ""
+msgstr "媒体密钥搜寻"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "使用网络搜索偏好"
 
 #: jellyfin_mpv_shim/menu.py:397
 msgid "Display Mirroring"
-msgstr ""
+msgstr "显示镜像"
 
 #: jellyfin_mpv_shim/menu.py:398
 msgid "Transcode to H265"
-msgstr ""
+msgstr "转码为H265"
 
 #: jellyfin_mpv_shim/menu.py:399
 msgid "Write Logs to File"
-msgstr ""
+msgstr "将日志写入文件"
 
 #: jellyfin_mpv_shim/menu.py:400
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "禁用直接播放"
 
 #: jellyfin_mpv_shim/menu.py:401
 msgid "Check for Updates"
-msgstr ""
+msgstr "检查更新"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
 msgid "Automatic"
-msgstr ""
+msgstr "自动"
 
 #: jellyfin_mpv_shim/svp_integration.py:136
 msgid "Disabled"
-msgstr ""
+msgstr "关闭"
 
 #: jellyfin_mpv_shim/svp_integration.py:144
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "选择SVP配置预设"
 
 #: jellyfin_mpv_shim/svp_integration.py:147
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP未激活"
 
 #: jellyfin_mpv_shim/svp_integration.py:148
 msgid "Disable"
-msgstr ""
+msgstr "禁用"
 
 #: jellyfin_mpv_shim/svp_integration.py:149
 msgid "Retry"
-msgstr ""
+msgstr "重试"
 
 #: jellyfin_mpv_shim/svp_integration.py:152
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP已禁用"
 
 #: jellyfin_mpv_shim/svp_integration.py:153
 msgid "Enable SVP"
-msgstr ""
+msgstr "启用SVP"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "指定的SyncPlay组不存在。"
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "不允许创建SyncPlay组。"
 
 #: jellyfin_mpv_shim/syncplay.py:18
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "SyncPlay组访问被拒绝。"
 
 #: jellyfin_mpv_shim/syncplay.py:19
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "拒绝访问SyncPlay库。"
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
@@ -444,45 +449,47 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "同步已禁用（尝试次数过多）"
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "跳过同步(x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay 已启用。"
 
 #: jellyfin_mpv_shim/syncplay.py:218
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay 已禁用。"
 
 #: jellyfin_mpv_shim/syncplay.py:252
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} 已加入。"
 
 #: jellyfin_mpv_shim/syncplay.py:254
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} 已离开。"
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} 正在缓冲。"
 
 #: jellyfin_mpv_shim/syncplay.py:453 jellyfin_mpv_shim/video_profile.py:149
 msgid "None (Disabled)"
-msgstr ""
+msgstr "无（已禁用）"
 
 #: jellyfin_mpv_shim/syncplay.py:457
 msgid "New Group"
-msgstr ""
+msgstr "创建新组"
 
 #: jellyfin_mpv_shim/update_check.py:47
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} 更新可用\n"
+"打开菜单（按c）了解详细信息。"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid "Unkn"
@@ -526,4 +533,4 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "选择着色器配置预设"
