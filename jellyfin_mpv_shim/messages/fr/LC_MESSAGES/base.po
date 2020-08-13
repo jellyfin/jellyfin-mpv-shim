@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-13 00:13+EDT\n"
-"PO-Revision-Date: 2020-08-13 11:41+0000\n"
-"Last-Translator: Thibault <thibaultnocchi@gmail.com>\n"
+"PO-Revision-Date: 2020-08-13 21:02+0000\n"
+"Last-Translator: lelamamalgache <kevnicolwynbay@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -19,8 +19,9 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
+#, fuzzy
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Sélection des pistes..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
@@ -31,20 +32,23 @@ msgid "{0}: Fail"
 msgstr "{0} : Échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
+#, fuzzy
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Définir en sous-titré: {0} ok, {1} echec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
+#, fuzzy
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Définir le doublage : {0} ok, {1} audio seulement, {2} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
 msgstr "Manuel : {0} OK, {1} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
+#, fuzzy
 msgid "Setting Current..."
-msgstr ""
+msgstr "Réglage Actuel..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
@@ -64,7 +68,7 @@ msgstr "Serveur ajouté avec succès."
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server? [y/N] "
-msgstr ""
+msgstr "Ajout d'un autre serveur ? [y/N] "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
@@ -231,12 +235,13 @@ msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0] Infos de sortie / Téléchargements"
 
 #: jellyfin_mpv_shim/menu.py:121
+#, fuzzy
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Changer le profil de lecture de la vidéo"
 
 #: jellyfin_mpv_shim/menu.py:123
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Réglage automatique de l'audio/des sous-titres (série entière)"
 
 #: jellyfin_mpv_shim/menu.py:124
 msgid "Quit and Mark Unwatched"
@@ -248,7 +253,7 @@ msgstr "Capture d'écran"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Profils de lecture vidéo"
 
 #: jellyfin_mpv_shim/menu.py:133
 msgid "SVP Settings"
@@ -303,8 +308,9 @@ msgid "Japanese Audio w/ English Subtitles"
 msgstr "Audio japonais avec sous-titres anglais"
 
 #: jellyfin_mpv_shim/menu.py:308
+#, fuzzy
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Index manuel par piste (moins fiable)"
 
 #: jellyfin_mpv_shim/menu.py:335
 msgid "Select Default Transcode Profile"
@@ -359,8 +365,9 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcoder Hi10p vers 8bit"
 
 #: jellyfin_mpv_shim/menu.py:393
+#, fuzzy
 msgid "Direct Paths"
-msgstr ""
+msgstr "Chemins directs"
 
 #: jellyfin_mpv_shim/menu.py:394
 msgid "Transcode to H265"
@@ -383,8 +390,9 @@ msgid "Media Key Seek"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:403
+#, fuzzy
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Utiliser la pref de cherche web"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Display Mirroring"
@@ -456,16 +464,18 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "L'accès à la médiathèque SyncPlay a été refusé."
 
 #: jellyfin_mpv_shim/syncplay.py:128
+#, fuzzy
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "VitessePourSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
 msgstr "Sync désactivé (trop de tentatives)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
+#, fuzzy
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "AnnulerPourSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
@@ -545,4 +555,4 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Sélectionner le profil nuanceur"
