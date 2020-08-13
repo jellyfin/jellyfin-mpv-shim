@@ -133,7 +133,8 @@ class OSDMenu(object):
             self.menu_list.append((_("SVP Settings"), self.svp_menu.menu_action))
 
         self.menu_list.extend([
-            (_("Preferences"), self.preferences_menu),
+            (_("Video Preferences"), self.video_preferences_menu),
+            (_("Player Preferences"), self.player_preferences_menu),
             (_("Close Menu"), self.hide_menu)
         ])
 
@@ -381,9 +382,8 @@ class OSDMenu(object):
             (_("Middle"), self.sub_settings_handle, "subtitle_position", "middle"),
         ])
 
-    def preferences_menu(self):
-        self.put_menu(_("Preferences"), [
-            self.get_settings_toggle(_("Auto Play"), "auto_play"),
+    def video_preferences_menu(self):
+        self.put_menu(_("Video Preferences"), [
             (_("Remote Transcode Quality: {0:0.1f} Mbps").format(settings.remote_kbps/1000), self.transcode_settings_menu),
             (_("Subtitle Size: {0}").format(settings.subtitle_size), self.subtitle_size_menu),
             (_("Subtitle Position: {0}").format(settings.subtitle_position), self.subtitle_position_menu),
@@ -391,13 +391,18 @@ class OSDMenu(object):
             self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
             self.get_settings_toggle(_("Transcode Hi10p to 8bit"), "transcode_hi10p"),
             self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
+            self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
+            self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
+        ])
+
+    def player_preferences_menu(self):
+        self.put_menu(_("Player Preferences"), [
+            self.get_settings_toggle(_("Auto Play"), "auto_play"),
             self.get_settings_toggle(_("Auto Fullscreen"), "fullscreen"),
             self.get_settings_toggle(_("Media Key Seek"), "media_key_seek"),
             self.get_settings_toggle(_("Use Web Seek Pref"), "use_web_seek"),
             self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
-            self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
             self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
-            self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
             self.get_settings_toggle(_("Check for Updates"), "check_updates"),
             self.get_settings_toggle(_("Discord Rich Presence"), "discord_presence"),
         ])
