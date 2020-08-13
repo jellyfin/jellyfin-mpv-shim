@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-12 12:47+EDT\n"
-"PO-Revision-Date: 2020-08-13 15:02+0000\n"
+"PO-Revision-Date: 2020-08-13 16:38+0000\n"
 "Last-Translator: angeltonio <angeltonio86@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -232,23 +232,23 @@ msgstr "MPV Shim v {0} Información de Versión/Descarga"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Cambiar el Perfil de Reproducción de Video"
 
 #: jellyfin_mpv_shim/menu.py:123
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Ajuste Automático de Audio/Subtítulos (Serie Completa)"
 
 #: jellyfin_mpv_shim/menu.py:124
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Salir y Marcar como No Visto"
 
 #: jellyfin_mpv_shim/menu.py:126
 msgid "Screenshot"
-msgstr ""
+msgstr "Captura de Pantalla"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Perfiles de Reproducción de Video"
 
 #: jellyfin_mpv_shim/menu.py:133
 msgid "SVP Settings"
