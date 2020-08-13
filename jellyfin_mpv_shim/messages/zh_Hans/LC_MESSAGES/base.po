@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-12 12:47+EDT\n"
-"PO-Revision-Date: 2020-08-13 09:11+0000\n"
-"Last-Translator: Dengkailin <303526708@qq.com>\n"
+"PO-Revision-Date: 2020-08-13 09:15+0000\n"
+"Last-Translator: biAji <biaji@biaji.net>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -20,15 +20,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "选择轨道..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: 无字幕"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
