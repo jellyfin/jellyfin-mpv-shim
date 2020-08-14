@@ -9,6 +9,15 @@
 
 cd "$(dirname "$0")"
 
+function download_compat {
+    if [[ "$(which wget)" != "" ]]
+    then
+        wget -qO "$1" "$2"
+    else [[ "$(which curl)" != "" ]]
+        curl -s "$2" > "$1"
+    fi
+}
+
 function get_resource_version {
     curl -s --head https://github.com/iwalton3/"$1"/releases/latest | \
         grep -i '^location: ' | sed 's/.*tag\///g' | tr -d '\r'
@@ -59,7 +68,7 @@ if [[ "$update_web_client" == "yes" ]]
 then
     echo "Downloading web client..."
     wc_version=$(get_resource_version jellyfin-web)
-    wget -q "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip"
+    download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip"
     rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
     unzip dist.zip > /dev/null && rm dist.zip
     mv dist jellyfin_mpv_shim/webclient_view/webclient
@@ -83,7 +92,7 @@ if [[ "$update_shader_pack" == "yes" ]]
 then
     echo "Downloading shaders..."
     sp_version=$(get_resource_version default-shader-pack)
-    wget -qO release.zip "https://github.com/iwalton3/default-shader-pack/archive/$sp_version.zip"
+    download_compat release.zip "https://github.com/iwalton3/default-shader-pack/archive/$sp_version.zip"
     rm -r jellyfin_mpv_shim/default_shader_pack 2> /dev/null
     (
         mkdir default_shader_pack
@@ -97,18 +106,20 @@ then
 fi
 
 # Generate package
-if [[ "$1" != "--install" ]]
+if [[ "$1" == "--install" ]]
 then
-    rm -r build/ dist/ .eggs 2> /dev/null
-    mkdir build/ dist/
-    echo "Building release package."
-    python3 setup.py sdist bdist_wheel > /dev/null
-else
     if [[ "$(which sudo 2> /dev/null)" != "" && ! "$*" =~ "--local" ]]
     then
         sudo pip3 install .[all]
     else
         pip3 install .[all]
     fi
+
+elif [[ "$1" != "--skip-build" ]]
+then
+    rm -r build/ dist/ .eggs 2> /dev/null
+    mkdir build/ dist/
+    echo "Building release package."
+    python3 setup.py sdist bdist_wheel > /dev/null
 fi
 
