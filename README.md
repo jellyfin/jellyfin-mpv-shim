@@ -499,7 +499,7 @@ To regenerate `base.pot` and update an existing translation with new strings:
 
 To compile all `*.po` files to `*.mo`:
 ```bash
-find -iname '*.po' | while read -r file; do msgfmt "$file" -o "${file%.*}.mo"; done
+./gen_pkg.sh --skip-build
 ```
 
 ## Linux Installation
