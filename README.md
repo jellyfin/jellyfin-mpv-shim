@@ -450,7 +450,7 @@ no-keepaspect-window
 ## Development
 
 If you'd like to run the application without installing it, run `./run.py`.
-The project is written entierly in Python 3. There are no closed-source
+The project is written entirely in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
