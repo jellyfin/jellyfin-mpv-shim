@@ -1,6 +1,6 @@
 import socket
 import ipaddress
-import urllib.request
+import requests
 import urllib.parse
 from threading import Lock
 import logging
@@ -63,8 +63,7 @@ def is_local_domain(client):
     if not is_local:
         if addr_info[0] == socket.AddressFamily.AF_INET:
             try:
-                wan_ip = (urllib.request.urlopen("https://checkip.amazonaws.com/")
-                   .read().decode('ascii').replace('\n','').replace('\r',''))
+                wan_ip = requests.get("https://checkip.amazonaws.com/", timeout=(3, 10)).text.strip("\r\n")
                 return ip == wan_ip
             except Exception:
                 log.warning("checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.", exc_info=True)

@@ -21,7 +21,7 @@ class UpdateChecker:
     def _check_updates(self):
         log.info("Checking for updates...")
         try:
-            response = requests.get(release_url + "latest", allow_redirects=False)
+            response = requests.get(release_url + "latest", allow_redirects=False, timeout=(3, 10))
             version = response.headers["location"][len(release_url)+5:]
             if CLIENT_VERSION != version:
                 self.new_version = version
