@@ -63,8 +63,8 @@ msgid "Successfully added server."
 msgstr "Serveren ble lagt til."
 
 #: jellyfin_mpv_shim/clients.py:53
-msgid "Add another server? [y/N] "
-msgstr "Vil du legge til en server til? [y/N] "
+msgid "Add another server?"
+msgstr "Vil du legge til en server til?"
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."

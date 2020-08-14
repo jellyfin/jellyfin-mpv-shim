@@ -50,7 +50,7 @@ class ClientManager(object):
 
             if is_logged_in:
                 log.info(_("Successfully added server."))
-                add_another = input(_("Add another server? [y/N] "))
+                add_another = input(_("Add another server?") + " [y/N] ")
                 add_another = add_another in ("y", "Y", "yes", "Yes")
             else:
                 log.warning(_("Adding server failed."))
