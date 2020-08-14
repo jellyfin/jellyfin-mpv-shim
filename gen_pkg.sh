@@ -10,11 +10,11 @@
 cd "$(dirname "$0")"
 
 function download_compat {
-    if [[ "$(which wget)" != "" ]]
+    if [[ "$(which wget 2>/dev/null)" != "" ]]
     then
         wget -qO "$1" "$2"
     else [[ "$(which curl)" != "" ]]
-        curl -s "$2" > "$1"
+        curl -sL "$2" > "$1"
     fi
 }
 
