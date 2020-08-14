@@ -476,13 +476,17 @@ The shaders included in the shader pack are also available under verious open so
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
 
-1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug`.
+1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug pypresence`.
+    - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
 2. Clone this repository: `git clone https://github.com/iwalton3/jellyfin-mpv-shim`
+    - You can also download a zip build.
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
-4. Download the [web client](https://github.com/iwalton3/jellyfin-web/releases) and place the contents of the dist folder inside a folder named `webclient` in the `webclient_view` folder.
+4. Run prepare script: `./gen_pkg.sh`
+    - To do this manually, download the web client, shader pack, and build the language files.
 5. Ensure you have a copy of `libmpv1` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
 7. You should now be able to run the program with `./run.py` or `./run-desktop.py`. Installation is possible with `sudo pip3 install .`.
+    - You can also install the package with `./gen_pkg.sh --install`.
 
 ### Translation
 
