@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-13 00:13+EDT\n"
-"PO-Revision-Date: 2020-08-13 21:02+0000\n"
-"Last-Translator: lelamamalgache <kevnicolwynbay@gmail.com>\n"
+"PO-Revision-Date: 2020-08-14 20:16+0000\n"
+"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -19,7 +19,6 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
-#, fuzzy
 msgid "Selecting Tracks..."
 msgstr "Sélection des pistes..."
 
@@ -32,12 +31,10 @@ msgid "{0}: Fail"
 msgstr "{0} : Échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
-#, fuzzy
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Définir en sous-titré: {0} ok, {1} echec"
+msgstr "Définir en sous-titré : {0} ok, {1} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
-#, fuzzy
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
 msgstr "Définir le doublage : {0} ok, {1} audio seulement, {2} échec"
 
@@ -46,7 +43,6 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Manuel : {0} OK, {1} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
-#, fuzzy
 msgid "Setting Current..."
 msgstr "Réglage Actuel..."
 
@@ -235,7 +231,6 @@ msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0] Infos de sortie / Téléchargements"
 
 #: jellyfin_mpv_shim/menu.py:121
-#, fuzzy
 msgid "Change Video Playback Profile"
 msgstr "Changer le profil de lecture de la vidéo"
 
