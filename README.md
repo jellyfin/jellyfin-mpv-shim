@@ -492,14 +492,9 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 
 This project uses gettext for translation. The current template language file is `base.pot` in `jellyfin_mpv_shim/messages/`.
 
-To regenerate `base.pot`:
+To regenerate `base.pot` and update an existing translation with new strings:
 ```bash
-pygettext --default-domain=base -o jellyfin_mpv_shim/messages/base.pot jellyfin_mpv_shim/*.py jellyfin_mpv_shim/**/*.py
-```
-
-To update an existing translation with new strings:
-```bash
-msgmerge --update jellyfin_mpv_shim/messages/es/LC_MESSAGES/base.po jellyfin_mpv_shim/messages/base.pot
+./regen_pot.sh
 ```
 
 To compile all `*.po` files to `*.mo`:
@@ -590,6 +585,7 @@ copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.
 You may also need to edit the batch file for 32 bit builds to point to the right python executable.
 
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/iwalton3/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
+    - You can update the project later with `git pull`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
 3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview[cef] python-mpv-jsonipc Flask Werkzeug pypresence`.
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
@@ -598,7 +594,7 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 7. (Edge Build, disabled by default) Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
 8. (Edge Build, disabled by default) Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
 9. (CEF Desktop Client) Copy the folder `AppData\Local\Programs\Python\Python37\Lib\site-packages\cefpython3` to `cef\cefpython3`.
-10. Download the web [client build](https://github.com/iwalton3/jellyfin-web/releases/tag/jwc1.5.2) and unzip it into `jellyfin_mpv_shim\webclient_view\webclient`.
-11. If you would like the shader pack included, [download it](https://github.com/iwalton3/default-shader-pack) and put the contents into `jellyfin_mpv_shim\default_shader_pack`.
-12. Remove `libEGL.dll` from `cef\cefpython3`, as it breaks mpv's glsl support. (How CEF works without this is a mystery to me.)
-13. Run `build-win.bat`.
+10. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
+    - This builds the translation files and downloads the web client and shader packs.
+11. Remove `libEGL.dll` from `cef\cefpython3`, as it breaks mpv's glsl support. (How CEF works without this is a mystery to me.)
+12. Run `build-win.bat`.
