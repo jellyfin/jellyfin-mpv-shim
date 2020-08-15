@@ -7,6 +7,8 @@ there are tools to manage them like no other Jellyfin client.
 
 You can help translate MPV Shim into your native language on [Jellyfin's Weblate instance](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)!
 
+New! Take the MPV Shim survey here: https://forms.gle/drkzSUNYUw8XhvLd9
+
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
