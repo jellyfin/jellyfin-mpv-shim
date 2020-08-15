@@ -105,10 +105,8 @@ class ClientManager(object):
 
         client = self.client_factory()
         client.auth.connect_to_address(server)
-        client.auth.login(server, username, password)
-        state = client.auth.connect()
-        is_logged_in = state['State'] == CONNECTION_STATE['SignedIn']
-        if is_logged_in:
+        result = client.auth.login(server, username, password)
+        if "AccessToken" in result:
             credentials = client.auth.credentials.get_credentials()
             server = credentials["Servers"][0]
             if force_unique:
@@ -121,8 +119,8 @@ class ClientManager(object):
             self._connect_client(server)
             self.credentials.append(server)
             self.save_credentials()
-
-        return is_logged_in
+            return True
+        return False
 
     def setup_client(self, client, server):
         def event(event_name, data):
