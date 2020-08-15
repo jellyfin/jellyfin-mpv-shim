@@ -60,7 +60,7 @@ class ClientManager(object):
         client.config.data['app.default'] = True
         client.config.app(USER_APP_NAME, CLIENT_VERSION, settings.player_name, settings.client_uuid)
         client.config.data['http.user_agent'] = USER_AGENT
-        client.config.data['auth.ssl'] = True
+        client.config.data['auth.ssl'] = not settings.ignore_ssl_cert
         return client
 
     def try_connect(self):

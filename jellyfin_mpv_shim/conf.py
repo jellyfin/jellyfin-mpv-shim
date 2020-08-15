@@ -93,6 +93,7 @@ class Settings(object):
         "lang":                 None,
         "desktop_scale":        1.0,
         "discord_presence":     False,
+        "ignore_ssl_cert":      False,
     }
 
     def __getattr__(self, name):

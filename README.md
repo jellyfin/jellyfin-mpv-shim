@@ -305,6 +305,8 @@ need to.
     - Notification will only display once until the application is restarted. 
  - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
  - `discord_presence` - Enable Discord rich presence support. Default: `false`
+ - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
+     - Please consider getting a certificate from Let's Encrypt instead of using this.
 
 ### MPV Configuration
 
