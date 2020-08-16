@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-08-14 01:14+EDT\n"
+"POT-Creation-Date: 2020-08-16 14:19+EDT\n"
 "PO-Revision-Date: 2020-08-13 09:15+0000\n"
 "Last-Translator: biAji <biaji@biaji.net>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
@@ -206,207 +206,213 @@ msgstr "大"
 msgid "Huge"
 msgstr "非常大"
 
-#: jellyfin_mpv_shim/menu.py:105
+#: jellyfin_mpv_shim/menu.py:121
 msgid "Main Menu"
 msgstr "主菜单"
 
-#: jellyfin_mpv_shim/menu.py:110
+#: jellyfin_mpv_shim/menu.py:127
 msgid "Change Audio"
 msgstr "更换音轨"
 
-#: jellyfin_mpv_shim/menu.py:111
+#: jellyfin_mpv_shim/menu.py:128
 msgid "Change Subtitles"
 msgstr "更换字幕"
 
-#: jellyfin_mpv_shim/menu.py:112
+#: jellyfin_mpv_shim/menu.py:129
 msgid "Change Video Quality"
 msgstr "更换视频质量"
 
-#: jellyfin_mpv_shim/menu.py:113 jellyfin_mpv_shim/syncplay.py:465
+#: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:117
+#: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0} 发布信息/下载"
 
-#: jellyfin_mpv_shim/menu.py:121
+#: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
 msgstr "更改视频播放预设"
 
-#: jellyfin_mpv_shim/menu.py:123
+#: jellyfin_mpv_shim/menu.py:140
 msgid "Auto Set Audio/Subtitles (Entire Series)"
 msgstr "自动设置音频/字幕（整个系列）"
 
-#: jellyfin_mpv_shim/menu.py:124
+#: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
 msgstr "退出并标记未观看"
 
-#: jellyfin_mpv_shim/menu.py:126
+#: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
 msgstr "截图"
 
-#: jellyfin_mpv_shim/menu.py:130
+#: jellyfin_mpv_shim/menu.py:147
 msgid "Video Playback Profiles"
 msgstr "视频播放预设"
 
-#: jellyfin_mpv_shim/menu.py:133
+#: jellyfin_mpv_shim/menu.py:150
 msgid "SVP Settings"
 msgstr "SVP 设置"
 
-#: jellyfin_mpv_shim/menu.py:136 jellyfin_mpv_shim/menu.py:386
+#: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
 #, fuzzy
 #| msgid "Preferences"
 msgid "Video Preferences"
 msgstr "偏好设置"
 
-#: jellyfin_mpv_shim/menu.py:137 jellyfin_mpv_shim/menu.py:399
+#: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
 #, fuzzy
 #| msgid "Preferences"
 msgid "Player Preferences"
 msgstr "偏好设置"
 
-#: jellyfin_mpv_shim/menu.py:138
+#: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
 msgstr "关闭菜单"
 
-#: jellyfin_mpv_shim/menu.py:216
+#: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
 msgstr "选择音频轨道"
 
-#: jellyfin_mpv_shim/menu.py:237
+#: jellyfin_mpv_shim/menu.py:260
 msgid "Select Subtitle Track"
 msgstr "选择字幕轨道"
 
-#: jellyfin_mpv_shim/menu.py:242
+#: jellyfin_mpv_shim/menu.py:265
 msgid "None"
 msgstr "无"
 
-#: jellyfin_mpv_shim/menu.py:268
+#: jellyfin_mpv_shim/menu.py:291
 msgid "Select Transcode Quality"
 msgstr "选择转码质量"
 
-#: jellyfin_mpv_shim/menu.py:269
+#: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
 msgstr "未转码"
 
-#: jellyfin_mpv_shim/menu.py:270
+#: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
 msgstr "Maximum"
 
-#: jellyfin_mpv_shim/menu.py:305
+#: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
 msgstr "选择系列的音频/字幕"
 
-#: jellyfin_mpv_shim/menu.py:306
+#: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:307
+#: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:308
+#: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:335
+#: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
 msgstr "选择默认转码预设"
 
-#: jellyfin_mpv_shim/menu.py:367
+#: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
 msgstr "选择字幕颜色"
 
-#: jellyfin_mpv_shim/menu.py:373
+#: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
 msgstr "选择字幕大小"
 
-#: jellyfin_mpv_shim/menu.py:379
+#: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
 msgstr "选择字幕位置"
 
-#: jellyfin_mpv_shim/menu.py:380
+#: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
 msgstr "底部"
 
-#: jellyfin_mpv_shim/menu.py:381
+#: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
 msgstr "顶部"
 
-#: jellyfin_mpv_shim/menu.py:382
+#: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
 msgstr "中间"
 
-#: jellyfin_mpv_shim/menu.py:387
+#: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "远程转码质量: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:388
+#: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
 msgstr "字幕大小: {0}"
 
-#: jellyfin_mpv_shim/menu.py:389
+#: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
 msgstr "字幕位置: {0}"
 
-#: jellyfin_mpv_shim/menu.py:390
+#: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
 msgstr "字幕颜色: {0}"
 
-#: jellyfin_mpv_shim/menu.py:391
+#: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
 msgstr "将H265转码为H264"
 
-#: jellyfin_mpv_shim/menu.py:392
+#: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
 msgstr "将Hi10p转码为8bit"
 
-#: jellyfin_mpv_shim/menu.py:393
+#: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:394
+#: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
 msgstr "转码为H265"
 
-#: jellyfin_mpv_shim/menu.py:395
+#: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
 msgstr "禁用直接播放"
 
-#: jellyfin_mpv_shim/menu.py:400
+#: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
 msgstr "自动播放"
 
-#: jellyfin_mpv_shim/menu.py:401
+#: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
 msgstr "自动全屏"
 
-#: jellyfin_mpv_shim/menu.py:402
+#: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
 msgstr "媒体密钥搜寻"
 
-#: jellyfin_mpv_shim/menu.py:403
+#: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
 msgstr "使用网络搜索偏好"
 
-#: jellyfin_mpv_shim/menu.py:404
+#: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
 msgstr "显示镜像"
 
-#: jellyfin_mpv_shim/menu.py:405
+#: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
 msgstr "将日志写入文件"
 
-#: jellyfin_mpv_shim/menu.py:406
+#: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
 msgstr "检查更新"
 
-#: jellyfin_mpv_shim/menu.py:407
+#: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:667
+#: jellyfin_mpv_shim/player.py:413
+msgid ""
+"Your remote video is transcoding!\n"
+"Press c to adjust bandwidth settings if this is not needed."
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
 msgstr ""
 
@@ -507,11 +513,11 @@ msgstr ""
 "MPV Shim v{0} 更新可用\n"
 "打开菜单（按c）了解详细信息。"
 
-#: jellyfin_mpv_shim/utils.py:236
+#: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:237
+#: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
 msgstr ""
 

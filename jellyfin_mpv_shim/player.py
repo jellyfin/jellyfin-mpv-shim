@@ -127,6 +127,7 @@ class PlayerManager(object):
         self.get_webview = lambda: None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
         self.last_seek = None
+        self.warned_about_transcode = False
         self.update_check = UpdateChecker(self)
 
         if is_using_ext_mpv:
@@ -405,6 +406,13 @@ class PlayerManager(object):
             self._finished_lock.release()
 
         self.update_check.check()
+
+        if not self._video.parent.is_local and self._video.is_transcode and not self.warned_about_transcode:
+            self.warned_about_transcode = True
+            self._player.show_text(
+                _("Your remote video is transcoding!\nPress c to adjust bandwidth settings if this is not needed."),
+                5000, 1
+            )
 
     def exec_stop_cmd(self):
         if settings.stop_cmd:
