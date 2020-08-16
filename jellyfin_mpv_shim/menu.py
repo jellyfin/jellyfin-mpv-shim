@@ -1,4 +1,4 @@
-from queue import Queue, LifoQueue
+from queue import LifoQueue
 from .bulk_subtitle import process_series
 from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
@@ -352,7 +352,7 @@ class OSDMenu(object):
         # Need to re-render preferences menu.
         for i in range(2):
             self.menu_action("back")
-        self.preferences_menu()
+        self.video_preferences_menu()
 
     def transcode_settings_menu(self):
         self.put_menu(_("Select Default Transcode Profile"))
@@ -378,7 +378,7 @@ class OSDMenu(object):
         # Need to re-render preferences menu.
         for i in range(2):
             self.menu_action("back")
-        self.preferences_menu()
+        self.video_preferences_menu()
 
         if self.playerManager._video.is_transcode:
             if setting_name == "subtitle_size":
