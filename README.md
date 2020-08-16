@@ -312,6 +312,8 @@ need to.
  - `discord_presence` - Enable Discord rich presence support. Default: `false`
  - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
      - Please consider getting a certificate from Let's Encrypt instead of using this.
+ - `menu_mouse` - Enable mouse support in the menu. Default: `true`
+     - This requires MPV to be compiled with lua support.
 
 ### MPV Configuration
 

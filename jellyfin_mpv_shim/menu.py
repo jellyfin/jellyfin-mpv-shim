@@ -56,6 +56,7 @@ class OSDMenu(object):
         self.menu_list = []
         self.menu_selection = 0
         self.menu_tmp = None
+        self.mouse_back = False
         self.original_osd_color = playerManager._player.osd_back_color
         self.original_osd_size = playerManager._player.osd_font_size
 
@@ -84,14 +85,27 @@ class OSDMenu(object):
         items = self.menu_list
         selected_item = self.menu_selection
 
-        menu_text = "{0}".format(self.menu_title)
+        if self.mouse_back:
+            menu_text = "(<--) {0}".format(self.menu_title)
+        else:
+            menu_text = self.menu_title
         for i, item in enumerate(items):
             fmt = "\n   {0}"
-            if i == selected_item:
+            if i == selected_item and not self.mouse_back:
                 fmt = "\n   **{0}**"
             menu_text += fmt.format(item[0])
 
         self.playerManager._player.show_text(menu_text, 2**30, 1)
+
+    def mouse_select(self, idx):
+        if idx < 0 or idx > len(self.menu_list):
+            return
+        if idx == 0:
+            self.mouse_back = True
+        else:
+            self.mouse_back = False
+            self.menu_selection = idx - 1
+        self.refresh_menu()
 
     def show_menu(self):
         self.is_menu_shown = True
@@ -101,9 +115,12 @@ class OSDMenu(object):
 
         if hasattr(player, 'osc'):
             player.osc = False
-        
+
+        player.command("script-message", "shim-menu-enable", "True")
+
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
+        self.mouse_back = False
 
         if self.playerManager._video and not player.playback_abort:
             self.menu_list = [
@@ -165,6 +182,8 @@ class OSDMenu(object):
             if hasattr(player, 'osc'):
                 player.osc = settings.enable_osc
 
+            player.command("script-message", "shim-menu-enable", "False")
+
             if player.playback_abort:
                 player.play("")
             else:
@@ -202,9 +221,13 @@ class OSDMenu(object):
                 else:
                     self.menu_title, self.menu_list, self.menu_selection = self.menu_stack.get_nowait()
             elif action == "ok":
-                self.menu_list[self.menu_selection][1]()
+                if self.mouse_back:
+                    self.menu_action("back")
+                else:
+                    self.menu_list[self.menu_selection][1]()
             elif action == "home":
                 self.show_menu()
+            self.mouse_back = False
             self.refresh_menu()
 
     def change_audio_menu_handle(self):

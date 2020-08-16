@@ -6,9 +6,10 @@ import time
 
 from threading import RLock, Lock, Event
 from queue import Queue
+from collections import OrderedDict
 
 from . import conffile
-from .utils import synchronous, Timer, none_fallback
+from .utils import synchronous, Timer, none_fallback, get_resource
 from .conf import settings
 from .menu import OSDMenu
 from .constants import APP_NAME
@@ -109,10 +110,7 @@ class PlayerManager(object):
     """
     def __init__(self):
         self._video = None
-        mpv_options = {}
-        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
-            mpv_options["include"] = conffile.get(APP_NAME,"mpv.conf", True)
-            mpv_options["input_conf"] = conffile.get(APP_NAME,"input.conf", True)
+        mpv_options = OrderedDict()
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -138,6 +136,14 @@ class PlayerManager(object):
                 "mpv_location": settings.mpv_ext_path,
                 "player-operation-mode": "cplayer"
             })
+        if settings.menu_mouse:
+            if is_using_ext_mpv:
+                mpv_options["script"] = get_resource("mouse.lua")
+            else:
+                mpv_options["scripts"] = get_resource("mouse.lua")
+        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
+            mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
+            mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
                                input_media_keys=True, log_handler=mpv_log_handler,
                                loglevel=settings.mpv_log_level, **mpv_options)
@@ -305,6 +311,22 @@ class PlayerManager(object):
                         # Don't allow unpausing locally through MPV.
                         self.syncplay.play_request()
                         self.set_paused(True, True)
+
+        @self._player.event_callback('client-message')
+        def handle_client_message(event):
+            try:
+                if "event_id" in event:
+                    args = event["event"]["args"]
+                else:
+                    args = event["args"]
+                if len(args) == 0:
+                    return
+                if args[0] == "shim-menu-select":
+                    self.menu.mouse_select(int(args[1]))
+                elif args[0] == "shim-menu-click":
+                    self.menu.menu_action("ok")
+            except Exception:
+                log.warning("Error when processing client-message.", exc_info=True)
 
     # Put a task to the event queue.
     # This ensures the task executes outside

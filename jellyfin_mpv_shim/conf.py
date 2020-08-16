@@ -95,6 +95,7 @@ class Settings(object):
         "desktop_scale":        1.0,
         "discord_presence":     False,
         "ignore_ssl_cert":      False,
+        "menu_mouse":           True,
     }
 
     def __getattr__(self, name):
