@@ -96,6 +96,7 @@ class Settings(object):
         "discord_presence":     False,
         "ignore_ssl_cert":      False,
         "menu_mouse":           True,
+        "media_keys":           True,
     }
 
     def __getattr__(self, name):

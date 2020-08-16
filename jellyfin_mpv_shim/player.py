@@ -145,7 +145,7 @@ class PlayerManager(object):
             mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
             mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, log_handler=mpv_log_handler,
+                               input_media_keys=settings.media_keys, log_handler=mpv_log_handler,
                                loglevel=settings.mpv_log_level, **mpv_options)
         self.menu = OSDMenu(self)
         self.syncplay = SyncPlayManager(self)
