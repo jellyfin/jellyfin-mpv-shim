@@ -48,7 +48,7 @@ class Settings(object):
         "mpv_log_level":        "info",
         "enable_desktop":       False,
         "desktop_fullscreen":   False,
-        "desktop_remember_pos": True,
+        "desktop_remember_pos": False,
         "idle_when_paused":     False,
         "stop_idle":            False,
         "transcode_to_h265":    False,

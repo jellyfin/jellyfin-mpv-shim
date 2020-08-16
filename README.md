@@ -294,7 +294,7 @@ need to.
     - You can also use it by running the `jellyfin-mpv-desktop`.
     - If you are using the Windows build, you must download the desktop version.
  - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
- - `desktop_remember_pos` - Remember the position of the desktop client. Default: `true`
+ - `desktop_remember_pos` - Remember the position of the desktop client. Default: `false`
  - `desktop_scale` - Allows changing the scale factor for the desktop app. Default: `1.0`
     - This can be useful if you are on a platform that doesn't support HiDPI very well.
  - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
