@@ -108,10 +108,11 @@ class PlayerManager(object):
     violates assumptions.
     """
     def __init__(self):
-        mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
-        input_config = conffile.get(APP_NAME,"input.conf", True)
         self._video = None
-        extra_options = {}
+        mpv_options = {}
+        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
+            mpv_options["include"] = conffile.get(APP_NAME,"mpv.conf", True)
+            mpv_options["input_conf"] = conffile.get(APP_NAME,"input.conf", True)
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -131,16 +132,15 @@ class PlayerManager(object):
         self.update_check = UpdateChecker(self)
 
         if is_using_ext_mpv:
-            extra_options = {
+            mpv_options.update({
                 "start_mpv": settings.mpv_ext_start,
                 "ipc_socket": settings.mpv_ext_ipc,
                 "mpv_location": settings.mpv_ext_path,
                 "player-operation-mode": "cplayer"
-            }
+            })
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, include=mpv_config, input_conf=input_config,
-                               log_handler=mpv_log_handler, loglevel=settings.mpv_log_level,
-                               **extra_options)
+                               input_media_keys=True, log_handler=mpv_log_handler,
+                               loglevel=settings.mpv_log_level, **mpv_options)
         self.menu = OSDMenu(self)
         self.syncplay = SyncPlayManager(self)
 

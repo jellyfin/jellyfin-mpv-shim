@@ -195,6 +195,9 @@ for media playback on OSX.
 - `mpv_ext_start` - Start a managed copy of MPV with the client. Default: `true`
     - If not specified, the user must start MPV prior to launching the client.
     - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
+- `mpv_ext_no_ovr` - Disable built-in mpv configuration files and use user defaults.
+    - Please note that some scripts and settings, such as ones to keep MPV open, may break
+      functionality in MPV Shim.
 
 ### Keyboard Shortcuts
 

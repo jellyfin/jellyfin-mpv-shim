@@ -40,6 +40,7 @@ class Settings(object):
         "mpv_ext_path":         None,
         "mpv_ext_ipc":          None,
         "mpv_ext_start":        True,
+        "mpv_ext_no_ovr":       False,
         "enable_osc":           True,
         "use_web_seek":         False,
         "display_mirroring":    False,
