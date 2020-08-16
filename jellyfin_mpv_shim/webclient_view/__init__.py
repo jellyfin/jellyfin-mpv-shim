@@ -154,6 +154,12 @@ class WebviewClient(object):
         if os.path.exists(remember_layout) and settings.desktop_remember_pos:
             with open(remember_layout) as fh:
                 extra_options = json.load(fh)
+        else:
+            # Set a reasonable window size, with remember_pos disabled by default now.
+            extra_options.update({
+                "width": 1280,
+                "height": 720
+            })
         if not self.cef and sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
             # I wasted half a day here. Turns out that pywebview does something that
             # breaks Jellyfin on Windows in both EdgeHTML and CEF. This kills that.
