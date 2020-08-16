@@ -154,7 +154,7 @@ class WebviewClient(object):
         if os.path.exists(remember_layout):
             with open(remember_layout) as fh:
                 layout_options = json.load(fh)
-            if settings.desktop_keep_loc and layout_options.get("x") and layout_options.get("y"):
+            if settings.desktop_keep_pos and layout_options.get("x") and layout_options.get("y"):
                 extra_options["x"] = layout_options["x"]
                 extra_options["y"] = layout_options["y"]
             if settings.desktop_keep_size and layout_options.get("width") and layout_options.get("height"):
