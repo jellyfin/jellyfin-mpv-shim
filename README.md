@@ -157,6 +157,27 @@ You can adjust the basic transcoder settings via the menu.
     - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
 - `transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
 
+### Features
+
+You can use the config file to enable and disable features.
+
+ - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
+ - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+ - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
+    - It may be useful to disable this if you are using an external player that already provides a user interface.
+ - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
+ - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
+ - `display_mirroring` - Enable webview-based display mirroring (content preview). Default: `false`
+ - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
+ - `check_updates` - Check for updates via GitHub. Default: `true`
+    - This requests the GitHub releases page and checks for a new version.
+    - Update checks are performed when playing media, once per day.
+ - `notify_updates` - Display update notification when playing media. Default: `true`
+    - Notification will only display once until the application is restarted. 
+ - `discord_presence` - Enable Discord rich presence support. Default: `false`
+ - `menu_mouse` - Enable mouse support in the menu. Default: `true`
+     - This requires MPV to be compiled with lua support.
+
 ### Shell Command Triggers
 
 You can execute shell commands on media state using the config file:
@@ -277,35 +298,21 @@ need to.
      - This could break if you use revert-seek markers or scripts that use it.
  - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
 
-### Features
+### Desktop Mode Settings
 
-You can use the config file to enable and disable features.
+These settings pertain to the "Desktop" (embedded webview) mode only.
 
- - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
- - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
- - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
-    - It may be useful to disable this if you are using an external player that already provides a user interface.
- - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
- - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
- - `display_mirroring` - Enable webview-based display mirroring (content preview). Default: `false`
  - `enable_desktop` - Use the desktop client. Default: `false`
     - You can also use it by running the `jellyfin-mpv-desktop`.
     - If you are using the Windows build, you must download the desktop version.
  - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
- - `desktop_remember_pos` - Remember the position of the desktop client. Default: `false`
+ - `desktop_keep_loc` - Remember the position of the desktop client. Default: `false`
     - This has been infamous for causing the window to be positioned off-screen.
     - If you enable this and that happens, you can delete `layout.json` to fix it.
+ - `desktop_keep_size` - Remember the position of the desktop client. Default: `true`
+    - Set the window size, but not the position. Hopefully won't cause the client to open off-screen.
  - `desktop_scale` - Allows changing the scale factor for the desktop app. Default: `1.0`
     - This can be useful if you are on a platform that doesn't support HiDPI very well.
- - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
- - `check_updates` - Check for updates via GitHub. Default: `true`
-    - This requests the GitHub releases page and checks for a new version.
-    - Update checks are performed when playing media, once per day.
- - `notify_updates` - Display update notification when playing media. Default: `true`
-    - Notification will only display once until the application is restarted. 
- - `discord_presence` - Enable Discord rich presence support. Default: `false`
- - `menu_mouse` - Enable mouse support in the menu. Default: `true`
-     - This requires MPV to be compiled with lua support.
 
 ### Debugging
 

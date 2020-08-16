@@ -151,11 +151,17 @@ class WebviewClient(object):
         self.server.start()
 
         extra_options = {}
-        if os.path.exists(remember_layout) and settings.desktop_remember_pos:
+        if os.path.exists(remember_layout):
             with open(remember_layout) as fh:
-                extra_options = json.load(fh)
+                layout_options = json.load(fh)
+            if settings.desktop_keep_loc and layout_options.get("x") and layout_options.get("y"):
+                extra_options["x"] = layout_options["x"]
+                extra_options["y"] = layout_options["y"]
+            if settings.desktop_keep_size and layout_options.get("width") and layout_options.get("height"):
+                extra_options["width"] = layout_options["width"]
+                extra_options["height"] = layout_options["height"]
         else:
-            # Set a reasonable window size, with remember_pos disabled by default now.
+            # Set a reasonable window size
             extra_options.update({
                 "width": 1280,
                 "height": 720
