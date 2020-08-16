@@ -128,6 +128,7 @@ class PlayerManager(object):
         self.pause_ignore = None  # Used to ignore pause events that come from us.
         self.last_seek = None
         self.warned_about_transcode = False
+        self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
 
         if is_using_ext_mpv:
@@ -217,6 +218,7 @@ class PlayerManager(object):
                 self.menu.menu_action('back')
             else:
                 self._player.command('set', 'fullscreen', 'no')
+                self.fullscreen_disable = True
 
         @keypress(settings.kb_menu_ok)
         def menu_ok():
@@ -262,6 +264,10 @@ class PlayerManager(object):
                 self.menu.menu_action('ok')
             else:    
                 self.toggle_pause()
+
+        @keypress(settings.kb_fullscreen)
+        def handle_fullscreen():
+            self.toggle_fullscreen()
 
         # This gives you an interactive python debugger prompt.
         @keypress(settings.kb_debug)
@@ -380,7 +386,7 @@ class PlayerManager(object):
             self.stop()
             return
         log.debug("Finished waiting for media duration.")
-        if settings.fullscreen:
+        if settings.fullscreen and not self.fullscreen_disable:
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
@@ -629,6 +635,7 @@ class PlayerManager(object):
     @synchronous('_lock')
     def toggle_fullscreen(self):
         self._player.fs = not self._player.fs
+        self.fullscreen_disable = not self._player.fs
 
     @synchronous('_lock')
     def set_mute(self, mute):

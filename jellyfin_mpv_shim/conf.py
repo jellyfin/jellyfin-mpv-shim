@@ -65,6 +65,7 @@ class Settings(object):
         "kb_menu_up":           "up",
         "kb_menu_down":         "down",
         "kb_pause":             "space",
+        "kb_fullscreen":        "f",
         "kb_debug":             "~",
         "seek_up":              60,
         "seek_down":            -60,
