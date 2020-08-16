@@ -275,45 +275,60 @@ need to.
      - This could break if you use revert-seek markers or scripts that use it.
  - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
 
-### Other Configuration Options
+### Features
 
- - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
- - `client_uuid` - The identifier for the client. Set to a random value on first run.
- - `audio_output` - Currently has no effect. Default: `hdmi`
+You can use the config file to enable and disable features.
+
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
- - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.
+ - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
  - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
  - `display_mirroring` - Enable webview-based display mirroring (content preview). Default: `false`
- - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
- - `mpv_log_level` - Log level to use for mpv. Default: `info`
-    - Options: fatal, error, warn, info, v, debug, trace
  - `enable_desktop` - Use the desktop client. Default: `false`
     - You can also use it by running the `jellyfin-mpv-desktop`.
     - If you are using the Windows build, you must download the desktop version.
  - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
  - `desktop_remember_pos` - Remember the position of the desktop client. Default: `false`
+    - This has been infamous for causing the window to be positioned off-screen.
+    - If you enable this and that happens, you can delete `layout.json` to fix it.
  - `desktop_scale` - Allows changing the scale factor for the desktop app. Default: `1.0`
     - This can be useful if you are on a platform that doesn't support HiDPI very well.
- - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
- - `write_logs` - Write logs to the config directory for debugging. Default: `false`
- - `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
-    - If you're hitting this, it means files on your server probably got corrupted or deleted.
-    - It could also happen if you try to play an unsupported video format. These are rare.
  - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
  - `check_updates` - Check for updates via GitHub. Default: `true`
     - This requests the GitHub releases page and checks for a new version.
     - Update checks are performed when playing media, once per day.
  - `notify_updates` - Display update notification when playing media. Default: `true`
     - Notification will only display once until the application is restarted. 
- - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
  - `discord_presence` - Enable Discord rich presence support. Default: `false`
- - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
-     - Please consider getting a certificate from Let's Encrypt instead of using this.
  - `menu_mouse` - Enable mouse support in the menu. Default: `true`
      - This requires MPV to be compiled with lua support.
+
+### Debugging
+
+These settings assist with debugging. You will often be asked to configure them when reporting an issue.
+
+ - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
+ - `mpv_log_level` - Log level to use for mpv. Default: `info`
+    - Options: fatal, error, warn, info, v, debug, trace
+ - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
+ - `write_logs` - Write logs to the config directory for debugging. Default: `false`
+
+### Other Configuration Options
+
+Other miscellaneous configuration options. You probably won't have to change these.
+
+ - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
+ - `client_uuid` - The identifier for the client. Set to a random value on first run.
+ - `audio_output` - Currently has no effect. Default: `hdmi`
+ - `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
+    - If you're hitting this, it means files on your server probably got corrupted or deleted.
+    - It could also happen if you try to play an unsupported video format. These are rare.
+ - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
+    - MPV Shim should use your OS language by default.
+ - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
+    - Please consider getting a certificate from Let's Encrypt instead of using this.
 
 ### MPV Configuration
 
