@@ -357,6 +357,7 @@ class OSDMenu(object):
     def transcode_settings_menu(self):
         self.put_menu(_("Select Default Transcode Profile"))
         handle = self.transcode_settings_handle
+        self.menu_list.append((_("No Transcode") + " 2 Gbps", handle, 2147483))
 
         for i, item in enumerate(TRANSCODE_LEVELS):
             self.menu_list.append((item[0], handle, item[1]))
