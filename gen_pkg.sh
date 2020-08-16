@@ -70,6 +70,7 @@ then
     wc_version=$(get_resource_version jellyfin-web)
     download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip"
     rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
+	rm -r dist 2> /dev/null
     unzip dist.zip > /dev/null && rm dist.zip
     mv dist jellyfin_mpv_shim/webclient_view/webclient
     echo "$wc_version" > .last_wc_version
