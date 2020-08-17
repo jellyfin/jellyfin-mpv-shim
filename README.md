@@ -338,6 +338,8 @@ Other miscellaneous configuration options. You probably won't have to change the
     - MPV Shim should use your OS language by default.
  - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
     - Please consider getting a certificate from Let's Encrypt instead of using this.
+ - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
+    - This only applies for when you first launch the program.
 
 ### MPV Configuration
 

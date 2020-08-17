@@ -63,6 +63,13 @@ class ClientManager(object):
         client.config.data['auth.ssl'] = not settings.ignore_ssl_cert
         return client
 
+    def _connect_all(self):
+        is_logged_in = False
+        for server in self.credentials:
+            if self._connect_client(server):
+                is_logged_in = True
+        return is_logged_in
+
     def try_connect(self):
         credentials_location = conffile.get(APP_NAME,'cred.json')            
         if os.path.exists(credentials_location):
@@ -77,10 +84,15 @@ class ClientManager(object):
                 server["username"] = ""
                 self.credentials.append(server)
 
-        is_logged_in = False
-        for server in self.credentials:
-            if self._connect_client(server):
-                is_logged_in = True
+        is_logged_in = self._connect_all()
+        if settings.connect_retry_mins and not is_logged_in:
+            log.warning("Connection failed. Will retry for {0} minutes."
+                        .format(settings.connect_retry_mins))
+            for attempt in range(settings.connect_retry_mins * 2):
+                time.sleep(30)
+                is_logged_in = self._connect_all()
+                if is_logged_in:
+                    break
 
         return is_logged_in
 

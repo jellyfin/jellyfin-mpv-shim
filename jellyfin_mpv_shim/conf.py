@@ -99,6 +99,7 @@ class Settings(object):
         "ignore_ssl_cert":      False,
         "menu_mouse":           True,
         "media_keys":           True,
+        "connect_retry_mins":   0,
     }
 
     def __getattr__(self, name):
