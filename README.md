@@ -156,6 +156,7 @@ You can adjust the basic transcoder settings via the menu.
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
     - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
 - `transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
+- `transcode_warning` - Display a warning the first time media transcodes in a session. Default: `true`
 
 ### Features
 

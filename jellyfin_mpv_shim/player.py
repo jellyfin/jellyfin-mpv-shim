@@ -413,7 +413,8 @@ class PlayerManager(object):
 
         self.update_check.check()
 
-        if not self._video.parent.is_local and self._video.is_transcode and not self.warned_about_transcode:
+        if (not self._video.parent.is_local and self._video.is_transcode
+            and not self.warned_about_transcode and settings.transcode_warning):
             self.warned_about_transcode = True
             self._player.show_text(
                 _("Your remote video is transcoding!\nPress c to adjust bandwidth settings if this is not needed."),

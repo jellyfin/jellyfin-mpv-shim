@@ -100,6 +100,7 @@ class Settings(object):
         "menu_mouse":           True,
         "media_keys":           True,
         "connect_retry_mins":   0,
+        "transcode_warning":    True,
     }
 
     def __getattr__(self, name):
