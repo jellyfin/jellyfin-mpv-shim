@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-13 17:32+0000\n"
-"Last-Translator: angeltonio <angeltonio86@gmail.com>\n"
+"PO-Revision-Date: 2020-08-18 05:44+0000\n"
+"Last-Translator: Ian Walton <ian@iwalton.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -255,16 +255,12 @@ msgid "SVP Settings"
 msgstr "Configuración de SVP"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
-#, fuzzy
-#| msgid "Preferences"
 msgid "Video Preferences"
-msgstr "Preferencias"
+msgstr "Preferencias de Video"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
-#, fuzzy
-#| msgid "Preferences"
 msgid "Player Preferences"
-msgstr "Preferencias"
+msgstr "Preferencias Reproductor"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
