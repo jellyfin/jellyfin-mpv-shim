@@ -61,12 +61,19 @@ The menu enables you to:
  - Configure shader packs and SVP profiles.
  - Take screenshots.
 
-On your computer, use the arrow keys, enter, and escape to navigate. On your phone, use
-the arrow buttons, ok, back, and home to navigate.
+On your computer, use the mouse or arrow keys, enter, and escape to navigate.
+On your phone, use the arrow buttons, ok, back, and home to navigate.
 
 Please also note that the on-screen controller for MPV (if available) cannot change the
 audio and subtitle track configurations for transcoded media. It also cannot load external
 subtitles. You must either use the menu or the application you casted from.
+
+Please note the following issues with controlling SyncPlay:
+ - The desktop client can join SyncPlay groups from the web app's menu, but not create them.
+ - If you attempt to create a group from the web app's menu, it will break SyncPlay for all users until you close the client or leave the invalid group. (Issue: https://github.com/iwalton3/jellyfin-mpv-shim/issues/107)
+ - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
+     - You can, however, proceed to activate SyncPlay using the menu within MPV.
+ - If you would like to create a group or join a group for currently playing media, use menu within MPV.
 
 ### Shader Packs 
 
