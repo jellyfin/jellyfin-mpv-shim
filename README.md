@@ -44,6 +44,27 @@ bare IP addresses and not specifying the port by default. If you want to connect
  - Music playback and Live TV are not supported.
  - The client can’t be shared seamlessly between multiple users on the same server. ([Link to issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
 
+### Known Issues
+
+Please also note that the on-screen controller for MPV (if available) cannot change the
+audio and subtitle track configurations for transcoded media. It also cannot load external
+subtitles. You must either use the menu or the application you casted from.
+
+Please note the following issues with controlling SyncPlay:
+ - The desktop client can join SyncPlay groups from the web app's menu, but not create them.
+ - If you attempt to create a group from the web app's menu, it will break SyncPlay for all users until you close the client or leave the invalid group. ([Link to Issue.](https://github.com/iwalton3/jellyfin-mpv-shim/issues/107))
+ - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
+     - You can, however, proceed to activate SyncPlay using the menu within MPV.
+ - If you would like to create a group or join a group for currently playing media, use menu within MPV.
+
+Music playback sort-of works, but repeat, shuffle, and gapless playback have not been implemented and
+would require major changes to the application to properly support, as it was built for video.
+
+The shader packs feature is sensitive to graphics hardware. It may simply just not work on your computer.
+You may be able to use the log files to get some more diagnostic information. If you're really unluckly,
+you'll have to disable the feature in the config (set `shader_pack_profile` to null) to restore basic functionality.
+If you find the solution for your case, *please* send me any information you can provide, as every test case helps.
+
 ## Advanced Features
 
 ### Menu
@@ -63,17 +84,6 @@ The menu enables you to:
 
 On your computer, use the mouse or arrow keys, enter, and escape to navigate.
 On your phone, use the arrow buttons, ok, back, and home to navigate.
-
-Please also note that the on-screen controller for MPV (if available) cannot change the
-audio and subtitle track configurations for transcoded media. It also cannot load external
-subtitles. You must either use the menu or the application you casted from.
-
-Please note the following issues with controlling SyncPlay:
- - The desktop client can join SyncPlay groups from the web app's menu, but not create them.
- - If you attempt to create a group from the web app's menu, it will break SyncPlay for all users until you close the client or leave the invalid group. ([Link to Issue.](https://github.com/iwalton3/jellyfin-mpv-shim/issues/107))
- - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
-     - You can, however, proceed to activate SyncPlay using the menu within MPV.
- - If you would like to create a group or join a group for currently playing media, use menu within MPV.
 
 ### Shader Packs 
 
