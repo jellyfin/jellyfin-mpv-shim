@@ -1,9 +1,23 @@
 # Jellyfin MPV Shim
 
-Jellyfin MPV Shim is a simple and lightweight Jellyfin client, with support for Windows
-and Linux. Think of it as an open source Chromecast for Jellyfin. You can cast almost
-anything from Jellyfin and it will Direct Play. Subtitles are fully supported, and
-there are tools to manage them like no other Jellyfin client.
+Jellyfin MPV Shim is a fully featured, cross-platform desktop and cast client for Jellyfin.
+It has support for all your advanced media files without transcoding, as well as tons of
+features which set it apart from other multimedia clients:
+
+ - Direct play most media using MPV.
+ - Watch videos with friends using SyncPlay.
+ - Offers both a desktop mode and a shim mode which runs in the background.
+ - The Jellyfin mobile apps can fully control the client.
+ - [Reconfigure subtitles](https://github.com/iwalton3/jellyfin-mpv-shim#menu) for an entire season at once.
+ - Supports all of the [MPV keyboard shortcuts](https://github.com/iwalton3/jellyfin-mpv-shim#keyboard-shortcuts).
+ - Enhance your video with [Shader Packs](https://github.com/iwalton3/jellyfin-mpv-shim#menu) and [SVP Integration](https://github.com/iwalton3/jellyfin-mpv-shim#svp-integration).
+ - Optionally share your media activity with friends using Discord Rich Presence.
+ - Most features, as well as MPV itself, [can be extensively configured](https://github.com/iwalton3/jellyfin-mpv-shim#configuration).
+ - You can configure the player to use an [external MPV player](https://github.com/iwalton3/jellyfin-mpv-shim#external-mpv) of your choice.
+ - Enable a chromecast-like experience with [Display Mirroring](https://github.com/iwalton3/jellyfin-mpv-shim#display-mirroring).
+ - You can [trigger commands to run](https://github.com/iwalton3/jellyfin-mpv-shim#shell-command-triggers) when certain events happen.
+
+To learn more, keep reading. This README explains everything, including [configuration](https://github.com/iwalton3/jellyfin-mpv-shim#configuration), [tips & tricks](https://github.com/iwalton3/jellyfin-mpv-shim#tips-and-tricks), and [development information](https://github.com/iwalton3/jellyfin-mpv-shim#development).
 
 You can help translate MPV Shim into your native language on [Jellyfin's Weblate instance](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)!
 
