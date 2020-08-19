@@ -61,10 +61,11 @@ class OSDMenu(object):
         self.original_osd_size = playerManager._player.osd_font_size
 
         self.profile_menu = None
+        self.profile_manager = None
         if settings.shader_pack_enable:
             try:
-                profile_manager = VideoProfileManager(self, playerManager)
-                self.profile_menu = profile_manager.menu_action
+                self.profile_manager = VideoProfileManager(self, playerManager)
+                self.profile_menu = self.profile_manager.menu_action
             except Exception:
                 log.error("Could not load profile manager.", exc_info=True)
         

@@ -68,6 +68,7 @@ class Settings(object):
         "kb_pause":             "space",
         "kb_fullscreen":        "f",
         "kb_debug":             "~",
+        "kb_kill_shader":       "k",
         "seek_up":              60,
         "seek_down":            -60,
         "seek_right":           5,

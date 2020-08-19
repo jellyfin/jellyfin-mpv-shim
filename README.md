@@ -127,6 +127,7 @@ This program supports most of the [keyboard shortcuts from MPV](https://mpv.io/m
  - w to mark watched and skip
  - u to mark unwatched and quit
  - c to open the menu
+ - k disable shader packs
 
 Here are the notable MPV keyboard shortcuts:
 
@@ -257,6 +258,7 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
  - `kb_pause` - Pause. Also "ok" for menu. (Default: `space`)
  - `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
  - `kb_debug` - Trigger `pdb` debugger. (Default: `~`)
+ - `kb_kill_shader` - Disable shader packs. (Default: `k`)
  - `seek_up` - Time to seek for "up" key. (Default: `60`)
  - `seek_down` - Time to seek for "down" key. (Default: `-60`)
  - `seek_right` - Time to seek for "right" key. (Default: `5`)

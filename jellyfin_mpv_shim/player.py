@@ -275,6 +275,15 @@ class PlayerManager(object):
             import pdb
             pdb.set_trace()
 
+        # Kill shader packs (useful for breakage)
+        @keypress(settings.kb_kill_shader)
+        def kill_shaders():
+            if settings.shader_pack_remember:
+                settings.shader_pack_profile = None
+                settings.save()
+            if self.menu.profile_manager is not None:
+                self.menu.profile_manager.unload_profile()
+
         # Fires between episodes.
         @self._player.property_observer('eof-reached')
         def handle_end(_name, reached_end):

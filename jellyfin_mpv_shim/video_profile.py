@@ -138,7 +138,7 @@ class VideoProfileManager:
         if settings.shader_pack_remember and settings_were_successful:
             settings.shader_pack_profile = profile_name
             settings.save()
-        
+
         # Need to re-render menu.
         self.menu.menu_action("back")
         self.menu_action()
