@@ -6,26 +6,30 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2020-08-19 14:43+0000\n"
+"Last-Translator: SaddFox <filip.rutar@gmail.com>\n"
+"Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-mpv-shim/sl/>\n"
 "Language: sl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || "
+"n%100==4 ? 2 : 3;\n"
+"X-Generator: Weblate 3.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Izbiranje sledi..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Ni podnapisov"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -33,11 +37,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Nastavi sinhronizacijo: {0} ok, {1} samo zvok, {2} napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Ročno: {0} ok, {1} napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
@@ -45,89 +49,91 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
-msgstr ""
+msgstr "URL strežnika: "
 
 #: jellyfin_mpv_shim/clients.py:46
 msgid "Username: "
-msgstr ""
+msgstr "Uporabniško ime: "
 
 #: jellyfin_mpv_shim/clients.py:47
 msgid "Password: "
-msgstr ""
+msgstr "Geslo: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Successfully added server."
-msgstr ""
+msgstr "Strežnik uspešno dodan."
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server?"
-msgstr ""
+msgstr "Dodaj še en strežnik?"
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
-msgstr ""
+msgstr "Napaka pri dodajanju strežnika."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:103
 msgid "Ready to cast"
-msgstr ""
+msgstr "Pripravljen za deljenje"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Izberite predstavnost v Jellyfin in jo predvajajte tu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
-msgstr ""
+msgstr "Dnevnik aplikacije"
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr ""
+msgstr "Dodaj strežnik"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
 "Could not add server.\n"
 "Please check your connection infomation."
 msgstr ""
+"Strežnika ni bilo mogoče dodati.\n"
+"Preverite vaše nastavitve povezave."
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
-msgstr ""
+msgstr "Napaka"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr ""
+msgstr "Nastavitve strežnika"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
-msgstr ""
+msgstr "Strežnik:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:265
 msgid "Username:"
-msgstr ""
+msgstr "Uporabniško ime:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:270
 msgid "Password:"
-msgstr ""
+msgstr "Geslo:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr ""
+msgstr "Odstrani strežnik"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
-msgstr ""
+msgstr "Zapri"
 
 #: jellyfin_mpv_shim/gui_mgr.py:399
 msgid "Configure Servers"
-msgstr ""
+msgstr "Nastavi strežnike"
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr ""
+msgstr "Pokaži konzolo"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
