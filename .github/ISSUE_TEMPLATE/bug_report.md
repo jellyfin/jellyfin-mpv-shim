@@ -31,6 +31,5 @@ If applicable, add screenshots to help explain your problem.
  - Version [e.g. 1.2.0]
 
 **Error Messages**
-If you are using the shim version, you can access logs by clicking the systray icon and selecting "Show Console".
-In all client modes, you can access logs by enabling logging to disk by using the `write_logs` config option or the
-corresponding menu option. Please note this requires a restart.
+Please provide logs, as they are often needed for me to understand and quickly troubleshoot the issue. You can read instructions for how to do so here:
+https://github.com/iwalton3/jellyfin-mpv-shim/wiki/Sending-Logs
