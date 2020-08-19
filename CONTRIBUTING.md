@@ -6,9 +6,9 @@ quickly added to the project.
 ## Issues
 
 Feel free to create an issue for any problems or feature requests. Please include as much information as
-possible and be sure to check to make sure you aren't creating a duplicate issue. Providing log messages
-is also important, but please be sure to avoid posting API keys and auth tokens that could allow someone
-to access your media server!
+possible and be sure to check to make sure you aren't creating a duplicate issue. [Providing log messages](https://github.com/iwalton3/jellyfin-mpv-shim/wiki/Sending-Logs) is also important. Logs are sanitized by default, but you may want
+to review them. If you send other data, for instance a screenshot of MPV's information dialog, please
+be sure that there are no `api_key` values in the information you are sharing.
 
 ## Adding Major Features
 
@@ -44,6 +44,7 @@ Current Dependencies:
  - `pywebview` - Displays HTML for display mirroring or webclient. (Optional)
  - `Flask` - Used to serve the webclient in desktop mode. (Optional)
  - `Werkzeug` - Used to serve the webclient in desktop mode. (Optional)
+ - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview
 
@@ -57,18 +58,29 @@ Current Dependencies:
  - `event_handler.py` - Handles remote control events from the Jellyfin websocket connection.
  - `gui_mgr.py` - Provides systray icon and tkinter GUI.
      - Note: This is a mess of `multiprocessing` processes and event threads to work around various bugs/issues.
+ - `i18n.py` - Contains the application translation helpers. Many modules import the `_` function for user-facing strings.
+ - `log_utils.py` - This implements logging routines, particularly managing the logger and sanitizing log messages.
  - `media.py` - Contains classes that manage media and playlists from Jellyfin.
  - `menu.py` - Implements the menu interface for changing options and playback parameters.
      - This works by drawing the menu as text on MPV and responding to keypress/remote control events.
+ - `mouse.lua` - This is an MPV lua script that provides mouse events to MPV Shim for the menu.
  - `mpv_shim.py` - The main entry-point for the application.
      - Note: `run.py` is the entry-point for running in development and PyInstaller.
  - `player.py` - Implements player logic that controls MPV. Also owns the media playlist objects.
+ - `rich_presence.py` - Module which implements Discord Rich Presence integration.
+ - `svp_integration.py` - Implements SVP API and menu functionality for controlling SVP.
+ - `syncplay.py` - Implements the SyncPlay time syncing events and algorithms.
+     - Note that time syncing with the server is [part of the api client](https://github.com/iwalton3/jellyfin-apiclient-python/blob/master/jellyfin_apiclient_python/timesync_manager.py). 
  - `timeline.py` - Thread to trigger playback events to the Jellyfin server.
      - Note: `player.py` is where the actual response is created.
+ - `update_check.py` - Implements update checking, notifications, and the menu option to open the release page.
  - `utils.py` - Contains the playback profile and various utilities for other modules.
+ - `video_profile.py` - Implements support for shader pack option profiles and related menu items.
  - `win_utils.py` - Implements window management workarounds for Windows.
  - `display_mirror` - Package that implements the full-screen display mirroring.
  - `webclient_view` - Package that implements the webclient UI. (The actual webclient is a [separate repo](https://github.com/iwalton3/jellyfin-web).)
+ - `integration` - This contains the appstream metadata, icons, and desktop files used in the Flatpak version.
+ - `default_shader_pack` - This is where the `gen_pkg.sh` script installs the [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 
 ## Building the Project
 
