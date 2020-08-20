@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-16 12:36+0000\n"
-"Last-Translator: Soefgi <soefgi@gmail.com>\n"
+"PO-Revision-Date: 2020-08-20 12:24+0000\n"
+"Last-Translator: Moritz <moritz.leick@googlemail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
 "Language: de\n"
@@ -401,13 +401,16 @@ msgstr "Prüfe nach Updates"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Ihr Remote-Video wird transkodiert!\n"
+"Drücke c, um die Bandbreiteneinstellungen anzupassen, falls dies nicht "
+"erforderlich ist."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
@@ -448,7 +451,7 @@ msgstr "Aktiviere SVP"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "Die angegebene SyncPlay-Gruppe ist nicht vorhanden."
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
