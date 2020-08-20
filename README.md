@@ -73,7 +73,7 @@ Music playback sort-of works, but repeat, shuffle, and gapless playback have not
 would require major changes to the application to properly support, as it was built for video.
 
 The shader packs feature is sensitive to graphics hardware. It may simply just not work on your computer.
-You may be able to use the log files to get some more diagnostic information. If you're really unluckly,
+You may be able to use the log files to get some more diagnostic information. If you're really unlucky,
 you'll have to disable the feature in the config (set `shader_pack_profile` to null) to restore basic functionality.
 If you find the solution for your case, *please* send me any information you can provide, as every test case helps.
 
