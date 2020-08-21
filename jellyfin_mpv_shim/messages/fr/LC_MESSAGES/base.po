@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-14 20:16+0000\n"
+"PO-Revision-Date: 2020-08-22 00:15+0000\n"
 "Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -360,7 +360,6 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcoder Hi10p vers 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
-#, fuzzy
 msgid "Direct Paths"
 msgstr "Chemins directs"
 
