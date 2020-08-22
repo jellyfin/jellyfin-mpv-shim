@@ -1,6 +1,7 @@
 import time
 from .clients import clientManager
 
+
 class UserInterface(object):
     def __init__(self):
         self.open_player_menu = lambda: None
@@ -11,8 +12,9 @@ class UserInterface(object):
 
     def start(self):
         pass
-    
+
     def stop(self):
         pass
+
 
 userInterface = UserInterface()

@@ -18,14 +18,17 @@ NAVIGATION_DICT = {
     "MoveRight": "right",
     "MoveLeft": "left",
     "GoHome": "home",
-    "GoToSettings": "home"
+    "GoToSettings": "home",
 }
+
 
 def bind(event_name):
     def decorator(func):
         bindings[event_name] = func
         return func
+
     return decorator
+
 
 class EventHandler(object):
     mirror = None
@@ -39,7 +42,7 @@ class EventHandler(object):
 
     @bind("Play")
     def play_media(self, client, event_name, arguments):
-        play_command = arguments.get('PlayCommand')
+        play_command = arguments.get("PlayCommand")
         if not playerManager._video:
             play_command = "PlayNow"
 
@@ -47,11 +50,18 @@ class EventHandler(object):
             seq = arguments.get("StartIndex")
             if seq is None:
                 seq = 0
-            media = Media(client, arguments.get("ItemIds"), seq=seq, user_id=arguments.get("ControllingUserId"),
-                        aid=arguments.get("AudioStreamIndex"), sid=arguments.get("SubtitleStreamIndex"), srcid=arguments.get("MediaSourceId"))
+            media = Media(
+                client,
+                arguments.get("ItemIds"),
+                seq=seq,
+                user_id=arguments.get("ControllingUserId"),
+                aid=arguments.get("AudioStreamIndex"),
+                sid=arguments.get("SubtitleStreamIndex"),
+                srcid=arguments.get("MediaSourceId"),
+            )
 
             log.debug("EventHandler::playMedia %s" % media)
-            offset = arguments.get('StartPositionTicks')
+            offset = arguments.get("StartPositionTicks")
             if offset is not None:
                 offset /= 10000000
 
@@ -64,10 +74,14 @@ class EventHandler(object):
                 if arguments.get("SyncPlayGroup") is not None:
                     playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
         elif play_command == "PlayLast":
-            playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=True)
+            playerManager._video.parent.insert_items(
+                arguments.get("ItemIds"), append=True
+            )
             playerManager.upd_player_hide()
         elif play_command == "PlayNext":
-            playerManager._video.parent.insert_items(arguments.get("ItemIds"), append=False)
+            playerManager._video.parent.insert_items(
+                arguments.get("ItemIds"), append=False
+            )
             playerManager.upd_player_hide()
 
     @bind("GeneralCommand")
@@ -87,7 +101,16 @@ class EventHandler(object):
             timelineManager.delay_idle()
             if self.mirror:
                 self.mirror.DisplayContent(client, arguments)
-        elif command in ("Back", "Select", "MoveUp", "MoveDown", "MoveRight", "MoveRight", "GoHome", "GoToSettings"):
+        elif command in (
+            "Back",
+            "Select",
+            "MoveUp",
+            "MoveDown",
+            "MoveRight",
+            "MoveRight",
+            "GoHome",
+            "GoToSettings",
+        ):
             playerManager.menu.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
             playerManager.set_mute(command == "Mute")
@@ -113,7 +136,9 @@ class EventHandler(object):
         elif command == "Stop":
             playerManager.stop()
         elif command == "Seek":
-            playerManager.seek(arguments.get("SeekPositionTicks") / 10000000, absolute=True)
+            playerManager.seek(
+                arguments.get("SeekPositionTicks") / 10000000, absolute=True
+            )
 
     @bind("PlayPause")
     def pausePlay(self, client, event_name, arguments):

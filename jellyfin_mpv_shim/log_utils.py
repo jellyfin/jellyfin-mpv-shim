@@ -3,13 +3,17 @@ import re
 
 bad_patterns = (
     (re.compile("api_key=[a-f0-9]*"), "api_key=REDACTED"),
-    (re.compile("'X-MediaBrowser-Token': '[a-f0-9]*'"), "'X-MediaBrowser-Token': 'REDACTED'"),
+    (
+        re.compile("'X-MediaBrowser-Token': '[a-f0-9]*'"),
+        "'X-MediaBrowser-Token': 'REDACTED'",
+    ),
     (re.compile("'AccessToken': '[a-f0-9]*'"), "'AccessToken': 'REDACTED'"),
 )
 
 sanitize_logs = False
-root_logger = logging.getLogger('')
+root_logger = logging.getLogger("")
 root_logger.level = logging.DEBUG
+
 
 def sanitize(message):
     if type(message) in (int, float):
@@ -24,7 +28,9 @@ def sanitize(message):
 class CustomFormatter(logging.Formatter):
     def __init__(self, force_sanitize=False):
         self.force_sanitize = force_sanitize
-        super(CustomFormatter, self).__init__(fmt="%(asctime)s [%(levelname)8s] %(name)s: %(message)s")
+        super(CustomFormatter, self).__init__(
+            fmt="%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+        )
 
     def format(self, record):
         if sanitize_logs or self.force_sanitize:

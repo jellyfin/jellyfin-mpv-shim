@@ -7,104 +7,105 @@ import json
 import os.path
 import sys
 
-log = logging.getLogger('conf')
+log = logging.getLogger("conf")
+
 
 class Settings(object):
     _listeners = []
 
     _path = None
     _data = {
-        "player_name":          socket.gethostname(),
-        "audio_output":         "hdmi",
-        "client_uuid":          str(uuid.uuid4()),
-        "media_ended_cmd":      None,
-        "pre_media_cmd":        None,
-        "stop_cmd":             None,
-        "auto_play":            True,
-        "idle_cmd":             None,
-        "idle_cmd_delay":       60,
-        "direct_paths":         False,
-        "remote_direct_paths":  False,
-        "always_transcode":     False,
-        "transcode_h265":       False,
-        "transcode_hi10p":      False,
-        "remote_kbps":          10000,
-        "local_kbps":           2147483,
-        "subtitle_size":        100,
-        "subtitle_color":       "#FFFFFFFF",
-        "subtitle_position":    "bottom",
-        "fullscreen":           True,
-        "enable_gui":           True,
-        "media_key_seek":       False,
-        "mpv_ext":              sys.platform.startswith("darwin"),
-        "mpv_ext_path":         None,
-        "mpv_ext_ipc":          None,
-        "mpv_ext_start":        True,
-        "mpv_ext_no_ovr":       False,
-        "enable_osc":           True,
-        "use_web_seek":         False,
-        "display_mirroring":    False,
-        "log_decisions":        False,
-        "mpv_log_level":        "info",
-        "enable_desktop":       False,
-        "desktop_fullscreen":   False,
-        "desktop_keep_pos":     False,
-        "desktop_keep_size":    True,
-        "idle_when_paused":     False,
-        "stop_idle":            False,
-        "transcode_to_h265":    False,
-        "kb_stop":              "q",
-        "kb_prev":              "<",
-        "kb_next":              ">",
-        "kb_watched":           "w",
-        "kb_unwatched":         "u",
-        "kb_menu":              "c",
-        "kb_menu_esc":          "esc",
-        "kb_menu_ok":           "enter",
-        "kb_menu_left":         "left",
-        "kb_menu_right":        "right",
-        "kb_menu_up":           "up",
-        "kb_menu_down":         "down",
-        "kb_pause":             "space",
-        "kb_fullscreen":        "f",
-        "kb_debug":             "~",
-        "kb_kill_shader":       "k",
-        "seek_up":              60,
-        "seek_down":            -60,
-        "seek_right":           5,
-        "seek_left":            -5,
-        "shader_pack_enable":   True,
-        "shader_pack_custom":   False,
+        "player_name": socket.gethostname(),
+        "audio_output": "hdmi",
+        "client_uuid": str(uuid.uuid4()),
+        "media_ended_cmd": None,
+        "pre_media_cmd": None,
+        "stop_cmd": None,
+        "auto_play": True,
+        "idle_cmd": None,
+        "idle_cmd_delay": 60,
+        "direct_paths": False,
+        "remote_direct_paths": False,
+        "always_transcode": False,
+        "transcode_h265": False,
+        "transcode_hi10p": False,
+        "remote_kbps": 10000,
+        "local_kbps": 2147483,
+        "subtitle_size": 100,
+        "subtitle_color": "#FFFFFFFF",
+        "subtitle_position": "bottom",
+        "fullscreen": True,
+        "enable_gui": True,
+        "media_key_seek": False,
+        "mpv_ext": sys.platform.startswith("darwin"),
+        "mpv_ext_path": None,
+        "mpv_ext_ipc": None,
+        "mpv_ext_start": True,
+        "mpv_ext_no_ovr": False,
+        "enable_osc": True,
+        "use_web_seek": False,
+        "display_mirroring": False,
+        "log_decisions": False,
+        "mpv_log_level": "info",
+        "enable_desktop": False,
+        "desktop_fullscreen": False,
+        "desktop_keep_pos": False,
+        "desktop_keep_size": True,
+        "idle_when_paused": False,
+        "stop_idle": False,
+        "transcode_to_h265": False,
+        "kb_stop": "q",
+        "kb_prev": "<",
+        "kb_next": ">",
+        "kb_watched": "w",
+        "kb_unwatched": "u",
+        "kb_menu": "c",
+        "kb_menu_esc": "esc",
+        "kb_menu_ok": "enter",
+        "kb_menu_left": "left",
+        "kb_menu_right": "right",
+        "kb_menu_up": "up",
+        "kb_menu_down": "down",
+        "kb_pause": "space",
+        "kb_fullscreen": "f",
+        "kb_debug": "~",
+        "kb_kill_shader": "k",
+        "seek_up": 60,
+        "seek_down": -60,
+        "seek_right": 5,
+        "seek_left": -5,
+        "shader_pack_enable": True,
+        "shader_pack_custom": False,
         "shader_pack_remember": True,
-        "shader_pack_profile":  None,
-        "svp_enable":           False,
-        "svp_url":              "http://127.0.0.1:9901/",
-        "svp_socket":           None,
-        "sanitize_output":      True,
-        "write_logs":           False,
-        "playback_timeout":     30,
+        "shader_pack_profile": None,
+        "svp_enable": False,
+        "svp_url": "http://127.0.0.1:9901/",
+        "svp_socket": None,
+        "sanitize_output": True,
+        "write_logs": False,
+        "playback_timeout": 30,
         "sync_max_delay_speed": 50,
-        "sync_max_delay_skip":  300,
-        "sync_method_thresh":   2000,
-        "sync_speed_time":      1000,
-        "sync_speed_attempts":  3,
-        "sync_attempts":        5,
-        "sync_revert_seek":     True,
-        "sync_osd_message":     True,
-        "screenshot_menu":      True,
-        "check_updates":        True,
-        "notify_updates":       True,
-        "lang":                 None,
-        "desktop_scale":        1.0,
-        "discord_presence":     False,
-        "ignore_ssl_cert":      False,
-        "menu_mouse":           True,
-        "media_keys":           True,
-        "connect_retry_mins":   0,
-        "transcode_warning":    True,
-        "lang_filter":          "und,eng,jpn,mis,mul,zxx",
-        "lang_filter_sub":      False,
-        "lang_filter_audio":    False,
+        "sync_max_delay_skip": 300,
+        "sync_method_thresh": 2000,
+        "sync_speed_time": 1000,
+        "sync_speed_attempts": 3,
+        "sync_attempts": 5,
+        "sync_revert_seek": True,
+        "sync_osd_message": True,
+        "screenshot_menu": True,
+        "check_updates": True,
+        "notify_updates": True,
+        "lang": None,
+        "desktop_scale": 1.0,
+        "discord_presence": False,
+        "ignore_ssl_cert": False,
+        "menu_mouse": True,
+        "media_keys": True,
+        "connect_retry_mins": 0,
+        "transcode_warning": True,
+        "lang_filter": "und,eng,jpn,mis,mul,zxx",
+        "lang_filter_sub": False,
+        "lang_filter_audio": False,
     }
 
     def __getattr__(self, name):
@@ -131,7 +132,7 @@ class Settings(object):
                 fh = open(path, mode)
             except IOError as e:
                 if e.errno == 2 and create:
-                    fh = open(path, 'w')
+                    fh = open(path, "w")
                     json.dump(self._data, fh, indent=4, sort_keys=True)
                     fh.close()
                     created = True
@@ -154,13 +155,12 @@ class Settings(object):
                 log.error("Error loading settings from pickle: %s" % e)
                 fh.close()
                 return False
-        
+
         os.remove(old_path)
         self._path = new_path
         fh.close()
         self.save()
         return True
-
 
     def load(self, path, create=True):
         fh, created = self.__get_file(path, "r", create)
@@ -208,5 +208,6 @@ class Settings(object):
         """
         if callback not in self._listeners:
             self._listeners.append(callback)
+
 
 settings = Settings()

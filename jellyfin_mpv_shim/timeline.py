@@ -11,12 +11,13 @@ from .utils import Timer, mpv_color_to_plex
 
 log = logging.getLogger("timeline")
 
+
 class TimelineManager(threading.Thread):
     def __init__(self):
-        self.idleTimer      = Timer()
-        self.halt           = False
-        self.trigger        = threading.Event()
-        self.is_idle        = True
+        self.idleTimer = Timer()
+        self.halt = False
+        self.trigger = threading.Event()
+        self.is_idle = True
 
         threading.Thread.__init__(self)
 
@@ -26,12 +27,20 @@ class TimelineManager(threading.Thread):
 
     def run(self):
         while not self.halt:
-            if playerManager._player and playerManager._video and (not settings.idle_when_paused or not playerManager.is_paused()):
+            if (
+                playerManager._player
+                and playerManager._video
+                and (not settings.idle_when_paused or not playerManager.is_paused())
+            ):
                 self.SendTimeline()
                 self.delay_idle()
             force_next = False
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
-                if settings.idle_when_paused and settings.stop_idle and playerManager._video:
+                if (
+                    settings.idle_when_paused
+                    and settings.stop_idle
+                    and playerManager._video
+                ):
                     playerManager.stop()
                 if settings.idle_cmd:
                     os.system(settings.idle_cmd)
@@ -51,5 +60,6 @@ class TimelineManager(threading.Thread):
         except jellyfin_apiclient_python.exceptions.HTTPException:
             # FIXME: Log this
             pass
+
 
 timelineManager = TimelineManager()

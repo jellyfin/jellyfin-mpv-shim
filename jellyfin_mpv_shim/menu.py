@@ -9,7 +9,7 @@ from .i18n import _
 import time
 import logging
 
-log = logging.getLogger('menu')
+log = logging.getLogger("menu")
 
 TRANSCODE_LEVELS = (
     ("1080p 20 Mbps", 20000),
@@ -44,11 +44,12 @@ SIZE_LIST = (
     (_("Huge"), 200),
 )
 
-HEX_TO_COLOR = {v:c for c,v in COLOR_LIST}
+HEX_TO_COLOR = {v: c for c, v in COLOR_LIST}
 
 lang_filter = set(settings.lang_filter.split(","))
 if "und" in lang_filter:
     lang_filter.add(None)
+
 
 class OSDMenu(object):
     def __init__(self, playerManager):
@@ -72,7 +73,7 @@ class OSDMenu(object):
                 self.profile_menu = self.profile_manager.menu_action
             except Exception:
                 log.error("Could not load profile manager.", exc_info=True)
-        
+
         self.svp_menu = None
         try:
             self.svp_menu = SVPManager(self, playerManager)
@@ -86,7 +87,7 @@ class OSDMenu(object):
     def refresh_menu(self):
         if not self.is_menu_shown:
             return
-        
+
         items = self.menu_list
         selected_item = self.menu_selection
 
@@ -100,7 +101,7 @@ class OSDMenu(object):
                 fmt = "\n   **{0}**"
             menu_text += fmt.format(item[0])
 
-        self.playerManager._player.show_text(menu_text, 2**30, 1)
+        self.playerManager._player.show_text(menu_text, 2 ** 30, 1)
 
     def mouse_select(self, idx):
         if idx < 0 or idx > len(self.menu_list):
@@ -115,10 +116,10 @@ class OSDMenu(object):
     def show_menu(self):
         self.is_menu_shown = True
         player = self.playerManager._player
-        player.osd_back_color = '#CC333333'
+        player.osd_back_color = "#CC333333"
         player.osd_font_size = 40
 
-        if hasattr(player, 'osc'):
+        if hasattr(player, "osc"):
             player.osc = False
 
         player.command("script-message", "shim-menu-enable", "True")
@@ -135,15 +136,29 @@ class OSDMenu(object):
                 (_("SyncPlay"), self.playerManager.syncplay.menu_action),
             ]
             if self.playerManager.update_check.new_version is not None:
-                self.menu_list.insert(0, (
-                    _("MPV Shim v{0} Release Info/Download").format(self.playerManager.update_check.new_version),
-                    self.playerManager.update_check.open
-                ))
+                self.menu_list.insert(
+                    0,
+                    (
+                        _("MPV Shim v{0} Release Info/Download").format(
+                            self.playerManager.update_check.new_version
+                        ),
+                        self.playerManager.update_check.open,
+                    ),
+                )
             if self.profile_menu is not None:
-                self.menu_list.append((_("Change Video Playback Profile"), self.profile_menu))
+                self.menu_list.append(
+                    (_("Change Video Playback Profile"), self.profile_menu)
+                )
             if self.playerManager._video.parent.is_tv:
-                self.menu_list.append((_("Auto Set Audio/Subtitles (Entire Series)"), self.change_tracks_menu))
-            self.menu_list.append((_("Quit and Mark Unwatched"), self.unwatched_menu_handle))
+                self.menu_list.append(
+                    (
+                        _("Auto Set Audio/Subtitles (Entire Series)"),
+                        self.change_tracks_menu,
+                    )
+                )
+            self.menu_list.append(
+                (_("Quit and Mark Unwatched"), self.unwatched_menu_handle)
+            )
             if settings.screenshot_menu:
                 self.menu_list.append((_("Screenshot"), self.screenshot))
         else:
@@ -154,11 +169,13 @@ class OSDMenu(object):
         if self.svp_menu is not None and self.svp_menu.is_available():
             self.menu_list.append((_("SVP Settings"), self.svp_menu.menu_action))
 
-        self.menu_list.extend([
-            (_("Video Preferences"), self.video_preferences_menu),
-            (_("Player Preferences"), self.player_preferences_menu),
-            (_("Close Menu"), self.hide_menu)
-        ])
+        self.menu_list.extend(
+            [
+                (_("Video Preferences"), self.video_preferences_menu),
+                (_("Player Preferences"), self.player_preferences_menu),
+                (_("Close Menu"), self.hide_menu),
+            ]
+        )
 
         self.refresh_menu()
 
@@ -184,7 +201,7 @@ class OSDMenu(object):
             player.force_window = False
             player.keep_open = False
 
-            if hasattr(player, 'osc'):
+            if hasattr(player, "osc"):
                 player.osc = settings.enable_osc
 
             player.command("script-message", "shim-menu-enable", "False")
@@ -224,7 +241,11 @@ class OSDMenu(object):
                 if self.menu_stack.empty():
                     self.hide_menu()
                 else:
-                    self.menu_title, self.menu_list, self.menu_selection = self.menu_stack.get_nowait()
+                    (
+                        self.menu_title,
+                        self.menu_list,
+                        self.menu_selection,
+                    ) = self.menu_stack.get_nowait()
             elif action == "ok":
                 if self.mouse_back:
                     self.menu_action("back")
@@ -236,7 +257,9 @@ class OSDMenu(object):
             self.refresh_menu()
 
     def change_audio_menu_handle(self):
-        self.playerManager.put_task(self.playerManager.set_streams, self.menu_list[self.menu_selection][2], None)
+        self.playerManager.put_task(
+            self.playerManager.set_streams, self.menu_list[self.menu_selection][2], None
+        )
         self.playerManager.timeline_handle()
         self.menu_action("back")
 
@@ -244,24 +267,36 @@ class OSDMenu(object):
         self.put_menu(_("Select Audio Track"))
 
         selected_aid = self.playerManager._video.aid
-        audio_streams = [s for s in self.playerManager._video.media_source["MediaStreams"]
-                         if s.get("Type") == "Audio"]
+        audio_streams = [
+            s
+            for s in self.playerManager._video.media_source["MediaStreams"]
+            if s.get("Type") == "Audio"
+        ]
         for i, audio_track in enumerate(audio_streams):
             aid = audio_track.get("Index")
-            if (settings.lang_filter_audio and aid != selected_aid
-                    and audio_track.get("Language") not in lang_filter):
+            if (
+                settings.lang_filter_audio
+                and aid != selected_aid
+                and audio_track.get("Language") not in lang_filter
+            ):
                 continue
 
-            self.menu_list.append([
-                "{0} ({1})".format(audio_track.get("DisplayTitle"), audio_track.get("Title")),
-                self.change_audio_menu_handle,
-                aid
-            ])
+            self.menu_list.append(
+                [
+                    "{0} ({1})".format(
+                        audio_track.get("DisplayTitle"), audio_track.get("Title")
+                    ),
+                    self.change_audio_menu_handle,
+                    aid,
+                ]
+            )
             if aid == selected_aid:
                 self.menu_selection = i
-    
+
     def change_subtitle_menu_handle(self):
-        self.playerManager.put_task(self.playerManager.set_streams, None, self.menu_list[self.menu_selection][2])
+        self.playerManager.put_task(
+            self.playerManager.set_streams, None, self.menu_list[self.menu_selection][2]
+        )
         self.playerManager.timeline_handle()
         self.menu_action("back")
 
@@ -269,22 +304,33 @@ class OSDMenu(object):
         self.put_menu(_("Select Subtitle Track"))
 
         selected_sid = self.playerManager._video.sid
-        subtitle_streams = [s for s in self.playerManager._video.media_source["MediaStreams"]
-                            if s.get("Type") == "Subtitle"]
+        subtitle_streams = [
+            s
+            for s in self.playerManager._video.media_source["MediaStreams"]
+            if s.get("Type") == "Subtitle"
+        ]
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])
         for i, subtitle_track in enumerate(subtitle_streams):
             sid = subtitle_track.get("Index")
-            if (settings.lang_filter_sub and sid != selected_sid
-                    and subtitle_track.get("Language") not in lang_filter):
+            if (
+                settings.lang_filter_sub
+                and sid != selected_sid
+                and subtitle_track.get("Language") not in lang_filter
+            ):
                 continue
 
-            self.menu_list.append([
-                "{0} ({1})".format(get_sub_display_title(subtitle_track), subtitle_track.get("Title")),
-                self.change_subtitle_menu_handle,
-                sid
-            ])
+            self.menu_list.append(
+                [
+                    "{0} ({1})".format(
+                        get_sub_display_title(subtitle_track),
+                        subtitle_track.get("Title"),
+                    ),
+                    self.change_subtitle_menu_handle,
+                    sid,
+                ]
+            )
             if sid == selected_sid:
-                self.menu_selection = i+1
+                self.menu_selection = i + 1
 
     def change_transcode_quality_handle(self):
         bitrate = self.menu_list[self.menu_selection][2]
@@ -294,17 +340,17 @@ class OSDMenu(object):
             self.playerManager._video.set_trs_override(None, True)
         else:
             self.playerManager._video.set_trs_override(bitrate, True)
-        
+
         self.menu_action("back")
         self.playerManager.put_task(self.playerManager.restart_playback)
         self.playerManager.timeline_handle()
 
     def change_transcode_quality(self):
         handle = self.change_transcode_quality_handle
-        self.put_menu(_("Select Transcode Quality"), [
-            (_("No Transcode"), handle, "none"),
-            (_("Maximum"), handle, "max")
-        ])
+        self.put_menu(
+            _("Select Transcode Quality"),
+            [(_("No Transcode"), handle, "none"), (_("Maximum"), handle, "max")],
+        )
 
         for item in TRANSCODE_LEVELS:
             self.menu_list.append((item[0], handle, item[1]))
@@ -323,13 +369,13 @@ class OSDMenu(object):
         self.change_audio_menu()
         for item in self.menu_list:
             item[1] = self.change_tracks_manual_s2
-    
+
     def change_tracks_manual_s2(self):
         self.menu_tmp = self.menu_selection
         self.change_subtitle_menu()
         for item in self.menu_list:
             item[1] = self.change_tracks_manual_s3
-    
+
     def change_tracks_manual_s3(self):
         aid, sid = self.menu_tmp, self.menu_selection - 1
         # Pop 3 menu items.
@@ -338,11 +384,21 @@ class OSDMenu(object):
         process_series("manual", self.playerManager, aid, sid)
 
     def change_tracks_menu(self):
-        self.put_menu(_("Select Audio/Subtitle for Series"), [
-            (_("English Audio"), self.change_tracks_handle, "dubbed"),
-            (_("Japanese Audio w/ English Subtitles"), self.change_tracks_handle, "subbed"),
-            (_("Manual by Track Index (Less Reliable)"), self.change_tracks_manual_s1),
-        ])
+        self.put_menu(
+            _("Select Audio/Subtitle for Series"),
+            [
+                (_("English Audio"), self.change_tracks_handle, "dubbed"),
+                (
+                    _("Japanese Audio w/ English Subtitles"),
+                    self.change_tracks_handle,
+                    "subbed",
+                ),
+                (
+                    _("Manual by Track Index (Less Reliable)"),
+                    self.change_tracks_manual_s1,
+                ),
+            ],
+        )
 
     def settings_toggle_bool(self):
         _x, _x, key, name = self.menu_list[self.menu_selection]
@@ -355,7 +411,7 @@ class OSDMenu(object):
             "{0}: {1}".format(name, getattr(settings, setting)),
             self.settings_toggle_bool,
             setting,
-            name
+            name,
         )
 
     def transcode_settings_handle(self):
@@ -401,48 +457,84 @@ class OSDMenu(object):
             self.playerManager.update_subtitle_visuals()
 
     def subtitle_color_menu(self):
-        self.put_menu(_("Select Subtitle Color"), [
-            (name, self.sub_settings_handle, "subtitle_color", color)
-            for name, color in COLOR_LIST
-        ])
+        self.put_menu(
+            _("Select Subtitle Color"),
+            [
+                (name, self.sub_settings_handle, "subtitle_color", color)
+                for name, color in COLOR_LIST
+            ],
+        )
 
     def subtitle_size_menu(self):
-        self.put_menu(_("Select Subtitle Size"), [
-            (name, self.sub_settings_handle, "subtitle_size", size)
-            for name, size in SIZE_LIST
-        ], selected=2)
+        self.put_menu(
+            _("Select Subtitle Size"),
+            [
+                (name, self.sub_settings_handle, "subtitle_size", size)
+                for name, size in SIZE_LIST
+            ],
+            selected=2,
+        )
 
     def subtitle_position_menu(self):
-        self.put_menu(_("Select Subtitle Position"), [
-            (_("Bottom"), self.sub_settings_handle, "subtitle_position", "bottom"),
-            (_("Top"), self.sub_settings_handle, "subtitle_position", "top"),
-            (_("Middle"), self.sub_settings_handle, "subtitle_position", "middle"),
-        ])
+        self.put_menu(
+            _("Select Subtitle Position"),
+            [
+                (_("Bottom"), self.sub_settings_handle, "subtitle_position", "bottom"),
+                (_("Top"), self.sub_settings_handle, "subtitle_position", "top"),
+                (_("Middle"), self.sub_settings_handle, "subtitle_position", "middle"),
+            ],
+        )
 
     def video_preferences_menu(self):
-        self.put_menu(_("Video Preferences"), [
-            (_("Remote Transcode Quality: {0:0.1f} Mbps").format(settings.remote_kbps/1000), self.transcode_settings_menu),
-            (_("Subtitle Size: {0}").format(settings.subtitle_size), self.subtitle_size_menu),
-            (_("Subtitle Position: {0}").format(settings.subtitle_position), self.subtitle_position_menu),
-            (_("Subtitle Color: {0}").format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
-            self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
-            self.get_settings_toggle(_("Transcode Hi10p to 8bit"), "transcode_hi10p"),
-            self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
-            self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
-            self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
-        ])
+        self.put_menu(
+            _("Video Preferences"),
+            [
+                (
+                    _("Remote Transcode Quality: {0:0.1f} Mbps").format(
+                        settings.remote_kbps / 1000
+                    ),
+                    self.transcode_settings_menu,
+                ),
+                (
+                    _("Subtitle Size: {0}").format(settings.subtitle_size),
+                    self.subtitle_size_menu,
+                ),
+                (
+                    _("Subtitle Position: {0}").format(settings.subtitle_position),
+                    self.subtitle_position_menu,
+                ),
+                (
+                    _("Subtitle Color: {0}").format(
+                        self.get_subtitle_color(settings.subtitle_color)
+                    ),
+                    self.subtitle_color_menu,
+                ),
+                self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
+                self.get_settings_toggle(
+                    _("Transcode Hi10p to 8bit"), "transcode_hi10p"
+                ),
+                self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
+                self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
+                self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
+            ],
+        )
 
     def player_preferences_menu(self):
-        self.put_menu(_("Player Preferences"), [
-            self.get_settings_toggle(_("Auto Play"), "auto_play"),
-            self.get_settings_toggle(_("Auto Fullscreen"), "fullscreen"),
-            self.get_settings_toggle(_("Media Key Seek"), "media_key_seek"),
-            self.get_settings_toggle(_("Use Web Seek Pref"), "use_web_seek"),
-            self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
-            self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
-            self.get_settings_toggle(_("Check for Updates"), "check_updates"),
-            self.get_settings_toggle(_("Discord Rich Presence"), "discord_presence"),
-        ])
+        self.put_menu(
+            _("Player Preferences"),
+            [
+                self.get_settings_toggle(_("Auto Play"), "auto_play"),
+                self.get_settings_toggle(_("Auto Fullscreen"), "fullscreen"),
+                self.get_settings_toggle(_("Media Key Seek"), "media_key_seek"),
+                self.get_settings_toggle(_("Use Web Seek Pref"), "use_web_seek"),
+                self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
+                self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
+                self.get_settings_toggle(_("Check for Updates"), "check_updates"),
+                self.get_settings_toggle(
+                    _("Discord Rich Presence"), "discord_presence"
+                ),
+            ],
+        )
 
     def unwatched_menu_handle(self):
         self.playerManager.put_task(self.playerManager.unwatched_quit)

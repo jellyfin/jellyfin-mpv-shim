@@ -7,15 +7,17 @@ import logging
 import sys
 import time
 
-log = logging.getLogger('svp_integration')
+log = logging.getLogger("svp_integration")
+
 
 def list_request(path):
     try:
         response = urllib.request.urlopen(settings.svp_url + "?" + path)
-        return response.read().decode('utf-8').replace('\r\n', '\n').split('\n')
+        return response.read().decode("utf-8").replace("\r\n", "\n").split("\n")
     except urllib.error.URLError as ex:
         log.error("Could not reach SVP API server.", exc_info=True)
         return None
+
 
 def simple_request(path):
     response_list = list_request(path)
@@ -24,6 +26,7 @@ def simple_request(path):
     if len(response_list) != 1 or " = " not in response_list[0]:
         return None
     return response_list[0].split(" = ")[1]
+
 
 def get_profiles():
     profile_ids = list_request("list=profiles")
@@ -42,6 +45,7 @@ def get_profiles():
         profiles[profile_guid] = profile_name
     return profiles
 
+
 def get_name_from_guid(profile_id):
     profile_id = "P" + profile_id[1:-1].replace("-", "_")
     if profile_id == "P10000001_1001_1001_1001_100000000001":
@@ -49,8 +53,10 @@ def get_name_from_guid(profile_id):
     else:
         return simple_request("profiles.{0}.title".format(profile_id))
 
+
 def get_last_profile():
     return simple_request("rt.playback.last_profile")
+
 
 def is_svp_alive():
     try:
@@ -60,14 +66,17 @@ def is_svp_alive():
         log.error("Could not reach SVP API server.", exc_info=True)
         return False
 
+
 def is_svp_enabled():
     return simple_request("rt.disabled") == "false"
+
 
 def is_svp_active():
     response = simple_request("rt.playback.active")
     if response is None:
         return False
     return response != ""
+
 
 def set_active_profile(profile_id):
     # As far as I know, there is no way to directly set the profile.
@@ -81,8 +90,13 @@ def set_active_profile(profile_id):
             return True
     return False
 
+
 def set_disabled(disabled):
-    return simple_request("rt.disabled={0}".format("true" if disabled else "false")) == "true"
+    return (
+        simple_request("rt.disabled={0}".format("true" if disabled else "false"))
+        == "true"
+    )
+
 
 class SVPManager:
     def __init__(self, menu, playerManager):
@@ -91,17 +105,21 @@ class SVPManager:
         if settings.svp_enable:
             socket = settings.svp_socket
             if socket is None:
-                if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+                if sys.platform.startswith("win32") or sys.platform.startswith(
+                    "cygwin"
+                ):
                     socket = "mpvpipe"
                 else:
                     socket = "/tmp/mpvsocket"
-            
+
             # This actually *adds* another ipc server.
             playerManager._player.input_ipc_server = socket
-        
+
         if settings.svp_enable and not is_svp_alive():
-            log.error("SVP is not reachable. Please make sure you have the API enabled.")
-    
+            log.error(
+                "SVP is not reachable. Please make sure you have the API enabled."
+            )
+
     def is_available(self):
         if not settings.svp_enable:
             return False
@@ -122,7 +140,7 @@ class SVPManager:
 
     def menu_set_enabled(self):
         set_disabled(False)
-        
+
         # Need to re-render menu. SVP has a race condition so we wait a second.
         time.sleep(1)
         self.menu.menu_action("back")
@@ -132,23 +150,25 @@ class SVPManager:
         if is_svp_active():
             selected = 0
             active_profile = get_last_profile()
-            profile_option_list = [
-                (_("Disabled"), self.menu_set_profile, None)
-            ]
+            profile_option_list = [(_("Disabled"), self.menu_set_profile, None)]
             for i, (profile_id, profile_name) in enumerate(get_profiles().items()):
                 profile_option_list.append(
                     (profile_name, self.menu_set_profile, profile_id)
                 )
                 if profile_id == active_profile:
-                    selected = i+1
+                    selected = i + 1
             self.menu.put_menu(_("Select SVP Profile"), profile_option_list, selected)
         else:
             if is_svp_enabled():
-                self.menu.put_menu(_("SVP is Not Active"), [
-                    (_("Disable"), self.menu_set_profile, None),
-                    (_("Retry"), self.menu_set_enabled)
-                ], selected=1)
+                self.menu.put_menu(
+                    _("SVP is Not Active"),
+                    [
+                        (_("Disable"), self.menu_set_profile, None),
+                        (_("Retry"), self.menu_set_enabled),
+                    ],
+                    selected=1,
+                )
             else:
-                self.menu.put_menu(_("SVP is Disabled"), [
-                    (_("Enable SVP"), self.menu_set_enabled)
-                ])
+                self.menu.put_menu(
+                    _("SVP is Disabled"), [(_("Enable SVP"), self.menu_set_enabled)]
+                )

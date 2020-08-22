@@ -1,6 +1,6 @@
 import threading
 
-import jinja2   # python3-jinja2 in Debian, Jinja2 in pypi
+import jinja2  # python3-jinja2 in Debian, Jinja2 in pypi
 
 # So, most of my use of the webview library is ugly but there's a reason for this!
 # Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
@@ -42,10 +42,14 @@ class DisplayMirror(object):
         self.display_window = webview
         # Since webview.create_window might take exclusive and permanent lock on the main thread,
         # we need to start this wait_load function before we start webview itself.
-        if 'webview_ready' in dir(webview):
-            threading.Thread(target=lambda: (webview.webview_ready(), load_idle())).start()
+        if "webview_ready" in dir(webview):
+            threading.Thread(
+                target=lambda: (webview.webview_ready(), load_idle())
+            ).start()
 
-        window = webview.create_window(title="Jellyfin MPV Shim Mirror", js_api=helpers, fullscreen=True)
+        window = webview.create_window(
+            title="Jellyfin MPV Shim Mirror", js_api=helpers, fullscreen=True
+        )
         if window is not None:
             # It returned a Window object instead of blocking, we're running on 3.2 (or compatible)
             self.display_window = window
@@ -61,7 +65,7 @@ class DisplayMirror(object):
         webview.destroy_window()
 
     def DisplayContent(self, client, arguments):
-        item = client.jellyfin.get_item(arguments['Arguments']['ItemId'])
+        item = client.jellyfin.get_item(arguments["Arguments"]["ItemId"])
         html = get_html(server_address=client.config.data["auth.server"], item=item)
         self.display_window.load_html(html)
         # print(html)
@@ -76,37 +80,39 @@ mirror = DisplayMirror()
 def get_html(server_address=None, item=None):
     if item:
         jinja_vars = {
-            'backdrop_src': helpers.getBackdropUrl(item, server_address) or '',
-            'image_src': helpers.getPrimaryImageUrl(item, server_address) or '',
-            'logo_src': helpers.getLogoUrl(item, server_address) or '',
-            'played': item['UserData'].get('Played', False),
-            'played_percentage': item['UserData'].get('PlayedPercentage', 0),
-            'unplayed_items': item['UserData'].get('UnplayedItemCount', 0),
-            'is_folder': item['IsFolder'],
-            'display_name': helpers.getDisplayName(item),
-            'misc_info_html': helpers.getMiscInfoHtml(item),
-            'rating_html': helpers.getRatingHtml(item),
-            'genres': item['Genres'],
-            'overview': item.get('Overview', ''),
-
+            "backdrop_src": helpers.getBackdropUrl(item, server_address) or "",
+            "image_src": helpers.getPrimaryImageUrl(item, server_address) or "",
+            "logo_src": helpers.getLogoUrl(item, server_address) or "",
+            "played": item["UserData"].get("Played", False),
+            "played_percentage": item["UserData"].get("PlayedPercentage", 0),
+            "unplayed_items": item["UserData"].get("UnplayedItemCount", 0),
+            "is_folder": item["IsFolder"],
+            "display_name": helpers.getDisplayName(item),
+            "misc_info_html": helpers.getMiscInfoHtml(item),
+            "rating_html": helpers.getRatingHtml(item),
+            "genres": item["Genres"],
+            "overview": item.get("Overview", ""),
             # I believe these are all specifically for albums
-            'poster_src': helpers.getPrimaryImageUrl(item, server_address) or '',
-            'title': 'title',  # FIXME
-            'secondary_title': 'secondary',  # FIXME
-            'artist': 'artist',  # FIXME
-            'album_title': 'album',  # FIXME
+            "poster_src": helpers.getPrimaryImageUrl(item, server_address) or "",
+            "title": "title",  # FIXME
+            "secondary_title": "secondary",  # FIXME
+            "artist": "artist",  # FIXME
+            "album_title": "album",  # FIXME
         }
     else:
         jinja_vars = {
-            'random_backdrop': True,  # Make the jinja template load some extra JS code for random backdrops
-            'backdrop_src': helpers.getRandomBackdropUrl(),  # Preinitialise it with a random backdrop though
-            'display_name': _("Ready to cast"),
-            'overview': "\n\n" + _("Select your media in Jellyfin and play it here"),  # FIME: Mention the player_name here
+            "random_backdrop": True,  # Make the jinja template load some extra JS code for random backdrops
+            "backdrop_src": helpers.getRandomBackdropUrl(),  # Preinitialise it with a random backdrop though
+            "display_name": _("Ready to cast"),
+            "overview": "\n\n"
+            + _(
+                "Select your media in Jellyfin and play it here"
+            ),  # FIME: Mention the player_name here
         }
 
-    jinja_vars.update({
-        'jellyfin_css': get_text("display_mirror", "jellyfin.css"),
-    })
+    jinja_vars.update(
+        {"jellyfin_css": get_text("display_mirror", "jellyfin.css"),}
+    )
 
     try:
         tpl = jinja2.Template(get_text("display_mirror", "index.html"))

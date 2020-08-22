@@ -14,17 +14,24 @@ profile_name_translation = {
     "Generic High (FSRCNNX x16)": _("Generic High (FSRCNNX x16)"),
     "Anime4K x4 Faithful (For SD)": _("Anime4K x4 Faithful (For SD)"),
     "Anime4K x4 Perceptual (For SD)": _("Anime4K x4 Perceptual (For SD)"),
-    "Anime4K x4 Perceptual + Deblur (For SD)": _("Anime4K x4 Perceptual + Deblur (For SD)"),
+    "Anime4K x4 Perceptual + Deblur (For SD)": _(
+        "Anime4K x4 Perceptual + Deblur (For SD)"
+    ),
     "Anime4K x2 Faithful (For HD)": _("Anime4K x2 Faithful (For HD)"),
     "Anime4K x2 Perceptual (For HD)": _("Anime4K x2 Perceptual (For HD)"),
-    "Anime4K x2 Perceptual + Deblur (For HD)": _("Anime4K x2 Perceptual + Deblur (For HD)")
+    "Anime4K x2 Perceptual + Deblur (For HD)": _(
+        "Anime4K x2 Perceptual + Deblur (For HD)"
+    ),
 }
 
-log = logging.getLogger('video_profile')
+log = logging.getLogger("video_profile")
+
 
 class MPVSettingError(Exception):
     """Raised when MPV does not support a required setting."""
+
     pass
+
 
 class VideoProfileManager:
     def __init__(self, menu, playerManager):
@@ -34,7 +41,7 @@ class VideoProfileManager:
         self.current_profile = None
 
         self.load_shader_pack()
-    
+
     def load_shader_pack(self):
         shader_pack_builtin = get_resource("default_shader_pack")
 
@@ -43,7 +50,7 @@ class VideoProfileManager:
             self.shader_pack = conffile.get(APP_NAME, "shader_pack")
             if not os.path.exists(self.shader_pack):
                 shutil.copytree(shader_pack_builtin, self.shader_pack)
-        
+
         if not os.path.exists(os.path.join(self.shader_pack, "pack.json")):
             raise FileNotFoundError("Could not find default shader pack.")
 
@@ -66,7 +73,12 @@ class VideoProfileManager:
                 try:
                     self.defaults[key] = getattr(self.playerManager._player, key)
                 except Exception:
-                    log.warning("Your MPV does not support setting {0} used in shader pack.".format(key), exc_info=True)
+                    log.warning(
+                        "Your MPV does not support setting {0} used in shader pack.".format(
+                            key
+                        ),
+                        exc_info=True,
+                    )
 
         if settings.shader_pack_profile is not None:
             self.load_profile(settings.shader_pack_profile, reset=False)
@@ -76,7 +88,11 @@ class VideoProfileManager:
         for key, value in group.get("settings", []):
             if key not in self.defaults:
                 if key not in self.revert_ignore:
-                    raise MPVSettingError("Cannot use setting group {0} due to MPV not supporting {1}".format(group_name, key))
+                    raise MPVSettingError(
+                        "Cannot use setting group {0} due to MPV not supporting {1}".format(
+                            group_name, key
+                        )
+                    )
             else:
                 self.used_settings.add(key)
             settings_to_apply.append((key, value))
@@ -97,7 +113,9 @@ class VideoProfileManager:
             for group in profile.get("setting-groups", []):
                 self.process_setting_group(group, settings_to_apply, shaders_to_apply)
             for shader in profile.get("shaders", []):
-                shaders_to_apply.append(os.path.join(self.shader_pack, "shaders", shader))
+                shaders_to_apply.append(
+                    os.path.join(self.shader_pack, "shaders", shader)
+                )
 
             # Apply Settings
             already_set = set()
@@ -125,7 +143,9 @@ class VideoProfileManager:
             try:
                 setattr(self.playerManager._player, setting, value)
             except Exception:
-                log.warning("Default setting {0} value {1} is invalid.".format(setting, value))
+                log.warning(
+                    "Default setting {0} value {1} is invalid.".format(setting, value)
+                )
         self.current_profile = None
 
     def menu_handle(self):
@@ -145,16 +165,12 @@ class VideoProfileManager:
 
     def menu_action(self):
         selected = 0
-        profile_option_list = [
-            (_("None (Disabled)"), self.menu_handle, None)
-        ]
+        profile_option_list = [(_("None (Disabled)"), self.menu_handle, None)]
         for i, (profile_name, profile) in enumerate(self.profiles.items()):
             name = profile["displayname"]
             if name in profile_name_translation:
                 name = profile_name_translation[name]
-            profile_option_list.append(
-                (name, self.menu_handle, profile_name)
-            )
+            profile_option_list.append((name, self.menu_handle, profile_name))
             if profile_name == self.current_profile:
-                selected = i+1
+                selected = i + 1
         self.menu.put_menu(_("Select Shader Profile"), profile_option_list, selected)

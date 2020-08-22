@@ -10,6 +10,7 @@ translation = gettext.NullTranslations()
 def configure():
     global translation
     from .utils import get_resource
+
     messages_dir = get_resource("messages")
     lang = None
 
@@ -21,9 +22,11 @@ def configure():
         lc = locale.getdefaultlocale()
         if lc is not None and lc[0] is not None:
             lang = lc[0]
-    
+
     if lang is not None:
-        translation = gettext.translation("base", messages_dir, languages=[lang], fallback=True)
+        translation = gettext.translation(
+            "base", messages_dir, languages=[lang], fallback=True
+        )
     else:
         translation = gettext.translation("base", messages_dir, fallback=True)
 

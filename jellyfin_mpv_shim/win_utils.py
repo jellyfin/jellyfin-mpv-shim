@@ -1,10 +1,12 @@
 import win32gui
 import logging
 
-log = logging.getLogger('win_utils')
+log = logging.getLogger("win_utils")
+
 
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+
 
 def raise_mpv():
     # This workaround is madness. Apparently SetForegroundWindow
@@ -17,12 +19,13 @@ def raise_mpv():
         for i in top_windows:
             if " - mpv" in i[1].lower():
                 if i[0] != fg_win:
-                    win32gui.ShowWindow(i[0], 6) # Minimize
-                    win32gui.ShowWindow(i[0], 9) # Un-minimize
+                    win32gui.ShowWindow(i[0], 6)  # Minimize
+                    win32gui.ShowWindow(i[0], 9)  # Un-minimize
                 break
 
     except Exception:
         log.error("Could not raise MPV.", exc_info=True)
+
 
 def mirror_act(state, name="Jellyfin MPV Shim Mirror"):
     try:

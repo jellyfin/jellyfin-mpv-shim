@@ -13,10 +13,11 @@ from functools import wraps
 from .constants import USER_APP_NAME
 from .i18n import _
 
-log = logging.getLogger('utils')
+log = logging.getLogger("utils")
 
 seq_num = 0
 seq_num_lock = Lock()
+
 
 class Timer(object):
     def __init__(self):
@@ -26,10 +27,11 @@ class Timer(object):
         self.started = datetime.now()
 
     def elapsedMs(self):
-        return  self.elapsed() * 1e3
+        return self.elapsed() * 1e3
 
     def elapsed(self):
-        return (datetime.now()-self.started).total_seconds()
+        return (datetime.now() - self.started).total_seconds()
+
 
 def synchronous(tlockname):
     """
@@ -39,15 +41,18 @@ def synchronous(tlockname):
 
     def _synched(func):
         @wraps(func)
-        def _synchronizer(self,*args, **kwargs):
-            tlock = self.__getattribute__( tlockname)
+        def _synchronizer(self, *args, **kwargs):
+            tlock = self.__getattribute__(tlockname)
             tlock.acquire()
             try:
                 return func(self, *args, **kwargs)
             finally:
                 tlock.release()
+
         return _synchronizer
+
     return _synched
+
 
 def is_local_domain(client):
     # With Jellyfin, it is significantly more likely the user will be using
@@ -56,29 +61,39 @@ def is_local_domain(client):
     url = client.config.data.get("auth.server", "")
     domain = urllib.parse.urlparse(url).hostname
 
-    addr_info = socket.getaddrinfo(domain,8096)[0]
+    addr_info = socket.getaddrinfo(domain, 8096)[0]
     ip = addr_info[4][0]
     is_local = ipaddress.ip_address(ip).is_private
 
     if not is_local:
         if addr_info[0] == socket.AddressFamily.AF_INET:
             try:
-                wan_ip = requests.get("https://checkip.amazonaws.com/", timeout=(3, 10)).text.strip("\r\n")
+                wan_ip = requests.get(
+                    "https://checkip.amazonaws.com/", timeout=(3, 10)
+                ).text.strip("\r\n")
                 return ip == wan_ip
             except Exception:
-                log.warning("checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.", exc_info=True)
+                log.warning(
+                    "checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.",
+                    exc_info=True,
+                )
                 return False
         elif addr_info[0] == socket.AddressFamily.AF_INET6:
             return False
     return True
 
+
 def mpv_color_to_plex(color):
-    return '#'+color.lower()[3:]
+    return "#" + color.lower()[3:]
+
 
 def plex_color_to_mpv(color):
-    return '#FF'+color.upper()[1:]
+    return "#FF" + color.upper()[1:]
 
-def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_tv=False):
+
+def get_profile(
+    is_remote=False, video_bitrate=None, force_transcode=False, is_tv=False
+):
     if video_bitrate is None:
         if is_remote:
             video_bitrate = settings.remote_kbps
@@ -98,144 +113,95 @@ def get_profile(is_remote=False, video_bitrate=None, force_transcode=False, is_t
         "MusicStreamingTranscodingBitrate": 1280000,
         "TimelineOffsetSeconds": 5,
         "TranscodingProfiles": [
-            {
-                "Type": "Audio"
-            },
+            {"Type": "Audio"},
             {
                 "Container": "ts",
                 "Type": "Video",
                 "Protocol": "hls",
                 "AudioCodec": "aac,mp3,ac3,opus,flac,vorbis",
                 "VideoCodec": transcode_codecs,
-                "MaxAudioChannels": "6"
+                "MaxAudioChannels": "6",
             },
-            {
-                "Container": "jpeg",
-                "Type": "Photo"
-            }
+            {"Container": "jpeg", "Type": "Photo"},
         ],
-        "DirectPlayProfiles": [
-            {
-                "Type": "Video"
-            },
-            {
-                "Type": "Audio"
-            },
-            {
-                "Type": "Photo"
-            }
-        ],
+        "DirectPlayProfiles": [{"Type": "Video"}, {"Type": "Audio"}, {"Type": "Photo"}],
         "ResponseProfiles": [],
         "ContainerProfiles": [],
         "CodecProfiles": [],
         "SubtitleProfiles": [
-            {
-                "Format": "srt",
-                "Method": "External"
-            },
-            {
-                "Format": "srt",
-                "Method": "Embed"
-            },
-            {
-                "Format": "ass",
-                "Method": "External"
-            },
-            {
-                "Format": "ass",
-                "Method": "Embed"
-            },
-            {
-                "Format": "sub",
-                "Method": "Embed"
-            },
-            {
-                "Format": "sub",
-                "Method": "External"
-            },
-            {
-                "Format": "ssa",
-                "Method": "Embed"
-            },
-            {
-                "Format": "ssa",
-                "Method": "External"
-            },
-            {
-                "Format": "smi",
-                "Method": "Embed"
-            },
-            {
-                "Format": "smi",
-                "Method": "External"
-            },
+            {"Format": "srt", "Method": "External"},
+            {"Format": "srt", "Method": "Embed"},
+            {"Format": "ass", "Method": "External"},
+            {"Format": "ass", "Method": "Embed"},
+            {"Format": "sub", "Method": "Embed"},
+            {"Format": "sub", "Method": "External"},
+            {"Format": "ssa", "Method": "Embed"},
+            {"Format": "ssa", "Method": "External"},
+            {"Format": "smi", "Method": "Embed"},
+            {"Format": "smi", "Method": "External"},
             # Jellyfin currently refuses to serve these subtitle types as external.
-            {
-                "Format": "pgssub",
-                "Method": "Embed"
-            },
-            #{
+            {"Format": "pgssub", "Method": "Embed"},
+            # {
             #    "Format": "pgssub",
             #    "Method": "External"
-            #},
-            {
-                "Format": "dvdsub",
-                "Method": "Embed"
-            },
-            #{
+            # },
+            {"Format": "dvdsub", "Method": "Embed"},
+            # {
             #    "Format": "dvdsub",
             #    "Method": "External"
-            #},
-            {
-                "Format": "pgs",
-                "Method": "Embed"
-            },
-            #{
+            # },
+            {"Format": "pgs", "Method": "Embed"},
+            # {
             #    "Format": "pgs",
             #    "Method": "External"
-            #}
-        ]
+            # }
+        ],
     }
 
     if settings.transcode_hi10p:
-        profile['CodecProfiles'].append(
+        profile["CodecProfiles"].append(
             {
-                'Type': 'Video',
-                'codec': 'h264',
-                'Conditions': [
+                "Type": "Video",
+                "codec": "h264",
+                "Conditions": [
                     {
-                        'Condition': "LessThanEqual",
-                        'Property': "VideoBitDepth",
-                        'Value': "8"
+                        "Condition": "LessThanEqual",
+                        "Property": "VideoBitDepth",
+                        "Value": "8",
                     }
-                ]
+                ],
             }
         )
 
     if settings.always_transcode or force_transcode:
-        profile['DirectPlayProfiles'] = []
+        profile["DirectPlayProfiles"] = []
 
     if is_tv:
-        profile['TranscodingProfiles'].insert(0, {
-            "Container": "ts",
-            "Type": "Video",
-            "AudioCodec": "mp3,aac",
-            "VideoCodec": "h264",
-            "Context": "Streaming",
-            "Protocol": "hls",
-            "MaxAudioChannels": "2",
-            "MinSegments": "1",
-            "BreakOnNonKeyFrames": True
-        })
+        profile["TranscodingProfiles"].insert(
+            0,
+            {
+                "Container": "ts",
+                "Type": "Video",
+                "AudioCodec": "mp3,aac",
+                "VideoCodec": "h264",
+                "Context": "Streaming",
+                "Protocol": "hls",
+                "MaxAudioChannels": "2",
+                "MinSegments": "1",
+                "BreakOnNonKeyFrames": True,
+            },
+        )
 
     return profile
+
 
 def get_sub_display_title(stream):
     return "{0}{1} ({2})".format(
         stream.get("Language", _("Unkn")).capitalize(),
         _(" Forced") if stream.get("IsForced") else "",
-        stream.get("Codec")
+        stream.get("Codec"),
     )
+
 
 def get_seq():
     global seq_num
@@ -245,20 +211,23 @@ def get_seq():
     seq_num_lock.release()
     return current
 
+
 def none_fallback(value, fallback):
     if value is None:
         return fallback
     return value
 
+
 def get_resource(*path):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
-    if getattr(sys, '_MEIPASS', False):
+    if getattr(sys, "_MEIPASS", False):
         application_path = os.path.join(sys._MEIPASS, "jellyfin_mpv_shim")
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 
     return os.path.join(application_path, *path)
+
 
 def get_text(*path):
     with open(get_resource(*path)) as fh:

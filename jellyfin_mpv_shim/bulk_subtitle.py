@@ -1,6 +1,7 @@
 from collections import namedtuple
 from .utils import get_sub_display_title
 from .i18n import _
+
 # TODO: Should probably support automatic profiles for languages other than English and Japanese...
 
 import time
@@ -8,11 +9,14 @@ import logging
 
 Part = namedtuple("Part", ["id", "audio", "subtitle"])
 Audio = namedtuple("Audio", ["id", "language_code", "name", "display_name"])
-Subtitle = namedtuple("Subtitle", ["id", "language_code", "name", "is_forced", "display_name"])
+Subtitle = namedtuple(
+    "Subtitle", ["id", "language_code", "name", "is_forced", "display_name"]
+)
 
-log = logging.getLogger('bulk_subtitle')
+log = logging.getLogger("bulk_subtitle")
 messages = []
 keep_messages = 6
+
 
 def render_message(message, show_text):
     log.info(message)
@@ -20,7 +24,8 @@ def render_message(message, show_text):
     text = _("Selecting Tracks...")
     for message in messages[-6:]:
         text += "\n   " + message
-    show_text(text,2**30,1)
+    show_text(text, 2 ** 30, 1)
+
 
 def process_series(mode, player, m_raid=None, m_rsid=None):
     messages.clear()
@@ -34,18 +39,37 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
     partial_ct = 0
     count = 0
 
-    videos = client.jellyfin.get_season(media.item["SeriesId"], media.item["SeasonId"])["Items"]
+    videos = client.jellyfin.get_season(media.item["SeriesId"], media.item["SeasonId"])[
+        "Items"
+    ]
     for video in videos:
-        name = "s{0}e{1:02}".format(video.get("ParentIndexNumber"), video.get("IndexNumber"))
+        name = "s{0}e{1:02}".format(
+            video.get("ParentIndexNumber"), video.get("IndexNumber")
+        )
         video = client.jellyfin.get_item(video.get("Id"))
         for media_source in video["MediaSources"]:
             count += 1
-            audio_list = [Audio(s.get("Index"), s.get("Language"), s.get("Title"),
-                          s.get("DisplayTitle")) for s in media_source["MediaStreams"]
-                          if s.get("Type") == "Audio"]
-            subtitle_list = [Subtitle(s.get("Index"), s.get("Language"), s.get("Title"), s.get("IsForced"),
-                             get_sub_display_title(s)) for s in media_source["MediaStreams"]
-                             if s.get("Type") == "Subtitle"]
+            audio_list = [
+                Audio(
+                    s.get("Index"),
+                    s.get("Language"),
+                    s.get("Title"),
+                    s.get("DisplayTitle"),
+                )
+                for s in media_source["MediaStreams"]
+                if s.get("Type") == "Audio"
+            ]
+            subtitle_list = [
+                Subtitle(
+                    s.get("Index"),
+                    s.get("Language"),
+                    s.get("Title"),
+                    s.get("IsForced"),
+                    get_sub_display_title(s),
+                )
+                for s in media_source["MediaStreams"]
+                if s.get("Type") == "Subtitle"
+            ]
             part = Part(media_source.get("Id"), audio_list, subtitle_list)
 
             aid = None
@@ -53,15 +77,23 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
             if mode == "subbed":
                 audio, subtitle = get_subbed(part)
                 if audio and subtitle:
-                    render_message("{0}: {1} ({2})".format(
-                        name, subtitle.display_name, subtitle.name), show_text)
+                    render_message(
+                        "{0}: {1} ({2})".format(
+                            name, subtitle.display_name, subtitle.name
+                        ),
+                        show_text,
+                    )
                     aid, sid = audio.id, subtitle.id
                     success_ct += 1
             elif mode == "dubbed":
                 audio, subtitle = get_dubbed(part)
                 if audio and subtitle:
-                    render_message("{0}: {1} ({2})".format(
-                        name, subtitle.display_name, subtitle.name), show_text)
+                    render_message(
+                        "{0}: {1} ({2})".format(
+                            name, subtitle.display_name, subtitle.name
+                        ),
+                        show_text,
+                    )
                     aid, sid = audio.id, subtitle.id
                     success_ct += 1
                 elif audio:
@@ -72,45 +104,62 @@ def process_series(mode, player, m_raid=None, m_rsid=None):
                 if m_raid < len(part.audio) and m_rsid < len(part.subtitle):
                     audio = part.audio[m_raid]
                     aid = audio.id
-                    render_message("{0} a: {1} ({2})".format(
-                            name, audio.display_name, audio.name), show_text)
+                    render_message(
+                        "{0} a: {1} ({2})".format(name, audio.display_name, audio.name),
+                        show_text,
+                    )
                     if m_rsid != -1:
                         subtitle = part.subtitle[m_rsid]
                         sid = subtitle.id
-                        render_message("{0} s: {1} ({2})".format(
-                            name, subtitle.display_name, subtitle.name), show_text)
+                        render_message(
+                            "{0} s: {1} ({2})".format(
+                                name, subtitle.display_name, subtitle.name
+                            ),
+                            show_text,
+                        )
                     success_ct += 1
-            
+
             if aid:
                 if c_pid == part.id:
                     c_aid, c_sid = aid, sid
 
                 # This is a horrible hack to change the audio/subtitle settings without playing
                 # the media. I checked the jelyfin source code and didn't find a better way.
-                client.jellyfin.session_progress({
-                    "ItemId": part.id,
-                    "AudioStreamIndex": aid,
-                    "SubtitleStreamIndex": sid
-                })
+                client.jellyfin.session_progress(
+                    {
+                        "ItemId": part.id,
+                        "AudioStreamIndex": aid,
+                        "SubtitleStreamIndex": sid,
+                    }
+                )
 
             else:
                 render_message(_("{0}: Fail").format(name), show_text)
-    
+
     if mode == "subbed":
-        render_message(_("Set Subbed: {0} ok, {1} fail").format(
-            success_ct, count-success_ct), show_text)
+        render_message(
+            _("Set Subbed: {0} ok, {1} fail").format(success_ct, count - success_ct),
+            show_text,
+        )
     elif mode == "dubbed":
-        render_message(_("Set Dubbed: {0} ok, {1} audio only, {2} fail").format(
-            success_ct, partial_ct, count-success_ct-partial_ct), show_text)
+        render_message(
+            _("Set Dubbed: {0} ok, {1} audio only, {2} fail").format(
+                success_ct, partial_ct, count - success_ct - partial_ct
+            ),
+            show_text,
+        )
     elif mode == "manual":
-        render_message(_("Manual: {0} ok, {1} fail").format(
-            success_ct, count-success_ct), show_text)
+        render_message(
+            _("Manual: {0} ok, {1} fail").format(success_ct, count - success_ct),
+            show_text,
+        )
     time.sleep(3)
     if c_aid:
         render_message(_("Setting Current..."), show_text)
         player.put_task(player.set_streams, c_aid, c_sid)
         player.timeline_handle()
-  
+
+
 def get_subbed(part):
     japanese_audio = None
     english_subtitles = None
@@ -122,11 +171,11 @@ def get_subbed(part):
             continue
         if "commentary" in lower_title:
             continue
-        
+
         if japanese_audio is None:
             japanese_audio = audio
             break
-    
+
     for subtitle in part.subtitle:
         lower_title = subtitle.name.lower() if subtitle.name is not None else ""
         if subtitle.language_code != "eng" and "english" not in lower_title:
@@ -138,10 +187,11 @@ def get_subbed(part):
         if subtitle_weight is None or weight < subtitle_weight:
             subtitle_weight = weight
             english_subtitles = subtitle
-    
+
     if japanese_audio and english_subtitles:
         return japanese_audio, english_subtitles
     return None, None
+
 
 def get_dubbed(part):
     english_audio = None
@@ -154,11 +204,11 @@ def get_dubbed(part):
             continue
         if "commentary" in lower_title:
             continue
-        
+
         if english_audio is None:
             english_audio = audio
             break
-    
+
     for subtitle in part.subtitle:
         lower_title = subtitle.name.lower() if subtitle.name is not None else ""
         if subtitle.language_code != "eng" and "english" not in lower_title:
@@ -174,18 +224,21 @@ def get_dubbed(part):
         if subtitle_weight is None or weight < subtitle_weight:
             subtitle_weight = weight
             sign_subtitles = subtitle
-    
+
     if english_audio:
         return english_audio, sign_subtitles
     return None, None
+
 
 def dialogue_weight(text):
     if not text:
         return 900
     lower_text = text.lower()
-    has_dialogue = "main" in lower_text or "full" in lower_text or "dialogue" in lower_text
+    has_dialogue = (
+        "main" in lower_text or "full" in lower_text or "dialogue" in lower_text
+    )
     has_songs = "op/ed" in lower_text or "song" in lower_text or "lyric" in lower_text
-    has_signs = "sign" in lower_text                                       
+    has_signs = "sign" in lower_text
     vendor = "bd" in lower_text or "retail" in lower_text
     weight = 900
 
@@ -201,12 +254,13 @@ def dialogue_weight(text):
         weight += 50
     return weight
 
+
 def sign_weight(text):
     if not text:
         return 0
     lower_text = text.lower()
     has_songs = "op/ed" in lower_text or "song" in lower_text or "lyric" in lower_text
-    has_signs = "sign" in lower_text                                       
+    has_signs = "sign" in lower_text
     vendor = "bd" in lower_text or "retail" in lower_text
     weight = 900
 

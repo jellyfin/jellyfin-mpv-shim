@@ -2,7 +2,7 @@ import logging
 import uuid
 import urllib.parse
 import os.path
-import re 
+import re
 import pathlib
 from sys import platform
 
@@ -10,38 +10,39 @@ from .conf import settings
 from .utils import is_local_domain, get_profile, get_seq
 from .i18n import _
 
-log = logging.getLogger('media')
+log = logging.getLogger("media")
+
 
 class Video(object):
     def __init__(self, item_id, parent, aid=None, sid=None, srcid=None):
-        self.item_id       = item_id
-        self.parent        = parent
-        self.client        = parent.client
-        self.aid           = aid
-        self.sid           = sid
-        self.item          = self.client.jellyfin.get_item(item_id)
+        self.item_id = item_id
+        self.parent = parent
+        self.client = parent.client
+        self.aid = aid
+        self.sid = sid
+        self.item = self.client.jellyfin.get_item(item_id)
 
         self.is_tv = self.item.get("Type") == "Episode"
 
-        self.subtitle_seq  = {}
-        self.subtitle_uid  = {}
-        self.subtitle_url  = {}
-        self.subtitle_enc  = set()
-        self.audio_seq     = {}
-        self.audio_uid     = {}
-        self.is_transcode  = False
-        self.trs_ovr       = None
+        self.subtitle_seq = {}
+        self.subtitle_uid = {}
+        self.subtitle_url = {}
+        self.subtitle_enc = set()
+        self.audio_seq = {}
+        self.audio_uid = {}
+        self.is_transcode = False
+        self.trs_ovr = None
         self.playback_info = None
-        self.media_source  = None
-        self.srcid         = srcid
+        self.media_source = None
+        self.srcid = srcid
 
     def map_streams(self):
-        self.subtitle_seq  = {}
-        self.subtitle_uid  = {}
-        self.subtitle_url  = {}
-        self.subtitle_enc  = set()
-        self.audio_seq     = {}
-        self.audio_uid     = {}
+        self.subtitle_seq = {}
+        self.subtitle_uid = {}
+        self.subtitle_url = {}
+        self.subtitle_enc = set()
+        self.audio_seq = {}
+        self.audio_uid = {}
 
         if self.media_source is None or self.media_source["Protocol"] != "File":
             return
@@ -75,13 +76,13 @@ class Video(object):
 
             if sub.get("IsExternal") == False:
                 index += 1
-        
+
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")
 
         if user_aid is not None and self.aid is None:
             self.aid = user_aid
-        
+
         if user_sid is not None and self.sid is None:
             self.sid = user_sid
 
@@ -91,18 +92,28 @@ class Video(object):
     def get_proper_title(self):
         if not hasattr(self, "_title"):
             title = self.item.get("Name")
-            if (self.is_tv and self.item.get("IndexNumber") is not None
-                and self.item.get("ParentIndexNumber") is not None):
+            if (
+                self.is_tv
+                and self.item.get("IndexNumber") is not None
+                and self.item.get("ParentIndexNumber") is not None
+            ):
                 episode_number = int(self.item.get("IndexNumber"))
-                season_number  = int(self.item.get("ParentIndexNumber"))
-                series_name    = self.item.get("SeriesName")
-                title = "%s - s%de%.2d - %s" % (series_name, season_number, episode_number, title)
+                season_number = int(self.item.get("ParentIndexNumber"))
+                series_name = self.item.get("SeriesName")
+                title = "%s - s%de%.2d - %s" % (
+                    series_name,
+                    season_number,
+                    episode_number,
+                    title,
+                )
             elif self.item.get("Type") == "Movie":
-                year  = self.item.get("ProductionYear")
+                year = self.item.get("ProductionYear")
                 if year is not None:
                     title = "%s (%s)" % (title, year)
             setattr(self, "_title", title)
-        return getattr(self, "_title") + (_(" (Transcode)") if self.is_transcode else "")
+        return getattr(self, "_title") + (
+            _(" (Transcode)") if self.is_transcode else ""
+        )
 
     def set_trs_override(self, video_bitrate, force_transcode):
         if force_transcode:
@@ -125,7 +136,9 @@ class Video(object):
 
     def terminate_transcode(self):
         if self.is_transcode:
-            self.client.jellyfin.close_transcode(self.client.config.data["app.device_id"])
+            self.client.jellyfin.close_transcode(
+                self.client.config.data["app.device_id"]
+            )
 
     def _get_url_from_source(self, source):
         # Only use Direct Paths if:
@@ -133,44 +146,54 @@ class Video(object):
         # - Direct paths are enabled in the config.
         # - The server is local or the override config is set.
         # - If there's a scheme specified or the path exists as a local file.
-        if ((self.media_source.get('Protocol') == "Http" or self.media_source['SupportsDirectPlay'])
-            and settings.direct_paths and (settings.remote_direct_paths or self.parent.is_local)):
+        if (
+            (
+                self.media_source.get("Protocol") == "Http"
+                or self.media_source["SupportsDirectPlay"]
+            )
+            and settings.direct_paths
+            and (settings.remote_direct_paths or self.parent.is_local)
+        ):
 
             if platform.startswith("win32") or platform.startswith("cygwin"):
-                    # matches on SMB scheme
-                    match = re.search('(?:\\\\).+:.*@(.+)', self.media_source['Path'])
-                    if match:
-                        # replace forward slash to backward slashes
-                        log.debug("cleaned up credentials from path")
-                        self.media_source['Path'] = str(pathlib.Path('\\\\' + match.groups()[0]))
+                # matches on SMB scheme
+                match = re.search("(?:\\\\).+:.*@(.+)", self.media_source["Path"])
+                if match:
+                    # replace forward slash to backward slashes
+                    log.debug("cleaned up credentials from path")
+                    self.media_source["Path"] = str(
+                        pathlib.Path("\\\\" + match.groups()[0])
+                    )
 
-            if urllib.parse.urlparse(self.media_source['Path']).scheme:
+            if urllib.parse.urlparse(self.media_source["Path"]).scheme:
                 self.is_transcode = False
                 log.debug("Using remote direct path.")
-                # translate path for windows 
-                # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo, 
-                # translate it to mediaserver/foo 
-                return pathlib.Path(self.media_source['Path'])
+                # translate path for windows
+                # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo,
+                # translate it to mediaserver/foo
+                return pathlib.Path(self.media_source["Path"])
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
-                if os.path.isfile(self.media_source['Path']):
+                if os.path.isfile(self.media_source["Path"]):
                     log.debug("Using local direct path.")
                     self.is_transcode = False
-                    return self.media_source['Path']
+                    return self.media_source["Path"]
 
-        if self.media_source['SupportsDirectStream']:
+        if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False
             log.debug("Using direct url.")
             return "%s/Videos/%s/stream?static=true&MediaSourceId=%s&api_key=%s" % (
                 self.client.config.data["auth.server"],
                 self.item_id,
-                self.media_source['Id'],
-                self.client.config.data["auth.token"]
+                self.media_source["Id"],
+                self.client.config.data["auth.token"],
             )
-        elif self.media_source['SupportsTranscoding']:
+        elif self.media_source["SupportsTranscoding"]:
             log.debug("Using transcode url.")
             self.is_transcode = True
-            return self.client.config.data["auth.server"] + self.media_source.get("TranscodingUrl")
+            return self.client.config.data["auth.server"] + self.media_source.get(
+                "TranscodingUrl"
+            )
 
     def get_best_media_source(self, preferred=None):
         weight_selected = 0
@@ -180,7 +203,9 @@ class Video(object):
             if media_source.get("Id") == preferred:
                 preferred_selected = media_source
             # Prefer the highest bitrate file that will direct play.
-            weight = (media_source.get("SupportsDirectPlay") or 0) * 50000 + (media_source.get("Bitrate") or 0) / 1000
+            weight = (media_source.get("SupportsDirectPlay") or 0) * 50000 + (
+                media_source.get("Bitrate") or 0
+            ) / 1000
             if weight > weight_selected:
                 weight_selected = weight
                 selected = media_source
@@ -191,7 +216,9 @@ class Video(object):
                 log.warning("Preferred media source is unplayable.")
             return selected
 
-    def get_playback_url(self, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False):
+    def get_playback_url(
+        self, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False
+    ):
         """
         Returns the URL to use for the trancoded file.
         """
@@ -199,11 +226,17 @@ class Video(object):
 
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr
-        
-        log.debug("Bandwidth: local={0}, bitrate={1}, force={2}".format(self.parent.is_local, video_bitrate, force_transcode))
+
+        log.debug(
+            "Bandwidth: local={0}, bitrate={1}, force={2}".format(
+                self.parent.is_local, video_bitrate, force_transcode
+            )
+        )
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
-        self.playback_info = self.client.jellyfin.get_play_info(self.item_id, profile, self.aid, self.sid)
-        
+        self.playback_info = self.client.jellyfin.get_play_info(
+            self.item_id, profile, self.aid, self.sid
+        )
+
         self.media_source = self.get_best_media_source(self.srcid)
         self.map_streams()
         url = self._get_url_from_source(self.media_source)
@@ -218,7 +251,7 @@ class Video(object):
                     url = self._get_url_from_source(self.media_source)
                     if url is not None:
                         break
-        
+
         if settings.log_decisions:
             if len(self.playback_info["MediaSources"]) > 1:
                 log.debug("Full Playback Info: {0}".format(self.playback_info))
@@ -232,15 +265,15 @@ class Video(object):
 
     def set_played(self, watched=True):
         self.client.jellyfin.item_played(self.item_id, watched)
-    
+
     def set_streams(self, aid, sid):
         need_restart = False
-        
+
         if aid is not None and self.aid != aid:
             self.aid = aid
             if self.is_transcode:
                 need_restart = True
-        
+
         if sid is not None and self.sid != sid:
             self.sid = sid
             if sid in self.subtitle_enc:
@@ -248,10 +281,24 @@ class Video(object):
 
         return need_restart
 
+
 class Media(object):
-    def __init__(self, client, queue, seq=0, user_id=None, aid=None, sid=None, srcid=None, queue_override=True):
+    def __init__(
+        self,
+        client,
+        queue,
+        seq=0,
+        user_id=None,
+        aid=None,
+        sid=None,
+        srcid=None,
+        queue_override=True,
+    ):
         if queue_override:
-            self.queue = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in queue]
+            self.queue = [
+                {"PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num}
+                for id_num in queue
+            ]
         else:
             self.queue = queue
         self.client = client
@@ -266,31 +313,50 @@ class Media(object):
 
     def get_next(self):
         if self.has_next:
-            return Media(self.client, self.queue, self.seq+1, self.user_id, queue_override=False)
-    
+            return Media(
+                self.client,
+                self.queue,
+                self.seq + 1,
+                self.user_id,
+                queue_override=False,
+            )
+
     def get_prev(self):
         if self.has_prev:
-            return Media(self.client, self.queue, self.seq-1, self.user_id, queue_override=False)
+            return Media(
+                self.client,
+                self.queue,
+                self.seq - 1,
+                self.user_id,
+                queue_override=False,
+            )
 
     def get_from_key(self, item_id):
         for i, video in enumerate(self.queue):
             if video["Id"] == item_id:
-                return Media(self.client, self.queue, i, self.user_id, queue_override=False)
+                return Media(
+                    self.client, self.queue, i, self.user_id, queue_override=False
+                )
         return None
 
     def get_video(self, index):
         if index == 0 and self.video:
             return self.video
-        
+
         if index < len(self.queue):
             return Video(self.queue[index]["Id"], self)
 
         log.error("Media::get_video couldn't find video at index %s" % index)
-    
+
     def insert_items(self, items, append=False):
-        items = [{ "PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num } for id_num in items]
+        items = [
+            {"PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num}
+            for id_num in items
+        ]
         if append:
             self.queue.extend(items)
         else:
-            self.queue = self.queue[0:self.seq+1] + items + self.queue[self.seq+1:]
+            self.queue = (
+                self.queue[0 : self.seq + 1] + items + self.queue[self.seq + 1 :]
+            )
         self.has_next = self.seq < len(self.queue) - 1

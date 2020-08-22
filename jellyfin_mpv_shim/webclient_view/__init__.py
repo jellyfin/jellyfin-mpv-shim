@@ -29,8 +29,9 @@ from ..constants import USER_APP_NAME, APP_NAME
 from ..utils import get_resource
 from .. import conffile
 
-remember_layout = conffile.get(APP_NAME, 'layout.json')
+remember_layout = conffile.get(APP_NAME, "layout.json")
 loaded = Event()
+
 
 def do_not_cache(response):
     response.cache_control.no_store = True
@@ -39,21 +40,26 @@ def do_not_cache(response):
     if response.cache_control.public:
         response.cache_control.public = False
 
+
 # Based on https://stackoverflow.com/questions/15562446/
 class Server(threading.Thread):
     def __init__(self):
         self.srv = None
 
         threading.Thread.__init__(self)
-    
+
     def stop(self):
-        if (self.srv is not None):
+        if self.srv is not None:
             self.srv.shutdown()
         self.join()
 
     def run(self):
-        app = Flask(__name__, static_url_path='',
-            static_folder=get_resource("webclient_view", "webclient"))
+        app = Flask(
+            __name__,
+            static_url_path="",
+            static_folder=get_resource("webclient_view", "webclient"),
+        )
+
         @app.after_request
         def add_header(response):
             if request.path == "/index.html":
@@ -61,45 +67,47 @@ class Server(threading.Thread):
                 if settings.desktop_scale != 1.0:
                     f_scale = float(settings.desktop_scale)
                     response.make_sequence()
-                    response.set_data(response.get_data().replace(
-                        b"</body>", b"""<style>body { zoom: %.2f; }</style></body>""" % f_scale
-                    ))
+                    response.set_data(
+                        response.get_data().replace(
+                            b"</body>",
+                            b"""<style>body { zoom: %.2f; }</style></body>""" % f_scale,
+                        )
+                    )
                 return response
             if not response.cache_control.no_store:
                 response.cache_control.max_age = 2592000
             return response
 
-        @app.route('/mpv_shim_password', methods=['POST'])
+        @app.route("/mpv_shim_password", methods=["POST"])
         def mpv_shim_password():
-            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
             login_req = request.json
-            success = clientManager.login(login_req["server"], login_req["username"], login_req["password"], True)
+            success = clientManager.login(
+                login_req["server"], login_req["username"], login_req["password"], True
+            )
             if success:
                 loaded.set()
-            resp = jsonify({
-                "success": success
-            })
+            resp = jsonify({"success": success})
             resp.status_code = 200
             do_not_cache(resp)
             return resp
 
-        @app.route('/mpv_shim_id', methods=['POST'])
+        @app.route("/mpv_shim_id", methods=["POST"])
         def mpv_shim_id():
-            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
             loaded.wait()
-            resp = jsonify({
-                "appName": USER_APP_NAME,
-                "deviceName": settings.player_name
-            })
+            resp = jsonify(
+                {"appName": USER_APP_NAME, "deviceName": settings.player_name}
+            )
             resp.status_code = 200
             do_not_cache(resp)
             return resp
 
-        @app.route('/mpv_shim_syncplay_join', methods=['POST'])
+        @app.route("/mpv_shim_syncplay_join", methods=["POST"])
         def mpv_shim_join():
-            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
             req = request.json
             client = list(clientManager.clients.values())[0]
@@ -110,22 +118,21 @@ class Server(threading.Thread):
             do_not_cache(resp)
             return resp
 
-        @app.route('/destroy_session', methods=['POST'])
+        @app.route("/destroy_session", methods=["POST"])
         def mpv_shim_destroy_session():
-            if request.headers['Content-Type'] != 'application/json; charset=UTF-8':
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
             clientManager.remove_all_clients()
-            resp = jsonify({
-                "success": True
-            })
+            resp = jsonify({"success": True})
             resp.status_code = 200
             do_not_cache(resp)
             return resp
 
-        self.srv = make_server('127.0.0.1', 18096, app, threaded=True)
+        self.srv = make_server("127.0.0.1", 18096, app, threaded=True)
         self.ctx = app.app_context()
         self.ctx.push()
         self.srv.serve_forever()
+
 
 # This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
 # Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
@@ -154,23 +161,33 @@ class WebviewClient(object):
         if os.path.exists(remember_layout):
             with open(remember_layout) as fh:
                 layout_options = json.load(fh)
-            if settings.desktop_keep_pos and layout_options.get("x") and layout_options.get("y"):
+            if (
+                settings.desktop_keep_pos
+                and layout_options.get("x")
+                and layout_options.get("y")
+            ):
                 extra_options["x"] = layout_options["x"]
                 extra_options["y"] = layout_options["y"]
-            if settings.desktop_keep_size and layout_options.get("width") and layout_options.get("height"):
+            if (
+                settings.desktop_keep_size
+                and layout_options.get("width")
+                and layout_options.get("height")
+            ):
                 extra_options["width"] = layout_options["width"]
                 extra_options["height"] = layout_options["height"]
         else:
             # Set a reasonable window size
-            extra_options.update({
-                "width": 1280,
-                "height": 720
-            })
-        if not self.cef and sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+            extra_options.update({"width": 1280, "height": 720})
+        if (
+            not self.cef
+            and sys.platform.startswith("win32")
+            or sys.platform.startswith("cygwin")
+        ):
             # I wasted half a day here. Turns out that pywebview does something that
             # breaks Jellyfin on Windows in both EdgeHTML and CEF. This kills that.
             try:
                 from webview.platforms import winforms
+
                 winforms.BrowserView.EdgeHTML.on_navigation_completed = lambda: None
             except Exception:
                 pass
@@ -179,34 +196,44 @@ class WebviewClient(object):
         if self.cef:
             try:
                 from webview.platforms import cef
-                cef.settings.update({
-                    'cache_path': conffile.get(APP_NAME, 'cache')
-                })
+
+                cef.settings.update({"cache_path": conffile.get(APP_NAME, "cache")})
                 cef.Browser.initialize = lambda self: None
-            except Exception: pass
+            except Exception:
+                pass
         try:
             from webview.platforms import cocoa
+
             def override_cocoa(self, webview, nav):
                 # Add the webview to the window if it's not yet the contentView
-                i = cocoa.BrowserView.get_instance('webkit', webview)
+                i = cocoa.BrowserView.get_instance("webkit", webview)
 
                 if i:
                     if not webview.window():
                         i.window.setContentView_(webview)
                         i.window.makeFirstResponder_(webview)
-            cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = override_cocoa
-        except Exception: pass
+
+            cocoa.BrowserView.BrowserDelegate.webView_didFinishNavigation_ = (
+                override_cocoa
+            )
+        except Exception:
+            pass
         try:
             from webview.platforms import gtk
+
             def override_gtk(self, webview, status):
                 if not webview.props.opacity:
                     gtk.glib.idle_add(webview.set_opacity, 1.0)
+
             gtk.BrowserView.on_load_finish = override_gtk
-        except Exception: pass
+        except Exception:
+            pass
         try:
             from webview.platforms import qt
+
             qt.BrowserView.on_load_finished = lambda self: None
-        except Exception: pass
+        except Exception:
+            pass
 
         url = "http://127.0.0.1:18096/index.html"
         # Wait until the server is ready.
@@ -214,31 +241,37 @@ class WebviewClient(object):
             try:
                 urllib.request.urlopen(url)
                 break
-            except Exception: pass
+            except Exception:
+                pass
             sleep(0.1)
 
         # Webview needs to be run in the MainThread.
-        window = webview.create_window(url=url, title="Jellyfin MPV Desktop",
-                    fullscreen=settings.desktop_fullscreen, **extra_options)
+        window = webview.create_window(
+            url=url,
+            title="Jellyfin MPV Desktop",
+            fullscreen=settings.desktop_fullscreen,
+            **extra_options
+        )
         if window is not None:
             self.webview = window
+
             def handle_close():
                 x, y = window.x, window.y
                 extra_options = {
                     "x": x,
                     "y": y,
                     "width": window.width,
-                    "height": window.height
+                    "height": window.height,
                 }
                 with open(remember_layout, "w") as fh:
                     json.dump(extra_options, fh)
+
             window.closing += handle_close
             if self.cef:
-                webview.start(gui='cef')
+                webview.start(gui="cef")
             else:
                 webview.start()
         self.server.stop()
 
     def stop(self):
         self.server.stop()
-

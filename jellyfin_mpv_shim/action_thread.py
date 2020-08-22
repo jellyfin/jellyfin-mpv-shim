@@ -3,13 +3,14 @@ import threading
 
 from .player import playerManager
 
+
 class ActionThread(threading.Thread):
     def __init__(self):
-        self.trigger        = threading.Event()
-        self.halt           = False
+        self.trigger = threading.Event()
+        self.halt = False
 
         threading.Thread.__init__(self)
-    
+
     def stop(self):
         self.halt = True
         self.join()
@@ -25,5 +26,5 @@ class ActionThread(threading.Thread):
                 force_next = True
                 self.trigger.clear()
 
-actionThread = ActionThread()
 
+actionThread = ActionThread()

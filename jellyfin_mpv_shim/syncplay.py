@@ -10,13 +10,13 @@ from time import sleep
 
 from .conf import settings
 
-log = logging.getLogger('syncplay')
+log = logging.getLogger("syncplay")
 seconds_in_ticks = 10000000
 info_commands = {
     "GroupDoesNotExist": _("The specified SyncPlay group does not exist."),
     "CreateGroupDenied": _("Creating SyncPlay groups is not allowed."),
     "JoinGroupDenied": _("SyncPlay group access was denied."),
-    "LibraryAccessDenied": _("Access to the SyncPlay library was denied.")
+    "LibraryAccessDenied": _("Access to the SyncPlay library was denied."),
 }
 
 
@@ -35,7 +35,7 @@ class TimeoutThread(threading.Thread):
         self.daemon = True
 
     def run(self):
-        if not self.halt.wait(timeout=self.delay/1000):
+        if not self.halt.wait(timeout=self.delay / 1000):
             self.action(*self.args)
 
     def stop(self):
@@ -87,7 +87,11 @@ class SyncPlayManager:
 
     # On playback time update (call from timeline push)
     def sync_playback_time(self):
-        if not self.last_command or self.last_command["Command"] != "Play" or self.is_buffering():
+        if (
+            not self.last_command
+            or self.last_command["Command"] != "Play"
+            or self.is_buffering()
+        ):
             log.debug("Not syncing due to no playback.")
             return
 
@@ -103,9 +107,11 @@ class SyncPlayManager:
         play_at_time = self.last_command["When"]
 
         current_position_ticks = int(self.player.playback_time * seconds_in_ticks)
-        server_position_ticks = (self.last_command["PositionTicks"]
-                                 + ((current_time - play_at_time) + self.time_offset)
-                                 .total_seconds() * seconds_in_ticks)
+        server_position_ticks = (
+            self.last_command["PositionTicks"]
+            + ((current_time - play_at_time) + self.time_offset).total_seconds()
+            * seconds_in_ticks
+        )
 
         diff_ms = (server_position_ticks - current_position_ticks) / 10000
         self.playback_diff_ms = diff_ms
@@ -113,7 +119,12 @@ class SyncPlayManager:
         if self.sync_enabled:
             abs_diff_ms = abs(diff_ms)
 
-            if self.enable_speed_sync and settings.sync_max_delay_speed < abs_diff_ms < settings.sync_method_thresh:
+            if (
+                self.enable_speed_sync
+                and settings.sync_max_delay_speed
+                < abs_diff_ms
+                < settings.sync_method_thresh
+            ):
                 if self.attempts > settings.sync_speed_attempts:
                     self.enable_speed_sync = False
                     return
@@ -130,6 +141,7 @@ class SyncPlayManager:
                 def callback():
                     self.player.speed = 1
                     self.sync_enabled = True
+
                 set_timeout(settings.sync_speed_time, callback)
             elif abs_diff_ms > settings.sync_max_delay_skip:
                 if self.attempts > settings.sync_attempts:
@@ -147,10 +159,13 @@ class SyncPlayManager:
 
                 def callback():
                     self.sync_enabled = True
+
                 set_timeout(settings.sync_method_thresh / 2, callback)
             else:
                 if self.attempts > 0:
-                    log.info("Playback synced after {0} attempts.".format(self.attempts))
+                    log.info(
+                        "Playback synced after {0} attempts.".format(self.attempts)
+                    )
                 self.attempts = 0
 
     # On timesync update
@@ -179,6 +194,7 @@ class SyncPlayManager:
         def ready_callback():
             self.process_command(self.queued_command)
             self.queued_command = None
+
         self.read_callback = ready_callback
 
         self.ready = False
@@ -231,7 +247,9 @@ class SyncPlayManager:
     def is_buffering(self):
         if self.last_playback_waiting is None:
             return False
-        return (datetime.utcnow() - self.last_playback_waiting).total_seconds() * 1000 > self.min_buffer_thresh_ms
+        return (
+            datetime.utcnow() - self.last_playback_waiting
+        ).total_seconds() * 1000 > self.min_buffer_thresh_ms
 
     def is_enabled(self):
         return self.enabled_at is not None
@@ -255,18 +273,26 @@ class SyncPlayManager:
         elif command_type == "GroupWait":
             self.player_message(_("{0} is buffering.").format(command["Data"]))
         else:
-            log.error("Unknown SyncPlay command {0} payload {1}.".format(command_type, command))
+            log.error(
+                "Unknown SyncPlay command {0} payload {1}.".format(
+                    command_type, command
+                )
+            )
 
     def process_command(self, command):
         if command is None:
             return
 
         if not self.is_enabled():
-            log.debug("Ignoring command {0} due to SyncPlay being disabled.".format(command))
+            log.debug(
+                "Ignoring command {0} due to SyncPlay being disabled.".format(command)
+            )
             return
 
         if not self.ready:
-            log.debug("Queued command {0} due to SyncPlay not being ready.".format(command))
+            log.debug(
+                "Queued command {0} due to SyncPlay not being ready.".format(command)
+            )
             self.queued_command = command
             return
 
@@ -277,15 +303,23 @@ class SyncPlayManager:
             log.debug("Ignoring old command {0}.".format(command))
             return
 
-        if (self.last_command and
-                self.last_command["When"] == command["When"] and
-                self.last_command["PositionTicks"] == command["PositionTicks"] and
-                self.last_command["Command"] == command["Command"]):
+        if (
+            self.last_command
+            and self.last_command["When"] == command["When"]
+            and self.last_command["PositionTicks"] == command["PositionTicks"]
+            and self.last_command["Command"] == command["Command"]
+        ):
             log.debug("Ignoring duplicate command {0}.".format(command))
 
         self.last_command = command
-        command_cmd, when, position = command["Command"], command["When"], command["PositionTicks"]
-        log.info("Syncplay will {0} at {1} position {2}".format(command_cmd, when, position))
+        command_cmd, when, position = (
+            command["Command"],
+            command["When"],
+            command["PositionTicks"],
+        )
+        log.info(
+            "Syncplay will {0} at {1} position {2}".format(command_cmd, when, position)
+        )
 
         if command_cmd == "Play":
             self.schedule_play(when, position)
@@ -297,27 +331,40 @@ class SyncPlayManager:
             log.error("Command {0} is unknown.".format(command_cmd))
 
     def prepare_session(self, group_id, session_data):
-        play_command = session_data.get('PlayCommand')
+        play_command = session_data.get("PlayCommand")
         if not self.playerManager._video:
             play_command = "PlayNow"
 
         seq = session_data.get("StartIndex")
         if seq is None:
             seq = 0
-        media = Media(self.client, session_data.get("ItemIds"), seq=seq, user_id=session_data.get("ControllingUserId"),
-                      aid=session_data.get("AudioStreamIndex"), sid=session_data.get("SubtitleStreamIndex"),
-                      srcid=session_data.get("MediaSourceId"))
+        media = Media(
+            self.client,
+            session_data.get("ItemIds"),
+            seq=seq,
+            user_id=session_data.get("ControllingUserId"),
+            aid=session_data.get("AudioStreamIndex"),
+            sid=session_data.get("SubtitleStreamIndex"),
+            srcid=session_data.get("MediaSourceId"),
+        )
 
-        if (self.playerManager._video and
-                self.playerManager._video.item_id == session_data["ItemIds"][0] and play_command == "PlayNow"):
+        if (
+            self.playerManager._video
+            and self.playerManager._video.item_id == session_data["ItemIds"][0]
+            and play_command == "PlayNow"
+        ):
             # We assume the video is already available.
             self.playerManager._video.parent = media
             log.info("Syncplay Session Prepare: {0} {1}".format(group_id, session_data))
-            self.local_seek((session_data.get("PositionTicks", 0) or 0) / seconds_in_ticks)
+            self.local_seek(
+                (session_data.get("PositionTicks", 0) or 0) / seconds_in_ticks
+            )
             self.current_group = group_id
         elif play_command == "PlayNow":
-            log.info("Syncplay Session Recreate: {0} {1}".format(group_id, session_data))
-            offset = session_data.get('StartPositionTicks')
+            log.info(
+                "Syncplay Session Recreate: {0} {1}".format(group_id, session_data)
+            )
+            offset = session_data.get("StartPositionTicks")
             if offset is not None:
                 offset /= 10000000
 
@@ -331,10 +378,14 @@ class SyncPlayManager:
                 self.join_group(group_id)
                 self.playerManager.timeline_handle()
         elif play_command == "PlayLast":
-            self.playerManager._video.parent.insert_items(session_data.get("ItemIds"), append=True)
+            self.playerManager._video.parent.insert_items(
+                session_data.get("ItemIds"), append=True
+            )
             self.playerManager.upd_player_hide()
         elif play_command == "PlayNext":
-            self.playerManager._video.parent.insert_items(session_data.get("ItemIds"), append=False)
+            self.playerManager._video.parent.insert_items(
+                session_data.get("ItemIds"), append=False
+            )
             self.playerManager.upd_player_hide()
 
     def player_message(self, message):
@@ -362,18 +413,28 @@ class SyncPlayManager:
 
                 def sync_timeout():
                     self.sync_enabled = True
-                self.sync_timeout = set_timeout(settings.sync_method_thresh / 2, sync_timeout)
+
+                self.sync_timeout = set_timeout(
+                    settings.sync_method_thresh / 2, sync_timeout
+                )
+
             self.scheduled_command = set_timeout(play_timeout, scheduled)
         else:
             log.debug("SyncPlay Scheduled Play: Playing Now")
             # Group playback already started
-            server_position_secs = position / seconds_in_ticks + (current_time - local_play_time).total_seconds()
+            server_position_secs = (
+                position / seconds_in_ticks
+                + (current_time - local_play_time).total_seconds()
+            )
             self.local_play()
             self.local_seek(server_position_secs)
 
             def sync_timeout():
                 self.sync_enabled = True
-            self.sync_timeout = set_timeout(settings.sync_method_thresh / 2, sync_timeout)
+
+            self.sync_timeout = set_timeout(
+                settings.sync_method_thresh / 2, sync_timeout
+            )
 
     def schedule_pause(self, when, position, seek_only=False):
         self.clear_scheduled_command()
