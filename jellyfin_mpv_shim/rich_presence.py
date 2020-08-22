@@ -6,7 +6,13 @@ RPC = Presence(client_id)
 RPC.connect()
 
 
-def send_presence(title, subtitle, playback_time=None, duration=None, playing=False):
+def send_presence(
+    title: str,
+    subtitle: str,
+    playback_time: float = None,
+    duration: float = None,
+    playing: bool = False,
+):
     small_image = "play-dark3" if playing else None
     start = None
     end = None

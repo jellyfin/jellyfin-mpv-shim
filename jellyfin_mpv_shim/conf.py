@@ -105,7 +105,7 @@ class Settings(BaseModel):
     lang_filter_sub: bool = False
     lang_filter_audio: bool = False
 
-    def __get_file(self, path, mode="r", create=True):
+    def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
 
         if not os.path.exists(path):
@@ -126,7 +126,7 @@ class Settings(BaseModel):
         # This should work now
         return open(path, mode), created
 
-    def load(self, path, create=True):
+    def load(self, path: str, create: bool = True):
         global config_path  # Don't want in model.
         fh, created = self.__get_file(path, "r", create)
         config_path = path
@@ -165,6 +165,10 @@ class Settings(BaseModel):
         return True
 
     def save(self):
+        if config_path is None:
+            raise FileNotFoundError("Config path not set.")
+
+        # noinspection PyTypeChecker
         fh, created = self.__get_file(config_path, "w", True)
 
         try:

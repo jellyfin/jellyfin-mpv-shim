@@ -19,6 +19,11 @@ from ..utils import get_text
 from ..i18n import _
 from . import helpers
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from jellyfin_apiclient_python import client as client_type
+
 # This makes me rather uncomfortable, but there's no easy way around this other than
 # importing display_mirror in helpers. Lambda needed because the 2.3 version of the JS
 # api adds an argument even when not used.
@@ -69,7 +74,7 @@ class DisplayMirror(object):
         else:
             self.webview.destroy()
 
-    def display_content(self, client, arguments):
+    def display_content(self, client: "client_type", arguments):
         item = client.jellyfin.get_item(arguments["Arguments"]["ItemId"])
         html = get_html(server_address=client.config.data["auth.server"], item=item)
         self.display_window.load_html(html)
@@ -82,7 +87,7 @@ mirror = DisplayMirror()
 
 
 # FIXME: Add some support for some sort of theming beyond Jellyfin's css, to select user defined templates
-def get_html(server_address=None, item=None):
+def get_html(server_address: str = None, item=None):
     if item:
         jinja_vars = {
             "backdrop_src": helpers.getBackdropUrl(item, server_address) or "",

@@ -8,14 +8,14 @@ _confdir = None
 username = getpass.getuser()
 
 
-def posix(app):
+def posix(app: str):
     if os.environ.get("XDG_CONFIG_HOME"):
         return os.path.join(os.environ["XDG_CONFIG_HOME"], app)
     else:
         return os.path.join(os.path.expanduser("~"), ".config", app)
 
 
-def win32(app):
+def win32(app: str):
     if os.environ.get("APPDATA"):
         return os.path.join(os.environ["APPDATA"], app)
     else:
@@ -44,7 +44,7 @@ for i, arg in enumerate(sys.argv):
         custom_config = sys.argv[i + 1]
 
 
-def confdir(app):
+def confdir(app: str):
     if custom_config is not None:
         return custom_config
     elif _confdir is not None:
@@ -53,7 +53,7 @@ def confdir(app):
         return ""
 
 
-def get(app, conf_file, create=False):
+def get(app: str, conf_file: str, create: bool = False):
     conf_folder = confdir(app)
     if not os.path.isdir(conf_folder):
         os.makedirs(conf_folder)

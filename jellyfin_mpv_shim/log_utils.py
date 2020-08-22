@@ -58,7 +58,7 @@ def configure_log(destination):
     root_logger.addHandler(handler)
 
 
-def configure_log_file(destination):
+def configure_log_file(destination: str):
     handler = logging.FileHandler(destination, mode="w")
     # Never allow logging API keys to a file.
     handler.setFormatter(CustomFormatter(True))

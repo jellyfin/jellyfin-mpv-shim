@@ -13,6 +13,11 @@ from functools import wraps
 from .constants import USER_APP_NAME
 from .i18n import _
 
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
+
 log = logging.getLogger("utils")
 
 seq_num = 0
@@ -33,7 +38,7 @@ class Timer(object):
         return (datetime.now() - self.started).total_seconds()
 
 
-def synchronous(tlockname):
+def synchronous(tlockname: str):
     """
     A decorator to place an instance based lock around a method.
     From: http://code.activestate.com/recipes/577105-synchronization-decorator-for-class-methods/
@@ -54,7 +59,7 @@ def synchronous(tlockname):
     return _synched
 
 
-def is_local_domain(client):
+def is_local_domain(client: "JellyfinClient_type"):
     # With Jellyfin, it is significantly more likely the user will be using
     # an address that is a hairpin NAT. We want to detect this and avoid
     # imposing limits in this case.
@@ -83,16 +88,19 @@ def is_local_domain(client):
     return True
 
 
-def mpv_color_to_plex(color):
+def mpv_color_to_plex(color: str):
     return "#" + color.lower()[3:]
 
 
-def plex_color_to_mpv(color):
+def plex_color_to_mpv(color: str):
     return "#FF" + color.upper()[1:]
 
 
 def get_profile(
-    is_remote=False, video_bitrate=None, force_transcode=False, is_tv=False
+    is_remote: bool = False,
+    video_bitrate: Optional[int] = None,
+    force_transcode: bool = False,
+    is_tv: bool = False,
 ):
     if video_bitrate is None:
         if is_remote:
@@ -195,7 +203,7 @@ def get_profile(
     return profile
 
 
-def get_sub_display_title(stream):
+def get_sub_display_title(stream: dict):
     return "{0}{1} ({2})".format(
         stream.get("Language", _("Unkn")).capitalize(),
         _(" Forced") if stream.get("IsForced") else "",

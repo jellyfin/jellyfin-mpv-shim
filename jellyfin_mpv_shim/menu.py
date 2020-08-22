@@ -50,9 +50,14 @@ lang_filter = set(settings.lang_filter.split(","))
 if "und" in lang_filter:
     lang_filter.add(None)
 
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from .player import playerManager as playerManager_type
+
 
 class OSDMenu(object):
-    def __init__(self, player_manager, player):
+    def __init__(self, player_manager: "playerManager_type", player):
         self.playerManager = player_manager
 
         self.is_menu_shown = False
@@ -105,7 +110,7 @@ class OSDMenu(object):
 
         self.playerManager.show_text(menu_text, 2 ** 30, 1)
 
-    def mouse_select(self, idx):
+    def mouse_select(self, idx: int):
         if idx < 0 or idx > len(self.menu_list):
             return
         if idx == 0:
@@ -209,7 +214,7 @@ class OSDMenu(object):
         self.playerManager.screenshot()
         self.hide_menu()
 
-    def put_menu(self, title, entries=None, selected=0):
+    def put_menu(self, title: str, entries: Optional[list] = None, selected: int = 0):
         if entries is None:
             entries = []
 
@@ -218,7 +223,7 @@ class OSDMenu(object):
         self.menu_list = entries
         self.menu_selection = selected
 
-    def menu_action(self, action):
+    def menu_action(self, action: str):
         if not self.is_menu_shown and action in ("home", "ok"):
             self.show_menu()
         else:
@@ -395,7 +400,7 @@ class OSDMenu(object):
         settings.save()
         self.menu_list[self.menu_selection] = self.get_settings_toggle(name, key)
 
-    def get_settings_toggle(self, name, setting):
+    def get_settings_toggle(self, name: str, setting: str):
         return (
             "{0}: {1}".format(name, getattr(settings, setting)),
             self.settings_toggle_bool,
@@ -423,7 +428,7 @@ class OSDMenu(object):
                 self.menu_selection = i
 
     @staticmethod
-    def get_subtitle_color(color):
+    def get_subtitle_color(color: str):
         if color in HEX_TO_COLOR:
             return HEX_TO_COLOR[color]
         else:

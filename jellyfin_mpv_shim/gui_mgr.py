@@ -20,15 +20,15 @@ log = logging.getLogger("gui_mgr")
 # This is for opening the config directory.
 
 
-def _show_file_darwin(path):
+def _show_file_darwin(path: str):
     subprocess.Popen(["open", path])
 
 
-def _show_file_linux(path):
+def _show_file_linux(path: str):
     subprocess.Popen(["xdg-open", path])
 
 
-def _show_file_win32(path):
+def _show_file_win32(path: str):
     subprocess.Popen(["explorer", path])
 
 
@@ -105,7 +105,7 @@ class LoggerWindow(threading.Thread):
                 self._die()
                 break
 
-    def handle(self, action, params=None):
+    def handle(self, action: str, params=None):
         self.queue.put((action, params))
 
     def stop(self):
@@ -119,7 +119,7 @@ class LoggerWindow(threading.Thread):
 
 
 class LoggerWindowProcess(Process):
-    def __init__(self, queue, r_queue):
+    def __init__(self, queue: Queue, r_queue: Queue):
         self.queue = queue
         self.r_queue = r_queue
         self.tk = None
@@ -200,7 +200,7 @@ class PreferencesWindow(threading.Thread):
                 clientManager.remove_client(param)
                 self.handle("upd", clientManager.credentials)
 
-    def handle(self, action, params=None):
+    def handle(self, action: str, params=None):
         self.queue.put((action, params))
 
     def stop(self):
@@ -217,7 +217,7 @@ class PreferencesWindow(threading.Thread):
 
 
 class PreferencesWindowProcess(Process):
-    def __init__(self, queue, r_queue):
+    def __init__(self, queue: Queue, r_queue: Queue):
         self.queue = queue
         self.r_queue = r_queue
         self.servers = None
@@ -430,7 +430,7 @@ class UserInterface(threading.Thread):
 
 
 class STrayProcess(Process):
-    def __init__(self, r_queue):
+    def __init__(self, r_queue: Queue):
         self.r_queue = r_queue
         self.icon_stop = None
         Process.__init__(self)
@@ -464,7 +464,7 @@ class STrayProcess(Process):
         icon.icon = Image.open(get_resource("systray.png"))
         self.icon_stop = icon.stop
 
-        def setup(icon):
+        def setup(icon: Icon):
             icon.visible = True
             self.r_queue.put(("ready", None))
 

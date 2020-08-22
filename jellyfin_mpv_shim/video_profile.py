@@ -8,6 +8,12 @@ import os.path
 import shutil
 import json
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .player import PlayerManager as PlayerManager_type
+    from .menu import OSDMenu as OSDMenu_type
+
 profile_name_translation = {
     "Generic (FSRCNNX)": _("Generic (FSRCNNX)"),
     "Generic High (FSRCNNX x16)": _("Generic High (FSRCNNX x16)"),
@@ -33,7 +39,9 @@ class MPVSettingError(Exception):
 
 
 class VideoProfileManager:
-    def __init__(self, menu, player_manager, player):
+    def __init__(
+        self, menu: "OSDMenu_type", player_manager: "PlayerManager_type", player
+    ):
         self.menu = menu
         self.playerManager = player_manager
         self.used_settings = set()
@@ -81,7 +89,9 @@ class VideoProfileManager:
         if settings.shader_pack_profile is not None:
             self.load_profile(settings.shader_pack_profile, reset=False)
 
-    def process_setting_group(self, group_name, settings_to_apply, shaders_to_apply):
+    def process_setting_group(
+        self, group_name: str, settings_to_apply: list, shaders_to_apply: list
+    ):
         group = self.groups[group_name]
         for key, value in group.get("settings", []):
             if key not in self.defaults:
@@ -97,7 +107,7 @@ class VideoProfileManager:
         for shader in group.get("shaders", []):
             shaders_to_apply.append(os.path.join(self.shader_pack, "shaders", shader))
 
-    def load_profile(self, profile_name, reset=True):
+    def load_profile(self, profile_name: str, reset: bool = True):
         if reset:
             self.unload_profile()
         log.info("Loading shader profile {0}.".format(profile_name))

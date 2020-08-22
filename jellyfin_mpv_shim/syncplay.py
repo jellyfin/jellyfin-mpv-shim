@@ -8,6 +8,10 @@ from .i18n import _
 # This is based on: https://github.com/jellyfin/jellyfin-web/blob/master/src/components/syncPlay/syncPlayManager.js
 
 from .conf import settings
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from .player import PlayerManager as PlayerManager_type
 
 log = logging.getLogger("syncplay")
 seconds_in_ticks = 10000000
@@ -19,13 +23,13 @@ info_commands = {
 }
 
 
-def _parse_precise_time(time):
+def _parse_precise_time(time: str):
     # We have to remove the Z and the least significant digit.
     return datetime.strptime(time[:-2], "%Y-%m-%dT%H:%M:%S.%f")
 
 
 class TimeoutThread(threading.Thread):
-    def __init__(self, action, delay, args):
+    def __init__(self, action, delay: float, args):
         self.action = action
         self.delay = delay
         self.args = args
@@ -50,7 +54,7 @@ def set_timeout(ms: float, callback, *args):
 
 
 class SyncPlayManager:
-    def __init__(self, manager):
+    def __init__(self, manager: "PlayerManager_type"):
         self.playerManager = manager
         self.menu = manager.menu
 
@@ -167,7 +171,7 @@ class SyncPlayManager:
                 self.attempts = 0
 
     # On timesync update
-    def on_timesync_update(self, time_offset, ping):
+    def on_timesync_update(self, time_offset: timedelta, ping: timedelta):
         self.time_offset = time_offset
         self.round_trip_duration = ping * 2
 
@@ -184,7 +188,7 @@ class SyncPlayManager:
             except Exception:
                 log.error("Syncplay ping reporting failed.", exc_info=True)
 
-    def enable_sync_play(self, start_time, from_server):
+    def enable_sync_play(self, start_time: datetime, from_server: bool):
         self.playback_rate = self.playerManager.get_speed()
         self.enabled_at = start_time
         self.enable_speed_sync = True
@@ -212,7 +216,7 @@ class SyncPlayManager:
         if from_server:
             self.player_message(_("SyncPlay enabled."))
 
-    def disable_sync_play(self, from_server):
+    def disable_sync_play(self, from_server: bool):
         self.playerManager.set_speed(self.playback_rate)
 
         self.enabled_at = None
@@ -252,7 +256,7 @@ class SyncPlayManager:
     def is_enabled(self):
         return self.enabled_at is not None
 
-    def process_group_update(self, command):
+    def process_group_update(self, command: dict):
         command_type = command["Type"]
         log.debug("Syncplay group update: {0}".format(command))
         if command_type in info_commands:
@@ -277,7 +281,7 @@ class SyncPlayManager:
                 )
             )
 
-    def process_command(self, command):
+    def process_command(self, command: Optional[dict]):
         if command is None:
             return
 
@@ -328,7 +332,7 @@ class SyncPlayManager:
         else:
             log.error("Command {0} is unknown.".format(command_cmd))
 
-    def prepare_session(self, group_id, session_data):
+    def prepare_session(self, group_id: str, session_data: dict):
         play_command = session_data.get("PlayCommand")
         if not self.playerManager.has_video():
             play_command = "PlayNow"
@@ -386,17 +390,17 @@ class SyncPlayManager:
             )
             self.playerManager.upd_player_hide()
 
-    def player_message(self, message):
+    def player_message(self, message: str):
         # Messages overwrite menu, so they are ignored.
         if not self.menu.is_menu_shown:
             if settings.sync_osd_message:
-                self.playerManager.show_text(message)
+                self.playerManager.show_text(message, 2000)
             else:
                 log.info("SyncPlay Message: {0}".format(message))
         else:
             log.info("Ignored SyncPlay Message (menu): {0}".format(message))
 
-    def schedule_play(self, when, position):
+    def schedule_play(self, when: datetime, position: int):
         self.clear_scheduled_command()
         current_time = datetime.utcnow()
         local_play_time = self.timesync.server_date_to_local(when)
@@ -434,7 +438,7 @@ class SyncPlayManager:
                 settings.sync_method_thresh / 2, sync_timeout
             )
 
-    def schedule_pause(self, when, position, seek_only=False):
+    def schedule_pause(self, when: datetime, position: int, seek_only: bool = False):
         self.clear_scheduled_command()
         current_time = datetime.utcnow()
         local_pause_time = self.timesync.server_date_to_local(when)
@@ -452,7 +456,7 @@ class SyncPlayManager:
             log.debug("SyncPlay Scheduled Pause/Seek: Pausing Now")
             callback()
 
-    def schedule_seek(self, when, position):
+    def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
         self.schedule_pause(when, position)
 
@@ -485,7 +489,7 @@ class SyncPlayManager:
     def local_seek(self, offset: float):
         self.playerManager.seek(offset, absolute=True, force=True)
 
-    def join_group(self, group_id):
+    def join_group(self, group_id: str):
         self.client.jellyfin.join_sync_play(group_id)
 
     def menu_join_group(self):

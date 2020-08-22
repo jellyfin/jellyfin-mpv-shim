@@ -7,6 +7,11 @@ from .i18n import _
 import time
 import logging
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .player import PlayerManager as PlayerManager_type
+
 Part = namedtuple("Part", ["id", "audio", "subtitle"])
 Audio = namedtuple("Audio", ["id", "language_code", "name", "display_name"])
 Subtitle = namedtuple(
@@ -27,7 +32,7 @@ def render_message(message, show_text):
     show_text(text, 2 ** 30, 1)
 
 
-def process_series(mode, player, m_raid=None, m_rsid=None):
+def process_series(mode, player: "PlayerManager_type", m_raid=None, m_rsid=None):
     messages.clear()
     media = player.get_video()
     client = media.client
@@ -230,7 +235,7 @@ def get_dubbed(part):
     return None, None
 
 
-def dialogue_weight(text):
+def dialogue_weight(text: str):
     if not text:
         return 900
     lower_text = text.lower()
@@ -255,7 +260,7 @@ def dialogue_weight(text):
     return weight
 
 
-def sign_weight(text):
+def sign_weight(text: str):
     if not text:
         return 0
     lower_text = text.lower()

@@ -11,9 +11,21 @@ from .i18n import _
 
 log = logging.getLogger("media")
 
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
+
 
 class Video(object):
-    def __init__(self, item_id, parent, aid=None, sid=None, srcid=None):
+    def __init__(
+        self,
+        item_id: str,
+        parent: "Media",
+        aid: Optional[int] = None,
+        sid: Optional[int] = None,
+        srcid: Optional[str] = None,
+    ):
         self.item_id = item_id
         self.parent = parent
         self.client = parent.client
@@ -114,7 +126,7 @@ class Video(object):
             _(" (Transcode)") if self.is_transcode else ""
         )
 
-    def set_trs_override(self, video_bitrate, force_transcode):
+    def set_trs_override(self, video_bitrate: Optional[int], force_transcode: bool):
         if force_transcode:
             self.trs_ovr = (video_bitrate, force_transcode)
         else:
@@ -194,7 +206,7 @@ class Video(object):
                 "TranscodingUrl"
             )
 
-    def get_best_media_source(self, preferred=None):
+    def get_best_media_source(self, preferred: Optional[str] = None):
         weight_selected = 0
         preferred_selected = None
         selected = None
@@ -215,7 +227,11 @@ class Video(object):
                 log.warning("Preferred media source is unplayable.")
             return selected
 
-    def get_playback_url(self, video_bitrate=None, force_transcode=False):
+    def get_playback_url(
+        self,
+        video_bitrate: Optional[int] = None,
+        force_transcode: Optional[int] = False,
+    ):
         """
         Returns the URL to use for the transcoded file.
         """
@@ -260,10 +276,10 @@ class Video(object):
         if ticks:
             return ticks / 10000000
 
-    def set_played(self, watched=True):
+    def set_played(self, watched: bool = True):
         self.client.jellyfin.item_played(self.item_id, watched)
 
-    def set_streams(self, aid, sid):
+    def set_streams(self, aid: Optional[int], sid: Optional[int]):
         need_restart = False
 
         if aid is not None and self.aid != aid:
@@ -282,14 +298,14 @@ class Video(object):
 class Media(object):
     def __init__(
         self,
-        client,
-        queue,
-        seq=0,
-        user_id=None,
-        aid=None,
-        sid=None,
-        srcid=None,
-        queue_override=True,
+        client: "JellyfinClient_type",
+        queue: list,
+        seq: int = 0,
+        user_id: Optional[str] = None,
+        aid: Optional[int] = None,
+        sid: Optional[int] = None,
+        srcid: Optional[str] = None,
+        queue_override: bool = True,
     ):
         if queue_override:
             self.queue = [
@@ -328,7 +344,7 @@ class Media(object):
                 queue_override=False,
             )
 
-    def get_from_key(self, item_id):
+    def get_from_key(self, item_id: str):
         for i, video in enumerate(self.queue):
             if video["Id"] == item_id:
                 return Media(
@@ -336,7 +352,7 @@ class Media(object):
                 )
         return None
 
-    def get_video(self, index):
+    def get_video(self, index: int):
         if index == 0 and self.video:
             return self.video
 
@@ -345,7 +361,7 @@ class Media(object):
 
         log.error("Media::get_video couldn't find video at index %s" % index)
 
-    def insert_items(self, items, append=False):
+    def insert_items(self, items, append: bool = False):
         items = [
             {"PlaylistItemId": "playlistItem{0}".format(get_seq()), "Id": id_num}
             for id_num in items

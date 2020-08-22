@@ -17,7 +17,7 @@ log = logging.getLogger("")
 logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 
-def main(desktop=False, cef=False):
+def main(desktop: bool = False, cef: bool = False):
     conf_file = conffile.get(APP_NAME, "conf.json")
     settings.load(conf_file)
     i18n.configure()
@@ -109,7 +109,7 @@ def main(desktop=False, cef=False):
         user_interface.stop()
 
 
-def main_desktop(cef=False):
+def main_desktop(cef: bool = False):
     desktop = "--shim" not in sys.argv
     main(desktop, cef)
 

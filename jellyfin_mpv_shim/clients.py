@@ -17,8 +17,10 @@ import re
 log = logging.getLogger("clients")
 path_regex = re.compile("^(https?://)?([^/:]+)(:[0-9]+)?(/.*)?$")
 
+from typing import Optional
 
-def expo(max_value=None):
+
+def expo(max_value: Optional[int] = None):
     n = 0
     while True:
         a = 2 ** n
@@ -109,7 +111,9 @@ class ClientManager(object):
         with open(credentials_location, "w") as cf:
             json.dump(self.credentials, cf)
 
-    def login(self, server, username, password, force_unique=False):
+    def login(
+        self, server: str, username: str, password: str, force_unique: bool = False
+    ):
         protocol, host, port, path = path_regex.match(server).groups()
 
         if not protocol:
@@ -144,7 +148,7 @@ class ClientManager(object):
             return True
         return False
 
-    def setup_client(self, client, server):
+    def setup_client(self, client: "JellyfinClient", server):
         def event(event_name, data):
             if event_name == "WebSocketDisconnect":
                 timeout_gen = expo(100)
@@ -183,7 +187,7 @@ class ClientManager(object):
             }
         )
 
-    def remove_client(self, uuid):
+    def remove_client(self, uuid: str):
         self.credentials = [
             server for server in self.credentials if server["uuid"] != uuid
         ]
@@ -205,7 +209,7 @@ class ClientManager(object):
 
         return is_logged_in
 
-    def _disconnect_client(self, uuid=None, server=None):
+    def _disconnect_client(self, uuid: Optional[str] = None, server=None):
         if uuid is None and server is not None:
             uuid = server["uuid"]
 

@@ -7,6 +7,11 @@ from .constants import CLIENT_VERSION
 from .conf import settings
 from .i18n import _
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .player import PlayerManager as PlayerManager_type
+
 log = logging.getLogger("update_check")
 
 release_url = "https://github.com/iwalton3/jellyfin-mpv-shim/releases/"
@@ -14,7 +19,7 @@ one_day = 86400
 
 
 class UpdateChecker:
-    def __init__(self, player_manager):
+    def __init__(self, player_manager: "PlayerManager_type"):
         self.playerManager = player_manager
         self.has_notified = False
         self.new_version = None

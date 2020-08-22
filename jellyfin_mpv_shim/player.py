@@ -6,6 +6,7 @@ import time
 from threading import RLock, Lock, Event
 from queue import Queue
 from collections import OrderedDict
+from typing import TYPE_CHECKING, Optional
 
 from . import conffile
 from .utils import synchronous, Timer, none_fallback, get_resource
@@ -15,6 +16,9 @@ from .constants import APP_NAME
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
 from .i18n import _
+
+if TYPE_CHECKING:
+    from .media import Video as Video_type
 
 log = logging.getLogger("player")
 mpv_log = logging.getLogger("mpv")
@@ -61,14 +65,16 @@ mpv_log_levels = {
 }
 
 
-def mpv_log_handler(level, prefix, text):
+def mpv_log_handler(level: str, prefix: str, text: str):
     if level in mpv_log_levels:
         mpv_log_levels[level]("{0}: {1}".format(prefix, text))
     else:
         mpv_log.debug("{0}: {1}".format(prefix, text))
 
 
-def wait_property(instance, name, cond=lambda x: True, timeout=None):
+def wait_property(
+    instance, name: str, cond=lambda x: True, timeout: Optional[int] = None
+):
     success = True
     event = Event()
 
@@ -301,20 +307,20 @@ class PlayerManager(object):
 
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
-        def handle_end(_name, reached_end):
+        def handle_end(_name, reached_end: bool):
             if self._video and reached_end:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         # Fires at the end.
         @self._player.property_observer("playback-abort")
-        def handle_end_idle(_name, value):
+        def handle_end_idle(_name, value: bool):
             if self._video and value:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         @self._player.property_observer("seeking")
-        def handle_seeking(_name, value):
+        def handle_seeking(_name, value: bool):
             if self.syncplay.is_enabled():
                 play_time = self._player.playback_time
                 if (
@@ -333,7 +339,7 @@ class PlayerManager(object):
                         self.syncplay.on_buffer_done()
 
         @self._player.property_observer("pause")
-        def pause_handler(_name, value):
+        def pause_handler(_name, value: bool):
             if not self._player.playback_abort:
                 self.timeline_handle()
 
@@ -385,7 +391,9 @@ class PlayerManager(object):
             if not self.is_paused():
                 self.last_update.restart()
 
-    def play(self, video, offset=0, no_initial_timeline=False):
+    def play(
+        self, video: "Video_type", offset: int = 0, no_initial_timeline: bool = False
+    ):
         self.should_send_timeline = False
         self.start_time = time.time()
         url = video.get_playback_url()
@@ -396,7 +404,13 @@ class PlayerManager(object):
         self._play_media(video, url, offset, no_initial_timeline)
 
     @synchronous("_lock")
-    def _play_media(self, video, url, offset=0, no_initial_timeline=False):
+    def _play_media(
+        self,
+        video: "Video_type",
+        url: str,
+        offset: int = 0,
+        no_initial_timeline: bool = False,
+    ):
         self.url = url
         self.menu.hide_menu()
 
@@ -482,7 +496,7 @@ class PlayerManager(object):
         self.set_paused(False)
         self.exec_stop_cmd()
 
-    def get_volume(self, percent=False):
+    def get_volume(self, percent: bool = False):
         if self._player:
             if not percent:
                 return self._player.volume / 100
@@ -508,7 +522,7 @@ class PlayerManager(object):
         self.timeline_handle()
 
     @synchronous("_lock")
-    def seek(self, offset, absolute=False, force=False):
+    def seek(self, offset: float, absolute: bool = False, force: bool = False):
         """
         Seek to ``offset`` seconds
         """
@@ -529,7 +543,7 @@ class PlayerManager(object):
         self.timeline_handle()
 
     @synchronous("_lock")
-    def set_volume(self, pct):
+    def set_volume(self, pct: float):
         if not self._player.playback_abort:
             self._player.volume = pct
         self.timeline_handle()
@@ -551,7 +565,7 @@ class PlayerManager(object):
         return False
 
     @synchronous("_lock")
-    def finished_callback(self, has_lock):
+    def finished_callback(self, has_lock: bool):
         if not self._video:
             return
 
@@ -597,7 +611,7 @@ class PlayerManager(object):
         return False
 
     @synchronous("_lock")
-    def skip_to(self, key):
+    def skip_to(self, key: str):
         media = self._video.parent.get_from_key(key)
         if media:
             if self.syncplay.is_enabled():
@@ -622,7 +636,7 @@ class PlayerManager(object):
         return True
 
     @synchronous("_lock")
-    def get_video_attr(self, attr, default=None):
+    def get_video_attr(self, attr: str, default=None):
         if self._video:
             return self._video.get_video_attr(attr, default)
         return default
@@ -652,7 +666,7 @@ class PlayerManager(object):
                 self.load_external_sub(sub_uid)
 
     @synchronous("_lock")
-    def set_streams(self, audio_uid, sub_uid):
+    def set_streams(self, audio_uid: int, sub_uid: int):
         need_restart = self._video.set_streams(audio_uid, sub_uid)
 
         if need_restart:
@@ -662,7 +676,7 @@ class PlayerManager(object):
         self.timeline_handle()
 
     @synchronous("_lock")
-    def load_external_sub(self, sub_id):
+    def load_external_sub(self, sub_id: int):
         if sub_id in self.external_subtitles:
             self._player.sub = self.external_subtitles[sub_id]
         else:
@@ -682,7 +696,7 @@ class PlayerManager(object):
         self.fullscreen_disable = not self._player.fs
 
     @synchronous("_lock")
-    def set_fullscreen(self, enabled):
+    def set_fullscreen(self, enabled: bool):
         self._player.fs = enabled
         self.fullscreen_disable = not enabled
 
@@ -695,7 +709,7 @@ class PlayerManager(object):
         self._player.screenshot()
 
     @synchronous("_lock")
-    def set_paused(self, value: bool, force=False):
+    def set_paused(self, value: bool, force: bool = False):
         if self.syncplay.is_enabled() and not force:
             if value:
                 self.syncplay.pause_request()
@@ -846,21 +860,21 @@ class PlayerManager(object):
     def get_video(self):
         return self._video
 
-    def show_text(self, text, duration, level=1):
+    def show_text(self, text: str, duration: int, level: int = 1):
         self._player.show_text(text, duration, level)
 
     def get_osd_settings(self):
         return self._player.osd_back_color, self._player.osd_font_size
 
-    def set_osd_settings(self, back_color, font_size):
+    def set_osd_settings(self, back_color: str, font_size: int):
         self._player.osd_back_color = back_color
         self._player.osd_font_size = font_size
 
-    def enable_osc(self, enabled):
+    def enable_osc(self, enabled: bool):
         if hasattr(self._player, "osc"):
             self._player.osc = enabled
 
-    def capture_mouse(self, enabled):
+    def capture_mouse(self, enabled: bool):
         self._player.command(
             "script-message", "shim-menu-enable", "True" if enabled else "False"
         )
@@ -868,7 +882,7 @@ class PlayerManager(object):
     def playback_is_aborted(self):
         return self._player.playback_abort
 
-    def force_window(self, enabled):
+    def force_window(self, enabled: bool):
         if enabled:
             self._player.force_window = True
             self._player.keep_open = True
@@ -881,7 +895,7 @@ class PlayerManager(object):
             if self._player.playback_abort:
                 self._player.play("")
 
-    def add_ipc(self, ipc_name):
+    def add_ipc(self, ipc_name: str):
         self._player.input_ipc_server = ipc_name
 
     def get_current_client(self):
@@ -893,7 +907,7 @@ class PlayerManager(object):
     def get_speed(self):
         return self._player.speed
 
-    def set_speed(self, speed):
+    def set_speed(self, speed: float):
         self._player.speed = speed
 
 

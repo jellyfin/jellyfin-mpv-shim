@@ -20,8 +20,13 @@ NAVIGATION_DICT = {
     "GoToSettings": "home",
 }
 
+from typing import TYPE_CHECKING
 
-def bind(event_name):
+if TYPE_CHECKING:
+    from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
+
+
+def bind(event_name: str):
     def decorator(func):
         bindings[event_name] = func
         return func
@@ -32,7 +37,9 @@ def bind(event_name):
 class EventHandler(object):
     mirror = None
 
-    def handle_event(self, client, event_name, arguments):
+    def handle_event(
+        self, client: "JellyfinClient_type", event_name: str, arguments: dict
+    ):
         if event_name in bindings:
             log.debug("Handled Event {0}: {1}".format(event_name, arguments))
             bindings[event_name](self, client, event_name, arguments)
@@ -40,7 +47,7 @@ class EventHandler(object):
             log.debug("Unhandled Event {0}: {1}".format(event_name, arguments))
 
     @bind("Play")
-    def play_media(self, client, _event_name, arguments):
+    def play_media(self, client: "JellyfinClient_type", _event_name, arguments: dict):
         play_command = arguments.get("PlayCommand")
         if not playerManager.has_video():
             play_command = "PlayNow"
@@ -84,7 +91,9 @@ class EventHandler(object):
             playerManager.upd_player_hide()
 
     @bind("GeneralCommand")
-    def general_command(self, client, _event_name, arguments):
+    def general_command(
+        self, client: "JellyfinClient_type", _event_name, arguments: dict
+    ):
         command = arguments.get("Name")
         if command == "SetVolume":
             # There is currently a bug that causes this to be spammed, so we
@@ -120,7 +129,7 @@ class EventHandler(object):
             playerManager.toggle_fullscreen()
 
     @bind("Playstate")
-    def play_state(self, _client, _event_name, arguments):
+    def play_state(self, _client: "JellyfinClient_type", _event_name, arguments: dict):
         command = arguments.get("Command")
         if command == "PlayPause":
             playerManager.toggle_pause()
@@ -140,17 +149,21 @@ class EventHandler(object):
             )
 
     @bind("PlayPause")
-    def pause_play(self, _client, _event_name, _arguments):
+    def pause_play(self, _client: "JellyfinClient_type", _event_name, _arguments: dict):
         playerManager.toggle_pause()
         timelineManager.send_timeline()
 
     @bind("SyncPlayGroupUpdate")
-    def sync_play_group_update(self, client, _event_name, arguments):
+    def sync_play_group_update(
+        self, client: "JellyfinClient_type", _event_name, arguments: dict
+    ):
         playerManager.syncplay.client = client
         playerManager.syncplay.process_group_update(arguments)
 
     @bind("SyncPlayCommand")
-    def sync_play_command(self, client, _event_name, arguments):
+    def sync_play_command(
+        self, client: "JellyfinClient_type", _event_name, arguments: dict
+    ):
         playerManager.syncplay.client = client
         playerManager.syncplay.process_command(arguments)
 

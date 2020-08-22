@@ -9,8 +9,14 @@ import time
 
 log = logging.getLogger("svp_integration")
 
+from typing import TYPE_CHECKING
 
-def list_request(path):
+if TYPE_CHECKING:
+    from .menu import OSDMenu as OSDMenu_type
+    from .player import PlayerManager as PlayerManager_type
+
+
+def list_request(path: str):
     try:
         response = urllib.request.urlopen(settings.svp_url + "?" + path)
         return response.read().decode("utf-8").replace("\r\n", "\n").split("\n")
@@ -19,7 +25,7 @@ def list_request(path):
         return None
 
 
-def simple_request(path):
+def simple_request(path: str):
     response_list = list_request(path)
     if response_list is None:
         return None
@@ -46,7 +52,7 @@ def get_profiles():
     return profiles
 
 
-def get_name_from_guid(profile_id):
+def get_name_from_guid(profile_id: str):
     profile_id = "P" + profile_id[1:-1].replace("-", "_")
     if profile_id == "P10000001_1001_1001_1001_100000000001":
         return _("Automatic")
@@ -78,7 +84,7 @@ def is_svp_active():
     return response != ""
 
 
-def set_active_profile(profile_id):
+def set_active_profile(profile_id: str):
     # As far as I know, there is no way to directly set the profile.
     if not is_svp_active():
         return False
@@ -91,7 +97,7 @@ def set_active_profile(profile_id):
     return False
 
 
-def set_disabled(disabled):
+def set_disabled(disabled: bool):
     return (
         simple_request("rt.disabled={0}".format("true" if disabled else "false"))
         == "true"
@@ -99,7 +105,7 @@ def set_disabled(disabled):
 
 
 class SVPManager:
-    def __init__(self, menu, player_manager):
+    def __init__(self, menu: "OSDMenu_type", player_manager: "PlayerManager_type"):
         self.menu = menu
 
         if settings.svp_enable:
