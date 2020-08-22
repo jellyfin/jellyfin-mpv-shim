@@ -329,7 +329,10 @@ class PlayerManager(object):
                     and abs(self.last_seek - play_time) > 10
                 ):
                     log.info("Reverting sync for syncplay.")
-                    self._player.command("revert-seek")
+                    try:
+                        self._player.command("revert-seek")
+                    except Exception:
+                        log.error("Could not revert seek for syncplay.", exc_info=True)
                     self.syncplay.seek_request(play_time)
                 else:
                     log.debug("SyncPlay Buffering: {0}".format(value))
