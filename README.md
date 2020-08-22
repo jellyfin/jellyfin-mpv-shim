@@ -372,6 +372,13 @@ Other miscellaneous configuration options. You probably won't have to change the
     - Please consider getting a certificate from Let's Encrypt instead of using this.
  - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
     - This only applies for when you first launch the program.
+ - `lang_filter` - Limit track selection to desired languages. Default: `und,eng,jpn,mis,mul,zxx`
+    - Note that you need to turn on the options below for this to actually do something.
+    - If you remove `und` from the list, it will ignore untagged items.
+    - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),
+      but if you have strange files this may not be the case.
+ - `lang_filter_sub` - Apply the language filter to subtitle selection. Default: `False`
+ - `lang_filter_audio` - Apply the language filter to audio selection. Default: `False`
 
 ### MPV Configuration
 

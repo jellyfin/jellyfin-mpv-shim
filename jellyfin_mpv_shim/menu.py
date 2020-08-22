@@ -46,6 +46,10 @@ SIZE_LIST = (
 
 HEX_TO_COLOR = {v:c for c,v in COLOR_LIST}
 
+lang_filter = set(settings.lang_filter.split(","))
+if "und" in lang_filter:
+    lang_filter.add(None)
+
 class OSDMenu(object):
     def __init__(self, playerManager):
         self.playerManager = playerManager
@@ -244,6 +248,10 @@ class OSDMenu(object):
                          if s.get("Type") == "Audio"]
         for i, audio_track in enumerate(audio_streams):
             aid = audio_track.get("Index")
+            if (settings.lang_filter_audio and aid != selected_aid
+                    and audio_track.get("Language") not in lang_filter):
+                continue
+
             self.menu_list.append([
                 "{0} ({1})".format(audio_track.get("DisplayTitle"), audio_track.get("Title")),
                 self.change_audio_menu_handle,
@@ -266,6 +274,10 @@ class OSDMenu(object):
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])
         for i, subtitle_track in enumerate(subtitle_streams):
             sid = subtitle_track.get("Index")
+            if (settings.lang_filter_sub and sid != selected_sid
+                    and subtitle_track.get("Language") not in lang_filter):
+                continue
+
             self.menu_list.append([
                 "{0} ({1})".format(get_sub_display_title(subtitle_track), subtitle_track.get("Title")),
                 self.change_subtitle_menu_handle,

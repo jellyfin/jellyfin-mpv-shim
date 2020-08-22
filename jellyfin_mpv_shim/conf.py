@@ -102,6 +102,9 @@ class Settings(object):
         "media_keys":           True,
         "connect_retry_mins":   0,
         "transcode_warning":    True,
+        "lang_filter":          "und,eng,jpn,mis,mul,zxx",
+        "lang_filter_sub":      False,
+        "lang_filter_audio":    False,
     }
 
     def __getattr__(self, name):
