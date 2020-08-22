@@ -219,7 +219,7 @@ body {
 }
 
 .metascore {
-    font-family: Arial;
+    font-family: Arial Sans-serif;
     color: #fff;
     display: inline-block;
     font-size: 12px;
@@ -472,7 +472,7 @@ body {
     background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#0086cb), to(#004a70));
     background-image: -webkit-linear-gradient(top, #0086cb, #004a70);
     background-image: -o-linear-gradient(top, #0086cb, #004a70);
-    background-image: linear-gradient(top, #0086cb, #004a70);
+    background-image: linear-gradient(to top, #0086cb, #004a70);
     background-repeat: repeat-x;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
