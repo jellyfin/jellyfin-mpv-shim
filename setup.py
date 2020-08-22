@@ -53,6 +53,7 @@ setup(
         "jellyfin-apiclient-python>=1.6.1",
         "python-mpv-jsonipc>=1.1.9",
         "requests",
+        "pydantic",
     ],
     include_package_data=True,
 )
