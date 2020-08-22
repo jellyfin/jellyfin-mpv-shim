@@ -1,4 +1,3 @@
-import logging
 import threading
 
 from .player import playerManager
@@ -18,7 +17,7 @@ class ActionThread(threading.Thread):
     def run(self):
         force_next = False
         while not self.halt:
-            if (playerManager._player and playerManager._video) or force_next:
+            if playerManager.is_active() or force_next:
                 playerManager.update()
 
             force_next = False

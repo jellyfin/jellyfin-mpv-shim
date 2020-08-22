@@ -4,7 +4,7 @@ import sys
 import getpass
 
 # If no platform is matched, use the current directory.
-_confdir = lambda app: ""
+_confdir = None
 username = getpass.getuser()
 
 
@@ -47,8 +47,10 @@ for i, arg in enumerate(sys.argv):
 def confdir(app):
     if custom_config is not None:
         return custom_config
-    else:
+    elif _confdir is not None:
         return _confdir(app)
+    else:
+        return ""
 
 
 def get(app, conf_file, create=False):

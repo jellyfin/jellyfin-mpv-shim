@@ -6,7 +6,6 @@ import threading
 import sys
 import logging
 import queue
-import os.path
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
@@ -19,6 +18,8 @@ log = logging.getLogger("gui_mgr")
 
 # From https://stackoverflow.com/questions/6631299/
 # This is for opening the config directory.
+
+
 def _show_file_darwin(path):
     subprocess.Popen(["open", path])
 
@@ -82,6 +83,9 @@ root_logger.addHandler(guiHandler)
 class LoggerWindow(threading.Thread):
     def __init__(self):
         self.dead = False
+        self.queue = None
+        self.r_queue = None
+        self.process = None
         threading.Thread.__init__(self)
 
     def run(self):
@@ -104,7 +108,7 @@ class LoggerWindow(threading.Thread):
     def handle(self, action, params=None):
         self.queue.put((action, params))
 
-    def stop(self, is_source=False):
+    def stop(self):
         self.r_queue.put(("die", None))
 
     def _die(self):
@@ -118,6 +122,9 @@ class LoggerWindowProcess(Process):
     def __init__(self, queue, r_queue):
         self.queue = queue
         self.r_queue = r_queue
+        self.tk = None
+        self.root = None
+        self.text = None
         Process.__init__(self)
 
     def update(self):
@@ -141,7 +148,6 @@ class LoggerWindowProcess(Process):
 
     def run(self):
         import tkinter as tk
-        from tkinter import ttk, messagebox
 
         self.tk = tk
         root = tk.Tk()
@@ -164,6 +170,9 @@ class PreferencesWindow(threading.Thread):
     def __init__(self):
         self.dead = False
         self.dead_trigger = threading.Event()
+        self.queue = None
+        self.r_queue = None
+        self.process = None
         threading.Thread.__init__(self)
 
     def run(self):
@@ -194,7 +203,7 @@ class PreferencesWindow(threading.Thread):
     def handle(self, action, params=None):
         self.queue.put((action, params))
 
-    def stop(self, is_source=False):
+    def stop(self):
         self.r_queue.put(("die", None))
 
     def block_until_close(self):
@@ -211,6 +220,18 @@ class PreferencesWindowProcess(Process):
     def __init__(self, queue, r_queue):
         self.queue = queue
         self.r_queue = r_queue
+        self.servers = None
+        self.server_ids = None
+        self.tk = None
+        self.messagebox = None
+        self.root = None
+        self.serverList = None
+        self.current_uuid = None
+        self.servername = None
+        self.username = None
+        self.password = None
+        self.add_button = None
+        self.remove_button = None
         Process.__init__(self)
 
     def update(self):
@@ -266,7 +287,7 @@ class PreferencesWindowProcess(Process):
         self.serverList = tk.StringVar(value=[])
         self.current_uuid = None
 
-        def serverSelect(_x):
+        def server_select(_x):
             idxs = serverlist.curselection()
             if len(idxs) == 1:
                 self.current_uuid = self.server_ids[idxs[0]]
@@ -322,7 +343,7 @@ class PreferencesWindowProcess(Process):
         close_button = ttk.Button(c, text=_("Close"), command=close)
         close_button.grid(column=2, row=4, pady=10, sticky=(tk.E, tk.S))
 
-        serverlist.bind("<<ListboxSelect>>", serverSelect)
+        serverlist.bind("<<ListboxSelect>>", server_select)
         self.update()
         root.mainloop()
         self.r_queue.put(("die", None))
@@ -348,6 +369,8 @@ class UserInterface(threading.Thread):
         self.preferences_window = None
         self.stop_callback = None
         self.gui_ready = None
+        self.r_queue = None
+        self.process = None
 
         threading.Thread.__init__(self)
 
@@ -398,7 +421,8 @@ class UserInterface(threading.Thread):
         if self.gui_ready:
             self.gui_ready.set()
 
-    def open_config_brs(self):
+    @staticmethod
+    def open_config_brs():
         if open_config:
             open_config()
         else:
@@ -408,6 +432,7 @@ class UserInterface(threading.Thread):
 class STrayProcess(Process):
     def __init__(self, r_queue):
         self.r_queue = r_queue
+        self.icon_stop = None
         Process.__init__(self)
 
     def run(self):
@@ -447,4 +472,4 @@ class STrayProcess(Process):
         self.r_queue.put(("die", None))
 
 
-userInterface = UserInterface()
+user_interface = UserInterface()

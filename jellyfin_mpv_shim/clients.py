@@ -57,7 +57,8 @@ class ClientManager(object):
             else:
                 log.warning(_("Adding server failed."))
 
-    def client_factory(self):
+    @staticmethod
+    def client_factory():
         client = JellyfinClient(allow_multiple_clients=True)
         client.config.data["app.default"] = True
         client.config.app(
@@ -208,7 +209,7 @@ class ClientManager(object):
         if uuid is None and server is not None:
             uuid = server["uuid"]
 
-        if not uuid in self.clients:
+        if uuid not in self.clients:
             return
 
         if server is not None:

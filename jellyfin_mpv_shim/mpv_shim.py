@@ -2,7 +2,6 @@
 
 import logging
 import sys
-import time
 import multiprocessing
 from threading import Event
 
@@ -33,23 +32,24 @@ def main(desktop=False, cef=False):
     if sys.platform.startswith("darwin"):
         multiprocessing.set_start_method("forkserver")
 
-    userInterface = None
+    user_interface = None
     mirror = None
     use_gui = False
+    gui_ready = None
     use_webview = desktop or settings.enable_desktop
     get_webview = lambda: None
     if use_webview:
         from .webclient_view import WebviewClient
 
-        userInterface = WebviewClient(cef=cef)
-        get_webview = userInterface.get_webview
+        user_interface = WebviewClient(cef=cef)
+        get_webview = user_interface.get_webview
     elif settings.enable_gui:
         try:
-            from .gui_mgr import userInterface
+            from .gui_mgr import user_interface
 
             use_gui = True
             gui_ready = Event()
-            userInterface.gui_ready = gui_ready
+            user_interface.gui_ready = gui_ready
         except Exception:
             log.warning(
                 "Cannot load GUI. Falling back to command line interface.",
@@ -62,10 +62,11 @@ def main(desktop=False, cef=False):
 
             get_webview = mirror.get_webview
         except ImportError:
+            mirror = None
             log.warning("Cannot load display mirror.", exc_info=True)
 
-    if not userInterface:
-        from .cli_mgr import userInterface
+    if not user_interface:
+        from .cli_mgr import user_interface
 
     from .player import playerManager
     from .action_thread import actionThread
@@ -78,23 +79,23 @@ def main(desktop=False, cef=False):
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
     playerManager.get_webview = get_webview
-    userInterface.open_player_menu = playerManager.menu.show_menu
+    user_interface.open_player_menu = playerManager.menu.show_menu
     eventHandler.mirror = mirror
-    userInterface.start()
-    userInterface.login_servers()
+    user_interface.start()
+    user_interface.login_servers()
 
     try:
         if use_webview:
-            userInterface.run()
+            user_interface.run()
         elif mirror:
-            userInterface.stop_callback = mirror.stop
+            user_interface.stop_callback = mirror.stop
             # If the webview runs before the systray icon, it fails.
             if use_gui:
                 gui_ready.wait()
             mirror.run()
         else:
             halt = Event()
-            userInterface.stop_callback = halt.set
+            user_interface.stop_callback = halt.set
             try:
                 halt.wait()
             except KeyboardInterrupt:
@@ -105,7 +106,7 @@ def main(desktop=False, cef=False):
         timelineManager.stop()
         actionThread.stop()
         clientManager.stop()
-        userInterface.stop()
+        user_interface.stop()
 
 
 def main_desktop(cef=False):

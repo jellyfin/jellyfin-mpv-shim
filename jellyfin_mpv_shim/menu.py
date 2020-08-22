@@ -52,8 +52,8 @@ if "und" in lang_filter:
 
 
 class OSDMenu(object):
-    def __init__(self, playerManager):
-        self.playerManager = playerManager
+    def __init__(self, player_manager, player):
+        self.playerManager = player_manager
 
         self.is_menu_shown = False
         self.menu_title = ""
@@ -62,21 +62,23 @@ class OSDMenu(object):
         self.menu_selection = 0
         self.menu_tmp = None
         self.mouse_back = False
-        self.original_osd_color = playerManager._player.osd_back_color
-        self.original_osd_size = playerManager._player.osd_font_size
+        (
+            self.original_osd_color,
+            self.original_osd_size,
+        ) = player_manager.get_osd_settings()
 
         self.profile_menu = None
         self.profile_manager = None
         if settings.shader_pack_enable:
             try:
-                self.profile_manager = VideoProfileManager(self, playerManager)
+                self.profile_manager = VideoProfileManager(self, player_manager, player)
                 self.profile_menu = self.profile_manager.menu_action
             except Exception:
                 log.error("Could not load profile manager.", exc_info=True)
 
         self.svp_menu = None
         try:
-            self.svp_menu = SVPManager(self, playerManager)
+            self.svp_menu = SVPManager(self, player_manager)
         except Exception:
             log.error("Could not load SVP integration.", exc_info=True)
 
@@ -101,7 +103,7 @@ class OSDMenu(object):
                 fmt = "\n   **{0}**"
             menu_text += fmt.format(item[0])
 
-        self.playerManager._player.show_text(menu_text, 2 ** 30, 1)
+        self.playerManager.show_text(menu_text, 2 ** 30, 1)
 
     def mouse_select(self, idx):
         if idx < 0 or idx > len(self.menu_list):
@@ -115,20 +117,16 @@ class OSDMenu(object):
 
     def show_menu(self):
         self.is_menu_shown = True
-        player = self.playerManager._player
-        player.osd_back_color = "#CC333333"
-        player.osd_font_size = 40
+        self.playerManager.set_osd_settings("#CC333333", 40)
 
-        if hasattr(player, "osc"):
-            player.osc = False
-
-        player.command("script-message", "shim-menu-enable", "True")
+        self.playerManager.enable_osc(False)
+        self.playerManager.capture_mouse(True)
 
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
         self.mouse_back = False
 
-        if self.playerManager._video and not player.playback_abort:
+        if self.playerManager.is_playing():
             self.menu_list = [
                 (_("Change Audio"), self.change_audio_menu),
                 (_("Change Subtitles"), self.change_subtitle_menu),
@@ -149,7 +147,7 @@ class OSDMenu(object):
                 self.menu_list.append(
                     (_("Change Video Playback Profile"), self.profile_menu)
                 )
-            if self.playerManager._video.parent.is_tv:
+            if self.playerManager.get_video().parent.is_tv:
                 self.menu_list.append(
                     (
                         _("Auto Set Audio/Subtitles (Entire Series)"),
@@ -182,40 +180,31 @@ class OSDMenu(object):
         # Wait until the menu renders to pause.
         time.sleep(0.2)
 
-        if player.playback_abort:
-            player.force_window = True
-            player.keep_open = True
-            player.play("")
-            if settings.fullscreen:
-                player.fs = True
+        if self.playerManager.playback_is_aborted():
+            self.playerManager.force_window(True)
         else:
             if not self.playerManager.syncplay.is_enabled():
-                player.pause = True
+                self.playerManager.set_paused(True)
 
     def hide_menu(self):
-        player = self.playerManager._player
         if self.is_menu_shown:
-            player.osd_back_color = self.original_osd_color
-            player.osd_font_size = self.original_osd_size
-            player.show_text("", 0, 0)
-            player.force_window = False
-            player.keep_open = False
+            self.playerManager.set_osd_settings(
+                self.original_osd_color, self.original_osd_size
+            )
+            self.playerManager.show_text("", 0, 0)
 
-            if hasattr(player, "osc"):
-                player.osc = settings.enable_osc
+            self.playerManager.enable_osc(True)
+            self.playerManager.capture_mouse(False)
+            self.playerManager.force_window(False)
 
-            player.command("script-message", "shim-menu-enable", "False")
-
-            if player.playback_abort:
-                player.play("")
-            else:
+            if not self.playerManager.playback_is_aborted():
                 if not self.playerManager.syncplay.is_enabled():
-                    player.pause = False
+                    self.playerManager.set_paused(False)
 
         self.is_menu_shown = False
 
     def screenshot(self):
-        self.playerManager._player.show_text("", 0, 0)
+        self.playerManager.show_text("", 0, 0)
         time.sleep(0.5)
         self.playerManager.screenshot()
         self.hide_menu()
@@ -266,10 +255,10 @@ class OSDMenu(object):
     def change_audio_menu(self):
         self.put_menu(_("Select Audio Track"))
 
-        selected_aid = self.playerManager._video.aid
+        selected_aid = self.playerManager.get_video().aid
         audio_streams = [
             s
-            for s in self.playerManager._video.media_source["MediaStreams"]
+            for s in self.playerManager.get_video().media_source["MediaStreams"]
             if s.get("Type") == "Audio"
         ]
         for i, audio_track in enumerate(audio_streams):
@@ -303,10 +292,10 @@ class OSDMenu(object):
     def change_subtitle_menu(self):
         self.put_menu(_("Select Subtitle Track"))
 
-        selected_sid = self.playerManager._video.sid
+        selected_sid = self.playerManager.get_video().sid
         subtitle_streams = [
             s
-            for s in self.playerManager._video.media_source["MediaStreams"]
+            for s in self.playerManager.get_video().media_source["MediaStreams"]
             if s.get("Type") == "Subtitle"
         ]
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])
@@ -335,11 +324,11 @@ class OSDMenu(object):
     def change_transcode_quality_handle(self):
         bitrate = self.menu_list[self.menu_selection][2]
         if bitrate == "none":
-            self.playerManager._video.set_trs_override(None, False)
+            self.playerManager.get_video().set_trs_override(None, False)
         elif bitrate == "max":
-            self.playerManager._video.set_trs_override(None, True)
+            self.playerManager.get_video().set_trs_override(None, True)
         else:
-            self.playerManager._video.set_trs_override(bitrate, True)
+            self.playerManager.get_video().set_trs_override(bitrate, True)
 
         self.menu_action("back")
         self.playerManager.put_task(self.playerManager.restart_playback)
@@ -356,7 +345,7 @@ class OSDMenu(object):
             self.menu_list.append((item[0], handle, item[1]))
 
         self.menu_selection = 7
-        cur_bitrate = self.playerManager._video.get_transcode_bitrate()
+        cur_bitrate = self.playerManager.get_video().get_transcode_bitrate()
         for i, option in enumerate(self.menu_list):
             if cur_bitrate == option[2]:
                 self.menu_selection = i
@@ -433,7 +422,8 @@ class OSDMenu(object):
             if settings.remote_kbps == item[1]:
                 self.menu_selection = i
 
-    def get_subtitle_color(self, color):
+    @staticmethod
+    def get_subtitle_color(color):
         if color in HEX_TO_COLOR:
             return HEX_TO_COLOR[color]
         else:
@@ -450,7 +440,7 @@ class OSDMenu(object):
             self.menu_action("back")
         self.video_preferences_menu()
 
-        if self.playerManager._video.is_transcode:
+        if self.playerManager.get_video().is_transcode:
             if setting_name == "subtitle_size":
                 self.playerManager.put_task(self.playerManager.update_subtitle_visuals)
         else:

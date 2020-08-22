@@ -29,11 +29,11 @@ def render_message(message, show_text):
 
 def process_series(mode, player, m_raid=None, m_rsid=None):
     messages.clear()
-    media = player._video
+    media = player.get_video()
     client = media.client
-    show_text = player._player.show_text
+    show_text = player.show_text
     c_aid, c_sid = None, None
-    c_pid = player._video.media_source.get("Id")
+    c_pid = media.media_source.get("Id")
 
     success_ct = 0
     partial_ct = 0

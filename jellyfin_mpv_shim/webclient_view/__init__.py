@@ -1,6 +1,5 @@
 import threading
 import urllib.request
-from datetime import date
 from werkzeug.serving import make_server
 from flask import Flask, request, jsonify
 from time import sleep
@@ -45,6 +44,7 @@ def do_not_cache(response):
 class Server(threading.Thread):
     def __init__(self):
         self.srv = None
+        self.ctx = None
 
         threading.Thread.__init__(self)
 
@@ -134,8 +134,9 @@ class Server(threading.Thread):
         self.srv.serve_forever()
 
 
-# This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
-# Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
+# This makes me rather uncomfortable, but there's no easy way around this other than
+# importing display_mirror in helpers. Lambda needed because the 2.3 version of the JS
+# api adds an argument even when not used.
 class WebviewClient(object):
     def __init__(self, cef=False):
         self.open_player_menu = lambda: None
@@ -146,7 +147,8 @@ class WebviewClient(object):
     def start(self):
         pass
 
-    def login_servers(self):
+    @staticmethod
+    def login_servers():
         success = clientManager.try_connect()
         if success:
             loaded.set()
@@ -204,7 +206,7 @@ class WebviewClient(object):
         try:
             from webview.platforms import cocoa
 
-            def override_cocoa(self, webview, nav):
+            def override_cocoa(_self, webview, _nav):
                 # Add the webview to the window if it's not yet the contentView
                 i = cocoa.BrowserView.get_instance("webkit", webview)
 
@@ -221,7 +223,8 @@ class WebviewClient(object):
         try:
             from webview.platforms import gtk
 
-            def override_gtk(self, webview, status):
+            # noinspection PyUnresolvedReferences
+            def override_gtk(_self, webview, _status):
                 if not webview.props.opacity:
                     gtk.glib.idle_add(webview.set_opacity, 1.0)
 

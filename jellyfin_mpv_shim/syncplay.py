@@ -4,7 +4,6 @@ import os
 from datetime import datetime, timedelta
 from .media import Media
 from .i18n import _
-from time import sleep
 
 # This is based on: https://github.com/jellyfin/jellyfin-web/blob/master/src/components/syncPlay/syncPlayManager.js
 
@@ -53,7 +52,6 @@ def set_timeout(ms: float, callback, *args):
 class SyncPlayManager:
     def __init__(self, manager):
         self.playerManager = manager
-        self.player = manager._player
         self.menu = manager.menu
 
         self.sync_enabled = False
@@ -106,7 +104,7 @@ class SyncPlayManager:
         self.last_sync_time = current_time
         play_at_time = self.last_command["When"]
 
-        current_position_ticks = int(self.player.playback_time * seconds_in_ticks)
+        current_position_ticks = int(self.playerManager.get_time() * seconds_in_ticks)
         server_position_ticks = (
             self.last_command["PositionTicks"]
             + ((current_time - play_at_time) + self.time_offset).total_seconds()
@@ -132,14 +130,14 @@ class SyncPlayManager:
                 # Speed To Sync Method
                 speed = 1 + diff_ms / settings.sync_speed_time
 
-                self.player.speed = speed
+                self.playerManager.set_speed(speed)
                 self.sync_enabled = False
                 self.attempts += 1
                 log.info("SyncPlay Speed to Sync rate: {0}".format(speed))
                 self.player_message(_("SpeedToSync (x{0})").format(speed))
 
                 def callback():
-                    self.player.speed = 1
+                    self.playerManager.set_speed(1)
                     self.sync_enabled = True
 
                 set_timeout(settings.sync_speed_time, callback)
@@ -187,7 +185,7 @@ class SyncPlayManager:
                 log.error("Syncplay ping reporting failed.", exc_info=True)
 
     def enable_sync_play(self, start_time, from_server):
-        self.playback_rate = self.player.speed
+        self.playback_rate = self.playerManager.get_speed()
         self.enabled_at = start_time
         self.enable_speed_sync = True
 
@@ -200,7 +198,7 @@ class SyncPlayManager:
         self.ready = False
         self.notify_sync_ready = True
 
-        self.client = self.playerManager._video.client
+        self.client = self.playerManager.get_current_client()
         timesync = self.client.timesync
         if self.timesync is not None and timesync is not self.timesync:
             self.timesync.remove_subscriber(self.on_timesync_update)
@@ -215,7 +213,7 @@ class SyncPlayManager:
             self.player_message(_("SyncPlay enabled."))
 
     def disable_sync_play(self, from_server):
-        self.player.speed = self.playback_rate
+        self.playerManager.set_speed(self.playback_rate)
 
         self.enabled_at = None
         self.ready = False
@@ -332,7 +330,7 @@ class SyncPlayManager:
 
     def prepare_session(self, group_id, session_data):
         play_command = session_data.get("PlayCommand")
-        if not self.playerManager._video:
+        if not self.playerManager.has_video():
             play_command = "PlayNow"
 
         seq = session_data.get("StartIndex")
@@ -349,12 +347,12 @@ class SyncPlayManager:
         )
 
         if (
-            self.playerManager._video
-            and self.playerManager._video.item_id == session_data["ItemIds"][0]
+            self.playerManager.has_video()
+            and self.playerManager.get_video().item_id == session_data["ItemIds"][0]
             and play_command == "PlayNow"
         ):
             # We assume the video is already available.
-            self.playerManager._video.parent = media
+            self.playerManager.get_video().parent = media
             log.info("Syncplay Session Prepare: {0} {1}".format(group_id, session_data))
             self.local_seek(
                 (session_data.get("PositionTicks", 0) or 0) / seconds_in_ticks
@@ -378,12 +376,12 @@ class SyncPlayManager:
                 self.join_group(group_id)
                 self.playerManager.timeline_handle()
         elif play_command == "PlayLast":
-            self.playerManager._video.parent.insert_items(
+            self.playerManager.get_video().parent.insert_items(
                 session_data.get("ItemIds"), append=True
             )
             self.playerManager.upd_player_hide()
         elif play_command == "PlayNext":
-            self.playerManager._video.parent.insert_items(
+            self.playerManager.get_video().parent.insert_items(
                 session_data.get("ItemIds"), append=False
             )
             self.playerManager.upd_player_hide()
@@ -392,7 +390,7 @@ class SyncPlayManager:
         # Messages overwrite menu, so they are ignored.
         if not self.menu.is_menu_shown:
             if settings.sync_osd_message:
-                self.player.show_text(message)
+                self.playerManager.show_text(message)
             else:
                 log.info("SyncPlay Message: {0}".format(message))
         else:
@@ -466,7 +464,7 @@ class SyncPlayManager:
             self.sync_timeout()
 
         self.sync_enabled = False
-        self.player.speed = 1
+        self.playerManager.set_speed(1)
 
     def play_request(self):
         self.client.jellyfin.play_sync_play()
@@ -506,7 +504,7 @@ class SyncPlayManager:
         self.client.jellyfin.new_sync_play()
 
     def menu_action(self):
-        self.client = self.playerManager._video.client
+        self.client = self.playerManager.get_current_client()
 
         selected = 0
         offset = 1
@@ -516,7 +514,9 @@ class SyncPlayManager:
         if not self.is_enabled():
             offset = 2
             group_option_list.append((_("New Group"), self.menu_create_group, None))
-        groups = self.client.jellyfin.get_sync_play(self.playerManager._video.item_id)
+        groups = self.client.jellyfin.get_sync_play(
+            self.playerManager.get_video().item_id
+        )
         for i, group in enumerate(groups):
             group_option_list.append(
                 (group["PlayingItemName"], self.menu_join_group, group)

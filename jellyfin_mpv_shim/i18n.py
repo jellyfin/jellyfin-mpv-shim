@@ -1,5 +1,4 @@
 import gettext
-import builtins
 import locale
 
 from .conf import settings

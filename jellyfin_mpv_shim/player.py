@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import urllib.parse
 import time
 
 from threading import RLock, Lock, Event
@@ -34,6 +33,7 @@ python_mpv_available = True
 is_using_ext_mpv = False
 if not settings.mpv_ext:
     try:
+        # noinspection PyPackageRequirements
         import mpv
 
         log.info("Using libmpv1 playback backend.")
@@ -106,6 +106,7 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 #    the event thread, which would cause deadlock if they run there.
 
 
+# noinspection PyUnresolvedReferences
 class PlayerManager(object):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -161,7 +162,7 @@ class PlayerManager(object):
             loglevel=settings.mpv_log_level,
             **mpv_options
         )
-        self.menu = OSDMenu(self)
+        self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
 
         if hasattr(self._player, "osc"):
@@ -307,13 +308,13 @@ class PlayerManager(object):
 
         # Fires at the end.
         @self._player.property_observer("playback-abort")
-        def handle_end_idle(name, value):
+        def handle_end_idle(_name, value):
             if self._video and value:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         @self._player.property_observer("seeking")
-        def handle_seeking(name, value):
+        def handle_seeking(_name, value):
             if self.syncplay.is_enabled():
                 play_time = self._player.playback_time
                 if (
@@ -404,6 +405,7 @@ class PlayerManager(object):
         if self.get_webview() is not None and (
             settings.display_mirroring or settings.desktop_fullscreen
         ):
+            # noinspection PyUnresolvedReferences
             self.get_webview().hide()
 
         self._player.play(self.url)
@@ -457,7 +459,8 @@ class PlayerManager(object):
                 1,
             )
 
-    def exec_stop_cmd(self):
+    @staticmethod
+    def exec_stop_cmd():
         if settings.stop_cmd:
             os.system(settings.stop_cmd)
 
@@ -679,6 +682,11 @@ class PlayerManager(object):
         self.fullscreen_disable = not self._player.fs
 
     @synchronous("_lock")
+    def set_fullscreen(self, enabled):
+        self._player.fs = enabled
+        self.fullscreen_disable = not enabled
+
+    @synchronous("_lock")
     def set_mute(self, mute):
         self._player.mute = mute
 
@@ -824,6 +832,69 @@ class PlayerManager(object):
         seek_left = custom_prefs.get("skipBackLength") or 15000
         seek_right = custom_prefs.get("skipForwardLength") or 30000
         return -int(seek_left) / 1000, int(seek_right) / 1000
+
+    # Wrappers to avoid private access
+    def is_active(self):
+        return bool(self._player and self._video)
+
+    def is_playing(self):
+        return bool(self._video and not self._player.playback_abort)
+
+    def has_video(self):
+        return self._video is not None
+
+    def get_video(self):
+        return self._video
+
+    def show_text(self, text, duration, level=1):
+        self._player.show_text(text, duration, level)
+
+    def get_osd_settings(self):
+        return self._player.osd_back_color, self._player.osd_font_size
+
+    def set_osd_settings(self, back_color, font_size):
+        self._player.osd_back_color = back_color
+        self._player.osd_font_size = font_size
+
+    def enable_osc(self, enabled):
+        if hasattr(self._player, "osc"):
+            self._player.osc = enabled
+
+    def capture_mouse(self, enabled):
+        self._player.command(
+            "script-message", "shim-menu-enable", "True" if enabled else "False"
+        )
+
+    def playback_is_aborted(self):
+        return self._player.playback_abort
+
+    def force_window(self, enabled):
+        if enabled:
+            self._player.force_window = True
+            self._player.keep_open = True
+            self._player.play("")
+            if settings.fullscreen:
+                self._player.fs = True
+        else:
+            self._player.force_window = False
+            self._player.keep_open = False
+            if self._player.playback_abort:
+                self._player.play("")
+
+    def add_ipc(self, ipc_name):
+        self._player.input_ipc_server = ipc_name
+
+    def get_current_client(self):
+        return self._video.client
+
+    def get_time(self):
+        return self._player.playback_time
+
+    def get_speed(self):
+        return self._player.speed
+
+    def set_speed(self, speed):
+        self._player.speed = speed
 
 
 playerManager = PlayerManager()

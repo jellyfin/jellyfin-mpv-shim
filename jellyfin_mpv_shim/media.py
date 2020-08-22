@@ -1,5 +1,4 @@
 import logging
-import uuid
 import urllib.parse
 import os.path
 import re
@@ -55,7 +54,7 @@ class Video(object):
             self.audio_uid[index] = stream["Index"]
             self.audio_seq[stream["Index"]] = index
 
-            if stream.get("IsExternal") == False:
+            if not stream.get("IsExternal"):
                 index += 1
 
         index = 1
@@ -74,7 +73,7 @@ class Video(object):
             elif sub.get("DeliveryMethod") == "Encode":
                 self.subtitle_enc.add(sub["Index"])
 
-            if sub.get("IsExternal") == False:
+            if not sub.get("IsExternal"):
                 index += 1
 
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
@@ -140,7 +139,7 @@ class Video(object):
                 self.client.config.data["app.device_id"]
             )
 
-    def _get_url_from_source(self, source):
+    def _get_url_from_source(self):
         # Only use Direct Paths if:
         # - The media source supports direct paths.
         # - Direct paths are enabled in the config.
@@ -216,11 +215,9 @@ class Video(object):
                 log.warning("Preferred media source is unplayable.")
             return selected
 
-    def get_playback_url(
-        self, offset=0, video_bitrate=None, force_transcode=False, force_bitrate=False
-    ):
+    def get_playback_url(self, video_bitrate=None, force_transcode=False):
         """
-        Returns the URL to use for the trancoded file.
+        Returns the URL to use for the transcoded file.
         """
         self.terminate_transcode()
 
@@ -239,7 +236,7 @@ class Video(object):
 
         self.media_source = self.get_best_media_source(self.srcid)
         self.map_streams()
-        url = self._get_url_from_source(self.media_source)
+        url = self._get_url_from_source()
 
         # If there are more media sources and the default one fails, try all of them.
         if url is None and len(self.playback_info["MediaSources"]) > 1:
@@ -248,7 +245,7 @@ class Video(object):
                 if media_source["Id"] != self.srcid:
                     self.media_source = media_source
                     self.map_streams()
-                    url = self._get_url_from_source(self.media_source)
+                    url = self._get_url_from_source()
                     if url is not None:
                         break
 

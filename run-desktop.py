@@ -9,7 +9,7 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
     if getattr(sys, "frozen", False):
-        application_path = sys._MEIPASS
+        application_path = getattr(sys, "_MEIPASS")
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
     os.environ["PATH"] = application_path + os.pathsep + os.environ["PATH"]

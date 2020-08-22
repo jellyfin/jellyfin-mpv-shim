@@ -1,4 +1,3 @@
-import time
 from .clients import clientManager
 
 
@@ -7,7 +6,8 @@ class UserInterface(object):
         self.open_player_menu = lambda: None
         self.stop = lambda: None
 
-    def login_servers(self):
+    @staticmethod
+    def login_servers():
         clientManager.cli_connect()
 
     def start(self):
@@ -17,4 +17,4 @@ class UserInterface(object):
         pass
 
 
-userInterface = UserInterface()
+user_interface = UserInterface()

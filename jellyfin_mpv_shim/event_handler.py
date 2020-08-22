@@ -1,7 +1,6 @@
 import logging
 import os
 
-from .utils import plex_color_to_mpv
 from .conf import settings
 from .media import Media
 from .player import playerManager
@@ -41,9 +40,9 @@ class EventHandler(object):
             log.debug("Unhandled Event {0}: {1}".format(event_name, arguments))
 
     @bind("Play")
-    def play_media(self, client, event_name, arguments):
+    def play_media(self, client, _event_name, arguments):
         play_command = arguments.get("PlayCommand")
-        if not playerManager._video:
+        if not playerManager.has_video():
             play_command = "PlayNow"
 
         if play_command == "PlayNow":
@@ -70,22 +69,22 @@ class EventHandler(object):
                 if settings.pre_media_cmd:
                     os.system(settings.pre_media_cmd)
                 playerManager.play(video, offset)
-                timelineManager.SendTimeline()
+                timelineManager.send_timeline()
                 if arguments.get("SyncPlayGroup") is not None:
                     playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
         elif play_command == "PlayLast":
-            playerManager._video.parent.insert_items(
+            playerManager.get_video().parent.insert_items(
                 arguments.get("ItemIds"), append=True
             )
             playerManager.upd_player_hide()
         elif play_command == "PlayNext":
-            playerManager._video.parent.insert_items(
+            playerManager.get_video().parent.insert_items(
                 arguments.get("ItemIds"), append=False
             )
             playerManager.upd_player_hide()
 
     @bind("GeneralCommand")
-    def general_command(self, client, event_name, arguments):
+    def general_command(self, client, _event_name, arguments):
         command = arguments.get("Name")
         if command == "SetVolume":
             # There is currently a bug that causes this to be spammed, so we
@@ -100,7 +99,7 @@ class EventHandler(object):
             # If you have an idle command set, this will delay it.
             timelineManager.delay_idle()
             if self.mirror:
-                self.mirror.DisplayContent(client, arguments)
+                self.mirror.display_content(client, arguments)
         elif command in (
             "Back",
             "Select",
@@ -121,7 +120,7 @@ class EventHandler(object):
             playerManager.toggle_fullscreen()
 
     @bind("Playstate")
-    def play_state(self, client, event_name, arguments):
+    def play_state(self, _client, _event_name, arguments):
         command = arguments.get("Command")
         if command == "PlayPause":
             playerManager.toggle_pause()
@@ -141,17 +140,17 @@ class EventHandler(object):
             )
 
     @bind("PlayPause")
-    def pausePlay(self, client, event_name, arguments):
+    def pause_play(self, _client, _event_name, _arguments):
         playerManager.toggle_pause()
-        timelineManager.SendTimeline()
+        timelineManager.send_timeline()
 
     @bind("SyncPlayGroupUpdate")
-    def sync_play_group_update(self, client, event_name, arguments):
+    def sync_play_group_update(self, client, _event_name, arguments):
         playerManager.syncplay.client = client
         playerManager.syncplay.process_group_update(arguments)
 
     @bind("SyncPlayCommand")
-    def sync_play_command(self, client, event_name, arguments):
+    def sync_play_command(self, client, _event_name, arguments):
         playerManager.syncplay.client = client
         playerManager.syncplay.process_command(arguments)
 

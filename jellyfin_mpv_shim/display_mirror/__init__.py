@@ -15,13 +15,13 @@ import jinja2  # python3-jinja2 in Debian, Jinja2 in pypi
 # 2.3 has a webview_ready() function that blocks until webview is ready (or timeout is passed)
 import webview  # Python3-webview in Debian, pywebview in pypi
 
-from ..clients import clientManager
 from ..utils import get_text
 from ..i18n import _
 from . import helpers
 
-# This makes me rather uncomfortable, but there's no easy way around this other than importing display_mirror in helpers.
-# Lambda needed because the 2.3 version of the JS api adds an argument even when not used.
+# This makes me rather uncomfortable, but there's no easy way around this other than
+# importing display_mirror in helpers. Lambda needed because the 2.3 version of the JS
+# api adds an argument even when not used.
 helpers.on_escape = lambda _x=None: load_idle()
 
 
@@ -35,6 +35,7 @@ class DisplayMirror(object):
     def get_webview(self):
         return self.webview
 
+    # noinspection PyUnresolvedReferences
     def run(self):
         # Webview needs to be run in the MainThread.
 
@@ -56,15 +57,19 @@ class DisplayMirror(object):
             self.webview = window
 
             # 3.2's .loaded event runs every time a new DOM is loaded as well, so not suitable for this purpose
-            # However, 3.2's load_html waits for the DOM to be ready, so we can completely skip waiting for that ourselves.
+            # However, 3.2's load_html waits for the DOM to be ready, so we can completely skip
+            # waiting for that ourselves.
             threading.Thread(target=load_idle).start()
 
             webview.start()
 
     def stop(self):
-        webview.destroy_window()
+        if hasattr(webview, "destroy_window"):
+            getattr(webview, "destroy_window")()
+        else:
+            self.webview.destroy()
 
-    def DisplayContent(self, client, arguments):
+    def display_content(self, client, arguments):
         item = client.jellyfin.get_item(arguments["Arguments"]["ItemId"])
         html = get_html(server_address=client.config.data["auth.server"], item=item)
         self.display_window.load_html(html)
@@ -110,9 +115,7 @@ def get_html(server_address=None, item=None):
             ),  # FIME: Mention the player_name here
         }
 
-    jinja_vars.update(
-        {"jellyfin_css": get_text("display_mirror", "jellyfin.css"),}
-    )
+    jinja_vars.update({"jellyfin_css": get_text("display_mirror", "jellyfin.css")})
 
     try:
         tpl = jinja2.Template(get_text("display_mirror", "index.html"))

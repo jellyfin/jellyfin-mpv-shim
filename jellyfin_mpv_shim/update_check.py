@@ -14,8 +14,8 @@ one_day = 86400
 
 
 class UpdateChecker:
-    def __init__(self, playerManager):
-        self.playerManager = playerManager
+    def __init__(self, player_manager):
+        self.playerManager = player_manager
         self.has_notified = False
         self.new_version = None
         self.last_check = None
@@ -49,7 +49,7 @@ class UpdateChecker:
             if not self.has_notified and settings.notify_updates:
                 self.has_notified = True
                 log.info("Update Available: {0}".format(self.new_version))
-                self.playerManager._player.show_text(
+                self.playerManager.show_text(
                     _(
                         "MPV Shim v{0} Update Available\nOpen menu (press c) for details."
                     ).format(self.new_version),
@@ -58,7 +58,7 @@ class UpdateChecker:
                 )
 
     def open(self):
-        self.playerManager._player.command("set", "fullscreen", "no")
+        self.playerManager.set_fullscreen(False)
         try:
             webbrowser.open(release_url + "latest")
         except Exception:

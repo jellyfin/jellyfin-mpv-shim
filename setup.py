@@ -34,7 +34,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     extras_require={
-        "gui": ["pystray"],
+        "gui": ["pystray", "PIL"],
         "mirror": ["Jinja2", "pywebview>=3.3.1"],
         "desktop": ["Flask", "pywebview>=3.3.1", "Werkzeug"],
         "discord": ["pypresence"],

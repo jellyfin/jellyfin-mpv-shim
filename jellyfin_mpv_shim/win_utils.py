@@ -1,10 +1,11 @@
+# noinspection PyUnresolvedReferences,PyPackageRequirements
 import win32gui
 import logging
 
 log = logging.getLogger("win_utils")
 
 
-def windowEnumerationHandler(hwnd, top_windows):
+def window_enumeration_handler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
 
 
@@ -15,7 +16,7 @@ def raise_mpv():
     try:
         top_windows = []
         fg_win = win32gui.GetForegroundWindow()
-        win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+        win32gui.EnumWindows(window_enumeration_handler, top_windows)
         for i in top_windows:
             if " - mpv" in i[1].lower():
                 if i[0] != fg_win:
@@ -30,7 +31,7 @@ def raise_mpv():
 def mirror_act(state, name="Jellyfin MPV Shim Mirror"):
     try:
         top_windows = []
-        win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+        win32gui.EnumWindows(window_enumeration_handler, top_windows)
         for i in top_windows:
             if name in i[1]:
                 print(i)

@@ -21,12 +21,12 @@ seq_num_lock = Lock()
 
 class Timer(object):
     def __init__(self):
-        self.restart()
+        self.started = datetime.now()
 
     def restart(self):
         self.started = datetime.now()
 
-    def elapsedMs(self):
+    def elapsed_ms(self):
         return self.elapsed() * 1e3
 
     def elapsed(self):
@@ -222,7 +222,7 @@ def get_resource(*path):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
     if getattr(sys, "_MEIPASS", False):
-        application_path = os.path.join(sys._MEIPASS, "jellyfin_mpv_shim")
+        application_path = os.path.join(getattr(sys, "_MEIPASS"), "jellyfin_mpv_shim")
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 

@@ -14,7 +14,7 @@ def list_request(path):
     try:
         response = urllib.request.urlopen(settings.svp_url + "?" + path)
         return response.read().decode("utf-8").replace("\r\n", "\n").split("\n")
-    except urllib.error.URLError as ex:
+    except urllib.error.URLError:
         log.error("Could not reach SVP API server.", exc_info=True)
         return None
 
@@ -99,7 +99,7 @@ def set_disabled(disabled):
 
 
 class SVPManager:
-    def __init__(self, menu, playerManager):
+    def __init__(self, menu, player_manager):
         self.menu = menu
 
         if settings.svp_enable:
@@ -113,14 +113,15 @@ class SVPManager:
                     socket = "/tmp/mpvsocket"
 
             # This actually *adds* another ipc server.
-            playerManager._player.input_ipc_server = socket
+            player_manager.add_ipc(socket)
 
         if settings.svp_enable and not is_svp_alive():
             log.error(
                 "SVP is not reachable. Please make sure you have the API enabled."
             )
 
-    def is_available(self):
+    @staticmethod
+    def is_available():
         if not settings.svp_enable:
             return False
         if not is_svp_alive():

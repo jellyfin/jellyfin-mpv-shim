@@ -1,13 +1,12 @@
 import logging
 import threading
-import time
 import os
 
 import jellyfin_apiclient_python.exceptions
 
 from .conf import settings
 from .player import playerManager
-from .utils import Timer, mpv_color_to_plex
+from .utils import Timer
 
 log = logging.getLogger("timeline")
 
@@ -27,19 +26,16 @@ class TimelineManager(threading.Thread):
 
     def run(self):
         while not self.halt:
-            if (
-                playerManager._player
-                and playerManager._video
-                and (not settings.idle_when_paused or not playerManager.is_paused())
+            if playerManager.is_active() and (
+                not settings.idle_when_paused or not playerManager.is_paused()
             ):
-                self.SendTimeline()
+                self.send_timeline()
                 self.delay_idle()
-            force_next = False
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
                 if (
                     settings.idle_when_paused
                     and settings.stop_idle
-                    and playerManager._video
+                    and playerManager.has_video()
                 ):
                     playerManager.stop()
                 if settings.idle_cmd:
@@ -52,7 +48,8 @@ class TimelineManager(threading.Thread):
         self.idleTimer.restart()
         self.is_idle = False
 
-    def SendTimeline(self):
+    @staticmethod
+    def send_timeline():
         try:
             # Send_timeline sometimes (once every couple hours) gets a 404 response from Jellyfin.
             # Without this try/except that would cause this entire thread to crash keeping it from self-healing.

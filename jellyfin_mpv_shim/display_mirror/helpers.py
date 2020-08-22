@@ -5,9 +5,11 @@ import math
 from ..clients import clientManager
 
 # This started as a copy of some useful functions from jellyfin-chromecast's helpers.js and translated them to Python.
-# Only reason their not put straight into __init__.py is to keep the same logical separation that jellyfin-chromecast has.
+# Only reason their not put straight into __init__.py is to keep the same logical separation that
+# jellyfin-chromecast has.
 #
-# I've since added some extra functions, and completely reworked some of the old ones such that it's not directly compatible.
+# I've since added some extra functions, and completely reworked some of the old ones such that it's
+# not directly compatible.
 #
 # Should this stuff be in jellyfin_apiclient_python instead?
 # Is this stuff in there already?
@@ -15,6 +17,7 @@ from ..clients import clientManager
 # FIXME: A lot of this could be done so much better with format-strings
 
 
+# noinspection PyPep8Naming,PyPep8Naming
 def getUrl(serverAddress, name):
 
     if not name:
@@ -27,6 +30,7 @@ def getUrl(serverAddress, name):
     return url
 
 
+# noinspection PyPep8Naming,PyPep8Naming
 def getBackdropUrl(item, serverAddress):
     if item.get("BackdropImageTags"):
         return getUrl(
@@ -48,6 +52,7 @@ def getBackdropUrl(item, serverAddress):
         return None
 
 
+# noinspection PyPep8Naming,PyPep8Naming
 def getLogoUrl(item, serverAddress):
     if item.get("ImageTags", {}).get("Logo", None):
         return getUrl(
@@ -66,6 +71,7 @@ def getLogoUrl(item, serverAddress):
         return None
 
 
+# noinspection PyPep8Naming,PyPep8Naming
 def getPrimaryImageUrl(item, serverAddress):
     if item.get("AlbumPrimaryImageTag"):
         return getUrl(
@@ -92,6 +98,7 @@ def getPrimaryImageUrl(item, serverAddress):
         return None
 
 
+# noinspection PyPep8Naming
 def getDisplayName(item):
     name = item.get("EpisodeTitle", item.get("Name"))
 
@@ -114,6 +121,7 @@ def getDisplayName(item):
     return name
 
 
+# noinspection PyPep8Naming
 def getRatingHtml(item):
     html = ""
 
@@ -156,6 +164,7 @@ def __convert_jf_str_datetime(jf_string):
     return datetime.datetime.strptime(jf_string.partition(".")[0], "%Y-%m-%dT%H:%M:%S")
 
 
+# noinspection PyPep8Naming,PyPep8Naming,PyPep8Naming
 def getMiscInfoHtml(item):
     # FIXME: Flake8 is complaining this function is too complex.
     #        I agree, this needs to be cleaned up, a lot.
@@ -172,7 +181,7 @@ def getMiscInfoHtml(item):
     if item.get("StartDate"):
         date = __convert_jf_str_datetime(item["StartDate"])
         text = date.strftime("%x")
-        miscInfo.push(text)
+        miscInfo.append(text)
 
         if item["Type"] != "Recording":
             pass
@@ -201,7 +210,7 @@ def getMiscInfoHtml(item):
         if item["Type"] == "Audio":
             # FIXME
             raise Exception("Haven't translated this to Python yet")
-            miscInfo.append(datetime.getDisplayRunningTime(item["RunTimeTicks"]))
+            # miscInfo.append(datetime.getDisplayRunningTime(item["RunTimeTicks"]))
         else:
             # Using math.ceil instead of round because I want the minutes rounded *up* specifically,
             # mostly because '1min' makes more sense than '0min' for a 1-59sec clip
@@ -222,9 +231,11 @@ def getMiscInfoHtml(item):
     return "&nbsp;&nbsp;&nbsp;&nbsp;".join(miscInfo)
 
 
-# For some reason the webview 2.3 js api will send a positional argument of None when there are no arguments being passed in.
-# This really long argument name is here to catch that and hopefully not eat other intentional arguments.
-def getRandomBackdropUrl(positional_arg_that_is_never_used=None, **params):
+# For some reason the webview 2.3 js api will send a positional argument of None when there are no
+# arguments being passed in. This really long argument name is here to catch that and hopefully not
+# eat other intentional arguments.
+# noinspection PyPep8Naming
+def getRandomBackdropUrl(_positional_arg_that_is_never_used=None, **params):
     # This function is to get 1 random item, so ignore those arguments
     params["SortBy"] = "Random"
     params["Limit"] = 1

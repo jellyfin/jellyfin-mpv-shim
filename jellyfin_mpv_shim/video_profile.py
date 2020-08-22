@@ -7,7 +7,6 @@ import logging
 import os.path
 import shutil
 import json
-import time
 
 profile_name_translation = {
     "Generic (FSRCNNX)": _("Generic (FSRCNNX)"),
@@ -34,17 +33,16 @@ class MPVSettingError(Exception):
 
 
 class VideoProfileManager:
-    def __init__(self, menu, playerManager):
+    def __init__(self, menu, player_manager, player):
         self.menu = menu
-        self.playerManager = playerManager
+        self.playerManager = player_manager
         self.used_settings = set()
         self.current_profile = None
+        self.player = player
 
-        self.load_shader_pack()
-
-    def load_shader_pack(self):
         shader_pack_builtin = get_resource("default_shader_pack")
 
+        # Load shader pack
         self.shader_pack = shader_pack_builtin
         if settings.shader_pack_custom:
             self.shader_pack = conffile.get(APP_NAME, "shader_pack")
@@ -71,7 +69,7 @@ class VideoProfileManager:
                 if key in self.defaults or key in self.revert_ignore:
                     continue
                 try:
-                    self.defaults[key] = getattr(self.playerManager._player, key)
+                    self.defaults[key] = getattr(self.player, key)
                 except Exception:
                     log.warning(
                         "Your MPV does not support setting {0} used in shader pack.".format(
@@ -123,25 +121,25 @@ class VideoProfileManager:
                 if (key, value) in already_set:
                     continue
                 log.debug("Set MPV setting {0} to {1}".format(key, value))
-                setattr(self.playerManager._player, key, value)
+                setattr(self.player, key, value)
                 already_set.add((key, value))
 
             # Apply Shaders
             log.debug("Set shaders: {0}".format(shaders_to_apply))
-            self.playerManager._player.glsl_shaders = shaders_to_apply
+            self.player.glsl_shaders = shaders_to_apply
             self.current_profile = profile_name
             return True
-        except MPVSettingError as ex:
+        except MPVSettingError:
             log.error("Could not apply shader profile.", exc_info=True)
             return False
 
     def unload_profile(self):
         log.info("Unloading shader profile.")
-        self.playerManager._player.glsl_shaders = []
+        self.player.glsl_shaders = []
         for setting in self.used_settings:
             value = self.defaults[setting]
             try:
-                setattr(self.playerManager._player, setting, value)
+                setattr(self.player, setting, value)
             except Exception:
                 log.warning(
                     "Default setting {0} value {1} is invalid.".format(setting, value)
