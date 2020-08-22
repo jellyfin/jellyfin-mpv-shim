@@ -27,7 +27,7 @@ function get_resource_version {
 current_version=$(get_resource_version jellyfin-mpv-shim)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
-setup_version=$(grep 'version=' setup.py | cut -d "'" -f 2)
+setup_version=$(grep 'version=' setup.py | cut -d '"' -f 2)
 iss_version=$(grep '^#define MyAppVersion' "Jellyfin MPV Desktop.iss" | cut -d '"' -f 2)
 appdata_version=$(grep 'release version="' jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml | \
     head -n 1 | cut -d '"' -f 2)
