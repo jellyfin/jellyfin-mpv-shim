@@ -1,5 +1,11 @@
 # Jellyfin MPV Shim
 
+[![Current Release](https://img.shields.io/github/release/iwalton3/jellyfin-mpv-shim.svg)](https://github.com/iwalton3/jellyfin-mpv-shim/releases)
+[![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
+[![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
+[![Build Status](https://dev.azure.com/iwalton3/jellyfin-mpv-shim/_apis/build/status/iwalton3.jellyfin-mpv-shim?branchName=master)](https://dev.azure.com/iwalton3/jellyfin-mpv-shim/_build/latest?definitionId=1&branchName=master)
+[![Code Stype](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Jellyfin MPV Shim is a fully featured, cross-platform desktop and cast client for Jellyfin.
 It has support for all your advanced media files without transcoding, as well as tons of
 features which set it apart from other multimedia clients:
@@ -18,8 +24,6 @@ features which set it apart from other multimedia clients:
  - You can [trigger commands to run](https://github.com/iwalton3/jellyfin-mpv-shim#shell-command-triggers) when certain events happen.
 
 To learn more, keep reading. This README explains everything, including [configuration](https://github.com/iwalton3/jellyfin-mpv-shim#configuration), [tips & tricks](https://github.com/iwalton3/jellyfin-mpv-shim#tips-and-tricks), and [development information](https://github.com/iwalton3/jellyfin-mpv-shim#development).
-
-You can help translate MPV Shim into your native language on [Jellyfin's Weblate instance](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)!
 
 ## Getting Started
 
