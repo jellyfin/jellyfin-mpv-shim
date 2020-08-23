@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-20 12:24+0000\n"
-"Last-Translator: Moritz <moritz.leick@googlemail.com>\n"
+"PO-Revision-Date: 2020-08-23 17:45+0000\n"
+"Last-Translator: Max Rumpf <max.rumpf1998@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
 "Language: de\n"
@@ -360,7 +360,7 @@ msgstr "Transkodiere Hi10p zu 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Direkte Pfade"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
@@ -384,12 +384,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Verwende Spul-Einstellungen vom Web"
 
 #: jellyfin_mpv_shim/menu.py:427
-#, fuzzy
 msgid "Display Mirroring"
-msgstr "Display Mirroring"
+msgstr "Displayspiegelung"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
