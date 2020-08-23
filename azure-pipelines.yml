@@ -63,9 +63,21 @@ steps:
   displayName: Main Build
 - bash: ./artifacts.sh standard
   displayName: Main Artifact Rename
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.7'  
+    architecture: 'x86'
+- script: pip install .[all] pywebview[cef]==3.3.3
+  displayName: PIP Dependencies x86
+- bash: SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32
+  displayName: Pydantic w/o CYTHON x86
+- bash: cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+  displayName: PyInstaller Bootloader x86
 - script: build-win-32.bat
   displayName: Legacy Build
 - bash: ./artifacts.sh legacy
   displayName: Legacy Artifact Rename
+
 - publish: publish
   artifact: WindowsBuild
