@@ -51,9 +51,9 @@ steps:
 # Looks like innosetup is installed by default?
 #- script: choco install innosetup
 #  displayName: Install InnoSetup
-- script: pip install .[all] pywebview[cef]==3.3.3
+- script: pip install .[all] pywebview[cef]==3.3.3 pywin32
   displayName: PIP Dependencies
-- bash: SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32
+- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic'
   displayName: Pydantic w/o CYTHON
 - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader
@@ -66,11 +66,11 @@ steps:
 
 - task: UsePythonVersion@0
   inputs:
-    versionSpec: '3.7'  
+    versionSpec: '3.7'
     architecture: 'x86'
-- script: pip install .[all] pywebview[cef]==3.3.3
+- script: pip install .[all] pywebview[cef]==3.3.3 pywin32
   displayName: PIP Dependencies x86
-- bash: SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32
+- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic'
   displayName: Pydantic w/o CYTHON x86
 - bash: cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader x86
