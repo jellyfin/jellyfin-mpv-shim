@@ -61,3 +61,11 @@ steps:
   displayName: gen_pkg (Languages & Subrepos)
 - script: build-win.bat
   displayName: Main Build
+- bash: ./artifacts.sh standard
+  displayName: Main Artifact Rename
+- script: build-win-32.bat
+  displayName: Legacy Build
+- bash: ./artifacts.sh legacy
+  displayName: Legacy Artifact Rename
+- publish: publish
+  artifact: WindowsBuild
