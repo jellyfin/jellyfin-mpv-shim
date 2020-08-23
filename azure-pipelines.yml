@@ -53,7 +53,7 @@ steps:
 #  displayName: Install InnoSetup
 - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
   displayName: PIP Dependencies
-- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic'
+- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
   displayName: Pydantic w/o CYTHON
 - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader
@@ -70,7 +70,7 @@ steps:
     architecture: 'x86'
 - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
   displayName: PIP Dependencies x86
-- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic'
+- bash: 'SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
   displayName: Pydantic w/o CYTHON x86
 - bash: cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader x86
