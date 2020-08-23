@@ -79,5 +79,9 @@ steps:
 - bash: ./artifacts.sh legacy
   displayName: Legacy Artifact Rename
 
-- publish: publish
-  artifact: WindowsBuild
+- publish: publish/Shim
+  artifact: ShimPortable
+- publish: publish/DesktopInstaller
+  artifact: DesktopInstaller
+- publish: publish/DesktopInstallerLegacy
+  artifact: DesktopInstallerLegacy
