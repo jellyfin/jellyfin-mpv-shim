@@ -52,7 +52,7 @@ steps:
   displayName: Install InnoSetup
 - script: pip install .[all] pywebview[cef]==3.3.3
   displayName: PIP Dependencies
-- bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python3 ./waf distclean all; cd ..; python3 setup.py install
+- bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader
 - bash: ./gen_pkg.sh --skip-build
   displayName: gen_pkg (Languages & Subrepos)
