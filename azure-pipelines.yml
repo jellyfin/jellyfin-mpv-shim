@@ -31,7 +31,7 @@ steps:
     cacheHitVar: CACHE_RESTORED
   displayName: Cache binary dependencies
 # This is downloading all of that stuff you normally have to
-# get and extact by hand in the build documentation.
+# get and extract by hand in the build documentation.
 - bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
   condition: ne(variables.CACHE_RESTORED, 'true')
   displayName: Download Binary Dependencies
@@ -48,10 +48,13 @@ steps:
     Contents: '**'
     TargetFolder: '.'
   displayName: Copy Binary Dependencies
-- script: choco install innosetup
-  displayName: Install InnoSetup
+# Looks like innosetup is installed by default?
+#- script: choco install innosetup
+#  displayName: Install InnoSetup
 - script: pip install .[all] pywebview[cef]==3.3.3
   displayName: PIP Dependencies
+- bash: SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32
+  displayName: Pydantic w/o CYTHON
 - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader
 - bash: ./gen_pkg.sh --skip-build
