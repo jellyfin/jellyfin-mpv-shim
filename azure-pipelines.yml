@@ -18,7 +18,7 @@ steps:
     versionSpec: '3.7'
 - task: Cache@2
   inputs:
-    key: 'python | "$(Agent.OS)" | requirements.txt'
+    key: 'python | "$(Agent.OS)" | setup.py'
     restoreKeys: | 
       python | "$(Agent.OS)"
       python
@@ -26,13 +26,13 @@ steps:
   displayName: Cache pip packages
 - task: Cache@2
   inputs:
-    key: 'bindep 2020-08-22'
+    key: '"bindep 2020-08-22" | "$(Agent.OS)"'
     path: bindep
     cacheHitVar: CACHE_RESTORED
   displayName: Cache binary dependencies
 # This is downloading all of that stuff you normally have to
 # get and extact by hand in the build documentation.
-- bash: wget https://iwalton.com/ushare/mpv-shim-deps.7z
+- bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
   condition: ne(variables.CACHE_RESTORED, 'true')
   displayName: Download Binary Dependencies
 - task: ExtractFiles@1
@@ -50,7 +50,7 @@ steps:
   displayName: Copy Binary Dependencies
 - script: choco install innosetup
   displayName: Install InnoSetup
-- script: pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview[cef] python-mpv-jsonipc Flask Werkzeug pypresence pydantic
+- script: pip install .[all] pywebview[cef]==3.3.3
   displayName: PIP Dependencies
 - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python3 ./waf distclean all; cd ..; python3 setup.py install
   displayName: PyInstaller Bootloader
