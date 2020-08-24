@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-23 17:45+0000\n"
-"Last-Translator: Max Rumpf <max.rumpf1998@gmail.com>\n"
+"PO-Revision-Date: 2020-08-24 11:25+0000\n"
+"Last-Translator: ryperx <ryperx@gmx.net>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
 "Language: de\n"
@@ -44,7 +44,7 @@ msgstr "Manuell: {0} ok, {1} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "Derzeitige Einstellung..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
@@ -372,15 +372,15 @@ msgstr "Deaktiviere Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr "Auto Play"
+msgstr "Automatisch Abspielen"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr "Auto Vollbild"
+msgstr "Automatisch Vollbild"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Medien Spultaste"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
@@ -450,7 +450,7 @@ msgstr "Aktiviere SVP"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
-msgstr "Die angegebene SyncPlay-Gruppe ist nicht vorhanden."
+msgstr "Die spezifizierte SyncPlay Gruppe existiert nicht."
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
@@ -462,11 +462,11 @@ msgstr "SyncPlay Gruppenzutritt wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:19
 msgid "Access to the SyncPlay library was denied."
-msgstr "Zutritt zur SyncPlay Bibliothek wurde verweigert."
+msgstr "Zugriff zur SyncPlay Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
@@ -474,7 +474,7 @@ msgstr "Sync deaktiviert (Zu viele Versuche)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
