@@ -893,10 +893,12 @@ class PlayerManager(object):
             if settings.fullscreen:
                 self._player.fs = True
         else:
-            self._player.force_window = False
             self._player.keep_open = False
             if self._player.playback_abort:
+                self._player.force_window = False
                 self._player.play("")
+            else:
+                self.upd_player_hide()
 
     def add_ipc(self, ipc_name: str):
         self._player.input_ipc_server = ipc_name
