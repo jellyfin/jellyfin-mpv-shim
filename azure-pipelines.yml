@@ -7,7 +7,7 @@ trigger:
 - master
 
 jobs:
-- job: Main Windows Build
+- job: MainWindows
   pool:
     vmImage: 'vs2017-win2016'
   variables:
@@ -73,7 +73,7 @@ jobs:
   - publish: publish/DesktopInstaller
     artifact: DesktopInstaller
 
-- job: Legacy Windows Build
+- job: LegacyWindows
   pool:
     vmImage: 'vs2017-win2016'
   variables:
