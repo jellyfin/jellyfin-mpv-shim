@@ -10,11 +10,30 @@
 cd "$(dirname "$0")"
 
 function download_compat {
+    if [[ "$AZ_CACHE" != "" ]]
+    then
+        download_id=$(echo "$2" | md5sum | sed 's/ .*//g')
+        if [[ -e "$AZ_CACHE/$3/$download_id" ]]
+        then
+            echo "Cache hit: $AZ_CACHE/$3/$download_id"
+            cp "$AZ_CACHE/$3/$download_id" "$1"
+            return
+        elif [[ "$3" != "" ]]
+        then
+            rm -r "$AZ_CACHE/$3" 2> /dev/null
+        fi
+    fi
     if [[ "$(which wget 2>/dev/null)" != "" ]]
     then
         wget -qO "$1" "$2"
     else [[ "$(which curl)" != "" ]]
         curl -sL "$2" > "$1"
+    fi
+    if [[ "$AZ_CACHE" != "" ]]
+    then
+        echo "Saving to: $AZ_CACHE/$3/$download_id"
+        mkdir -p "$AZ_CACHE/$3/"
+        cp "$1" "$AZ_CACHE/$3/$download_id"
     fi
 }
 
@@ -68,7 +87,7 @@ if [[ "$update_web_client" == "yes" ]]
 then
     echo "Downloading web client..."
     wc_version=$(get_resource_version jellyfin-web)
-    download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip"
+    download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip" "wc"
     rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
     rm -r dist 2> /dev/null
     unzip dist.zip > /dev/null && rm dist.zip
@@ -93,7 +112,7 @@ if [[ "$update_shader_pack" == "yes" ]]
 then
     echo "Downloading shaders..."
     sp_version=$(get_resource_version default-shader-pack)
-    download_compat release.zip "https://github.com/iwalton3/default-shader-pack/archive/$sp_version.zip"
+    download_compat release.zip "https://github.com/iwalton3/default-shader-pack/archive/$sp_version.zip" "sp"
     rm -r jellyfin_mpv_shim/default_shader_pack 2> /dev/null
     (
         mkdir default_shader_pack
