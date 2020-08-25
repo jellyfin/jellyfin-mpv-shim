@@ -27,6 +27,8 @@ jobs:
   - task: Cache@2
     inputs:
       key: '"bindep 2020-08-22" | "$(Agent.OS)"'
+      restoreKeys: | 
+        "bindep 2020-08-22"
       path: bindep
       cacheHitVar: CACHE_RESTORED
     displayName: Cache binary dependencies
@@ -34,7 +36,9 @@ jobs:
     displayName: gen_pkg fingerprint
   - task: Cache@2
     inputs:
-      key: 'az-cache-fingerprint.list | "$(Agent.OS)"'
+      key: 'az-cache | az-cache-fingerprint.list'
+      restoreKeys: | 
+        az-cache
       path: az_cache
     displayName: Cache gen_pkg
 
@@ -96,6 +100,8 @@ jobs:
   - task: Cache@2
     inputs:
       key: '"bindep 2020-08-22" | "$(Agent.OS)"'
+      restoreKeys: | 
+        "bindep 2020-08-22"
       path: bindep
       cacheHitVar: CACHE_RESTORED
     displayName: Cache binary dependencies
@@ -103,7 +109,9 @@ jobs:
     displayName: gen_pkg fingerprint
   - task: Cache@2
     inputs:
-      key: 'az-cache-fingerprint.list | "$(Agent.OS)"'
+      key: 'az-cache | az-cache-fingerprint.list'
+      restoreKeys: | 
+        az-cache
       path: az_cache
     displayName: Cache gen_pkg
 
