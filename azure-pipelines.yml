@@ -6,88 +6,132 @@
 trigger:
 - master
 
-variables:
-  PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+jobs:
+- job: Main Windows Build
+  pool:
+    vmImage: 'vs2017-win2016'
+  variables:
+    PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+  - task: Cache@2
+    inputs:
+      key: 'python | "$(Agent.OS)" | setup.py'
+      restoreKeys: | 
+        python | "$(Agent.OS)"
+        python
+      path: $(PIP_CACHE_DIR)
+    displayName: Cache pip packages
+  - task: Cache@2
+    inputs:
+      key: '"bindep 2020-08-22" | "$(Agent.OS)"'
+      path: bindep
+      cacheHitVar: CACHE_RESTORED
+    displayName: Cache binary dependencies
+  - task: Cache@2
+    inputs:
+      key: '"az_cache 2020-08-24" | "$(Agent.OS)"'
+      path: az_cache
+    displayName: Cache gen_pkg
 
-pool:
-  vmImage: 'vs2017-win2016'
+  # This is downloading all of that stuff you normally have to
+  # get and extract by hand in the build documentation.
+  - bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
+    condition: ne(variables.CACHE_RESTORED, 'true')
+    displayName: Download Binary Dependencies
+  - task: ExtractFiles@1
+    inputs:
+      archiveFilePatterns: '*.7z'
+      destinationFolder: 'bindep'
+      cleanDestinationFolder: true
+    condition: ne(variables.CACHE_RESTORED, 'true')
+    displayName: Extract Binary Dependencies
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: 'bindep'
+      Contents: '**'
+      TargetFolder: '.'
+    displayName: Copy Binary Dependencies
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.7'
-- task: Cache@2
-  inputs:
-    key: 'python | "$(Agent.OS)" | setup.py'
-    restoreKeys: | 
-      python | "$(Agent.OS)"
-      python
-    path: $(PIP_CACHE_DIR)
-  displayName: Cache pip packages
-- task: Cache@2
-  inputs:
-    key: '"bindep 2020-08-22" | "$(Agent.OS)"'
-    path: bindep
-    cacheHitVar: CACHE_RESTORED
-  displayName: Cache binary dependencies
-- task: Cache@2
-  inputs:
-    key: '"az_cache 2020-08-22" | "$(Agent.OS)"'
-    path: az_cache
-    cacheHitVar: CACHE_RESTORED
-  displayName: Cache gen_pkg
-# This is downloading all of that stuff you normally have to
-# get and extract by hand in the build documentation.
-- bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
-  condition: ne(variables.CACHE_RESTORED, 'true')
-  displayName: Download Binary Dependencies
-- task: ExtractFiles@1
-  inputs:
-    archiveFilePatterns: '*.7z'
-    destinationFolder: 'bindep'
-    cleanDestinationFolder: true
-  condition: ne(variables.CACHE_RESTORED, 'true')
-  displayName: Extract Binary Dependencies
-- task: CopyFiles@2
-  inputs:
-    SourceFolder: 'bindep'
-    Contents: '**'
-    TargetFolder: '.'
-  displayName: Copy Binary Dependencies
-# Looks like innosetup is installed by default?
-#- script: choco install innosetup
-#  displayName: Install InnoSetup
-- script: pip install .[all] pywebview[cef]==3.3.3 pywin32
-  displayName: PIP Dependencies
-- bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
-  displayName: Pydantic w/o CYTHON
-- bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
-  displayName: PyInstaller Bootloader
-- bash: AZ_CACHE=az_cache ./gen_pkg.sh --skip-build
-  displayName: gen_pkg (Languages & Subrepos)
-- script: build-win.bat
-  displayName: Main Build
-- bash: ./artifacts.sh standard
-  displayName: Main Artifact Rename
+  - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
+    displayName: PIP Dependencies
+  - bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
+    displayName: Pydantic w/o CYTHON
+  - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+    displayName: PyInstaller Bootloader
+  - bash: AZ_CACHE=az_cache ./gen_pkg.sh --skip-build
+    displayName: gen_pkg (Languages & Subrepos)
+  - script: build-win.bat
+    displayName: Main Build
+  - bash: ./artifacts.sh standard
+    displayName: Main Artifact Rename
 
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.7'
-    architecture: 'x86'
-- script: pip install .[all] pywebview[cef]==3.3.3 pywin32
-  displayName: PIP Dependencies x86
-- bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
-  displayName: Pydantic w/o CYTHON x86
-- bash: cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
-  displayName: PyInstaller Bootloader x86
-- script: build-win-32.bat
-  displayName: Legacy Build
-- bash: ./artifacts.sh legacy
-  displayName: Legacy Artifact Rename
+  - publish: publish/Shim
+    artifact: ShimPortable
+  - publish: publish/DesktopInstaller
+    artifact: DesktopInstaller
 
-- publish: publish/Shim
-  artifact: ShimPortable
-- publish: publish/DesktopInstaller
-  artifact: DesktopInstaller
-- publish: publish/DesktopInstallerLegacy
-  artifact: DesktopInstallerLegacy
+- job: Legacy Windows Build
+  pool:
+    vmImage: 'vs2017-win2016'
+  variables:
+    PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      architecture: 'x86'
+  - task: Cache@2
+    inputs:
+      key: 'python | "$(Agent.OS)" | setup.py'
+      restoreKeys: | 
+        python | "$(Agent.OS)"
+        python
+      path: $(PIP_CACHE_DIR)
+    displayName: Cache pip packages
+  - task: Cache@2
+    inputs:
+      key: '"bindep 2020-08-22" | "$(Agent.OS)"'
+      path: bindep
+      cacheHitVar: CACHE_RESTORED
+    displayName: Cache binary dependencies
+  - task: Cache@2
+    inputs:
+      key: '"az_cache 2020-08-24" | "$(Agent.OS)"'
+      path: az_cache
+    displayName: Cache gen_pkg
+
+  # This is downloading all of that stuff you normally have to
+  # get and extract by hand in the build documentation.
+  - bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
+    condition: ne(variables.CACHE_RESTORED, 'true')
+    displayName: Download Binary Dependencies
+  - task: ExtractFiles@1
+    inputs:
+      archiveFilePatterns: '*.7z'
+      destinationFolder: 'bindep'
+      cleanDestinationFolder: true
+    condition: ne(variables.CACHE_RESTORED, 'true')
+    displayName: Extract Binary Dependencies
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: 'bindep'
+      Contents: '**'
+      TargetFolder: '.'
+    displayName: Copy Binary Dependencies
+
+  - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
+    displayName: PIP Dependencies x86
+  - bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
+    displayName: Pydantic w/o CYTHON x86
+  - bash: cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+    displayName: PyInstaller Bootloader x86
+  - script: build-win-32.bat
+    displayName: Legacy Build
+  - bash: ./artifacts.sh legacy
+    displayName: Legacy Artifact Rename
+
+  - publish: publish/DesktopInstallerLegacy
+    artifact: DesktopInstallerLegacy
