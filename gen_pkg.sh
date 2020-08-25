@@ -38,12 +38,27 @@ function download_compat {
 }
 
 function get_resource_version {
-    curl -s --head https://github.com/iwalton3/"$1"/releases/latest | \
+    curl -s --head https://github.com/"$1"/releases/latest | \
         grep -i '^location: ' | sed 's/.*tag\///g' | tr -d '\r'
 }
 
+if [[ "$1" == "--get-pyinstaller" ]]
+then
+    echo "Downloading pyinstaller..."
+    pi_version=$(get_resource_version pyinstaller/pyinstaller)
+    download_compat release.zip "https://github.com/pyinstaller/pyinstaller/archive/$pi_version.zip" "pi"
+    (
+        mkdir pyinstaller
+        cd pyinstaller
+        unzip ../release.zip > /dev/null && rm ../release.zip
+        mv pyinstaller-*/* ./
+        rm -r pyinstaller-*
+    )
+    exit 0
+fi
+
 # Verify versioning
-current_version=$(get_resource_version jellyfin-mpv-shim)
+current_version=$(get_resource_version iwalton3/jellyfin-mpv-shim)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
 setup_version=$(grep 'version=' setup.py | cut -d '"' -f 2)
@@ -77,7 +92,7 @@ then
     update_web_client="yes"
 elif [[ -e ".last_wc_version" ]]
 then
-    if [[ "$(get_resource_version jellyfin-web)" != "$(cat .last_wc_version)" ]]
+    if [[ "$(get_resource_version iwalton3/jellyfin-web)" != "$(cat .last_wc_version)" ]]
     then
         update_web_client="yes"
     fi
@@ -86,7 +101,7 @@ fi
 if [[ "$update_web_client" == "yes" ]]
 then
     echo "Downloading web client..."
-    wc_version=$(get_resource_version jellyfin-web)
+    wc_version=$(get_resource_version iwalton3/jellyfin-web)
     download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip" "wc"
     rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
     rm -r dist 2> /dev/null
@@ -102,7 +117,7 @@ then
     update_shader_pack="yes"
 elif [[ -e ".last_sp_version" ]]
 then
-    if [[ "$(get_resource_version default-shader-pack)" != "$(cat .last_sp_version)" ]]
+    if [[ "$(get_resource_version iwalton3/default-shader-pack)" != "$(cat .last_sp_version)" ]]
     then
         update_shader_pack="yes"
     fi
@@ -111,7 +126,7 @@ fi
 if [[ "$update_shader_pack" == "yes" ]]
 then
     echo "Downloading shaders..."
-    sp_version=$(get_resource_version default-shader-pack)
+    sp_version=$(get_resource_version iwalton3/default-shader-pack)
     download_compat release.zip "https://github.com/iwalton3/default-shader-pack/archive/$sp_version.zip" "sp"
     rm -r jellyfin_mpv_shim/default_shader_pack 2> /dev/null
     (
