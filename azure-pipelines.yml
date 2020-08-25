@@ -34,7 +34,7 @@ jobs:
     displayName: gen_pkg fingerprint
   - task: Cache@2
     inputs:
-      key: 'az-cache-fingerprint | "$(Agent.OS)"'
+      key: 'az-cache-fingerprint.list | "$(Agent.OS)"'
       path: az_cache
     displayName: Cache gen_pkg
 
@@ -103,7 +103,7 @@ jobs:
     displayName: gen_pkg fingerprint
   - task: Cache@2
     inputs:
-      key: 'az-cache-fingerprint | "$(Agent.OS)"'
+      key: 'az-cache-fingerprint.list | "$(Agent.OS)"'
       path: az_cache
     displayName: Cache gen_pkg
 

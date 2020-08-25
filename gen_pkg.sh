@@ -61,7 +61,7 @@ then
         get_resource_version pyinstaller/pyinstaller
         get_resource_version iwalton3/jellyfin-web
         get_resource_version iwalton3/default-shader-pack
-    ) | tee az-cache-fingerprint
+    ) | tee az-cache-fingerprint.list
     exit 0
 fi
 
