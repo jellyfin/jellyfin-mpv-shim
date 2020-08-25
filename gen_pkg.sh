@@ -55,6 +55,14 @@ then
         rm -r pyinstaller-*
     )
     exit 0
+elif [[ "$1" == "--gen-fingerprint" ]]
+then
+    (
+        get_resource_version pyinstaller/pyinstaller
+        get_resource_version iwalton3/jellyfin-web
+        get_resource_version iwalton3/default-shader-pack
+    ) | tee az-cache-fingerprint
+    exit 0
 fi
 
 # Verify versioning
