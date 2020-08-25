@@ -30,6 +30,12 @@ steps:
     path: bindep
     cacheHitVar: CACHE_RESTORED
   displayName: Cache binary dependencies
+- task: Cache@2
+  inputs:
+    key: '"az_cache 2020-08-22" | "$(Agent.OS)"'
+    path: az_cache
+    cacheHitVar: CACHE_RESTORED
+  displayName: Cache gen_pkg
 # This is downloading all of that stuff you normally have to
 # get and extract by hand in the build documentation.
 - bash: curl https://iwalton.com/ushare/mpv-shim-deps.7z > mpv-shim-deps.7z
@@ -57,7 +63,7 @@ steps:
   displayName: Pydantic w/o CYTHON
 - bash: git clone https://github.com/pyinstaller/pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
   displayName: PyInstaller Bootloader
-- bash: ./gen_pkg.sh --skip-build
+- bash: AZ_CACHE=az_cache ./gen_pkg.sh --skip-build
   displayName: gen_pkg (Languages & Subrepos)
 - script: build-win.bat
   displayName: Main Build
