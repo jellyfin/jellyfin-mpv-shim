@@ -365,6 +365,9 @@ class PlayerManager(object):
                 if len(args) == 0:
                     return
                 if args[0] == "shim-menu-select":
+                    # Apparently this can happen...
+                    if args[1] == "inf":
+                        return
                     self.menu.mouse_select(int(args[1]))
                 elif args[0] == "shim-menu-click":
                     self.menu.menu_action("ok")
