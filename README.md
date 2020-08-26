@@ -280,6 +280,8 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
  - `seek_right` - Time to seek for "right" key. (Default: `5`)
  - `seek_left` - Time to seek for "left" key. (Default: `-5`)
  - `media_keys` - Enable binding of MPV to media keys. Default: `true`
+ - `seek_v_exact` - Use exact seek for up/down keys. Default: `false`
+ - `seek_h_exact` - Use exact seek for left/right keys. Default: `false`
 
 ### Shader Packs
 

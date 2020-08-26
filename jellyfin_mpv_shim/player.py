@@ -252,7 +252,7 @@ class PlayerManager(object):
                 seektime = settings.seek_left
                 if settings.use_web_seek:
                     seektime, _x = self.get_seek_times()
-                self.seek(seektime)
+                self.seek(seektime, exact=settings.seek_h_exact)
 
         @keypress(settings.kb_menu_right)
         def menu_right():
@@ -262,21 +262,21 @@ class PlayerManager(object):
                 seektime = settings.seek_right
                 if settings.use_web_seek:
                     _x, seektime = self.get_seek_times()
-                self.seek(seektime)
+                self.seek(seektime, exact=settings.seek_h_exact)
 
         @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("up")
             else:
-                self.seek(settings.seek_up)
+                self.seek(settings.seek_up, exact=settings.seek_v_exact)
 
         @keypress(settings.kb_menu_down)
         def menu_down():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("down")
             else:
-                self.seek(settings.seek_down)
+                self.seek(settings.seek_down, exact=settings.seek_v_exact)
 
         @keypress(settings.kb_pause)
         def handle_pause():
@@ -525,10 +525,18 @@ class PlayerManager(object):
         self.timeline_handle()
 
     @synchronous("_lock")
-    def seek(self, offset: float, absolute: bool = False, force: bool = False):
+    def seek(
+        self,
+        offset: float,
+        absolute: bool = False,
+        force: bool = False,
+        exact: Optional[bool] = None,
+    ):
         """
         Seek to ``offset`` seconds
         """
+        if exact is None:
+            exact = absolute
         if self.syncplay.is_enabled() and not force:
             if not absolute:
                 offset += self._player.playback_time
@@ -538,11 +546,17 @@ class PlayerManager(object):
                 if absolute:
                     if self.syncplay.is_enabled():
                         self.last_seek = offset
-                    self._player.playback_time = offset
+                    p2 = "absolute"
+                    if exact:
+                        p2 += "+exact"
+                    self._player.command("seek", offset, p2)
                 else:
                     if self.syncplay.is_enabled():
                         self.last_seek = self._player.playback_time + offset
-                    self._player.command("seek", offset)
+                    if exact:
+                        self._player.command("seek", offset, "exact")
+                    else:
+                        self._player.command("seek", offset)
         self.timeline_handle()
 
     @synchronous("_lock")

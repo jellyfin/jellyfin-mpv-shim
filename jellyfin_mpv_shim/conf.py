@@ -72,6 +72,8 @@ class Settings(BaseModel):
     seek_down: int = -60
     seek_right: int = 5
     seek_left: int = -5
+    seek_v_exact: bool = False
+    seek_h_exact: bool = False
     shader_pack_enable: bool = True
     shader_pack_custom: bool = False
     shader_pack_remember: bool = True
