@@ -93,6 +93,7 @@ class SyncPlayManager:
             not self.last_command
             or self.last_command["Command"] != "Play"
             or self.is_buffering()
+            or self.playerManager.menu.is_menu_shown
         ):
             log.debug("Not syncing due to no playback.")
             return
