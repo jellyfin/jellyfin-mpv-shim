@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-22 00:15+0000\n"
-"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
+"PO-Revision-Date: 2020-08-27 18:51+0000\n"
+"Last-Translator: Dylan Bourdere <loperanes@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -381,12 +381,11 @@ msgstr "Plein écran automatique"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Recherche par clé multimédia"
 
 #: jellyfin_mpv_shim/menu.py:426
-#, fuzzy
 msgid "Use Web Seek Pref"
-msgstr "Utiliser la pref de cherche web"
+msgstr "Utiliser la préf. de recherche web "
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
