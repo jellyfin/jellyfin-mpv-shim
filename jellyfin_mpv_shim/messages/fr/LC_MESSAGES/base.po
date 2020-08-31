@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-29 21:01+0000\n"
-"Last-Translator: lelamamalgache <kevnicolwynbay@gmail.com>\n"
+"PO-Revision-Date: 2020-08-31 12:37+0000\n"
+"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -385,7 +385,7 @@ msgstr "Recherche par clé multimédia"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr "Utiliser la préf. de recherche web "
+msgstr "Utiliser la préf. de recherche web"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
@@ -404,12 +404,11 @@ msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:413
-#, fuzzy
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Votre vidéo distante est en train de se transcoder\n"
+"Votre vidéo distante est en train de se transcoder !\n"
 "Pressez sur c pour ajuster les paramètres de la bande passante si cela n'est "
 "pas nécessaire."
 
@@ -518,7 +517,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "Inconnu"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
@@ -526,35 +525,36 @@ msgstr " Forcé"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Générique (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:14
+#, fuzzy
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Générique Haut (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:15
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (Pour SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:16
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (Pour SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (Pour SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (Pour HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (Pour HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (Pour HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
