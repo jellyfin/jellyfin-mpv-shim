@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-25 10:06+0000\n"
-"Last-Translator: WontTell <executor260@gmail.com>\n"
+"PO-Revision-Date: 2020-09-01 01:25+0000\n"
+"Last-Translator: fernando012 <fpmartin@alumnos.ubiobio.cl>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/es_419/>\n"
 "Language: es_419\n"
@@ -27,24 +27,20 @@ msgid "{0}: No Subtitles"
 msgstr "{0}: Sin subtítulos"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
-#, fuzzy
 msgid "{0}: Fail"
-msgstr "{0}: Fallo"
+msgstr "{0}: Falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
-#, fuzzy
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Establecer subtitulado: {0} OK, {1} fallo"
+msgstr "Establecer subtitulado: {0} Ok, {1} falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
-#, fuzzy
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Establecer doblaje: {0} OK, {1} solo audio, {2} fallo"
+msgstr "Establecer doblaje: {0} Ok, {1} Sólo audio, {2} Falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
-#, fuzzy
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manual: {0} OK, {1} fallo"
+msgstr "Manual: {0} OK, {1} falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
@@ -470,7 +466,6 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "El acceso a la biblioteca SyncPlay fue rechazado."
 
 #: jellyfin_mpv_shim/syncplay.py:128
-#, fuzzy
 msgid "SpeedToSync (x{0})"
 msgstr "VelocidadParaSincronizar (x{0})"
 
@@ -479,7 +474,6 @@ msgid "Sync Disabled (Too Many Attempts)"
 msgstr "Sincronización deshabilitada (Muchos intentos)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
-#, fuzzy
 msgid "SkipToSync (x{0})"
 msgstr "SaltarParaSincronizar (x{0})"
 
