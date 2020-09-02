@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-13 21:02+0000\n"
-"Last-Translator: Marius Lindvall <marius@varden.info>\n"
+"PO-Revision-Date: 2020-09-02 18:51+0000\n"
+"Last-Translator: Sverre <sverre@sverrecraft.com>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/nb_NO/>\n"
 "Language: nb_NO\n"
@@ -384,7 +384,7 @@ msgstr "Medietast-søk"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr "Bruk web-søk pref."
+msgstr "Bruk web-søk pref"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
@@ -407,6 +407,9 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Den eksterne videoen transkoder!\n"
+"Trykk på c for å justere båndbreddeinnstillingene hvis dette ikke er "
+"nødvendig."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
