@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-31 12:37+0000\n"
+"PO-Revision-Date: 2020-09-05 01:05+0000\n"
 "Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -303,7 +303,6 @@ msgid "Japanese Audio w/ English Subtitles"
 msgstr "Audio japonais avec sous-titres anglais"
 
 #: jellyfin_mpv_shim/menu.py:331
-#, fuzzy
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "Index manuel par piste (moins fiable)"
 
@@ -528,7 +527,6 @@ msgid "Generic (FSRCNNX)"
 msgstr "Générique (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:14
-#, fuzzy
 msgid "Generic High (FSRCNNX x16)"
 msgstr "Générique Haut (FSRCNNX x16)"
 
