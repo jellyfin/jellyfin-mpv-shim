@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-13 09:15+0000\n"
-"Last-Translator: biAji <biaji@biaji.net>\n"
+"PO-Revision-Date: 2020-09-05 09:17+0000\n"
+"Last-Translator: Pan Renzhou <1773834430@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -44,7 +44,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "设置当前..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
@@ -72,7 +72,7 @@ msgstr "添加服务器失败。"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:103
 msgid "Ready to cast"
-msgstr ""
+msgstr "准备投屏"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
@@ -224,7 +224,7 @@ msgstr "更换视频质量"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
-msgstr ""
+msgstr "同步播放"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
@@ -255,16 +255,12 @@ msgid "SVP Settings"
 msgstr "SVP 设置"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
-#, fuzzy
-#| msgid "Preferences"
 msgid "Video Preferences"
-msgstr "偏好设置"
+msgstr "视频偏好设置"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
-#, fuzzy
-#| msgid "Preferences"
 msgid "Player Preferences"
-msgstr "偏好设置"
+msgstr "播放器偏好设置"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
@@ -300,11 +296,11 @@ msgstr "选择系列的音频/字幕"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "英语音频"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "日语音频 / 英语字母"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
@@ -364,7 +360,7 @@ msgstr "将Hi10p转码为8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "直链"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
@@ -411,6 +407,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"你的远程视频正在转码中！\n"
+"如果不需要，请按下 C 以调整带宽。"
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
@@ -519,7 +517,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
-msgstr ""
+msgstr " 强制"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
