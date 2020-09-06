@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-05 01:05+0000\n"
-"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
+"PO-Revision-Date: 2020-09-06 09:48+0000\n"
+"Last-Translator: Etienne <luxumbra27@zoho.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -24,7 +24,7 @@ msgstr "Sélection des pistes..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr "{0} : Aucun sous-titre"
+msgstr "{0} : Aucun sous-titres"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
@@ -64,7 +64,7 @@ msgstr "Serveur ajouté avec succès."
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server?"
-msgstr "Ajout d'un autre serveur ?"
+msgstr "Ajouter un autre serveur ?"
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
@@ -76,7 +76,7 @@ msgstr "Prêt à diffuser"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Choisissez votre média et lancez le ici"
+msgstr "Choisissez votre média et lancez-le ici"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
@@ -84,7 +84,7 @@ msgstr "Journaux d'application"
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr "Ajouter serveur"
+msgstr "Ajouter un serveur"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
@@ -120,7 +120,7 @@ msgstr "Mot de passe :"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr "Retirer serveur"
+msgstr "Retirer le serveur"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
@@ -132,7 +132,7 @@ msgstr "Configurer les serveurs"
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr "Afficher console"
+msgstr "Afficher la console"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
@@ -465,7 +465,6 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "L'accès à la médiathèque SyncPlay a été refusé."
 
 #: jellyfin_mpv_shim/syncplay.py:128
-#, fuzzy
 msgid "SpeedToSync (x{0})"
 msgstr "VitessePourSync (x{0})"
 
@@ -474,9 +473,8 @@ msgid "Sync Disabled (Too Many Attempts)"
 msgstr "Sync désactivé (trop de tentatives)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
-#, fuzzy
 msgid "SkipToSync (x{0})"
-msgstr "AnnulerPourSync (x{0})"
+msgstr "PasserLaSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
