@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-02 21:48+0000\n"
-"Last-Translator: HDmaniac <HDmaniac@protonmail.com>\n"
+"PO-Revision-Date: 2020-09-08 01:07+0000\n"
+"Last-Translator: Manuel <manolo.email@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -120,7 +120,7 @@ msgstr "Contraseña:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr "Quitar servidor"
+msgstr "Eliminar servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
@@ -407,6 +407,9 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"¡El vídeo remoto se está transcodificando!\n"
+"Si lo encuentra innecesario, puede pulsar \"c\" para ajustar la "
+"configuración del ancho de banda."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
@@ -511,7 +514,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "Desc."
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
