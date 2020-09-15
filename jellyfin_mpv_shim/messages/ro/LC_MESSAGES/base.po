@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-15 14:33+0000\n"
+"PO-Revision-Date: 2020-09-15 17:51+0000\n"
 "Last-Translator: Irinel Ursu <vasiauvi@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
@@ -297,11 +297,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "Audio în engleză"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Audio în japoneză cu Subtitrare în engleză"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
