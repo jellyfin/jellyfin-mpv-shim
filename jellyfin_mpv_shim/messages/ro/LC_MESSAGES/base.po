@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-15 18:20+0000\n"
+"PO-Revision-Date: 2020-09-15 18:57+0000\n"
 "Last-Translator: Irinel Ursu <vasiauvi@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
@@ -377,23 +377,23 @@ msgstr "Redare automată"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Ecran complet automat"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Căutare cheie media"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Folosiți preferințe căutare web"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Oglindirea ecranului"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Scrie log-urile în fișier"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
