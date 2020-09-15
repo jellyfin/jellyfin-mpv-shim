@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-15 17:51+0000\n"
+"PO-Revision-Date: 2020-09-15 18:20+0000\n"
 "Last-Translator: Irinel Ursu <vasiauvi@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
@@ -293,7 +293,7 @@ msgstr "Maxim"
 
 #: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Selectează Audio/Subtitrare pentru Serie"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
@@ -309,71 +309,71 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Selectează profilul implicit de decodare"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Selectează culoarea subtitrării"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Selectează mărimea subtitrării"
 
 #: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Selectează poziția subtitrării"
 
 #: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
-msgstr ""
+msgstr "Bază"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
-msgstr ""
+msgstr "De-asupra"
 
 #: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
-msgstr ""
+msgstr "Mijloc"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Calitatea conversiei remote: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Mărime subtitrare: {0}"
 
 #: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Poziție subtitrare: {0}"
 
 #: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Culoare subtitrare: {0}"
 
 #: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Conversie H265 la H264"
 
 #: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Conversie Hi10p la 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Calea directă"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Conversie la H265"
 
 #: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Dezactivare redare directă"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr ""
+msgstr "Redare automată"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
