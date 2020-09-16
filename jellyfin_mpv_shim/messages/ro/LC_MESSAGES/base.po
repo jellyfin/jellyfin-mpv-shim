@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-15 18:57+0000\n"
+"PO-Revision-Date: 2020-09-16 09:48+0000\n"
 "Last-Translator: Irinel Ursu <vasiauvi@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
@@ -397,7 +397,7 @@ msgstr "Scrie log-urile în fișier"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
-msgstr ""
+msgstr "Caută actualizare"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
@@ -407,7 +407,7 @@ msgstr ""
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
-msgstr ""
+msgstr "Video remote se convertește"
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
