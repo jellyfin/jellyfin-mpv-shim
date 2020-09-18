@@ -6,402 +6,409 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2020-09-18 20:26+0000\n"
+"Last-Translator: Lukáš Kucharczyk <lukas@kucharczyk.xyz>\n"
+"Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 3.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Výběr stop…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Žádné titulky"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Selhání"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Nastavit s titulky: {0} ok, {1} selhání"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Nastavit audio: {0} OK, {1} pouze audio, {2} selhání"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Ručně: {0} OK, {1} selhání"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "Nastavuji aktuální…"
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
-msgstr ""
+msgstr "URL serveru: "
 
 #: jellyfin_mpv_shim/clients.py:46
 msgid "Username: "
-msgstr ""
+msgstr "Uživatelské jméno: "
 
 #: jellyfin_mpv_shim/clients.py:47
 msgid "Password: "
-msgstr ""
+msgstr "Heslo: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Successfully added server."
-msgstr ""
+msgstr "Server byl úspěšně přidán."
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server?"
-msgstr ""
+msgstr "Přidat další server?"
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
-msgstr ""
+msgstr "Přidání serveru se nezdařilo."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:103
 msgid "Ready to cast"
-msgstr ""
+msgstr "Připraveno k projekci"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "V aplikaci Jellyfin vyberte, co chcete přehrát"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
-msgstr ""
+msgstr "Protokol aplikace"
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr ""
+msgstr "Přidat server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
 "Could not add server.\n"
 "Please check your connection infomation."
 msgstr ""
+"Server nebylo možné přidat.\n"
+"Zkontrolujte informace o připojení."
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
-msgstr ""
+msgstr "Selhání"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
-msgstr ""
+msgstr "OK"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr ""
+msgstr "Konfigurace serveru"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
-msgstr ""
+msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:265
 msgid "Username:"
-msgstr ""
+msgstr "Uživatelské jméno:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:270
 msgid "Password:"
-msgstr ""
+msgstr "Heslo:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr ""
+msgstr "Vzdálený server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
-msgstr ""
+msgstr "Zavřít"
 
 #: jellyfin_mpv_shim/gui_mgr.py:399
 msgid "Configure Servers"
-msgstr ""
+msgstr "Konfigurovat servery"
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr ""
+msgstr "Zobrazit konzoli"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
-msgstr ""
+msgstr "Nabídka aplikace"
 
 #: jellyfin_mpv_shim/gui_mgr.py:402
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Otevřít složku s konfigurací"
 
 #: jellyfin_mpv_shim/gui_mgr.py:403
 msgid "Quit"
-msgstr ""
+msgstr "Ukončit"
 
 #: jellyfin_mpv_shim/media.py:105
 msgid " (Transcode)"
-msgstr ""
+msgstr " (Překódovat)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "Bílá"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "Žlutá"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Černá"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Azurová"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Modrá"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Zelená"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Fialová"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Červená"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Šedá"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Velmi malé"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Malé"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normální"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Velké"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Obrovské"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Main Menu"
-msgstr ""
+msgstr "Hlavní nabídka"
 
 #: jellyfin_mpv_shim/menu.py:127
 msgid "Change Audio"
-msgstr ""
+msgstr "Změnit zvuk"
 
 #: jellyfin_mpv_shim/menu.py:128
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Změnit titulky"
 
 #: jellyfin_mpv_shim/menu.py:129
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Změnit kvalitu videa"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
-msgstr ""
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Informace o vydání/Stáhnout"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Změnit profil přehrávání videa"
 
 #: jellyfin_mpv_shim/menu.py:140
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Automaticky nastavit zvuk/titulky (celý seriál)"
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Ukončit a označit za nezhlédnuté"
 
 #: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
-msgstr ""
+msgstr "Snímek obrazovky"
 
 #: jellyfin_mpv_shim/menu.py:147
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Profily přehrávání videa"
 
 #: jellyfin_mpv_shim/menu.py:150
 msgid "SVP Settings"
-msgstr ""
+msgstr "Nastavení SVP"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
 msgid "Video Preferences"
-msgstr ""
+msgstr "Nastavení videa"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
 msgid "Player Preferences"
-msgstr ""
+msgstr "Nastavení přehrávače"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
-msgstr ""
+msgstr "Zavřít nabídku"
 
 #: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Vybrat zvukovou stopu"
 
 #: jellyfin_mpv_shim/menu.py:260
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Vybrat stopu titulků"
 
 #: jellyfin_mpv_shim/menu.py:265
 msgid "None"
-msgstr ""
+msgstr "Žádný"
 
 #: jellyfin_mpv_shim/menu.py:291
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Vybrat kvalitu překódování"
 
 #: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
-msgstr ""
+msgstr "Bez překódování"
 
 #: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
-msgstr ""
+msgstr "Maximální"
 
 #: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Vybrat zvuk/titulky pro seriál"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "Anglický zvuk"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Japonský zvuk s anglickými titulky"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Ručně podle indexu stopy (méně spolehlivé)"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Vybrat výchozí profil překódování"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Vybrat barvu titulků"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Vybrat velikost titulků"
 
 #: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Vybrat umístění titulků"
 
 #: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
-msgstr ""
+msgstr "Dole"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
-msgstr ""
+msgstr "Nahoře"
 
 #: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
-msgstr ""
+msgstr "Uprostřed"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Kvalita vzdáleného překódvání: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Velikost titulků: {0}"
 
 #: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Umístění titulků: {0}"
 
 #: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Barva titulků: {0}"
 
 #: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Překódovat H265 na H264"
 
 #: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Překódovat Hi10p na 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Přímé cesty"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Překódovat na H265"
 
 #: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Zakázat přímé přehrávání"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr ""
+msgstr "Automatické přehrávání"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Automaticky celá obrazovka"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Posouvání pomocí mediálních kláves"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Použít nastavení posouvání na webu"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Zrcadlení zobrazení"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Zapisovat protokoly do souboru"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
-msgstr ""
+msgstr "Zkontrolovat aktualizace"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Přítomnost na Discordu"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Your remote video is transcoding!\n"
+"Press c to adjust bandwidth settings if this is not needed."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
