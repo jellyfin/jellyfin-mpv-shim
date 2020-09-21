@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-08 01:07+0000\n"
-"Last-Translator: Manuel <manolo.email@gmail.com>\n"
+"PO-Revision-Date: 2020-09-21 12:56+0000\n"
+"Last-Translator: pucherot <luis.puig@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -224,7 +224,7 @@ msgstr "Cambiar Calidad de Video"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Reproducción sincronizada"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
