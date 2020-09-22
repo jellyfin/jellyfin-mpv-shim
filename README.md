@@ -385,6 +385,8 @@ Other miscellaneous configuration options. You probably won't have to change the
       but if you have strange files this may not be the case.
  - `lang_filter_sub` - Apply the language filter to subtitle selection. Default: `False`
  - `lang_filter_audio` - Apply the language filter to audio selection. Default: `False`
+ - `screenshot_dir` - Sets where screenshots go.
+    - Default is the desktop on Windows and unset (current directory) on other platforms.
 
 ### MPV Configuration
 

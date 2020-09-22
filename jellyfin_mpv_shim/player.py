@@ -176,6 +176,14 @@ class PlayerManager(object):
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 
+        if settings.screenshot_dir is not None:
+            if hasattr(self._player, "screenshot_directory"):
+                self._player.screenshot_directory = settings.screenshot_dir
+            else:
+                log.warning(
+                    "This mpv version doesn't support setting the screenshot directory."
+                )
+
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
             def wrapper(func):
