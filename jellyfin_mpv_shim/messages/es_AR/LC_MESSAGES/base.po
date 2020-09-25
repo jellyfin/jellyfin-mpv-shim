@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-08 03:52+0000\n"
+"PO-Revision-Date: 2020-09-25 19:51+0000\n"
 "Last-Translator: Franco Castillo <castillofrancodamian@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/es_AR/>\n"
@@ -36,7 +36,7 @@ msgstr "Establecer subtitulado: {0} ok, {1} falla"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Establecer doblaje: {0} ok, {1} solo audio, {2} falla"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
@@ -148,7 +148,7 @@ msgstr "Salir"
 
 #: jellyfin_mpv_shim/media.py:105
 msgid " (Transcode)"
-msgstr ""
+msgstr " (Transcodificar)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -228,14 +228,13 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Información de versión/descarga"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
 msgstr "Cambiar el perfil de reproducción de vídeo"
 
 #: jellyfin_mpv_shim/menu.py:140
-#, fuzzy
 msgid "Auto Set Audio/Subtitles (Entire Series)"
 msgstr "Ajuste automático de audio/subtítulos (serie completa)"
 
@@ -401,7 +400,7 @@ msgstr "Buscar actualizaciones"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Presencia rica en Discord"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
@@ -466,7 +465,6 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Se denegó el acceso a la biblioteca SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:128
-#, fuzzy
 msgid "SpeedToSync (x{0})"
 msgstr "SpeedToSync (x{0})"
 
@@ -475,7 +473,6 @@ msgid "Sync Disabled (Too Many Attempts)"
 msgstr "Sincronización deshabilitada (demasiados intentos)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
-#, fuzzy
 msgid "SkipToSync (x{0})"
 msgstr "SkipToSync (x{0})"
 
@@ -512,6 +509,8 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v {0} Actualización disponible\n"
+"Abra el menú (presione c) para obtener detalles."
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
@@ -519,7 +518,7 @@ msgstr "Desconocido"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
-msgstr ""
+msgstr " Forzado"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
@@ -531,28 +530,28 @@ msgstr "Genérico alto (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:15
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Fiel (para SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:16
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (para SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (para SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Fiel (para HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (para HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (para HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Seleccionar perfil de sombreador"
