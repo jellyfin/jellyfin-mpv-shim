@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-16 11:56+0000\n"
-"Last-Translator: Irinel Ursu <vasiauvi@gmail.com>\n"
+"PO-Revision-Date: 2020-09-26 20:34+0000\n"
+"Last-Translator: 4d1m <silviu.dimulete@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
 "Language: ro\n"
@@ -305,7 +305,7 @@ msgstr "Audio în japoneză cu Subtitrare în engleză"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Manual prin Track Index (mai puțin fiabil)"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
@@ -401,7 +401,7 @@ msgstr "Caută actualizare"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
@@ -466,7 +466,7 @@ msgstr "Accesul la librăria SyncPlay a fost refuzat."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
@@ -474,7 +474,7 @@ msgstr "Sincronizare dezactivată (prea multe încercări)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
@@ -494,7 +494,7 @@ msgstr "{0} a plecat."
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} se încarcă."
 
 #: jellyfin_mpv_shim/syncplay.py:453 jellyfin_mpv_shim/video_profile.py:149
 msgid "None (Disabled)"
@@ -526,32 +526,32 @@ msgstr "General (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:14
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Generic High (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:15
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:16
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Selectați Profilul Shader"
