@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-21 14:59+0000\n"
-"Last-Translator: pucherot <luis.puig@gmail.com>\n"
+"PO-Revision-Date: 2020-10-04 18:37+0000\n"
+"Last-Translator: Page Asgardius <hackerman@disroot.org>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -400,7 +400,7 @@ msgstr "Buscar Actualizaciones"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Presencia en Discord"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
