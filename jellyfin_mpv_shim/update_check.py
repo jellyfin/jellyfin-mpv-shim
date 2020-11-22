@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("update_check")
 
-release_url = "https://github.com/iwalton3/jellyfin-mpv-shim/releases/"
+release_urls = [
+    "https://github.com/jellyfin/jellyfin-desktop/releases/",
+    "https://github.com/iwalton3/jellyfin-mpv-shim/releases/"
+]
 one_day = 86400
 
 
@@ -27,16 +30,24 @@ class UpdateChecker:
 
     def _check_updates(self):
         log.info("Checking for updates...")
-        try:
-            response = requests.get(
-                release_url + "latest", allow_redirects=False, timeout=(3, 10)
-            )
-            version = response.headers["location"][len(release_url) + 5 :]
-            if CLIENT_VERSION != version:
-                self.new_version = version
-        except Exception:
-            log.error("Could not check for updates.", exc_info=True)
-        return self.new_version is not None
+        for release_url in release_urls:
+            try:
+                response = requests.get(
+                    release_url + "latest", allow_redirects=False, timeout=(3, 10)
+                )
+                if response.status_code != 302:
+                    log.warning("Release page returned bad status code.")
+                    continue
+                if not response.headers["location"].startswith(release_url):
+                    log.warning("Release page does not start with release_url.")
+                    continue
+                version = response.headers["location"][len(release_url) + 5 :]
+                if CLIENT_VERSION != version:
+                    self.new_version = version
+                    break
+            except Exception:
+                log.error("Could not check for updates.", exc_info=True)
+            return self.new_version is not None
 
     def check(self):
         if not settings.check_updates:
