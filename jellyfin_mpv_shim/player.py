@@ -317,6 +317,9 @@ class PlayerManager(object):
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
             if self._video and reached_end:
+                if self.syncplay.is_enabled():
+                    self.syncplay.disable_sync_play(False)
+
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
@@ -324,6 +327,9 @@ class PlayerManager(object):
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
             if self._video and value:
+                if self.syncplay.is_enabled():
+                    self.syncplay.disable_sync_play(False)
+
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
@@ -608,8 +614,6 @@ class PlayerManager(object):
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
             log.debug("PlayerManager::finished_callback reached end")
-            if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
             self.send_timeline_stopped()
 
     @synchronous("_lock")
