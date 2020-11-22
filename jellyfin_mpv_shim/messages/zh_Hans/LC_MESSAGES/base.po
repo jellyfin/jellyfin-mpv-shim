@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-05 09:17+0000\n"
-"Last-Translator: Pan Renzhou <1773834430@qq.com>\n"
+"PO-Revision-Date: 2020-11-05 12:16+0000\n"
+"Last-Translator: lldsolitude <lldsolitude@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -32,15 +32,15 @@ msgstr "{0}: 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "设置字幕：{0} 成功，{1} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "设置配音：{0} 成功，{1} 只有音频，{2} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "手动：{0} 成功，{1} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
@@ -304,7 +304,7 @@ msgstr "日语音频 / 英语字母"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "使用轨道索引手动选择（可靠性更低）"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
@@ -412,7 +412,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "第{0}季第{1}集"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
@@ -465,7 +465,7 @@ msgstr "拒绝访问SyncPlay库。"
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "同步速度（x{0}）"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
@@ -513,7 +513,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "未知"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"

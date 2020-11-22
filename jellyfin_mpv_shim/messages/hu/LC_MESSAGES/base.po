@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-20 14:39+0000\n"
-"Last-Translator: Adam Bokor <bokoradam112@gmail.com>\n"
+"PO-Revision-Date: 2020-11-20 14:47+0000\n"
+"Last-Translator: Csaba <csab0825@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
 "Language: hu\n"
@@ -32,7 +32,7 @@ msgstr "{0}: Hiba"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Feliratok beállítása: {0} ok, {1} hiba"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"

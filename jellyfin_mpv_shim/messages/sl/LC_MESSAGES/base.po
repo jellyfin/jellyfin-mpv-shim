@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-21 17:14+0000\n"
-"Last-Translator: SaddFox <filip.rutar@gmail.com>\n"
+"PO-Revision-Date: 2020-09-26 20:34+0000\n"
+"Last-Translator: Jurij Martinčič <jurij.martincic@gmail.com>\n"
 "Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sl/>\n"
 "Language: sl\n"
@@ -33,7 +33,7 @@ msgstr "{0}: Napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Nastavi podnapise: {0} ok, {1} napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -165,7 +165,7 @@ msgstr "Črna"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Cyan"
+msgstr "Cian"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -176,7 +176,6 @@ msgid "Green"
 msgstr "Zelena"
 
 #: jellyfin_mpv_shim/menu.py:34
-#, fuzzy
 msgid "Magenta"
 msgstr "Magenta"
 
@@ -230,7 +229,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Informacije o izdaji/Prenos"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
@@ -286,7 +285,7 @@ msgstr "Izberi kvaliteto prekodiranja"
 
 #: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
-msgstr ""
+msgstr "Brez prekodiranja"
 
 #: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
@@ -338,7 +337,7 @@ msgstr "V sredini"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Kvaliteta prekodiranja: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
@@ -362,7 +361,7 @@ msgstr "Prekodiraj Hi10p v 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Neposredne poti"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
@@ -477,23 +476,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay omogočen."
 
 #: jellyfin_mpv_shim/syncplay.py:218
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay onemogočen."
 
 #: jellyfin_mpv_shim/syncplay.py:252
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} se je pridružil."
 
 #: jellyfin_mpv_shim/syncplay.py:254
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} je odšel."
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
-msgstr ""
+msgstr "Medpomnjenje {0}."
 
 #: jellyfin_mpv_shim/syncplay.py:453 jellyfin_mpv_shim/video_profile.py:149
 msgid "None (Disabled)"
@@ -501,17 +500,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:457
 msgid "New Group"
-msgstr ""
+msgstr "Nova skupina"
 
 #: jellyfin_mpv_shim/update_check.py:47
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} Posodobitev je na voljo\n"
+"Odpri meni (pritisni c) za podrobnosti."
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "Neznano"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
@@ -551,4 +552,4 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Izberi profil senčenja"

@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-09-01 01:25+0000\n"
-"Last-Translator: fernando012 <fpmartin@alumnos.ubiobio.cl>\n"
+"PO-Revision-Date: 2020-10-04 18:37+0000\n"
+"Last-Translator: Page Asgardius <hackerman@disroot.org>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/es_419/>\n"
 "Language: es_419\n"
@@ -380,7 +380,7 @@ msgstr "Pantalla completa automática"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Búsqueda mediante teclas multimedia"
 
 #: jellyfin_mpv_shim/menu.py:426
 #, fuzzy
