@@ -19,7 +19,7 @@ logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 def main(desktop: bool = False, cef: bool = False):
     conf_file = conffile.get(APP_NAME, "conf.json")
-    settings.load(conf_file)
+    load_success = settings.load(conf_file)
     i18n.configure()
 
     if settings.sanitize_output:
@@ -83,6 +83,10 @@ def main(desktop: bool = False, cef: bool = False):
     eventHandler.mirror = mirror
     user_interface.start()
     user_interface.login_servers()
+
+    if not load_success:
+        log.error("Your configuration file is not valid JSON! It has been ignored!")
+        log.info("Tip: Open the JSON file in VS Code to see what is wrong.")
 
     try:
         if use_webview:
