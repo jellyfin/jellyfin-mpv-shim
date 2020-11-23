@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-11-20 14:47+0000\n"
+"PO-Revision-Date: 2020-11-23 14:47+0000\n"
 "Last-Translator: Csaba <csab0825@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
@@ -36,11 +36,11 @@ msgstr "Feliratok beállítása: {0} ok, {1} hiba"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "A szinkron beállítása: {0} rendben, {1} csak hang, {2} sikertelen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Kézi: {0} Rendben, {1} Sikertelen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
@@ -380,11 +380,11 @@ msgstr "Automatikus teljes képernyős mód"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Média Tekerőgomb"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Használja a Web Seek Pref alkalmazást"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
@@ -538,7 +538,7 @@ msgstr "Anime4K x4 érzékelő (SD-re)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Észlelés + Homályosítás eltüntetése ( SD Minőséghez)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
@@ -546,11 +546,11 @@ msgstr "Anime4K x2 hűséges (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime 4K x2 Észlelés (HD Minőség)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Észlelés + Homályosítás eltüntetése (HD minőséghez)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
