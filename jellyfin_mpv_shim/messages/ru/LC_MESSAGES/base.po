@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-11-27 18:13+0000\n"
+"PO-Revision-Date: 2020-11-27 18:44+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -257,51 +257,51 @@ msgstr "Параметры SVP"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
 msgid "Video Preferences"
-msgstr ""
+msgstr "Настройки видео"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
 msgid "Player Preferences"
-msgstr ""
+msgstr "Настройки проигрывателя"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
-msgstr ""
+msgstr "Закрыть меню"
 
 #: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Выбрать аудио дорожку"
 
 #: jellyfin_mpv_shim/menu.py:260
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Выбрать дорожку субтитров"
 
 #: jellyfin_mpv_shim/menu.py:265
 msgid "None"
-msgstr ""
+msgstr "Ничего"
 
 #: jellyfin_mpv_shim/menu.py:291
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Выбрать качество перекодирования"
 
 #: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
-msgstr ""
+msgstr "Нет перекодирования"
 
 #: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
-msgstr ""
+msgstr "Максимум"
 
 #: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Выбрать аудио/субтитры для сериала"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "Английское аудио"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Японское аудио с английскими субтитрами"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
@@ -309,31 +309,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Выбрать профиль перекодирования по умолчанию"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Выбрать цвет субтитров"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Выбрать размер субтитров"
 
 #: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Выбрать позицию субтитров"
 
 #: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
-msgstr ""
+msgstr "Внизу"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
-msgstr ""
+msgstr "Вверху"
 
 #: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
-msgstr ""
+msgstr "Посередине"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
