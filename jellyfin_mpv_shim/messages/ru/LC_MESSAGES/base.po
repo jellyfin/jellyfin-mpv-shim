@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-11-27 18:44+0000\n"
+"PO-Revision-Date: 2020-12-01 07:04+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Выбираются дорожки..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
@@ -45,7 +45,7 @@ msgstr "Вручную: {0} удачно, {1} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "Устанавливаются текущие..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
@@ -241,7 +241,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Выйти и отметить как просмотренное"
 
 #: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
@@ -341,43 +341,43 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Размер субтитров: {0}"
 
 #: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Позиция субтитров: {0}"
 
 #: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Цвет субтитров: {0}"
 
 #: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Перекодирование H265 в H264"
 
 #: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Перекодирование Hi10p в 8bit"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Прямые пути"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Перекодирование в H265"
 
 #: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Отключить прямое воспроизведение"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr ""
+msgstr "Автоматическое воспроизведение"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Автоматический полный экран"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
@@ -393,11 +393,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Запись журналов в файл"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
-msgstr ""
+msgstr "Проверить на обновления"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
@@ -411,56 +411,56 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Сезон {0} - Эпизод {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
 msgid "Automatic"
-msgstr ""
+msgstr "Автоматически"
 
 #: jellyfin_mpv_shim/svp_integration.py:136
 msgid "Disabled"
-msgstr ""
+msgstr "Отключено"
 
 #: jellyfin_mpv_shim/svp_integration.py:144
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "Выбрать профиль SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:147
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP неактивно"
 
 #: jellyfin_mpv_shim/svp_integration.py:148
 msgid "Disable"
-msgstr ""
+msgstr "Отключить"
 
 #: jellyfin_mpv_shim/svp_integration.py:149
 msgid "Retry"
-msgstr ""
+msgstr "Повторить"
 
 #: jellyfin_mpv_shim/svp_integration.py:152
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP отключен"
 
 #: jellyfin_mpv_shim/svp_integration.py:153
 msgid "Enable SVP"
-msgstr ""
+msgstr "Включить SVP"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "Указанная группа SyncPlay не существует."
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "Создание групп SyncPlay не разрешено."
 
 #: jellyfin_mpv_shim/syncplay.py:18
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "Доступ к группе SyncPlay был запрещён."
 
 #: jellyfin_mpv_shim/syncplay.py:19
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "Доступ к медиатеке SyncPlay был запрещён."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
@@ -476,31 +476,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay включён."
 
 #: jellyfin_mpv_shim/syncplay.py:218
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay отключен."
 
 #: jellyfin_mpv_shim/syncplay.py:252
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} присоединилось."
 
 #: jellyfin_mpv_shim/syncplay.py:254
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} покинуло."
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} буферизируется."
 
 #: jellyfin_mpv_shim/syncplay.py:453 jellyfin_mpv_shim/video_profile.py:149
 msgid "None (Disabled)"
-msgstr ""
+msgstr "Ничего (отключено)"
 
 #: jellyfin_mpv_shim/syncplay.py:457
 msgid "New Group"
-msgstr ""
+msgstr "Новая группа"
 
 #: jellyfin_mpv_shim/update_check.py:47
 msgid ""
@@ -514,7 +514,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
-msgstr ""
+msgstr " Форсир-ые"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
