@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-01 07:04+0000\n"
+"PO-Revision-Date: 2020-12-02 14:24+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -33,11 +33,11 @@ msgstr "{0}: Неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Задать субтитраж: {0} ОК, {1} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Задать дубляж {0} ОК, {1} только аудио, {2} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
@@ -237,7 +237,7 @@ msgstr "Сменить профиль воспроизведения видео"
 
 #: jellyfin_mpv_shim/menu.py:140
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Автонастройка Аудио/Субтитров (Весь сериал)"
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
@@ -305,7 +305,7 @@ msgstr "Японское аудио с английскими субтитрам
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Вручную по перечню дорожек (менее надежно)"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
@@ -337,7 +337,7 @@ msgstr "Посередине"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Качество удалённого перекодирования: {0: 0,1f} Мбит/с"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
@@ -381,15 +381,15 @@ msgstr "Автоматический полный экран"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Поиск медиа-ключа"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Использовать настройку Web Seek"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Зеркалирование дисплея"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
@@ -401,13 +401,15 @@ msgstr "Проверить на обновления"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Ваше удаленное видео перекодируется!\n"
+"Нажмите \"c\", чтобы подстроить полосу пропускания, если это не нужно."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
@@ -464,15 +466,15 @@ msgstr "Доступ к медиатеке SyncPlay был запрещён."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Синхро отключено (Слишком много попыток)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
@@ -507,10 +509,12 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"Доступно обновление MPV Shim v{0}\n"
+"Откройте меню (нажмите \"c\") для подробностей."
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "Неизвестно"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
@@ -518,36 +522,36 @@ msgstr " Форсир-ые"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Универсальный (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:14
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Универсальный высокий (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:15
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Достоверный (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:16
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Перцептивный (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Перцептивный + Удаление размытия (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Достоверный (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Перцептивный (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Перцептивный + Удаление размытия (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Выбрать профиль шейдера"
