@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-11-26 22:40+0000\n"
+"PO-Revision-Date: 2020-12-04 22:55+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -84,7 +84,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr ""
+msgstr "Server ústeý"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
@@ -98,23 +98,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
-msgstr ""
+msgstr "Jaraıdy"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr ""
+msgstr "Server konfıgýrasıasy"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
-msgstr ""
+msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:265
 msgid "Username:"
-msgstr ""
+msgstr "Paıdalanýshy aty:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:270
 msgid "Password:"
-msgstr ""
+msgstr "Paról:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
