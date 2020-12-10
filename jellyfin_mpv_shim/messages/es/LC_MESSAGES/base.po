@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-10-04 18:37+0000\n"
-"Last-Translator: Page Asgardius <hackerman@disroot.org>\n"
+"PO-Revision-Date: 2020-12-10 20:38+0000\n"
+"Last-Translator: Eduardo Fernández <yo@edufdezsoy.es>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -44,7 +44,7 @@ msgstr "Manual: {0} ok, {1} falla"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr "Configuración actual ..."
+msgstr "Configuración actual..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
