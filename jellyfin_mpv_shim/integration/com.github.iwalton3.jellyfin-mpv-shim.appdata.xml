@@ -59,7 +59,23 @@
   </provides>
 
   <content_rating type="oars-1.1" />
-
+    <release version="1.8.1" date="2020-12-12">
+      <description>
+        <p>This is a maintenance update and the last one to support SyncPlay on 1.6.x. Changes:</p>
+        <ul>
+            <li>Add keyboard shortcut (k) for killing shaders.</li>
+            <li>Add track language filter.</li>
+            <li>Validate config data and show errors when parsing fails.</li>
+            <li>Stop SyncPlay hanging between episodes.</li>
+            <li>Fix player flash between episodes after opening menu.</li>
+            <li>Add an exact seek config option.</li>
+            <li>Do not sync playback while showing the menu.</li>
+            <li>Add config option for screenshot directory.</li>
+            <li>Fix disable certificate validation option.</li>
+            <li>Prepare for project move/rename to jellyfin/jellyfin-desktop.</li>
+        </ul>
+      </description>
+    </release>
   <releases>
     <release version="1.8.0" date="2020-08-18">
       <description>
