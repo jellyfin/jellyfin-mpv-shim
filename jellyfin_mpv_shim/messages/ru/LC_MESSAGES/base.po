@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-02 14:24+0000\n"
+"PO-Revision-Date: 2020-12-20 00:14+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -225,7 +225,7 @@ msgstr "Сменить качество видео"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Служба SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
@@ -401,7 +401,7 @@ msgstr "Проверить на обновления"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Rich Presence от Discord"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
@@ -466,7 +466,7 @@ msgstr "Доступ к медиатеке SyncPlay был запрещён."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "SpeedToSync - (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
@@ -474,7 +474,7 @@ msgstr "Синхро отключено (Слишком много попыто�
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr "SkipToSync (x{0})"
+msgstr "SkipToSync - (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
