@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-04 22:55+0000\n"
+"PO-Revision-Date: 2020-12-29 06:06+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -24,11 +24,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: sýbtıtrler joq"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: sátsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
