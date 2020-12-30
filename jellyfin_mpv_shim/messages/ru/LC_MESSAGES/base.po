@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-20 00:14+0000\n"
+"PO-Revision-Date: 2020-12-31 20:06+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -45,7 +45,7 @@ msgstr "Вручную: {0} удачно, {1} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr "Устанавливаются текущие..."
+msgstr "Задаются текущие..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
