@@ -24,8 +24,8 @@ that are swapped between depending on the situation.
 ## Adding Dependencies
 
 One of the major concerns with this project is allowing it to run on as many platforms as possible. Currently,
-the project is designed to run on Windows, Linux, and Mac OSX. Currently the project is packaged using PIP for
-OSX and Linux and PyInstaller for Windows. Additionally, I want the project to have as long of a life as possible.
+the project is designed to run on Windows, Linux, and macOS. Currently the project is packaged using PIP for
+macOS and Linux and PyInstaller for Windows. Additionally, I want the project to have as long of a life as possible.
 If a dependency becomes uninstallable or prone to crashing, I would like to avoid the project being broken.
 
 If you wish to add a dependency, please gracefully handle the dependency not being installed. This is the
@@ -86,8 +86,8 @@ Current Dependencies:
 
 Please see the README for instructions.
 
-## OSX Work
+## macOS Work
 
-If you have access to a machine running Max OSX and can work on this project, you may be able to greatly improve
-the experience for OSX users. There may be open issues for OSX that only you can work on. It would also be nice
-to find a better way to make this application available for OSX users, as the current procedure is a pain.
+If you have access to a machine running macOS and can work on this project, you may be able to greatly improve
+the experience for macOS users. There may be open issues for macOS that only you can work on. It would also be nice
+to find a better way to make this application available for macOS users, as the current procedure is a pain.
