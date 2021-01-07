@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-31 06:37+0000\n"
+"PO-Revision-Date: 2021-01-07 19:04+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Jolshyqtar tańdalýda…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
@@ -32,19 +32,19 @@ msgstr "{0}: sátsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Subtitrajdy anyqtaý: {0} jaraıdy, {1} sátsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Dublájdi anyqtaý: {0} jaraıdy, {1} tek dybys, {2} sátsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Qolmenen: {0} jaraıdy, {1} sátsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "Aǵymdyqtar anyqtalýda…"
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
@@ -76,7 +76,7 @@ msgstr "Taratýǵa daıyn"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Tasyǵyshderekterińizdi Jellyfin ishinde tańdap, osy jerde oınatyńyz"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
@@ -228,222 +228,225 @@ msgstr "SyncPlay qyzmeti"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Shyǵarý aqpary/Júktep alý"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Beıne oınatý profaılyn aýystyrý"
 
 #: jellyfin_mpv_shim/menu.py:140
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Dybys/Sýbtıtrler avtomatty anyqtaýy (Búkil telehıkaıa )"
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Shyǵyp qaralmaǵan retinde belgileý"
 
 #: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
-msgstr ""
+msgstr "Ekran sýreti"
 
 #: jellyfin_mpv_shim/menu.py:147
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Beıne oınatý profaıly"
 
 #: jellyfin_mpv_shim/menu.py:150
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP parametrleri"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
 msgid "Video Preferences"
-msgstr ""
+msgstr "Beıne teńshelimderi"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
 msgid "Player Preferences"
-msgstr ""
+msgstr "Oınatqysh teńshelimderi"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
-msgstr ""
+msgstr "Mázirdi jabý"
 
 #: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Dybys jolshyǵyn tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:260
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Sýbtıtrler jolshyǵyn tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:265
 msgid "None"
-msgstr ""
+msgstr "Eshqandaı"
 
 #: jellyfin_mpv_shim/menu.py:291
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Qaıta kodtaý sapasyn tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
-msgstr ""
+msgstr "Qaıta kodtaý joq"
 
 #: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
-msgstr ""
+msgstr "Eń kóp"
 
 #: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Telehıkaıa úshin dybys/sýbtıtrler tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "Aǵylshyn dybysy"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Japon dybysy aǵylshyn sýbtıtrlerimen"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Qolmen Jolshyqtar tizimdemesi boıynsha (senimdigi az)"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Ádepki qaıta kodtaý profaılyn tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Sýbtıtrler túsin tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Sýbtıtrler mólsherin tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Sýbtıtrler jaıǵasymyn tańdaý"
 
 #: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
-msgstr ""
+msgstr "Tómende"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
-msgstr ""
+msgstr "Joǵaryda"
 
 #: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
-msgstr ""
+msgstr "Ortada"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Qashyqtan qaıta kodtaý sapasy: {0:0.1f} Mbit/s"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Sýbtıtrler mólsheri: {0}"
 
 #: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Sýbtıtrler jaıǵasymy: {0}"
 
 #: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Sýbtıtrler túsi: {0}"
 
 #: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "H265 pishiminen H264 úshin qaıta kodtaý"
 
 #: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Hi10p pishiminen 8bit úshin qaıta kodtaý"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "Tikeleı joldar"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
-msgstr ""
+msgstr "H265 úshin qaıta kodtaý"
 
 #: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Tikeleı oınatýdy óshirý"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr ""
+msgstr "Avtomatty oınatý"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Avtomatty tolyq ekran"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Tasyǵyshderekter kiltin izdeý"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Web Seek teńshelimin paıdalaný"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Dıspleıdі shaǵylystyrý"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Jurnaldardy faılǵa jazý"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
-msgstr ""
+msgstr "Jańartýlardy tekserý"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord tarapynan Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Qashyqtaǵy beıneńіz qaıta kodtalýda!\n"
+"Qajet bolmasa, ótkіzý múmkіndіgі parametrlerіn laıyqtaý úshіn «c» "
+"túımeshigin basyńyz."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Maýsym {0} - Bólim {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
 msgid "Automatic"
-msgstr ""
+msgstr "Avtomatty"
 
 #: jellyfin_mpv_shim/svp_integration.py:136
 msgid "Disabled"
-msgstr ""
+msgstr "Óshirilgen"
 
 #: jellyfin_mpv_shim/svp_integration.py:144
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "SVP profaılyn tańdaý"
 
 #: jellyfin_mpv_shim/svp_integration.py:147
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP belsendi emes"
 
 #: jellyfin_mpv_shim/svp_integration.py:148
 msgid "Disable"
-msgstr ""
+msgstr "Óshirý"
 
 #: jellyfin_mpv_shim/svp_integration.py:149
 msgid "Retry"
-msgstr ""
+msgstr "Qaıtalaý"
 
 #: jellyfin_mpv_shim/svp_integration.py:152
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP óshirilgen"
 
 #: jellyfin_mpv_shim/svp_integration.py:153
 msgid "Enable SVP"
-msgstr ""
+msgstr "SVP qosý"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
