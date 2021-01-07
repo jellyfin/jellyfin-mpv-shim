@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-12-31 20:06+0000\n"
+"PO-Revision-Date: 2021-01-08 00:15+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -538,7 +538,7 @@ msgstr "Anime4K x4 Перцептивный (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Перцептивный + Удаление размытия (для SD)"
+msgstr "Anime4K x4 Перцептивный + Без размытия (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
@@ -550,7 +550,7 @@ msgstr "Anime4K x2 Перцептивный (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Перцептивный + Удаление размытия (для HD)"
+msgstr "Anime4K x2 Перцептивный + Без размытия (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
