@@ -6,542 +6,551 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2021-01-07 19:04+0000\n"
+"Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
+"Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-mpv-shim/ta/>\n"
 "Language: ta\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 3.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:20
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "தடங்களைத் தேர்ந்தெடுப்பது ..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:68
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: வசன வரிகள் இல்லை"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:97
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: தோல்வி"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:100
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "உட்பிரிவு அமைக்கவும்: {0} சரி, {1} தோல்வி"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:103
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "டப்பிங் அமைக்கவும்: {0} சரி, {1} ஆடியோ மட்டும், {2} தோல்வி"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "கையேடு: {0} சரி, {1} தோல்வி"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
-msgstr ""
+msgstr "நடப்பு அமைத்தல் ..."
 
 #: jellyfin_mpv_shim/clients.py:45
 msgid "Server URL: "
-msgstr ""
+msgstr "சேவையக URL: "
 
 #: jellyfin_mpv_shim/clients.py:46
 msgid "Username: "
-msgstr ""
+msgstr "பயனர்பெயர்: "
 
 #: jellyfin_mpv_shim/clients.py:47
 msgid "Password: "
-msgstr ""
+msgstr "கடவுச்சொல்: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Successfully added server."
-msgstr ""
+msgstr "வெற்றிகரமாக சேவையகம் சேர்க்கப்பட்டது."
 
 #: jellyfin_mpv_shim/clients.py:53
 msgid "Add another server?"
-msgstr ""
+msgstr "மற்றொரு சேவையகத்தைச் சேர்க்கவா?"
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Adding server failed."
-msgstr ""
+msgstr "சேவையகத்தைச் சேர்ப்பது தோல்வியுற்றது."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:103
 msgid "Ready to cast"
-msgstr ""
+msgstr "நடிக்கத் தயார்"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:104
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "ஜெல்லிஃபினில் உங்கள் மீடியாவைத் தேர்ந்தெடுத்து இங்கே விளையாடுங்கள்"
 
 #: jellyfin_mpv_shim/gui_mgr.py:136
 msgid "Application Log"
-msgstr ""
+msgstr "பயன்பாட்டு பதிவு"
 
 #: jellyfin_mpv_shim/gui_mgr.py:211 jellyfin_mpv_shim/gui_mgr.py:291
 msgid "Add Server"
-msgstr ""
+msgstr "சேவையகத்தைச் சேர்க்கவும்"
 
 #: jellyfin_mpv_shim/gui_mgr.py:212
 msgid ""
 "Could not add server.\n"
 "Please check your connection infomation."
 msgstr ""
+"சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
+"உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
-msgstr ""
+msgstr "தோல்வி"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
-msgstr ""
+msgstr "சரி"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr ""
+msgstr "சேவையக உள்ளமைவு"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
-msgstr ""
+msgstr "சேவையகம்:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:265
 msgid "Username:"
-msgstr ""
+msgstr "பயனர்பெயர்:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:270
 msgid "Password:"
-msgstr ""
+msgstr "கடவுச்சொல்:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr ""
+msgstr "சேவையகத்தை அகற்று"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
-msgstr ""
+msgstr "நெருக்கமான"
 
 #: jellyfin_mpv_shim/gui_mgr.py:399
 msgid "Configure Servers"
-msgstr ""
+msgstr "சேவையகங்களை உள்ளமைக்கவும்"
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr ""
+msgstr "கன்சோலைக் காட்டு"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
-msgstr ""
+msgstr "விண்ணப்ப மெனு"
 
 #: jellyfin_mpv_shim/gui_mgr.py:402
 msgid "Open Config Folder"
-msgstr ""
+msgstr "கட்டமைப்பு கோப்புறையைத் திறக்கவும்"
 
 #: jellyfin_mpv_shim/gui_mgr.py:403
 msgid "Quit"
-msgstr ""
+msgstr "விட்டுவிட"
 
 #: jellyfin_mpv_shim/media.py:105
 msgid " (Transcode)"
-msgstr ""
+msgstr " (டிரான்ஸ்கோட்)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "வெள்ளை"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "மஞ்சள்"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "கருப்பு"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "சியான்"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "நீலம்"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "பச்சை"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "மெஜந்தா"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "சிவப்பு"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "சாம்பல்"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "சிறிய"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "சிறிய"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "இயல்பானது"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "பெரியது"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "மிகப்பெரியது"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Main Menu"
-msgstr ""
+msgstr "முதன்மை பட்டியல்"
 
 #: jellyfin_mpv_shim/menu.py:127
 msgid "Change Audio"
-msgstr ""
+msgstr "ஆடியோவை மாற்றவும்"
 
 #: jellyfin_mpv_shim/menu.py:128
 msgid "Change Subtitles"
-msgstr ""
+msgstr "வசன வரிகள் மாற்றவும்"
 
 #: jellyfin_mpv_shim/menu.py:129
 msgid "Change Video Quality"
-msgstr ""
+msgstr "வீடியோ தரத்தை மாற்றவும்"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
-msgstr ""
+msgstr "ஒத்திசைவு"
 
 #: jellyfin_mpv_shim/menu.py:134
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} வெளியீட்டு தகவல் / பதிவிறக்க"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "வீடியோ பின்னணி சுயவிவரத்தை மாற்றவும்"
 
 #: jellyfin_mpv_shim/menu.py:140
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "ஆட்டோ செட் ஆடியோ / வசன வரிகள் (முழுத் தொடர்)"
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "வெளியேறி, கவனிக்கப்படாததைக் குறிக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
-msgstr ""
+msgstr "ஸ்கிரீன்ஷாட்"
 
 #: jellyfin_mpv_shim/menu.py:147
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "வீடியோ பின்னணி சுயவிவரங்கள்"
 
 #: jellyfin_mpv_shim/menu.py:150
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP அமைப்புகள்"
 
 #: jellyfin_mpv_shim/menu.py:153 jellyfin_mpv_shim/menu.py:409
 msgid "Video Preferences"
-msgstr ""
+msgstr "வீடியோ விருப்பத்தேர்வுகள்"
 
 #: jellyfin_mpv_shim/menu.py:154 jellyfin_mpv_shim/menu.py:422
 msgid "Player Preferences"
-msgstr ""
+msgstr "பிளேயர் விருப்பத்தேர்வுகள்"
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
-msgstr ""
+msgstr "மெனுவை மூடு"
 
 #: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
-msgstr ""
+msgstr "ஆடியோ டிராக்கைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:260
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "வசனத் தடத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:265
 msgid "None"
-msgstr ""
+msgstr "எதுவுமில்லை"
 
 #: jellyfin_mpv_shim/menu.py:291
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "டிரான்ஸ்கோட் தரத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:292
 msgid "No Transcode"
-msgstr ""
+msgstr "டிரான்ஸ்கோட் இல்லை"
 
 #: jellyfin_mpv_shim/menu.py:293
 msgid "Maximum"
-msgstr ""
+msgstr "அதிகபட்சம்"
 
 #: jellyfin_mpv_shim/menu.py:328
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "தொடருக்கான ஆடியோ / வசனத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:329
 msgid "English Audio"
-msgstr ""
+msgstr "ஆங்கில ஆடியோ"
 
 #: jellyfin_mpv_shim/menu.py:330
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "ஜப்பானிய ஆடியோ / ஆங்கில வசன வரிகள்"
 
 #: jellyfin_mpv_shim/menu.py:331
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "ட்ராக் இன்டெக்ஸ் மூலம் கையேடு (குறைந்த நம்பகத்தன்மை)"
 
 #: jellyfin_mpv_shim/menu.py:358
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "இயல்புநிலை டிரான்ஸ்கோட் சுயவிவரத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:390
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "வசன வண்ணத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:396
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "வசன அளவு தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:402
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "வசன நிலையைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:403
 msgid "Bottom"
-msgstr ""
+msgstr "கீழே"
 
 #: jellyfin_mpv_shim/menu.py:404
 msgid "Top"
-msgstr ""
+msgstr "மேலே"
 
 #: jellyfin_mpv_shim/menu.py:405
 msgid "Middle"
-msgstr ""
+msgstr "நடுத்தர"
 
 #: jellyfin_mpv_shim/menu.py:410
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "தொலைநிலை டிரான்ஸ்கோட் தரம்: {0: 0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:411
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "வசன அளவு: {0}"
 
 #: jellyfin_mpv_shim/menu.py:412
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "வசன நிலை: {0}"
 
 #: jellyfin_mpv_shim/menu.py:413
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "வசன வண்ணம்: {0}"
 
 #: jellyfin_mpv_shim/menu.py:414
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "டிரான்ஸ்கோட் H265 முதல் H264 வரை"
 
 #: jellyfin_mpv_shim/menu.py:415
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "டிரான்ஸ்கோட் Hi10p முதல் 8bit வரை"
 
 #: jellyfin_mpv_shim/menu.py:416
 msgid "Direct Paths"
-msgstr ""
+msgstr "நேரடி பாதைகள்"
 
 #: jellyfin_mpv_shim/menu.py:417
 msgid "Transcode to H265"
-msgstr ""
+msgstr "H265 க்கு டிரான்ஸ்கோட்"
 
 #: jellyfin_mpv_shim/menu.py:418
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "நேரடி விளையாட்டை முடக்கு"
 
 #: jellyfin_mpv_shim/menu.py:423
 msgid "Auto Play"
-msgstr ""
+msgstr "தானியங்கி"
 
 #: jellyfin_mpv_shim/menu.py:424
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "ஆட்டோ முழுத்திரை"
 
 #: jellyfin_mpv_shim/menu.py:425
 msgid "Media Key Seek"
-msgstr ""
+msgstr "மீடியா கீ சீக்"
 
 #: jellyfin_mpv_shim/menu.py:426
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "வலை சீக் முன்னுரிமையைப் பயன்படுத்தவும்"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr ""
+msgstr "காட்சி பிரதிபலிப்பு"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
-msgstr ""
+msgstr "கோப்புகளை பதிவு செய்யவும்"
 
 #: jellyfin_mpv_shim/menu.py:429
 msgid "Check for Updates"
-msgstr ""
+msgstr "புதுப்பிப்புகளைச் சரிபார்க்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:430
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "இருப்பை நிராகரி"
 
 #: jellyfin_mpv_shim/player.py:413
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"உங்கள் தொலை வீடியோ டிரான்ஸ்கோடிங்!\n"
+"இது தேவையில்லை என்றால் அலைவரிசை அமைப்புகளை சரிசெய்ய c ஐ அழுத்தவும்."
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "பருவம் {0} - அத்தியாயம் {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
 msgid "Automatic"
-msgstr ""
+msgstr "தானியங்கி"
 
 #: jellyfin_mpv_shim/svp_integration.py:136
 msgid "Disabled"
-msgstr ""
+msgstr "முடக்கப்பட்டது"
 
 #: jellyfin_mpv_shim/svp_integration.py:144
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "SVP சுயவிவரத்தைத் தேர்ந்தெடுக்கவும்"
 
 #: jellyfin_mpv_shim/svp_integration.py:147
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "எஸ்விபி செயலில் இல்லை"
 
 #: jellyfin_mpv_shim/svp_integration.py:148
 msgid "Disable"
-msgstr ""
+msgstr "முடக்கு"
 
 #: jellyfin_mpv_shim/svp_integration.py:149
 msgid "Retry"
-msgstr ""
+msgstr "மீண்டும் முயற்சிக்கவும்"
 
 #: jellyfin_mpv_shim/svp_integration.py:152
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "எஸ்விபி முடக்கப்பட்டுள்ளது"
 
 #: jellyfin_mpv_shim/svp_integration.py:153
 msgid "Enable SVP"
-msgstr ""
+msgstr "SVP ஐ இயக்கு"
 
 #: jellyfin_mpv_shim/syncplay.py:16
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "குறிப்பிட்ட ஒத்திசைவு குழு இல்லை."
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "ஒத்திசைவு குழுக்களை உருவாக்குவது அனுமதிக்கப்படாது."
 
 #: jellyfin_mpv_shim/syncplay.py:18
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "ஒத்திசைவு குழு அணுகல் மறுக்கப்பட்டது."
 
 #: jellyfin_mpv_shim/syncplay.py:19
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "ஒத்திசைவு நூலகத்திற்கான அணுகல் மறுக்கப்பட்டது."
 
 #: jellyfin_mpv_shim/syncplay.py:128
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x {0})"
 
 #: jellyfin_mpv_shim/syncplay.py:138
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "ஒத்திசைவு முடக்கப்பட்டது (பல முயற்சிகள்)"
 
 #: jellyfin_mpv_shim/syncplay.py:146
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x {0})"
 
 #: jellyfin_mpv_shim/syncplay.py:199
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "ஒத்திசைவு இயக்கப்பட்டது."
 
 #: jellyfin_mpv_shim/syncplay.py:218
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "ஒத்திசைவு முடக்கப்பட்டது."
 
 #: jellyfin_mpv_shim/syncplay.py:252
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} இணைந்துள்ளது."
 
 #: jellyfin_mpv_shim/syncplay.py:254
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} விட்டுவிட்டது."
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} இடையகமாகும்."
 
 #: jellyfin_mpv_shim/syncplay.py:453 jellyfin_mpv_shim/video_profile.py:149
 msgid "None (Disabled)"
-msgstr ""
+msgstr "எதுவுமில்லை (முடக்கப்பட்டது)"
 
 #: jellyfin_mpv_shim/syncplay.py:457
 msgid "New Group"
-msgstr ""
+msgstr "புதிய குழு"
 
 #: jellyfin_mpv_shim/update_check.py:47
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} புதுப்பிப்பு கிடைக்கிறது\n"
+"விவரங்களுக்கு மெனுவைத் திறக்கவும் (c ஐ அழுத்தவும்)."
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
-msgstr ""
+msgstr "தெரியவில்லை"
 
 #: jellyfin_mpv_shim/utils.py:236
 msgid " Forced"
-msgstr ""
+msgstr " கட்டாயப்படுத்தப்பட்டது"
 
 #: jellyfin_mpv_shim/video_profile.py:13
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "பொதுவான (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:14
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "பொதுவான உயர் (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:15
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "அனிம் 4 கே x4 விசுவாசமான (எஸ்டிக்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:16
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "அனிம் 4 கே x4 புலனுணர்வு (எஸ்டிக்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:17
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "அனிம் 4 கே x4 புலனுணர்வு + டெப்ளூர் (எஸ்டிக்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "அனிம் 4 கே x2 விசுவாசமான (HD க்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "அனிம் 4 கே x2 புலனுணர்வு (HD க்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "அனிம் 4 கே x2 புலனுணர்வு + டெப்ளூர் (HD க்கு)"
 
 #: jellyfin_mpv_shim/video_profile.py:160
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "ஷேடர் சுயவிவரத்தைத் தேர்ந்தெடுக்கவும்"
