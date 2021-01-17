@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2020-08-18 22:52+0000\n"
-"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
+"PO-Revision-Date: 2021-01-17 13:30+0000\n"
+"Last-Translator: DenisDehaty <Denis.dehaty@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sk/>\n"
 "Language: sk\n"
@@ -94,7 +94,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
-msgstr ""
+msgstr "Zlyhanie"
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Ok"
@@ -118,11 +118,11 @@ msgstr "Heslo:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:293
 msgid "Remove Server"
-msgstr ""
+msgstr "Vymazať Server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:295
 msgid "Close"
-msgstr ""
+msgstr "Zavrieť"
 
 #: jellyfin_mpv_shim/gui_mgr.py:399
 msgid "Configure Servers"
@@ -130,7 +130,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:400
 msgid "Show Console"
-msgstr ""
+msgstr "Ukázať Konzolu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:401
 msgid "Application Menu"
@@ -142,7 +142,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:403
 msgid "Quit"
-msgstr ""
+msgstr "Vypnúť"
 
 #: jellyfin_mpv_shim/media.py:105
 msgid " (Transcode)"
@@ -150,15 +150,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "Biela"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "Žltá"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Čierna"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
@@ -166,11 +166,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Modrá"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Zelená"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
@@ -178,11 +178,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Červená"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Šedá"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
@@ -194,31 +194,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normálne"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Veľké"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Obrovské"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Main Menu"
-msgstr ""
+msgstr "Hlavné Menu"
 
 #: jellyfin_mpv_shim/menu.py:127
 msgid "Change Audio"
-msgstr ""
+msgstr "Zmeniť Audio"
 
 #: jellyfin_mpv_shim/menu.py:128
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Zmeniť titulky"
 
 #: jellyfin_mpv_shim/menu.py:129
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Zmeniť Kvalitu Videa"
 
 #: jellyfin_mpv_shim/menu.py:130 jellyfin_mpv_shim/syncplay.py:465
 msgid "SyncPlay"
@@ -238,7 +238,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:141
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Vypnúť a Označiť Ako Nepozrené"
 
 #: jellyfin_mpv_shim/menu.py:143
 msgid "Screenshot"
@@ -262,7 +262,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:155
 msgid "Close Menu"
-msgstr ""
+msgstr "Zatvoriť Menu"
 
 #: jellyfin_mpv_shim/menu.py:239
 msgid "Select Audio Track"
