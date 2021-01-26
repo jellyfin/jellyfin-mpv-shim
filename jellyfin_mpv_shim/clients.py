@@ -235,5 +235,17 @@ class ClientManager(object):
         for client in self.clients.values():
             client.stop()
 
+    def get_username_from_client(self, client):
+        # This is kind of convoluted. It may fail if a server
+        # was added before we started saving usernames.
+        for uuid, client2 in self.clients:
+            if client2 is client:
+                for server in self.credentials:
+                    if server["uuid"] == uuid:
+                        return server.get("username", "Unknown")
+                break
+
+        return "Unknown"
+
 
 clientManager = ClientManager()
