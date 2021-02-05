@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2021-01-31 16:30+0000\n"
+"PO-Revision-Date: 2021-02-05 10:55+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -104,7 +104,7 @@ msgstr "Jaraidy"
 
 #: jellyfin_mpv_shim/gui_mgr.py:237
 msgid "Server Configuration"
-msgstr "Server konfigurasiasy"
+msgstr "Server teŋşelımderı"
 
 #: jellyfin_mpv_shim/gui_mgr.py:260
 msgid "Server:"
@@ -413,7 +413,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:697
 msgid "Season {0} - Episode {1}"
-msgstr "Mausym {0} - Bölım {1}"
+msgstr "Mausym {0} - Telebölım {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:36
 #: jellyfin_mpv_shim/svp_integration.py:48
@@ -482,7 +482,7 @@ msgstr "SyncPlay qosulğan."
 
 #: jellyfin_mpv_shim/syncplay.py:218
 msgid "SyncPlay disabled."
-msgstr "SyncPlay öşırılgen."
+msgstr "SyncPlay öşırılulı."
 
 #: jellyfin_mpv_shim/syncplay.py:252
 msgid "{0} has joined."
