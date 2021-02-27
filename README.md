@@ -28,7 +28,7 @@ To learn more, keep reading. This README explains everything, including [configu
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/jellyfin-mpv-shim/releases).
-If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation). If you are on OSX, see the [OSX Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
+If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#linux-installation). If you are on macOS, see the [macOS Installation](https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
 section below.
 
 ### Desktop Client
@@ -165,11 +165,11 @@ Here are the notable MPV keyboard shortcuts:
 
 The configuration file is located in different places depending on your platform. You can also open the
 configuration folder using the systray icon if you are using the shim version. When you launch the program
-on Linux or OSX from the terminal, the location of the config file will be printed. The locations are:
+on Linux or macOS from the terminal, the location of the config file will be printed. The locations are:
  - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
  - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
  - Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
- - Mac OSX - `Library/Application Support/jellyfin-mpv-shim/conf.json`
+ - macOS - `Library/Application Support/jellyfin-mpv-shim/conf.json`
  - CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
 
 You can specify a custom configuration folder with the `--config` option.
@@ -239,7 +239,7 @@ The client now supports using an external copy of MPV, including one that is run
 the client. This may be useful if your distribution only provides MPV as a binary executable (instead
 of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
 strange behaviour when controlled in this manner. External MPV is currently the only working backend
-for media playback on OSX.
+for media playback on macOS.
 
 - `mpv_ext` - Enable usage of the external player by default. Default: `false`
     - The external player may still be used by default if `libmpv1` is not available.
@@ -515,7 +515,7 @@ found that using external MPV lessens the memory leak. To enable external MPV on
  - Let me know if the high memory usage is with `mpv.exe` or the shim itself.
 
 On Linux, the process is similar, except that you don't need to set the `mpv_ext_path` variable.
-On OSX, external MPV is already the default and is the only supported player mode.
+On macOS, external MPV is already the default and is the only supported player mode.
 
 In the long term, I may look into a method of terminating MPV when not in use. This will require
 a lot of changes to the software. 
@@ -627,8 +627,8 @@ sudo ./install
 sudo ldconfig
 ```
 
-## OSX Installation
-Currently on OSX only the external MPV backend seems to be working. I cannot test on OSX, so please report any issues you find.
+## <h2 id="osx-installation">macOS Installation</h2>
+Currently on macOS only the external MPV backend seems to be working. I cannot test on macOS, so please report any issues you find.
 
 To install the CLI version:
 
@@ -653,7 +653,7 @@ If you'd like to install the GUI version, you need a working copy of tkinter.
 5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade 'jellyfin-mpv-shim[gui]'`
 6. Run `jellyfin-mpv-shim`.
 
-Display mirroring is not tested on OSX, but may be installable with 'pip3 install --upgrade 'jellyfin-mpv-shim[mirror]'`.
+Display mirroring is not tested on macOS, but may be installable with 'pip3 install --upgrade 'jellyfin-mpv-shim[mirror]'`.
 
 ## Building on Windows
 
