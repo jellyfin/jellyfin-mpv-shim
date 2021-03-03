@@ -169,7 +169,7 @@ on Linux or macOS from the terminal, the location of the config file will be pri
  - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
  - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
  - Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
- - macOS - `Library/Application Support/jellyfin-mpv-shim/conf.json`
+ - macOS - `~/Library/Application Support/jellyfin-mpv-shim/conf.json`
  - CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
 
 You can specify a custom configuration folder with the `--config` option.
