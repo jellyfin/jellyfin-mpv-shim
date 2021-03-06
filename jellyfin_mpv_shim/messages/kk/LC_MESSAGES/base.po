@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2021-02-05 10:55+0000\n"
+"PO-Revision-Date: 2021-03-06 13:20+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -192,7 +192,7 @@ msgstr "Şağyn"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Kışı"
+msgstr "Ūsaq"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -200,11 +200,11 @@ msgstr "Kädımgı"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Ülken"
+msgstr "Irı"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr "İrı"
+msgstr "Asa ırı"
 
 #: jellyfin_mpv_shim/menu.py:121
 msgid "Main Menu"
