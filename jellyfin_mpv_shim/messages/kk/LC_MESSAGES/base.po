@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2021-03-06 13:20+0000\n"
+"PO-Revision-Date: 2021-03-08 11:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -388,7 +388,7 @@ msgstr "Web Seek teŋşelımın paidalanu"
 
 #: jellyfin_mpv_shim/menu.py:427
 msgid "Display Mirroring"
-msgstr "Displeidі şağylystyru"
+msgstr "Displeidı şağylystyru"
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Write Logs to File"
