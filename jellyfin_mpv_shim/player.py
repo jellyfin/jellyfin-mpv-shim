@@ -619,7 +619,7 @@ class PlayerManager(object):
                 self.syncplay.disable_sync_play(False)
 
             log.debug("PlayerManager::finished_callback reached end")
-            self.send_timeline_stopped()
+            self.send_timeline_stopped(True)
         self.pause_ignore = False
 
     @synchronous("_lock")
@@ -768,11 +768,14 @@ class PlayerManager(object):
         self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
 
-    def get_timeline_options(self):
+    def get_timeline_options(self, finished=False):
         # PlaylistItemId is dynamically generated. A more stable Id will be used
         # if queue manipulation is added as a feature.
         player = self._player
-        safe_pos = player.playback_time or 0
+        if finished:
+            safe_pos = self._video.get_duration() or 0
+        else:
+            safe_pos = player.playback_time or 0
         self.last_seek = safe_pos
         self.pause_ignore = player.pause
         options = {
@@ -854,9 +857,9 @@ class PlayerManager(object):
         self._video.client.jellyfin.session_playing(self.get_timeline_options())
 
     @synchronous("_tl_lock")
-    def send_timeline_stopped(self):
+    def send_timeline_stopped(self, finished=False):
         self.should_send_timeline = False
-        self._video.client.jellyfin.session_stop(self.get_timeline_options())
+        self._video.client.jellyfin.session_stop(self.get_timeline_options(finished))
 
         if self.get_webview() is not None and (
             settings.display_mirroring or settings.desktop_fullscreen
