@@ -316,6 +316,7 @@ class PlayerManager(object):
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
+            self.pause_ignore = True
             if self._video and reached_end:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
@@ -323,6 +324,7 @@ class PlayerManager(object):
         # Fires at the end.
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
+            self.pause_ignore = True
             if self._video and value:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
@@ -420,6 +422,7 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
     ):
+        self.pause_ignore = True
         self.url = url
         self.menu.hide_menu()
 
@@ -460,7 +463,12 @@ class PlayerManager(object):
 
         if not no_initial_timeline:
             self.send_timeline_initial()
-        self.set_paused(False, False)
+
+        if self.syncplay.is_enabled():
+            self.syncplay.play_done()
+        else:
+            self.set_paused(False, False)
+        
         self.should_send_timeline = True
         if self._finished_lock.locked():
             self._finished_lock.release()
@@ -489,14 +497,14 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def stop(self):
+        if self.syncplay.is_enabled():
+            self.syncplay.disable_sync_play(False)
+
         if not self._video or self._player.playback_abort:
             self.exec_stop_cmd()
             return
 
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
-
-        if self.syncplay.is_enabled():
-            self.syncplay.disable_sync_play(False)
 
         self._video.terminate_transcode()
         self.send_timeline_stopped()
@@ -590,20 +598,29 @@ class PlayerManager(object):
     @synchronous("_lock")
     def finished_callback(self, has_lock: bool):
         if not self._video:
+            self.pause_ignore = False
             return
 
         self._video.set_played()
         if self._video.parent.has_next and settings.auto_play:
             if has_lock:
                 log.debug("PlayerManager::finished_callback starting next episode")
-                self.play(self._video.parent.get_next().video)
+                new_video = self._video.parent.get_next().video
+                if self.syncplay.is_enabled():
+                    self.syncplay.request_next(new_video.get_playlist_id())
+                self.play(new_video)
             else:
                 log.debug("PlayerManager::finished_callback No lock, skipping...")
         else:
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
+
+            if self.syncplay.is_enabled():
+                self.syncplay.disable_sync_play(False)
+
             log.debug("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped()
+        self.pause_ignore = False
 
     @synchronous("_lock")
     def watched_skip(self):
@@ -625,7 +642,10 @@ class PlayerManager(object):
     @synchronous("_lock")
     def play_next(self):
         if self._video.parent.has_next:
-            self.play(self._video.parent.get_next().video)
+            new_video = self._video.parent.get_next().video
+            if self.syncplay.is_enabled():
+                self.syncplay.request_next(new_video.get_playlist_id())
+            self.play(new_video)
             return True
         return False
 
@@ -633,6 +653,8 @@ class PlayerManager(object):
     def skip_to(self, key: str):
         media = self._video.parent.get_from_key(key)
         if media:
+            if self.syncplay.is_enabled():
+                self.syncplay.request_skip(media.video.get_playlist_id())
             self.play(media.get_video(0))
             return True
         return False
@@ -640,7 +662,10 @@ class PlayerManager(object):
     @synchronous("_lock")
     def play_prev(self):
         if self._video.parent.has_prev:
-            self.play(self._video.parent.get_prev().video)
+            new_video = self._video.parent.get_prev().video
+            if self.syncplay.is_enabled():
+                self.syncplay.request_prev(new_video.get_playlist_id())
+            self.play(new_video)
             return True
         return False
 
@@ -763,9 +788,7 @@ class PlayerManager(object):
             "BufferedRanges": [],
             "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
             "PlaySessionId": self._video.playback_info["PlaySessionId"],
-            "PlaylistItemId": self._video.parent.queue[self._video.parent.seq][
-                "PlaylistItemId"
-            ],
+            "PlaylistItemId": self._video.get_playlist_id(),
             "MediaSourceId": self._video.media_source["Id"],
             "CanSeek": True,
             "ItemId": self._video.item_id,

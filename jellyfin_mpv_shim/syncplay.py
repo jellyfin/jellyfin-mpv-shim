@@ -74,7 +74,6 @@ class SyncPlayManager:
         self.enabled_at = None
         self.ready = False
         self.is_buffering = False
-        self.requested_notify = False
 
         self.last_command = None
         self.queued_command = None
@@ -235,6 +234,7 @@ class SyncPlayManager:
         self.last_command = None
         self.queued_command = None
         self.sync_enabled = False
+        self.playqueue_last_updated = None
 
         if self.timesync is not None:
             self.timesync.remove_subscriber(self.on_timesync_update)
@@ -276,15 +276,15 @@ class SyncPlayManager:
 
     # On Buffer Done
     def on_buffer_done(self):
-        if self.requested_notify:
-            self.requested_notify = False
-            self.local_pause()
-            self._buffer_req(False)
-        elif self.is_buffering:
+        if self.is_buffering:
             self._buffer_req(False)
 
         self.last_playback_waiting = None
         self.is_buffering = False
+
+    def play_done(self):
+        self.local_pause()
+        self._buffer_req(False)
 
     def is_buffering(self):
         if self.last_playback_waiting is None:
@@ -512,7 +512,6 @@ class SyncPlayManager:
                 os.system(settings.pre_media_cmd)
             self.playerManager.play(video, offset, no_initial_timeline=True)
             self.playerManager.send_timeline()
-            self.playerManager.pause_if_playing()
         else:
             log.error("No video from queue update.")
 
@@ -537,7 +536,6 @@ class SyncPlayManager:
             if offset is not None:
                 offset /= 10000000
 
-            self.requested_notify = True
             self._play_video(media.video, offset)
         else:
             media = self.playerManager.get_video().parent
@@ -548,7 +546,6 @@ class SyncPlayManager:
                 if offset is not None:
                     offset /= 10000000
 
-                self.requested_notify = True
                 self._play_video(new_media.video, offset)
 
     def schedule_seek(self, when: datetime, position: int):
@@ -601,8 +598,8 @@ class SyncPlayManager:
 
     def menu_create_group(self):
         self.menu.hide_menu()
-        self.client.jellyfin.new_sync_play(
-            clientManager.get_username_from_client(self.client)
+        self.client.jellyfin.new_sync_play_v2(
+            clientManager.get_username_from_client(_("{0}'s Group").format(self.client))
         )
 
     def menu_action(self):
@@ -622,3 +619,12 @@ class SyncPlayManager:
             if group["GroupId"] == self.current_group:
                 selected = i + offset
         self.menu.put_menu(_("SyncPlay"), group_option_list, selected)
+
+    def request_next(self, playlist_item_id):
+        self.client.jellyfin.next_sync_play(playlist_item_id)
+
+    def request_prev(self, playlist_item_id):
+        self.client.jellyfin.prev_sync_play(playlist_item_id)
+    
+    def request_skip(self, playlist_item_id):
+        self.client.jellyfin.set_item_sync_play(playlist_item_id)
