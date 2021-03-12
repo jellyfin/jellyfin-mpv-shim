@@ -90,6 +90,7 @@ class SyncPlayManager:
         self.timesync = None
         self.client = None
         self.current_group = None
+        self.playqueue_last_updated = None
 
     # On playback time update (call from timeline push)
     def sync_playback_time(self):
@@ -457,7 +458,6 @@ class SyncPlayManager:
         if local_play_time > current_time:
             log.debug("SyncPlay Scheduled Play: Playing Later")
             play_timeout = (local_play_time - current_time).total_seconds() * 1000
-            self.requested_notify = True
             self.local_seek(position / seconds_in_ticks)
 
             def scheduled():
@@ -517,6 +517,13 @@ class SyncPlayManager:
             log.error("No video from queue update.")
 
     def upd_queue(self, data):
+        last_upd = _parse_precise_time(data["LastUpdate"])
+        if self.playqueue_last_updated is not None and self.playqueue_last_updated >= last_upd:
+            log.warning("Tried to apply old queue update.")
+            return
+        
+        self.playqueue_last_updated = last_upd
+
         sp_items = [
             {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
             for x in data["Playlist"]
@@ -530,8 +537,8 @@ class SyncPlayManager:
             if offset is not None:
                 offset /= 10000000
 
+            self.requested_notify = True
             self._play_video(media.video, offset)
-            self.on_buffer_done()
         else:
             media = self.playerManager.get_video().parent
             new_media = media.replace_queue(sp_items, data["PlayingItemIndex"])
@@ -541,8 +548,8 @@ class SyncPlayManager:
                 if offset is not None:
                     offset /= 10000000
 
+                self.requested_notify = True
                 self._play_video(new_media.video, offset)
-                self.on_buffer_done()
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
