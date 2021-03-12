@@ -97,7 +97,7 @@ class SyncPlayManager:
             not self.last_command
             or self.last_command["Command"] != "Unpause"
             or self.is_buffering
-            or not self.playerManager.is_playing()
+            or not self.playerManager.is_not_paused()
             or self.playerManager.menu.is_menu_shown
         ):
             log.debug("Not syncing due to no playback.")
@@ -188,11 +188,12 @@ class SyncPlayManager:
                 self.read_callback()
                 self.read_callback = None
 
-        if self.sync_enabled:
-            try:
-                self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
-            except Exception:
-                log.error("Syncplay ping reporting failed.", exc_info=True)
+        # Server responds with 400 bad request...
+        #if self.sync_enabled:
+        #    try:
+        #        self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
+        #    except Exception:
+        #        log.error("Syncplay ping reporting failed.", exc_info=True)
 
     def enable_sync_play(self, from_server: bool):
         self.playback_rate = self.playerManager.get_speed()
@@ -251,7 +252,7 @@ class SyncPlayManager:
         media = self.playerManager.get_video().parent
         when = self.timesync.local_date_to_server(datetime.utcnow())
         ticks = int(self.playerManager.get_time() * seconds_in_ticks)
-        playing = self.playerManager.is_playing()
+        playing = self.playerManager.is_not_paused()
         playlist_id = media.queue[media.seq]["PlaylistItemId"]
 
         if is_buffering:
@@ -358,6 +359,7 @@ class SyncPlayManager:
             and self.last_command["Command"] == command["Command"]
         ):
             log.debug("Ignoring duplicate command {0}.".format(command))
+            return
 
         self.last_command = command
         command_cmd, when, position = (
@@ -529,6 +531,7 @@ class SyncPlayManager:
                 offset /= 10000000
 
             self._play_video(media.video, offset)
+            self.on_buffer_done()
         else:
             media = self.playerManager.get_video().parent
             new_media = media.replace_queue(sp_items, data["PlayingItemIndex"])
@@ -539,6 +542,7 @@ class SyncPlayManager:
                     offset /= 10000000
 
                 self._play_video(new_media.video, offset)
+                self.on_buffer_done()
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.

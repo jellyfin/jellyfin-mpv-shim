@@ -317,9 +317,6 @@ class PlayerManager(object):
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
             if self._video and reached_end:
-                if self.syncplay.is_enabled():
-                    self.syncplay.disable_sync_play(False)
-
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
@@ -327,9 +324,6 @@ class PlayerManager(object):
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
             if self._video and value:
-                if self.syncplay.is_enabled():
-                    self.syncplay.disable_sync_play(False)
-
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
@@ -631,8 +625,6 @@ class PlayerManager(object):
     @synchronous("_lock")
     def play_next(self):
         if self._video.parent.has_next:
-            if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
             self.play(self._video.parent.get_next().video)
             return True
         return False
@@ -641,8 +633,6 @@ class PlayerManager(object):
     def skip_to(self, key: str):
         media = self._video.parent.get_from_key(key)
         if media:
-            if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
             self.play(media.get_video(0))
             return True
         return False
@@ -650,8 +640,6 @@ class PlayerManager(object):
     @synchronous("_lock")
     def play_prev(self):
         if self._video.parent.has_prev:
-            if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
             self.play(self._video.parent.get_prev().video)
             return True
         return False
@@ -880,6 +868,9 @@ class PlayerManager(object):
 
     def is_playing(self):
         return bool(self._video and not self._player.playback_abort)
+
+    def is_not_paused(self):
+        return bool(self._video and not self._player.playback_abort and not self._player.pause)
 
     def has_video(self):
         return self._video is not None
