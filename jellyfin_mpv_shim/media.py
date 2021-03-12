@@ -297,6 +297,7 @@ class Video(object):
     def get_playlist_id(self):
         return self.parent.queue[self.parent.seq]["PlaylistItemId"]
 
+
 class Media(object):
     def __init__(
         self,

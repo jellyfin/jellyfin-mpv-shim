@@ -189,7 +189,7 @@ class SyncPlayManager:
                 self.read_callback = None
 
         # Server responds with 400 bad request...
-        #if self.sync_enabled:
+        # if self.sync_enabled:
         #    try:
         #        self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
         #    except Exception:
@@ -517,10 +517,13 @@ class SyncPlayManager:
 
     def upd_queue(self, data):
         last_upd = _parse_precise_time(data["LastUpdate"])
-        if self.playqueue_last_updated is not None and self.playqueue_last_updated >= last_upd:
+        if (
+            self.playqueue_last_updated is not None
+            and self.playqueue_last_updated >= last_upd
+        ):
             log.warning("Tried to apply old queue update.")
             return
-        
+
         self.playqueue_last_updated = last_upd
 
         sp_items = [
@@ -625,6 +628,6 @@ class SyncPlayManager:
 
     def request_prev(self, playlist_item_id):
         self.client.jellyfin.prev_sync_play(playlist_item_id)
-    
+
     def request_skip(self, playlist_item_id):
         self.client.jellyfin.set_item_sync_play(playlist_item_id)

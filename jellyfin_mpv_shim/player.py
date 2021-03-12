@@ -468,7 +468,7 @@ class PlayerManager(object):
             self.syncplay.play_done()
         else:
             self.set_paused(False, False)
-        
+
         self.should_send_timeline = True
         if self._finished_lock.locked():
             self._finished_lock.release()
@@ -893,7 +893,9 @@ class PlayerManager(object):
         return bool(self._video and not self._player.playback_abort)
 
     def is_not_paused(self):
-        return bool(self._video and not self._player.playback_abort and not self._player.pause)
+        return bool(
+            self._video and not self._player.playback_abort and not self._player.pause
+        )
 
     def has_video(self):
         return self._video is not None
