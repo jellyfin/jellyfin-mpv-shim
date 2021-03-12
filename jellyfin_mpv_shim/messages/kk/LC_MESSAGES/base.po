@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2020-08-16 14:19+EDT\n"
-"PO-Revision-Date: 2021-03-08 11:05+0000\n"
+"PO-Revision-Date: 2021-03-12 16:47+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/kk/>\n"
@@ -40,7 +40,7 @@ msgstr "Dūbläjdı anyqtau: {0} jaraidy, {1} tek dybys, {2} sätsız"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:106
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Qolmenen: {0} jaraidy, {1} sätsız"
+msgstr "Qolmen: {0} jaraidy, {1} sätsız"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:110
 msgid "Setting Current..."
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection infomation."
 msgstr ""
 "Server üstelınbedı.\n"
-"Qosylu mälımetterın tekserіŋіz."
+"Qosylu mälımetterın tekserıŋız."
 
 #: jellyfin_mpv_shim/gui_mgr.py:228
 msgid "Fail"
@@ -454,11 +454,11 @@ msgstr "Körsetіlgen SyncPlay toby joq."
 
 #: jellyfin_mpv_shim/syncplay.py:17
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "SyncPlay toptaryn qūruğa rūqsat etіlmeidі."
+msgstr "SyncPlay toptaryn qūruğa rūqsat etılmeidı."
 
 #: jellyfin_mpv_shim/syncplay.py:18
 msgid "SyncPlay group access was denied."
-msgstr "SyncPlay tobyna kіruge tyiym salynğan."
+msgstr "SyncPlay tobyna kıruge tyiym salynğan."
 
 #: jellyfin_mpv_shim/syncplay.py:19
 msgid "Access to the SyncPlay library was denied."
@@ -490,7 +490,7 @@ msgstr "{0} qosylğan."
 
 #: jellyfin_mpv_shim/syncplay.py:254
 msgid "{0} has left."
-msgstr "{0} şyğyp kettі."
+msgstr "{0} şyğyp kettı."
 
 #: jellyfin_mpv_shim/syncplay.py:256
 msgid "{0} is buffering."
@@ -509,8 +509,8 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
-"MPV Shim v{0} jaŋartuy qoljetіmdі\n"
-"Egjeiler üşіn mäzіrdі aşyŋyz (s basyŋyz)."
+"MPV Shim v{0} jaŋartuy qoljetımdı\n"
+"Egjeiler üşın mäzırdі aşyŋyz (s basyŋyz)."
 
 #: jellyfin_mpv_shim/utils.py:235
 msgid "Unkn"
