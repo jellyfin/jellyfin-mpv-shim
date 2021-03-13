@@ -8,7 +8,7 @@ jobs:
   MainWindows:
     runs-on: vs2017-win2016
     env:
-      PIP_CACHE_DIR: ${{ env.Pipeline.Workspace }}/.pip
+      PIP_CACHE_DIR: ${{ env.GITHUB_WORKSPACE }}/.pip
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python 3.7
@@ -77,7 +77,7 @@ jobs:
   LegacyWindows:
     runs-on: vs2017-win2016
     env:
-      PIP_CACHE_DIR: ${{ env.Pipeline.Workspace }}/.pip
+      PIP_CACHE_DIR: ${{ env.GITHUB_WORKSPACE }}/.pip
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python 3.7
