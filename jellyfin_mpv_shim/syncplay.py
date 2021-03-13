@@ -189,11 +189,11 @@ class SyncPlayManager:
                 self.read_callback = None
 
         # Server responds with 400 bad request...
-        # if self.sync_enabled:
-        #    try:
-        #        self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
-        #    except Exception:
-        #        log.error("Syncplay ping reporting failed.", exc_info=True)
+        if self.sync_enabled:
+           try:
+               self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
+           except Exception:
+               log.error("Syncplay ping reporting failed.")
 
     def enable_sync_play(self, from_server: bool):
         self.playback_rate = self.playerManager.get_speed()
