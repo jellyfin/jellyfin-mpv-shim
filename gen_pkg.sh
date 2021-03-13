@@ -66,7 +66,7 @@ then
 fi
 
 # Verify versioning
-current_version=$(get_resource_version iwalton3/jellyfin-mpv-shim)
+current_version=$(get_resource_version jellyfin/jellyfin-desktop)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
 setup_version=$(grep 'version=' setup.py | cut -d '"' -f 2)

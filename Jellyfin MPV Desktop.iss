@@ -4,7 +4,7 @@
 #define MyAppName "Jellyfin MPV Desktop"
 #define MyAppVersion "1.8.1"
 #define MyAppPublisher "Ian Walton"
-#define MyAppURL "https://iwalton.com/"
+#define MyAppURL "https://github.com/jellyfin/jellyfin-desktop"
 #define MyAppExeName "run-desktop.exe"
 
 [Setup]

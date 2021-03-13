@@ -5,7 +5,7 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Jellyfin MPV Shim</name>
-  <summary>MPV Client for Jellyfin Media Server</summary>
+  <summary>Official Desktop Client for Jellyfin Media Server</summary>
   <developer_name>Ian Walton</developer_name>
 
   <description>
@@ -30,9 +30,9 @@
     <category>Player</category>
   ​</categories>
 
-  <url type="homepage">https://github.com/iwalton3/jellyfin-mpv-shim</url>
-  <url type="help">https://github.com/iwalton3/jellyfin-mpv-shim/blob/master/README.md</url>
-  <url type="bugtracker">https://github.com/iwalton3/jellyfin-mpv-shim/issues</url>
+  <url type="homepage">https://github.com/jellyfin/jellyfin-desktop</url>
+  <url type="help">https://github.com/jellyfin/jellyfin-desktop/blob/master/README.md</url>
+  <url type="bugtracker">https://github.com/jellyfin/jellyfin-desktop/issues</url>
 
   <screenshots>
     <screenshot type="default">
@@ -52,14 +52,15 @@
   <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
   <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop-player.desktop</launchable>
 
-  <url type="homepage">https://github.com/iwalton3/jellyfin-mpv-shim</url>
+  <url type="homepage">https://github.com/jellyfin/jellyfin-desktop</url>
 
   <provides>
     <binary>jellyfin-mpv-desktop</binary>
   </provides>
 
   <content_rating type="oars-1.1" />
-    <release version="1.8.1" date="2020-12-12">
+  <releases>
+      <release version="1.8.1" date="2020-12-12">
       <description>
         <p>This is a maintenance update and the last one to support SyncPlay on 1.6.x. Changes:</p>
         <ul>
@@ -76,7 +77,6 @@
         </ul>
       </description>
     </release>
-  <releases>
     <release version="1.8.0" date="2020-08-18">
       <description>
         <p>This update integrates many improvements, many directly from user feedback. Changes:</p>
