@@ -200,7 +200,7 @@ class ClientManager(object):
 
         is_logged_in = False
         client = self.client_factory()
-        state = client.authenticate({"Servers": [server]})
+        state = client.authenticate({"Servers": [server]}, discover=False)
         server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
         if server["connected"]:
             is_logged_in = True
