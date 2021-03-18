@@ -593,10 +593,7 @@ class SyncPlayManager:
     def menu_join_group(self):
         group = self.menu.menu_list[self.menu.menu_selection][2]
         self.menu.hide_menu()
-
-        print(group)
         self.client.jellyfin.join_sync_play(group["GroupId"])
-        self.local_seek(group["PositionTicks"] / seconds_in_ticks)
 
     def menu_disable(self):
         self.menu.hide_menu()
@@ -605,7 +602,7 @@ class SyncPlayManager:
     def menu_create_group(self):
         self.menu.hide_menu()
         self.client.jellyfin.new_sync_play_v2(
-            clientManager.get_username_from_client(_("{0}'s Group").format(self.client))
+            _("{0}'s Group").format(clientManager.get_username_from_client(self.client))
         )
 
     def menu_action(self):
