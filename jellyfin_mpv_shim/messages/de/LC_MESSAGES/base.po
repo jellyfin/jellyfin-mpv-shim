@@ -6,10 +6,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2020-08-24 11:25+0000\n"
-"Last-Translator: ryperx <ryperx@gmx.net>\n"
+"PO-Revision-Date: 2021-03-18 10:56+0000\n"
+"Last-Translator: Moritz <moritz.leick@googlemail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-mpv-shim/de/>\n"
+"jellyfin-desktop/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -497,10 +497,8 @@ msgid "{0} is buffering."
 msgstr "{0} ist am Buffern."
 
 #: jellyfin_mpv_shim/syncplay.py:608
-#, fuzzy
-#| msgid "New Group"
 msgid "{0}'s Group"
-msgstr "Neue Gruppe"
+msgstr "{0}s Gruppe"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
