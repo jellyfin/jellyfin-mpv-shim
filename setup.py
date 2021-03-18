@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="jellyfin-mpv-shim",
-    version="1.8.1",
+    version="1.9.0",
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV.",
@@ -26,6 +26,7 @@ setup(
         "console_scripts": [
             "jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main",
             "jellyfin-mpv-desktop=jellyfin_mpv_shim.mpv_shim:main_desktop",
+            "jellyfin-desktop=jellyfin_mpv_shim.mpv_shim:main_desktop",
         ]
     },
     classifiers=[
@@ -50,7 +51,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "python-mpv",
-        "jellyfin-apiclient-python>=1.6.2",
+        "jellyfin-apiclient-python>=1.7.0",
         "python-mpv-jsonipc>=1.1.9",
         "requests",
         "pydantic",
