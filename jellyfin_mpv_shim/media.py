@@ -294,6 +294,9 @@ class Video(object):
 
         return need_restart
 
+    def get_playlist_id(self):
+        return self.parent.queue[self.parent.seq]["PlaylistItemId"]
+
 
 class Media(object):
     def __init__(
@@ -373,3 +376,12 @@ class Media(object):
                 self.queue[0 : self.seq + 1] + items + self.queue[self.seq + 1 :]
             )
         self.has_next = self.seq < len(self.queue) - 1
+
+    def replace_queue(self, sp_items, seq):
+        """Update queue for SyncPlay.
+           Returns None if the video is the same or a new Media if not."""
+        if self.queue[self.seq]["Id"] == sp_items[seq]["Id"]:
+            self.queue, self.seq = sp_items, seq
+            return None
+        else:
+            return Media(self.client, sp_items, seq, self.user_id, queue_override=False)

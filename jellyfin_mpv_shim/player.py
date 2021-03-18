@@ -138,6 +138,7 @@ class PlayerManager(object):
         self._jf_settings = None
         self.get_webview = lambda: None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
+        self.do_not_handle_pause = False
         self.last_seek = None
         self.warned_about_transcode = False
         self.fullscreen_disable = False
@@ -316,25 +317,24 @@ class PlayerManager(object):
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
+            self.pause_ignore = True
             if self._video and reached_end:
-                if self.syncplay.is_enabled():
-                    self.syncplay.disable_sync_play(False)
-
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         # Fires at the end.
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
+            self.pause_ignore = True
             if self._video and value:
-                if self.syncplay.is_enabled():
-                    self.syncplay.disable_sync_play(False)
-
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         @self._player.property_observer("seeking")
         def handle_seeking(_name, value: bool):
+            if self.do_not_handle_pause:
+                return
+
             if self.syncplay.is_enabled():
                 play_time = self._player.playback_time
                 if (
@@ -342,11 +342,6 @@ class PlayerManager(object):
                     and self.last_seek is not None
                     and abs(self.last_seek - play_time) > 10
                 ):
-                    log.info("Reverting sync for syncplay.")
-                    try:
-                        self._player.command("revert-seek")
-                    except Exception:
-                        log.error("Could not revert seek for syncplay.", exc_info=True)
                     self.syncplay.seek_request(play_time)
                 else:
                     log.debug("SyncPlay Buffering: {0}".format(value))
@@ -357,6 +352,9 @@ class PlayerManager(object):
 
         @self._player.property_observer("pause")
         def pause_handler(_name, value: bool):
+            if self.do_not_handle_pause:
+                return
+
             if not self._player.playback_abort:
                 self.timeline_handle()
 
@@ -431,6 +429,8 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
     ):
+        self.pause_ignore = True
+        self.do_not_handle_pause = True
         self.url = url
         self.menu.hide_menu()
 
@@ -471,8 +471,17 @@ class PlayerManager(object):
 
         if not no_initial_timeline:
             self.send_timeline_initial()
-        self.set_paused(False, False)
+        else:
+            self.send_timeline()
+
+        if self.syncplay.is_enabled():
+            self.set_speed(1)
+            self.syncplay.play_done()
+        else:
+            self.set_paused(False, False)
+
         self.should_send_timeline = True
+        self.do_not_handle_pause = False
         if self._finished_lock.locked():
             self._finished_lock.release()
 
@@ -500,20 +509,23 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def stop(self):
+        if self.syncplay.is_enabled():
+            self.syncplay.disable_sync_play(False)
+
         if not self._video or self._player.playback_abort:
             self.exec_stop_cmd()
             return
 
         log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
-        if self.syncplay.is_enabled():
-            self.syncplay.disable_sync_play(False)
-
-        self._video.terminate_transcode()
-        self.send_timeline_stopped()
+        self.should_send_timeline = False
+        options = self.get_timeline_options()
+        self.set_paused(False)
+        local_video = self._video
         self._video = None
         self._player.command("stop")
-        self.set_paused(False)
+        local_video.terminate_transcode()
+        self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
 
     def get_volume(self, percent: bool = False):
@@ -601,20 +613,31 @@ class PlayerManager(object):
     @synchronous("_lock")
     def finished_callback(self, has_lock: bool):
         if not self._video:
+            self.pause_ignore = False
             return
 
         self._video.set_played()
         if self._video.parent.has_next and settings.auto_play:
             if has_lock:
                 log.debug("PlayerManager::finished_callback starting next episode")
-                self.play(self._video.parent.get_next().video)
+                new_video = self._video.parent.get_next().video
+                if self.syncplay.is_enabled():
+                    self.send_timeline_stopped(True)
+                    self.syncplay.request_next(self._video.get_playlist_id())
+                else:
+                    self.play(new_video)
             else:
                 log.debug("PlayerManager::finished_callback No lock, skipping...")
         else:
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
+
+            if self.syncplay.is_enabled():
+                self.syncplay.disable_sync_play(False)
+
             log.debug("PlayerManager::finished_callback reached end")
-            self.send_timeline_stopped()
+            self.send_timeline_stopped(True)
+        self.pause_ignore = False
 
     @synchronous("_lock")
     def watched_skip(self):
@@ -636,9 +659,12 @@ class PlayerManager(object):
     @synchronous("_lock")
     def play_next(self):
         if self._video.parent.has_next:
+            new_video = self._video.parent.get_next().video
             if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
-            self.play(self._video.parent.get_next().video)
+                self.send_timeline_stopped(True)
+                self.syncplay.request_next(self._video.get_playlist_id())
+            else:
+                self.play(new_video)
             return True
         return False
 
@@ -647,17 +673,22 @@ class PlayerManager(object):
         media = self._video.parent.get_from_key(key)
         if media:
             if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
-            self.play(media.get_video(0))
+                self.send_timeline_stopped(True)
+                self.syncplay.request_skip(media.video.get_playlist_id())
+            else:
+                self.play(media.get_video(0))
             return True
         return False
 
     @synchronous("_lock")
     def play_prev(self):
         if self._video.parent.has_prev:
+            new_video = self._video.parent.get_prev().video
             if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
-            self.play(self._video.parent.get_prev().video)
+                self.send_timeline_stopped(True)
+                self.syncplay.request_prev(self._video.get_playlist_id())
+            else:
+                self.play(new_video)
             return True
         return False
 
@@ -760,11 +791,14 @@ class PlayerManager(object):
         self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
 
-    def get_timeline_options(self):
+    def get_timeline_options(self, finished=False):
         # PlaylistItemId is dynamically generated. A more stable Id will be used
         # if queue manipulation is added as a feature.
         player = self._player
-        safe_pos = player.playback_time or 0
+        if finished:
+            safe_pos = self._video.get_duration() or 0
+        else:
+            safe_pos = player.playback_time or 0
         self.last_seek = safe_pos
         self.pause_ignore = player.pause
         options = {
@@ -780,9 +814,7 @@ class PlayerManager(object):
             "BufferedRanges": [],
             "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
             "PlaySessionId": self._video.playback_info["PlaySessionId"],
-            "PlaylistItemId": self._video.parent.queue[self._video.parent.seq][
-                "PlaylistItemId"
-            ],
+            "PlaylistItemId": self._video.get_playlist_id(),
             "MediaSourceId": self._video.media_source["Id"],
             "CanSeek": True,
             "ItemId": self._video.item_id,
@@ -840,17 +872,27 @@ class PlayerManager(object):
             and not self._player.playback_abort
         ):
             self._video.client.jellyfin.session_progress(self.get_timeline_options())
-            if self.syncplay.is_enabled():
-                self.syncplay.sync_playback_time()
+            try:
+                if self.syncplay.is_enabled():
+                    self.syncplay.sync_playback_time()
+            except:
+                log.error("Error syncing playback time.", exc_info=True)
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
         self._video.client.jellyfin.session_playing(self.get_timeline_options())
 
     @synchronous("_tl_lock")
-    def send_timeline_stopped(self):
+    def send_timeline_stopped(self, finished=False, options=None, client=None):
         self.should_send_timeline = False
-        self._video.client.jellyfin.session_stop(self.get_timeline_options())
+
+        if options is None:
+            options = self.get_timeline_options(finished)
+
+        if client is None:
+            client = self._video.client
+
+        client.jellyfin.session_stop(options)
 
         if self.get_webview() is not None and (
             settings.display_mirroring or settings.desktop_fullscreen
@@ -864,7 +906,8 @@ class PlayerManager(object):
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
 
     def upd_player_hide(self):
-        self._player.keep_open = self._video.parent.has_next
+        if self._video:
+            self._player.keep_open = self._video.parent.has_next
 
     def terminate(self):
         self.stop()
@@ -885,6 +928,11 @@ class PlayerManager(object):
 
     def is_playing(self):
         return bool(self._video and not self._player.playback_abort)
+
+    def is_not_paused(self):
+        return bool(
+            self._video and not self._player.playback_abort and not self._player.pause
+        )
 
     def has_video(self):
         return self._video is not None

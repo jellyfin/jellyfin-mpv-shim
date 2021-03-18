@@ -200,7 +200,7 @@ class ClientManager(object):
 
         is_logged_in = False
         client = self.client_factory()
-        state = client.authenticate({"Servers": [server]})
+        state = client.authenticate({"Servers": [server]}, discover=False)
         server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
         if server["connected"]:
             is_logged_in = True
@@ -234,6 +234,18 @@ class ClientManager(object):
         self.is_stopping = True
         for client in self.clients.values():
             client.stop()
+
+    def get_username_from_client(self, client):
+        # This is kind of convoluted. It may fail if a server
+        # was added before we started saving usernames.
+        for uuid, client2 in self.clients.items():
+            if client2 is client:
+                for server in self.credentials:
+                    if server["uuid"] == uuid:
+                        return server.get("username", "Unknown")
+                break
+
+        return "Unknown"
 
 
 clientManager = ClientManager()

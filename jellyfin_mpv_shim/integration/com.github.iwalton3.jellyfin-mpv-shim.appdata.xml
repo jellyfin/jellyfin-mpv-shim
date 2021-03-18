@@ -60,7 +60,17 @@
 
   <content_rating type="oars-1.1" />
   <releases>
-      <release version="1.8.1" date="2020-12-12">
+    <release version="1.9.0" date="2021-03-18">
+      <description>
+        <p>This release adds support for SyncPlay on 10.7.0. Changes:</p>
+        <ul>
+            <li>Speed up closing the player.</li>
+            <li>Drop SyncPlay 10.6.x support.</li>
+            <li>Upgrade the web client.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.8.1" date="2020-12-12">
       <description>
         <p>This is a maintenance update and the last one to support SyncPlay on 1.6.x. Changes:</p>
         <ul>
