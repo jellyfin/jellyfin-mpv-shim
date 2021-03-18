@@ -41,7 +41,10 @@ class TimeoutThread(threading.Thread):
 
     def run(self):
         if not self.halt.wait(timeout=self.delay / 1000):
-            self.action(*self.args)
+            try:
+                self.action(*self.args)
+            except:
+                log.error("TimeoutThread crashed.", exc_info=True)
 
     def stop(self):
         self.halt.set()
@@ -190,10 +193,10 @@ class SyncPlayManager:
 
         # Server responds with 400 bad request...
         if self.sync_enabled:
-           try:
-               self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
-           except Exception:
-               log.error("Syncplay ping reporting failed.")
+            try:
+                self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
+            except Exception:
+                log.error("Syncplay ping reporting failed.")
 
     def enable_sync_play(self, from_server: bool):
         self.playback_rate = self.playerManager.get_speed()
@@ -245,6 +248,11 @@ class SyncPlayManager:
         log.info("Syncplay disabled.")
         if from_server:
             self.player_message(_("SyncPlay disabled."))
+        else:
+            try:
+                self.client.jellyfin.leave_sync_play()
+            except:
+                log.warning("Failed to leave syncplay.", exc_info=True)
 
     def _buffer_req(self, is_buffering):
         if self.timesync is None:
@@ -285,13 +293,6 @@ class SyncPlayManager:
     def play_done(self):
         self.local_pause()
         self._buffer_req(False)
-
-    def is_buffering(self):
-        if self.last_playback_waiting is None:
-            return False
-        return (
-            datetime.utcnow() - self.last_playback_waiting
-        ).total_seconds() * 1000 > self.min_buffer_thresh_ms
 
     def is_enabled(self):
         return self.enabled_at is not None
@@ -511,20 +512,20 @@ class SyncPlayManager:
             if settings.pre_media_cmd:
                 os.system(settings.pre_media_cmd)
             self.playerManager.play(video, offset, no_initial_timeline=True)
-            self.playerManager.send_timeline()
         else:
             log.error("No video from queue update.")
 
     def upd_queue(self, data):
-        last_upd = _parse_precise_time(data["LastUpdate"])
-        if (
-            self.playqueue_last_updated is not None
-            and self.playqueue_last_updated >= last_upd
-        ):
-            log.warning("Tried to apply old queue update.")
-            return
-
-        self.playqueue_last_updated = last_upd
+        # It can't hurt to update the queue lol.
+        # last_upd = _parse_precise_time(data["LastUpdate"])
+        # if (
+        #    self.playqueue_last_updated is not None
+        #    and self.playqueue_last_updated >= last_upd
+        # ):
+        #    log.warning("Tried to apply old queue update.")
+        #    return
+        #
+        # self.playqueue_last_updated = last_upd
 
         sp_items = [
             {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
@@ -550,6 +551,8 @@ class SyncPlayManager:
                     offset /= 10000000
 
                 self._play_video(new_media.video, offset)
+            else:
+                self._buffer_req(False)
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
