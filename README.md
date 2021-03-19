@@ -78,7 +78,7 @@ would require major changes to the application to properly support, as it was bu
 
 The shader packs feature is sensitive to graphics hardware. It may simply just not work on your computer.
 You may be able to use the log files to get some more diagnostic information. If you're really unlucky,
-you'll have to disable the feature in the config (set `shader_pack_profile` to null) to restore basic functionality.
+you'll have to disable the feature by pressing `k` to restore basic functionality.
 If you find the solution for your case, *please* send me any information you can provide, as every test case helps.
 
 ## Advanced Features
