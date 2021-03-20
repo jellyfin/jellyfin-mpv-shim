@@ -954,7 +954,7 @@ class PlayerManager(object):
         if hasattr(self._player, "osc"):
             self._player.osc = enabled
 
-    def capture_mouse(self, enabled: bool):
+    def triggered_menu(self, enabled: bool):
         self._player.command(
             "script-message", "shim-menu-enable", "True" if enabled else "False"
         )

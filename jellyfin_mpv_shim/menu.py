@@ -125,7 +125,7 @@ class OSDMenu(object):
         self.playerManager.set_osd_settings("#CC333333", 40)
 
         self.playerManager.enable_osc(False)
-        self.playerManager.capture_mouse(True)
+        self.playerManager.triggered_menu(True)
 
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
@@ -199,7 +199,7 @@ class OSDMenu(object):
             self.playerManager.show_text("", 0, 0)
 
             self.playerManager.enable_osc(True)
-            self.playerManager.capture_mouse(False)
+            self.playerManager.triggered_menu(False)
             self.playerManager.force_window(False)
 
             if not self.playerManager.playback_is_aborted():
