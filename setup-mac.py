@@ -7,7 +7,7 @@ OPTIONS = {
     'resources' : [
         '/usr/local/bin/mpv',
         '/usr/local/bin/jellyfin-mpv-shim',
-        '/usr/local/lib/python3.9/site-packages/jellyfin_mpv_shim/webclient_view/webclient'
+        '/usr/local/lib/python3.9/site-packages/jellyfin_mpv_shim/webclient_view'
     ],
     'packages': [
         'pkg_resources'

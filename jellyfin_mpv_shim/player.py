@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+import platform
 
 from threading import RLock, Lock, Event
 from queue import Queue
@@ -149,7 +150,8 @@ class PlayerManager(object):
                 {
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
-                    "mpv_location": "../Resources/mpv",
+                    "mpv_location": settings.mpv_ext_path if settings.mpv_ext_path != None and
+                     platform.system() != "Darwin" else "../Resources/mpv",
                     "player-operation-mode": "cplayer",
                 }
             )
