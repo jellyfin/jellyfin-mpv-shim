@@ -149,7 +149,7 @@ class PlayerManager(object):
                 {
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
-                    "mpv_location": settings.mpv_ext_path,
+                    "mpv_location": "../Resources/mpv",
                     "player-operation-mode": "cplayer",
                 }
             )

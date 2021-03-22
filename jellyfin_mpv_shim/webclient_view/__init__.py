@@ -54,10 +54,13 @@ class Server(threading.Thread):
         self.join()
 
     def run(self):
+        print(os.path.dirname(sys.executable))
         app = Flask(
             __name__,
             static_url_path="",
-            static_folder=get_resource("webclient_view", "webclient"),
+            #static_folder=get_resource("/Applications/Jellyfin MPV Desktop.app/Contents/Resources/webclient"),
+            static_folder=get_resource(os.path.join(os.path.dirname(sys.executable)), "../Resources/webclient")
+            #static_folder="../Resources/webclient"
         )
 
         @app.after_request
