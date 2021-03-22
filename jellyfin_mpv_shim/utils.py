@@ -231,17 +231,13 @@ def get_resource(*path):
     # Detect if bundled via pyinstaller.
     # From: https://stackoverflow.com/questions/404744/
     if getattr(sys, "_MEIPASS", False):
-        if platform.system() == "Darwin":
-            application_path = os.path.dirname(sys.executable)
-        else:
-            application_path = os.path.join(getattr(sys, "_MEIPASS"), "jellyfin_mpv_shim")
+        application_path = os.path.join(getattr(sys, "_MEIPASS"), "jellyfin_mpv_shim")
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 
     # ! Test code for Mac
     if getattr(sys, 'frozen', False):
         application_path = os.path.join(os.path.dirname(sys.executable), "../Resources")
-        print(platform.system())
 
     return os.path.join(application_path, *path)
 

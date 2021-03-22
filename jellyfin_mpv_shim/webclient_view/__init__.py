@@ -54,7 +54,6 @@ class Server(threading.Thread):
         self.join()
 
     def run(self):
-        print(os.path.dirname(sys.executable))
         app = Flask(
             __name__,
             static_url_path="",

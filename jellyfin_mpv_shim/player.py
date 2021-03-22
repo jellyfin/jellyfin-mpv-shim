@@ -124,6 +124,7 @@ class PlayerManager(object):
     def __init__(self):
         self._video = None
         mpv_options = OrderedDict()
+        checkMPVLocation = settings.mpv_ext_path if settings.mpv_ext_path != None and platform.system() != "Darwin" else "../Resources/mpv"
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -150,8 +151,7 @@ class PlayerManager(object):
                 {
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
-                    "mpv_location": settings.mpv_ext_path if settings.mpv_ext_path != None and
-                     platform.system() != "Darwin" else "../Resources/mpv",
+                    "mpv_location": checkMPVLocation,
                     "player-operation-mode": "cplayer",
                 }
             )
