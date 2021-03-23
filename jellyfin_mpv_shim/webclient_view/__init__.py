@@ -364,8 +364,6 @@ class WebviewClient(object):
                     json.dump(extra_options, fh)
 
             window.closing += handle_close
-            # REMOVE ME!!!!!!!!!!!!
-            sleep(3600)
             if self.cef:
                 webview.start(gui="cef")
             else:
