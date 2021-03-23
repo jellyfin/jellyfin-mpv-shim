@@ -1,4 +1,6 @@
+from queue import Empty, Queue
 import threading
+import time
 import urllib.request
 from werkzeug.serving import make_server
 from flask import Flask, request, jsonify
@@ -20,16 +22,20 @@ import json
 import webview  # Python3-webview in Debian, pywebview in pypi
 import sys
 from threading import Event
+import datetime
 
 from ..clients import clientManager
 from ..player import playerManager
 from ..conf import settings
-from ..constants import USER_APP_NAME, APP_NAME
+from ..event_handler import eventHandler
+from ..constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, APP_NAME
 from ..utils import get_resource
 from .. import conffile
+import logging
+
+log = logging.getLogger("webclient")
 
 remember_layout = conffile.get(APP_NAME, "layout.json")
-loaded = Event()
 
 
 def do_not_cache(response):
@@ -60,6 +66,72 @@ class Server(threading.Thread):
             static_folder=get_resource("webclient_view", "webclient")
         )
 
+        pl_event_queue = Queue()
+        last_server_id = ""
+        last_user_id = ""
+        last_user_name = ""
+
+        def wrap_playstate(active, playstate=None, item=None):
+            if playstate is None:
+                playstate = {
+                    "CanSeek": False,
+                    "IsPaused": False,
+                    "IsMuted": False,
+                    "RepeatMode": "RepeatNone"
+                }
+            res = {
+                "PlayState": playstate,
+                "AdditionalUsers": [],
+                "Capabilities": {
+                    "PlayableMediaTypes": CAPABILITIES["PlayableMediaTypes"].split(","),
+                    "SupportedCommands": CAPABILITIES["SupportedCommands"].split(","),
+                    "SupportsMediaControl": True,
+                    "SupportsContentUploading": False,
+                    "SupportsPersistentIdentifier": False,
+                    "SupportsSync": False
+                },
+                "RemoteEndPoint": "0.0.0.0",
+                "PlayableMediaTypes": CAPABILITIES["PlayableMediaTypes"].split(","),
+                "Id": settings.client_uuid,
+                "UserId": last_user_id,
+                "UserName": last_user_name,
+                "Client": USER_APP_NAME,
+                "LastActivityDate": datetime.datetime.utcnow().isoformat(),
+                "LastPlaybackCheckIn": "0001-01-01T00:00:00.0000000Z",
+                "DeviceName": settings.player_name,
+                "DeviceId": settings.client_uuid,
+                "ApplicationVersion": CLIENT_VERSION,
+                "IsActive": active,
+                "SupportsMediaControl": True,
+                "SupportsRemoteControl": True,
+                "HasCustomDeviceName": False,
+                "ServerId": last_server_id,
+                "SupportedCommands": CAPABILITIES["SupportedCommands"].split(","),
+                "dest": "player"
+            }
+            if "NowPlayingQueue" in playstate:
+                res["NowPlayingQueue"] = playstate["NowPlayingQueue"]
+            if "PlaylistItemId" in playstate:
+                res["PlaylistItemId"] = playstate["PlaylistItemId"]
+            if item:
+                res["NowPlayingItem"] = item
+            return res
+
+        def on_playstate(state, payload=None, item=None):
+            pl_event_queue.put(wrap_playstate(True, payload, item))
+            if (state == "stopped"):
+                pl_event_queue.put(wrap_playstate(False))
+
+        def it_on_event(name, event):
+            event = (event or {}).copy()
+            event["Name"] = name
+            event["dest"] = "ws"
+            pl_event_queue.put(event)
+
+        playerManager.on_playstate = on_playstate
+        self.it_on_event = it_on_event
+        self.it_event_set = {"UserDataChanged"}
+
         @app.after_request
         def add_header(response):
             if request.path == "/index.html":
@@ -78,29 +150,63 @@ class Server(threading.Thread):
                 response.cache_control.max_age = 2592000
             return response
 
-        @app.route("/mpv_shim_password", methods=["POST"])
-        def mpv_shim_password():
+        @app.route("/mpv_shim_session", methods=["POST"])
+        def mpv_shim_session():
+            nonlocal last_server_id, last_user_id, last_user_name
             if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
-            login_req = request.json
-            success = clientManager.login(
-                login_req["server"], login_req["username"], login_req["password"], True
-            )
-            if success:
-                loaded.set()
-            resp = jsonify({"success": success})
+            req = request.json
+            log.info("Recieved session for server: {0}, user: {1}".format(req["Name"], req["username"]))
+            if req["Id"] not in clientManager.clients:
+                is_logged_in = clientManager.connect_client(req)
+                log.info("Connection was successful.")
+            else:
+                is_logged_in = True
+                log.info("Ignoring as client already exists.")
+            last_server_id = req["Id"]
+            last_user_id = req["UserId"]
+            last_user_name = req["username"]
+            resp = jsonify({"success": is_logged_in})
+            resp.status_code = 200 if is_logged_in else 500
+            do_not_cache(resp)
+            return resp
+
+        @app.route("/mpv_shim_event", methods=["POST"])
+        def mpv_shim_event():
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
+                return "Go Away"
+            try:
+                queue_item = pl_event_queue.get(timeout=5)
+            except Empty:
+                queue_item = {}
+            resp = jsonify(queue_item)
             resp.status_code = 200
             do_not_cache(resp)
             return resp
 
-        @app.route("/mpv_shim_id", methods=["POST"])
-        def mpv_shim_id():
+        @app.route("/mpv_shim_message", methods=["POST"])
+        def mpv_shim_message():
             if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
-            loaded.wait()
-            resp = jsonify(
-                {"appName": USER_APP_NAME, "deviceName": settings.player_name}
-            )
+            req = request.json
+            client = clientManager.clients.get(req["payload"]["ServerId"])
+            resp = jsonify({})
+            resp.status_code = 200
+            do_not_cache(resp)
+            if client is None:
+                log.warning("Message recieved but no client available. Ignoring.")
+                return resp
+            # Assume only 1 client is connected.
+            eventHandler.handle_event(client, req["name"], req["payload"])
+            return resp
+
+        @app.route("/mpv_shim_teardown", methods=["POST"])
+        def mpv_shim_teardown():
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
+                return "Go Away"
+            log.info("Client teardown requested.")
+            clientManager.stop_all_clients()
+            resp = jsonify({})
             resp.status_code = 200
             do_not_cache(resp)
             return resp
@@ -114,16 +220,6 @@ class Server(threading.Thread):
             playerManager.syncplay.client = client
             playerManager.syncplay.join_group(req["GroupId"])
             resp = jsonify({})
-            resp.status_code = 200
-            do_not_cache(resp)
-            return resp
-
-        @app.route("/destroy_session", methods=["POST"])
-        def mpv_shim_destroy_session():
-            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
-                return "Go Away"
-            clientManager.remove_all_clients()
-            resp = jsonify({"success": True})
             resp.status_code = 200
             do_not_cache(resp)
             return resp
@@ -149,9 +245,7 @@ class WebviewClient(object):
 
     @staticmethod
     def login_servers():
-        success = clientManager.try_connect()
-        if success:
-            loaded.set()
+        pass
 
     def get_webview(self):
         return self.webview
