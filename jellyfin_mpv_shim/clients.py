@@ -3,7 +3,7 @@ from jellyfin_apiclient_python.connection_manager import CONNECTION_STATE
 from .conf import settings
 from . import conffile
 from getpass import getpass
-from .constants import CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
+from .constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
 from .i18n import _
 
 import sys
@@ -73,7 +73,7 @@ class ClientManager(object):
     def _connect_all(self):
         is_logged_in = False
         for server in self.credentials:
-            if self._connect_client(server):
+            if self.connect_client(server):
                 is_logged_in = True
         return is_logged_in
 
@@ -142,7 +142,7 @@ class ClientManager(object):
             server["username"] = username
             if force_unique and server["Id"] in self.clients:
                 return True
-            self._connect_client(server)
+            self.connect_client(server)
             self.credentials.append(server)
             self.save_credentials()
             return True
@@ -162,7 +162,7 @@ class ClientManager(object):
                         )
                         self._disconnect_client(server=server)
                         time.sleep(timeout)
-                        if self._connect_client(server):
+                        if self.connect_client(server):
                             break
             else:
                 self.callback(client, event_name, data)
@@ -171,21 +171,7 @@ class ClientManager(object):
         client.callback_ws = event
         client.start(websocket=True)
 
-        client.jellyfin.post_capabilities(
-            {
-                "PlayableMediaTypes": "Video",
-                "SupportsMediaControl": True,
-                "SupportedCommands": (
-                    "MoveUp,MoveDown,MoveLeft,MoveRight,Select,"
-                    "Back,ToggleFullscreen,"
-                    "GoHome,GoToSettings,TakeScreenshot,"
-                    "VolumeUp,VolumeDown,ToggleMute,"
-                    "SetAudioStreamIndex,SetSubtitleStreamIndex,"
-                    "Mute,Unmute,SetVolume,DisplayContent,"
-                    "Play,Playstate,PlayNext,PlayMediaSource"
-                ),
-            }
-        )
+        client.jellyfin.post_capabilities(CAPABILITIES)
 
     def remove_client(self, uuid: str):
         self.credentials = [
@@ -194,7 +180,7 @@ class ClientManager(object):
         self.save_credentials()
         self._disconnect_client(uuid=uuid)
 
-    def _connect_client(self, server):
+    def connect_client(self, server):
         if self.is_stopping:
             return False
 
@@ -224,11 +210,14 @@ class ClientManager(object):
         client.stop()
 
     def remove_all_clients(self):
+        self.stop_all_clients()
+        self.credentials = []
+        self.save_credentials()
+
+    def stop_all_clients(self):
         for key, client in list(self.clients.items()):
             del self.clients[key]
             client.stop()
-        self.credentials = []
-        self.save_credentials()
 
     def stop(self):
         self.is_stopping = True

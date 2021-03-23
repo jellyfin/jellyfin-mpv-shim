@@ -143,6 +143,7 @@ class PlayerManager(object):
         self.warned_about_transcode = False
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
+        self.on_playstate = None
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -871,7 +872,10 @@ class PlayerManager(object):
             and self._video
             and not self._player.playback_abort
         ):
-            self._video.client.jellyfin.session_progress(self.get_timeline_options())
+            options = self.get_timeline_options()
+            if self.on_playstate:
+                self.on_playstate("initial", options, self._video.item)
+            self._video.client.jellyfin.session_progress(options)
             try:
                 if self.syncplay.is_enabled():
                     self.syncplay.sync_playback_time()
@@ -880,7 +884,10 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
-        self._video.client.jellyfin.session_playing(self.get_timeline_options())
+        options = self.get_timeline_options()
+        if self.on_playstate:
+            self.on_playstate("initial", options, self._video.item)
+        self._video.client.jellyfin.session_playing(options)
 
     @synchronous("_tl_lock")
     def send_timeline_stopped(self, finished=False, options=None, client=None):
@@ -892,6 +899,8 @@ class PlayerManager(object):
         if client is None:
             client = self._video.client
 
+        if self.on_playstate:
+            self.on_playstate("stopped", options)
         client.jellyfin.session_stop(options)
 
         if self.get_webview() is not None and (
