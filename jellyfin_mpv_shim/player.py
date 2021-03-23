@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+import platform
 
 from threading import RLock, Lock, Event
 from queue import Queue
@@ -123,6 +124,10 @@ class PlayerManager(object):
     def __init__(self):
         self._video = None
         mpv_options = OrderedDict()
+        mpv_location = settings.mpv_ext_path
+        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
+        if mpv_location is None and platform.system() == "Darwin" and getattr(sys, 'frozen', False):
+            mpv_location = get_resource('mpv')
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -149,7 +154,7 @@ class PlayerManager(object):
                 {
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
-                    "mpv_location": settings.mpv_ext_path,
+                    "mpv_location": mpv_location,
                     "player-operation-mode": "cplayer",
                 }
             )

@@ -57,7 +57,7 @@ class Server(threading.Thread):
         app = Flask(
             __name__,
             static_url_path="",
-            static_folder=get_resource("webclient_view", "webclient"),
+            static_folder=get_resource("webclient_view", "webclient")
         )
 
         @app.after_request
