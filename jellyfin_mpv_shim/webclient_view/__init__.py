@@ -124,10 +124,11 @@ class Server(threading.Thread):
                 pl_event_queue.put(wrap_playstate(False))
 
         def it_on_event(name, event):
-            event = (event or {}).copy()
-            event["Name"] = name
-            event["dest"] = "ws"
-            pl_event_queue.put(event)
+            pl_event_queue.put({
+                "dest": "ws",
+                "MessageType": name,
+                "Data": event
+            })
 
         playerManager.on_playstate = on_playstate
         self.it_on_event = it_on_event
