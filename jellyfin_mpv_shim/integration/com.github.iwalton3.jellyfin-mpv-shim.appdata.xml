@@ -60,6 +60,17 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.10.1" date="2021-03-24">
+      <description>
+        <p>This release fixes websocket forwarding and casting in the desktop client. Changes:</p>
+        <ul>
+            <li>Forward websocket events back to desktop web client.</li>
+            <li>Re-enable casting in the desktop web client.</li>
+            <li>Send remote control buttons to web client when MPV isn't open.</li>
+            <li>Upgrade the Flatpak platform version.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10.0" date="2021-03-23">
       <description>
         <p>This release changes how the web client works to improve reliability. Changes:</p>

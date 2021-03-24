@@ -101,6 +101,12 @@ class EventHandler(object):
     def general_command(
         self, client: "JellyfinClient_type", _event_name, arguments: dict
     ):
+        # Pass GeneralCommands to desktop client when no media
+        # is playing.
+        if not playerManager.is_playing() and self.it_on_event:
+            self.it_on_event("GeneralCommand", arguments)
+            return
+
         command = arguments.get("Name")
         if command == "SetVolume":
             # There is currently a bug that causes this to be spammed, so we

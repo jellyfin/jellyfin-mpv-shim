@@ -64,7 +64,7 @@ class Server(threading.Thread):
         app = Flask(
             __name__,
             static_url_path="",
-            static_folder=get_resource("webclient_view", "webclient")
+            static_folder=get_resource("webclient_view", "webclient"),
         )
 
         pl_event_queue = Queue()
@@ -78,7 +78,7 @@ class Server(threading.Thread):
                     "CanSeek": False,
                     "IsPaused": False,
                     "IsMuted": False,
-                    "RepeatMode": "RepeatNone"
+                    "RepeatMode": "RepeatNone",
                 }
             res = {
                 "PlayState": playstate,
@@ -89,7 +89,7 @@ class Server(threading.Thread):
                     "SupportsMediaControl": True,
                     "SupportsContentUploading": False,
                     "SupportsPersistentIdentifier": False,
-                    "SupportsSync": False
+                    "SupportsSync": False,
                 },
                 "RemoteEndPoint": "0.0.0.0",
                 "PlayableMediaTypes": CAPABILITIES["PlayableMediaTypes"].split(","),
@@ -108,7 +108,7 @@ class Server(threading.Thread):
                 "HasCustomDeviceName": False,
                 "ServerId": last_server_id,
                 "SupportedCommands": CAPABILITIES["SupportedCommands"].split(","),
-                "dest": "player"
+                "dest": "player",
             }
             if "NowPlayingQueue" in playstate:
                 res["NowPlayingQueue"] = playstate["NowPlayingQueue"]
@@ -120,42 +120,70 @@ class Server(threading.Thread):
 
         def on_playstate(state, payload=None, item=None):
             pl_event_queue.put(wrap_playstate(True, payload, item))
-            if (state == "stopped"):
+            if state == "stopped":
                 pl_event_queue.put(wrap_playstate(False))
 
         def it_on_event(name, event):
+            server_id = event["ServerId"]
+            if type(event) is dict and "value" in event and len(event) == 2:
+                event = event["value"]
             pl_event_queue.put({
                 "dest": "ws",
                 "MessageType": name,
-                "Data": event
+                "Data": event,
+                "ServerId": server_id
             })
 
         playerManager.on_playstate = on_playstate
         eventHandler.it_on_event = it_on_event
-        eventHandler.it_event_set = {"UserDataChanged"}
+        eventHandler.it_event_set = {
+            "ActivityLogEntry",
+            "LibraryChanged",
+            "PackageInstallationCancelled",
+            "PackageInstallationCompleted",
+            "PackageInstallationFailed",
+            "PackageInstalling",
+            "RefreshProgress",
+            "RestartRequired",
+            "ScheduledTasksInfo",
+            "SeriesTimerCancelled",
+            "SeriesTimerCancelled",
+            "SeriesTimerCreated",
+            "SeriesTimerCreated",
+            "ServerRestarting",
+            "ServerShuttingDown",
+            "Sessions",
+            "TimerCancelled",
+            "TimerCreated",
+            "UserDataChanged",
+        }
 
         @app.after_request
         def add_header(response):
             if request.path == "/index.html":
                 do_not_cache(response)
-                client_data = base64.b64encode(json.dumps({
-                    "appName": USER_APP_NAME,
-                    "appVersion": CLIENT_VERSION,
-                    "deviceName": settings.player_name,
-                    "deviceId": settings.client_uuid
-                }).encode('ascii'))
+                client_data = base64.b64encode(
+                    json.dumps(
+                        {
+                            "appName": USER_APP_NAME,
+                            "appVersion": CLIENT_VERSION,
+                            "deviceName": settings.player_name,
+                            "deviceId": settings.client_uuid,
+                        }
+                    ).encode("ascii")
+                )
                 # We need access to this data before we can make an async web call.
-                replacement = b"""<body><script type="application/json" id="clientData">%s</script>""" % client_data
+                replacement = (
+                    b"""<body><script type="application/json" id="clientData">%s</script>"""
+                    % client_data
+                )
                 if settings.desktop_scale != 1.0:
                     f_scale = float(settings.desktop_scale)
-                    replacement = replacement + (b"""<style>body { zoom: %.2f; }</style>""" % f_scale)
-                response.make_sequence()
-                response.set_data(
-                    response.get_data().replace(
-                        b"<body>",
-                        replacement,
+                    replacement = replacement + (
+                        b"""<style>body { zoom: %.2f; }</style>""" % f_scale
                     )
-                )
+                response.make_sequence()
+                response.set_data(response.get_data().replace(b"<body>", replacement,))
 
                 return response
             if not response.cache_control.no_store:
@@ -168,7 +196,11 @@ class Server(threading.Thread):
             if request.headers["Content-Type"] != "application/json; charset=UTF-8":
                 return "Go Away"
             req = request.json
-            log.info("Recieved session for server: {0}, user: {1}".format(req["Name"], req["username"]))
+            log.info(
+                "Recieved session for server: {0}, user: {1}".format(
+                    req["Name"], req["username"]
+                )
+            )
             if req["Id"] not in clientManager.clients:
                 is_logged_in = clientManager.connect_client(req)
                 log.info("Connection was successful.")
@@ -208,8 +240,22 @@ class Server(threading.Thread):
             if client is None:
                 log.warning("Message recieved but no client available. Ignoring.")
                 return resp
-            # Assume only 1 client is connected.
             eventHandler.handle_event(client, req["name"], req["payload"])
+            return resp
+
+        @app.route("/mpv_shim_wsmessage", methods=["POST"])
+        def mpv_shim_wsmessage():
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
+                return "Go Away"
+            req = request.json
+            client = clientManager.clients.get(req["ServerId"])
+            resp = jsonify({})
+            resp.status_code = 200
+            do_not_cache(resp)
+            if client is None:
+                log.warning("Message recieved but no client available. Ignoring.")
+                return resp
+            client.wsc.send(req["name"], req.get("payload", ""))
             return resp
 
         @app.route("/mpv_shim_teardown", methods=["POST"])
