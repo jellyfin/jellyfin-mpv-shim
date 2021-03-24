@@ -36,6 +36,7 @@ class ClientManager(object):
         self.callback = lambda client, event_name, data: None
         self.credentials = []
         self.clients = {}
+        self.usernames = {}
         self.is_stopping = False
 
     def cli_connect(self):
@@ -192,6 +193,8 @@ class ClientManager(object):
             is_logged_in = True
             self.clients[server["uuid"]] = client
             self.setup_client(client, server)
+            if server.get("username"):
+                self.usernames[server["uuid"]] = server["username"]
 
         return is_logged_in
 
@@ -229,6 +232,8 @@ class ClientManager(object):
         # was added before we started saving usernames.
         for uuid, client2 in self.clients.items():
             if client2 is client:
+                if uuid in self.usernames:
+                    return self.usernames[uuid]
                 for server in self.credentials:
                     if server["uuid"] == uuid:
                         return server.get("username", "Unknown")
