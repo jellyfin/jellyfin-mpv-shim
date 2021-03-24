@@ -264,34 +264,28 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action("left")
             else:
-                seektime = settings.seek_left
-                if settings.use_web_seek:
-                    seektime, _x = self.get_seek_times()
-                self.seek(seektime, exact=settings.seek_h_exact)
+                self.kb_seek("left")
 
         @keypress(settings.kb_menu_right)
         def menu_right():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("right")
             else:
-                seektime = settings.seek_right
-                if settings.use_web_seek:
-                    _x, seektime = self.get_seek_times()
-                self.seek(seektime, exact=settings.seek_h_exact)
+                self.kb_seek("right")
 
         @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("up")
             else:
-                self.seek(settings.seek_up, exact=settings.seek_v_exact)
+                self.kb_seek("up")
 
         @keypress(settings.kb_menu_down)
         def menu_down():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("down")
             else:
-                self.seek(settings.seek_down, exact=settings.seek_v_exact)
+                self.kb_seek("down")
 
         @keypress(settings.kb_pause)
         def handle_pause():
@@ -1005,6 +999,30 @@ class PlayerManager(object):
 
     def set_speed(self, speed: float):
         self._player.speed = speed
+
+    def kb_seek(self, action):
+        if action == "up":
+            self.seek(settings.seek_up, exact=settings.seek_v_exact)
+        elif action == "down":
+            self.seek(settings.seek_down, exact=settings.seek_v_exact)
+        elif action == "left":
+            seektime = settings.seek_left
+            if settings.use_web_seek:
+                seektime, _x = self.get_seek_times()
+            self.seek(seektime, exact=settings.seek_h_exact)
+        elif action == "right":
+            seektime = settings.seek_right
+            if settings.use_web_seek:
+                _x, seektime = self.get_seek_times()
+            self.seek(seektime, exact=settings.seek_h_exact)
+        else:
+            self.menu.menu_action(action)
+
+    def menu_action(self, action):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action(action)
+        else:
+            self.kb_seek(action)
 
 
 playerManager = PlayerManager()
