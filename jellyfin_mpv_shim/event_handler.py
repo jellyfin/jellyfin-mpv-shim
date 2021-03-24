@@ -122,11 +122,11 @@ class EventHandler(object):
             "MoveUp",
             "MoveDown",
             "MoveRight",
-            "MoveRight",
+            "MoveLeft",
             "GoHome",
             "GoToSettings",
         ):
-            playerManager.menu.menu_action(NAVIGATION_DICT[command])
+            playerManager.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
             playerManager.set_mute(command == "Mute")
         elif command == "TakeScreenshot":

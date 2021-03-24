@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Jellyfin Desktop"
-#define MyAppVersion "1.9.0"
+#define MyAppVersion "1.10.0"
 #define MyAppPublisher "Ian Walton"
 #define MyAppURL "https://github.com/jellyfin/jellyfin-desktop"
 #define MyAppExeName "run-desktop.exe"

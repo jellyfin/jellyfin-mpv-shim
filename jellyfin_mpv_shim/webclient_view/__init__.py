@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 from time import sleep
 import os.path
 import json
+import base64
 
 # So, most of my use of the webview library is ugly but there's a reason for this!
 # Debian's python3-webview package is super old (2.3), pip3's pywebview package is much newer (3.2).
@@ -136,15 +137,25 @@ class Server(threading.Thread):
         def add_header(response):
             if request.path == "/index.html":
                 do_not_cache(response)
+                client_data = base64.b64encode(json.dumps({
+                    "appName": USER_APP_NAME,
+                    "appVersion": CLIENT_VERSION,
+                    "deviceName": settings.player_name,
+                    "deviceId": settings.client_uuid
+                }).encode('ascii'))
+                # We need access to this data before we can make an async web call.
+                replacement = b"""<body><script type="application/json" id="clientData">%s</script>""" % client_data
                 if settings.desktop_scale != 1.0:
                     f_scale = float(settings.desktop_scale)
-                    response.make_sequence()
-                    response.set_data(
-                        response.get_data().replace(
-                            b"</body>",
-                            b"""<style>body { zoom: %.2f; }</style></body>""" % f_scale,
-                        )
+                    replacement = replacement + (b"""<style>body { zoom: %.2f; }</style>""" % f_scale)
+                response.make_sequence()
+                response.set_data(
+                    response.get_data().replace(
+                        b"<body>",
+                        replacement,
                     )
+                )
+
                 return response
             if not response.cache_control.no_store:
                 response.cache_control.max_age = 2592000
