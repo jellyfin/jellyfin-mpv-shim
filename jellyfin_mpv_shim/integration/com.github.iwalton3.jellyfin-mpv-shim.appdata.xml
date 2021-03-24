@@ -60,6 +60,18 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.10.0" date="2021-03-23">
+      <description>
+        <p>This release changes how the web client works to improve reliability. Changes:</p>
+        <ul>
+            <li>Map navigation buttons to seeking when menu inactive. (#146)</li>
+            <li>Implement session passing and http-based webclient control.</li>
+            <li>Added support for creating a .app file (#184)</li>
+            <li>Fix "Unknown" in SyncPlay menu.</li>
+            <li>Fix possible seek to end with SyncPlay group join.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.0" date="2021-03-18">
       <description>
         <p>This release adds support for SyncPlay on 10.7.0. Changes:</p>
