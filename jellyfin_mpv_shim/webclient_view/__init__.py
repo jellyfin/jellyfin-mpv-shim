@@ -124,7 +124,15 @@ class Server(threading.Thread):
                 pl_event_queue.put(wrap_playstate(False))
 
         def it_on_event(name, event):
-            pl_event_queue.put({"dest": "ws", "MessageType": name, "Data": event})
+            server_id = event["ServerId"]
+            if type(event) is dict and "value" in event and len(event) == 2:
+                event = event["value"]
+            pl_event_queue.put({
+                "dest": "ws",
+                "MessageType": name,
+                "Data": event,
+                "ServerId": server_id
+            })
 
         playerManager.on_playstate = on_playstate
         eventHandler.it_on_event = it_on_event
@@ -232,8 +240,22 @@ class Server(threading.Thread):
             if client is None:
                 log.warning("Message recieved but no client available. Ignoring.")
                 return resp
-            # Assume only 1 client is connected.
             eventHandler.handle_event(client, req["name"], req["payload"])
+            return resp
+
+        @app.route("/mpv_shim_wsmessage", methods=["POST"])
+        def mpv_shim_wsmessage():
+            if request.headers["Content-Type"] != "application/json; charset=UTF-8":
+                return "Go Away"
+            req = request.json
+            client = clientManager.clients.get(req["ServerId"])
+            resp = jsonify({})
+            resp.status_code = 200
+            do_not_cache(resp)
+            if client is None:
+                log.warning("Message recieved but no client available. Ignoring.")
+                return resp
+            client.wsc.send(req["name"], req.get("payload", ""))
             return resp
 
         @app.route("/mpv_shim_teardown", methods=["POST"])
