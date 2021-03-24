@@ -126,8 +126,12 @@ class PlayerManager(object):
         mpv_options = OrderedDict()
         mpv_location = settings.mpv_ext_path
         # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
-        if mpv_location is None and platform.system() == "Darwin" and getattr(sys, 'frozen', False):
-            mpv_location = get_resource('mpv')
+        if (
+            mpv_location is None
+            and platform.system() == "Darwin"
+            and getattr(sys, "frozen", False)
+        ):
+            mpv_location = get_resource("mpv")
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}

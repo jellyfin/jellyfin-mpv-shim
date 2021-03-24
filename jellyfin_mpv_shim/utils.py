@@ -236,7 +236,7 @@ def get_resource(*path):
         application_path = os.path.dirname(os.path.abspath(__file__))
 
     # ! Test code for Mac
-    if getattr(sys, 'frozen', False) and platform.system() == 'Darwin':
+    if getattr(sys, "frozen", False) and platform.system() == "Darwin":
         application_path = os.path.join(os.path.dirname(sys.executable), "../Resources")
 
     return os.path.join(application_path, *path)

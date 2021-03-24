@@ -3,15 +3,15 @@ USER_APP_NAME = "Jellyfin MPV Shim"
 CLIENT_VERSION = "1.10.0"
 USER_AGENT = "Jellyfin-MPV-Shim/%s" % CLIENT_VERSION
 CAPABILITIES = {
-        "PlayableMediaTypes": "Video",
-        "SupportsMediaControl": True,
-        "SupportedCommands": (
-            "MoveUp,MoveDown,MoveLeft,MoveRight,Select,"
-            "Back,ToggleFullscreen,"
-            "GoHome,GoToSettings,TakeScreenshot,"
-            "VolumeUp,VolumeDown,ToggleMute,"
-            "SetAudioStreamIndex,SetSubtitleStreamIndex,"
-            "Mute,Unmute,SetVolume,DisplayContent,"
-            "Play,Playstate,PlayNext,PlayMediaSource"
-        ),
-    }
+    "PlayableMediaTypes": "Video",
+    "SupportsMediaControl": True,
+    "SupportedCommands": (
+        "MoveUp,MoveDown,MoveLeft,MoveRight,Select,"
+        "Back,ToggleFullscreen,"
+        "GoHome,GoToSettings,TakeScreenshot,"
+        "VolumeUp,VolumeDown,ToggleMute,"
+        "SetAudioStreamIndex,SetSubtitleStreamIndex,"
+        "Mute,Unmute,SetVolume,DisplayContent,"
+        "Play,Playstate,PlayNext,PlayMediaSource"
+    ),
+}
