@@ -132,7 +132,27 @@ class Server(threading.Thread):
 
         playerManager.on_playstate = on_playstate
         eventHandler.it_on_event = it_on_event
-        eventHandler.it_event_set = {"UserDataChanged"}
+        eventHandler.it_event_set = {
+            "ActivityLogEntry",
+            "LibraryChanged",
+            "PackageInstallationCancelled",
+            "PackageInstallationCompleted",
+            "PackageInstallationFailed",
+            "PackageInstalling",
+            "RefreshProgress",
+            "RestartRequired",
+            "ScheduledTasksInfo",
+            "SeriesTimerCancelled",
+            "SeriesTimerCancelled",
+            "SeriesTimerCreated",
+            "SeriesTimerCreated",
+            "ServerRestarting",
+            "ServerShuttingDown",
+            "Sessions",
+            "TimerCancelled",
+            "TimerCreated",
+            "UserDataChanged"
+        }
 
         @app.after_request
         def add_header(response):
