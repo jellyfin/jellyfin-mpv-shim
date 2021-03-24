@@ -131,8 +131,8 @@ class Server(threading.Thread):
             })
 
         playerManager.on_playstate = on_playstate
-        self.it_on_event = it_on_event
-        self.it_event_set = {"UserDataChanged"}
+        eventHandler.it_on_event = it_on_event
+        eventHandler.it_event_set = {"UserDataChanged"}
 
         @app.after_request
         def add_header(response):
