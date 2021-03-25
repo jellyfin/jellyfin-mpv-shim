@@ -115,6 +115,9 @@ class ClientManager(object):
     def login(
         self, server: str, username: str, password: str, force_unique: bool = False
     ):
+        if server.endswith("/"):
+            server = server[:-1]
+        
         protocol, host, port, path = path_regex.match(server).groups()
 
         if not protocol:
