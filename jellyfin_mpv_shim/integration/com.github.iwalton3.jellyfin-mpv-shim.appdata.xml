@@ -60,6 +60,16 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.10.2" date="2021-03-25">
+      <description>
+        <p>This release fixes some important bugs. Changes:</p>
+        <ul>
+            <li>#191 Playing media from episode page crashes player logic and doesn't set subtitle/audio streams.</li>
+            <li>#194 Fix erratic navigation in webclient caused by sending back bad display mirror events.</li>
+            <li>#193 Handle trailing slashes in server URLs.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10.1" date="2021-03-24">
       <description>
         <p>This release fixes websocket forwarding and casting in the desktop client. Changes:</p>
