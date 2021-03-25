@@ -42,8 +42,24 @@ class EventHandler(object):
         self.it_event_set = set()
 
     def handle_event(
-        self, client: "JellyfinClient_type", event_name: str, arguments: dict
+        self,
+        client: "JellyfinClient_type",
+        event_name: str,
+        arguments: dict,
+        from_web=False,
     ):
+        # Pass GeneralCommands to desktop client when no media
+        # is playing and the event doesn't come from the web client.
+        if (
+            event_name == "GeneralCommand"
+            and not playerManager.is_playing()
+            and self.it_on_event
+            and (not from_web or arguments.get("Name") != "DisplayContent")
+        ):
+            timelineManager.delay_idle()
+            self.it_on_event("GeneralCommand", arguments)
+            return
+
         if event_name in bindings:
             log.debug("Handled Event {0}: {1}".format(event_name, arguments))
             bindings[event_name](self, client, event_name, arguments)
@@ -101,12 +117,6 @@ class EventHandler(object):
     def general_command(
         self, client: "JellyfinClient_type", _event_name, arguments: dict
     ):
-        # Pass GeneralCommands to desktop client when no media
-        # is playing.
-        if not playerManager.is_playing() and self.it_on_event:
-            self.it_on_event("GeneralCommand", arguments)
-            return
-
         command = arguments.get("Name")
         if command == "SetVolume":
             # There is currently a bug that causes this to be spammed, so we

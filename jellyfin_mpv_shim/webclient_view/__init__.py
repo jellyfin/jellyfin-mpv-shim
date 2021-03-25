@@ -127,12 +127,14 @@ class Server(threading.Thread):
             server_id = event["ServerId"]
             if type(event) is dict and "value" in event and len(event) == 2:
                 event = event["value"]
-            pl_event_queue.put({
-                "dest": "ws",
-                "MessageType": name,
-                "Data": event,
-                "ServerId": server_id
-            })
+            pl_event_queue.put(
+                {
+                    "dest": "ws",
+                    "MessageType": name,
+                    "Data": event,
+                    "ServerId": server_id,
+                }
+            )
 
         playerManager.on_playstate = on_playstate
         eventHandler.it_on_event = it_on_event
@@ -240,7 +242,9 @@ class Server(threading.Thread):
             if client is None:
                 log.warning("Message recieved but no client available. Ignoring.")
                 return resp
-            eventHandler.handle_event(client, req["name"], req["payload"])
+            eventHandler.handle_event(
+                client, req["name"], req["payload"], from_web=True
+            )
             return resp
 
         @app.route("/mpv_shim_wsmessage", methods=["POST"])
