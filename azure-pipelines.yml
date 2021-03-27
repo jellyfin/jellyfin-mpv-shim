@@ -26,9 +26,9 @@ jobs:
     displayName: Cache pip packages
   - task: Cache@2
     inputs:
-      key: '"bindep 2021-03-27" | "$(Agent.OS)"'
+      key: '"bindep 2021-03-28" | "$(Agent.OS)"'
       restoreKeys: | 
-        "bindep 2021-03-27"
+        "bindep 2021-03-28"
       path: bindep
       cacheHitVar: CACHE_RESTORED
     displayName: Cache binary dependencies
@@ -61,7 +61,7 @@ jobs:
       TargetFolder: '.'
     displayName: Copy Binary Dependencies
 
-  - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
+  - script: pip install .[all] pywebview[cef]==3.4 pywin32 cefpython3==66.0
     displayName: PIP Dependencies
   - bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
     displayName: Pydantic w/o CYTHON
