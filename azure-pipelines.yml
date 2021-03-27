@@ -71,6 +71,8 @@ jobs:
     displayName: gen_pkg (Languages & Subrepos)
   - script: build-win.bat
     displayName: Main Build
+  - script: build-win-dbg.bat
+    displayName: Debug Build
   - bash: ./artifacts.sh standard
     displayName: Main Artifact Rename
 
@@ -78,6 +80,8 @@ jobs:
     artifact: ShimPortable
   - publish: publish/DesktopInstaller
     artifact: DesktopInstaller
+  - publish: publish/DesktopDebug
+    artifact: DesktopDebug
 
 - job: LegacyWindows
   pool:
