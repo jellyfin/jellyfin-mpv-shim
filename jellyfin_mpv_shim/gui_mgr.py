@@ -246,7 +246,7 @@ class PreferencesWindowProcess(Process):
                     self.messagebox.showerror(
                         _("Add Server"),
                         _(
-                            "Could not add server.\nPlease check your connection infomation."
+                            "Could not add server.\nPlease check your connection information."
                         ),
                     )
                     self.add_button.config(state=self.tk.NORMAL)

@@ -89,7 +89,7 @@ msgstr "Legg til server"
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
-"Please check your connection infomation."
+"Please check your connection information."
 msgstr ""
 "Kunne ikke legge til server.\n"
 "Vennligst sjekk tilkoblingsinformasjonen din."

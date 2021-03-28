@@ -89,7 +89,7 @@ msgstr "சேவையகத்தைச் சேர்க்கவும்"
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
-"Please check your connection infomation."
+"Please check your connection information."
 msgstr ""
 "சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
 "உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."

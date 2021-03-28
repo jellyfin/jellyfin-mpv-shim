@@ -89,7 +89,7 @@ msgstr "添加服务器"
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
-"Please check your connection infomation."
+"Please check your connection information."
 msgstr ""
 "无法添加服务器。 \n"
 "请检查您的连接信息。"
