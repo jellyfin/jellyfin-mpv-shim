@@ -60,6 +60,15 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.10.3" date="2021-03-27">
+      <description>
+        <p>This release fixes some important bugs. Changes:</p>
+        <ul>
+            <li>#197 Fix shuffle, play next, and play last.</li>
+            <li>#179 Fix "failed to execute script" on Windows.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10.2" date="2021-03-25">
       <description>
         <p>This release fixes some important bugs. Changes:</p>
