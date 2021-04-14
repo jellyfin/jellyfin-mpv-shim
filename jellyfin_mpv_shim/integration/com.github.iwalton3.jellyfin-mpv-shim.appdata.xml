@@ -60,6 +60,15 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.10.4" date="2021-04-13">
+      <description>
+        <p>Changes:</p>
+        <ul>
+            <li>Upgrade to a newer MPV build.</li>
+            <li>Add more locations to the update checker.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10.3" date="2021-03-27">
       <description>
         <p>This release fixes some important bugs. Changes:</p>
