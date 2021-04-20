@@ -36,7 +36,7 @@ def main():
     mirror = None
     use_gui = False
     gui_ready = None
-    get_webview = None
+    get_webview = lambda: None
     if settings.enable_gui:
         try:
             from .gui_mgr import user_interface
