@@ -633,8 +633,7 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-7. Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
-8. Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
-9. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
+7. Run `get_pywebview_natives.py`.
+8. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
     - This builds the translation files and downloads the shader packs.
-10. Run `build-win.bat`.
+9. Run `build-win.bat`.
