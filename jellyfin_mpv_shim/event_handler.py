@@ -37,37 +37,17 @@ def bind(event_name: str):
 class EventHandler(object):
     mirror = None
 
-    def __init__(self):
-        self.it_on_event = None
-        self.it_event_set = set()
-
     def handle_event(
         self,
         client: "JellyfinClient_type",
         event_name: str,
         arguments: dict,
-        from_web=False,
     ):
-        # Pass GeneralCommands to desktop client when no media
-        # is playing and the event doesn't come from the web client.
-        if (
-            event_name == "GeneralCommand"
-            and not playerManager.is_playing()
-            and self.it_on_event
-            and (not from_web or arguments.get("Name") != "DisplayContent")
-        ):
-            timelineManager.delay_idle()
-            self.it_on_event("GeneralCommand", arguments)
-            return
-
         if event_name in bindings:
             log.debug("Handled Event {0}: {1}".format(event_name, arguments))
             bindings[event_name](self, client, event_name, arguments)
         else:
             log.debug("Unhandled Event {0}: {1}".format(event_name, arguments))
-
-        if self.it_on_event and event_name in self.it_event_set:
-            self.it_on_event(event_name, arguments)
 
     @bind("Play")
     def play_media(self, client: "JellyfinClient_type", _event_name, arguments: dict):

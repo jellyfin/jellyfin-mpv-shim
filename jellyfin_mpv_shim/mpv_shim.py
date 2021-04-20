@@ -17,7 +17,7 @@ log = logging.getLogger("")
 logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 
-def main(desktop: bool = False, cef: bool = False):
+def main():
     conf_file = conffile.get(APP_NAME, "conf.json")
     load_success = settings.load(conf_file)
     i18n.configure()
@@ -36,14 +36,8 @@ def main(desktop: bool = False, cef: bool = False):
     mirror = None
     use_gui = False
     gui_ready = None
-    use_webview = desktop or settings.enable_desktop
-    get_webview = lambda: None
-    if use_webview:
-        from .webclient_view import WebviewClient
-
-        user_interface = WebviewClient(cef=cef)
-        get_webview = user_interface.get_webview
-    elif settings.enable_gui:
+    get_webview = None
+    if settings.enable_gui:
         try:
             from .gui_mgr import user_interface
 
@@ -56,7 +50,7 @@ def main(desktop: bool = False, cef: bool = False):
                 exc_info=True,
             )
 
-    if settings.display_mirroring and not use_webview:
+    if settings.display_mirroring:
         try:
             from .display_mirror import mirror
 
@@ -89,9 +83,7 @@ def main(desktop: bool = False, cef: bool = False):
         log.info("Tip: Open the JSON file in VS Code to see what is wrong.")
 
     try:
-        if use_webview:
-            user_interface.run()
-        elif mirror:
+        if mirror:
             user_interface.stop_callback = mirror.stop
             # If the webview runs before the systray icon, it fails.
             if use_gui:
@@ -111,11 +103,6 @@ def main(desktop: bool = False, cef: bool = False):
         actionThread.stop()
         clientManager.stop()
         user_interface.stop()
-
-
-def main_desktop(cef: bool = False):
-    desktop = "--shim" not in sys.argv
-    main(desktop, cef)
 
 
 if __name__ == "__main__":

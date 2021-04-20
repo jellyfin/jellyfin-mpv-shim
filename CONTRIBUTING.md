@@ -41,9 +41,7 @@ Current Dependencies:
  - `pystray` - Provides systray icon. (Optional)
  - `tkinter` - Provides GUI for adding servers and viewing logs. (Optional)
  - `Jinja2` - Renders HTML for display mirroring. (Optional)
- - `pywebview` - Displays HTML for display mirroring or webclient. (Optional)
- - `Flask` - Used to serve the webclient in desktop mode. (Optional)
- - `Werkzeug` - Used to serve the webclient in desktop mode. (Optional)
+ - `pywebview` - Displays HTML for display mirroring. (Optional)
  - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview
@@ -78,7 +76,6 @@ Current Dependencies:
  - `video_profile.py` - Implements support for shader pack option profiles and related menu items.
  - `win_utils.py` - Implements window management workarounds for Windows.
  - `display_mirror` - Package that implements the full-screen display mirroring.
- - `webclient_view` - Package that implements the webclient UI. (The actual webclient is a [separate repo](https://github.com/iwalton3/jellyfin-web).)
  - `integration` - This contains the appstream metadata, icons, and desktop files used in the Flatpak version.
  - `default_shader_pack` - This is where the `gen_pkg.sh` script installs the [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 

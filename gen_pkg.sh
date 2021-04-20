@@ -59,18 +59,17 @@ elif [[ "$1" == "--gen-fingerprint" ]]
 then
     (
         get_resource_version pyinstaller/pyinstaller
-        get_resource_version iwalton3/jellyfin-web
         get_resource_version iwalton3/default-shader-pack
     ) | tee az-cache-fingerprint.list
     exit 0
 fi
 
 # Verify versioning
-current_version=$(get_resource_version jellyfin/jellyfin-desktop)
+current_version=$(get_resource_version jellyfin/jellyfin-mpv-shim)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
 setup_version=$(grep 'version=' setup.py | cut -d '"' -f 2)
-iss_version=$(grep '^#define MyAppVersion' "Jellyfin MPV Desktop.iss" | cut -d '"' -f 2)
+iss_version=$(grep '^#define MyAppVersion' "Jellyfin MPV Shim.iss" | cut -d '"' -f 2)
 appdata_version=$(grep 'release version="' jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml | \
     head -n 1 | cut -d '"' -f 2)
 
@@ -92,31 +91,6 @@ find -iname '*.po' | while read -r file
 do
     msgfmt "$file" -o "${file%.*}.mo"
 done
-
-# Download web client
-update_web_client="no"
-if [[ ! -e "jellyfin_mpv_shim/webclient_view/webclient" ]]
-then
-    update_web_client="yes"
-elif [[ -e ".last_wc_version" ]]
-then
-    if [[ "$(get_resource_version iwalton3/jellyfin-web)" != "$(cat .last_wc_version)" ]]
-    then
-        update_web_client="yes"
-    fi
-fi
-
-if [[ "$update_web_client" == "yes" ]]
-then
-    echo "Downloading web client..."
-    wc_version=$(get_resource_version iwalton3/jellyfin-web)
-    download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip" "wc"
-    rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
-    rm -r dist 2> /dev/null
-    unzip dist.zip > /dev/null && rm dist.zip
-    mv dist jellyfin_mpv_shim/webclient_view/webclient
-    echo "$wc_version" > .last_wc_version
-fi
 
 # Download default-shader-pack
 update_shader_pack="no"
