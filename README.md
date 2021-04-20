@@ -3,7 +3,6 @@
 [![Current Release](https://img.shields.io/github/release/jellyfin/jellyfin-mpv-shim.svg)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
 [![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
 [![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
-[![Build Status](https://dev.azure.com/jellyfin-project/jellyfin/_apis/build/status/jellyfin.jellyfin-mpv-shim?branchName=master)](https://dev.azure.com/jellyfin-project/jellyfin/_build/latest?definitionId=22&branchName=master)
 [![Code Stype](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Jellyfin MPV Shim is a cross-platform cast client for Jellyfin.
