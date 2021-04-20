@@ -57,10 +57,6 @@ class Settings(BaseModel):
     display_mirroring: bool = False
     log_decisions: bool = False
     mpv_log_level: str = "info"
-    enable_desktop: bool = False
-    desktop_fullscreen: bool = False
-    desktop_keep_pos: bool = False
-    desktop_keep_size: bool = True
     idle_when_paused: bool = False
     stop_idle: bool = False
     transcode_to_h265: bool = False
@@ -108,7 +104,6 @@ class Settings(BaseModel):
     check_updates: bool = True
     notify_updates: bool = True
     lang: Optional[str] = None
-    desktop_scale: float = 1.0
     discord_presence: bool = False
     ignore_ssl_cert: bool = False
     menu_mouse: bool = True

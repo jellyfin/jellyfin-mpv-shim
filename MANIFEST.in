@@ -1,5 +1,4 @@
 include jellyfin_mpv_shim/systray.png
-recursive-include jellyfin_mpv_shim/webclient_view/webclient *
 recursive-include jellyfin_mpv_shim/integration *
 recursive-include jellyfin_mpv_shim/default_shader_pack *
 recursive-include jellyfin_mpv_shim/messages *.mo

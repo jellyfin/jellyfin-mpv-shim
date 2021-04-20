@@ -5,14 +5,13 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Jellyfin MPV Shim</name>
-  <summary>Official Desktop Client for Jellyfin Media Server</summary>
+  <summary>Cast-only client for Jellyfin Media Server</summary>
   <developer_name>Ian Walton</developer_name>
 
   <description>
     <p>
         Jellyfin MPV Shim is a client for the Jellyfin media server which plays media in the
-        MPV media player. There is a desktop client mode which displays the Jellyfin Web App,
-        as well as a less resource-intensive background shim application which opens MPV only
+        MPV media player. The application runs in the background and opens MPV only
         when media is cast to the player. The player supports most file formats, allowing you
         to prevent needless transcoding of your media files on the server. The player also has
         advanced features, such as bulk subtitle updates and launching commands on events. 
@@ -30,13 +29,13 @@
     <category>Player</category>
   ​</categories>
 
-  <url type="homepage">https://github.com/jellyfin/jellyfin-desktop</url>
-  <url type="help">https://github.com/jellyfin/jellyfin-desktop/blob/master/README.md</url>
-  <url type="bugtracker">https://github.com/jellyfin/jellyfin-desktop/issues</url>
+  <url type="homepage">https://github.com/jellyfin/jellyfin-mpv-shim</url>
+  <url type="help">https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/README.md</url>
+  <url type="bugtracker">https://github.com/jellyfin/jellyfin-mpv-shim/issues</url>
 
   <screenshots>
     <screenshot type="default">
-      <caption>The desktop client</caption>
+      <caption>The web app casting to MPV Shim</caption>
       <image type="source" width="802" height="602">https://user-images.githubusercontent.com/8078788/78717835-392d2c00-78ef-11ea-9731-7fd4a1d8ebbe.png</image>
     </screenshot>
     <screenshot>
@@ -50,16 +49,21 @@
   </screenshots>
 
   <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
-  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop-player.desktop</launchable>
 
-  <url type="homepage">https://github.com/jellyfin/jellyfin-desktop</url>
+  <url type="homepage">https://github.com/jellyfin/jellyfin-mpv-shim</url>
 
   <provides>
-    <binary>jellyfin-mpv-desktop</binary>
+    <binary>jellyfin-mpv-shim</binary>
   </provides>
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.0.0" date="2021-04-19">
+      <description>
+        <p>This release drops the desktop webview mode.</p>
+        <p>Please use Jellyfin Media Player instead or cast to the application. You can set MPV Shim as the default target in the web player as of 10.7.0.</p>
+      </description>
+    </release>
     <release version="1.10.4" date="2021-04-13">
       <description>
         <p>Changes:</p>

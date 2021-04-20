@@ -26,9 +26,9 @@ jobs:
     displayName: Cache pip packages
   - task: Cache@2
     inputs:
-      key: '"bindep 2021-04-13" | "$(Agent.OS)"'
+      key: '"bindep 2021-04-19" | "$(Agent.OS)"'
       restoreKeys: | 
-        "bindep 2021-04-13"
+        "bindep 2021-04-19"
       path: bindep
       cacheHitVar: CACHE_RESTORED
     displayName: Cache binary dependencies
@@ -61,7 +61,7 @@ jobs:
       TargetFolder: '.'
     displayName: Copy Binary Dependencies
 
-  - script: pip install .[all] pywebview[cef]==3.4 pywin32 cefpython3==66.0
+  - script: pip install .[all] pywebview==3.4 pywin32
     displayName: PIP Dependencies
   - bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
     displayName: Pydantic w/o CYTHON
@@ -76,12 +76,12 @@ jobs:
   - bash: ./artifacts.sh standard
     displayName: Main Artifact Rename
 
-  - publish: publish/Shim
-    artifact: ShimPortable
-  - publish: publish/DesktopInstaller
-    artifact: DesktopInstaller
-  - publish: publish/DesktopDebug
-    artifact: DesktopDebug
+  - publish: publish/Portable
+    artifact: Portable
+  - publish: publish/Installer
+    artifact: Installer
+  - publish: publish/Debug
+    artifact: Debug
 
 - job: LegacyWindows
   pool:
@@ -103,9 +103,9 @@ jobs:
     displayName: Cache pip packages
   - task: Cache@2
     inputs:
-      key: '"bindep 2020-08-22" | "$(Agent.OS)"'
+      key: '"bindep 2021-04-19" | "$(Agent.OS)"'
       restoreKeys: | 
-        "bindep 2020-08-22"
+        "bindep 2021-04-19"
       path: bindep
       cacheHitVar: CACHE_RESTORED
     displayName: Cache binary dependencies
@@ -138,7 +138,7 @@ jobs:
       TargetFolder: '.'
     displayName: Copy Binary Dependencies
 
-  - script: pip install .[all] pywebview[cef]==3.3.3 pywin32
+  - script: pip install .[all] pywebview==3.3.3 pywin32
     displayName: PIP Dependencies x86
   - bash: 'pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32'
     displayName: Pydantic w/o CYTHON x86
@@ -151,5 +151,5 @@ jobs:
   - bash: ./artifacts.sh legacy
     displayName: Legacy Artifact Rename
 
-  - publish: publish/DesktopInstallerLegacy
-    artifact: DesktopInstallerLegacy
+  - publish: publish/InstallerLegacy
+    artifact: InstallerLegacy

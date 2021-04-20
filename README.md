@@ -1,45 +1,35 @@
-# Jellyfin Desktop (MPV Shim)
+# Jellyfin MPV Shim
 
-[![Current Release](https://img.shields.io/github/release/jellyfin/jellyfin-desktop.svg)](https://github.com/jellyfin/jellyfin-desktop/releases)
+[![Current Release](https://img.shields.io/github/release/jellyfin/jellyfin-mpv-shim.svg)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
 [![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
-[![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-desktop/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-desktop/)
-[![Build Status](https://dev.azure.com/jellyfin-project/jellyfin/_apis/build/status/jellyfin.jellyfin-desktop?branchName=master)](https://dev.azure.com/jellyfin-project/jellyfin/_build/latest?definitionId=22&branchName=master)
+[![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
+[![Build Status](https://dev.azure.com/jellyfin-project/jellyfin/_apis/build/status/jellyfin.jellyfin-mpv-shim?branchName=master)](https://dev.azure.com/jellyfin-project/jellyfin/_build/latest?definitionId=22&branchName=master)
 [![Code Stype](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Jellyfin Desktop is a fully featured, cross-platform desktop and cast client for Jellyfin.
+Jellyfin MPV Shim is a cross-platform cast client for Jellyfin.
 It has support for all your advanced media files without transcoding, as well as tons of
 features which set it apart from other multimedia clients:
 
  - Direct play most media using MPV.
  - Watch videos with friends using SyncPlay.
- - Offers both a desktop mode and a shim mode which runs in the background.
+ - Offers a shim mode which runs in the background.
  - The Jellyfin mobile apps can fully control the client.
- - [Reconfigure subtitles](https://github.com/jellyfin/jellyfin-desktop#menu) for an entire season at once.
- - Supports all of the [MPV keyboard shortcuts](https://github.com/jellyfin/jellyfin-desktop#keyboard-shortcuts).
- - Enhance your video with [Shader Packs](https://github.com/jellyfin/jellyfin-desktop#menu) and [SVP Integration](https://github.com/jellyfin/jellyfin-desktop#svp-integration).
+ - [Reconfigure subtitles](https://github.com/jellyfin/jellyfin-mpv-shim#menu) for an entire season at once.
+ - Supports all of the [MPV keyboard shortcuts](https://github.com/jellyfin/jellyfin-mpv-shim#keyboard-shortcuts).
+ - Enhance your video with [Shader Packs](https://github.com/jellyfin/jellyfin-mpv-shim#menu) and [SVP Integration](https://github.com/jellyfin/jellyfin-mpv-shim#svp-integration).
  - Optionally share your media activity with friends using Discord Rich Presence.
- - Most features, as well as MPV itself, [can be extensively configured](https://github.com/jellyfin/jellyfin-desktop#configuration).
- - You can configure the player to use an [external MPV player](https://github.com/jellyfin/jellyfin-desktop#external-mpv) of your choice.
- - Enable a chromecast-like experience with [Display Mirroring](https://github.com/jellyfin/jellyfin-desktop#display-mirroring).
- - You can [trigger commands to run](https://github.com/jellyfin/jellyfin-desktop#shell-command-triggers) when certain events happen.
+ - Most features, as well as MPV itself, [can be extensively configured](https://github.com/jellyfin/jellyfin-mpv-shim#configuration).
+ - You can configure the player to use an [external MPV player](https://github.com/jellyfin/jellyfin-mpv-shim#external-mpv) of your choice.
+ - Enable a chromecast-like experience with [Display Mirroring](https://github.com/jellyfin/jellyfin-mpv-shim#display-mirroring).
+ - You can [trigger commands to run](https://github.com/jellyfin/jellyfin-mpv-shim#shell-command-triggers) when certain events happen.
 
-To learn more, keep reading. This README explains everything, including [configuration](https://github.com/jellyfin/jellyfin-desktop#configuration), [tips & tricks](https://github.com/jellyfin/jellyfin-desktop#tips-and-tricks), and [development information](https://github.com/jellyfin/jellyfin-desktop#development).
+To learn more, keep reading. This README explains everything, including [configuration](https://github.com/jellyfin/jellyfin-mpv-shim#configuration), [tips & tricks](https://github.com/jellyfin/jellyfin-mpv-shim#tips-and-tricks), and [development information](https://github.com/jellyfin/jellyfin-mpv-shim#development).
 
 ## Getting Started
 
-If you are on Windows, simply [download the binary](https://github.com/jellyfin/jellyfin-desktop/releases).
-If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/jellyfin/jellyfin-desktop/blob/master/README.md#linux-installation). If you are on macOS, see the [macOS Installation](https://github.com/jellyfin/jellyfin-desktop/blob/master/README.md#osx-installation)
+If you are on Windows, simply [download the binary](https://github.com/jellyfin/jellyfin-mpv-shim/releases).
+If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/README.md#linux-installation). If you are on macOS, see the [macOS Installation](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/README.md#osx-installation)
 section below.
-
-### Desktop Client
-
-Launch the client. You should see the Jellyfin web app. Log in to your server and use it as normal.
-All videos will load in MPV just like MPV Shim.
-
-Please note: The desktop client for Windows contains significantly more files than MPV Shim, so it
-is distributed as an installer. It will work without admin rights.
-
-### MPV Shim
 
 To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
 URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
@@ -64,13 +54,12 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 Please also note that the on-screen controller for MPV (if available) cannot change the
 audio and subtitle track configurations for transcoded media. It also cannot load external
-subtitles. You must either [use the menu](https://github.com/jellyfin/jellyfin-desktop#menu) or the application you casted from.
+subtitles. You must either [use the menu](https://github.com/jellyfin/jellyfin-mpv-shim#menu) or the application you casted from.
 
 Please note the following issues with controlling SyncPlay:
- - The desktop client can join SyncPlay groups from the web app's menu, but not create them.
  - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
-     - You can, however, proceed to activate SyncPlay [using the menu within MPV](https://github.com/jellyfin/jellyfin-desktop#menu).
- - If you would like to create a group or join a group for currently playing media, [use menu within MPV](https://github.com/jellyfin/jellyfin-desktop#menu).
+     - You can, however, proceed to activate SyncPlay [using the menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
+ - If you would like to create a group or join a group for currently playing media, [use menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
  - SyncPlay as of 10.7.0 is new and kind of fragile. You may need to rejoin or even restart the client. Please report any issues you find.
 
 Music playback sort-of works, but repeat, shuffle, and gapless playback have not been implemented and
@@ -336,22 +325,6 @@ need to.
      - This could break if you use revert-seek markers or scripts that use it.
  - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
 
-### Desktop Mode Settings
-
-These settings pertain to the "Desktop" (embedded webview) mode only.
-
- - `enable_desktop` - Use the desktop client. Default: `false`
-    - You can also use it by running the `jellyfin-mpv-desktop`.
-    - If you are using the Windows build, you must download the desktop version.
- - `desktop_fullscreen` - Run the desktop client in fullscreen. Default: `false`
- - `desktop_keep_loc` - Remember the position of the desktop client. Default: `false`
-    - This has been infamous for causing the window to be positioned off-screen.
-    - If you enable this and that happens, you can delete `layout.json` to fix it.
- - `desktop_keep_size` - Remember the position of the desktop client. Default: `true`
-    - Set the window size, but not the position. Hopefully won't cause the client to open off-screen.
- - `desktop_scale` - Allows changing the scale factor for the desktop app. Default: `1.0`
-    - This can be useful if you are on a platform that doesn't support HiDPI very well.
-
 ### Debugging
 
 These settings assist with debugging. You will often be asked to configure them when reporting an issue.
@@ -414,7 +387,7 @@ Determine which screen you would like MPV to show up on.
  - If you are on Windows, right click the desktop and select "Display Settings". Take the monitor number and subtract one.
  - If you are on Linux, run `xrandr`. The screen number is the number you want. If there is only one proceed to **Option 2**.
 
-Add the following to your `mpv.conf` in the [config directory](https://github.com/jellyfin/jellyfin-desktop#mpv-configuration), replacing `0` with the number from the previous step:
+Add the following to your `mpv.conf` in the [config directory](https://github.com/jellyfin/jellyfin-mpv-shim#mpv-configuration), replacing `0` with the number from the previous step:
 ```
 fs=yes
 fs-screen=0
@@ -442,7 +415,7 @@ LVDS-0 connected 1600x900+1920+180 (normal left inverted right x axis y axis) 30
    1600x900      59.98*+
 ```
 
-If you want MPV to open on VGA-0 for instance, add the following to your `mpv.conf` in the [config directory](https://github.com/jellyfin/jellyfin-desktop#mpv-configuration):
+If you want MPV to open on VGA-0 for instance, add the following to your `mpv.conf` in the [config directory](https://github.com/jellyfin/jellyfin-mpv-shim#mpv-configuration):
 ```
 fs=yes
 geometry=1920x1080+0+0
@@ -539,8 +512,7 @@ The project is dependent on `python-mpv`, `python-mpv-jsonipc`, `pydantic`, and 
 using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
 component uses `pystray` and `tkinter`, but there is a fallback cli mode. The mirroring dependencies
 are `Jinja2` and `pywebview`, along with platform-specific dependencies. (See the installation and building
-guides for details on platform-specific dependencies for display mirroring.) The desktop client depends on
-`pywebview`, `Flask`, and `Werkzeug`.
+guides for details on platform-specific dependencies for display mirroring.)
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
@@ -560,14 +532,14 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 
 1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug pypresence pydantic`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
-2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-desktop`
+2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-mpv-shim`
     - You can also download a zip build.
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
 4. Run prepare script: `./gen_pkg.sh`
     - To do this manually, download the web client, shader pack, and build the language files.
 5. Ensure you have a copy of `libmpv1` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
-7. You should now be able to run the program with `./run.py` or `./run-desktop.py`. Installation is possible with `sudo pip3 install .`.
+7. You should now be able to run the program with `./run.py`. Installation is possible with `sudo pip3 install .`.
     - You can also install the package with `./gen_pkg.sh --install`.
 
 ### Translation
@@ -591,13 +563,6 @@ You can [install the software from flathub](https://flathub.org/apps/details/com
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
-```
-If you would like the Desktop client (run with `jellyfin-mpv-desktop`), also install:
-```
-sudo apt install python3-flask python3-webview python3-werkzeug
-# -- OR --
-sudo pip3 install jellyfin-mpv-shim[desktop]
-sudo apt install gir1.2-webkit2-4.0
 ```
 If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
@@ -637,13 +602,6 @@ To install the CLI version:
 3. Install jellyfin-mpv-shim. `pip3 install --upgrade jellyfin-mpv-shim`
 4. Run `jellyfin-mpv-shim`.
 
-If you'd like to install the desktop client (currently requires python from brew):
-
-1. Install brew. ([Instructions](https://brew.sh/))
-2. Install python3 and mpv. `brew install python mpv`
-3. Install jellyfin-mpv-shim. `pip3 install --upgrade 'jellyfin-mpv-shim[desktop]'`
-4. Run `jellyfin-mpv-desktop`.
-
 If you'd like to install the GUI version, you need a working copy of tkinter.
 
 1. Install pyenv. ([Instructions](https://medium.com/python-every-day/python-development-on-macos-with-pyenv-2509c694a808))
@@ -666,19 +624,17 @@ the installer. If you'd like to build a 32 bit version, download the 32 bit vers
 copy it into a new folder called mpv32. You'll also need [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll?raw=true).
 You may also need to edit the batch file for 32 bit builds to point to the right python executable.
 
-1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-desktop; cd jellyfin-desktop`.
+1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
     - You can update the project later with `git pull`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview[cef] python-mpv-jsonipc Flask Werkzeug pypresence pydantic`.
+3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc pypresence pydantic`.
     - You may need to install pydantic with `SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32`
     - Details: https://github.com/pyinstaller/pyinstaller/issues/4346
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-7. (Edge Build, disabled by default) Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
-8. (Edge Build, disabled by default) Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
-9. (CEF Desktop Client) Copy the folder `AppData\Local\Programs\Python\Python37\Lib\site-packages\cefpython3` to `cef\cefpython3`.
-10. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
-    - This builds the translation files and downloads the web client and shader packs.
-11. Remove `libEGL.dll` from `cef\cefpython3`, as it breaks mpv's glsl support. (How CEF works without this is a mystery to me.)
-12. Run `build-win.bat`.
+7. Download [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll?raw=true) and [Winforms Webview](https://www.nuget.org/api/v2/package/Microsoft.Toolkit.Forms.UI.Controls.WebView/6.0.0).
+8. Rename the `*.nupkg` to a `*.zip` file and extract `lib\net462\Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` to the project root.
+9. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
+    - This builds the translation files and downloads the shader packs.
+10. Run `build-win.bat`.
