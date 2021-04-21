@@ -42,11 +42,6 @@ jobs:
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
-    - name: Archive production artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: windows-portable
-        path: ${{ github.workspace }}/publish/Portable/*.exe
   build-win32:
     runs-on: windows-latest
     steps:
