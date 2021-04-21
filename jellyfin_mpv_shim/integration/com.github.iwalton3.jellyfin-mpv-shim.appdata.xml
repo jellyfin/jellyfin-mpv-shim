@@ -58,6 +58,12 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.0.1" date="2021-04-21">
+      <description>
+        <p>Fix DPI issue on Windows.</p>
+        <p>Remove dependency on pydantic and handle some possible config errors.</p>
+      </description>
+    </release>
     <release version="2.0.0" date="2021-04-19">
       <description>
         <p>This release drops the desktop webview mode.</p>
