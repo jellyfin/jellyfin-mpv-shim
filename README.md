@@ -507,7 +507,7 @@ If you'd like to run the application without installing it, run `./run.py`.
 The project is written entirely in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
-The project is dependent on `python-mpv`, `python-mpv-jsonipc`, `pydantic`, and `jellyfin-apiclient-python`. If you are
+The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
 using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
 component uses `pystray` and `tkinter`, but there is a fallback cli mode. The mirroring dependencies
 are `Jinja2` and `pywebview`, along with platform-specific dependencies. (See the installation and building
@@ -529,7 +529,7 @@ The shaders included in the shader pack are also available under verious open so
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
 
-1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc Flask Werkzeug pypresence pydantic`.
+1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
 2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-mpv-shim`
     - You can also download a zip build.
@@ -626,8 +626,7 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
     - You can update the project later with `git pull`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc pypresence pydantic`.
-    - You may need to install pydantic with `SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32`
+3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
     - Details: https://github.com/pyinstaller/pyinstaller/issues/4346
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.

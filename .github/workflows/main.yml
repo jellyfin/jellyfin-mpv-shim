@@ -21,10 +21,6 @@ jobs:
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
-    - name: Install pydantic
-      run: |
-        pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32
-      shell: bash
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
@@ -57,10 +53,6 @@ jobs:
         pip install .[all] pywebview==3.4 pywin32
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
-      shell: bash
-    - name: Install pydantic
-      run: |
-        pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32
       shell: bash
     - name: PyInstaller Bootloader
       run: |

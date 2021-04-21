@@ -6,8 +6,8 @@ import json
 import os.path
 import sys
 import getpass
-from pydantic import BaseModel
 from typing import Optional
+from .settings_base import SettingsBase
 
 log = logging.getLogger("conf")
 config_path = None
@@ -24,7 +24,7 @@ def get_default_sdir():
         return None
 
 
-class Settings(BaseModel):
+class Settings(SettingsBase):
     player_name: str = socket.gethostname()
     audio_output: str = "hdmi"
     client_uuid: str = str(uuid.uuid4())
