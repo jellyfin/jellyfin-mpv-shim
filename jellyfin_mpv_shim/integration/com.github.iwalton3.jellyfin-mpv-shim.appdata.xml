@@ -62,6 +62,7 @@
       <description>
         <p>Fix DPI issue on Windows.</p>
         <p>Remove dependency on pydantic and handle some possible config errors.</p>
+        <p>Fix setting to allow fully disabling OSC. (#212)</p>
       </description>
     </release>
     <release version="2.0.0" date="2021-04-19">
