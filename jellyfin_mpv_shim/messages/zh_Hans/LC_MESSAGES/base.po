@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-03-20 10:01+0000\n"
-"Last-Translator: Nyanmisaka <799610810@qq.com>\n"
+"PO-Revision-Date: 2021-04-29 04:30+0000\n"
+"Last-Translator: wolong gl <wolong98@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 3.11.2\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -196,7 +196,7 @@ msgstr "小"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "标准"
+msgstr "正常"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
@@ -224,7 +224,7 @@ msgstr "更换视频质量"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr "同步播放"
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -400,7 +400,7 @@ msgstr "检查更新"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr "Discord 丰富状态"
+msgstr "Discord细节呈现"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
