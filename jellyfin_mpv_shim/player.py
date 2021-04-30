@@ -622,8 +622,8 @@ class PlayerManager(object):
             if has_lock:
                 log.debug("PlayerManager::finished_callback starting next episode")
                 new_video = self._video.parent.get_next().video
+                self.send_timeline_stopped(True)
                 if self.syncplay.is_enabled():
-                    self.send_timeline_stopped(True)
                     self.syncplay.request_next(self._video.get_playlist_id())
                 else:
                     self.play(new_video)
@@ -661,8 +661,8 @@ class PlayerManager(object):
     def play_next(self):
         if self._video.parent.has_next:
             new_video = self._video.parent.get_next().video
+            self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
-                self.send_timeline_stopped(True)
                 self.syncplay.request_next(self._video.get_playlist_id())
             else:
                 self.play(new_video)
@@ -673,8 +673,8 @@ class PlayerManager(object):
     def skip_to(self, key: str):
         media = self._video.parent.get_from_key(key)
         if media:
+            self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
-                self.send_timeline_stopped(True)
                 self.syncplay.request_skip(media.video.get_playlist_id())
             else:
                 self.play(media.get_video(0))
@@ -685,8 +685,8 @@ class PlayerManager(object):
     def play_prev(self):
         if self._video.parent.has_prev:
             new_video = self._video.parent.get_prev().video
+            self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
-                self.send_timeline_stopped(True)
                 self.syncplay.request_prev(self._video.get_playlist_id())
             else:
                 self.play(new_video)
