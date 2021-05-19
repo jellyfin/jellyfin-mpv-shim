@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-05-12 14:30+0000\n"
-"Last-Translator: Benjamin Vraspillai <sandyran@protonmail.com>\n"
+"PO-Revision-Date: 2021-05-20 10:30+0000\n"
+"Last-Translator: Marius Lindvall <marius@varden.info>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/nb_NO/>\n"
 "Language: nb_NO\n"
@@ -497,10 +497,8 @@ msgid "{0} is buffering."
 msgstr "{0} bufrer."
 
 #: jellyfin_mpv_shim/syncplay.py:608
-#, fuzzy
-#| msgid "New Group"
 msgid "{0}'s Group"
-msgstr "Ny gruppe"
+msgstr "{0}s gruppe"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
