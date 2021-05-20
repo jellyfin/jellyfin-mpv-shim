@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-26 17:30+0000\n"
-"Last-Translator: Vladimir Jendrol <vladimir.jendrol@protonmail.com>\n"
+"PO-Revision-Date: 2021-05-21 15:30+0000\n"
+"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
 "Language: sk\n"
@@ -223,7 +223,6 @@ msgid "Change Video Quality"
 msgstr "Zmeniť Kvalitu Videa"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
-#, fuzzy
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
