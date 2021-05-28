@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2020-09-26 20:34+0000\n"
-"Last-Translator: Jurij Martinčič <jurij.martincic@gmail.com>\n"
+"PO-Revision-Date: 2021-06-07 22:29+0000\n"
+"Last-Translator: SaddFox <filip.rutar@gmail.com>\n"
 "Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-mpv-shim/sl/>\n"
+"jellyfin-desktop/sl/>\n"
 "Language: sl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n"
 "%100==4 ? 2 : 3;\n"
-"X-Generator: Weblate 3.11.2\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -149,7 +149,7 @@ msgstr "Izhod"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr ""
+msgstr " (Prekodiranje)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -468,7 +468,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Sinhronizacija onemogočena (Preveč poskusov)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -495,14 +495,12 @@ msgid "{0} is buffering."
 msgstr "Medpomnjenje {0}."
 
 #: jellyfin_mpv_shim/syncplay.py:608
-#, fuzzy
-#| msgid "New Group"
 msgid "{0}'s Group"
-msgstr "Nova skupina"
+msgstr "{0} skupina"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
-msgstr ""
+msgstr "Brez (Onemogočeno)"
 
 #: jellyfin_mpv_shim/syncplay.py:621
 msgid "New Group"
