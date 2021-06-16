@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-03-23 06:12+0000\n"
-"Last-Translator: Vitorvlv <vitorlourovaladares@gmail.com>\n"
+"PO-Revision-Date: 2021-06-21 11:08+0000\n"
+"Last-Translator: Fabrício Jácome <fabriciomourajacome@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 3.11.2\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -244,7 +244,7 @@ msgstr "Sair e marcar como não visto"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Screenshot"
+msgstr "Captura de tela"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -276,7 +276,7 @@ msgstr "Selecionar faixa de legenda"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Nada"
+msgstr "Nenhum"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
