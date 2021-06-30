@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
 "PO-Revision-Date: 2021-07-10 04:28+0000\n"
-"Last-Translator: newton181 <newton181.1@gmail.com>\n"
+"Last-Translator: Eduardo Fernández <yo@edufdezsoy.es>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/es/>\n"
 "Language: es\n"
@@ -28,19 +28,19 @@ msgstr "{0}: Sin Subtítulos"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Falla"
+msgstr "{0}: Falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Establecer subtitulado: {0} ok, {1} falla"
+msgstr "Establecer subtitulado: {0} ok, {1} falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Establecer doblaje: {0} ok, {1} solo audio, {2} falla"
+msgstr "Establecer doblaje: {0} ok, {1} solo audio, {2} falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manual: {0} ok, {1} falla"
+msgstr "Manual: {0} ok, {1} falló"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -60,15 +60,15 @@ msgstr "Contraseña: "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
-msgstr "Servidor agregado exitosamente."
+msgstr "Servidor añadido exitosamente."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr "¿Agregar otro servidor?"
+msgstr "¿Añadir otro servidor?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
-msgstr "No se pudo agregar el servidor."
+msgstr "No se pudo añadir el servidor."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -80,7 +80,7 @@ msgstr "Seleccione su contenido multimedia en Jellyfin y reprodúzcalo aquí"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Registro de aplicaciones"
+msgstr "Registro de la aplicación"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
