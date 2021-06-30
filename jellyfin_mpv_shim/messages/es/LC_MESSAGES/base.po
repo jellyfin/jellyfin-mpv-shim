@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-05-17 16:13+0000\n"
-"Last-Translator: Jorge Rodriguez <jorge.rodriguezv@protonmail.com>\n"
+"PO-Revision-Date: 2021-07-10 04:28+0000\n"
+"Last-Translator: newton181 <newton181.1@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/es/>\n"
 "Language: es\n"
@@ -84,7 +84,7 @@ msgstr "Registro de aplicaciones"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr "Adicionar Servidor"
+msgstr "Añadir servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
@@ -384,7 +384,7 @@ msgstr "Búsqueda de Tecla Multimedia"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
-msgstr "Usar Web Seek Pref"
+msgstr "Usar pref. de búsqueda web"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
