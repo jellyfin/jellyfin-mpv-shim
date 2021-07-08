@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-03-18 10:56+0000\n"
-"Last-Translator: Moritz <moritz.leick@googlemail.com>\n"
+"PO-Revision-Date: 2021-07-10 04:28+0000\n"
+"Last-Translator: Kachelkaiser <kachelkaiser@outlook.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 3.11.2\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -132,7 +132,7 @@ msgstr "Server konfigurieren"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr "Zeige Konsole"
+msgstr "Konsole anzeigen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
@@ -140,7 +140,7 @@ msgstr "Applikationsmenü"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr "Öffne Config Ordner"
+msgstr "Config Ordner öffnen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
@@ -212,15 +212,15 @@ msgstr "Hauptmenü"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr "Wechsel Audio"
+msgstr "Audio ändern"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Wechsel Untertitel"
+msgstr "Untertitel ändern"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr "Ändere Videoqualität"
+msgstr "Videoqualität ändern"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
@@ -232,7 +232,7 @@ msgstr "MPV Shim v{0} Veröffentlichung Info/Download"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr "Wechsel Video Abspielprofil"
+msgstr "Video Abspielprofil ändern"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
@@ -264,15 +264,15 @@ msgstr "Playereinstellungen"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr "Schließe Menü"
+msgstr "Menü schließen"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Wähle Audiospur"
+msgstr "Audiospur wählen"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Wähle Untertitelspur"
+msgstr "Untertitelspur wählen"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -292,7 +292,7 @@ msgstr "Kein Transkodieren"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Wähle Audio/Untertitel für Serie"
+msgstr "Audio/Untertitel für Serie wählen"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -308,19 +308,19 @@ msgstr "Manuell durch Spurindex (Unzuverlässiger)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Wähle Standard Transkodierungsprofil"
+msgstr "Standard Transkodierungsprofil wählen"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Wähle Untertitelfarbe"
+msgstr "Untertitelfarbe wählen"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Wähle Untertitelgröße"
+msgstr "Untertitelgröße wählen"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Wähle Untertitelposition"
+msgstr "Untertitelposition wählen"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
@@ -368,7 +368,7 @@ msgstr "Transkodiere zu H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr "Deaktiviere Direct Play"
+msgstr "Direct Play deaktivieren"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
@@ -384,7 +384,7 @@ msgstr "Medien Spultaste"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
-msgstr "Verwende Spul-Einstellungen vom Web"
+msgstr "Web Suche Präf verwenden"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
@@ -392,11 +392,11 @@ msgstr "Displayspiegelung"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr "Speicher Logs in Datei"
+msgstr "Logs in Datei speichern"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
-msgstr "Prüfe nach Updates"
+msgstr "Auf Updates prüfen"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
@@ -407,8 +407,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Ihr Remote-Video wird transkodiert!\n"
-"Drücke c, um die Bandbreiteneinstellungen anzupassen, falls dies nicht "
+"Dein Remote-Video wird transkodiert!\n"
+"Drücke C, um die Bandbreiteneinstellungen anzupassen, falls dies nicht "
 "erforderlich ist."
 
 #: jellyfin_mpv_shim/player.py:849
@@ -426,7 +426,7 @@ msgstr "Deaktiviert"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr "Wähle SVP Profil"
+msgstr "SVP Profil wählen"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
@@ -442,7 +442,7 @@ msgstr "Wiederholen"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr "Aktiviere SVP"
+msgstr "SVP aktivieren"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
@@ -494,7 +494,7 @@ msgstr "{0} ist ausgetreten."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} ist am Buffern."
+msgstr "{0} wird gepuffert."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
@@ -558,4 +558,4 @@ msgstr "Anime4K x2 Perceptual + Deblur (Für HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr "Wähle Shaderprofil"
+msgstr "Shaderprofil wählen"
