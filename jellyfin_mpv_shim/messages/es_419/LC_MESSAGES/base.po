@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-02 10:30+0000\n"
+"PO-Revision-Date: 2021-07-17 16:29+0000\n"
 "Last-Translator: danielxb-ar <danielxb@gmail.com>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/es_419/>\n"
@@ -256,7 +256,7 @@ msgstr "Configuración de SVP (Conversión de Velocidad de Fotogramas)"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
 msgid "Video Preferences"
-msgstr "Preferencias de video"
+msgstr "Preferencias de Video"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
 msgid "Player Preferences"
@@ -292,7 +292,7 @@ msgstr "Sin Transcodificar"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Seleccionar el Audio/Subtítulo para la Serie"
+msgstr "Seleccionar el Audio/Subtítulo para las Series"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
