@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-10 04:28+0000\n"
-"Last-Translator: Tim040 <tim.groffen@gmail.com>\n"
+"PO-Revision-Date: 2021-07-17 16:29+0000\n"
+"Last-Translator: Joost <joho500@hotmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Tracks selecteren..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -32,7 +32,7 @@ msgstr "{0}: Mislukt"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Ondertitel geselecteerd: {0} ok, {1} fout"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -44,7 +44,7 @@ msgstr "Handmatig: {0} ok, {1} mislukt"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Huidige instellen..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
@@ -228,20 +228,19 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV shim v{0} Release info/Download"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Wijzig video afspeelprofiel"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Selecteer audio/ondertitels automatisch (Gehele serie)"
 
 #: jellyfin_mpv_shim/menu.py:163
-#, fuzzy
 msgid "Quit and Mark Unwatched"
-msgstr "Stop en markeer on-gekeken"
+msgstr "Stop en markeer als niet bekeken"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -249,7 +248,7 @@ msgstr "Schermafbeelding"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Video afspeelprofielen"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
@@ -269,11 +268,11 @@ msgstr "Sluit Menu"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Selecteer audiospoor"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Selecteer ondertitel"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -305,7 +304,7 @@ msgstr "Japanse Audio met Engelse Ondertiteling"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Handmatig via trackindex (Minder betrouwbaar)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -337,7 +336,7 @@ msgstr "Midden"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Remote transcodeerkwaliteit: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -353,31 +352,31 @@ msgstr "Ondertiteling Kleur: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Transcode H265 naar H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Transcode Hi10p naar 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
-msgstr ""
+msgstr "Directe paden"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Transcode naar H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Direct Play deactiveren"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
-msgstr ""
+msgstr "Automatisch afspelen"
 
 #: jellyfin_mpv_shim/menu.py:522
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Automatisch volledig scherm"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
@@ -393,7 +392,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Logs naar bestand schrijven"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
@@ -408,6 +407,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Uw remote video wordt omgezet!\n"
+"Druk C om de bandwijdte-instellingen aan te passen als dit niet gewenst is."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
@@ -424,11 +425,11 @@ msgstr "Uitgeschakeld"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "Selecteer SVP Profiel"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP is niet actief"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -440,7 +441,7 @@ msgstr "Opnieuw"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "SVP activeren"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
@@ -448,39 +449,39 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "De geselecteerde SyncPlay groep bestaat niet."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "Het maken van SyncPlay groepen is niet toegestaan."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "SyncPlay-groeptoegang is geweigerd."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "Toegang tot de SyncPlay bibliotheek is geweigerd."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Sync gedeactiveerd (Teveel pogingen)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay geactiveerd."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay gedeactiveerd."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -492,7 +493,7 @@ msgstr "{0} heeft verlaten."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} wordt gebufferd."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
@@ -511,10 +512,12 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} update beschikbaar\n"
+"Open menu (druk c) voor details."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr ""
+msgstr "Onbekend"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
@@ -522,36 +525,36 @@ msgstr " Geforceerd"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Generiek (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Generiek Hoog (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (voor SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (voor SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (voor SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (voor HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (voor HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (voor HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Selecteer Shader profiel"
