@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-17 16:29+0000\n"
-"Last-Translator: Joost <joho500@hotmail.com>\n"
+"PO-Revision-Date: 2021-07-25 21:29+0000\n"
+"Last-Translator: Tim040 <tim.groffen@gmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -36,7 +36,7 @@ msgstr "Ondertitel geselecteerd: {0} ok, {1} fout"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Nasynchronisatie geselecteerd: {0} ok, {1} alleen geluid, {2} fout"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
