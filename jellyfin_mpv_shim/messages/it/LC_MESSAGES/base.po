@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-02 10:30+0000\n"
-"Last-Translator: millallo <millallo@tiscali.it>\n"
+"PO-Revision-Date: 2021-07-31 10:29+0000\n"
+"Last-Translator: virdb <marco.bertorello@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/it/>\n"
 "Language: it\n"
@@ -244,7 +244,7 @@ msgstr "Esci e segna come Non visto"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Screenshot"
+msgstr "Istantanea"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -498,7 +498,7 @@ msgstr "{0} è in buffering."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
-msgstr "Gruppo {0}"
+msgstr "Gruppo di {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
