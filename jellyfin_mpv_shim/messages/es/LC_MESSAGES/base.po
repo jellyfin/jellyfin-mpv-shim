@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-10 04:28+0000\n"
-"Last-Translator: Eduardo Fernández <yo@edufdezsoy.es>\n"
+"PO-Revision-Date: 2021-08-03 03:29+0000\n"
+"Last-Translator: Winnie <alvaritocrafter@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/es/>\n"
 "Language: es\n"
@@ -192,7 +192,7 @@ msgstr "Minúscula"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Pequeña"
+msgstr "Pequeño"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -244,7 +244,7 @@ msgstr "Salir y Marcar como No Visto"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Captura de Pantalla"
+msgstr "Captura de pantalla"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -276,7 +276,7 @@ msgstr "Seleccionar Pista de Subtítulos"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Ninguna"
+msgstr "Nada"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -466,7 +466,7 @@ msgstr "Se denegó el acceso a la biblioteca SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Velocidad para la Sincronización(x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -474,7 +474,7 @@ msgstr "Sincronización Desactivada (Demasiados Intentos)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "SkipToSync (x{0})"
+msgstr "Saltar a la Sincronización (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -498,7 +498,7 @@ msgstr "{0} está almacenando en búfer."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
-msgstr "{0}'s Grupo"
+msgstr "Grupo de {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
