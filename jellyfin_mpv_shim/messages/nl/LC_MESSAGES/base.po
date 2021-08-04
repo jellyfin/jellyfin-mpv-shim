@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-25 21:29+0000\n"
-"Last-Translator: Tim040 <tim.groffen@gmail.com>\n"
+"PO-Revision-Date: 2021-08-05 19:29+0000\n"
+"Last-Translator: RVerschoren <robin.verschoren@outlook.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -400,7 +400,7 @@ msgstr "Controleer voor Updates"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
@@ -445,7 +445,7 @@ msgstr "SVP activeren"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP is uitgeschakeld"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
