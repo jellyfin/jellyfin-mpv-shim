@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
 "PO-Revision-Date: 2021-08-25 20:29+0000\n"
-"Last-Translator: Weevild <Filip.westman@gmail.com>\n"
+"Last-Translator: cotlol <cotlol39@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
 "Language: sv\n"
@@ -276,7 +276,7 @@ msgstr "Välj undertext"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Inga"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
