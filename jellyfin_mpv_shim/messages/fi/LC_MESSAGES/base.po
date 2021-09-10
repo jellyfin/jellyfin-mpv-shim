@@ -6,13 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2021-09-11 12:29+0000\n"
+"Last-Translator: Skyler Mäntysaari <sm@samip.fi>\n"
+"Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/fi/>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -21,7 +24,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Ei teksityksiä"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
@@ -45,49 +48,51 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr ""
+msgstr "Serverin URL: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr ""
+msgstr "Käyttäjätunnus: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr ""
+msgstr "Salasana: "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
-msgstr ""
+msgstr "Lisättiin palvelin onnistuneesti."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr ""
+msgstr "Lisää toinen palvelin?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
-msgstr ""
+msgstr "Palvelimen lisääminen epäonnistui."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Valmis suoratoistoon"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Valitse mediasi Jellyfinssä ja toista se tässä"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr ""
+msgstr "Sovelluksen logi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "Lisää palvelin"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Ei voitu lisätä palvelinta.\n"
+"Tarkista yhteyden tiedot."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
@@ -95,51 +100,51 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr ""
+msgstr "Palvelimen asetukset"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr ""
+msgstr "Palvelin:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr ""
+msgstr "Käyttäjätunnus:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr ""
+msgstr "Salasana:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr ""
+msgstr "Poista palvelin"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
-msgstr ""
+msgstr "Sulje"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr ""
+msgstr "Määritä palvelimia"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr ""
+msgstr "Näytä consoli"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr ""
+msgstr "Sovellus valikko"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Avaa config kansio"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
-msgstr ""
+msgstr "Lopeta"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
@@ -147,27 +152,28 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "Valkoinen"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "Keltainen"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Musta"
 
 #: jellyfin_mpv_shim/menu.py:31
+#, fuzzy
 msgid "Cyan"
-msgstr ""
+msgstr "Syaani"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Sininen"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Vihreä"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
@@ -175,51 +181,52 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Punainen"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Harmaa"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Pikkuruinen"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Pieni"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normaali"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Suuri"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Valtava"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "Päävalikko"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "Vaihda ääni"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Vaihda teksitykset"
 
 #: jellyfin_mpv_shim/menu.py:138
+#, fuzzy
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Vaihda videolaatu"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr ""
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -227,7 +234,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Vaihda videon toisto profiili"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
@@ -235,67 +242,67 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Lopeta ja merkkaa katsomattomaksi"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Kuvakaappaus"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Video toisto profiilit"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP Asetukset"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
 msgid "Video Preferences"
-msgstr ""
+msgstr "Video asetukset"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
 msgid "Player Preferences"
-msgstr ""
+msgstr "Toistin asetukset"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr ""
+msgstr "Sulje valikko"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Valitse ääni raita"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Valitse teksitys raita"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Ei mitään"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Valitse transkoodaus laatu"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr ""
+msgstr "Enimmäismäärä"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr ""
+msgstr "Ei transkoodausta"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Valitse ääni/teksitys sarjalle"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr ""
+msgstr "Englannin kielinen ääni"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Japanilainen ääni Englantilaisilla teksityksillä"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
@@ -303,55 +310,57 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Valitse oletus transkoodaus profiili"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Valitse teksitys väri"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Valitse teksitys koko"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Valitse teksitys sijainti"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "Pohja"
 
 #: jellyfin_mpv_shim/menu.py:478
+#, fuzzy
 msgid "Top"
-msgstr ""
+msgstr "Huippu"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "Keski"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Etä transkoodaus laatu: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Teksityksen koko: {0}"
 
 #: jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Teksityksen sijainti: {0}"
 
 #: jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Teksityksen väri: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
+#, fuzzy
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Transkoodaa H265 H264:ksi"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Transkoodaa Hi10p 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -359,19 +368,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Transkoodaa H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Poista käytöstä suoratoisto"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
-msgstr ""
+msgstr "Automaattinen toisto"
 
 #: jellyfin_mpv_shim/menu.py:522
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Automaattinen kokonäyttö"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
