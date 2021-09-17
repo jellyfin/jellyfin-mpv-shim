@@ -6,208 +6,214 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2021-09-18 11:30+0000\n"
+"Last-Translator: meehel <meehel@gmail.com>\n"
+"Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Вибираються доріжки..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Немає субтитрів"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Невдача"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Задати субтитраж: {0} ОК, {1} невдача"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Задати субтитраж: {0} ОК, {1} тільки аудіо, {2} невдача"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Вручну: {0} ОК, {1} невдача"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Задаємо поточні..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr ""
+msgstr "URL сервера: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr ""
+msgstr "Ім'я користувача: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr ""
+msgstr "Пароль: "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
-msgstr ""
+msgstr "Сервер успішно додано."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr ""
+msgstr "Додати ще один сервер?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
-msgstr ""
+msgstr "Сервер не було додано."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Готово до передавання"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Оберіть медіадані та відтворіть їх тут"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr ""
+msgstr "Журнал програми"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "Додати сервер"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Не вдалося додати сервер.\n"
+"Перевірте дані для підключення."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr ""
+msgstr "Невдало"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
-msgstr ""
+msgstr "ОК"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr ""
+msgstr "Конфігурація сервера"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr ""
+msgstr "Сервер:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr ""
+msgstr "Ім'я користувача:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr ""
+msgstr "Пароль:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr ""
+msgstr "Видалити сервер"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
-msgstr ""
+msgstr "Закрити"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr ""
+msgstr "Налаштувати сервери"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr ""
+msgstr "Показати консоль"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr ""
+msgstr "Меню програми"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Відкрити папку налаштувань"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
-msgstr ""
+msgstr "Вийти"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr ""
+msgstr " (Перекодування)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "Білий"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "Жовтий"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Чорний"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Блакитний"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Синій"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Зелений"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Пурпуровий"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Червоний"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Сірий"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Крихітний"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Маленький"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Звичайний"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Великий"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Величезний"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "Головне меню"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "Змінити аудіо"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
