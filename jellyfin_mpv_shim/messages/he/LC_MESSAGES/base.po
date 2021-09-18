@@ -6,13 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2021-09-19 14:30+0000\n"
+"Last-Translator: Dudu Dor <dudpon@gmail.com>\n"
+"Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
+"n % 10 == 0) ? 2 : 3));\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -187,7 +191,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "קטן"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -239,7 +243,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "צילום מסך"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
