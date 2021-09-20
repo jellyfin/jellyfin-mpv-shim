@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-09-18 11:30+0000\n"
+"PO-Revision-Date: 2021-09-21 13:30+0000\n"
 "Last-Translator: meehel <meehel@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
@@ -217,119 +217,119 @@ msgstr "Змінити аудіо"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Змінити субтитри"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Змінити якість відео"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr ""
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Про реліз/Завантаження"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Змінити профіль відтворення відео"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Автоналаштування аудіо/субтитрів (весь серіал)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Вийти та відмітити як переглянуте"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Знімок екрану"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Профілі відтворення відео"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "Налаштування SVP"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
 msgid "Video Preferences"
-msgstr ""
+msgstr "Налаштування відео"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
 msgid "Player Preferences"
-msgstr ""
+msgstr "Налаштування програвача"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr ""
+msgstr "Закрити меню"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Вибрати аудіо доріжку"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Вибрати доріжку субтитрів"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Нічого"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Вибрати якість перекодування"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr ""
+msgstr "Максимум"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr ""
+msgstr "Без перекодування"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Вибрати аудіо/субтитри для серіалу"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr ""
+msgstr "Англійська аудіодоріжка"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Японська аудіодоріжка з англійськими субтитрами"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Вручну по індексу аудіодоріжок (менш надійно)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Вибрати профіль перекодування за замовчанням"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Вибрати колір субтитрів"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Вибрати розмір субтитрів"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Вибрати розташування субтитрів"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "Знизу"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "Зверху"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
