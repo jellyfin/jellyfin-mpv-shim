@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-08-19 10:29+0000\n"
-"Last-Translator: MrWildAce <justinpotgieter347@gmail.com>\n"
+"PO-Revision-Date: 2021-09-25 14:30+0000\n"
+"Last-Translator: George Munyoro <nashetime22@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -48,7 +48,7 @@ msgstr "Stel tans tans in ..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "Server address: "
+msgstr "Bediener URL: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
