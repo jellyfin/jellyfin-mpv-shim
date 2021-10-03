@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-09-11 12:29+0000\n"
-"Last-Translator: Skyler Mäntysaari <sm@samip.fi>\n"
+"PO-Revision-Date: 2021-10-04 11:05+0000\n"
+"Last-Translator: Miko Nurmi <m.nurmi96@gmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -27,24 +27,27 @@ msgid "{0}: No Subtitles"
 msgstr "{0}: Ei teksityksiä"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
+#, fuzzy
 msgid "{0}: Fail"
-msgstr ""
+msgstr "Epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
 msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
+#, fuzzy
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Aseta dubattu: {0} ok, {1} Vain ääni, {2} Epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
 msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
+#, fuzzy
 msgid "Setting Current..."
-msgstr ""
+msgstr "Asetetaan nykyistä..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
@@ -95,8 +98,9 @@ msgstr ""
 "Tarkista yhteyden tiedot."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
+#, fuzzy
 msgid "Fail"
-msgstr ""
+msgstr "Epäonnistui"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -163,7 +167,6 @@ msgid "Black"
 msgstr "Musta"
 
 #: jellyfin_mpv_shim/menu.py:31
-#, fuzzy
 msgid "Cyan"
 msgstr "Syaani"
 
@@ -176,8 +179,9 @@ msgid "Green"
 msgstr "Vihreä"
 
 #: jellyfin_mpv_shim/menu.py:34
+#, fuzzy
 msgid "Magenta"
-msgstr ""
+msgstr "Purppura"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
@@ -238,7 +242,7 @@ msgstr "Vaihda videon toisto profiili"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Automaattisesti aseta ääni/teksitykset (Koko Sarja)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -354,7 +358,6 @@ msgid "Subtitle Color: {0}"
 msgstr "Teksityksen väri: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
-#, fuzzy
 msgid "Transcode H265 to H264"
 msgstr "Transkoodaa H265 H264:ksi"
 
@@ -363,8 +366,9 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transkoodaa Hi10p 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
+#, fuzzy
 msgid "Direct Paths"
-msgstr ""
+msgstr "Suora Polku"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
@@ -383,16 +387,18 @@ msgid "Auto Fullscreen"
 msgstr "Automaattinen kokonäyttö"
 
 #: jellyfin_mpv_shim/menu.py:523
+#, fuzzy
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Hae media avain"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:525
+#, fuzzy
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Näytönpeilaus"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
