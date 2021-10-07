@@ -17,7 +17,7 @@ jobs:
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
         7z x mpv.7z
-        pip install .[all] pywebview==3.4 pywin32
+        pip install .[all] pywebview==3.4 pywin32 wheel
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
@@ -50,7 +50,7 @@ jobs:
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
         7z x mpv.7z
-        pip install .[all] pywebview==3.4 pywin32
+        pip install .[all] pywebview==3.4 pywin32 wheel
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
