@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
 "PO-Revision-Date: 2021-10-12 21:45+0000\n"
-"Last-Translator: lyaschuchenko <lyaschuchenko@gmail.com>\n"
+"Last-Translator: meehel <meehel@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
 "Language: uk\n"
@@ -49,7 +49,7 @@ msgstr "Задаємо поточні..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "URL сервера: "
+msgstr "URL серверу: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
