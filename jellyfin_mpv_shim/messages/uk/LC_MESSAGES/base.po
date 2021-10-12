@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-09-21 13:30+0000\n"
-"Last-Translator: meehel <meehel@gmail.com>\n"
+"PO-Revision-Date: 2021-10-12 21:45+0000\n"
+"Last-Translator: lyaschuchenko <lyaschuchenko@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
 "Language: uk\n"
@@ -193,15 +193,15 @@ msgstr "Крихітний"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Маленький"
+msgstr "Малий"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "Звичайний"
+msgstr "Нормальний"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Великий"
+msgstr "Більший"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -225,11 +225,11 @@ msgstr "Змінити якість відео"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Функція SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v{0} Про реліз/Завантаження"
+msgstr "MPV Shim v {0} Інформація про випуск/Завантажити"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -237,15 +237,15 @@ msgstr "Змінити профіль відтворення відео"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Автоналаштування аудіо/субтитрів (весь серіал)"
+msgstr "Автоматичне встановлення аудіо/субтитрів (усі серії)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Вийти та відмітити як переглянуте"
+msgstr "Вийти та відмітити як непереглянуте"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Знімок екрану"
+msgstr "Скріншот"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -277,7 +277,7 @@ msgstr "Вибрати доріжку субтитрів"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Нічого"
+msgstr "Немає"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -333,225 +333,230 @@ msgstr "Зверху"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "Центрувати"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Якість віддаленого перекодування: {0: 0,1f} Мбіт / с"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Розмір субтитрів: {0}"
 
 #: jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Розташування субтитрів: {0}"
 
 #: jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Колір субтитрів: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Перекодування H265 на H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Перекодувати Hi10p на 8 біт"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
-msgstr ""
+msgstr "Безпосередній шлях"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Перекодувати на H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Вимкнути Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
-msgstr ""
+msgstr "Автовідтворення"
 
 #: jellyfin_mpv_shim/menu.py:522
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Автоматично на весь екран"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Пошук медіа -ключа"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Використовуйте Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Зеркальне відображення дисплея"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Запис журналів у файл"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
-msgstr ""
+msgstr "Перевірити наявність оновлень"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Присутність Discord Rich"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Ваше віддалене відео перекодується!\n"
+" Натисніть С, щоб відрегулювати параметри пропускної здатності, якщо це не "
+"потрібно."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Сезон {0} - Епізод {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "Автоматично"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "Вимкнено"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "Виберіть профіль SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP не активовано"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "Вимкнено"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "Повторення"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "Увімкніть SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP вимкнено"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "Зазначена група SyncPlay не існує."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "Створення груп SyncPlay заборонено."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "Відмовлено у доступі до групи SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "Відмовлено у доступі до бібліотеки SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x {0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Синхронізація вимкнена (забагато спроб)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x {0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay увімкнено."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay вимкнено."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} приєднався."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} вийшов."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} буферизується."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
-msgstr ""
+msgstr "Група користувача {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
-msgstr ""
+msgstr "Немає (вимкнено)"
 
 #: jellyfin_mpv_shim/syncplay.py:621
 msgid "New Group"
-msgstr ""
+msgstr "Нова група"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"Доступне оновлення MPV Shim v {0}\n"
+" Відкрийте меню (натисніть С) для отримання детальної інформації."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr ""
+msgstr "Невідомо"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
-msgstr ""
+msgstr " Примусово"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Загальний (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Загальний високий (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Виберіть Профіль шейдера"
