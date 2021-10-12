@@ -353,7 +353,7 @@ msgstr "Колір субтитрів: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr "Перекодування H265 на H264"
+msgstr "Перекодувати H265 у H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
