@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-09-25 14:30+0000\n"
-"Last-Translator: George Munyoro <nashetime22@gmail.com>\n"
+"PO-Revision-Date: 2021-10-19 11:05+0000\n"
+"Last-Translator: WtK0040 <wernertk@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -96,7 +96,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr "Opgefok"
+msgstr "Misluk"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -152,115 +152,115 @@ msgstr " (Transcode)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "Wit"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "Geel"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Swart"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Siaan"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Blou"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Groen"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Magenta"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Rooi"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Grys"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Baie klein"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Klein"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normaal"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Groot"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Baie groot"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "Hoof Kieslys"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "Verander Klank"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Verander Onderskrifte"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Verander Videokwaliteit"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr ""
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Vrystellinginligting/Aflaai"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Verander Video Weergawe Profiel"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Outomatiese Oudio/Onderskrifte (Hele Reeks)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Verlaat en Merk as Ongekyk"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Skermskoot"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Video Weergawe Profiele"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP Instellings"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
 msgid "Video Preferences"
-msgstr ""
+msgstr "Video Voorkeure"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
 msgid "Player Preferences"
-msgstr ""
+msgstr "Speler Voorkeure"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
