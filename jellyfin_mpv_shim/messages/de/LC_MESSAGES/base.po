@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-12 21:45+0000\n"
-"Last-Translator: tadopai <tadopai@posteo.de>\n"
+"PO-Revision-Date: 2021-10-22 23:37+0000\n"
+"Last-Translator: Dominik <hdommme@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -80,7 +80,7 @@ msgstr "Wähle deine Medien in Jellyfin und spiele sie hier ab"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Applikations-Log"
+msgstr "Programm Log"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
