@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-30 09:29+0000\n"
+"PO-Revision-Date: 2021-10-22 23:37+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
@@ -241,7 +241,7 @@ msgstr "Автонастройка Аудио/Субтитров (Весь се�
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Выйти и отметить как просмотренное"
+msgstr "Выйти и отметить как непросмотренное"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -337,7 +337,7 @@ msgstr "Посередине"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Качество удалённого перекодирования: {0: 0,1f} Мбит/с"
+msgstr "Качество удалённого перекодирования: {0: 0,1f} Мибит/с"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -381,7 +381,7 @@ msgstr "Автоматический полный экран"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
-msgstr "Поиск медиа-ключа"
+msgstr "Поиск Media Key"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
