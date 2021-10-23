@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-09-25 14:30+0000\n"
-"Last-Translator: Ouail Ouazani <ouail92w@gmail.com>\n"
+"PO-Revision-Date: 2021-10-23 14:36+0000\n"
+"Last-Translator: ButterflyOfFire <butterflyoffire+jellyfin@protonmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -387,7 +387,7 @@ msgstr "بحث بأزرار"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "استخدم Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
