@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-23 14:36+0000\n"
-"Last-Translator: ButterflyOfFire <butterflyoffire+jellyfin@protonmail.com>\n"
+"PO-Revision-Date: 2021-10-27 12:05+0000\n"
+"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -44,7 +44,6 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "يدوي: {0} نجاح, {1}: فش"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-#, fuzzy
 msgid "Setting Current..."
 msgstr "جاري إختيار الحالي..."
 
@@ -225,7 +224,6 @@ msgid "Change Video Quality"
 msgstr "تغيير جودة الفيديو"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
-#, fuzzy
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
