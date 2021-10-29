@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-19 11:05+0000\n"
-"Last-Translator: WtK0040 <wernertk@gmail.com>\n"
+"PO-Revision-Date: 2021-10-30 13:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -44,7 +44,7 @@ msgstr "Handleiding: {0} ok, {1} misluk"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Stel tans tans in ..."
+msgstr "Stel tans in…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
