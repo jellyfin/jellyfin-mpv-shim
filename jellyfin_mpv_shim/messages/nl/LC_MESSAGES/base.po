@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-01 00:05+0000\n"
-"Last-Translator: Tim040 <tim.groffen@gmail.com>\n"
+"PO-Revision-Date: 2021-11-01 21:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -139,6 +139,7 @@ msgid "Application Menu"
 msgstr "Applicatie Menu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
+#, fuzzy
 msgid "Open Config Folder"
 msgstr "Open Config Folder"
 
