@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-01-06 04:01+0000\n"
-"Last-Translator: TF <thomasframe@rocketmail.com>\n"
+"PO-Revision-Date: 2021-11-01 21:05+0000\n"
+"Last-Translator: Pedro Almeida <contact@ptalmeida.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
-"projects/jellyfin/jellyfin-mpv-shim/pt_PT/>\n"
+"projects/jellyfin/jellyfin-desktop/pt_PT/>\n"
 "Language: pt_PT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 3.11.2\n"
+"X-Generator: Weblate 4.5.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -244,7 +244,7 @@ msgstr "Sair e Definir como Não Visto"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Imagem de Ecrã"
+msgstr "Captura de Ecrã"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -497,10 +497,8 @@ msgid "{0} is buffering."
 msgstr "{0} está a carregar."
 
 #: jellyfin_mpv_shim/syncplay.py:608
-#, fuzzy
-#| msgid "New Group"
 msgid "{0}'s Group"
-msgstr "Novo Grupo"
+msgstr "Grupo de {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
