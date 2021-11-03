@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-27 12:05+0000\n"
+"PO-Revision-Date: 2021-11-04 08:56+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Esperanto <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/eo/>\n"
@@ -32,11 +32,11 @@ msgstr "{0}: Malsukcese"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Agordi Subtekstaĵon: {0} bone, {1} malsukcesas"
+msgstr "Starigi Subtekstitan: {0} bone, {1} malsukcesas"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Agordi Dublaĵon: {0} bone, {1} nur sono, {2} malsukcesas"
+msgstr "Starigi Dublitan: {0} bone, {1} nur aŭdio, {2} malsukcesas"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
