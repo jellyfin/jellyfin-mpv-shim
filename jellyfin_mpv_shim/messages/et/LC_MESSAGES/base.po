@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-15 20:05+0000\n"
-"Last-Translator: rimasx <riks_12@hot.ee>\n"
+"PO-Revision-Date: 2021-11-04 08:56+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/et/>\n"
 "Language: et\n"
@@ -99,7 +99,6 @@ msgid "Fail"
 msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
-#, fuzzy
 msgid "Ok"
 msgstr "Ok"
 
