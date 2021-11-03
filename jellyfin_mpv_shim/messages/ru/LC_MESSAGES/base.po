@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-22 23:37+0000\n"
+"PO-Revision-Date: 2021-11-04 08:56+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
@@ -37,7 +37,7 @@ msgstr "Задать субтитраж: {0} ОК, {1} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Задать дубляж {0} ОК, {1} только аудио, {2} неудачно"
+msgstr "Задать дубляж: {0} ОК, {1} только аудио, {2} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
