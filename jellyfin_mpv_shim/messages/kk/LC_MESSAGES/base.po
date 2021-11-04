@@ -19,7 +19,7 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
+msgid "Selecting Tracks…"
 msgstr "Jolşyqtar tañdaluda…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
@@ -43,7 +43,7 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Qolmen: {0} jaraidy, {1} sätsız"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-msgid "Setting Current..."
+msgid "Setting Current…"
 msgstr "Ağymdyqtar anyqtaluda…"
 
 #: jellyfin_mpv_shim/clients.py:49

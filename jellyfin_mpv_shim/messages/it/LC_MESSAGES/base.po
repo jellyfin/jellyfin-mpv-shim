@@ -19,8 +19,8 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
-msgstr "Selezionando tracce..."
+msgid "Selecting Tracks…"
+msgstr "Selezionando tracce…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -43,8 +43,8 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Manuale: {0} ok, {1} fallito"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-msgid "Setting Current..."
-msgstr "Impostazione attuale..."
+msgid "Setting Current…"
+msgstr "Impostazione attuale…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "

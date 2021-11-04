@@ -19,8 +19,8 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
-msgstr "Hangsávok kiválasztása..."
+msgid "Selecting Tracks…"
+msgstr "Hangsávok kiválasztása…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -43,8 +43,8 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Kézi: {0} Rendben, {1} Sikertelen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-msgid "Setting Current..."
-msgstr "Jelenlegi beállítása..."
+msgid "Setting Current…"
+msgstr "Jelenlegi beállítása…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
@@ -494,7 +494,7 @@ msgstr "{0} kilépett."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} pufferel..."
+msgstr "{0} pufferel…"
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"

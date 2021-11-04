@@ -19,7 +19,7 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
+msgid "Selecting Tracks…"
 msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
@@ -46,8 +46,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 #, fuzzy
-msgid "Setting Current..."
-msgstr "Asetetaan nykyistä..."
+msgid "Setting Current…"
+msgstr "Asetetaan nykyistä…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "

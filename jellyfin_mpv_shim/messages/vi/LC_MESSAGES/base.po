@@ -19,7 +19,7 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
+msgid "Selecting Tracks…"
 msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
@@ -43,8 +43,8 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Thủ công: {0} đồng ý, {1} thất bại"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-msgid "Setting Current..."
-msgstr "Cài đặt hiện tại..."
+msgid "Setting Current…"
+msgstr "Cài đặt hiện tại…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
