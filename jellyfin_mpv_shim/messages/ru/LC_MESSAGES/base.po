@@ -20,7 +20,7 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
-msgid "Selecting Tracks..."
+msgid "Selecting Tracks…"
 msgstr "Выбираются дорожки…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
