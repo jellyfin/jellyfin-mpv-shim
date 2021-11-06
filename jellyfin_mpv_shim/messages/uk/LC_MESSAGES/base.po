@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-15 20:05+0000\n"
+"PO-Revision-Date: 2021-11-07 18:05+0000\n"
 "Last-Translator: lyaschuchenko <lyaschuchenko@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
@@ -197,7 +197,7 @@ msgstr "Малий"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "Нормальний"
+msgstr "Звичайний"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
@@ -245,7 +245,7 @@ msgstr "Вийти та відмітити як непереглянуте"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Скріншот"
+msgstr "Знімок екрану"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
