@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-07 18:05+0000\n"
+"PO-Revision-Date: 2021-11-15 17:05+0000\n"
 "Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
@@ -364,19 +364,19 @@ msgstr "Đường Dẫn Trực Tiếp"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Chuyển mã sang H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Tắt tính năng Phát Trực Tiếp"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
-msgstr ""
+msgstr "Tự Động Phát"
 
 #: jellyfin_mpv_shim/menu.py:522
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Tự Động Toàn Màn Hình"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
@@ -388,15 +388,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Phản Chiếu Màn Hình"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Ghi Nhật Ký vào Tệp"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
-msgstr ""
+msgstr "Kiểm Tra Cập Nhật"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
@@ -407,15 +407,17 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Video từ xa của bạn đang chuyển mã!\n"
+"Nhấn c để điều chỉnh cài đặt băng thông nếu không cần thiết."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Mùa {0} - Tập {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "Tự động"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
