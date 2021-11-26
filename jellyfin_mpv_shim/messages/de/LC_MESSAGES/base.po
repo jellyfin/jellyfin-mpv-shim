@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-10-22 23:37+0000\n"
-"Last-Translator: Dominik <hdommme@gmail.com>\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -276,7 +276,7 @@ msgstr "Untertitelspur wählen"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Keine"
+msgstr "Keiner"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
