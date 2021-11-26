@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-07-30 09:29+0000\n"
-"Last-Translator: Maxim Ivanov <gtasaproudly@gmail.com>\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bg/>\n"
 "Language: bg\n"
@@ -276,7 +276,7 @@ msgstr "Избери субтитри"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Без"
+msgstr "Нито един"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
