@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-01 21:05+0000\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pl/>\n"
@@ -277,7 +277,7 @@ msgstr "Wybierz Ścieżkę Napisów"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr "Brak"
+msgstr "Żadne"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
