@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-01 21:05+0000\n"
-"Last-Translator: Lung <tommylung27@hotmail.com>\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/zh_Hant/>\n"
 "Language: zh_Hant\n"
@@ -244,7 +244,7 @@ msgstr "退出並標為未觀看"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "螢幕截圖"
+msgstr "截圖"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
