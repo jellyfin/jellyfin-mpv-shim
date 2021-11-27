@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-02 10:30+0000\n"
-"Last-Translator: Predrag Ljubenović <predragljubenovic@gmail.com>\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -193,15 +193,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Мале"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Нормално"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Велике"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -245,7 +245,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Снимак екрана"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -277,7 +277,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Ниједан"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
