@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
 "PO-Revision-Date: 2021-11-28 12:05+0000\n"
-"Last-Translator: ahmet-dv <swgva@protonmail.com>\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
 "Language: tr\n"
@@ -198,7 +198,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Geniş"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -242,7 +242,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Ekran Görüntüsü"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -274,7 +274,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Hiçbiri"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
