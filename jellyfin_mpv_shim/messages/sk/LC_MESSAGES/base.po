@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-05-21 15:30+0000\n"
-"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
+"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
 "Language: sk\n"
@@ -192,7 +192,7 @@ msgstr "Maličké"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Malé"
+msgstr "Malý"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -200,7 +200,7 @@ msgstr "Normálne"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Veľké"
+msgstr "Veľký"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -244,7 +244,7 @@ msgstr "Vypnúť a Označiť Ako Nepozrené"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Snímok obrazovky"
+msgstr "Snímka obrazovky"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -276,7 +276,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Žiadne"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
