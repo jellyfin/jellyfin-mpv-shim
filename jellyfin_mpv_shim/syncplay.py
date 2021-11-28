@@ -590,6 +590,10 @@ class SyncPlayManager:
     def join_group(self, group_id: str):
         self.client.jellyfin.join_sync_play(group_id)
 
+    def discord_join_group(self, join_secret):
+        self.enable_sync_play(False)
+        self.client.jellyfin.join_sync_play(join_secret["secret"])
+
     def menu_join_group(self):
         group = self.menu.menu_list[self.menu.menu_selection][2]
         self.menu.hide_menu()

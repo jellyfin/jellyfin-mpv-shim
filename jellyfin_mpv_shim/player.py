@@ -28,7 +28,7 @@ mpv_log = logging.getLogger("mpv")
 discord_presence = False
 if settings.discord_presence:
     try:
-        from .rich_presence import send_presence, clear_presence
+        from .rich_presence import register_join_event, send_presence, clear_presence
 
         discord_presence = True
     except Exception:
@@ -180,6 +180,9 @@ class PlayerManager(object):
         )
         self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
+
+        if discord_presence:
+            register_join_event(self.syncplay.discord_join_group)
 
         if hasattr(self._player, "osc"):
             self._player.osc = settings.enable_osc
@@ -860,6 +863,7 @@ class PlayerManager(object):
                     player.playback_time,
                     player.duration,
                     not player.pause,
+                    self.syncplay.current_group,
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
