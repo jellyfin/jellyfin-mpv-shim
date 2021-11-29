@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-26 17:30+0000\n"
+"PO-Revision-Date: 2021-11-30 07:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/kk/>\n"
@@ -352,7 +352,7 @@ msgstr "Subtitrler tüsı: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr "H265 pışımınen H264 üşın qaita kodtau"
+msgstr "H.265 pışımınen H.264 üşın qaita kodtau"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
@@ -364,7 +364,7 @@ msgstr "Tıkelei joldar"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr "H265 üşın qaita kodtau"
+msgstr "H.265 üşın qaita kodtau"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
