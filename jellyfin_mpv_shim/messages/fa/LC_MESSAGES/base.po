@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"PO-Revision-Date: 2021-12-03 13:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
@@ -477,11 +477,11 @@ msgstr "پرش همگام سازی(x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr "همگام سازی پخش فعال است."
+msgstr "فعال شد SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr "همگام سازی پخش غیرفعال است."
+msgstr "SyncPlay غیرفعال شد."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
