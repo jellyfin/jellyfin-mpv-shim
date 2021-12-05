@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-05 20:17+0000\n"
-"Last-Translator: cotlol <cotlol39@gmail.com>\n"
+"PO-Revision-Date: 2021-12-06 21:05+0000\n"
+"Last-Translator: Weevild <Filip.westman@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
 "Language: sv\n"
@@ -80,7 +80,7 @@ msgstr "Välj din media i Jellyfin och spela det här"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Applikation logg"
+msgstr "Applikationslogg"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
