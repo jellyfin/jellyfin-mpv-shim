@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-07 18:05+0000\n"
-"Last-Translator: 0TTA <osamh735@gmail.com>\n"
+"PO-Revision-Date: 2021-12-08 13:05+0000\n"
+"Last-Translator: Muhammed Aljailane <darhost56@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "جاري إختيار المقاطع..."
+msgstr "جاري اختيار المقاطع..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -45,7 +45,7 @@ msgstr "يدوي: {0} نجاح, {1}: فش"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "جاري إختيار الحالي..."
+msgstr "جاري اختيار الحالي..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
@@ -73,11 +73,11 @@ msgstr "فشل إضافة الخادم."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr "جاهز للإلقاء"
+msgstr "جاهز للإرسال"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "إختر الوسائط في Jellyfin وشغلها هنا"
+msgstr "حدد الوسائط الخاصة بك في Jellyfin وقم بتشغيلها هنا"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
@@ -85,15 +85,15 @@ msgstr "سجل التطبيق"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr "أضف خادم"
+msgstr "أضافة خادم"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
-"لا يمكن إضافة الخادم.\n"
-"رجاءاً التحقق من معلومات الإتصال."
+"تعذرت إضافة الخادم.\n"
+"يرجى التحقق من معلومات الاتصال الخاصة بك."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
@@ -133,7 +133,7 @@ msgstr "إعدادات الخوادم"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr "إضهار وحدة التحكم"
+msgstr "إظهار وحدة التحكم"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
@@ -153,15 +153,15 @@ msgstr " (تحويل)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr "الأبيض"
+msgstr "أبيض"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr "الأصفر"
+msgstr "أصفر"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr "الأسود"
+msgstr "أسود"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
@@ -285,7 +285,7 @@ msgstr "تحديد جودة التحويل"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr "الاقصى درجة"
+msgstr "الأقصى درجة"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
@@ -305,7 +305,7 @@ msgstr "صوت ياباني مع ترجمة إنجليزية"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "إختيار يدوي من طرف فهرس المقطع (أقل قتالية)"
+msgstr "اختيار يدوي من طرف فهرس المقطع (أقل قتالية)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -337,7 +337,7 @@ msgstr "المنتصف"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "جودة التحويل عن بعد: {0:0.1f} ميغابت في الثانية"
+msgstr "جودة التحويل عن بعد: {0:0.1f} ميغا بت في الثانية"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -381,7 +381,7 @@ msgstr "تكبير الشاشة تلقائي"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
-msgstr "بحث بأزرار"
+msgstr "البحث عن مفتاح الوسائط"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
@@ -389,7 +389,7 @@ msgstr "استخدم Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
-msgstr ""
+msgstr "انعكاس الشاشة"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
@@ -401,7 +401,7 @@ msgstr "التحقق من وجود تحديثات"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "حضور غني على Discord"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
@@ -409,7 +409,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "يتم تحويل الفيديو عن بعد!\n"
-"اذا كان هذا غير لازم إضغط على c لتعديل إعدادات عرض النطاق."
+"اذا كان هذا غير لازم اضغط على c لتعديل إعدادات عرض النطاق."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
@@ -474,7 +474,7 @@ msgstr "عطلت المزامنة (العديد من المحاولات)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "تخطي للمزامنة (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -486,7 +486,7 @@ msgstr "SyncPlay معطل."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr "{0} قد إنضم."
+msgstr "{0} قد انضم."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
@@ -514,15 +514,15 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 "MPV Shim v{0} تحديث متوفر\n"
-"إفتح القائمة (إضغط على c) لمزيد من المعلومات."
+"افتح القائمة (اضغط على c) لمزيد من المعلومات."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr "غير معرف"
+msgstr "غير معروف"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
-msgstr " مفروض"
+msgstr " فرض"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
