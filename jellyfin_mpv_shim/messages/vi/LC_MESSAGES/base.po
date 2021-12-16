@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-05 06:05+0000\n"
+"PO-Revision-Date: 2021-12-17 06:05+0000\n"
 "Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
@@ -477,41 +477,43 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "Đã bật SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay bị tắt."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} đã tham gia."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} đã rời đi."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} đang lưu vào bộ đệm."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
-msgstr ""
+msgstr "Nhóm của {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
-msgstr ""
+msgstr "Không có (Đã tắt)"
 
 #: jellyfin_mpv_shim/syncplay.py:621
 msgid "New Group"
-msgstr ""
+msgstr "Nhóm Mới"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"Có sẵn bản cập nhật MPV Shim v {0}\n"
+"Mở menu (nhấn c) để biết chi tiết."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
@@ -519,40 +521,40 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
-msgstr ""
+msgstr " Bắt Buộc"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Chung (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Cao Chung (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (Dành cho SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (Dành cho SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (Dành cho SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (Đối với HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (Dành cho HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (Dành cho HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Chọn hồ sơ Shader"
