@@ -15,7 +15,7 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20211219-git-fd63bf3.7z/download > mpv.7z
         7z x mpv.7z
         pip install .[all] pywebview==3.4 pywin32 wheel
         ./gen_pkg.sh --skip-build
@@ -48,7 +48,7 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20211219-git-fd63bf3.7z/download > mpv.7z
         7z x mpv.7z
         pip install .[all] pywebview==3.4 pywin32 wheel
         ./gen_pkg.sh --skip-build
