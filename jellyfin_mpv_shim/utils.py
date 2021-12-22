@@ -119,6 +119,7 @@ def get_profile(
     profile = {
         "Name": USER_APP_NAME,
         "MaxStreamingBitrate": video_bitrate * 1000,
+        "MaxStaticBitrate": video_bitrate * 1000,
         "MusicStreamingTranscodingBitrate": 1280000,
         "TimelineOffsetSeconds": 5,
         "TranscodingProfiles": [
