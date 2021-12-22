@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-22 05:13+0000\n"
-"Last-Translator: Kenneth SB <ksb@fasb.dk>\n"
+"PO-Revision-Date: 2021-12-22 10:44+0000\n"
+"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
 "Language: da\n"
@@ -462,7 +462,7 @@ msgstr "Synkriniseret afspilningsgruppe adgang blev nægtet."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "Adgang til det synkroniserede afspilnings bibliotek blev afvist"
+msgstr "Adgang til det synkroniserede afspilnings bibliotek blev afvist."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
