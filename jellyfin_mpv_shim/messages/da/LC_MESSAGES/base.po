@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-22 10:44+0000\n"
-"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
+"PO-Revision-Date: 2021-12-23 12:05+0000\n"
+"Last-Translator: Kenneth SB <ksb@fasb.dk>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
 "Language: da\n"
@@ -68,7 +68,7 @@ msgstr "Tilføj en anden server?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
-msgstr "Tilføjelse af en server fejlede."
+msgstr "Tilføjelse af serveren fejlede."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -148,7 +148,7 @@ msgstr "Afslut"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr " (omkode)"
+msgstr " (Transcode)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -224,7 +224,7 @@ msgstr "Skift video kvalitet"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr "Synkroniser afspilning"
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -450,23 +450,23 @@ msgstr "SVP er deaktiveret"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "Den valgte synkroniseringsgruppe findes ikke."
+msgstr "Den valgte SyncPlay gruppe eksisterer ikke."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "Oprettelse af synkroniseringsgruppe er ikke tilladt."
+msgstr "Oprettelse af SyncPlay gruppe er ikke tilladt."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "Synkriniseret afspilningsgruppe adgang blev nægtet."
+msgstr "SyncPlay gruppe adgang blev nægtet."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "Adgang til det synkroniserede afspilnings bibliotek blev afvist."
+msgstr "Adgang til SyncPlay biblioteket blev nægtet."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "Hastighed til synkronisering (x{0})"
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -474,15 +474,15 @@ msgstr "Synkronisering deaktiveret (For mange forsøg)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Spring til synkroniseret (x{0})"
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr "Synkronisering afspilning aktiveret."
+msgstr "SyncPlay er aktiveret."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr "Synkroniseret afspilning deaktiveret."
+msgstr "SyncPlay er deaktiveret."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -506,54 +506,56 @@ msgstr "Ingen (Deaktiveret)"
 
 #: jellyfin_mpv_shim/syncplay.py:621
 msgid "New Group"
-msgstr ""
+msgstr "Ny gruppe"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} opdatering tilgængelig\n"
+"Åben menu (tryk på c) for at se detaljer."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr ""
+msgstr "Unkn"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
-msgstr ""
+msgstr " Tvunget"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Generic (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Generic High (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (For SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (For HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Vælg skygge profil"
