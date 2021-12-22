@@ -58,6 +58,12 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.0.2" date="2021-04-21">
+      <description>
+        <p>Use certifi to provide CA for websocket connections. (#235)</p>
+        <p>Prevent direct play bitrate being limited to 8 mbps.</p>
+      </description>
+    </release>
     <release version="2.0.1" date="2021-04-21">
       <description>
         <p>Fix DPI issue on Windows.</p>
