@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-23 12:05+0000\n"
-"Last-Translator: Kenneth SB <ksb@fasb.dk>\n"
+"PO-Revision-Date: 2021-12-24 20:05+0000\n"
+"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
 "Language: da\n"
@@ -518,7 +518,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr "Unkn"
+msgstr "Ukendt"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
@@ -526,11 +526,11 @@ msgstr " Tvunget"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr "Generic (FSRCNNX)"
+msgstr "Generisk (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr "Generic High (FSRCNNX x16)"
+msgstr "Generisk høj (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
