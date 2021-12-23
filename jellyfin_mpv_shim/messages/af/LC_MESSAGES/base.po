@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-04 08:56+0000\n"
+"PO-Revision-Date: 2021-12-24 20:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
@@ -147,9 +147,8 @@ msgid "Quit"
 msgstr "Hou op"
 
 #: jellyfin_mpv_shim/media.py:126
-#, fuzzy
 msgid " (Transcode)"
-msgstr " (Transcode)"
+msgstr " (Transkodeer )"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
