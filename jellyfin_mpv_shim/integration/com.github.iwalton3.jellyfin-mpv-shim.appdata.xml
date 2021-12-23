@@ -60,7 +60,7 @@
   <releases>
     <release version="2.0.2" date="2021-12-22">
       <description>
-        <p>Upgrade to MPV version 20211219 fd63bf3.</p>
+        <p>Upgrade to MPV version 20211212 0e76372.</p>
         <p>Use certifi to provide CA for websocket connections. (#235)</p>
         <p>Prevent direct play bitrate being limited to 8 mbps.</p>
       </description>
