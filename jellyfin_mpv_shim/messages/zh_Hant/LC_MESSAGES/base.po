@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
+"PO-Revision-Date: 2021-12-26 14:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/zh_Hant/>\n"
@@ -359,7 +359,6 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "從Hi10p轉碼至8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
-#, fuzzy
 msgid "Direct Paths"
 msgstr "直接路徑"
 
@@ -380,7 +379,6 @@ msgid "Auto Fullscreen"
 msgstr "自動全螢幕"
 
 #: jellyfin_mpv_shim/menu.py:523
-#, fuzzy
 msgid "Media Key Seek"
 msgstr "多媒體密鑰搜索"
 
