@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-01-02 11:27+0000\n"
-"Last-Translator: Shadowghost <Ghost_of_Stone@web.de>\n"
+"PO-Revision-Date: 2022-01-03 19:05+0000\n"
+"Last-Translator: Tim Gaubel <FreundlichPikanterGorilla@muell.ru>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -43,7 +43,6 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Manuell: {0} Ok, {1} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
-#, fuzzy
 msgid "Setting Current..."
 msgstr "Derzeitige Einstellung..."
 
@@ -276,9 +275,8 @@ msgid "Select Subtitle Track"
 msgstr "Untertitelspur wählen"
 
 #: jellyfin_mpv_shim/menu.py:306
-#, fuzzy
 msgid "None"
-msgstr "Keiner"
+msgstr "Keine"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -337,7 +335,6 @@ msgid "Middle"
 msgstr "Mitte"
 
 #: jellyfin_mpv_shim/menu.py:488
-#, fuzzy
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Remote Transkodierungsqualität: {0:0.1f} Mbps"
 
