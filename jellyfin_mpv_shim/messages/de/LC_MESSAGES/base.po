@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-01-03 19:05+0000\n"
-"Last-Translator: Tim Gaubel <FreundlichPikanterGorilla@muell.ru>\n"
+"PO-Revision-Date: 2022-01-06 19:13+0000\n"
+"Last-Translator: Sebastian Knappe <github@sebastianknappe.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -384,9 +384,8 @@ msgid "Media Key Seek"
 msgstr "Medien Spultaste"
 
 #: jellyfin_mpv_shim/menu.py:524
-#, fuzzy
 msgid "Use Web Seek Pref"
-msgstr "Web Suche Präf verwenden"
+msgstr "Verwende Spul-Einstellungen aus dem Internet"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
