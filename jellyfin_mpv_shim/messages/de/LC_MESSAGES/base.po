@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-01-06 19:13+0000\n"
-"Last-Translator: Sebastian Knappe <github@sebastianknappe.de>\n"
+"PO-Revision-Date: 2022-01-17 21:13+0000\n"
+"Last-Translator: berti007 <jonas.wanka@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -475,7 +475,6 @@ msgid "Sync Disabled (Too Many Attempts)"
 msgstr "Sync deaktiviert (Zu viele Versuche)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
-#, fuzzy
 msgid "SkipToSync (x{0})"
 msgstr "SkipToSync (x{0})"
 
@@ -492,7 +491,6 @@ msgid "{0} has joined."
 msgstr "{0} ist beigetreten."
 
 #: jellyfin_mpv_shim/syncplay.py:315
-#, fuzzy
 msgid "{0} has left."
 msgstr "{0} ist ausgetreten."
 
@@ -505,7 +503,6 @@ msgid "{0}'s Group"
 msgstr "{0}'s Gruppe"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
-#, fuzzy
 msgid "None (Disabled)"
 msgstr "Keine (Deaktiviert)"
 
