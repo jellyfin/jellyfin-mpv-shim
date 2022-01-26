@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-01-17 21:13+0000\n"
-"Last-Translator: berti007 <jonas.wanka@gmail.com>\n"
+"PO-Revision-Date: 2022-01-27 12:13+0000\n"
+"Last-Translator: Shadowghost <Ghost_of_Stone@web.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -466,7 +466,6 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Zugriff zur SyncPlay-Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:150
-#, fuzzy
 msgid "SpeedToSync (x{0})"
 msgstr "SpeedToSync (x{0})"
 
