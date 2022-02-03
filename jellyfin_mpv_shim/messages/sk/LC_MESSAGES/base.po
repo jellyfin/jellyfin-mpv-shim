@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-02-04 11:13+0000\n"
+"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
 "Language: sk\n"
@@ -15,12 +15,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Výber stôp..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -32,23 +32,23 @@ msgstr "{0}: Zlyhanie"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Nastaviť titulky: {0} ok, {1} zlyhanie"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Nastaviť zvuk: {0} ok, {1} len audio, {2} zlyhanie"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Manuálne: {0} ok, {1} zlyhanie"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Nastavujem aktuálne..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "URL servera: "
+msgstr "Server URL: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
@@ -60,7 +60,7 @@ msgstr "Heslo: "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
-msgstr "Server úspešne pridaný."
+msgstr "Server bol úspešne pridaný."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
@@ -72,11 +72,11 @@ msgstr "Pridanie serveru zlyhalo."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Pripravené k prenosu"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Vyberte médium v Jellyfine a pustite ho"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
