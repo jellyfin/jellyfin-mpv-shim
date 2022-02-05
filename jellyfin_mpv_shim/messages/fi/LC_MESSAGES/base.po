@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-30 07:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-02-06 22:13+0000\n"
+"Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -148,7 +148,7 @@ msgstr "Lopeta"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr ""
+msgstr " (transkoodaus)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -228,7 +228,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0}-julkaisutiedot/lataus"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -392,30 +392,32 @@ msgstr "Näytönpeilaus"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Kirjoita lokit tiedostoon"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
-msgstr ""
+msgstr "Tarkista päivitykset"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Etävideota transkoodataan!\n"
+"Muuttaaksesi kaistanleveyttä painamalla C, mikäli tämä on tarpeetonta."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Kausi {0} - Jakso {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "Automaattinen"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
@@ -423,43 +425,43 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "Valitse SPV-profiili"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP ei ole aktiivinen"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "Poista käytöstä"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "Yritä uudelleen"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "Ota SVP käyttöön"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP ei ole käytössä"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "Määritettyä SyncPlay-ryhmää ei ole olemassa."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "SyncPlay-ryhmien luontia ei sallita."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "Pääsy SyncPlay-ryhmään kielletty."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "Pääsy SyncPlay-kirjastoon kielletty."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -475,41 +477,43 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay on käytössä."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay on poistettu käytöstä."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} liittyi."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} poistui."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} puskuroi."
 
 #: jellyfin_mpv_shim/syncplay.py:608
 msgid "{0}'s Group"
-msgstr ""
+msgstr "käyttäjän {0} ryhmä"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
-msgstr ""
+msgstr "Ei mitään (ei käytössä)"
 
 #: jellyfin_mpv_shim/syncplay.py:621
 msgid "New Group"
-msgstr ""
+msgstr "Uusi ryhmä"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} päivitys on saatavilla\n"
+"Avaa valikko painamalla C saadaksesi lisätietoja."
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
@@ -517,7 +521,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
-msgstr ""
+msgstr " Pakotettu"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
@@ -553,4 +557,4 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Valitse shader-profiili"
