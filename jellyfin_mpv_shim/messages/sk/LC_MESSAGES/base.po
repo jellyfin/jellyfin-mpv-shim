@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-02-15 08:13+0000\n"
+"PO-Revision-Date: 2022-02-16 20:13+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
@@ -192,7 +192,7 @@ msgstr "Veľmi malé"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Malé"
+msgstr "Malý"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
