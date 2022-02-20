@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-02-06 22:13+0000\n"
+"PO-Revision-Date: 2022-02-21 14:13+0000\n"
 "Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Kappalevalinta..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -28,7 +28,7 @@ msgstr "{0}: Ei teksityksiä"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Epäonnistui"
+msgstr "Epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -44,11 +44,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Asetetaan nykyistä…"
+msgstr "Asetetaan nykyistä..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "Serverin URL: "
+msgstr "Palvelimen URL: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
@@ -220,7 +220,7 @@ msgstr "Vaihda teksitykset"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr "Vaihda videolaatu"
+msgstr "Vaihda videon laatu"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
@@ -421,7 +421,7 @@ msgstr "Automaattinen"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "Ei käytössä"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -469,7 +469,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Synkronointi on poistettu käytöstä (liikaa yrityksiä)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -517,7 +517,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
-msgstr ""
+msgstr "Tuntematon"
 
 #: jellyfin_mpv_shim/utils.py:209
 msgid " Forced"
