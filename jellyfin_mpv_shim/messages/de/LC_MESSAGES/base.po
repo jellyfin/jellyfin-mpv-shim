@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-01-27 12:13+0000\n"
-"Last-Translator: Shadowghost <Ghost_of_Stone@web.de>\n"
+"PO-Revision-Date: 2022-02-23 19:40+0000\n"
+"Last-Translator: Moritz <moritz.leick@googlemail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -379,7 +379,6 @@ msgid "Auto Fullscreen"
 msgstr "Automatisch Vollbild"
 
 #: jellyfin_mpv_shim/menu.py:523
-#, fuzzy
 msgid "Media Key Seek"
 msgstr "Medien Spultaste"
 
