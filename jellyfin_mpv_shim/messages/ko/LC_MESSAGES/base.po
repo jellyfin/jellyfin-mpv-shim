@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-02-25 20:19+0000\n"
+"Last-Translator: 석경식 <tilesink@naver.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -48,7 +48,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr ""
+msgstr "서버 URL "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
@@ -56,7 +56,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr ""
+msgstr "암호 "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
@@ -190,7 +190,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "작게"
+msgstr "작음"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
