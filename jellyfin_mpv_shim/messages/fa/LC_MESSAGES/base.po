@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-12-03 13:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-02-26 09:09+0000\n"
+"Last-Translator: Ali Dastpour <Erorr110@yahoo.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
 "Language: fa\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -224,7 +224,7 @@ msgstr "تغییر کیفیت ویدئو"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr "همگام سازی پخش"
+msgstr "اجرای همگام"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
