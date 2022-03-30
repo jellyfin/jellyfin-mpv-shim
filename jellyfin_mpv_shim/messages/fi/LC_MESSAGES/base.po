@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-02-21 14:13+0000\n"
+"PO-Revision-Date: 2022-03-30 10:47+0000\n"
 "Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -40,7 +40,7 @@ msgstr "Aseta dubattu: {0} ok, {1} vain ääni, {2} epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Manuaalinen: {0} ok, {1} epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -304,7 +304,7 @@ msgstr "Japanilainen ääni Englantilaisilla teksityksillä"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Manuaalisesti raitahakemiston perusteella (epäluotettavampi)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -380,11 +380,12 @@ msgstr "Automaattinen kokonäyttö"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
-msgstr "Etsi median avain"
+msgstr "Median avainhaku"
 
 #: jellyfin_mpv_shim/menu.py:524
+#, fuzzy
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Käytä web-haun määritystä"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
@@ -465,7 +466,7 @@ msgstr "Pääsy SyncPlay-kirjastoon kielletty."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -473,7 +474,7 @@ msgstr "Synkronointi on poistettu käytöstä (liikaa yrityksiä)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -525,36 +526,36 @@ msgstr " Pakotettu"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "Geneerinen (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "Geneerinen korkea (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (SD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (SD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (SD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (HD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (HD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (HD-tarkkuudelle)"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr "Valitse shader-profiili"
+msgstr "Valitse varjostimen profiili"
