@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-03-02 17:13+0000\n"
-"Last-Translator: Shahar DynaZor <me@dynazor.com>\n"
+"PO-Revision-Date: 2022-04-06 14:13+0000\n"
+"Last-Translator: Bom Drew <bbbom0ev@duck.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -165,7 +165,7 @@ msgstr "שחור"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "ציאן"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -177,7 +177,7 @@ msgstr "ירוק"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "מג'נטה"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
@@ -369,11 +369,11 @@ msgstr "קדד ל H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "בטל שימוש ב-Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
-msgstr ""
+msgstr "הפעלה אוטומטית"
 
 #: jellyfin_mpv_shim/menu.py:522
 msgid "Auto Fullscreen"
@@ -389,15 +389,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Display Mirroring"
-msgstr ""
+msgstr "שכפול מסכים"
 
 #: jellyfin_mpv_shim/menu.py:526
 msgid "Write Logs to File"
-msgstr ""
+msgstr "כתוב לוגים לקובץ"
 
 #: jellyfin_mpv_shim/menu.py:527
 msgid "Check for Updates"
-msgstr ""
+msgstr "בדוק אם קיימים עדכונים"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
@@ -408,27 +408,29 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"קידוד מחדש של הוידאו המרוחק מתבצע כעת!\n"
+"הקש c על מנת להתאים את הגדרות רוחב הפס אם הדבר אינו נדרש."
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "עונה {0} - פרק {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "אוטומטי"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "מבוטל"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "בחר פרופיל SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP אינו פעיל"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -436,23 +438,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "נסה שוב"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "הפעל SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP אינו פעיל"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "קבוצת ה-SyncPlay שצויינה אינה קיימת."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "יצירת קבוצות SyncPlay אינה מאופשרת."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
