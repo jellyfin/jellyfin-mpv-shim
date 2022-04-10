@@ -24,10 +24,11 @@ jobs:
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+        mkdir -p 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO'
+        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO\top_level.txt'
       shell: bash
     - name: Main Build
       run: |
-        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO\top_level.txt'
         .\build-win.bat
       shell: cmd
     - name: Artifact Rename
@@ -58,10 +59,11 @@ jobs:
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+        mkdir -p 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO'
+        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO\top_level.txt'
       shell: bash
     - name: Legacy Build
       run: |
-        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.1.1-py3.7.egg\EGG-INFO\top_level.txt'
         .\build-win-32.bat
       shell: cmd
     - name: Artifact Rename
