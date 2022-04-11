@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-04-12 22:13+0000\n"
+"Last-Translator: Николай Иванов <nivanov@mail.bg>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bg/>\n"
 "Language: bg\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -128,7 +128,7 @@ msgstr "Затвори"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr "Кнфигурирай сървъри"
+msgstr "Конфигурирай сървъри"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
@@ -224,7 +224,7 @@ msgstr "Промяна качеството на видеото"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "синхронизирано възпроизвеждане"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -304,7 +304,7 @@ msgstr "Японско аудио със /Английски субтитри"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Ръчно според индекса за пътеката (Не е надежно)"
+msgstr "Ръчно според индекса за пътеката (Не е надеждно)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -500,10 +500,8 @@ msgid "{0} is buffering."
 msgstr "{0} се буферира."
 
 #: jellyfin_mpv_shim/syncplay.py:608
-#, fuzzy
-#| msgid "New Group"
 msgid "{0}'s Group"
-msgstr "Нова група"
+msgstr "{0} Нова група"
 
 #: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
 msgid "None (Disabled)"
@@ -539,7 +537,7 @@ msgstr "Основно високо (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Anime4K x4 Надежно (за НК)"
+msgstr "Anime4K x4 Надеждно (за НК)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
@@ -551,7 +549,7 @@ msgstr "Anime4K x4 Перцептивно+Изкл. замъгляване (за
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Anime4K x2 Надежно (за ВК)"
+msgstr "Anime4K x2 Надеждно (за ВК)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
