@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-03-30 10:47+0000\n"
+"PO-Revision-Date: 2022-04-15 22:59+0000\n"
 "Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -32,7 +32,7 @@ msgstr "Epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Tekstityksen asetus: {0} ok, {1} epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -80,7 +80,7 @@ msgstr "Valitse mediasi Jellyfinssä ja toista se tässä"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Sovelluksen logi"
+msgstr "Sovelluksen loki"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
@@ -132,7 +132,7 @@ msgstr "Määritä palvelimia"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr "Näytä consoli"
+msgstr "Näytä konsoli"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
