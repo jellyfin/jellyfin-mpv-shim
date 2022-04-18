@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2021-04-08 15:30+0000\n"
-"Last-Translator: Robolov <rocklee72@gmail.com>\n"
+"PO-Revision-Date: 2022-04-20 22:13+0000\n"
+"Last-Translator: axel <lexa44@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fr/>\n"
 "Language: fr\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -28,7 +28,7 @@ msgstr "{0} : Aucun sous-titres"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0} : Échec"
+msgstr "{0} : Échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -44,19 +44,19 @@ msgstr "Manuel : {0} OK, {1} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Réglage Actuel..."
+msgstr "Réglage actuel…"
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "URL du serveur "
+msgstr "URL du serveur : "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr "Nom d'utilisateur : "
+msgstr "Nom d'utilisateur : "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr "Mot de passe : "
+msgstr "Mot de passe : "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
@@ -108,15 +108,15 @@ msgstr "Configuration du serveur"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr "Serveur :"
+msgstr "Serveur :"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "Nom d'utilisateur :"
+msgstr "Nom d'utilisateur :"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "Mot de passe :"
+msgstr "Mot de passe :"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -136,7 +136,7 @@ msgstr "Afficher la console"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr "Menu d'application"
+msgstr "Menu de l'application"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
@@ -280,7 +280,7 @@ msgstr "Aucun"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "Choisir qualité de transcodage"
+msgstr "Choisir la qualité de transcodage"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -344,11 +344,11 @@ msgstr "Taille sous-titres : {0}"
 
 #: jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
-msgstr "Position sous-titres : {0}"
+msgstr "Position sous-titres : {0}"
 
 #: jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
-msgstr "Couleur sous-titres : {0}"
+msgstr "Couleur sous-titres : {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
@@ -407,7 +407,7 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Votre vidéo distante est en train de se transcoder !\n"
+"Votre vidéo distante est en cours de transcodage !\n"
 "Pressez sur c pour ajuster les paramètres de la bande passante si cela n'est "
 "pas nécessaire."
 
