@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-05-11 20:13+0000\n"
+"PO-Revision-Date: 2022-05-14 15:13+0000\n"
 "Last-Translator: Weevild <Filip.westman@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
@@ -104,7 +104,7 @@ msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr "Server konfiguration"
+msgstr "Serverkonfiguration"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
@@ -176,7 +176,7 @@ msgstr "Grön"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr "Rosanilin"
+msgstr "Anilinrött"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
