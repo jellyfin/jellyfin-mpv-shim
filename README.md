@@ -359,6 +359,8 @@ Other miscellaneous configuration options. You probably won't have to change the
  - `lang_filter_audio` - Apply the language filter to audio selection. Default: `False`
  - `screenshot_dir` - Sets where screenshots go.
     - Default is the desktop on Windows and unset (current directory) on other platforms.
+ - `force_set_played` - This forcibly sets items as played when MPV playback finished.
+    - If you have files with malformed timestamps that don't get marked as played, enable this.
 
 ### MPV Configuration
 

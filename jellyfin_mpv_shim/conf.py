@@ -113,6 +113,7 @@ class Settings(SettingsBase):
     lang_filter: str = "und,eng,jpn,mis,mul,zxx"
     lang_filter_sub: bool = False
     lang_filter_audio: bool = False
+    force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):

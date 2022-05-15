@@ -620,7 +620,8 @@ class PlayerManager(object):
             self.pause_ignore = False
             return
 
-        self._video.set_played()
+        if settings.force_set_played:
+            self._video.set_played()
         if self._video.parent.has_next and settings.auto_play:
             if has_lock:
                 log.debug("PlayerManager::finished_callback starting next episode")
