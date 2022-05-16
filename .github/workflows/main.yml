@@ -9,10 +9,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Python 3.7
+    - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.9
     - name: Install dependencies
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20211212-git-0e76372.7z/download > mpv.7z
@@ -24,8 +24,6 @@ jobs:
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
-        mkdir -p 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.2.0-py3.7.egg\EGG-INFO'
-        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.2.0-py3.7.egg\EGG-INFO\top_level.txt'
       shell: bash
     - name: Main Build
       run: |
@@ -44,10 +42,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Python 3.7
+    - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.9
     - name: Install dependencies
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20211212-git-0e76372.7z/download > mpv.7z
@@ -59,8 +57,6 @@ jobs:
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
-        mkdir -p 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.2.0-py3.7.egg\EGG-INFO'
-        echo > 'c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\typing_extensions-4.2.0-py3.7.egg\EGG-INFO\top_level.txt'
       shell: bash
     - name: Legacy Build
       run: |
