@@ -15,9 +15,10 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20211212-git-0e76372.7z/download > mpv.7z
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20220515-git-9467772.7z/download > mpv.7z
         7z x mpv.7z
-        pip install .[all] pywebview==3.4 pywin32 wheel
+        pip install wheel
+        pip install .[all] pywebview==3.4 pywin32
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
@@ -48,9 +49,10 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20211212-git-0e76372.7z/download > mpv.7z
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20220515-git-9467772.7z/download > mpv.7z
         7z x mpv.7z
-        pip install .[all] pywebview==3.4 pywin32 wheel
+        pip install wheel
+        pip install .[all] pywebview==3.4 pywin32
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
