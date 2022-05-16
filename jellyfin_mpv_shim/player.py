@@ -376,6 +376,14 @@ class PlayerManager(object):
         @self._player.event_callback("client-message")
         def handle_client_message(event):
             try:
+                # Python-MPV 1.0 uses a class/struct combination now
+                if hasattr(event, "as_dict"):
+                    event = event.as_dict()
+                    if 'event' in event:
+                        event['event'] = event['event'].decode('utf-8')
+                    if 'args' in event:
+                        event['args'] = [d.decode('utf-8') for d in event['args']]
+
                 if "event_id" in event:
                     args = event["event"]["args"]
                 else:
