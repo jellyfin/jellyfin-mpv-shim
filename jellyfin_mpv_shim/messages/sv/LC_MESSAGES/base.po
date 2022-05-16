@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-05-14 15:13+0000\n"
+"PO-Revision-Date: 2022-05-17 15:13+0000\n"
 "Last-Translator: Weevild <Filip.westman@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
@@ -76,7 +76,7 @@ msgstr "Redo att casta"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Välj din media i Jellyfin och spela det här"
+msgstr "Välj din media i Jellyfin och spela upp det här"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
