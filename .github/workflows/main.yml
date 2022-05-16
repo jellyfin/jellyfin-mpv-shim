@@ -18,6 +18,7 @@ jobs:
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20220515-git-9467772.7z/download > mpv.7z
         7z x mpv.7z
         pip install wheel
+        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
         pip install .[all] pywebview==3.4 pywin32
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
@@ -52,6 +53,7 @@ jobs:
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20220515-git-9467772.7z/download > mpv.7z
         7z x mpv.7z
         pip install wheel
+        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
         pip install .[all] pywebview==3.4 pywin32
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
