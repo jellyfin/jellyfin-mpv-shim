@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-04-15 22:59+0000\n"
-"Last-Translator: Mario Ricardo Ariyanto <marioariyanto@gmail.com>\n"
+"PO-Revision-Date: 2022-05-20 12:22+0000\n"
+"Last-Translator: liimee <git.taaa@fedora.email>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/id/>\n"
 "Language: id\n"
@@ -48,11 +48,11 @@ msgstr "Menyetel Tegangan..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "Server URL: "
+msgstr "URL Server: "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr "Username: "
+msgstr "Nama Pengguna: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
@@ -64,7 +64,7 @@ msgstr "Berhasil menambahkan server."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr "Tambahkan server baru?"
+msgstr "Tambahkan server lain?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Tidak dapat menambahkan server.\n"
-"Harap cek kembali koneksi anda."
+"Harap cek kembali koneksi Anda."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
@@ -112,7 +112,7 @@ msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "Nama Akun:"
+msgstr "Nama Pengguna:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
@@ -168,31 +168,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Biru"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Hijau"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Magenta"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Merah"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Abu-Abu"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Sangat Kecil"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Kecil"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
