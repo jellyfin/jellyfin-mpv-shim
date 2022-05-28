@@ -863,9 +863,11 @@ class PlayerManager(object):
                         self._video.item.get("ParentIndexNumber"),
                         self._video.item.get("IndexNumber"),
                     )
+                    media_id = self._video.item.get("SeriesId")
                 else:
                     title = self._video.item.get("Name")
                     subtitle = str(self._video.item.get("ProductionYear", ""))
+                    media_id = self._video.item_id
                 send_presence(
                     title,
                     subtitle,
@@ -873,6 +875,7 @@ class PlayerManager(object):
                     player.duration,
                     not player.pause,
                     self.syncplay.current_group,
+                    self._video.client.jellyfin.artwork(media_id, "Primary", 1024),
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)

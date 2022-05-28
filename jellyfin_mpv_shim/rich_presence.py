@@ -1,5 +1,7 @@
 from pypresence import Client
 import time
+import requests
+import re
 
 client_id = "743296148592263240"
 RPC = Client(client_id)
@@ -7,7 +9,11 @@ RPC.start()
 
 
 def register_join_event(syncplay_join_group: callable):
-    RPC.register_event('activity_join', syncplay_join_group)
+    RPC.register_event("activity_join", syncplay_join_group)
+
+
+image_url = None
+bashupload_url = None
 
 
 def send_presence(
@@ -17,8 +23,14 @@ def send_presence(
     duration: float = None,
     playing: bool = False,
     syncplay_group: str = None,
+    artwork_url: str = None,
 ):
-    small_image = "play-dark3" if playing else None
+    small_image = (
+        "https://cdn.discordapp.com/app-assets/463097721130188830/493061639994867714.png"
+        if playing
+        else "https://cdn.discordapp.com/app-assets/463097721130188830/493061640296595456.png"
+    )
+    small_text = "Playing" if playing else "Paused"
     start = None
     end = None
     if playback_time is not None and duration is not None and playing:
@@ -28,16 +40,32 @@ def send_presence(
         state=subtitle,
         details=title,
         instance=False,
-        large_image="jellyfin2",
+        large_image=upload_image(artwork_url),
         start=start,
         end=end,
-        large_text="Jellyfin",
+        large_text=title,
         small_image=small_image,
+        small_text=small_text,
         party_id=str(hash(syncplay_group)),
-        party_size=[1, 100],
         join=syncplay_group,
     )
 
 
 def clear_presence():
     RPC.clear_activity()
+
+
+def upload_image(link):
+    global image_url
+    global bashupload_url
+    if image_url == link:
+        return bashupload_url
+    image_url = link
+    r = requests.get(link)
+    files = {"file": ("image.jpg", r.content)}
+    post = requests.post("https://bashupload.com/", files=files)
+
+    regex = r"https(.*)"
+    result = re.search(regex, post.text)
+    bashupload_url = result.group(0)
+    return bashupload_url
