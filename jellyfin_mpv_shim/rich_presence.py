@@ -24,12 +24,14 @@ def send_presence(
     playing: bool = False,
     syncplay_group: str = None,
     artwork_url: str = None,
+    is_local_domain: bool = True,
 ):
     small_image = (
         "https://cdn.discordapp.com/app-assets/463097721130188830/493061639994867714.png"
         if playing
         else "https://cdn.discordapp.com/app-assets/463097721130188830/493061640296595456.png"
     )
+    large_image = upload_image(artwork_url) if is_local_domain else artwork_url
     small_text = "Playing" if playing else "Paused"
     start = None
     end = None
@@ -40,7 +42,7 @@ def send_presence(
         state=subtitle,
         details=title,
         instance=False,
-        large_image=upload_image(artwork_url),
+        large_image=large_image,
         start=start,
         end=end,
         large_text=title,
@@ -63,7 +65,11 @@ def upload_image(link):
     image_url = link
     r = requests.get(link)
     files = {"file": ("image.jpg", r.content)}
-    post = requests.post("https://bashupload.com/", files=files)
+    try:
+        post = requests.post("https://bashupload.com/", files=files)
+    except:
+        bashupload_url = "jellyfin2"
+        return bashupload_url
 
     regex = r"https(.*)"
     result = re.search(regex, post.text)

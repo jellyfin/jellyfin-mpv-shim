@@ -10,7 +10,7 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
-from .utils import synchronous, Timer, none_fallback, get_resource
+from .utils import synchronous, Timer, none_fallback, get_resource, is_local_domain
 from .conf import settings
 from .menu import OSDMenu
 from .constants import APP_NAME
@@ -876,6 +876,7 @@ class PlayerManager(object):
                     not player.pause,
                     self.syncplay.current_group,
                     self._video.client.jellyfin.artwork(media_id, "Primary", 1024),
+                    is_local_domain(self._video.client),
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
