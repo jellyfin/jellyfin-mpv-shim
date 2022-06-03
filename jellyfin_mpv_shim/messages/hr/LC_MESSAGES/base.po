@@ -6,26 +6,30 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2022-06-04 21:22+0000\n"
+"Last-Translator: Ivan Kranjec <ivan.kranjec95@gmail.com>\n"
+"Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/hr/>\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Odabir pjesama..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Nema podnaslova"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Greška"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -49,23 +53,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr ""
+msgstr "Korisničko ime: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr ""
+msgstr "Lozinka: "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
-msgstr ""
+msgstr "Server je uspješno dodan."
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr ""
+msgstr "Dodavanje novog servera?"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
-msgstr ""
+msgstr "Dodavanje servera neuspješno."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -81,21 +85,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "Dodaj server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Nije moguće dodati server.\n"
+"Molimo provjerite postavke veze."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr ""
+msgstr "Greška"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
@@ -155,67 +161,67 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "Crna"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Cijan"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "Plava"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "Zelena"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Magenta"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "Crvena"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Siva"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Sitno"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "Malo"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normalno"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "Veliko"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Ogromno"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "Glavni izbornik"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "Promijenite audio"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Promjena podnaslova"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Promjena kvalitete videozapisa"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
 msgid "SyncPlay"
@@ -231,7 +237,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Automatsko postavljanje zvuka/podnaslova (cjelokupna serija)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -239,7 +245,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Snimka zaslona"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -247,11 +253,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP postavke"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
 msgid "Video Preferences"
-msgstr ""
+msgstr "Video preferencije"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
 msgid "Player Preferences"
