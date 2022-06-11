@@ -82,6 +82,8 @@ class EventHandler(object):
                 timelineManager.send_timeline()
                 if arguments.get("SyncPlayGroup") is not None:
                     playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
+                if settings.play_cmd:
+                    os.system(settings.play_cmd)
         elif play_command == "PlayLast":
             playerManager.get_video().parent.insert_items(
                 arguments.get("ItemIds"), append=True

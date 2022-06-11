@@ -33,6 +33,8 @@ class Settings(SettingsBase):
     stop_cmd: Optional[str] = None
     auto_play: bool = True
     idle_cmd: Optional[str] = None
+    idle_ended_cmd: Optional[str] = None
+    play_cmd: Optional[str] = None
     idle_cmd_delay: int = 60
     direct_paths: bool = False
     remote_direct_paths: bool = False
