@@ -78,7 +78,7 @@ class EventHandler(object):
             if video:
                 if settings.pre_media_cmd:
                     os.system(settings.pre_media_cmd)
-                playerManager.play(video, offset)
+                playerManager.play(video, offset, is_initial_play=True)
                 timelineManager.send_timeline()
                 if arguments.get("SyncPlayGroup") is not None:
                     playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
