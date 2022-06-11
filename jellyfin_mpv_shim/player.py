@@ -152,6 +152,7 @@ class PlayerManager(object):
         self.warned_about_transcode = False
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
+        self.is_local_domain = is_local_domain(self._video.client)
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -876,7 +877,7 @@ class PlayerManager(object):
                     not player.pause,
                     self.syncplay.current_group,
                     self._video.client.jellyfin.artwork(media_id, "Primary", 1024),
-                    is_local_domain(self._video.client),
+                    self.is_local_domain,
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
