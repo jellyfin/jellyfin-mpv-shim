@@ -152,7 +152,6 @@ class PlayerManager(object):
         self.warned_about_transcode = False
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
-        self.is_local_domain = is_local_domain(self._video.client)
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -469,6 +468,7 @@ class PlayerManager(object):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
+        self.is_local_domain = is_local_domain(self._video.client)
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 
