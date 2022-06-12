@@ -425,11 +425,13 @@ class SyncPlayManager:
             if video:
                 if settings.pre_media_cmd:
                     os.system(settings.pre_media_cmd)
-                self.playerManager.play(video, offset, no_initial_timeline=True)
+                self.playerManager.play(video, offset, no_initial_timeline=True, is_initial_play=True)
                 self.playerManager.send_timeline()
                 # Really not sure why I have to call this.
                 self.join_group(group_id)
                 self.playerManager.timeline_handle()
+                if settings.play_cmd:
+                    os.system(settings.play_cmd)
         elif play_command == "PlayLast":
             self.playerManager.get_video().parent.insert_items(
                 session_data.get("ItemIds"), append=True
@@ -512,6 +514,8 @@ class SyncPlayManager:
             if settings.pre_media_cmd:
                 os.system(settings.pre_media_cmd)
             self.playerManager.play(video, offset, no_initial_timeline=True)
+            if settings.play_cmd:
+                os.system(settings.play_cmd)
         else:
             log.error("No video from queue update.")
 

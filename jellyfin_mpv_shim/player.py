@@ -425,7 +425,7 @@ class PlayerManager(object):
                 self.last_update.restart()
 
     def play(
-        self, video: "Video_type", offset: int = 0, no_initial_timeline: bool = False
+        self, video: "Video_type", offset: int = 0, no_initial_timeline: bool = False, is_initial_play: bool = False
     ):
         self.should_send_timeline = False
         self.start_time = time.time()
@@ -434,7 +434,7 @@ class PlayerManager(object):
             log.error("PlayerManager::play no URL found")
             return
 
-        self._play_media(video, url, offset, no_initial_timeline)
+        self._play_media(video, url, offset, no_initial_timeline, is_initial_play)
 
     @synchronous("_lock")
     def _play_media(
@@ -443,6 +443,7 @@ class PlayerManager(object):
         url: str,
         offset: int = 0,
         no_initial_timeline: bool = False,
+        is_initial_play: bool = False
     ):
         self.pause_ignore = True
         self.do_not_handle_pause = True
@@ -475,7 +476,7 @@ class PlayerManager(object):
         self.configure_streams()
         self.update_subtitle_visuals()
 
-        if win_utils:
+        if win_utils and settings.raise_mpv and is_initial_play:
             win_utils.raise_mpv()
 
         if offset is not None and offset > 0:

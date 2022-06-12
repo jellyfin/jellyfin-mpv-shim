@@ -33,6 +33,8 @@ class Settings(SettingsBase):
     stop_cmd: Optional[str] = None
     auto_play: bool = True
     idle_cmd: Optional[str] = None
+    idle_ended_cmd: Optional[str] = None
+    play_cmd: Optional[str] = None
     idle_cmd_delay: int = 60
     direct_paths: bool = False
     remote_direct_paths: bool = False
@@ -115,6 +117,7 @@ class Settings(SettingsBase):
     lang_filter_audio: bool = False
     force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
+    raise_mpv: bool = True
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False

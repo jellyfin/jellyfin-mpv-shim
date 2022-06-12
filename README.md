@@ -211,6 +211,8 @@ You can execute shell commands on media state using the config file:
  - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
  - `idle_when_paused` - Consider the player idle when paused. Default: `false`
  - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
+ - `play_cmd` - After playback starts.
+ - `idle_ended_cmd` - After player stops being idle.
 
 ### Subtitle Visual Settings
 
@@ -361,6 +363,7 @@ Other miscellaneous configuration options. You probably won't have to change the
     - Default is the desktop on Windows and unset (current directory) on other platforms.
  - `force_set_played` - This forcibly sets items as played when MPV playback finished.
     - If you have files with malformed timestamps that don't get marked as played, enable this.
+ - `raise_mpv` - Windows only. Disable this if you are fine with MPV sometimes appearing behind other windows when playing.
 
 ### MPV Configuration
 

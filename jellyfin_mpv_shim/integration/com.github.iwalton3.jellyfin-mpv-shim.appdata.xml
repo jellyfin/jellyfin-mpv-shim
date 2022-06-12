@@ -58,6 +58,17 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.1.0" date="2022-06-11">
+      <description>
+        <p>Upgrade to MPV version 20220515 9467772.</p>
+        <p>Add flag for force_set_played due to double trakt play issue.</p>
+        <p>Prevent multiple unwanted update checks.</p>
+        <p>Fix to work with python-mpv 1.0 and MPV library v2.</p>
+        <p>Add play_cmd and idle_ended_cmd. (#225)</p>
+        <p>Allow disabling raise_mpv and also only do it once per play. (#218)</p>
+        <p>Make transcode termination failure non-fatal. (#259)</p>
+      </description>
+    </release>
     <release version="2.0.2" date="2021-12-22">
       <description>
         <p>Upgrade to MPV version 20211212 0e76372.</p>

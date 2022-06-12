@@ -147,9 +147,12 @@ class Video(object):
 
     def terminate_transcode(self):
         if self.is_transcode:
-            self.client.jellyfin.close_transcode(
-                self.client.config.data["app.device_id"]
-            )
+            try:
+                self.client.jellyfin.close_transcode(
+                    self.client.config.data["app.device_id"]
+                )
+            except:
+                log.warning("Terminating transcode failed.", exc_info=1)
 
     def _get_url_from_source(self):
         # Only use Direct Paths if:
