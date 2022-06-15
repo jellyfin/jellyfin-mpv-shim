@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2021-03-18 01:38+EDT\n"
-"PO-Revision-Date: 2022-05-07 19:13+0000\n"
-"Last-Translator: fzlins <fzlins2013@gmail.com>\n"
+"PO-Revision-Date: 2022-06-16 09:22+0000\n"
+"Last-Translator: 普鲁文 <pluwen@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -24,11 +24,11 @@ msgstr "选择音轨..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: 无字幕"
+msgstr "{0}：无字幕"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: 失败"
+msgstr "{0}：失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -48,15 +48,15 @@ msgstr "设置当前..."
 
 #: jellyfin_mpv_shim/clients.py:49
 msgid "Server URL: "
-msgstr "服务器 URL: "
+msgstr "服务器 URL： "
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Username: "
-msgstr "用户名: "
+msgstr "用户名： "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Password: "
-msgstr "密码: "
+msgstr "密码： "
 
 #: jellyfin_mpv_shim/clients.py:56
 msgid "Successfully added server."
@@ -64,7 +64,7 @@ msgstr "成功添加服务器。"
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Add another server?"
-msgstr "添加其它服务器?"
+msgstr "添加其它服务器？"
 
 #: jellyfin_mpv_shim/clients.py:60
 msgid "Adding server failed."
@@ -91,7 +91,7 @@ msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
-"无法添加服务器。 \n"
+"无法添加服务器。\n"
 "请检查您的连接信息。"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
@@ -108,15 +108,15 @@ msgstr "服务器配置"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr "服务器地址:"
+msgstr "服务器："
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "用户名:"
+msgstr "用户名："
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "密码:"
+msgstr "密码："
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -284,7 +284,7 @@ msgstr "选择转码质量"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr "Maximum"
+msgstr "最大"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
@@ -336,27 +336,27 @@ msgstr "中间"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "远程转码质量: {0:0.1f} Mbps"
+msgstr "远程转码质量：{0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
-msgstr "字幕大小: {0}"
+msgstr "字幕大小：{0}"
 
 #: jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
-msgstr "字幕位置: {0}"
+msgstr "字幕位置：{0}"
 
 #: jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
-msgstr "字幕颜色: {0}"
+msgstr "字幕颜色：{0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr "将H265转码为H264"
+msgstr "将 H.265 转码为 H.264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr "将Hi10p转码为8bit"
+msgstr "将 Hi10p 转码为 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -364,7 +364,7 @@ msgstr "直链"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr "转码为H265"
+msgstr "转码为 H.265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
@@ -380,7 +380,7 @@ msgstr "自动全屏"
 
 #: jellyfin_mpv_shim/menu.py:523
 msgid "Media Key Seek"
-msgstr "媒体密钥搜寻"
+msgstr "媒体密钥搜索"
 
 #: jellyfin_mpv_shim/menu.py:524
 msgid "Use Web Seek Pref"
@@ -400,7 +400,7 @@ msgstr "检查更新"
 
 #: jellyfin_mpv_shim/menu.py:529
 msgid "Discord Rich Presence"
-msgstr "Discord细节呈现"
+msgstr "Discord 细节呈现"
 
 #: jellyfin_mpv_shim/player.py:498
 msgid ""
@@ -412,7 +412,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:849
 msgid "Season {0} - Episode {1}"
-msgstr "第{0}季第{1}集"
+msgstr "第 {0} 季第 {1} 集"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
@@ -425,11 +425,11 @@ msgstr "关闭"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr "选择SVP配置预设"
+msgstr "选择 SVP 配置预设"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr "SVP未激活"
+msgstr "SVP 未激活"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -441,27 +441,27 @@ msgstr "重试"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr "启用SVP"
+msgstr "启用 SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr "SVP已禁用"
+msgstr "SVP 已禁用"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "指定的SyncPlay组不存在。"
+msgstr "指定的 SyncPlay 组不存在。"
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "不允许创建SyncPlay组。"
+msgstr "不允许创建 SyncPlay 组。"
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "SyncPlay组访问被拒绝。"
+msgstr "SyncPlay 组访问被拒绝。"
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "拒绝访问SyncPlay库。"
+msgstr "拒绝访问 SyncPlay 库。"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -473,7 +473,7 @@ msgstr "同步已禁用（尝试次数过多）"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "跳过同步(x{0})"
+msgstr "跳过同步（x{0}）"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -525,35 +525,35 @@ msgstr " 强制"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr "通用超分辨率算法 (FSRCNNX)"
+msgstr "通用超分辨率算法（FSRCNNX）"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr "通用超分辨率算法 高倍率 (FSRCNNX x16)"
+msgstr "通用高倍率（FSRCNNX x16）"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Anime4K x4 Faithful 算法 (适用于标清动画)"
+msgstr "Anime4K x4 Faithful 算法（适用于标清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Anime4K x4 Perceptual 算法 (适用于标清动画)"
+msgstr "Anime4K x4 Perceptual 算法（适用于标清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Perceptual + Deblur 算法 (适用于标清动画)"
+msgstr "Anime4K x4 Perceptual + Deblur 算法（适用于标清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Anime4K x2 Faithful 算法 (适用于高清动画)"
+msgstr "Anime4K x2 Faithful 算法（适用于高清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 Perceptual 算法 (适用于高清动画)"
+msgstr "Anime4K x2 Perceptual 算法（适用于高清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Deblur 算法 (适用于高清动画)"
+msgstr "Anime4K x2 Perceptual + Deblur 算法（适用于高清动画）"
 
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
