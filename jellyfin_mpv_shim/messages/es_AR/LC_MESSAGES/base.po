@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-03-18 01:38+EDT\n"
+"POT-Creation-Date: 2022-06-19 13:37-0400\n"
 "PO-Revision-Date: 2021-06-21 11:08+0000\n"
 "Last-Translator: danielxb-ar <danielxb@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
@@ -46,27 +46,27 @@ msgstr "Manual: {0} OK, {1} Fallaron"
 msgid "Setting Current..."
 msgstr "Configuración actual..."
 
-#: jellyfin_mpv_shim/clients.py:49
+#: jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
 msgstr "URL del Servidor: "
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
 msgstr "Usuario: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: jellyfin_mpv_shim/clients.py:56
+#: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
 msgstr "Se ha añadido correctamente el servidor."
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
 msgstr "¿Agregar otro servidor?"
 
-#: jellyfin_mpv_shim/clients.py:60
+#: jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
 msgstr "Error al agregar el servidor."
 
@@ -222,7 +222,7 @@ msgstr "Cambiar Subtítulos"
 msgid "Change Video Quality"
 msgstr "Cambiar Calidad del Vídeo"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:627
+#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
@@ -254,11 +254,11 @@ msgstr "Perfiles de reproducción de vídeo"
 msgid "SVP Settings"
 msgstr "Configuraciones SVP"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:485
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
 msgid "Video Preferences"
 msgstr "Preferencias de Vídeo"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
 msgid "Player Preferences"
 msgstr "Preferencias del reproductor"
 
@@ -370,39 +370,47 @@ msgstr "Transcodificar a H265"
 msgid "Disable Direct Play"
 msgstr "Deshabilitar reproducción directa"
 
-#: jellyfin_mpv_shim/menu.py:521
+#: jellyfin_mpv_shim/menu.py:519
+msgid "Video Profile Subtype: {0}"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:533
+msgid "Video Profile Subtype"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
 msgstr "Auto-reproducción"
 
-#: jellyfin_mpv_shim/menu.py:522
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Auto Fullscreen"
 msgstr "Pantalla completa automática"
 
-#: jellyfin_mpv_shim/menu.py:523
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Media Key Seek"
 msgstr "Búsqueda de clave multimedia"
 
-#: jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Use Web Seek Pref"
 msgstr "Usar Web Seek Pref"
 
-#: jellyfin_mpv_shim/menu.py:525
+#: jellyfin_mpv_shim/menu.py:558
 msgid "Display Mirroring"
 msgstr "Duplicación de pantalla"
 
-#: jellyfin_mpv_shim/menu.py:526
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Write Logs to File"
 msgstr "Escribir registros en archivo"
 
-#: jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:560
 msgid "Check for Updates"
 msgstr "Buscar actualizaciones"
 
-#: jellyfin_mpv_shim/menu.py:529
+#: jellyfin_mpv_shim/menu.py:562
 msgid "Discord Rich Presence"
 msgstr "Presencia rica en Discord"
 
-#: jellyfin_mpv_shim/player.py:498
+#: jellyfin_mpv_shim/player.py:511
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -411,7 +419,7 @@ msgstr ""
 "Presione C para ajustar la configuración del ancho de banda si no es "
 "necesario."
 
-#: jellyfin_mpv_shim/player.py:849
+#: jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
 msgstr "Temporada {0} - Episodio {1}"
 
@@ -496,19 +504,19 @@ msgstr "{0} se ha ido."
 msgid "{0} is buffering."
 msgstr "{0} se está almacenando en búfer."
 
-#: jellyfin_mpv_shim/syncplay.py:608
+#: jellyfin_mpv_shim/syncplay.py:613
 msgid "{0}'s Group"
 msgstr "{0} Grupos"
 
-#: jellyfin_mpv_shim/syncplay.py:617 jellyfin_mpv_shim/video_profile.py:176
+#: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
 msgid "None (Disabled)"
 msgstr "Ninguno (Deshabilitado)"
 
-#: jellyfin_mpv_shim/syncplay.py:621
+#: jellyfin_mpv_shim/syncplay.py:626
 msgid "New Group"
 msgstr "Nuevo grupo"
 
-#: jellyfin_mpv_shim/update_check.py:67
+#: jellyfin_mpv_shim/update_check.py:69
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
@@ -516,11 +524,11 @@ msgstr ""
 "MPV Shim v {0} Actualización disponible\n"
 "Abra el menú (presione c) para obtener detalles."
 
-#: jellyfin_mpv_shim/utils.py:208
+#: jellyfin_mpv_shim/utils.py:217
 msgid "Unkn"
 msgstr "Desconocido"
 
-#: jellyfin_mpv_shim/utils.py:209
+#: jellyfin_mpv_shim/utils.py:218
 msgid " Forced"
 msgstr " Forzado"
 
@@ -556,6 +564,6 @@ msgstr "Anime4K x2 Perceptual (para HD)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 Perceptual + Deblur (para HD)"
 
-#: jellyfin_mpv_shim/video_profile.py:184
+#: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "Seleccionar perfil de sombreador"
