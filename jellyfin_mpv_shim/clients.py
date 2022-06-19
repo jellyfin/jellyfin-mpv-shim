@@ -176,6 +176,15 @@ class ClientManager(object):
         client.start(websocket=True)
 
         client.jellyfin.post_capabilities(CAPABILITIES)
+        for f_client in client.jellyfin.sessions(params={ "ControllableByUserId": "{UserId}" }):
+            if f_client.get('DeviceId') == settings.client_uuid:
+                break
+        else:
+            log.warning("Client is not actually connected. (It does not show in the client list.)")
+            client.stop()
+            return False
+
+        return True
 
     def remove_client(self, uuid: str):
         self.credentials = [
@@ -193,11 +202,11 @@ class ClientManager(object):
         state = client.authenticate({"Servers": [server]}, discover=False)
         server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
         if server["connected"]:
-            is_logged_in = True
-            self.clients[server["uuid"]] = client
-            self.setup_client(client, server)
-            if server.get("username"):
-                self.usernames[server["uuid"]] = server["username"]
+            is_logged_in = self.setup_client(client, server)
+            if is_logged_in:
+                self.clients[server["uuid"]] = client
+                if server.get("username"):
+                    self.usernames[server["uuid"]] = server["username"]
 
         return is_logged_in
 
