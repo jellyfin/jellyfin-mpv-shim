@@ -47,6 +47,7 @@ class VideoProfileManager:
         self.used_settings = set()
         self.current_profile = None
         self.player = player
+        self.profile_subtypes = []
 
         shader_pack_builtin = get_resource("default_shader_pack")
 
@@ -57,15 +58,24 @@ class VideoProfileManager:
             if not os.path.exists(self.shader_pack):
                 shutil.copytree(shader_pack_builtin, self.shader_pack)
 
-        if not os.path.exists(os.path.join(self.shader_pack, "pack.json")):
-            raise FileNotFoundError("Could not find default shader pack.")
+        pack_name = "pack-next.json"
+        if not os.path.exists(os.path.join(self.shader_pack, pack_name)):
+            pack_name = "pack.json"
 
-        with open(os.path.join(self.shader_pack, "pack.json")) as fh:
+            if not os.path.exists(os.path.join(self.shader_pack, pack_name)):
+                raise FileNotFoundError("Could not find default shader pack.")
+
+        with open(os.path.join(self.shader_pack, pack_name)) as fh:
             pack = json.load(fh)
             self.default_groups = pack.get("default-setting-groups") or []
             self.profiles = pack.get("profiles") or {}
             self.groups = pack.get("setting-groups") or {}
             self.revert_ignore = set(pack.get("setting-revert-ignore") or [])
+
+            self.profile_subtypes = set()
+            for profile in self.profiles.values():
+                for subtype in profile.get("subtype", []):
+                    self.profile_subtypes.add(subtype)
 
         self.defaults = {}
         for group in self.groups.values():
@@ -175,6 +185,10 @@ class VideoProfileManager:
         selected = 0
         profile_option_list = [(_("None (Disabled)"), self.menu_handle, None)]
         for i, (profile_name, profile) in enumerate(self.profiles.items()):
+            if (profile.get("subtype", None) is not None and
+                not settings.shader_pack_subtype in profile["subtype"]):
+                continue
+
             name = profile["displayname"]
             if name in profile_name_translation:
                 name = profile_name_translation[name]

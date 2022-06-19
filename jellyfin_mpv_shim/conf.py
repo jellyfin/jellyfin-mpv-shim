@@ -88,6 +88,7 @@ class Settings(SettingsBase):
     shader_pack_custom: bool = False
     shader_pack_remember: bool = True
     shader_pack_profile: Optional[str] = None
+    shader_pack_subtype: str = "lq"
     svp_enable: bool = False
     svp_url: str = "http://127.0.0.1:9901/"
     svp_socket: Optional[str] = None

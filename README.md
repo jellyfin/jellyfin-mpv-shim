@@ -291,6 +291,7 @@ use `shader_pack_custom`.
  - `shader_pack_remember` - Automatically remember the last used shader profile. (Default: `true`)
  - `shader_pack_profile` - The default profile to use. (Default: `null`)
     - If you use `shader_pack_remember`, this will be updated when you set a profile through the UI.
+ - `shader_pack_subtype` - The profile group to use. The default pack contains `lq` and `hq` groups. Use `hq` if you have a fancy graphics card.
 
 ### SVP Integration
 

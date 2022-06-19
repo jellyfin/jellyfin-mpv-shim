@@ -481,38 +481,71 @@ class OSDMenu(object):
         )
 
     def video_preferences_menu(self):
+        self.profile_manager
+
+        options = [
+            (
+                _("Remote Transcode Quality: {0:0.1f} Mbps").format(
+                    settings.remote_kbps / 1000
+                ),
+                self.transcode_settings_menu,
+            ),
+            (
+                _("Subtitle Size: {0}").format(settings.subtitle_size),
+                self.subtitle_size_menu,
+            ),
+            (
+                _("Subtitle Position: {0}").format(settings.subtitle_position),
+                self.subtitle_position_menu,
+            ),
+            (
+                _("Subtitle Color: {0}").format(
+                    self.get_subtitle_color(settings.subtitle_color)
+                ),
+                self.subtitle_color_menu,
+            ),
+            self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
+            self.get_settings_toggle(
+                _("Transcode Hi10p to 8bit"), "transcode_hi10p"
+            ),
+            self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
+            self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
+            self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
+        ]
+
+        if self.profile_manager and len(self.profile_manager.profile_subtypes):
+            options.append(
+                (
+                    _("Video Profile Subtype: {0}").format(
+                        settings.shader_pack_subtype
+                    ),
+                    self.shader_pack_subtype_menu,
+                ),
+            )
+
         self.put_menu(
             _("Video Preferences"),
+            options
+        )
+
+    def shader_pack_subtype_menu(self):
+        self.put_menu(
+            _("Video Profile Subtype"),
             [
-                (
-                    _("Remote Transcode Quality: {0:0.1f} Mbps").format(
-                        settings.remote_kbps / 1000
-                    ),
-                    self.transcode_settings_menu,
-                ),
-                (
-                    _("Subtitle Size: {0}").format(settings.subtitle_size),
-                    self.subtitle_size_menu,
-                ),
-                (
-                    _("Subtitle Position: {0}").format(settings.subtitle_position),
-                    self.subtitle_position_menu,
-                ),
-                (
-                    _("Subtitle Color: {0}").format(
-                        self.get_subtitle_color(settings.subtitle_color)
-                    ),
-                    self.subtitle_color_menu,
-                ),
-                self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
-                self.get_settings_toggle(
-                    _("Transcode Hi10p to 8bit"), "transcode_hi10p"
-                ),
-                self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
-                self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
-                self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
+                (option, self.shader_pack_subtype_handle)
+                for option in self.profile_manager.profile_subtypes
             ],
         )
+
+    def shader_pack_subtype_handle(self):
+        option_value = self.menu_list[self.menu_selection][0]
+        settings.shader_pack_subtype = option_value
+        settings.save()
+
+        # Need to re-render preferences menu.
+        for i in range(2):
+            self.menu_action("back")
+        self.video_preferences_menu()
 
     def player_preferences_menu(self):
         self.put_menu(
