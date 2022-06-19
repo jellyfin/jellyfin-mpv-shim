@@ -179,6 +179,15 @@ You can adjust the basic transcoder settings via the menu.
     - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
 - `transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
 - `transcode_warning` - Display a warning the first time media transcodes in a session. Default: `true`
+- `force_video_codec` - Force a specified video codec to be played. Default: `null`
+    - This can be used in tandem with `always_transcode` to force the client to transcode into
+      the specified format.
+    - This may have the same limitations as `always_transcode`.
+    - This will override `transcode_to_h265`, `transcode_h265` and `transcode_hi10p`.
+- `force_audio_codec` - Force a specified audio codec to be played. Default: `null`
+    - This can be used in tandeom with `always_transcode` to force the client to transcode into
+      the specified format.
+    - This may have the same limitations as `always_transcode`.
 
 ### Features
 

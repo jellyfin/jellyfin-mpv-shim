@@ -119,6 +119,8 @@ class Settings(SettingsBase):
     force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
     raise_mpv: bool = True
+    force_video_codec: Optional[str] = None
+    force_audio_codec: Optional[str] = None
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
