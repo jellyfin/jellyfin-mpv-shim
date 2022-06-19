@@ -181,7 +181,11 @@ class ClientManager(object):
                 break
         else:
             log.warning("Client is not actually connected. (It does not show in the client list.)")
+            # WebSocketDisconnect doesn't always happen here.
+            client.callback = lambda *_: None
+            client.callback_ws = lambda *_: None
             client.stop()
+            event("WebSocketDisconnect", None)
             return False
 
         return True
