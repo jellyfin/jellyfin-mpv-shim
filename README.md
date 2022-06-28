@@ -644,7 +644,7 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 3. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv jellyfin-apiclient-python pywin32 pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
     - Details: https://github.com/pyinstaller/pyinstaller/issues/4346
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-5. Extract the `mpv-1.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
+5. Extract the `mpv-2.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
 7. Run `get_pywebview_natives.py`.
 8. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
