@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-04-15 22:59+0000\n"
+"PO-Revision-Date: 2022-07-07 12:22+0000\n"
 "Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -372,11 +372,11 @@ msgstr "Poista käytöstä suoratoisto"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Videoprofiilin alityyppi: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Videoprofiilin alityyppi"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
