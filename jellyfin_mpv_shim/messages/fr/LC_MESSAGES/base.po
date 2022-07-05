@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-04-20 22:13+0000\n"
-"Last-Translator: axel <lexa44@gmail.com>\n"
+"PO-Revision-Date: 2022-07-07 12:22+0000\n"
+"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fr/>\n"
 "Language: fr\n"
@@ -24,7 +24,7 @@ msgstr "Sélection des pistes..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0} : Aucun sous-titres"
+msgstr "{0} : Aucun sous-titres"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
