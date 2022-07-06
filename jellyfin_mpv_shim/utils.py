@@ -163,6 +163,7 @@ def get_profile(
             #    "Method": "External"
             # },
             {"Format": "dvdsub", "Method": "Embed"},
+            {"Format": "dvbsub", "Method": "Embed"},
             # {
             #    "Format": "dvdsub",
             #    "Method": "External"
