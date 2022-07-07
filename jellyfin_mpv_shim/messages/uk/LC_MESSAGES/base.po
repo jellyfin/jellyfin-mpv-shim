@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-11-07 18:05+0000\n"
+"PO-Revision-Date: 2022-07-08 23:22+0000\n"
 "Last-Translator: lyaschuchenko <lyaschuchenko@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -376,11 +376,11 @@ msgstr "Вимкнути Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Підтип профілю відео: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Підтип профілю відео"
 
 #: jellyfin_mpv_shim/menu.py:554 jellyfin_mpv_shim/menu.py:521
 msgid "Auto Play"
