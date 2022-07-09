@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-06-16 09:22+0000\n"
-"Last-Translator: 普鲁文 <pluwen@gmail.com>\n"
+"PO-Revision-Date: 2022-07-10 06:22+0000\n"
+"Last-Translator: yolylight <yolylight@hotmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -372,11 +372,11 @@ msgstr "禁用直接播放"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "视频配置子类别: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "视频配置子类别"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
