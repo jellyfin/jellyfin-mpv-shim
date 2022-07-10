@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-07-07 12:22+0000\n"
-"Last-Translator: Thomas Schwery <thomas@inf3.ch>\n"
+"PO-Revision-Date: 2022-07-12 05:22+0000\n"
+"Last-Translator: Nicolas Viviani <nicolas.viviani01@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fr/>\n"
 "Language: fr\n"
@@ -372,11 +372,11 @@ msgstr "Désactiver la lecture directe"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Sous-type de profil vidéo : {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Sous-type de profil vidéo"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
