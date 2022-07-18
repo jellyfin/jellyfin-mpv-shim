@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-06-21 11:08+0000\n"
-"Last-Translator: danielxb-ar <danielxb@gmail.com>\n"
+"PO-Revision-Date: 2022-07-19 22:22+0000\n"
+"Last-Translator: Franco Castillo <castillofrancodamian@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/es_AR/>\n"
 "Language: es_AR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -372,11 +372,11 @@ msgstr "Deshabilitar reproducción directa"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Subtipo de perfil de video: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Subtipo de perfil de video"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
