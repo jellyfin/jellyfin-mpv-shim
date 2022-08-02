@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-12-08 13:05+0000\n"
-"Last-Translator: Muhammed Aljailane <darhost56@gmail.com>\n"
+"PO-Revision-Date: 2022-08-02 17:09+0000\n"
+"Last-Translator: 0TTA <osamh735@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.10.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -149,7 +149,7 @@ msgstr "غلق"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr " (تحويل)"
+msgstr " (ترميز)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -241,7 +241,7 @@ msgstr "اختيار اوتوماتيكي الصوت/ترجمة(جميع الم�
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "الخروج وتسجيل أنه لم يتم مشاهدته"
+msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -281,15 +281,15 @@ msgstr "لا شيء"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "تحديد جودة التحويل"
+msgstr "تحديد جودة الترميز"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr "الأقصى درجة"
+msgstr "الحد الأقصى"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "بدون تحويل"
+msgstr "دُونَ ترميز"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
@@ -337,7 +337,7 @@ msgstr "المنتصف"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "جودة التحويل عن بعد: {0:0.1f} ميغا بت في الثانية"
+msgstr "جودة الترميز عن بعد: {0:0.1f} ميغا بت في الثانية"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -353,11 +353,11 @@ msgstr "لون الترجمة: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr "تحويل الصيغة H265 إلى H264"
+msgstr "رمز H265 إلى H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr "تحويل الصيغة Hi10p إلى 8bit"
+msgstr "رمز Hi10p إلى 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -365,7 +365,7 @@ msgstr "المسارات المباشرة"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr "تحويل الصيغة إلى H265"
+msgstr "رمز إلى H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
@@ -401,7 +401,7 @@ msgstr "انعكاس الشاشة"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Write Logs to File"
-msgstr "كتابة التسجيلات في ملف"
+msgstr "اكتب السجلات في ملف"
 
 #: jellyfin_mpv_shim/menu.py:560
 msgid "Check for Updates"
@@ -416,8 +416,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"يتم تحويل الفيديو عن بعد!\n"
-"اذا كان هذا غير لازم اضغط على c لتعديل إعدادات عرض النطاق."
+"عملية ترميز تجري حاليا على فيدو عبر الإنترنت.\n"
+"إن لم تود ذلك، فاضغط على c لتغيير إعدادات سرعة عرض النطاق."
 
 #: jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
@@ -458,19 +458,19 @@ msgstr "SVP معطل"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "مجموعة SyncPlay المختارة لا توجد."
+msgstr "مجموعة المشاهدة معا المختارة غير متوفرة."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "إنشاء مجموعات SyncPlay غير مسموح."
+msgstr "غير مسموح لك بإنشاء مجموعات مشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "الوصول إلى مجموعة SyncPlay تم رفضه."
+msgstr "تم رف طلب دخولك إلى مجموعة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "الوصول إلى مكتبة SyncPlay تم رفضه."
+msgstr "تم رفض طلبك بالوصول إلى مكتبة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
