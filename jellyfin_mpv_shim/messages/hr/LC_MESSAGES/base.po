@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-06-04 21:22+0000\n"
-"Last-Translator: Ivan Kranjec <ivan.kranjec95@gmail.com>\n"
+"PO-Revision-Date: 2022-08-06 12:22+0000\n"
+"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -193,7 +193,7 @@ msgstr "Sitno"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Malo"
+msgstr "Mali"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
