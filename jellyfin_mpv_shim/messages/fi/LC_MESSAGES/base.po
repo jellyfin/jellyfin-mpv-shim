@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-07-07 12:22+0000\n"
-"Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
+"PO-Revision-Date: 2022-08-08 11:22+0000\n"
+"Last-Translator: Akseli <akselimk97@gmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Kappalevalinta..."
+msgstr "Valitaan kappaleita..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -28,7 +28,7 @@ msgstr "{0}: Ei teksityksiä"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "Epäonnistui"
+msgstr "{0}: Epäonnistui"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -60,7 +60,7 @@ msgstr "Salasana: "
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
-msgstr "Lisättiin palvelin onnistuneesti."
+msgstr "Palvelin lisättiin onnistuneesti."
 
 #: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
