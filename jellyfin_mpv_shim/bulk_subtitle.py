@@ -26,7 +26,7 @@ keep_messages = 6
 def render_message(message, show_text):
     log.info(message)
     messages.append(message)
-    text = _("Selecting Tracks...")
+    text = _("Selecting Tracks…")
     for message in messages[-6:]:
         text += "\n   " + message
     show_text(text, 2 ** 30, 1)
@@ -160,7 +160,7 @@ def process_series(mode, player: "PlayerManager_type", m_raid=None, m_rsid=None)
         )
     time.sleep(3)
     if c_aid:
-        render_message(_("Setting Current..."), show_text)
+        render_message(_("Setting Current…"), show_text)
         player.put_task(player.set_streams, c_aid, c_sid)
         player.timeline_handle()
 
