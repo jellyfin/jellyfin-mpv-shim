@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-11-28 12:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-08-25 22:11+0000\n"
+"Last-Translator: Asadito Familiar <asaditofamiliarremix@gmail.com>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/es_419/>\n"
 "Language: es_419\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.13.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -28,19 +28,19 @@ msgstr "{0}: Sin subtítulos"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Falla"
+msgstr "{0}: Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Establecer subtitulado: {0} Ok, {1} falló"
+msgstr "Establecer subtitulado: {0} Ok, {1} Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Establecer Doblaje: {0} ok, {1} Sólo audio, {2} Falló"
+msgstr "Establecer Doblaje: {0} ok, {1} Sólo audio, {2} Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manual: {0} OK, {1} falló"
+msgstr "Manual: {0} OK, {1} Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -68,7 +68,7 @@ msgstr "¿Agregar otro servidor?"
 
 #: jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
-msgstr "Fallo al agregar el servidor."
+msgstr "Error al agregar el servidor."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -96,7 +96,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr "Fallo"
+msgstr "Error"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -120,7 +120,7 @@ msgstr "Contraseña:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr "Remover servidor"
+msgstr "Eliminar servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
@@ -228,7 +228,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v{0} Informaciôn de Lanzamiento/Descarga"
+msgstr "MPV Shim v{0} Información de Lanzamiento/Descarga"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -304,7 +304,7 @@ msgstr "Audio en Japonés con Subtítulos en Inglés"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manualmente por Indice de Pista (Menos confiable)"
+msgstr "Manual por Índice de Rastreador (Menos confiable)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -372,11 +372,11 @@ msgstr "Deshabilitar Reproducción Directa"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Subtipo de Perfil de Vídeo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Subtipo de Perfil de Vídeo"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
@@ -396,11 +396,11 @@ msgstr "Usar preferencia de búsqueda web"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Display Mirroring"
-msgstr "Duplicación de Pantalla"
+msgstr "Duplicar Pantalla"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Write Logs to File"
-msgstr "Escribir Registros a Archivo"
+msgstr "Registrar Logs a Archivo"
 
 #: jellyfin_mpv_shim/menu.py:560
 msgid "Check for Updates"
@@ -416,8 +416,8 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "¡Tu video remoto se está transcodificando!\n"
-"Presiona \"c\" para ajustar la configuración del ancho de banda si esto no "
-"es necesario."
+"Presiona \"C\" para ajustar la configuración del ancho de banda si no es "
+"necesario."
 
 #: jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
@@ -478,7 +478,7 @@ msgstr "Velocidad para Sincronizar (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Sincronización Deshabilitada (Muchos Intentos)"
+msgstr "Sincronización Deshabilitada (Demasiados intentos)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -506,7 +506,7 @@ msgstr "{0} está almacenando en búfer."
 
 #: jellyfin_mpv_shim/syncplay.py:613
 msgid "{0}'s Group"
-msgstr "Grupo {0}"
+msgstr "Grupo de {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
 msgid "None (Disabled)"
@@ -566,4 +566,4 @@ msgstr "Anime4K x2 Perceptual + Deblur (Para HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
-msgstr "Seleccionar el Perfil del Sombreador"
+msgstr "Seleccionar el Perfil de Sombreado"
