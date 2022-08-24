@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-12-24 20:05+0000\n"
-"Last-Translator: Joost <joho500@hotmail.com>\n"
+"PO-Revision-Date: 2022-08-25 22:11+0000\n"
+"Last-Translator: Ariejan de Vroom <ariejan@devroom.io>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.13.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -140,7 +140,7 @@ msgstr "Applicatie Menu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr "Open configuratiemap"
+msgstr "Open Configuratie Folder"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
@@ -372,11 +372,11 @@ msgstr "Direct Play deactiveren"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Videoprofiel Subtype: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Videoprofiel Subtype"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
