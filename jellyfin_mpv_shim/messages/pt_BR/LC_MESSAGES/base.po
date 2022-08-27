@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-06-21 11:08+0000\n"
-"Last-Translator: Fabrício Jácome <fabriciomourajacome@gmail.com>\n"
+"PO-Revision-Date: 2022-08-28 04:11+0000\n"
+"Last-Translator: Giuliano Chimatti Berna <giucberna@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.13.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -224,7 +224,7 @@ msgstr "Trocar qualidade do vídeo"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Reprodução sincronizada"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -372,11 +372,11 @@ msgstr "Desabilitar Direct Play (reprodução direta)"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Subtipo de perfil de vídeo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Subtipo de perfil de vídeo"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
@@ -408,7 +408,7 @@ msgstr "Buscar atualizações"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Discordar rica presença"
 
 #: jellyfin_mpv_shim/player.py:511
 msgid ""
@@ -473,7 +473,7 @@ msgstr "O acesso a biblioteca SyncPlay foi negado."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Velocidade de sincronização (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
