@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
 "PO-Revision-Date: 2022-09-13 09:11+0000\n"
-"Last-Translator: Sebastian Knappe <github@sebastianknappe.de>\n"
+"Last-Translator: Ananas <dawidveimer1@hotmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -44,7 +44,7 @@ msgstr "Manuell: {0} Ok, {1} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Derzeitige Einstellung..."
+msgstr "Aktuelle Einstellung..."
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
@@ -80,7 +80,7 @@ msgstr "Wähle deine Medien in Jellyfin und spiele sie hier ab"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Programm Log"
+msgstr "Logs der Anwendung"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
@@ -372,11 +372,11 @@ msgstr "Direktes Abspielen deaktivieren"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Videoprofil-Subtyp: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Videoprofil-Subtyp"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
