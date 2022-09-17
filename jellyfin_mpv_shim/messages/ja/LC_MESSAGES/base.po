@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-01-02 13:05+0000\n"
-"Last-Translator: mio2 <motty.mio2@gmail.com>\n"
+"PO-Revision-Date: 2022-09-18 13:54+0000\n"
+"Last-Translator: Cameron <blackout99mc@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -150,7 +150,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "白い"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
@@ -158,7 +158,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "黒い"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
@@ -166,7 +166,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "青い"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
@@ -178,7 +178,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "赤い"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
