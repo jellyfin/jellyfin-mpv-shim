@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-04-20 20:05+0000\n"
-"Last-Translator: Müslüm Barış Korkmazer <boran_nesil@hotmail.com>\n"
+"PO-Revision-Date: 2022-09-28 04:54+0000\n"
+"Last-Translator: Burak Meric <mburakmeric22@gmail.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
 "Language: tr\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -28,19 +28,19 @@ msgstr "{0}: Altyazı yok"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Başarısız oldu"
+msgstr "{0}: Hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Altyazıları Ayarla: {0} tamam, {1} başarısız"
+msgstr "Altyazıları Ayarla: {0} tamam, {1} hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Dublaj Ayarla: {0} tamam, {1} yalnızca ses, {2} başarısız"
+msgstr "Dublaj Ayarla: {0} tamam, {1} yalnızca ses, {2} hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manuel: {0} tamam, {1} başarısız"
+msgstr "Manuel: {0} tamam, {1} hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -72,7 +72,7 @@ msgstr "Sunucu ekleme başarısız oldu."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr "Cast edilmeye hazır"
+msgstr "Yayınlamaya hazır"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
@@ -116,7 +116,7 @@ msgstr "Kullanıcı adı:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "Parola:"
+msgstr "Şifre:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -164,7 +164,7 @@ msgstr "Siyah"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Camgöbeği"
+msgstr "Açık mavi"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -176,7 +176,7 @@ msgstr "Yeşil"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr "Macenta"
+msgstr "Eflatun"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
@@ -236,11 +236,11 @@ msgstr "Video Oynatma Profilini Değiştir"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Sesi/Altyazıları Otomatik Ayarla (Tüm Seri)"
+msgstr "Sesi ve Altyazıları Otomatik Ayarla (Tüm Seri İçin)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Çık ve İzlenmeyen Olarak İşaretle"
+msgstr "Çık ve İzlenmedi Olarak İşaretle"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -260,7 +260,7 @@ msgstr "Video Tercihleri"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
 msgid "Player Preferences"
-msgstr "Oyuncu Tercihleri"
+msgstr "Kullanıcı Tercihleri"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
@@ -272,7 +272,7 @@ msgstr "Ses Parçasını Seçin"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Altyazı Parçasını Seç"
+msgstr "Altyazı Dosyasını Seç"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -304,7 +304,7 @@ msgstr "Japonca Ses, İngilizce Altyazılı"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "İz İndeksine Göre Kılavuz (Daha Az Güvenilir)"
+msgstr "Gömülü Kayıda Göre Kılavuz (Daha Az Güvenilir)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -352,15 +352,15 @@ msgstr "Altyazı Rengi: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr "H265'i H264'e dönüştürün"
+msgstr "H265'ten H264'e dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr "Hi10p'yi 8bit'e dönüştürün"
+msgstr "Hi10p'ten 8bit'e dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
-msgstr "Doğrudan Yollar"
+msgstr "Direkt Yol"
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
@@ -368,15 +368,15 @@ msgstr "H265'e dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr "Doğrudan Oynatmayı Devre Dışı Bırak"
+msgstr "Direkt Oynatmayı Devre Dışı Bırak"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Video Profil Alttipi"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Video Profil Alt Tipi"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
@@ -388,7 +388,7 @@ msgstr "Otomatik Tam Ekran"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Media Key Seek"
-msgstr "Medya Anahtarı Arama"
+msgstr "Medya Anahtarı Saptama"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Use Web Seek Pref"
@@ -408,15 +408,16 @@ msgstr "Güncellemeleri kontrol et"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Discord Rich Presence"
-msgstr "Discord Zengin Varlık"
+msgstr "Discord Rich Presence Özelliği"
 
 #: jellyfin_mpv_shim/player.py:511
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Uzaktaki videonuz kod dönüştürüyor!\n"
-"Bu gerekli değilse bant genişliği ayarlarını yapmak için c tuşuna basın."
+"Uzaktaki video dosyanız kod dönüşüm aşamasında!\n"
+"Bunun yapılmasına gerek yoksa bant genişliği ayarını yapmak için c tuşuna "
+"basın."
 
 #: jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
@@ -429,7 +430,7 @@ msgstr "Otomatik"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr "Engelli"
+msgstr "Devre Dışı"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -445,7 +446,7 @@ msgstr "Devre dışı bırak"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "yeniden dene"
+msgstr "Yeniden dene"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -481,7 +482,7 @@ msgstr "Eşzamanlama Devre Dışı (Çok Fazla Deneme)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "EşZamanlamayıGeç (x{0})"
+msgstr "EşZamanlamayıAtla (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -497,11 +498,11 @@ msgstr "{0} katıldı."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr "{0} çıktı."
+msgstr "{0} Terk etti."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} yüklüyor."
+msgstr "{0} yükleniyor."
 
 #: jellyfin_mpv_shim/syncplay.py:613
 msgid "{0}'s Group"
@@ -529,7 +530,7 @@ msgstr "Blnmyr"
 
 #: jellyfin_mpv_shim/utils.py:218
 msgid " Forced"
-msgstr " Zorunlu"
+msgstr " Gömülü"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
@@ -553,15 +554,15 @@ msgstr "Anime4K x4 Perceptual + Blur kaldır (SD Kalite)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Anime4K x2 Faithful (HD kalite)"
+msgstr "Anime4K x2 Faithful (HD Kalite)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 Perceptual (HD kalite)"
+msgstr "Anime4K x2 Perceptual (HD Kalite)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Blur kaldır (HD kalite)"
+msgstr "Anime4K x2 Perceptual + Blur kaldır (HD Kalite)"
 
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
