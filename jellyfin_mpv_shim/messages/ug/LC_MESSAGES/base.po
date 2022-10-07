@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-08-06 12:22+0000\n"
-"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
+"PO-Revision-Date: 2022-10-07 21:34+0000\n"
+"Last-Translator: YusanTayir <208060627@qq.com>\n"
 "Language-Team: Uyghur <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ug/>\n"
 "Language: ug\n"
@@ -15,24 +15,24 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "ئاۋاز يولىنى تاللاش ..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}:فىلىم خېتى يوق"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: مەغلۇب بولدى"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "فىلىم خېتىنى بەلگىلەش : {0} ئوڭۇشلۇق بولدى ، {1} .مەغلۇب بولدى"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -48,23 +48,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
-msgstr ""
+msgstr "مۇلازىمىتېر URL: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
-msgstr ""
+msgstr "ئابونت نامى: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
-msgstr ""
+msgstr "مەخپىي نومۇر: "
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
-msgstr ""
+msgstr "مۇلازىمىتېرغا مۇۋەپپەقىيەتلىك قوشۇلدى."
 
 #: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
-msgstr ""
+msgstr "يەنە بىر مۇلازىمىتېر قوشامسىز؟"
 
 #: jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
