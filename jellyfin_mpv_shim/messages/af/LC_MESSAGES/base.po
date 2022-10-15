@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-15 17:22+0000\n"
+"PO-Revision-Date: 2022-10-15 17:23+0000\n"
 "Last-Translator: Nel Prinsloo <nel@nelcapetown.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
@@ -292,7 +292,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Kies Klank/Sub-titels vir Reeks"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
