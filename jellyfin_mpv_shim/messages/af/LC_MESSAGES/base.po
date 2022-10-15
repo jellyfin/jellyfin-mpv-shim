@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2021-12-24 20:05+0000\n"
-"Last-Translator: WWWesten <wwwesten@gmail.com>\n"
+"PO-Revision-Date: 2022-10-15 17:22+0000\n"
+"Last-Translator: Nel Prinsloo <nel@nelcapetown.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.2\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -264,19 +264,19 @@ msgstr "Speler Voorkeure"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr ""
+msgstr "Uitgang Opsies"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Kies Klankbaan"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Kies sub titels"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "Geen"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -284,7 +284,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr ""
+msgstr "Maksimum"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
