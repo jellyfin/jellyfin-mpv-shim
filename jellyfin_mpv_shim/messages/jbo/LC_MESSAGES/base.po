@@ -6,18 +6,21 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2022-10-19 21:50+0000\n"
+"Last-Translator: Polaris <axvantia@protonmail.com>\n"
+"Language-Team: Lojban <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/jbo/>\n"
 "Language: jbo\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "ca plicu'a lo zgipau"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -25,7 +28,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: fliba"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -44,20 +47,21 @@ msgid "Setting Current..."
 msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:50
+#, fuzzy
 msgid "Server URL: "
-msgstr ""
+msgstr "lo veirjudri be fe lo samtcise'u "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
-msgstr ""
+msgstr "plicme:- "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
-msgstr ""
+msgstr "japyvla:- "
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
-msgstr ""
+msgstr "se snada lo nu se jmina be lo samtcise'u"
 
 #: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
@@ -65,7 +69,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
-msgstr ""
+msgstr "fliba fe lo nu se jmina be lo samtcise'u"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -77,11 +81,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr ""
+msgstr "te plivei lo proga"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "jmina fe lo samtcise'u"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
@@ -91,7 +95,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr ""
+msgstr "fliba"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -103,15 +107,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr ""
+msgstr "samtcise'u:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr ""
+msgstr "plicme:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr ""
+msgstr "japyvla"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -119,7 +123,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
-msgstr ""
+msgstr "ga'orgau"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
@@ -139,7 +143,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
-msgstr ""
+msgstr "sisti"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
@@ -147,59 +151,59 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "blabi"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "pelxu"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "xekri"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "cicna"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "blanu"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "crino"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "nukni"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "xunre"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "grusi"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "cmacma"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "cmalu"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "fadni"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "barda"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "brabra"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
@@ -239,7 +243,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "vidnyxra"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -319,15 +323,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "dziraipau"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "galraipau"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "midju"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
@@ -418,11 +422,11 @@ msgstr ""
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "zmiku"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "ca'arcando"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -434,7 +438,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "ca'arcadgau"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
@@ -516,7 +520,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:217
 msgid "Unkn"
-msgstr ""
+msgstr "narju'odza"
 
 #: jellyfin_mpv_shim/utils.py:218
 msgid " Forced"
