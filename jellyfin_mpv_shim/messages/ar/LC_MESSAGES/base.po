@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-09 12:54+0000\n"
-"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
+"PO-Revision-Date: 2022-10-19 21:50+0000\n"
+"Last-Translator: 0TTA <osamh735@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -466,11 +466,11 @@ msgstr "غير مسموح لك بإنشاء مجموعات مشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "تم رف طلب دخولك إلى مجموعة في المشاهدة معا."
+msgstr "رٌفض طلب دخولك إلى مجموعة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "تم رفض طلبك بالوصول إلى مكتبة في المشاهدة معا."
+msgstr "رٌفض طلبك بالوصول إلى مكتبة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
