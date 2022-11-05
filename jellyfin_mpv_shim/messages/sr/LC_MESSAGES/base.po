@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-03-07 16:58+0000\n"
-"Last-Translator: nema imena <cika.dzo132@gmail.com>\n"
+"PO-Revision-Date: 2022-11-06 18:50+0000\n"
+"Last-Translator: Dušan M. <sadun76@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -229,7 +229,7 @@ msgstr "СинкПлеј"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Информације о издању/Преузимање"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -253,15 +253,15 @@ msgstr "Профил репродукције снимка"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "SVP поставке"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
 msgid "Video Preferences"
-msgstr ""
+msgstr "Видео подешавања"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
 msgid "Player Preferences"
-msgstr ""
+msgstr "Подешавања репродукције"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
@@ -305,11 +305,11 @@ msgstr "Јапански звук с енглеским титловима"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Ручно по индексу записа (мање поуздано)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Одабери подразумевани профил конверзије формата"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
@@ -357,7 +357,7 @@ msgstr "Транскодирање Х265 у Х264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Прекодирај Hi10p у 8 бита"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -373,27 +373,27 @@ msgstr "Онемогући Директ плеј"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Видео профил подтип: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Видео профил подтип"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
-msgstr ""
+msgstr "Аутоматско пуштање"
 
 #: jellyfin_mpv_shim/menu.py:555
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Аутоматски пун екран"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Медији тастер претраге"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Користи подешавања Web претраге"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Display Mirroring"
