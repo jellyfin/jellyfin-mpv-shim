@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-09-30 07:54+0000\n"
-"Last-Translator: Stjepan Mrgnaić <stjepan.mrganic@gmail.com>\n"
+"PO-Revision-Date: 2022-11-21 07:08+0000\n"
+"Last-Translator: lukapiplica <github163007297@protonmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -348,19 +348,19 @@ msgstr "Veličina titlova: {0}"
 
 #: jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Pozicija Titlova: {0}"
 
 #: jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Boja titlova: {0}"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Transcode H265 to H264"
-msgstr ""
+msgstr "Transkodiranje H265 u H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Transkodiranje Hi10p u 8bit"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -368,11 +368,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:512
 msgid "Transcode to H265"
-msgstr ""
+msgstr "Transkodiranje u H265"
 
 #: jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Onemogući Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
@@ -384,7 +384,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
-msgstr ""
+msgstr "Automatska reprodukcija"
 
 #: jellyfin_mpv_shim/menu.py:555
 msgid "Auto Fullscreen"
