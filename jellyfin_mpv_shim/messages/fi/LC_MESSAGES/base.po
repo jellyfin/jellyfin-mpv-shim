@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-03 06:54+0000\n"
-"Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
+"PO-Revision-Date: 2022-12-08 06:51+0000\n"
+"Last-Translator: Atte Timonen <atte.timonen@iki.fi>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -24,7 +24,7 @@ msgstr "Valitaan kappaleita..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: Ei teksityksiä"
+msgstr "{0}: Ei tekstityksiä"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
@@ -76,7 +76,7 @@ msgstr "Valmis suoratoistoon"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Valitse mediasi Jellyfinssä ja toista se tässä"
+msgstr "Valitse mediasi Jellyfinissä ja toista se tässä"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
@@ -216,7 +216,7 @@ msgstr "Vaihda ääni"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Vaihda teksitykset"
+msgstr "Vaihda tekstitykset"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
@@ -232,15 +232,15 @@ msgstr "MPV Shim v{0}-julkaisutiedot/lataus"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr "Vaihda videon toisto profiili"
+msgstr "Vaihda videontoistoprofiili"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Automaattisesti aseta ääni/teksitykset (Koko Sarja)"
+msgstr "Aseta ääni/tekstitykset automaattisesti (Koko sarja)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Lopeta ja merkkaa katsomattomaksi"
+msgstr "Lopeta ja merkitse katsomattomaksi"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -248,7 +248,7 @@ msgstr "Kuvakaappaus"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr "Video toisto profiilit"
+msgstr "Video toistoprofiilit"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
@@ -256,11 +256,11 @@ msgstr "SVP Asetukset"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
 msgid "Video Preferences"
-msgstr "Video asetukset"
+msgstr "Videoasetukset"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
 msgid "Player Preferences"
-msgstr "Toistin asetukset"
+msgstr "Toistimen asetukset"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
@@ -268,11 +268,11 @@ msgstr "Sulje valikko"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Valitse ääni raita"
+msgstr "Valitse ääniraita"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Valitse teksitys raita"
+msgstr "Valitse tekstitysraita"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -280,7 +280,7 @@ msgstr "Ei mitään"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "Valitse transkoodaus laatu"
+msgstr "Valitse transkoodauslaatu"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -292,11 +292,11 @@ msgstr "Ei transkoodausta"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Valitse ääni/teksitys sarjalle"
+msgstr "Valitse ääni/tekstitys sarjalle"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr "Englannin kielinen ääni"
+msgstr "Englanninkielinen ääni"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
@@ -308,19 +308,19 @@ msgstr "Manuaalisesti raitahakemiston perusteella (epäluotettavampi)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Valitse oletus transkoodaus profiili"
+msgstr "Valitse transkoodauksen oletusprofiili"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Valitse teksitys väri"
+msgstr "Valitse tekstityksen väri"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Valitse teksitys koko"
+msgstr "Valitse tekstityksen koko"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Valitse teksitys sijainti"
+msgstr "Valitse tekstityksen sijainti"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
@@ -336,7 +336,7 @@ msgstr "Keski"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Etä transkoodaus laatu: {0:0.1f} Mbps"
+msgstr "Etätranskoodauksen laatu: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -384,7 +384,7 @@ msgstr "Automaattinen toisto"
 
 #: jellyfin_mpv_shim/menu.py:555
 msgid "Auto Fullscreen"
-msgstr "Automaattinen kokonäyttö"
+msgstr "Automaattinen koko näytön tila"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Media Key Seek"
@@ -397,7 +397,7 @@ msgstr "Käytä web-haun määritystä"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Display Mirroring"
-msgstr "Näytönpeilaus"
+msgstr "Näytön peilaus"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Write Logs to File"
