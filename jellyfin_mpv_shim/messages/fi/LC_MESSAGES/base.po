@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-12-08 06:51+0000\n"
-"Last-Translator: Atte Timonen <atte.timonen@iki.fi>\n"
+"PO-Revision-Date: 2022-12-11 10:51+0000\n"
+"Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Valitaan kappaleita..."
+msgstr "Valitaan raitoja..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -216,7 +216,7 @@ msgstr "Vaihda ääni"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Vaihda tekstitykset"
+msgstr "Vaihda tekstitys"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
@@ -300,11 +300,11 @@ msgstr "Englanninkielinen ääni"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Japanilainen ääni Englantilaisilla teksityksillä"
+msgstr "Japaninkielinen ääni englanninkielisillä teksityksillä"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manuaalisesti raitahakemiston perusteella (epäluotettavampi)"
+msgstr "Manuaalisesti raitanumeron perusteella (epäluotettavampi)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
