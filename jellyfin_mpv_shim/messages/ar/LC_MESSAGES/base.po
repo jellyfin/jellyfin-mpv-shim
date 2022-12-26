@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-19 21:50+0000\n"
+"PO-Revision-Date: 2022-12-27 09:51+0000\n"
 "Last-Translator: 0TTA <osamh735@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
@@ -41,7 +41,7 @@ msgstr "تجهيز الدبلجة: {0} نجاح, {1} صوت فقط, {2} فشل"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "يدوي: {0} نجاح, {1}: فش"
+msgstr "يدوي: {0} لا مشكلة، {1}: فشل"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -165,7 +165,7 @@ msgstr "أسود"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "أزرق سماوي"
+msgstr "سماوي"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -462,11 +462,11 @@ msgstr "مجموعة المشاهدة معا المختارة غير متوفر�
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "غير مسموح لك بإنشاء مجموعات مشاهدة معا."
+msgstr "غير مسموح لك إنشاء مجموعات المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "رٌفض طلب دخولك إلى مجموعة في المشاهدة معا."
+msgstr "رٌفض طلب دخولك إلى المجموعة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
