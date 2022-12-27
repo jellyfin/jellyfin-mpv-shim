@@ -6,220 +6,225 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2022-12-28 21:51+0000\n"
+"Last-Translator: Agi0m <gimiramadani51@gmail.com>\n"
+"Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/sq/>\n"
 "Language: sq\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Përzgjedhja e këngëve"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Pa titra"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Dështoj"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Vendos Titrat: {0} ok, {1} dështoj"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Vendos Dublimin: ok, {1} vetëm zëri, {2} dështoj"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Manual: {0} ok, {1} dështoj"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Duke vendosur aktualen..."
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
-msgstr ""
+msgstr "Linku i serverit: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
-msgstr ""
+msgstr "Emri i përdoruesit: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
-msgstr ""
+msgstr "Fjalkalimi: "
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
-msgstr ""
+msgstr "Severi u shtua me sukses."
 
 #: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
-msgstr ""
+msgstr "Shto një server tjetër?"
 
 #: jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
-msgstr ""
+msgstr "Shtimi i serverit dështoi."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Gati për të shfaqur"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Zgjedh median tënde në Jellyfin dhe luaje këtu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr ""
+msgstr "Regjistri i aplikacionit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "Shto server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Nuk mund të shtohet serveri.\n"
+"Ju lutem shikoni informacionin e lidhjes"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr ""
+msgstr "Dështoi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr ""
+msgstr "Konfigurimi i serverit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr ""
+msgstr "Serveri:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr ""
+msgstr "Emri i përdoruesit:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr ""
+msgstr "Fjalkalimi:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr ""
+msgstr "Hiq Serverin"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
-msgstr ""
+msgstr "Mbyll"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr ""
+msgstr "Konfiguro serverët"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr ""
+msgstr "Shfaq Konsolën"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr ""
+msgstr "Menyja e Aplikacionit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Hap Dosjen e Konfigurimit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
-msgstr ""
+msgstr "Hiq dorë"
 
 #: jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
-msgstr ""
+msgstr " {Transkodo}"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "E Bardhë"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "E Verdhë"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "E Zezë"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "E Gjelbër në të Kaltër"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "E Kaltër"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "E Gjelbër"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Vjollcë e lehtë"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "E Kuqe"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "Gri"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "Shumë e vogël"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "E vogël"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "Normale"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "E madhe"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "Shumë e madhe"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "Menyja kryesore"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "Ndrysho Audion"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "Ndrysho Titrat"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "Ndrysho Kualitetin e Videos"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
 msgid "SyncPlay"
-msgstr ""
+msgstr "Sinkronizo Luajtjen"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
