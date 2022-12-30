@@ -6,58 +6,61 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2022-12-31 10:51+0000\n"
+"Last-Translator: Xavier Rosell <xavierrosellroure@gmail.com>\n"
+"Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Seleccionant pistes..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Sense subtítols"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Establir subtitulat: {0} ok, {1} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Establir doblat: {0} ok, {1} només àudio, {2} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Manual: {0} ok, {1} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Configuració actual..."
 
 #: jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
-msgstr ""
+msgstr "URL del servidor: "
 
 #: jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
-msgstr ""
+msgstr "Nom d'usuari: "
 
 #: jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
-msgstr ""
+msgstr "Contrasenya: "
 
 #: jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
-msgstr ""
+msgstr "Servidor afegit correctament."
 
 #: jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
@@ -159,7 +162,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Cian"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
