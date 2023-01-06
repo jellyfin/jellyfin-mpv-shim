@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-15 17:28+0000\n"
-"Last-Translator: Nel Prinsloo <nel@nelcapetown.com>\n"
+"PO-Revision-Date: 2023-01-09 16:51+0000\n"
+"Last-Translator: Stephen Cox <stephencoxmail@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -280,7 +280,7 @@ msgstr "Geen"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Kies transkodeer kwaliteit"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -288,7 +288,7 @@ msgstr "Maksimum"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr ""
+msgstr "Geen transkodering"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
