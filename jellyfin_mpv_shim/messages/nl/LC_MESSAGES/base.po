@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-12-05 15:51+0000\n"
-"Last-Translator: Bas <weblate@hanka.mp>\n"
+"PO-Revision-Date: 2023-01-13 20:51+0000\n"
+"Last-Translator: George Choustoulakis <georgechoustoulakis@hotmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -232,7 +232,7 @@ msgstr "MPV shim v{0} Release info/Download"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr "Afspeelprofiel video wijzigen"
+msgstr "Pas Video Playback Profiel aan"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
@@ -268,11 +268,11 @@ msgstr "Sluit Menu"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Selecteer audiospoor"
+msgstr "Selecteer Audio Spoor"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Selecteer ondertitel"
+msgstr "Selecteer Ondertitels"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
