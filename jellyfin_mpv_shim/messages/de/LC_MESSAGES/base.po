@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-27 09:50+0000\n"
-"Last-Translator: FrEaK-git <gordon.nowak@outlook.com>\n"
+"PO-Revision-Date: 2023-01-16 11:51+0000\n"
+"Last-Translator: Luka Hummel <luka@hummel.email>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -36,7 +36,7 @@ msgstr "Setze Untertitel: {0} Ok, {1} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Setze Dubbed: {0} ok, {1} nur Audio, {2} Fehler"
+msgstr "Setze synchronisiert: {0} ok, {1} nur Audio, {2} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
@@ -80,7 +80,7 @@ msgstr "Wähle deine Medien in Jellyfin und spiele sie hier ab"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Logs der Anwendung"
+msgstr "Anwendungslogs"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
