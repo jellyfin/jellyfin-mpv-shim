@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-12-28 21:51+0000\n"
-"Last-Translator: Agi0m <gimiramadani51@gmail.com>\n"
+"PO-Revision-Date: 2023-01-25 07:37+0000\n"
+"Last-Translator: Tiondal <tiondal@protonmail.ch>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sq/>\n"
 "Language: sq\n"
@@ -232,11 +232,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Ndrysho profilin e video shikimit"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "Vendos automatikisht Audio/Subtitrat (Për të gjithë Serien)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
