@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-10-15 06:13+0000\n"
-"Last-Translator: SaNoX9 <roeelevi9@gmail.com>\n"
+"PO-Revision-Date: 2023-01-27 08:51+0000\n"
+"Last-Translator: moshiko kar <moshikokar@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -97,7 +97,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr "כשלון"
+msgstr "נכשל"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -113,11 +113,11 @@ msgstr "שרת:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "שם חשבון:"
+msgstr "שם משתמש:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "ססמא:"
+msgstr "סיסמא:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -165,7 +165,7 @@ msgstr "שחור"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "ציאן"
+msgstr "טורקיז"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -523,7 +523,6 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:217
-#, fuzzy
 msgid "Unkn"
 msgstr "לא ידוע"
 
