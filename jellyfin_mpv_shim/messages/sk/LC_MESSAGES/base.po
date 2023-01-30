@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-07-12 05:22+0000\n"
+"PO-Revision-Date: 2023-01-30 22:57+0000\n"
 "Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -164,7 +164,7 @@ msgstr "Čierna"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Azúrová"
+msgstr "Tyrkysová"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
