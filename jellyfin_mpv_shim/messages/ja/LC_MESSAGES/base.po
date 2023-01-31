@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2023-01-05 05:17+0000\n"
-"Last-Translator: Futoshi Iwashita <jaxx2104@gmail.com>\n"
+"PO-Revision-Date: 2023-02-02 00:51+0000\n"
+"Last-Translator: fusengum <fusen@fusenstage.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -162,7 +162,7 @@ msgstr "黒い"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "シアン"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
