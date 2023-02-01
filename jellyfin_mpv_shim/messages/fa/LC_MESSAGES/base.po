@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-02-26 09:09+0000\n"
-"Last-Translator: Ali Dastpour <Erorr110@yahoo.com>\n"
+"PO-Revision-Date: 2023-02-02 00:51+0000\n"
+"Last-Translator: Peyman M. <peymanr34@outlook.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
 "Language: fa\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -372,11 +372,11 @@ msgstr "پخش مستقیم را غیرفعال کنید"
 
 #: jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "زیر نوع پروفایل ویدیو: {0}"
 
 #: jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "زیرنوع پروفایل ویدیو"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
