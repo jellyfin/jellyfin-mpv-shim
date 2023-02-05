@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2022-07-08 23:22+0000\n"
-"Last-Translator: lyaschuchenko <lyaschuchenko@gmail.com>\n"
+"PO-Revision-Date: 2023-02-05 20:17+0000\n"
+"Last-Translator: rushmash <rushmash@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/uk/>\n"
 "Language: uk\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -230,7 +230,7 @@ msgstr "Функція SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v {0} Інформація про випуск/Завантажити"
+msgstr "MPV Shim v{0} Інформація про випуск/Завантажити"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -340,7 +340,7 @@ msgstr "Центрувати"
 
 #: jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Якість віддаленого перекодування: {0: 0,1f} Мбіт / с"
+msgstr "Якість віддаленого перекодування: {0: 0,1f} Мбіт/с"
 
 #: jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
@@ -360,7 +360,7 @@ msgstr "Перекодувати H265 у H264"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
-msgstr "Перекодувати Hi10p на 8 біт"
+msgstr "Перекодувати Hi10p на 8біт"
 
 #: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
@@ -420,7 +420,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Ваше віддалене відео перекодується!\n"
-" Натисніть С, щоб відрегулювати параметри пропускної здатності, якщо це не "
+"Натисніть С, щоб відрегулювати параметри пропускної здатності, якщо це не "
 "потрібно."
 
 #: jellyfin_mpv_shim/player.py:863 jellyfin_mpv_shim/player.py:849
@@ -526,8 +526,8 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
-"Доступне оновлення MPV Shim v {0}\n"
-" Відкрийте меню (натисніть С) для отримання детальної інформації."
+"Доступне оновлення MPV Shim v{0}\n"
+"Відкрийте меню (натисніть С) для отримання детальної інформації."
 
 #: jellyfin_mpv_shim/utils.py:217 jellyfin_mpv_shim/utils.py:208
 msgid "Unkn"
@@ -572,4 +572,4 @@ msgstr "Anime4K x2 Perceptual + Deblur (для HD)"
 #: jellyfin_mpv_shim/video_profile.py:198
 #: jellyfin_mpv_shim/video_profile.py:184
 msgid "Select Shader Profile"
-msgstr "Виберіть Профіль шейдера"
+msgstr "Виберіть профіль шейдера"
