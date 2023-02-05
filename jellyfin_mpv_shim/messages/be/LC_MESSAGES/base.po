@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2022-06-19 13:37-0400\n"
-"PO-Revision-Date: 2023-02-05 20:17+0000\n"
+"PO-Revision-Date: 2023-02-06 22:51+0000\n"
 "Last-Translator: rushmash <rushmash@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/be/>\n"
@@ -422,7 +422,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
-msgstr "Сезон {0} - Серыя {1}"
+msgstr "Сезон {0} - Эпізод {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
@@ -475,7 +475,7 @@ msgstr "Адмоўлена ў доступе да бібліятэкі SyncPlay.
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "ХуткасцьСінхранізацыі (x{0})"
+msgstr "SpeedToSync - (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -483,7 +483,7 @@ msgstr "Сінхранізацыя адключана (зашмат спроб)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "ПерайсціДаСінхранізацыі (x{0})"
+msgstr "SkipToSync - (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -543,27 +543,27 @@ msgstr "Універсальны высокі (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Анімэ4K x4 Faithful (для SD)"
+msgstr "Anime4K x4 Faithful (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Анімэ4K x4 Perceptual (для SD)"
+msgstr "Anime4K x4 Perceptual (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Анімэ4K x4 Perceptual + Deblur (для SD)"
+msgstr "Anime4K x4 Perceptual + Deblur (для SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Анімэ4K x2 Faithful (для HD)"
+msgstr "Anime4K x2 Faithful (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Анімэ4K x2 Perceptual (для HD)"
+msgstr "Anime4K x2 Perceptual (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Анімэ4K x2 Perceptual + Deblur (для HD)"
+msgstr "Anime4K x2 Perceptual + Deblur (для HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
