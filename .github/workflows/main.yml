@@ -25,7 +25,7 @@ jobs:
       shell: bash
     - name: PyInstaller Bootloader
       run: |
-        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; pip install .
       shell: bash
     - name: Main Build
       run: |
@@ -60,7 +60,7 @@ jobs:
       shell: bash
     - name: PyInstaller Bootloader
       run: |
-        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; pip install .
       shell: bash
     - name: Legacy Build
       run: |
