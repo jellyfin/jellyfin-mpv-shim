@@ -122,6 +122,8 @@ class Settings(SettingsBase):
     force_video_codec: Optional[str] = None
     force_audio_codec: Optional[str] = None
     health_check_interval: Optional[int] = 300
+    skip_intro_always: bool = False
+    skip_intro_prompt: bool = False
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False

@@ -376,6 +376,13 @@ Other miscellaneous configuration options. You probably won't have to change the
  - `raise_mpv` - Windows only. Disable this if you are fine with MPV sometimes appearing behind other windows when playing.
  - `health_check_interval` - The number of seconds between each client health check. Null disables it. Default: `300`
 
+### Skip Intro Support
+
+This functionality is considered experimental and requires the third-party [SkipIntro server plugin](https://github.com/ConfusedPolarBear/intro-skipper). It works the same ways as it did on MPV Shim for Plex.
+
+ - `skip_intro_always` - Always skip intros, without asking. Default: `false`
+ - `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `false`
+
 ### MPV Configuration
 
 You can configure mpv directly using the `mpv.conf` and `input.conf` files. (It is in the same folder as `conf.json`.)

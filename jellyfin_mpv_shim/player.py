@@ -152,6 +152,8 @@ class PlayerManager(object):
         self.warned_about_transcode = False
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
+        self.is_in_intro = False
+        self.intro_has_triggered = False
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -233,8 +235,11 @@ class PlayerManager(object):
         @self._player.on_key_press("XF86_NEXT")
         def handle_media_next():
             if settings.media_key_seek:
-                _x, seektime = self.get_seek_times()
-                self.seek(seektime)
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    _x, seektime = self.get_seek_times()
+                    self.seek(seektime)
             else:
                 self.put_task(self.play_next)
 
@@ -277,14 +282,20 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action("right")
             else:
-                self.kb_seek("right")
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    self.kb_seek("right")
 
         @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("up")
             else:
-                self.kb_seek("up")
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    self.kb_seek("up")
 
         @keypress(settings.kb_menu_down)
         def menu_down():
@@ -414,8 +425,31 @@ class PlayerManager(object):
         if self.timeline_trigger:
             self.timeline_trigger.set()
 
+    def skip_intro(self):
+        self._player.playback_time = self._video.intro_end
+        self.timeline_handle()
+        self.is_in_intro = False
+
     @synchronous("_lock")
     def update(self):
+        if ((settings.skip_intro_always or settings.skip_intro_prompt)
+            and not self.syncplay.is_enabled()
+            and self._video is not None and self._video.intro_start is not None
+            and self._player.playback_time is not None
+            and self._player.playback_time > self._video.intro_start
+            and self._player.playback_time < self._video.intro_end):
+
+            if not self.is_in_intro:
+                if settings.skip_intro_always and not self.intro_has_triggered:
+                    self.intro_has_triggered = True
+                    self.skip_intro()
+                    self._player.show_text(_("Skipped Intro"), 3000, 1)
+                elif settings.skip_intro_prompt:
+                    self._player.show_text(_("Seek to Skip Intro"), 3000, 1)
+            self.is_in_intro = True
+        else:
+            self.is_in_intro = False
+
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
             func(*args)
@@ -468,6 +502,8 @@ class PlayerManager(object):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
+        self.is_in_intro = False
+        self.intro_has_triggered = False
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 
@@ -588,6 +624,8 @@ class PlayerManager(object):
                 if absolute:
                     if self.syncplay.is_enabled():
                         self.last_seek = offset
+                    if self.is_in_intro and offset > self._player.playback_time:
+                        self.skip_intro()
                     p2 = "absolute"
                     if exact:
                         p2 += "+exact"
@@ -595,6 +633,8 @@ class PlayerManager(object):
                 else:
                     if self.syncplay.is_enabled():
                         self.last_seek = self._player.playback_time + offset
+                    if self.is_in_intro and self._player.playback_time + offset > self._player.playback_time:
+                        self.skip_intro()
                     if exact:
                         self._player.command("seek", offset, "exact")
                     else:

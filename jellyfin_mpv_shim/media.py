@@ -46,6 +46,9 @@ class Video(object):
         self.playback_info = None
         self.media_source = None
         self.srcid = srcid
+        self.intro_tried = False
+        self.intro_start = None
+        self.intro_end = None
 
     def map_streams(self):
         self.subtitle_seq = {}
@@ -230,6 +233,20 @@ class Video(object):
                 log.warning("Preferred media source is unplayable.")
             return selected
 
+    def get_intro(self, media_source_id):
+        if self.intro_tried:
+            return
+        self.intro_tried = True
+
+        # provided by plugin
+        try:
+            skip_intro_data = self.client.jellyfin._get(f"Episode/{media_source_id}/IntroTimestamps")
+            if skip_intro_data is not None and skip_intro_data["Valid"]:
+                self.intro_start = skip_intro_data["IntroStart"]
+                self.intro_end = skip_intro_data["IntroEnd"]
+        except:
+                log.warning("Fetching intro data failed. Do you have the plugin installed?", exc_info=1)
+
     def get_playback_url(
         self,
         video_bitrate: Optional[int] = None,
@@ -254,6 +271,9 @@ class Video(object):
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
+        if settings.skip_intro_always or settings.skip_intro_prompt:
+            self.get_intro(self.media_source["Id"])
+
         self.map_streams()
         url = self._get_url_from_source()
 
