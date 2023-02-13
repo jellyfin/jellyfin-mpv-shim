@@ -58,7 +58,7 @@
 
   <content_rating type="oars-1.1" />
   <releases>
-    <release version="2.3.0" date="2023-02-12">
+    <release version="2.3.1" date="2023-02-12">
       <description>
         <p>Update python-mpv-jsonipc to v1.1.14 to handle socket close failure on Windows.</p>
         <p>Update jellyfin-apiclient-python to v1.9.2 to avoid issues with HTTP connections failing.</p>
