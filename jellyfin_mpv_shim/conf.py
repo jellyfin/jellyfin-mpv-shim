@@ -121,6 +121,7 @@ class Settings(SettingsBase):
     raise_mpv: bool = True
     force_video_codec: Optional[str] = None
     force_audio_codec: Optional[str] = None
+    health_check_interval: Optional[int] = 300
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False

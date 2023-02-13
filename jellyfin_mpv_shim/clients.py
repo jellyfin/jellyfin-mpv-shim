@@ -13,6 +13,7 @@ import uuid
 import time
 import logging
 import re
+import threading
 
 log = logging.getLogger("clients")
 path_regex = re.compile("^(https?://)?([^/:]+)(:[0-9]+)?(/.*)?$")
@@ -31,6 +32,24 @@ def expo(max_value: Optional[int] = None):
             yield max_value
 
 
+class PeriodicHealthCheck(threading.Thread):
+    def __init__(self, callback):
+        self.halt = False
+        self.trigger = threading.Event()
+        self.callback = callback
+
+        threading.Thread.__init__(self)
+
+    def stop(self):
+        self.halt = True
+        self.trigger.set()
+        self.join()
+
+    def run(self):
+        while not self.halt:
+            if not self.trigger.wait(settings.health_check_interval):
+                self.callback()
+
 class ClientManager(object):
     def __init__(self):
         self.callback = lambda client, event_name, data: None
@@ -38,6 +57,11 @@ class ClientManager(object):
         self.clients = {}
         self.usernames = {}
         self.is_stopping = False
+
+        self.health_check = None
+        if settings.health_check_interval is not None:
+            self.health_check = PeriodicHealthCheck(self.check_all_clients)
+            self.health_check.start()
 
     def cli_connect(self):
         is_logged_in = self.try_connect()
@@ -152,6 +176,21 @@ class ClientManager(object):
             return True
         return False
 
+    def validate_client(self, client: "JellyfinClient"):
+        for f_client in client.jellyfin.sessions(params={ "ControllableByUserId": "{UserId}" }):
+            if f_client.get('DeviceId') == settings.client_uuid:
+                break
+        else:
+            log.warning("Client is not actually connected. (It does not show in the client list.)")
+            # WebSocketDisconnect doesn't always happen here.
+            client.callback = lambda *_: None
+            client.callback_ws = lambda *_: None
+            client.stop()
+            client.callback("WebSocketDisconnect", None)
+            return False
+
+        return True
+
     def setup_client(self, client: "JellyfinClient", server):
         def event(event_name, data):
             if event_name == "WebSocketDisconnect":
@@ -166,7 +205,7 @@ class ClientManager(object):
                         )
                         self._disconnect_client(server=server)
                         time.sleep(timeout)
-                        if self.connect_client(server):
+                        if self.connect_client(server, False):
                             break
             else:
                 self.callback(client, event_name, data)
@@ -176,19 +215,7 @@ class ClientManager(object):
         client.start(websocket=True)
 
         client.jellyfin.post_capabilities(CAPABILITIES)
-        for f_client in client.jellyfin.sessions(params={ "ControllableByUserId": "{UserId}" }):
-            if f_client.get('DeviceId') == settings.client_uuid:
-                break
-        else:
-            log.warning("Client is not actually connected. (It does not show in the client list.)")
-            # WebSocketDisconnect doesn't always happen here.
-            client.callback = lambda *_: None
-            client.callback_ws = lambda *_: None
-            client.stop()
-            event("WebSocketDisconnect", None)
-            return False
-
-        return True
+        return self.validate_client(client)
 
     def remove_client(self, uuid: str):
         self.credentials = [
@@ -197,7 +224,7 @@ class ClientManager(object):
         self.save_credentials()
         self._disconnect_client(uuid=uuid)
 
-    def connect_client(self, server):
+    def connect_client(self, server, do_retries=True):
         if self.is_stopping:
             return False
 
@@ -211,6 +238,17 @@ class ClientManager(object):
                 self.clients[server["uuid"]] = client
                 if server.get("username"):
                     self.usernames[server["uuid"]] = server["username"]
+            elif do_retries:
+                # Jellyfin client sometimes "connects" halfway but doesn't actually work.
+                # Retry three times to reduce odds of this happening.
+                partial_reconnect_attempts = 3
+                for i in range(partial_reconnect_attempts):
+                    log.warning(f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}.")
+                    self._disconnect_client(server=server)
+                    time.sleep(1)
+                    if self.connect_client(server, False):
+                        is_logged_in=True
+                        break
 
         return is_logged_in
 
@@ -238,7 +276,16 @@ class ClientManager(object):
             del self.clients[key]
             client.stop()
 
+    def check_all_clients(self):
+        log.info("Performing client health check...")
+        for client in self.clients.values():
+            self.validate_client(client)
+
     def stop(self):
+        if self.health_check:
+            self.health_check.stop()
+            self.health_check = None
+
         self.is_stopping = True
         for client in self.clients.values():
             client.stop()
