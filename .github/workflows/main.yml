@@ -20,7 +20,7 @@ jobs:
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
-        pip install .[all] pywebview==3.4 pywin32
+        pip install .[all] pywebview==3.4 pywin32==225
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash
@@ -56,7 +56,7 @@ jobs:
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
-        pip install .[all] pywebview==3.4 pywin32
+        pip install .[all] pywebview==3.4 pywin32==225
         ./gen_pkg.sh --skip-build
         python ./get_pywebview_natives.py
       shell: bash

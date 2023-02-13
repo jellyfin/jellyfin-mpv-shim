@@ -27,6 +27,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=dist
 OutputBaseFilename=jellyfin-mpv-shim_version_installer
 SetupIconFile=jellyfin.ico
+WizardSmallImageFile=jellyfin.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
