@@ -1,4 +1,5 @@
 # noinspection PyUnresolvedReferences,PyPackageRequirements
+import pywintypes # required for correct import, see: https://github.com/mhammond/pywin32/issues/1730
 import win32gui
 import logging
 
