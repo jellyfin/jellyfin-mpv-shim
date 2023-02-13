@@ -17,6 +17,7 @@ jobs:
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20230205-git-e439ddc.7z/download > mpv.7z
         7z x mpv.7z
+        mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
         pip install .[all] pywebview==3.4 pywin32
@@ -52,6 +53,7 @@ jobs:
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20230205-git-e439ddc.7z/download > mpv.7z
         7z x mpv.7z
+        mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
         pip install .[all] pywebview==3.4 pywin32
