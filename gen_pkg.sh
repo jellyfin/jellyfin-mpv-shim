@@ -45,8 +45,7 @@ function get_resource_version {
 if [[ "$1" == "--get-pyinstaller" ]]
 then
     echo "Downloading pyinstaller..."
-    #pi_version=$(get_resource_version pyinstaller/pyinstaller)
-    pi_version=v5.1
+    pi_version=$(get_resource_version pyinstaller/pyinstaller)
     download_compat release.zip "https://github.com/pyinstaller/pyinstaller/archive/$pi_version.zip" "pi"
     (
         mkdir pyinstaller
