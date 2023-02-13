@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2022-03-28 00:28+0000\n"
 "Last-Translator: Rhodri <rhodrilld@gmail.com>\n"
 "Language-Team: Welsh <https://translate.jellyfin.org/projects/jellyfin/"
@@ -47,27 +47,27 @@ msgstr ""
 msgid "Setting Current..."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "URL Gweinydd: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "Enw defnyddiwr: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "Cyfrinair: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "Ychwanegwyd gweinydd yn llwyddiannus."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "Ychwanegu gweinydd arall?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "Methwyd ychwanegu gweinydd."
 
@@ -147,7 +147,7 @@ msgstr "Agor Ffolder Gosodiadau"
 msgid "Quit"
 msgstr "Gadael"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (Trawsgodio)"
 
@@ -411,7 +411,15 @@ msgstr "Gwirio am Ddiweddariadau"
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -419,7 +427,7 @@ msgstr ""
 "Mae eich fideo o bell yn trawsgodio!\n"
 "Pwyswch c i addasu gosodiadau lled band os nad oes angen hyn."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "Cyfres {0} - Pennod {1}"
 
@@ -524,11 +532,11 @@ msgstr ""
 "Shim MPV v{0} Diweddariad Ar Gael\n"
 "Agorwch y ddewislen (pwyswch c) am fanylion."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "Anhysbys"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " Gorfodol"
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2021-12-26 14:05+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Filipino <https://translate.jellyfin.org/projects/jellyfin/"
@@ -47,27 +47,27 @@ msgstr "Manwal: {0} ok, {1} nagfail"
 msgid "Setting Current..."
 msgstr "Pagpili ng kasalukuyan..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "URL ng server: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "Username: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "Password: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "Matagumpay na naidagdag ang server."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "Magdagdag ng isa pang server?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "Nag-fail ang pagdaragdag ng server."
 
@@ -147,7 +147,7 @@ msgstr "Buksan ang Config Folder"
 msgid "Quit"
 msgstr "Umalis"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (Transcode)"
 
@@ -411,7 +411,15 @@ msgstr "Tingnan ang Mga Update"
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -420,7 +428,7 @@ msgstr ""
 "Pindutin ang c upang ayusin ang mga setting ng bandwidth kung hindi ito "
 "kailangan."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "Season {0} - Episode {1}"
 
@@ -525,11 +533,11 @@ msgstr ""
 "May bagong update ang MPV Shim (v{0})\n"
 "Buksan ang menu (pindutin ang c) para sa mga detalye."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "Hindi alam"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " Pilit"
 

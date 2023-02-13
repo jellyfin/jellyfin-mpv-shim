@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2022-09-28 04:54+0000\n"
 "Last-Translator: K.B.Dharun Krishna <kbdharunkrishna@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "கையேடு: {0} சரி, {1} தோல்வி"
 msgid "Setting Current..."
 msgstr "நடப்பு அமைத்தல் ..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "சேவையக URL: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "பயனர்பெயர்: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "கடவுச்சொல்: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "வெற்றிகரமாக சேவையகம் சேர்க்கப்பட்டது."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "மற்றொரு சேவையகத்தைச் சேர்க்கவா?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "சேவையகத்தைச் சேர்ப்பது தோல்வியுற்றது."
 
@@ -146,7 +146,7 @@ msgstr "கட்டமைப்பு கோப்புறையைத் த�
 msgid "Quit"
 msgstr "விட்டுவிட"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (டிரான்ஸ்கோட்)"
 
@@ -410,7 +410,15 @@ msgstr "புதுப்பிப்புகளைச் சரிபார�
 msgid "Discord Rich Presence"
 msgstr "இருப்பை நிராகரி"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -418,7 +426,7 @@ msgstr ""
 "உங்கள் தொலை வீடியோ டிரான்ஸ்கோடிங்!\n"
 "இது தேவையில்லை என்றால் அலைவரிசை அமைப்புகளை சரிசெய்ய c ஐ அழுத்தவும்."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "பருவம் {0} - அத்தியாயம் {1}"
 
@@ -523,11 +531,11 @@ msgstr ""
 "MPV Shim v{0} புதுப்பிப்பு கிடைக்கிறது\n"
 "விவரங்களுக்கு மெனுவைத் திறக்கவும் (c ஐ அழுத்தவும்)."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "தெரியவில்லை"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " கட்டாயப்படுத்தப்பட்டது"
 

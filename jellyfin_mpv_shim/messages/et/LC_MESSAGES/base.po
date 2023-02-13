@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2022-12-02 09:10+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "Käsitsi: {0} ok, {1} nurjus"
 msgid "Setting Current..."
 msgstr "Praegune seadistus..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "Serveri URL: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "Kasutajanimi: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "Parool: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "Server edukalt lisatud."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "Kas lisada teine server?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "Serveri lisamine nurjus."
 
@@ -146,7 +146,7 @@ msgstr "Ava seadistuste kaust"
 msgid "Quit"
 msgstr "Lõpeta"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (Transkoodimine)"
 
@@ -410,7 +410,15 @@ msgstr "Otsi uuendusi"
 msgid "Discord Rich Presence"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -418,7 +426,7 @@ msgstr ""
 "Kaugvideot transkooditakse\n"
 "Kui see pole vajalik, vajuta 'c' ribalaiuse sätete reguleerimiseks."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "Hooaeg {0} - episood {1}"
 
@@ -523,11 +531,11 @@ msgstr ""
 "MPV Shim v{0} uuendus on saadaval\n"
 "Üksikasjade vaatamiseks ava menüü (vajuta c)."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "Tundmatu"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " Sunnitud"
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2023-01-19 13:24+0000\n"
 "Last-Translator: Bas <weblate@hanka.mp>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "Handmatig: {0} ok, {1} mislukt"
 msgid "Setting Current..."
 msgstr "Huidige instellen..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "Server-URL: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "Gebruikersnaam: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "Wachtwoord: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "Server succesvol toegevoegd."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "Nog een server toevoegen?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "Server toevoegen mislukt."
 
@@ -146,7 +146,7 @@ msgstr "Configuratiemap openen"
 msgid "Quit"
 msgstr "Stoppen"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (transcoderen)"
 
@@ -410,7 +410,15 @@ msgstr "Controleer voor Updates"
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -418,7 +426,7 @@ msgstr ""
 "Uw remote video wordt omgezet!\n"
 "Druk C om de bandwijdte-instellingen aan te passen als dit niet gewenst is."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "Seizoen {0} - Aflevering {1}"
 
@@ -523,11 +531,11 @@ msgstr ""
 "MPV Shim v{0} update beschikbaar\n"
 "Open menu (druk c) voor details."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "Onbekend"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " Geforceerd"
 

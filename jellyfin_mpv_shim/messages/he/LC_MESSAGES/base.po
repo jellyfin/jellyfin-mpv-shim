@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2023-01-27 08:51+0000\n"
 "Last-Translator: moshiko kar <moshikokar@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
@@ -47,27 +47,27 @@ msgstr "ידני: {0} צלחו, {1} כשלו"
 msgid "Setting Current..."
 msgstr "מגדיר נוכחי..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "כתובת שרת: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "שם חשבון: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "ססמה: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "שרת נוסף בהצלחה."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "להוסיף שרת נוסף?"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "הוספת השרת כשלה."
 
@@ -147,7 +147,7 @@ msgstr "פתח תיקיית הגדרות"
 msgid "Quit"
 msgstr "צא"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (קידוד)"
 
@@ -411,7 +411,15 @@ msgstr "בדוק אם קיימים עדכונים"
 msgid "Discord Rich Presence"
 msgstr "נוכחות עשירה בדיסקורד"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -419,7 +427,7 @@ msgstr ""
 "קידוד מחדש של הוידאו המרוחק מתבצע כעת!\n"
 "הקש c על מנת להתאים את הגדרות רוחב הפס אם הדבר אינו נדרש."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "עונה {0} - פרק {1}"
 
@@ -522,11 +530,11 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "לא ידוע"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " כפוי"
 

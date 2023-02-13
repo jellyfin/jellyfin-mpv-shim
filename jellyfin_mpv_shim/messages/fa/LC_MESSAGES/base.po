@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2023-02-02 00:51+0000\n"
 "Last-Translator: Peyman M. <peymanr34@outlook.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "دفترچه راهنما: {0} خوب ، {1} ناموفق"
 msgid "Setting Current..."
 msgstr "تنظیم جریان ..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "URL سرور: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "نام کاربری: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "کلمه عبور: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "سرور با موفقیت اضافه شد."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "سرور دیگری اضافه شود؟"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "افزودن سرور ناموفق بود."
 
@@ -146,7 +146,7 @@ msgstr "پوشه پیکربندی را باز کنید"
 msgid "Quit"
 msgstr "ترک کن"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (کد رمز)"
 
@@ -410,7 +410,15 @@ msgstr "برای به روز رسانی بررسی کنید"
 msgid "Discord Rich Presence"
 msgstr "اختلاف غنی حضور"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -418,7 +426,7 @@ msgstr ""
 "ویدیوی راه دور شما در حال کدگذاری است!\n"
 "اگر نیازی به تنظیمات پهنای باند نیست ، c را فشار دهید."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "فصل {0} - قسمت {1}"
 
@@ -523,11 +531,11 @@ msgstr ""
 "MPV Shim v {0} بروزرسانی موجود است\n"
 "برای جزئیات منو را باز کنید (c را فشار دهید)."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "باز کردن"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " اجباری"
 

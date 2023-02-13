@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-06-19 13:37-0400\n"
+"POT-Creation-Date: 2023-02-12 23:35-0500\n"
 "PO-Revision-Date: 2022-12-27 09:51+0000\n"
 "Last-Translator: 0TTA <osamh735@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
@@ -47,27 +47,27 @@ msgstr "يدوي: {0} لا مشكلة، {1}: فشل"
 msgid "Setting Current..."
 msgstr "جاري اختيار الحالي..."
 
-#: jellyfin_mpv_shim/clients.py:50
+#: jellyfin_mpv_shim/clients.py:74
 msgid "Server URL: "
 msgstr "عنوان الخادم: "
 
-#: jellyfin_mpv_shim/clients.py:51
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Username: "
 msgstr "اسم المستخدم: "
 
-#: jellyfin_mpv_shim/clients.py:52
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Password: "
 msgstr "كلمة السر: "
 
-#: jellyfin_mpv_shim/clients.py:57
+#: jellyfin_mpv_shim/clients.py:81
 msgid "Successfully added server."
 msgstr "نجاح إضافة الخادم."
 
-#: jellyfin_mpv_shim/clients.py:58
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Add another server?"
 msgstr "إضافة خادم آخر؟"
 
-#: jellyfin_mpv_shim/clients.py:61
+#: jellyfin_mpv_shim/clients.py:85
 msgid "Adding server failed."
 msgstr "فشل إضافة الخادم."
 
@@ -147,7 +147,7 @@ msgstr "فتح مجلد الإعدادات"
 msgid "Quit"
 msgstr "غلق"
 
-#: jellyfin_mpv_shim/media.py:126
+#: jellyfin_mpv_shim/media.py:129
 msgid " (Transcode)"
 msgstr " (ترميز)"
 
@@ -411,7 +411,15 @@ msgstr "التحقق من وجود تحديثات"
 msgid "Discord Rich Presence"
 msgstr "حضور غني على Discord"
 
-#: jellyfin_mpv_shim/player.py:511
+#: jellyfin_mpv_shim/player.py:446
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:448
+msgid "Seek to Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:547
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -419,7 +427,7 @@ msgstr ""
 "عملية ترميز تجري حاليا على فيدو عبر الإنترنت.\n"
 "إن لم تود ذلك، فاضغط على c لتغيير إعدادات سرعة عرض النطاق."
 
-#: jellyfin_mpv_shim/player.py:863
+#: jellyfin_mpv_shim/player.py:903
 msgid "Season {0} - Episode {1}"
 msgstr "الموسم {0} - الحلقة {1}"
 
@@ -524,11 +532,11 @@ msgstr ""
 "MPV Shim v{0} تحديث متوفر\n"
 "افتح القائمة (اضغط على c) لمزيد من المعلومات."
 
-#: jellyfin_mpv_shim/utils.py:217
+#: jellyfin_mpv_shim/utils.py:218
 msgid "Unkn"
 msgstr "غير معروف"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:219
 msgid " Forced"
 msgstr " فرض"
 
