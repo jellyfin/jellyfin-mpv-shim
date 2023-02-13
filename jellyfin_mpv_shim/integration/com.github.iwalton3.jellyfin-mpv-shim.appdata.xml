@@ -40,11 +40,11 @@
     </screenshot>
     <screenshot>
       <caption>The application playing the MKV Test Suite</caption>
-      <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/blender.png</image>
+      <image type="source" width="1024" height="576">https://jellyfin.org/assets/images/blender-c74e98002e3842e5c5ffa8770e17905d.png</image>
     </screenshot>
     <screenshot>
       <caption>The built-in menu inside MPV</caption>
-      <image type="source" width="1024" height="576">https://jellyfin.org/images/mpv-shim/menu.png</image>
+      <image type="source" width="1024" height="576">https://jellyfin.org/assets/images/menu-d7fdb971f324d02abe0c36ad3cef17e8.png</image>
     </screenshot>
   </screenshots>
 
