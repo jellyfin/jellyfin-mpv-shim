@@ -58,6 +58,16 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.3.0" date="2023-02-12">
+      <description>
+        <p>Update python-mpv-jsonipc to v1.1.14 to handle socket close failure on Windows.</p>
+        <p>Update jellyfin-apiclient-python to v1.9.2 to avoid issues with HTTP connections failing.</p>
+        <p>Attempt initial server connection up to three times to prevent random "client not connected" errors.</p>
+        <p>Re-check if client is actually connected every 5 minutes. (Configurable.)</p>
+        <p>Update to MPV version v0.35.1 (Flatpak).</p>
+        <p>Add experimental skip intro support. (Must be enabled manually and requires an unofficial plugin.)</p>
+      </description>
+    </release>
     <release version="2.2.0" date="2022-06-19">
       <description>
         <p>Automatically reconnect if Jellyfin fails to register client. (#268)</p>
