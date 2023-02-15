@@ -481,8 +481,6 @@ class OSDMenu(object):
         )
 
     def video_preferences_menu(self):
-        self.profile_manager
-
         options = [
             (
                 _("Remote Transcode Quality: {0:0.1f} Mbps").format(
