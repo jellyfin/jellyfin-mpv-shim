@@ -504,12 +504,11 @@ class OSDMenu(object):
                 ),
                 self.subtitle_color_menu,
             ),
-            self.get_settings_toggle(_("Transcode H265 to H264"), "transcode_h265"),
             self.get_settings_toggle(
                 _("Transcode Hi10p to 8bit"), "transcode_hi10p"
             ),
+            self.get_settings_toggle(_("Transcode HDR"), "transcode_hdr"),
             self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
-            self.get_settings_toggle(_("Transcode to H265"), "transcode_to_h265"),
             self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
         ]
 

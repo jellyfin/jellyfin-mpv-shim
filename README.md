@@ -171,13 +171,18 @@ You can adjust the basic transcoder settings via the menu.
     - Please note that Jellyfin may still direct play files that meet the transcode profile
       requirements. There is nothing I can do on my end to disable this, but you can reduce
       the bandwidth setting to force a transcode.
-- `transcode_h265` - Force transcode HEVC videos to h264. Default: `false`
+- `transcode_hdr` - Force transcode HDR videos to SDR. Default: `false`
+- `transcode_dolby_vision` - Force transcode Dolby Vision videos to SDR. Default: `true`
+    - If your computer can handle it, you can get tone mapping to work for this using `vo=gpu-next`.
+    - Note that `vo=gpu-next` is considered experimental by MPV at this time.
 - `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
 - `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
     - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
-- `transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
+- `allow_transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
+    - If you enable this, it'll allow remuxing to HEVC but it'll also break force transcoding of Dolby Vision and HDR content if those settings are used. (See [this bug](https://github.com/jellyfin/jellyfin/issues/9313).)
+- `prefer_transcode_to_h265` - Requests the server to transcode media *to* `hevc` as the default. Default: `false`
 - `transcode_warning` - Display a warning the first time media transcodes in a session. Default: `true`
 - `force_video_codec` - Force a specified video codec to be played. Default: `null`
     - This can be used in tandem with `always_transcode` to force the client to transcode into

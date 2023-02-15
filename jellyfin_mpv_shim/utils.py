@@ -111,12 +111,12 @@ def get_profile(
 
     if settings.force_video_codec:
         transcode_codecs = settings.force_video_codec
-    elif settings.transcode_h265:
-        transcode_codecs = "h264,mpeg4,mpeg2video"
-    elif settings.transcode_to_h265:
+    elif settings.allow_transcode_to_h265:
+        transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
+    elif settings.prefer_transcode_to_h265:
         transcode_codecs = "h265,hevc,h264,mpeg4,mpeg2video"
     else:
-        transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
+        transcode_codecs = "h264,mpeg4,mpeg2video"
 
     if settings.force_audio_codec:
         audio_transcode_codecs = settings.force_audio_codec
@@ -180,12 +180,39 @@ def get_profile(
         profile["CodecProfiles"].append(
             {
                 "Type": "Video",
-                "codec": "h264",
                 "Conditions": [
                     {
                         "Condition": "LessThanEqual",
                         "Property": "VideoBitDepth",
                         "Value": "8",
+                    }
+                ],
+            }
+        )
+
+    if settings.transcode_dolby_vision:
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Conditions": [
+                    {
+                        "Condition": "NotEquals",
+                        "Property": "VideoRangeType",
+                        "Value": "DOVI",
+                    }
+                ],
+            }
+        )
+
+    if settings.transcode_hdr:
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Conditions": [
+                    {
+                        "Condition": "Equals",
+                        "Property": "VideoRangeType",
+                        "Value": "SDR",
                     }
                 ],
             }

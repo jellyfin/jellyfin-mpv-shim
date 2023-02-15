@@ -39,8 +39,11 @@ class Settings(SettingsBase):
     direct_paths: bool = False
     remote_direct_paths: bool = False
     always_transcode: bool = False
-    transcode_h265: bool = False
     transcode_hi10p: bool = False
+    transcode_hdr: bool = False
+    transcode_dolby_vision: bool = True
+    allow_transcode_to_h265: bool = False
+    prefer_transcode_to_h265: bool = False
     remote_kbps: int = 10000
     local_kbps: int = 2147483
     subtitle_size: int = 100
@@ -61,7 +64,6 @@ class Settings(SettingsBase):
     mpv_log_level: str = "info"
     idle_when_paused: bool = False
     stop_idle: bool = False
-    transcode_to_h265: bool = False
     kb_stop: str = "q"
     kb_prev: str = "<"
     kb_next: str = ">"
