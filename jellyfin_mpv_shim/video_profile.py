@@ -121,6 +121,10 @@ class VideoProfileManager:
         if reset:
             self.unload_profile()
         log.info("Loading shader profile {0}.".format(profile_name))
+        if profile_name not in self.profiles:
+            log.error("Shader profile {0} does not exist.".format(profile_name))
+            return False
+
         profile = self.profiles[profile_name]
         settings_to_apply = []
         shaders_to_apply = []
