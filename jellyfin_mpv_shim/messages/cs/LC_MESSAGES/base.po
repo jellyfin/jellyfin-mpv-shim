@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-14 20:05-0500\n"
-"PO-Revision-Date: 2022-12-14 09:51+0000\n"
-"Last-Translator: DJSweder <djsweder@gmail.com>\n"
+"PO-Revision-Date: 2023-02-15 22:52+0000\n"
+"Last-Translator: Lukáš Kucharczyk <lukas@kucharczyk.xyz>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/cs/>\n"
 "Language: cs\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Překódovat Hi10p na 8bit"
 
 #: jellyfin_mpv_shim/menu.py:508
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Překódovat na H265"
+msgstr "Překódovat HDR"
 
 #: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
@@ -410,19 +408,19 @@ msgstr "Přítomnost na Discordu"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Vždy přeskočit intro"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Zeptat se, zda přeskočit intro"
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Intro přeskočeno"
 
 #: jellyfin_mpv_shim/player.py:448
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Přeskočit intro"
 
 #: jellyfin_mpv_shim/player.py:547
 msgid ""
