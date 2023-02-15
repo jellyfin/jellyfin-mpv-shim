@@ -8,7 +8,7 @@ lib_root = os.path.join(os.path.dirname(webview.__file__), "lib")
 files_to_copy = [
     "WebBrowserInterop.x86.dll",
     "WebBrowserInterop.x64.dll",
-    "Microsoft.Toolkit.Forms.UI.Controls.WebView.dll"
+    "Microsoft.Toolkit.Forms.UI.Controls.WebView.dll",
 ]
 
 for f in files_to_copy:

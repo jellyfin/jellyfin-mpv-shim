@@ -15,9 +15,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("update_check")
 
 release_url = "https://github.com/jellyfin/jellyfin-mpv-shim/releases/"
-release_urls = [
-    release_url
-]
+release_urls = [release_url]
 one_day = 86400
 
 

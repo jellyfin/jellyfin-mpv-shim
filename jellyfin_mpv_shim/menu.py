@@ -502,9 +502,7 @@ class OSDMenu(object):
                 ),
                 self.subtitle_color_menu,
             ),
-            self.get_settings_toggle(
-                _("Transcode Hi10p to 8bit"), "transcode_hi10p"
-            ),
+            self.get_settings_toggle(_("Transcode Hi10p to 8bit"), "transcode_hi10p"),
             self.get_settings_toggle(_("Transcode HDR"), "transcode_hdr"),
             self.get_settings_toggle(_("Direct Paths"), "direct_paths"),
             self.get_settings_toggle(_("Disable Direct Play"), "always_transcode"),
@@ -520,10 +518,7 @@ class OSDMenu(object):
                 ),
             )
 
-        self.put_menu(
-            _("Video Preferences"),
-            options
-        )
+        self.put_menu(_("Video Preferences"), options)
 
     def shader_pack_subtype_menu(self):
         self.put_menu(

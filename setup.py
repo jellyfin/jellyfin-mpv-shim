@@ -13,18 +13,13 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/jellyfin/jellyfin-mpv-shim",
-    packages=[
-        "jellyfin_mpv_shim",
-        "jellyfin_mpv_shim.display_mirror"
-    ],
+    packages=["jellyfin_mpv_shim", "jellyfin_mpv_shim.display_mirror"],
     package_data={
         "jellyfin_mpv_shim.display_mirror": ["*.css", "*.html"],
         "jellyfin_mpv_shim": ["systray.png"],
     },
     entry_points={
-        "console_scripts": [
-            "jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main"
-        ]
+        "console_scripts": ["jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main"]
     },
     classifiers=[
         "Programming Language :: Python :: 3",

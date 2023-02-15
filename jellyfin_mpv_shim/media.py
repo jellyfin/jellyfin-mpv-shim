@@ -240,12 +240,17 @@ class Video(object):
 
         # provided by plugin
         try:
-            skip_intro_data = self.client.jellyfin._get(f"Episode/{media_source_id}/IntroTimestamps")
+            skip_intro_data = self.client.jellyfin._get(
+                f"Episode/{media_source_id}/IntroTimestamps"
+            )
             if skip_intro_data is not None and skip_intro_data["Valid"]:
                 self.intro_start = skip_intro_data["IntroStart"]
                 self.intro_end = skip_intro_data["IntroEnd"]
         except:
-                log.warning("Fetching intro data failed. Do you have the plugin installed?", exc_info=1)
+            log.warning(
+                "Fetching intro data failed. Do you have the plugin installed?",
+                exc_info=1,
+            )
 
     def get_playback_url(
         self,
@@ -402,7 +407,7 @@ class Media(object):
 
     def replace_queue(self, sp_items, seq):
         """Update queue for SyncPlay.
-           Returns None if the video is the same or a new Media if not."""
+        Returns None if the video is the same or a new Media if not."""
         if self.queue[self.seq]["Id"] == sp_items[seq]["Id"]:
             self.queue, self.seq = sp_items, seq
             return None

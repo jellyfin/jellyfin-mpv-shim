@@ -7,7 +7,7 @@ RPC.start()
 
 
 def register_join_event(syncplay_join_group: callable):
-    RPC.register_event('activity_join', syncplay_join_group)
+    RPC.register_event("activity_join", syncplay_join_group)
 
 
 def send_presence(

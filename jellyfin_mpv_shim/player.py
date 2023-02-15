@@ -390,10 +390,10 @@ class PlayerManager(object):
                 # Python-MPV 1.0 uses a class/struct combination now
                 if hasattr(event, "as_dict"):
                     event = event.as_dict()
-                    if 'event' in event:
-                        event['event'] = event['event'].decode('utf-8')
-                    if 'args' in event:
-                        event['args'] = [d.decode('utf-8') for d in event['args']]
+                    if "event" in event:
+                        event["event"] = event["event"].decode("utf-8")
+                    if "args" in event:
+                        event["args"] = [d.decode("utf-8") for d in event["args"]]
 
                 if "event_id" in event:
                     args = event["event"]["args"]
@@ -432,12 +432,15 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def update(self):
-        if ((settings.skip_intro_always or settings.skip_intro_prompt)
+        if (
+            (settings.skip_intro_always or settings.skip_intro_prompt)
             and not self.syncplay.is_enabled()
-            and self._video is not None and self._video.intro_start is not None
+            and self._video is not None
+            and self._video.intro_start is not None
             and self._player.playback_time is not None
             and self._player.playback_time > self._video.intro_start
-            and self._player.playback_time < self._video.intro_end):
+            and self._player.playback_time < self._video.intro_end
+        ):
 
             if not self.is_in_intro:
                 if settings.skip_intro_always and not self.intro_has_triggered:
@@ -458,7 +461,11 @@ class PlayerManager(object):
                 self.last_update.restart()
 
     def play(
-        self, video: "Video_type", offset: int = 0, no_initial_timeline: bool = False, is_initial_play: bool = False
+        self,
+        video: "Video_type",
+        offset: int = 0,
+        no_initial_timeline: bool = False,
+        is_initial_play: bool = False,
     ):
         self.should_send_timeline = False
         self.start_time = time.time()
@@ -476,7 +483,7 @@ class PlayerManager(object):
         url: str,
         offset: int = 0,
         no_initial_timeline: bool = False,
-        is_initial_play: bool = False
+        is_initial_play: bool = False,
     ):
         self.pause_ignore = True
         self.do_not_handle_pause = True
@@ -633,7 +640,11 @@ class PlayerManager(object):
                 else:
                     if self.syncplay.is_enabled():
                         self.last_seek = self._player.playback_time + offset
-                    if self.is_in_intro and self._player.playback_time + offset > self._player.playback_time:
+                    if (
+                        self.is_in_intro
+                        and self._player.playback_time + offset
+                        > self._player.playback_time
+                    ):
                         self.skip_intro()
                     if exact:
                         self._player.command("seek", offset, "exact")

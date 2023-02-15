@@ -50,6 +50,7 @@ class PeriodicHealthCheck(threading.Thread):
             if not self.trigger.wait(settings.health_check_interval):
                 self.callback()
 
+
 class ClientManager(object):
     def __init__(self):
         self.callback = lambda client, event_name, data: None
@@ -141,7 +142,7 @@ class ClientManager(object):
     ):
         if server.endswith("/"):
             server = server[:-1]
-        
+
         protocol, host, port, path = path_regex.match(server).groups()
 
         if not protocol:
@@ -177,11 +178,15 @@ class ClientManager(object):
         return False
 
     def validate_client(self, client: "JellyfinClient"):
-        for f_client in client.jellyfin.sessions(params={ "ControllableByUserId": "{UserId}" }):
-            if f_client.get('DeviceId') == settings.client_uuid:
+        for f_client in client.jellyfin.sessions(
+            params={"ControllableByUserId": "{UserId}"}
+        ):
+            if f_client.get("DeviceId") == settings.client_uuid:
                 break
         else:
-            log.warning("Client is not actually connected. (It does not show in the client list.)")
+            log.warning(
+                "Client is not actually connected. (It does not show in the client list.)"
+            )
             # WebSocketDisconnect doesn't always happen here.
             client.callback = lambda *_: None
             client.callback_ws = lambda *_: None
@@ -243,11 +248,13 @@ class ClientManager(object):
                 # Retry three times to reduce odds of this happening.
                 partial_reconnect_attempts = 3
                 for i in range(partial_reconnect_attempts):
-                    log.warning(f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}.")
+                    log.warning(
+                        f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}."
+                    )
                     self._disconnect_client(server=server)
                     time.sleep(1)
                     if self.connect_client(server, False):
-                        is_logged_in=True
+                        is_logged_in = True
                         break
 
         return is_logged_in

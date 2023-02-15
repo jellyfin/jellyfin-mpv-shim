@@ -189,8 +189,10 @@ class VideoProfileManager:
         selected = 0
         profile_option_list = [(_("None (Disabled)"), self.menu_handle, None)]
         for i, (profile_name, profile) in enumerate(self.profiles.items()):
-            if (profile.get("subtype", None) is not None and
-                not settings.shader_pack_subtype in profile["subtype"]):
+            if (
+                profile.get("subtype", None) is not None
+                and not settings.shader_pack_subtype in profile["subtype"]
+            ):
                 continue
 
             name = profile["displayname"]
