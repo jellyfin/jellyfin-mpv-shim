@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-12 23:35-0500\n"
+"POT-Creation-Date: 2023-02-14 20:05-0500\n"
 "PO-Revision-Date: 2023-01-19 13:24+0000\n"
 "Last-Translator: marcus2799 <marcus@mail.bg>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -254,11 +254,11 @@ msgstr "Профили за възпроизвеждане на видеото"
 msgid "SVP Settings"
 msgstr "SVP Настройки"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
 msgid "Video Preferences"
 msgstr "Предпочитания за видеото"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
 msgid "Player Preferences"
 msgstr "Предпочитания за плеъра"
 
@@ -334,81 +334,87 @@ msgstr "Горе"
 msgid "Middle"
 msgstr "По средата"
 
-#: jellyfin_mpv_shim/menu.py:488
+#: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Качество при отдалечено транскодиране: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:494
+#: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
 msgstr "Размер на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:498
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
 msgstr "Позиция на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:502
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
 msgstr "Цвят на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:507
-msgid "Transcode H265 to H264"
-msgstr "Транскодирай H265 до H264"
-
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode Hi10p to 8bit"
 msgstr "Транскодирай Hi10p до 8bit"
 
-#: jellyfin_mpv_shim/menu.py:511
+#: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
+#| msgid "Transcode to H265"
+msgid "Transcode HDR"
+msgstr "Транскодирай до H265"
+
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
 msgstr "Директни пътища"
 
-#: jellyfin_mpv_shim/menu.py:512
-msgid "Transcode to H265"
-msgstr "Транскодирай до H265"
-
-#: jellyfin_mpv_shim/menu.py:513
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Disable Direct Play"
 msgstr "Изключи директното възпроизвеждане"
 
-#: jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:516
 msgid "Video Profile Subtype: {0}"
 msgstr "Видео профил подвид: {0}"
 
-#: jellyfin_mpv_shim/menu.py:533
+#: jellyfin_mpv_shim/menu.py:530
 msgid "Video Profile Subtype"
 msgstr "Видео профил подвид"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Play"
 msgstr "Автоматично стартиране"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Auto Fullscreen"
 msgstr "Автоматично на цял екран"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Media Key Seek"
 msgstr "Използване на мултимедийни бутони"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Use Web Seek Pref"
 msgstr "Предпочитай използване на Уеб търсене"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
 msgstr "Дублиране на дисплея"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Write Logs to File"
 msgstr "Запиши лога във файл"
 
-#: jellyfin_mpv_shim/menu.py:560
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Check for Updates"
 msgstr "Провери за обновявания"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
 msgstr "Сървър в Дискорд"
+
+#: jellyfin_mpv_shim/menu.py:561
+msgid "Always Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Ask to Skip Intros"
+msgstr ""
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
@@ -535,11 +541,11 @@ msgstr ""
 "MPV Shim v{0} Налично е обновяване\n"
 "Отвори менюто (натисни \"с\") за детайли."
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
 msgstr "Непознат"
 
-#: jellyfin_mpv_shim/utils.py:219
+#: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
 msgstr " Принудително"
 
@@ -578,3 +584,6 @@ msgstr "Anime4K x2 Перцептивно+Изкл. на замъгляване 
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "Избери профил за шейдъри"
+
+#~ msgid "Transcode H265 to H264"
+#~ msgstr "Транскодирай H265 до H264"

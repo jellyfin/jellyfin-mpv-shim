@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-12 23:35-0500\n"
+"POT-Creation-Date: 2023-02-14 20:05-0500\n"
 "PO-Revision-Date: 2022-12-25 23:51+0000\n"
 "Last-Translator: DuaLee <cony.j.lee@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
@@ -254,11 +254,11 @@ msgstr "비디오 재생 프로필"
 msgid "SVP Settings"
 msgstr "SVP 설정"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
 msgid "Video Preferences"
 msgstr "비디오 기본 설정"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
 msgid "Player Preferences"
 msgstr "플레이어 기본 설정"
 
@@ -334,81 +334,87 @@ msgstr "위"
 msgid "Middle"
 msgstr "중"
 
-#: jellyfin_mpv_shim/menu.py:488
+#: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "외부 코덱변환 품질: {0:0.1f}Mbps"
 
-#: jellyfin_mpv_shim/menu.py:494
+#: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
 msgstr "자막 크기: {0}"
 
-#: jellyfin_mpv_shim/menu.py:498
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
 msgstr "자막 위치: {0}"
 
-#: jellyfin_mpv_shim/menu.py:502
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
 msgstr "자막 색깔: {0}"
 
-#: jellyfin_mpv_shim/menu.py:507
-msgid "Transcode H265 to H264"
-msgstr "H265를 H264로 코덱변환"
-
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode Hi10p to 8bit"
 msgstr "Hi10p를 8bit 코덱변환"
 
-#: jellyfin_mpv_shim/menu.py:511
+#: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
+#| msgid "Transcode to H265"
+msgid "Transcode HDR"
+msgstr "H265로 코덱변환"
+
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
 msgstr "직류 경로"
 
-#: jellyfin_mpv_shim/menu.py:512
-msgid "Transcode to H265"
-msgstr "H265로 코덱변환"
-
-#: jellyfin_mpv_shim/menu.py:513
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Disable Direct Play"
 msgstr "다이렉트 플레이 기능 끄기"
 
-#: jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:516
 msgid "Video Profile Subtype: {0}"
 msgstr "비디오 프로필 하위 유형: {0}"
 
-#: jellyfin_mpv_shim/menu.py:533
+#: jellyfin_mpv_shim/menu.py:530
 msgid "Video Profile Subtype"
 msgstr "비디오 프로필 하위 유형"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Play"
 msgstr "자동 재생"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Auto Fullscreen"
 msgstr "자동 전체 화면"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Media Key Seek"
 msgstr "미디어 키 탐색"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Use Web Seek Pref"
 msgstr "웹 검색 설정 사용"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
 msgstr "디스플레이 미러링"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Write Logs to File"
 msgstr "파일에 로그 쓰기"
 
-#: jellyfin_mpv_shim/menu.py:560
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Check for Updates"
 msgstr "업데이트 확인"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
+
+#: jellyfin_mpv_shim/menu.py:561
+msgid "Always Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Ask to Skip Intros"
+msgstr ""
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
@@ -531,11 +537,11 @@ msgstr ""
 "MPV Shim v{0} 업데이트 가능\n"
 "자세한 내용 보려면 메뉴를 엽시오(c 누르기)."
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
 msgstr "알 수 없는"
 
-#: jellyfin_mpv_shim/utils.py:219
+#: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
 msgstr " 강요된"
 
@@ -574,3 +580,6 @@ msgstr "Anime4K x2 해석 + 선명하기 (HD)"
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "셰이더 프로필 선택"
+
+#~ msgid "Transcode H265 to H264"
+#~ msgstr "H265를 H264로 코덱변환"

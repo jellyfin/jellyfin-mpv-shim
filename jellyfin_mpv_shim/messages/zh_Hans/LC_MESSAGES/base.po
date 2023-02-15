@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-12 23:35-0500\n"
+"POT-Creation-Date: 2023-02-14 20:05-0500\n"
 "PO-Revision-Date: 2022-07-10 06:22+0000\n"
 "Last-Translator: yolylight <yolylight@hotmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
@@ -254,11 +254,11 @@ msgstr "视频播放预设"
 msgid "SVP Settings"
 msgstr "SVP 设置"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
 msgid "Video Preferences"
 msgstr "视频偏好设置"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
 msgid "Player Preferences"
 msgstr "播放器偏好设置"
 
@@ -334,81 +334,87 @@ msgstr "顶部"
 msgid "Middle"
 msgstr "中间"
 
-#: jellyfin_mpv_shim/menu.py:488
+#: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "远程转码质量：{0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:494
+#: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
 msgstr "字幕大小：{0}"
 
-#: jellyfin_mpv_shim/menu.py:498
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
 msgstr "字幕位置：{0}"
 
-#: jellyfin_mpv_shim/menu.py:502
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
 msgstr "字幕颜色：{0}"
 
-#: jellyfin_mpv_shim/menu.py:507
-msgid "Transcode H265 to H264"
-msgstr "将 H.265 转码为 H.264"
-
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode Hi10p to 8bit"
 msgstr "将 Hi10p 转码为 8bit"
 
-#: jellyfin_mpv_shim/menu.py:511
+#: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
+#| msgid "Transcode to H265"
+msgid "Transcode HDR"
+msgstr "转码为 H.265"
+
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
 msgstr "直链"
 
-#: jellyfin_mpv_shim/menu.py:512
-msgid "Transcode to H265"
-msgstr "转码为 H.265"
-
-#: jellyfin_mpv_shim/menu.py:513
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Disable Direct Play"
 msgstr "禁用直接播放"
 
-#: jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:516
 msgid "Video Profile Subtype: {0}"
 msgstr "视频配置子类别: {0}"
 
-#: jellyfin_mpv_shim/menu.py:533
+#: jellyfin_mpv_shim/menu.py:530
 msgid "Video Profile Subtype"
 msgstr "视频配置子类别"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Play"
 msgstr "自动播放"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Auto Fullscreen"
 msgstr "自动全屏"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Media Key Seek"
 msgstr "媒体密钥搜索"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Use Web Seek Pref"
 msgstr "使用网络搜索偏好"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
 msgstr "显示镜像"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Write Logs to File"
 msgstr "将日志写入文件"
 
-#: jellyfin_mpv_shim/menu.py:560
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Check for Updates"
 msgstr "检查更新"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
 msgstr "Discord 细节呈现"
+
+#: jellyfin_mpv_shim/menu.py:561
+msgid "Always Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Ask to Skip Intros"
+msgstr ""
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
@@ -531,11 +537,11 @@ msgstr ""
 "MPV Shim v{0} 更新可用\n"
 "打开菜单（按c）了解详细信息。"
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
 msgstr "未知"
 
-#: jellyfin_mpv_shim/utils.py:219
+#: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
 msgstr " 强制"
 
@@ -574,3 +580,6 @@ msgstr "Anime4K x2 Perceptual + Deblur 算法（适用于高清动画）"
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "选择着色器配置预设"
+
+#~ msgid "Transcode H265 to H264"
+#~ msgstr "将 H.265 转码为 H.264"

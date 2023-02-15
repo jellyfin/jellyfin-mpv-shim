@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-12 23:35-0500\n"
+"POT-Creation-Date: 2023-02-14 20:05-0500\n"
 "PO-Revision-Date: 2023-01-09 16:51+0000\n"
 "Last-Translator: pedropereira98 <pedromlmpereira98@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
@@ -254,11 +254,11 @@ msgstr "Perfis de Reprodução de Vídeo"
 msgid "SVP Settings"
 msgstr "Opções de SVP"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
 msgid "Video Preferences"
 msgstr "Preferências de Vídeo"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
 msgid "Player Preferences"
 msgstr "Preferências de Reprodutor"
 
@@ -334,81 +334,87 @@ msgstr "Cimo"
 msgid "Middle"
 msgstr "Meio"
 
-#: jellyfin_mpv_shim/menu.py:488
+#: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Qualidade da Transcodificação Remota: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:494
+#: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
 msgstr "Tamanho das Legendas: {0}"
 
-#: jellyfin_mpv_shim/menu.py:498
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
 msgstr "Posição das Legendas: {0}"
 
-#: jellyfin_mpv_shim/menu.py:502
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
 msgstr "Cor das Legendas: {0}"
 
-#: jellyfin_mpv_shim/menu.py:507
-msgid "Transcode H265 to H264"
-msgstr "Transcodificar H265 para H264"
-
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode Hi10p to 8bit"
 msgstr "Transcodificar Hi10p para 8bit"
 
-#: jellyfin_mpv_shim/menu.py:511
+#: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
+#| msgid "Transcode to H265"
+msgid "Transcode HDR"
+msgstr "Transcodificar para H265"
+
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
 msgstr "Caminhos Diretos"
 
-#: jellyfin_mpv_shim/menu.py:512
-msgid "Transcode to H265"
-msgstr "Transcodificar para H265"
-
-#: jellyfin_mpv_shim/menu.py:513
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Disable Direct Play"
 msgstr "Desabilitar a Reprodução Direta"
 
-#: jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:516
 msgid "Video Profile Subtype: {0}"
 msgstr "Subtipo do Perfil de Vídeo: {0}"
 
-#: jellyfin_mpv_shim/menu.py:533
+#: jellyfin_mpv_shim/menu.py:530
 msgid "Video Profile Subtype"
 msgstr "Subtipo do Perfil de Vídeo"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Play"
 msgstr "Reprodução Automática"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Auto Fullscreen"
 msgstr "Ecrã Completo Automático"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Media Key Seek"
 msgstr "Procurar Usando as Teclas de Multimédia"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Use Web Seek Pref"
 msgstr "Utilizar as Prefs da Procuração de Jellyfin Web"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
 msgstr "Duplicação de Ecrã"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Write Logs to File"
 msgstr "Escrever Registos para um Ficheiro"
 
-#: jellyfin_mpv_shim/menu.py:560
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Check for Updates"
 msgstr "Procurar Atualizações"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
+
+#: jellyfin_mpv_shim/menu.py:561
+msgid "Always Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Ask to Skip Intros"
+msgstr ""
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
@@ -532,11 +538,11 @@ msgstr ""
 "MPV Shim v{0} Atualização Disponível↵\n"
 "Abre o menu (pressione c) para detalhes."
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
 msgstr "Desconhecido"
 
-#: jellyfin_mpv_shim/utils.py:219
+#: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
 msgstr " ·Forçado"
 
@@ -575,3 +581,6 @@ msgstr "Anime 4K x2 Perceptual + Nitidez (Para HD)"
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "Selecionar Perfil do Sombreador"
+
+#~ msgid "Transcode H265 to H264"
+#~ msgstr "Transcodificar H265 para H264"

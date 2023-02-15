@@ -558,8 +558,8 @@ class OSDMenu(object):
                 self.get_settings_toggle(
                     _("Discord Rich Presence"), "discord_presence"
                 ),
-                self.get_settings_toggle("Always Skip Intros", "skip_intro_always"),
-                self.get_settings_toggle("Ask to Skip Intros", "skip_intro_prompt"),
+                self.get_settings_toggle(_("Always Skip Intros"), "skip_intro_always"),
+                self.get_settings_toggle(_("Ask to Skip Intros"), "skip_intro_prompt"),
             ],
         )
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-12 23:35-0500\n"
+"POT-Creation-Date: 2023-02-14 20:05-0500\n"
 "PO-Revision-Date: 2022-03-02 17:13+0000\n"
 "Last-Translator: A Good User <adnbingo@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
@@ -254,11 +254,11 @@ msgstr "Cấu hình phát lại video"
 msgid "SVP Settings"
 msgstr "Cài đặt SVP"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:527
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
 msgid "Video Preferences"
 msgstr "Tùy chọn video"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
 msgid "Player Preferences"
 msgstr "Tùy chọn trình phát"
 
@@ -334,80 +334,86 @@ msgstr "Ở Trên"
 msgid "Middle"
 msgstr "Ở Giữa"
 
-#: jellyfin_mpv_shim/menu.py:488
+#: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Chất Lượng Chuyển Mã Từ Xa: {0:0.1f} Mb/s"
 
-#: jellyfin_mpv_shim/menu.py:494
+#: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
 msgstr "Kích cỡ Phụ đề: {0}"
 
-#: jellyfin_mpv_shim/menu.py:498
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
 msgstr "Vị trí Phụ đề: {0}"
 
-#: jellyfin_mpv_shim/menu.py:502
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
 msgstr "Màu Phụ Đề: {0}"
 
-#: jellyfin_mpv_shim/menu.py:507
-msgid "Transcode H265 to H264"
-msgstr "Chuyển mã H265 sang H264"
-
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode Hi10p to 8bit"
 msgstr "Chuyển mã Hi10p sang 8bit"
 
-#: jellyfin_mpv_shim/menu.py:511
+#: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
+#| msgid "Transcode to H265"
+msgid "Transcode HDR"
+msgstr "Chuyển mã sang H265"
+
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
 msgstr "Đường Dẫn Trực Tiếp"
 
-#: jellyfin_mpv_shim/menu.py:512
-msgid "Transcode to H265"
-msgstr "Chuyển mã sang H265"
-
-#: jellyfin_mpv_shim/menu.py:513
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Disable Direct Play"
 msgstr "Tắt tính năng Phát Trực Tiếp"
 
-#: jellyfin_mpv_shim/menu.py:519
+#: jellyfin_mpv_shim/menu.py:516
 msgid "Video Profile Subtype: {0}"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:533
+#: jellyfin_mpv_shim/menu.py:530
 msgid "Video Profile Subtype"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Play"
 msgstr "Tự Động Phát"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Auto Fullscreen"
 msgstr "Tự Động Toàn Màn Hình"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Media Key Seek"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Use Web Seek Pref"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
 msgstr "Phản Chiếu Màn Hình"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Write Logs to File"
 msgstr "Ghi Nhật Ký vào Tệp"
 
-#: jellyfin_mpv_shim/menu.py:560
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Check for Updates"
 msgstr "Kiểm Tra Cập Nhật"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:561
+msgid "Always Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Ask to Skip Intros"
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py:446
@@ -531,11 +537,11 @@ msgstr ""
 "Có sẵn bản cập nhật MPV Shim v {0}\n"
 "Mở menu (nhấn c) để biết chi tiết."
 
-#: jellyfin_mpv_shim/utils.py:218
+#: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:219
+#: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
 msgstr " Bắt Buộc"
 
@@ -574,3 +580,6 @@ msgstr "Anime4K x2 Perceptual + Deblur (Dành cho HD)"
 #: jellyfin_mpv_shim/video_profile.py:198
 msgid "Select Shader Profile"
 msgstr "Chọn hồ sơ Shader"
+
+#~ msgid "Transcode H265 to H264"
+#~ msgstr "Chuyển mã H265 sang H264"
