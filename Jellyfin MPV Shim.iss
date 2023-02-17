@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Jellyfin MPV Shim"
-#define MyAppVersion "2.3.1"
+#define MyAppVersion "2.4.0"
 #define MyAppPublisher "Ian Walton"
 #define MyAppURL "https://github.com/jellyfin/jellyfin-mpv-shim"
 #define MyAppExeName "run.exe"
