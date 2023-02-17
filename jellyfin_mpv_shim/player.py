@@ -154,6 +154,7 @@ class PlayerManager(object):
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
         self.intro_has_triggered = False
+        self.trickplay = None
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -164,11 +165,29 @@ class PlayerManager(object):
                     "player-operation-mode": "cplayer",
                 }
             )
+
+        scripts = []
         if settings.menu_mouse:
-            if is_using_ext_mpv:
-                mpv_options["script"] = get_resource("mouse.lua")
+            scripts.append(get_resource("mouse.lua"))
+        if settings.thumbnail_enable:
+            try:
+                from .trickplay import TrickPlay
+
+                self.trickplay = TrickPlay(self)
+                self.trickplay.start()
+            except Exception:
+                log.error("Could not enable trickplay.", exc_info=True)
+
+            if settings.thumbnail_custom_script:
+                scripts.append(settings.thumbnail_custom_script)
             else:
-                mpv_options["scripts"] = get_resource("mouse.lua")
+                scripts.append(get_resource("trickplay.lua"))
+
+        if scripts:
+            mpv_options["scripts"] = (
+                ";" if sys.platform.startswith("win32") else ":"
+            ).join(scripts)
+
         if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
             mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
             mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
@@ -187,7 +206,7 @@ class PlayerManager(object):
             register_join_event(self.syncplay.discord_join_group)
 
         if hasattr(self._player, "osc"):
-            self._player.osc = settings.enable_osc
+            self.enable_osc(settings.enable_osc)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 
@@ -490,6 +509,9 @@ class PlayerManager(object):
         self.url = url
         self.menu.hide_menu()
 
+        if self.trickplay:
+            self.trickplay.clear()
+
         if settings.log_decisions:
             log.debug("Playing: {0}".format(url))
         if self.get_webview() is not None and settings.display_mirroring:
@@ -535,6 +557,9 @@ class PlayerManager(object):
             self.syncplay.play_done()
         else:
             self.set_paused(False, False)
+
+        if self.trickplay:
+            self.trickplay.fetch_thumbnails()
 
         self.should_send_timeline = True
         self.do_not_handle_pause = False
@@ -583,6 +608,9 @@ class PlayerManager(object):
         local_video.terminate_transcode()
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
+
+        if self.trickplay:
+            self.trickplay.clear()
 
     def get_volume(self, percent: bool = False):
         if self._player:
@@ -847,6 +875,10 @@ class PlayerManager(object):
             self.pause_ignore = value
             self._player.pause = value
 
+    @synchronous("_lock")
+    def script_message(self, command, *args):
+        self._player.command("script-message", command, *args)
+
     def get_track_ids(self):
         return self._video.aid, self._video.sid
 
@@ -978,6 +1010,9 @@ class PlayerManager(object):
         if is_using_ext_mpv:
             self._player.terminate()
 
+        if self.trickplay:
+            self.trickplay.stop()
+
     def get_seek_times(self):
         if self._jf_settings is None:
             self._jf_settings = self._video.client.jellyfin.get_user_settings()
@@ -1015,13 +1050,16 @@ class PlayerManager(object):
         self._player.osd_font_size = font_size
 
     def enable_osc(self, enabled: bool):
-        if hasattr(self._player, "osc"):
-            self._player.osc = enabled
+        if settings.thumbnail_enable and self.trickplay:
+            self.script_message(
+                "osc-visibility", "always" if enabled else "never", False
+            )
+        else:
+            if hasattr(self._player, "osc"):
+                self._player.osc = enabled
 
     def triggered_menu(self, enabled: bool):
-        self._player.command(
-            "script-message", "shim-menu-enable", "True" if enabled else "False"
-        )
+        self.script_message("shim-menu-enable", "True" if enabled else "False")
 
     def playback_is_aborted(self):
         return self._player.playback_abort

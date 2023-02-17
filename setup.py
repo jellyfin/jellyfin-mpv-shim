@@ -30,12 +30,7 @@ setup(
         "gui": ["pystray", "PIL"],
         "mirror": ["Jinja2", "pywebview>=3.3.1"],
         "discord": ["pypresence"],
-        "all": [
-            "Jinja2",
-            "pywebview>=3.3.1",
-            "pystray",
-            "pypresence",
-        ],
+        "all": ["Jinja2", "pywebview>=3.3.1", "pystray", "pypresence", "PIL"],
     },
     python_requires=">=3.6",
     install_requires=[

@@ -3,6 +3,7 @@ import urllib.parse
 import os.path
 import re
 import pathlib
+from io import BytesIO
 from sys import platform
 
 from .conf import settings
@@ -251,6 +252,47 @@ class Video(object):
                 "Fetching intro data failed. Do you have the plugin installed?",
                 exc_info=1,
             )
+
+    def get_chapters(self):
+        return [
+            {"start": item["StartPositionTicks"] / 10000000, "name": item["Name"]}
+            for item in self.item.get("Chapters", [])
+        ]
+
+    def get_chapter_images(self, max_width=400, quality=90):
+        for i, item in enumerate(self.item.get("Chapters", [])):
+            data = BytesIO()
+            self.client.jellyfin._get_stream(
+                f"Items/{self.item_id}/Images/Chapter/{i}",
+                data,
+                {"tag": item["ImageTag"], "maxWidth": max_width, "quality": quality},
+            )
+            yield data.getvalue()
+
+    def get_bif(self, prefer_width=320):
+        # requires JellyScrub plugin
+        data = BytesIO()
+        manifest = self.client.jellyfin._get(
+            f"Trickplay/{self.media_source['Id']}/GetManifest"
+        )
+        if (
+            manifest is not None
+            and manifest.get("WidthResolutions") is not None
+            and len(manifest["WidthResolutions"]) > 0
+        ):
+            if prefer_width is not None:
+                width = min(
+                    manifest["WidthResolutions"], key=lambda x: abs(x - prefer_width)
+                )
+            else:
+                width = manifest["WidthResolutions"][-1]
+            self.client.jellyfin._get_stream(
+                f"Trickplay/{self.media_source['Id']}/{width}/GetBIF", data
+            )
+        else:
+            return None
+        data.seek(0)
+        return data
 
     def get_playback_url(
         self,

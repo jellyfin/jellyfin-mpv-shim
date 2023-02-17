@@ -307,6 +307,20 @@ use `shader_pack_custom`.
     - If you use `shader_pack_remember`, this will be updated when you set a profile through the UI.
  - `shader_pack_subtype` - The profile group to use. The default pack contains `lq` and `hq` groups. Use `hq` if you have a fancy graphics card.
 
+### Trickplay Thumbnails
+
+MPV will automatically display thumbnail previews. By default it uses the Jellyfin chapter images
+but it can also use JellyScrub as the source. Please note that this feature will download and
+uncompress all of the chapter images before it becomes available for a video. For a 4 hour movie this
+causes disk usage of about 250 MB, but for the average TV episode it is around 40 MB. It also requires
+overriding the default MPV OSC, which may conflict with some custom user script. The `trickplay.lua`
+file contains the feature if you want to make a modified version.
+
+ - `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
+ - `thumbnail_jellyscrub` - Use JellyScrub as the thumbnail source instead of chapter images. (Default: `false`)
+ - `thumbnail_custom_script` - If enabled, it disables the default `trickplay.lua` so you can provide a modified version. (Default: `null`)
+ - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
+
 ### SVP Integration
 
 To enable SVP integration, set `svp_enable` to `true` and enable "External control via HTTP" within SVP

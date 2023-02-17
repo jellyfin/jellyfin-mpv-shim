@@ -126,6 +126,10 @@ class Settings(SettingsBase):
     health_check_interval: Optional[int] = 300
     skip_intro_always: bool = False
     skip_intro_prompt: bool = False
+    thumbnail_enable: bool = True
+    thumbnail_jellyscrub: bool = False
+    thumbnail_custom_script: Optional[str] = None
+    thumbnail_preferred_size: int = 320
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
