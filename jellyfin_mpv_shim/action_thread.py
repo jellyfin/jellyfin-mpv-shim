@@ -12,6 +12,7 @@ class ActionThread(threading.Thread):
 
     def stop(self):
         self.halt = True
+        self.trigger.set()
         self.join()
 
     def run(self):

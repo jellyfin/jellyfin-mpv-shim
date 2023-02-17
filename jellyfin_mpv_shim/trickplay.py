@@ -21,6 +21,7 @@ class TrickPlay(threading.Thread):
 
     def stop(self):
         self.halt = True
+        self.trigger.set()
         if os.path.isfile(img_file):
             os.remove(img_file)
         self.join()
