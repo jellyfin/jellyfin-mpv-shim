@@ -47,27 +47,27 @@ msgstr "ידני: {0} צלחו, {1} כשלו"
 msgid "Setting Current..."
 msgstr "מגדיר נוכחי..."
 
-#: jellyfin_mpv_shim/clients.py:74
+#: jellyfin_mpv_shim/clients.py:74 jellyfin_mpv_shim/clients.py:50
 msgid "Server URL: "
 msgstr "כתובת שרת: "
 
-#: jellyfin_mpv_shim/clients.py:75
+#: jellyfin_mpv_shim/clients.py:75 jellyfin_mpv_shim/clients.py:51
 msgid "Username: "
 msgstr "שם חשבון: "
 
-#: jellyfin_mpv_shim/clients.py:76
+#: jellyfin_mpv_shim/clients.py:76 jellyfin_mpv_shim/clients.py:52
 msgid "Password: "
 msgstr "ססמה: "
 
-#: jellyfin_mpv_shim/clients.py:81
+#: jellyfin_mpv_shim/clients.py:81 jellyfin_mpv_shim/clients.py:57
 msgid "Successfully added server."
 msgstr "שרת נוסף בהצלחה."
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:82 jellyfin_mpv_shim/clients.py:58
 msgid "Add another server?"
 msgstr "להוסיף שרת נוסף?"
 
-#: jellyfin_mpv_shim/clients.py:85
+#: jellyfin_mpv_shim/clients.py:85 jellyfin_mpv_shim/clients.py:61
 msgid "Adding server failed."
 msgstr "הוספת השרת כשלה."
 
@@ -147,7 +147,7 @@ msgstr "פתח תיקיית הגדרות"
 msgid "Quit"
 msgstr "צא"
 
-#: jellyfin_mpv_shim/media.py:129
+#: jellyfin_mpv_shim/media.py:129 jellyfin_mpv_shim/media.py:126
 msgid " (Transcode)"
 msgstr " (קידוד)"
 
@@ -256,10 +256,12 @@ msgid "SVP Settings"
 msgstr "הגדרות SVP"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:527
 msgid "Video Preferences"
 msgstr "העדפות וידאו"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Player Preferences"
 msgstr "העדפות נגן"
 
@@ -335,77 +337,76 @@ msgstr "ראש"
 msgid "Middle"
 msgstr "אמצע"
 
-#: jellyfin_mpv_shim/menu.py:486
+#: jellyfin_mpv_shim/menu.py:486 jellyfin_mpv_shim/menu.py:488
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "איכות קידוד מרחוק: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:492
+#: jellyfin_mpv_shim/menu.py:492 jellyfin_mpv_shim/menu.py:494
 msgid "Subtitle Size: {0}"
 msgstr "גודל כתוביות: {0}"
 
-#: jellyfin_mpv_shim/menu.py:496
+#: jellyfin_mpv_shim/menu.py:496 jellyfin_mpv_shim/menu.py:498
 msgid "Subtitle Position: {0}"
 msgstr "מיקום כתוביות: {0}"
 
-#: jellyfin_mpv_shim/menu.py:500
+#: jellyfin_mpv_shim/menu.py:500 jellyfin_mpv_shim/menu.py:502
 msgid "Subtitle Color: {0}"
 msgstr "צבע כתוביות: {0}"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:506 jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
 msgstr "קדד Hi10p ל 8bit"
 
 #: jellyfin_mpv_shim/menu.py:508
 #, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
 msgstr "קדד ל H265"
 
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:509 jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
 msgstr "כתובת ישירה"
 
-#: jellyfin_mpv_shim/menu.py:510
+#: jellyfin_mpv_shim/menu.py:510 jellyfin_mpv_shim/menu.py:513
 msgid "Disable Direct Play"
 msgstr "בטל שימוש ב-Direct Play"
 
-#: jellyfin_mpv_shim/menu.py:516
+#: jellyfin_mpv_shim/menu.py:516 jellyfin_mpv_shim/menu.py:519
 msgid "Video Profile Subtype: {0}"
 msgstr "תת סוג של פרופיל וידאו: {0}"
 
-#: jellyfin_mpv_shim/menu.py:530
+#: jellyfin_mpv_shim/menu.py:530 jellyfin_mpv_shim/menu.py:533
 msgid "Video Profile Subtype"
 msgstr "תת סוג של פרופיל וידאו"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:551 jellyfin_mpv_shim/menu.py:554
 msgid "Auto Play"
 msgstr "הפעלה אוטומטית"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:552 jellyfin_mpv_shim/menu.py:555
 msgid "Auto Fullscreen"
 msgstr "מסך מלא אוטומטי"
 
-#: jellyfin_mpv_shim/menu.py:553
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Media Key Seek"
-msgstr ""
+msgstr "חיפוש מפתח תוכן"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "השתמש בהגדרות חיפוש דפדפן"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:555 jellyfin_mpv_shim/menu.py:558
 msgid "Display Mirroring"
 msgstr "שכפול מסכים"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:556 jellyfin_mpv_shim/menu.py:559
 msgid "Write Logs to File"
 msgstr "כתוב לוגים לקובץ"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:557 jellyfin_mpv_shim/menu.py:560
 msgid "Check for Updates"
 msgstr "בדוק אם קיימים עדכונים"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:559 jellyfin_mpv_shim/menu.py:562
 msgid "Discord Rich Presence"
 msgstr "נוכחות עשירה בדיסקורד"
 
@@ -425,7 +426,7 @@ msgstr ""
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:547
+#: jellyfin_mpv_shim/player.py:547 jellyfin_mpv_shim/player.py:511
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -433,7 +434,7 @@ msgstr ""
 "קידוד מחדש של הוידאו המרוחק מתבצע כעת!\n"
 "הקש c על מנת להתאים את הגדרות רוחב הפס אם הדבר אינו נדרש."
 
-#: jellyfin_mpv_shim/player.py:903
+#: jellyfin_mpv_shim/player.py:903 jellyfin_mpv_shim/player.py:863
 msgid "Season {0} - Episode {1}"
 msgstr "עונה {0} - פרק {1}"
 
@@ -488,7 +489,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "האץ כדי לתאם (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -496,7 +497,7 @@ msgstr "סנכרון מושבת (יותר מדי ניסיונות)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "דלג כדי לתאם (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -516,7 +517,7 @@ msgstr "{0} עזב."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} נטען למתמון."
 
 #: jellyfin_mpv_shim/syncplay.py:613
 msgid "{0}'s Group"
@@ -535,12 +536,14 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"עדכון זמין עבור MPV Shim v{0}\n"
+"פתח תפריט (לחץ על c) לפרטים."
 
-#: jellyfin_mpv_shim/utils.py:245
+#: jellyfin_mpv_shim/utils.py:245 jellyfin_mpv_shim/utils.py:217
 msgid "Unkn"
 msgstr "לא ידוע"
 
-#: jellyfin_mpv_shim/utils.py:246
+#: jellyfin_mpv_shim/utils.py:246 jellyfin_mpv_shim/utils.py:218
 msgid " Forced"
 msgstr " כפוי"
 
@@ -581,5 +584,10 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr "בחר פרופיל Shader"
 
-#~ msgid "Transcode H265 to H264"
-#~ msgstr "קדד H265 ל H264"
+#: jellyfin_mpv_shim/menu.py:507
+msgid "Transcode H265 to H264"
+msgstr "קדד H265 ל H264"
+
+#: jellyfin_mpv_shim/menu.py:512
+msgid "Transcode to H265"
+msgstr "קדד ל H265"
