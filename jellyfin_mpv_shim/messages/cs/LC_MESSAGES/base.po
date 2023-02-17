@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-14 20:05-0500\n"
+"POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-02-15 22:52+0000\n"
 "Last-Translator: Lukáš Kucharczyk <lukas@kucharczyk.xyz>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "Ručně: {0} OK, {1} selhání"
 msgid "Setting Current..."
 msgstr "Nastavuji aktuální…"
 
-#: jellyfin_mpv_shim/clients.py:74
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
 msgstr "URL serveru: "
 
-#: jellyfin_mpv_shim/clients.py:75
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
 msgstr "Uživatelské jméno: "
 
-#: jellyfin_mpv_shim/clients.py:76
+#: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
 msgstr "Heslo: "
 
-#: jellyfin_mpv_shim/clients.py:81
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
 msgstr "Server byl úspěšně přidán."
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
 msgstr "Přidat další server?"
 
-#: jellyfin_mpv_shim/clients.py:85
+#: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
 msgstr "Přidání serveru se nezdařilo."
 
@@ -146,7 +146,7 @@ msgstr "Otevřít složku s konfigurací"
 msgid "Quit"
 msgstr "Ukončit"
 
-#: jellyfin_mpv_shim/media.py:129
+#: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
 msgstr " (Překódovat)"
 
@@ -222,7 +222,7 @@ msgstr "Změnit titulky"
 msgid "Change Video Quality"
 msgstr "Změnit kvalitu videa"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
+#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
@@ -254,11 +254,11 @@ msgstr "Profily přehrávání videa"
 msgid "SVP Settings"
 msgstr "Nastavení SVP"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
 msgstr "Nastavení videa"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
 msgstr "Nastavení přehrávače"
 
@@ -350,79 +350,87 @@ msgstr "Umístění titulků: {0}"
 msgid "Subtitle Color: {0}"
 msgstr "Barva titulků: {0}"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
 msgstr "Překódovat Hi10p na 8bit"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
 msgstr "Překódovat HDR"
 
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
 msgstr "Přímé cesty"
 
-#: jellyfin_mpv_shim/menu.py:510
+#: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
 msgstr "Zakázat přímé přehrávání"
 
-#: jellyfin_mpv_shim/menu.py:516
+#: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
 msgstr "Podtyp profilu videa: {0}"
 
-#: jellyfin_mpv_shim/menu.py:530
+#: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
 msgstr "Podtyp profilu videa"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
 msgstr "Automatické přehrávání"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
 msgstr "Automaticky celá obrazovka"
 
-#: jellyfin_mpv_shim/menu.py:553
+#: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
 msgstr "Posouvání pomocí mediálních kláves"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
 msgstr "Použít nastavení posouvání na webu"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
 msgstr "Zrcadlení zobrazení"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
 msgstr "Zapisovat protokoly do souboru"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
 msgstr "Zkontrolovat aktualizace"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
 msgstr "Přítomnost na Discordu"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
 msgstr "Vždy přeskočit intro"
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
 msgstr "Zeptat se, zda přeskočit intro"
 
-#: jellyfin_mpv_shim/player.py:446
+#: jellyfin_mpv_shim/menu.py:559
+msgid "Enable thumbnail previews"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Use JellyScrub thumbnails"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
 msgstr "Intro přeskočeno"
 
-#: jellyfin_mpv_shim/player.py:448
+#: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
 msgstr "Přeskočit intro"
 
-#: jellyfin_mpv_shim/player.py:547
+#: jellyfin_mpv_shim/player.py:579
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -431,7 +439,7 @@ msgstr ""
 "Stisknutím klávesy c můžete změnit nastavení připojení, pokud překódování "
 "není nutné."
 
-#: jellyfin_mpv_shim/player.py:903
+#: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
 msgstr "{0}. řada - {1}. díl"
 
@@ -516,19 +524,19 @@ msgstr "Uživatel {0} se odpojil."
 msgid "{0} is buffering."
 msgstr "Uživatel {0} se načítá."
 
-#: jellyfin_mpv_shim/syncplay.py:613
+#: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
 msgstr "Skupina uživatele {0}"
 
-#: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
+#: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
 msgstr "Žádný (vypnuto)"
 
-#: jellyfin_mpv_shim/syncplay.py:626
+#: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
 msgstr "Nová skupina"
 
-#: jellyfin_mpv_shim/update_check.py:69
+#: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
@@ -576,7 +584,7 @@ msgstr "Anime4K x2 pocitové (pro HD kvalitu)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 pocitové + odstranění rozmazání (pro HD kvalitu)"
 
-#: jellyfin_mpv_shim/video_profile.py:198
+#: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "Vybrat shader"
 

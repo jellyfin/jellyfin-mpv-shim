@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-14 20:05-0500\n"
+"POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2022-07-04 21:06+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Esperanto <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "Mane: {0} bone, {1} malsukcesis"
 msgid "Setting Current..."
 msgstr "Agordante Aktualan…"
 
-#: jellyfin_mpv_shim/clients.py:74
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
 msgstr "Servila URL-o: "
 
-#: jellyfin_mpv_shim/clients.py:75
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
 msgstr "Uzantnomo: "
 
-#: jellyfin_mpv_shim/clients.py:76
+#: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
 msgstr "Pasvorto: "
 
-#: jellyfin_mpv_shim/clients.py:81
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
 msgstr "Sukcese aldonita servilo."
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
 msgstr "Ĉu aldoni alian servilon?"
 
-#: jellyfin_mpv_shim/clients.py:85
+#: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
 msgstr "Aldono de servilo malsukcesis."
 
@@ -146,7 +146,7 @@ msgstr "Malfermu Agordaran Dosierujon"
 msgid "Quit"
 msgstr "Lasu"
 
-#: jellyfin_mpv_shim/media.py:129
+#: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
 msgstr " (Transkodado)"
 
@@ -222,7 +222,7 @@ msgstr "Ŝanĝi Subtekstojn"
 msgid "Change Video Quality"
 msgstr "Ŝanĝi Videan Kvaliton"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
+#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
@@ -254,11 +254,11 @@ msgstr "Profiloj pri ludado de videoj"
 msgid "SVP Settings"
 msgstr "Parametroj de SVP"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
 msgstr "Videa Preferoj"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
 msgstr "Ludaj Preferoj"
 
@@ -350,81 +350,89 @@ msgstr "Subteksta Pozicio: {0}"
 msgid "Subtitle Color: {0}"
 msgstr "Subteksta Koloro: {0}"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
 msgstr "Transkodigo Hi10p al 8bit"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:506
 #, fuzzy
 #| msgid "Transcode to H265"
 msgid "Transcode HDR"
 msgstr "Transkodo al H.265"
 
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
 msgstr "Rektaj Serĉvojoj"
 
-#: jellyfin_mpv_shim/menu.py:510
+#: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
 msgstr "Malebligi Rekta Ludado"
 
-#: jellyfin_mpv_shim/menu.py:516
+#: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
 msgstr "Subtipo de Videa Profilo: {0}"
 
-#: jellyfin_mpv_shim/menu.py:530
+#: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
 msgstr "Subtipo de Videa Profilo"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
 msgstr "Ludi Aŭtomate"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
 msgstr "Plenekranen Aŭtomate"
 
-#: jellyfin_mpv_shim/menu.py:553
+#: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
 msgstr "Serĉo por Media Key"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
 msgstr "Uzi Preferon de Web Seek"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
 msgstr "Ekrana Spegulado"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
 msgstr "Skribi Ĵurnalojn al Dosiero"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
 msgstr "Kontrolu por Ĝisdatigoj"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
 msgstr "Rich Presence de Discord"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:446
+#: jellyfin_mpv_shim/menu.py:559
+msgid "Enable thumbnail previews"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Use JellyScrub thumbnails"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:448
+#: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:547
+#: jellyfin_mpv_shim/player.py:579
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -432,7 +440,7 @@ msgstr ""
 "Via fora video transkodas!\n"
 "Premu c por agordi parametrojn de trafiklimigo, se tio ne necesas."
 
-#: jellyfin_mpv_shim/player.py:903
+#: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
 msgstr "Sezono {0} - Epizodo {1}"
 
@@ -517,19 +525,19 @@ msgstr "{0} foriris."
 msgid "{0} is buffering."
 msgstr "{0} bufras."
 
-#: jellyfin_mpv_shim/syncplay.py:613
+#: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
 msgstr "Grupo de {0}"
 
-#: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
+#: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
 msgstr "Neniu (Malebligita)"
 
-#: jellyfin_mpv_shim/syncplay.py:626
+#: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
 msgstr "Nova Grupo"
 
-#: jellyfin_mpv_shim/update_check.py:69
+#: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
@@ -577,7 +585,7 @@ msgstr "Anime4K x2 Percepta (Por HD)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x4 Percepta + Malblovi (Por HD)"
 
-#: jellyfin_mpv_shim/video_profile.py:198
+#: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "Elekti Ombrigilan Profilon"
 

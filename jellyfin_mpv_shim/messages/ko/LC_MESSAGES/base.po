@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-14 20:05-0500\n"
+"POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2022-12-25 23:51+0000\n"
 "Last-Translator: DuaLee <cony.j.lee@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "수동: {0} 확인, {1} 실패"
 msgid "Setting Current..."
 msgstr "현재 설정..."
 
-#: jellyfin_mpv_shim/clients.py:74
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
 msgstr "서버 URL "
 
-#: jellyfin_mpv_shim/clients.py:75
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
 msgstr "아이디: "
 
-#: jellyfin_mpv_shim/clients.py:76
+#: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
 msgstr "암호 "
 
-#: jellyfin_mpv_shim/clients.py:81
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
 msgstr "서버를 성공적으로 추가했습니다."
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
 msgstr "다른 서버를 추가 하시겠습니까?"
 
-#: jellyfin_mpv_shim/clients.py:85
+#: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
 msgstr "서버 추가 실패 했습니다."
 
@@ -146,7 +146,7 @@ msgstr "설정 폴더 열기"
 msgid "Quit"
 msgstr "중지"
 
-#: jellyfin_mpv_shim/media.py:129
+#: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
 msgstr " 코덱변환"
 
@@ -222,7 +222,7 @@ msgstr "자막 변경"
 msgid "Change Video Quality"
 msgstr "비디오 품질 변경"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
+#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "Sync 플레이"
 
@@ -254,11 +254,11 @@ msgstr "비디오 재생 프로필"
 msgid "SVP Settings"
 msgstr "SVP 설정"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
 msgstr "비디오 기본 설정"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
 msgstr "플레이어 기본 설정"
 
@@ -350,81 +350,89 @@ msgstr "자막 위치: {0}"
 msgid "Subtitle Color: {0}"
 msgstr "자막 색깔: {0}"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
 msgstr "Hi10p를 8bit 코덱변환"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:506
 #, fuzzy
 #| msgid "Transcode to H265"
 msgid "Transcode HDR"
 msgstr "H265로 코덱변환"
 
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
 msgstr "직류 경로"
 
-#: jellyfin_mpv_shim/menu.py:510
+#: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
 msgstr "다이렉트 플레이 기능 끄기"
 
-#: jellyfin_mpv_shim/menu.py:516
+#: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
 msgstr "비디오 프로필 하위 유형: {0}"
 
-#: jellyfin_mpv_shim/menu.py:530
+#: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
 msgstr "비디오 프로필 하위 유형"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
 msgstr "자동 재생"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
 msgstr "자동 전체 화면"
 
-#: jellyfin_mpv_shim/menu.py:553
+#: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
 msgstr "미디어 키 탐색"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
 msgstr "웹 검색 설정 사용"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
 msgstr "디스플레이 미러링"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
 msgstr "파일에 로그 쓰기"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
 msgstr "업데이트 확인"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:446
+#: jellyfin_mpv_shim/menu.py:559
+msgid "Enable thumbnail previews"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Use JellyScrub thumbnails"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:448
+#: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:547
+#: jellyfin_mpv_shim/player.py:579
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -432,7 +440,7 @@ msgstr ""
 "외부 비디오 코덱변화 중입니다!\n"
 "필요하지 않은 경우 c를 눌러 인터넷 설정을 조정하시오."
 
-#: jellyfin_mpv_shim/player.py:903
+#: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
 msgstr "시즌 {0} - {1}화"
 
@@ -517,19 +525,19 @@ msgstr "{0}님이 나갔습니다."
 msgid "{0} is buffering."
 msgstr "{0}님이 버퍼링 중입니다."
 
-#: jellyfin_mpv_shim/syncplay.py:613
+#: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
 msgstr "{0}님의 모임"
 
-#: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
+#: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
 msgstr "없음 (꺼저있다)"
 
-#: jellyfin_mpv_shim/syncplay.py:626
+#: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
 msgstr "새 모임"
 
-#: jellyfin_mpv_shim/update_check.py:69
+#: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
@@ -577,7 +585,7 @@ msgstr "Anime4K x2 해석 (HD)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 해석 + 선명하기 (HD)"
 
-#: jellyfin_mpv_shim/video_profile.py:198
+#: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "셰이더 프로필 선택"
 

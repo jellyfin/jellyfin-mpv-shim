@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-14 20:05-0500\n"
+"POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2022-07-12 05:22+0000\n"
 "Last-Translator: Csaba <csab0825@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,27 +46,27 @@ msgstr "Kézi: {0} Rendben, {1} Sikertelen"
 msgid "Setting Current..."
 msgstr "Jelenlegi beállítása..."
 
-#: jellyfin_mpv_shim/clients.py:74
+#: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
 msgstr "Szerver URL: "
 
-#: jellyfin_mpv_shim/clients.py:75
+#: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
 msgstr "Felhasználónév: "
 
-#: jellyfin_mpv_shim/clients.py:76
+#: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
 msgstr "Jelszó: "
 
-#: jellyfin_mpv_shim/clients.py:81
+#: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
 msgstr "A szerver sikeresen hozzáadva."
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
 msgstr "További szerver hozzáadása?"
 
-#: jellyfin_mpv_shim/clients.py:85
+#: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
 msgstr "A szerver hozzáadása sikertelen."
 
@@ -146,7 +146,7 @@ msgstr "Config mappa megnyitása"
 msgid "Quit"
 msgstr "Kilépés"
 
-#: jellyfin_mpv_shim/media.py:129
+#: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
 msgstr " (Átkódolás)"
 
@@ -222,7 +222,7 @@ msgstr "Felirat váltása"
 msgid "Change Video Quality"
 msgstr "Videóminőség választása"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:632
+#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
@@ -254,11 +254,11 @@ msgstr "Videólejátszási profilok"
 msgid "SVP Settings"
 msgstr "SVP Beállítások"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:524
+#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
 msgstr "Videó beállítások"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
 msgstr "Lejátszó beállítások"
 
@@ -350,81 +350,89 @@ msgstr "Felirat pozíciója: {0}"
 msgid "Subtitle Color: {0}"
 msgstr "Felirat színe: {0}"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
 msgstr "Átkódolás Hi10p-ről 8bit-re"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:506
 #, fuzzy
 #| msgid "Transcode to H265"
 msgid "Transcode HDR"
 msgstr "Átkódolás H265-re"
 
-#: jellyfin_mpv_shim/menu.py:509
+#: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
 msgstr "Közvetlen útvonalak"
 
-#: jellyfin_mpv_shim/menu.py:510
+#: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
 msgstr "Közvetlen lejátszás tiltása"
 
-#: jellyfin_mpv_shim/menu.py:516
+#: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
 msgstr "Videóprofil altípusa: {0}"
 
-#: jellyfin_mpv_shim/menu.py:530
+#: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
 msgstr "Videoprofil altípus"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
 msgstr "Automatikus lejátszás"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
 msgstr "Automatikus teljes képernyős mód"
 
-#: jellyfin_mpv_shim/menu.py:553
+#: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
 msgstr "Média Tekerőgomb"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
 msgstr "Használja a Web Seek Pref alkalmazást"
 
-#: jellyfin_mpv_shim/menu.py:555
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
 msgstr "Tükrözés letiltása"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
 msgstr "Naplók fájlba írása"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
 msgstr "Frissítések ker"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
 msgstr "Discord gazdag jelenlét"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:562
+#: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:446
+#: jellyfin_mpv_shim/menu.py:559
+msgid "Enable thumbnail previews"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py:562
+msgid "Use JellyScrub thumbnails"
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:448
+#: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:547
+#: jellyfin_mpv_shim/player.py:579
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -433,7 +441,7 @@ msgstr ""
 "A C billentyű lenyomásával állíthatod az átviteli sávszélességet, ha "
 "szükséges."
 
-#: jellyfin_mpv_shim/player.py:903
+#: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
 msgstr "{0}. évad - {1}. rész"
 
@@ -518,19 +526,19 @@ msgstr "{0} kilépett."
 msgid "{0} is buffering."
 msgstr "{0} pufferel..."
 
-#: jellyfin_mpv_shim/syncplay.py:613
+#: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
 msgstr "{0} csoportja"
 
-#: jellyfin_mpv_shim/syncplay.py:622 jellyfin_mpv_shim/video_profile.py:186
+#: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
 msgstr "Nincs (letiltva)"
 
-#: jellyfin_mpv_shim/syncplay.py:626
+#: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
 msgstr "Új csoport"
 
-#: jellyfin_mpv_shim/update_check.py:69
+#: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
@@ -578,7 +586,7 @@ msgstr "Anime 4K x2 Észlelés (HD Minőség)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 Észlelés + Homályosítás eltüntetése (HD minőséghez)"
 
-#: jellyfin_mpv_shim/video_profile.py:198
+#: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "Shader profil kiválasztása"
 
