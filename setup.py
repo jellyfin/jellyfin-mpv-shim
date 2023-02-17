@@ -27,10 +27,10 @@ setup(
         "Operating System :: OS Independent",
     ],
     extras_require={
-        "gui": ["pystray", "PIL"],
+        "gui": ["pystray", "pillow"],
         "mirror": ["Jinja2", "pywebview>=3.3.1"],
         "discord": ["pypresence"],
-        "all": ["Jinja2", "pywebview>=3.3.1", "pystray", "pypresence", "PIL"],
+        "all": ["Jinja2", "pywebview>=3.3.1", "pystray", "pypresence", "pillow"],
     },
     python_requires=">=3.6",
     install_requires=[
