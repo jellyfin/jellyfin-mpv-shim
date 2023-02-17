@@ -58,7 +58,7 @@
 
   <content_rating type="oars-1.1" />
   <releases>
-    <release version="2.4.1" date="2023-02-16">
+    <release version="2.4.2" date="2023-02-16">
       <description>
         <p>Add preview images on seek bar. (Works with chapter images by default, also supports JellyScrub.)</p>
         <p>Handle removal of already configured shader profiles gracefully.</p>

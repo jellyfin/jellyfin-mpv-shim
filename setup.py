@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="jellyfin-mpv-shim",
-    version="2.4.1",
+    version="2.4.2",
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV.",

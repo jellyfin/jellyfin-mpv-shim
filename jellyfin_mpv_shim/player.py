@@ -1054,7 +1054,7 @@ class PlayerManager(object):
     def enable_osc(self, enabled: bool):
         if settings.thumbnail_enable and self.trickplay:
             self.script_message(
-                "osc-visibility", "always" if enabled else "never", "False"
+                "osc-visibility", "auto" if enabled else "never", "False"
             )
         else:
             if hasattr(self._player, "osc"):
