@@ -73,10 +73,10 @@ class TrickPlay(threading.Thread):
 
                             self.player.script_message(
                                 "shim-trickplay-bif",
-                                bif_meta["count"],
-                                bif["multiplier"],
-                                bif_meta["width"],
-                                bif_meta["height"],
+                                str(bif_meta["count"]),
+                                str(bif["multiplier"]),
+                                str(bif_meta["width"]),
+                                str(bif_meta["height"]),
                                 img_file,
                             )
                             log.info(
@@ -108,9 +108,9 @@ class TrickPlay(threading.Thread):
 
                 self.player.script_message(
                     "shim-trickplay-chapters",
-                    bif_meta["width"],
-                    bif_meta["height"],
-                    img_file,
+                    str(bif_meta["width"]),
+                    str(bif_meta["height"]),
+                    str(img_file),
                     ",".join(str(x["start"]) for x in chapter_data),
                 )
                 log.info(f"Collected {len(chapter_data)} chapter preview images")

@@ -175,13 +175,15 @@ class PlayerManager(object):
 
                 self.trickplay = TrickPlay(self)
                 self.trickplay.start()
+
+                if settings.thumbnail_custom_script:
+                    scripts.append(settings.thumbnail_custom_script)
+                else:
+                    scripts.append(get_resource("trickplay.lua"))
             except Exception:
                 log.error("Could not enable trickplay.", exc_info=True)
 
-            if settings.thumbnail_custom_script:
-                scripts.append(settings.thumbnail_custom_script)
-            else:
-                scripts.append(get_resource("trickplay.lua"))
+            mpv_options["osc"] = False
 
         if scripts:
             mpv_options["scripts"] = (
@@ -1052,7 +1054,7 @@ class PlayerManager(object):
     def enable_osc(self, enabled: bool):
         if settings.thumbnail_enable and self.trickplay:
             self.script_message(
-                "osc-visibility", "always" if enabled else "never", False
+                "osc-visibility", "always" if enabled else "never", "False"
             )
         else:
             if hasattr(self._player, "osc"):
