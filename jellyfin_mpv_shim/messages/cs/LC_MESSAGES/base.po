@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-15 22:52+0000\n"
+"PO-Revision-Date: 2023-02-19 13:29+0000\n"
 "Last-Translator: Lukáš Kucharczyk <lukas@kucharczyk.xyz>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/cs/>\n"
@@ -416,11 +416,11 @@ msgstr "Zeptat se, zda přeskočit intro"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Zobrazit náhledy na časové ose"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Zobrazit náhledy na časové ose JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
