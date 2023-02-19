@@ -189,7 +189,7 @@ class Video(object):
                 # translate path for windows
                 # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo,
                 # translate it to mediaserver/foo
-                return pathlib.Path(self.media_source["Path"])
+                return str(pathlib.Path(self.media_source["Path"]))
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
                 if os.path.isfile(self.media_source["Path"]):
