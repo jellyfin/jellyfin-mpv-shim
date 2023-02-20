@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-12-01 07:24+0000\n"
-"Last-Translator: Karo Sidal <karosi1970@ceoshub.com>\n"
+"PO-Revision-Date: 2023-02-22 15:39+0000\n"
+"Last-Translator: Cyteon <pkristian1@outlook.com>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/nb_NO/>\n"
 "Language: nb_NO\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Omkod Hi10p til 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Omkod til H265"
+msgstr "Omkod HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
