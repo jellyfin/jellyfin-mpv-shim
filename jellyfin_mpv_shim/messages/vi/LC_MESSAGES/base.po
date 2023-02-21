@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-03-02 17:13+0000\n"
-"Last-Translator: A Good User <adnbingo@gmail.com>\n"
+"PO-Revision-Date: 2023-02-22 15:39+0000\n"
+"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
 "Language: vi\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Chuyển mã Hi10p sang 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Chuyển mã sang H265"
+msgstr "Chuyển mã HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
