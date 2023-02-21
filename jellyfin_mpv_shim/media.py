@@ -257,6 +257,7 @@ class Video(object):
         return [
             {"start": item["StartPositionTicks"] / 10000000, "name": item["Name"]}
             for item in self.item.get("Chapters", [])
+            if item.get("ImageTag")
         ]
 
     def get_chapter_images(self, max_width=400, quality=90):
