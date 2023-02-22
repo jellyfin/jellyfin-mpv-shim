@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-08-06 12:22+0000\n"
-"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
+"PO-Revision-Date: 2023-02-23 20:39+0000\n"
+"Last-Translator: Pranav Avva <pranav.avva@gmail.com>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hi/>\n"
 "Language: hi\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -76,7 +76,7 @@ msgstr "डालने के लिए तैयार है"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "अपने मीडिया फाइल को जेलीफिन में चयन करें और यहां चलाए"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
@@ -84,7 +84,7 @@ msgstr "आवेदन लॉग"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr ""
+msgstr "सर्वर जोड़ें"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
@@ -120,7 +120,7 @@ msgstr "कुंजिका :"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr ""
+msgstr "सर्वर हटाएं"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
@@ -192,7 +192,7 @@ msgstr "बहुत छोटा"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "लघु"
+msgstr "छोटा"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -515,7 +515,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} चल गया है।"
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
