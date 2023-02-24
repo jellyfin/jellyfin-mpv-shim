@@ -61,3 +61,10 @@ def get(app: str, conf_file: str, create: bool = False):
     if create and not os.path.isfile(conf_file):
         open(conf_file, "w").close()
     return conf_file
+
+
+def get_dir(app: str, subfolder: str):
+    conf_folder = os.path.join(confdir(app), subfolder)
+    if not os.path.isdir(conf_folder):
+        os.makedirs(conf_folder)
+    return conf_folder
