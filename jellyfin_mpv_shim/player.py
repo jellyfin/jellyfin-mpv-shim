@@ -185,11 +185,11 @@ class PlayerManager(object):
 
             mpv_options["osc"] = False
 
-        # it seems there is no other way to auto-pass scripts
-        scripts_dir = conffile.get_dir(APP_NAME, "scripts")
-        for item in os.listdir(scripts_dir):
-            if not item.endswith(".disable"):
-                scripts.append(os.path.join(scripts_dir, item))
+        # ensure standard mpv configuration directories and files exist
+        conffile.get_dir(APP_NAME, "scripts")
+        conffile.get_dir(APP_NAME, "fonts")
+        conffile.get(APP_NAME, "input.conf", True)
+        conffile.get(APP_NAME, "mpv.conf", True)
 
         if scripts:
             if settings.mpv_ext:
@@ -200,8 +200,8 @@ class PlayerManager(object):
                 ).join(scripts)
 
         if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
-            mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
-            mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
+            mpv_options["config"] = True
+            mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
         self._player = mpv.MPV(
             input_default_bindings=True,
