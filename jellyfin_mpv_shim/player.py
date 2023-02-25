@@ -176,10 +176,10 @@ class PlayerManager(object):
                 self.trickplay = TrickPlay(self)
                 self.trickplay.start()
 
-                if settings.thumbnail_custom_script:
-                    scripts.append(settings.thumbnail_custom_script)
-                else:
-                    scripts.append(get_resource("trickplay.lua"))
+                scripts.append(get_resource("thumbfast.lua"))
+                if settings.thumbnail_osc_builtin:
+                    scripts.append(get_resource("trickplay-osc.lua"))
+
             except Exception:
                 log.error("Could not enable trickplay.", exc_info=True)
 

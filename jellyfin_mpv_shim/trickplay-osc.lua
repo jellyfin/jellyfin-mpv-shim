@@ -2,64 +2,28 @@
 -- Sadly there is no way to do this without forking the entire OSC script.
 -- All of my changes are marked with -- BEGIN patch and -- END patch.
 
--- BEGIN patch add thumbnails
-img_count = 0
-img_multiplier = 0
-img_width = 0
-img_height = 132
-img_file = ""
-img_last_frame = -1
-img_is_shown = false
-img_enabled = false
-img_is_bif = false
-img_chapters = {}
-
-function client_message_handler(event)
-    local event_name = event["args"][1]
-    if event_name == "shim-trickplay-clear"
-    then
-        mp.log("info", "Clearing trickplay.")
-        img_enabled = false
-        if img_is_shown
-        then
-            mp.commandv("overlay-remove", 46)
-            img_is_shown = false
-        end
-    elseif event_name == "shim-trickplay-bif"
-    then
-        mp.log("info", "Received BIF data.")
-        img_count = tonumber(event["args"][2])
-        img_multiplier = tonumber(event["args"][3])
-        img_width = tonumber(event["args"][4])
-        img_height = tonumber(event["args"][5])
-        img_file = event["args"][6]
-        img_last_frame = -1
-        img_enabled = true
-        img_is_bif = true
-    elseif event_name == "shim-trickplay-chapters"
-    then
-        mp.log("info", "Received chapter metadata.")
-        img_width = tonumber(event["args"][2])
-        img_height = tonumber(event["args"][3])
-        img_file = event["args"][4]
-        
-        img_chapters = {}
-        for timestamp in string.gmatch(event["args"][5], '([^,]+)') do
-            table.insert(img_chapters, tonumber(timestamp))
-        end
-
-        img_last_frame = -1
-        img_enabled = true
-        img_is_bif = false
-    end
-end
-mp.register_event("client-message", client_message_handler)
--- END patch add thumbnails
-
 local assdraw = require 'mp.assdraw'
 local msg = require 'mp.msg'
 local opt = require 'mp.options'
 local utils = require 'mp.utils'
+
+-- BEGIN patch add thumbnails
+local thumbfast = {
+    width = 0,
+    height = 0,
+    disabled = true,
+    available = false
+}
+
+mp.register_script_message("thumbfast-info", function(json)
+    local data = utils.parse_json(json)
+    if type(data) ~= "table" or not data.width or not data.height then
+        msg.error("thumbfast-info: received json didn't produce a table with thumbnail information")
+    else
+        thumbfast = data
+    end
+end)
+-- END patch add thumbnails
 
 --
 -- Parameters
@@ -896,39 +860,23 @@ function render_elements(master_ass)
 
                     -- BEGIN patch add thumbnails
                     local duration = mp.get_property_number("duration", nil)
-                    if img_enabled and not ((duration == nil) or (sliderpos == nil)) then
-                        local frame = 0;
-                        if img_is_bif then
-                            frame = math.floor(duration * (sliderpos / 100) / (img_multiplier / 1000))
-                        else
-                            local current_time = duration * (sliderpos / 100)
-                            for i = #img_chapters, 1, -1 do
-                                if img_chapters[i] <= current_time then
-                                    frame = i - 1
-                                    break
-                                end
-                            end
-                        end
+                    if thumbfast.available and not ((duration == nil) or (sliderpos == nil)) then
                         should_render_preview = true
-                        if frame ~= img_last_frame then
-                            if img_is_bif and frame >= img_count then
-                                frame = img_count -1
-                            end
-                            local offset = frame * img_width * img_height * 4
-                            -- 46 is a random number, but hopefully it won't conflict with other extensions
-                            local sx, sy = get_virt_scale_factor()
-                            local mX, mY = get_virt_mouse_pos()
-                            img_is_shown = true
-                            mp.commandv("overlay-add", 46, math.floor(mX / sx - img_width / 2), math.floor((element.hitbox.y1 - 24) / sy - img_height), img_file, offset, "bgra", img_width, img_height, img_width * 4)
-                        end
+                        local sx, sy = get_virt_scale_factor()
+                        local mX, mY = get_virt_mouse_pos()
+                        mp.commandv("script-message-to", "thumbfast", "thumb",
+                            duration * (sliderpos / 100),
+                            math.floor(mX / sx - thumbfast.width / 2),
+                            math.floor((element.hitbox.y1 - 24) / sy - thumbfast.height)
+                        )
                     end
                     -- END patch add thumbnails
                 end
             end
 
             -- BEGIN patch add thumbnails
-            if img_is_shown and not should_render_preview then
-                mp.commandv("overlay-remove", 46)
+            if thumbfast.available and not should_render_preview then
+                mp.commandv("script-message-to", "thumbfast", "clear")
             end
             -- END patch add thumbnails
 
@@ -2562,8 +2510,8 @@ function render()
         render_elements(ass)
     else
         -- BEGIN patch add thumbnails
-        if img_is_shown then
-            mp.commandv("overlay-remove", 46)
+        if thumbfast.available then
+            mp.commandv("script-message-to", "thumbfast", "clear")
         end
         -- END patch add thumbnails
     end

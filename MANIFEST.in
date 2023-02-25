@@ -3,4 +3,5 @@ recursive-include jellyfin_mpv_shim/integration *
 recursive-include jellyfin_mpv_shim/default_shader_pack *
 recursive-include jellyfin_mpv_shim/messages *.mo
 include jellyfin_mpv_shim/mouse.lua
-include jellyfin_mpv_shim/trickplay.lua
+include jellyfin_mpv_shim/trickplay-osc.lua
+include jellyfin_mpv_shim/thumbfast.lua
