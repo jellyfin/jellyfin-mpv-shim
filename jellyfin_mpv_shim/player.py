@@ -185,26 +185,24 @@ class PlayerManager(object):
 
             mpv_options["osc"] = False
 
-        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
-            # it seems there is no other way to auto-pass scripts
-            scripts_dir = conffile.get_dir(APP_NAME, "scripts")
-            for item in os.listdir(scripts_dir):
-                if not item.endswith(".disable"):
-                    scripts.append(os.path.join(scripts_dir, item))
+        # it seems there is no other way to auto-pass scripts
+        scripts_dir = conffile.get_dir(APP_NAME, "scripts")
+        for item in os.listdir(scripts_dir):
+            if not item.endswith(".disable"):
+                scripts.append(os.path.join(scripts_dir, item))
 
-            if scripts:
+        if scripts:
+            if settings.mpv_ext:
+                mpv_options["script"] = scripts
+            else:
                 mpv_options["scripts"] = (
                     ";" if sys.platform.startswith("win32") else ":"
                 ).join(scripts)
 
+        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
             mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
             mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
-        else:
-            if scripts:
-                log.warning("Builtin scripts are ignored with mpv_ext_no_ovr.")
-                log.warning(
-                    f"For full functionality, manually add these scripts: {scripts}"
-                )
+
         self._player = mpv.MPV(
             input_default_bindings=True,
             input_vo_keyboard=True,

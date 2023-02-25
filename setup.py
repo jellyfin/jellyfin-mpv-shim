@@ -44,7 +44,7 @@ setup(
     install_requires=[
         "python-mpv",
         "jellyfin-apiclient-python>=1.9.2",
-        "python-mpv-jsonipc>=1.1.14",
+        "python-mpv-jsonipc>=1.2.0",
         "requests",
     ],
     include_package_data=True,
