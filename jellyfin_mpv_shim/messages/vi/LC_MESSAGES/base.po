@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-22 15:39+0000\n"
-"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
+"PO-Revision-Date: 2023-02-27 20:43+0000\n"
+"Last-Translator: Toby Cm <newtobycm@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
 "Language: vi\n"
@@ -384,7 +384,7 @@ msgstr "Tự Động Toàn Màn Hình"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Phím đi tới"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
@@ -408,27 +408,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Luôn bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Hỏi để bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Bật hình nhỏ xem trước"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Dùng hình nhỏ JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Đã bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Đi tới để bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
