@@ -58,6 +58,15 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.5.0" date="2023-02-25">
+      <description>
+        <p>Fix thread hang when quitting application. (#317)</p>
+        <p>Fix direct paths in external mpv. (#316)</p>
+        <p>Ignore chapters which do not have images for trickplay.</p>
+        <p>Fix script support and map config folder to MPV (including scripts/fonts). (#320) (#321)</p>
+        <p>Add thumbfast compatibility layer to support alternate OSCs. (#321)</p>
+      </description>
+    </release>
     <release version="2.4.2" date="2023-02-16">
       <description>
         <p>Add preview images on seek bar. (Works with chapter images by default, also supports JellyScrub.)</p>
