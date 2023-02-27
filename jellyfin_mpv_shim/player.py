@@ -230,6 +230,10 @@ class PlayerManager(object):
                     "This mpv version doesn't support setting the screenshot directory."
                 )
 
+        if hasattr(self._player, "resume_playback"):
+            # This can lead to unwanted skipping of videos
+            self._player.resume_playback = False
+
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
             def wrapper(func):
