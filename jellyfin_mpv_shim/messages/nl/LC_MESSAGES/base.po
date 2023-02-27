@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-27 20:43+0000\n"
+"PO-Revision-Date: 2023-03-01 21:39+0000\n"
 "Last-Translator: Bas <weblate@hanka.mp>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
@@ -408,7 +408,7 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Altijd Intro's overslaan"
+msgstr "Altijd intro's overslaan"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
