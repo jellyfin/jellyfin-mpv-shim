@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-02-27 20:43+0000\n"
-"Last-Translator: Sipie Games <sipiegames@gmail.com>\n"
+"Last-Translator: Bas <weblate@hanka.mp>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -356,7 +356,7 @@ msgstr "Transcode Hi10p naar 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "Transcode HDR"
+msgstr "HDR transcoderen"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
