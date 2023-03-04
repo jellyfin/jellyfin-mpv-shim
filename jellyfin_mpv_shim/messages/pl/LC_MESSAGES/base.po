@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-12-23 23:51+0000\n"
-"Last-Translator: gam24 <kubacudny42@gmail.com>\n"
+"PO-Revision-Date: 2023-03-05 10:39+0000\n"
+"Last-Translator: kaypiff <kpiff@proton.me>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pl/>\n"
 "Language: pl\n"
@@ -356,10 +356,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transkoduj Hi10p do 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transkoduj do H265"
+msgstr "Transkoduj do HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -411,27 +409,27 @@ msgstr "Bogata obecność na Discordzie"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Zawsze pomijaj wstępy"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Pytaj o pominięcie wstępów"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Włącz podgląd miniatur"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Użyj miniatur JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Pominięte wprowadzenie"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Przewiń, aby pominąć wstęp"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -497,7 +495,7 @@ msgstr "Odmówiono dostępu do biblioteki SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Szybkość synchronizacji (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
