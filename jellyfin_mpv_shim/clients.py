@@ -16,7 +16,7 @@ import re
 import threading
 
 log = logging.getLogger("clients")
-path_regex = re.compile("^(https?://)?([^/:]+)(:[0-9]+)?(/.*)?$")
+path_regex = re.compile("^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
 
 from typing import Optional
 
@@ -143,7 +143,7 @@ class ClientManager(object):
         if server.endswith("/"):
             server = server[:-1]
 
-        protocol, host, port, path = path_regex.match(server).groups()
+        protocol, ipv6_host, ipv4_host, port, path = path_regex.match(server).groups()
 
         if not protocol:
             log.warning("Adding http:// because it was not provided.")
@@ -156,7 +156,7 @@ class ClientManager(object):
             )
             port = ":8096"
 
-        server = "".join(filter(bool, (protocol, host, port, path)))
+        server = "".join(filter(bool, (protocol, ipv6_host, ipv4_host, port, path)))
 
         client = self.client_factory()
         client.auth.connect_to_address(server)
