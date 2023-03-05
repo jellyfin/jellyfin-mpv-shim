@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-08-02 17:09+0000\n"
-"Last-Translator: Emanuel Șipoș <emanuelsipos1@gmail.com>\n"
+"PO-Revision-Date: 2023-03-06 10:20+0000\n"
+"Last-Translator: sand14 <sand.avrigeanu@yahoo.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ro/>\n"
 "Language: ro\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -356,10 +356,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Conversie Hi10p la 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Conversie la H265"
+msgstr "Conversie HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
