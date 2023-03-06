@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-03-06 10:20+0000\n"
-"Last-Translator: Shadowghost <Ghost_of_Stone@web.de>\n"
+"Last-Translator: Sebastian Knappe <github@sebastianknappe.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -140,7 +140,7 @@ msgstr "Applikationsmenü"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr "Ordner mit Konfigurationen öffnen"
+msgstr "Konfigurationsordner öffnen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
@@ -244,7 +244,7 @@ msgstr "Schließen und als ungesehen markieren"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Screenshot"
+msgstr "Bildschirmfoto"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -296,7 +296,7 @@ msgstr "Audio/Untertitel für Serie wählen"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr "Englisches Audio"
+msgstr "Englische Tonspur"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
@@ -392,7 +392,7 @@ msgstr "Verwende Spul-Einstellungen aus dem Internet"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Displayspiegelung"
+msgstr "Bildschirmspiegelung"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
@@ -541,7 +541,7 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
-"MPV Shim v{0} Update verfügbar\n"
+"Aktualisierung auf MPV Shim v{0} verfügbar\n"
 "Öffne Menü (drücke C) für Details."
 
 #: jellyfin_mpv_shim/utils.py:245
