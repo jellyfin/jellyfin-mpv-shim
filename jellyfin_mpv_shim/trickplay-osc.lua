@@ -2950,7 +2950,7 @@ end
 
 visibility_mode(user_opts.visibility, true)
 mp.register_script_message("osc-visibility", visibility_mode)
-mp.add_key_binding(nil, "visibility", function() visibility_mode("cycle") end)
+mp.add_key_binding("DEL", "visibility", function() visibility_mode("cycle") end)
 
 mp.register_script_message("osc-idlescreen", idlescreen_visibility)
 
