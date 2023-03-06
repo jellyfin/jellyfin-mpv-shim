@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-22 15:39+0000\n"
-"Last-Translator: Caensarex <niemmix@web.de>\n"
+"PO-Revision-Date: 2023-03-06 10:20+0000\n"
+"Last-Translator: Shadowghost <Ghost_of_Stone@web.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -44,7 +44,7 @@ msgstr "Manuell: {0} Ok, {1} Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Setzen der aktuellen Einstellung..."
+msgstr "Setze aktuelle Einstellung..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe die Verbindungsinformationen."
+"Bitte überprüfe deine Verbindungsinformationen."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
@@ -288,7 +288,7 @@ msgstr "Maximum"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "Kein Transkodieren"
+msgstr "Keine Transkodierung"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
@@ -300,7 +300,7 @@ msgstr "Englisches Audio"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Japanisches Audio mit englischem Untertitel"
+msgstr "Japanische Tonspur mit englischen Untertiteln"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transkodiere Hi10p zu 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transkodiere zu H265"
+msgstr "Transkodiere HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -430,7 +428,7 @@ msgstr "Intro übersprungen"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Zum übersprungenen Intro springen"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
