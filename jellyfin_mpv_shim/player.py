@@ -378,7 +378,7 @@ class PlayerManager(object):
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
             self.pause_ignore = True
-            if self._video and value:
+            if self._video and value and not self._video.parent.has_next:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
