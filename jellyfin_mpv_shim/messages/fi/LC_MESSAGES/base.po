@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-19 13:29+0000\n"
+"PO-Revision-Date: 2023-03-12 01:39+0000\n"
 "Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -392,7 +392,7 @@ msgstr "Median avainhaku"
 #: jellyfin_mpv_shim/menu.py:549 jellyfin_mpv_shim/menu.py:554
 #, fuzzy
 msgid "Use Web Seek Pref"
-msgstr "Käytä web-haun määritystä"
+msgstr "Käytä verkkohaun määritystä"
 
 #: jellyfin_mpv_shim/menu.py:550 jellyfin_mpv_shim/menu.py:555
 msgid "Display Mirroring"
