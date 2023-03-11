@@ -8,7 +8,7 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
@@ -37,14 +37,14 @@ jobs:
         ./artifacts.sh standard
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
   build-win32:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
@@ -73,7 +73,7 @@ jobs:
         ./artifacts.sh legacy
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: windows-legacy32
         path: ${{ github.workspace }}/publish/InstallerLegacy/*.exe
