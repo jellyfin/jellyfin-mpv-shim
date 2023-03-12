@@ -176,6 +176,9 @@ You can adjust the basic transcoder settings via the menu.
     - If your computer can handle it, you can get tone mapping to work for this using `vo=gpu-next`.
     - Note that `vo=gpu-next` is considered experimental by MPV at this time.
 - `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
+- `transcode_hevc` - Force transcode HEVC videos. Default: `false`
+- `transcode_av1` - Force transcode AV1 videos. Default: `false`
+- `transcode_4k` - Force transcode videos over 1080p. Default: `false`
 - `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`

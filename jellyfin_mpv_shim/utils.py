@@ -111,9 +111,9 @@ def get_profile(
 
     if settings.force_video_codec:
         transcode_codecs = settings.force_video_codec
-    elif settings.allow_transcode_to_h265:
+    elif settings.allow_transcode_to_h265 and not settings.transcode_hevc:
         transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
-    elif settings.prefer_transcode_to_h265:
+    elif settings.prefer_transcode_to_h265 and not settings.transcode_hevc:
         transcode_codecs = "h265,hevc,h264,mpeg4,mpeg2video"
     else:
         transcode_codecs = "h264,mpeg4,mpeg2video"
@@ -213,6 +213,68 @@ def get_profile(
                         "Condition": "Equals",
                         "Property": "VideoRangeType",
                         "Value": "SDR",
+                    }
+                ],
+            }
+        )
+
+    if settings.transcode_hevc:
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Codec": "hevc",
+                "Conditions": [
+                    {
+                        "Condition": "Equals",
+                        "Property": "Width",
+                        "Value": "0",
+                    }
+                ],
+            }
+        )
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Codec": "h265",
+                "Conditions": [
+                    {
+                        "Condition": "Equals",
+                        "Property": "Width",
+                        "Value": "0",
+                    }
+                ],
+            }
+        )
+
+    if settings.transcode_av1:
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Codec": "av1",
+                "Conditions": [
+                    {
+                        "Condition": "Equals",
+                        "Property": "Width",
+                        "Value": "0",
+                    }
+                ],
+            }
+        )
+
+    if settings.transcode_4k:
+        profile["CodecProfiles"].append(
+            {
+                "Type": "Video",
+                "Conditions": [
+                    {
+                        "Condition": "LessThanEqual",
+                        "Property": "Width",
+                        "Value": "1920",
+                    },
+                    {
+                        "Condition": "LessThanEqual",
+                        "Property": "Height",
+                        "Value": "1080",
                     }
                 ],
             }

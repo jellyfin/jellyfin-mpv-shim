@@ -41,6 +41,9 @@ class Settings(SettingsBase):
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False
+    transcode_hevc: bool = False
+    transcode_av1: bool = False
+    transcode_4k: bool = False
     transcode_dolby_vision: bool = True
     allow_transcode_to_h265: bool = False
     prefer_transcode_to_h265: bool = False
