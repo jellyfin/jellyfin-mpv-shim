@@ -246,7 +246,8 @@ The client now supports using an external copy of MPV, including one that is run
 the client. This may be useful if your distribution only provides MPV as a binary executable (instead
 of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
 strange behaviour when controlled in this manner. External MPV is currently the only working backend
-for media playback on macOS.
+for media playback on macOS. Additionally, due to Flatpak sandbox restrictions, external mpv is not
+practical to use in most cases for the Flatpak version.
 
 - `mpv_ext` - Enable usage of the external player by default. Default: `false`
     - The external player may still be used by default if `libmpv1` is not available.
