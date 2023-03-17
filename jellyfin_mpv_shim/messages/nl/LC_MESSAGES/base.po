@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-01 21:39+0000\n"
+"PO-Revision-Date: 2023-03-18 11:39+0000\n"
 "Last-Translator: Bas <weblate@hanka.mp>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
@@ -416,11 +416,11 @@ msgstr "Vragen om intro's over te slaan"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Miniatuurvoorbeelden inschakelen"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr "JellyScrub-thumbnails gebruiken"
+msgstr "JellyScrub-miniaturen gebruiken"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
