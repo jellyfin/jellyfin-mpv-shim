@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-22 15:39+0000\n"
-"Last-Translator: Cyteon <pkristian1@outlook.com>\n"
+"PO-Revision-Date: 2023-03-22 21:39+0000\n"
+"Last-Translator: oddib <oddbjorn.mr@hotmail.no>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/nb_NO/>\n"
 "Language: nb_NO\n"
@@ -164,7 +164,7 @@ msgstr "Svart"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Cyan"
+msgstr "Turkis"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -408,15 +408,16 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Hopp alltid over introduksjoner"
 
 #: jellyfin_mpv_shim/menu.py:557
+#, fuzzy
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Spør om å hoppe over introduksjoner"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Aktiver forhåndsvisning av miniatyrbilder"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
