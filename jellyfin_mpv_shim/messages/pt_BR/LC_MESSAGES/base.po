@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-08-28 04:11+0000\n"
-"Last-Translator: Giuliano Chimatti Berna <giucberna@gmail.com>\n"
+"PO-Revision-Date: 2023-03-24 16:39+0000\n"
+"Last-Translator: Andrew H. King <ahkdigital@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.13.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcodificar Hi10p para 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transcodificar para H265"
+msgstr "Transcodificar HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,7 +408,7 @@ msgstr "Discordar rica presença"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Sempre Pular Abertura"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
@@ -418,11 +416,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Habilitar miniaturas de imagens"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Usar miniaturas de imagens de JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
