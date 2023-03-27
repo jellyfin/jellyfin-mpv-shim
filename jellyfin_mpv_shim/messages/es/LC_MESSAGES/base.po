@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-08 20:51+0000\n"
-"Last-Translator: ManuXD32 <manuelgm344@gmail.com>\n"
+"PO-Revision-Date: 2023-03-28 22:39+0000\n"
+"Last-Translator: jp polix <nickspoli+jellyfin@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/es/>\n"
 "Language: es\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcodificar Hi10p a 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transcodificar a H265"
+msgstr "Transcodificar a HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,7 +408,7 @@ msgstr "Presencia en Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Saltar introducción siempre"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
@@ -426,7 +424,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Introducción Salteada"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
