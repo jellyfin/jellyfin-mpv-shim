@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-06 10:20+0000\n"
-"Last-Translator: sand14 <sand.avrigeanu@yahoo.com>\n"
+"PO-Revision-Date: 2023-03-31 20:39+0000\n"
+"Last-Translator: Drembii <drembii@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ro/>\n"
 "Language: ro\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Se selectează melodiile ..."
+msgstr "Se selectează melodiile..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -409,23 +409,23 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Treci mereu peste introducere"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Întreabă înainte să treci peste introducere"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Activați previzualizările în miniatură"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Folosește miniaturi JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Sari peste introducere"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
@@ -436,8 +436,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Videoul dvs se convertește\n"
-"Apăsați c pentru ajustarea setării lățimii de bandă dacă nu e nevoie."
+"Videoclipul tău se transcodează!\n"
+"Apasă C pentru a ajusta setările lățimii de bandă dacă nu e nevoie."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
