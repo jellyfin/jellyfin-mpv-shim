@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-18 11:39+0000\n"
-"Last-Translator: Bas <weblate@hanka.mp>\n"
+"PO-Revision-Date: 2023-03-31 20:39+0000\n"
+"Last-Translator: Maurits <maurits@mauritspullen.nl>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -428,7 +428,7 @@ msgstr "Intro overgeslagen"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Terug- of vooruitspoelen om intro over te slaan"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -436,7 +436,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Uw remote video wordt omgezet!\n"
-"Druk C om de bandwijdte-instellingen aan te passen als dit niet gewenst is."
+"Druk C om de bandbreedte-instellingen aan te passen als dit niet gewenst is."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
