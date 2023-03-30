@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-22 21:39+0000\n"
+"PO-Revision-Date: 2023-03-31 20:39+0000\n"
 "Last-Translator: oddib <oddbjorn.mr@hotmail.no>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/nb_NO/>\n"
@@ -421,7 +421,7 @@ msgstr "Aktiver forhåndsvisning av miniatyrbilder"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Bruk Jellyscrub-miniatyrbilder"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
