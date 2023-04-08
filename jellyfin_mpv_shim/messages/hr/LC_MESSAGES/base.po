@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-11-21 07:33+0000\n"
-"Last-Translator: lukapiplica <github163007297@protonmail.com>\n"
+"PO-Revision-Date: 2023-04-09 15:39+0000\n"
+"Last-Translator: Tomislav Filipcic <tf@7sols.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -358,14 +358,12 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transkodiranje Hi10p u 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transkodiranje u H265"
+msgstr "Transkodiranje u HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
-msgstr ""
+msgstr "Direktne putanje"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
@@ -401,7 +399,7 @@ msgstr "Zrcaljenje zaslona"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Zapisuj logove u datoteku"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -413,11 +411,11 @@ msgstr "Discord bogata prisutnost"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Uvijek preskoči najave"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Pitaj za preskakanje najava"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -429,7 +427,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Preskočena najava"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
