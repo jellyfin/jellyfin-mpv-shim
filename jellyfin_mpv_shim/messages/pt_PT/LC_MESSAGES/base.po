@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-01-09 16:51+0000\n"
+"PO-Revision-Date: 2023-04-13 08:39+0000\n"
 "Last-Translator: pedropereira98 <pedromlmpereira98@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/pt_PT/>\n"
@@ -312,7 +312,7 @@ msgstr "Selecionar o Perfil Padrão de Transcodificação"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Selecionar a Cor das Legendas"
+msgstr "Selecionar Cor das Legendas"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
@@ -320,7 +320,7 @@ msgstr "Selecionar Tamanho das Legendas"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Selecionar a Posição das Legendas"
+msgstr "Selecionar Posição das Legendas"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
