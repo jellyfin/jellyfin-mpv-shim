@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-28 22:39+0000\n"
-"Last-Translator: Felipe Nogueira <contato.fnog@gmail.com>\n"
+"PO-Revision-Date: 2023-04-13 08:39+0000\n"
+"Last-Translator: David Pereira Cruz <david.cruz@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
 "Language: pt\n"
@@ -32,11 +32,11 @@ msgstr "{0}: Falha"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Definir como legendado: {0} ok, {1} falha"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Definir como dobrado: {0} ok, {1} aúdio apenas, {2} falha"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
@@ -112,7 +112,7 @@ msgstr "Servidor:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "Nome de utilizador:"
+msgstr "Utilizador:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
@@ -200,7 +200,7 @@ msgstr "Normal"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Grande"
+msgstr "Ampla"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -228,7 +228,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Informação da Versão/Transferência"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode HDR"
-msgstr " (Transcodificação)"
+msgstr "(Transcodificação)"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
