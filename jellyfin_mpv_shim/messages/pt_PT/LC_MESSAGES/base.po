@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-04-13 08:39+0000\n"
-"Last-Translator: pedropereira98 <pedromlmpereira98@gmail.com>\n"
+"Last-Translator: David Pereira Cruz <david.cruz@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/pt_PT/>\n"
 "Language: pt_PT\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcodificar Hi10p para 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transcodificar para H265"
+msgstr "Transcodificar HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -370,11 +368,11 @@ msgstr "Desabilitar a Reprodução Direta"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Subtipo do Perfil de Vídeo: {0}"
+msgstr "Perfil de Video Subtipo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Subtipo do Perfil de Vídeo"
+msgstr "Perfil de Video Subtipo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -410,27 +408,27 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Saltar intros sempre"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Perguntar saltar intros"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Activar previsão de miniatura"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Usar miniaturas de JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Saltar intro"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Passar para saltar intro"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
