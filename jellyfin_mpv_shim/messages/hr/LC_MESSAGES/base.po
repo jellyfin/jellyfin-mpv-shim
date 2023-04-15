@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-09 15:39+0000\n"
-"Last-Translator: Tomislav Filipcic <tf@7sols.com>\n"
+"PO-Revision-Date: 2023-04-15 23:04+0000\n"
+"Last-Translator: Logilype <logilype@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -65,7 +65,7 @@ msgstr "Server je uspješno dodan."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr "Dodavanje novog servera?"
+msgstr "Želite li dodati drugi server?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
@@ -107,11 +107,11 @@ msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr "Konfiguracija poslužitelja"
+msgstr "Konfiguracija servera"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
-msgstr "Poslužitelj:"
+msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
@@ -123,7 +123,7 @@ msgstr "Lozinka:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr "Ukloni poslužitelja"
+msgstr "Ukloni server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
@@ -131,7 +131,7 @@ msgstr "Zatvori"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr "Konfiguriraj poslužitelja"
+msgstr "Konfiguriraj servere"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
@@ -195,7 +195,7 @@ msgstr "Sitno"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "Mali"
+msgstr "Malo"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
@@ -203,7 +203,7 @@ msgstr "Normalno"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Veliki"
+msgstr "Veliko"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -215,7 +215,7 @@ msgstr "Glavni izbornik"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr "Promijenite audio"
+msgstr "Promijenite zapis zvuka"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
@@ -227,7 +227,7 @@ msgstr "Promjena kvalitete videozapisa"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "Sinkronizirana reprodukcija"
+msgstr "Sinkronizirana reprodukcija (SyncPlay)"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -291,7 +291,7 @@ msgstr "Maksimum"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "Nema pretvorbe formata"
+msgstr "Nema konverzije formata"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
@@ -339,7 +339,7 @@ msgstr "Sredina"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Kvaliteta pretvorbe formta udaljenog zapisa: {0:0.f} Mbps"
+msgstr "Kvaliteta pretvorbe formata udaljenog zapisa: {0:0.f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -391,11 +391,11 @@ msgstr "Traženje medijskih ključeva"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr "Koristite Web Seek Pref"
+msgstr "Koristite Web Seek preferencije"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Zrcaljenje zaslona"
+msgstr "Dijeljenje zaslona"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
@@ -403,41 +403,43 @@ msgstr "Zapisuj logove u datoteku"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr "Provjeri ažuriranja"
+msgstr "Provjeri za ažuriranja"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord bogata prisutnost"
+msgstr "Discord Rich Presence (Discord bogata prisutnost)"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Uvijek preskoči najave"
+msgstr "Uvijek preskoči najave (intros)"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Pitaj za preskakanje najava"
+msgstr "Pitaj za preskakanje najava (intros)"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Omogući pregled sličica"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Koristi JellyScrub sličice"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr "Preskočena najava"
+msgstr "Preskočena najava (intro)"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Traži za preskakanje uvoda (intro)"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Vaš se video transkodira!\n"
+"Pritisni \"c\" za prilagodbu postavki propusnosti veze"
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
@@ -522,7 +524,7 @@ msgstr "{0} je otišao."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} učitava."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
