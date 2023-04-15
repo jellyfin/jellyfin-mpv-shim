@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-09 15:39+0000\n"
-"Last-Translator: john sww <gsh501@walla.com>\n"
+"PO-Revision-Date: 2023-04-15 23:04+0000\n"
+"Last-Translator: netanel <natanelhenya@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -410,11 +410,11 @@ msgstr "נוכחות עשירה בדיסקורד"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "דלג תמיד על הפתיח"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "בקש לדלג על הפתיח"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -426,7 +426,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "דילג פתיח"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
