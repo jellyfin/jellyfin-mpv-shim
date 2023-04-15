@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-15 23:04+0000\n"
+"PO-Revision-Date: 2023-04-16 23:39+0000\n"
 "Last-Translator: Logilype <logilype@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
@@ -439,7 +439,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Vaš se video transkodira!\n"
-"Pritisni \"c\" za prilagodbu postavki propusnosti veze"
+"Pritisni \"c\" za prilagodbu postavki propusnosti veze."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
@@ -496,7 +496,7 @@ msgstr "Pristup biblioteci SyncPlay je odbijen."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Brzina do sinkroniziranja (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -504,7 +504,7 @@ msgstr "Sinkronizacija onemogućena (previše pokušaja)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "SkipToSync (x{0})"
+msgstr "Preskok do sinkroniziranja (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
