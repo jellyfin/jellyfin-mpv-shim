@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-27 20:43+0000\n"
-"Last-Translator: MCSifreedsk33 <andrej.melek1121@gmail.com>\n"
+"PO-Revision-Date: 2023-04-20 11:39+0000\n"
+"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sk/>\n"
 "Language: sk\n"
@@ -431,7 +431,7 @@ msgstr "Intro preskočené"
 
 #: jellyfin_mpv_shim/player.py:470 jellyfin_mpv_shim/player.py:448
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Preskočiť intro"
 
 #: jellyfin_mpv_shim/player.py:579 jellyfin_mpv_shim/player.py:547
 msgid ""
