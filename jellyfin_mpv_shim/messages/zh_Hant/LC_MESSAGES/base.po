@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-11-21 05:51+0000\n"
-"Last-Translator: Akira Li <akira@irendezvous.net>\n"
+"PO-Revision-Date: 2023-04-21 16:39+0000\n"
+"Last-Translator: arnolam <arnop4a@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/zh_Hant/>\n"
 "Language: zh_Hant\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "從Hi10p轉碼至8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "轉碼至H.265"
+msgstr "轉碼至HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
