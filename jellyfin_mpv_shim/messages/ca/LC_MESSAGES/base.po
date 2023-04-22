@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-20 16:39+0000\n"
-"Last-Translator: Àlex Bravo <alexbravobosch@gmail.com>\n"
+"PO-Revision-Date: 2023-04-23 01:39+0000\n"
+"Last-Translator: MrOscarvs <oscarvilluendas7@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ca/>\n"
 "Language: ca\n"
@@ -96,7 +96,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
-msgstr "Error"
+msgstr "Fallada"
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Ok"
@@ -224,7 +224,7 @@ msgstr "Canviar la Qualitat del Vídeo"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Reproducció Sincronitzada"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -388,7 +388,7 @@ msgstr "Cerca de la Tecla Multimèdia"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Utilitzar pref. de cerca web"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
@@ -428,7 +428,7 @@ msgstr "Introducció saltada"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Intenta saltar la Introducció"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -493,7 +493,7 @@ msgstr "S'ha denegat l'accés a la llibreria de SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Velocitat per la Sincronització (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -501,7 +501,7 @@ msgstr "Sincronització desactivada (Masses intents)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "SkipToSync (x{0})"
+msgstr "Saltar a la Sincronizació (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
