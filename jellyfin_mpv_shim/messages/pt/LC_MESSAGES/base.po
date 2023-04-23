@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-13 08:39+0000\n"
-"Last-Translator: David Pereira Cruz <david.cruz@gmail.com>\n"
+"PO-Revision-Date: 2023-04-25 19:39+0000\n"
+"Last-Translator: IceGamerYT <icegamerxd@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
 "Language: pt\n"
@@ -308,11 +308,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Selecione o perfil padrão de transcodificação"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Selecione a cor das legendas"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
@@ -336,7 +336,7 @@ msgstr "Meio"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Qualidade de transcodificação remota: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -348,11 +348,11 @@ msgstr "Posição da legenda: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Cor da legenda: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Transcodificar Hi10p para 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
@@ -364,15 +364,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Desabilitar Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Subtipo de perfil de vídeo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Subtipo de perfil de vídeo"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
