@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-02 00:51+0000\n"
-"Last-Translator: Peyman M. <peymanr34@outlook.com>\n"
+"PO-Revision-Date: 2023-04-25 19:39+0000\n"
+"Last-Translator: NeonCube <prokillerg52@gmail.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
 "Language: fa\n"
@@ -164,7 +164,7 @@ msgstr "سیاه"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "فیروزه ای"
+msgstr "یشمی"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
