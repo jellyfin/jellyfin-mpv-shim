@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-08-15 13:40+0000\n"
-"Last-Translator: Arief Hidayat <kekesed97@gmail.com>\n"
+"PO-Revision-Date: 2023-04-27 12:39+0000\n"
+"Last-Translator: Alim Satria <alimsatria2017@mail.ugm.ac.id>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/id/>\n"
 "Language: id\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.13.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transkode Hi10p ke 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Transkode ke H265"
+msgstr "Transkode HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,27 +408,27 @@ msgstr "Kehadiran Kaya Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Selalu lewatkan pembuka"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Tanya untuk lewatkan pembuka"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Aktifkan tampilan gambar mini"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Gunakan gambar mini JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Pembuka terlewati"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Loncat untuk lewatkan pembuka"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
