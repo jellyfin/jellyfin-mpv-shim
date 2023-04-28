@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-01-09 16:51+0000\n"
-"Last-Translator: Retrial <giwrgosmant@gmail.com>\n"
+"PO-Revision-Date: 2023-04-29 15:39+0000\n"
+"Last-Translator: Kotsasmin <kotsasmin@gmail.com>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Διακωδικοποίηση Hi10p σε 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Διακωδικοποίηση σε H265"
+msgstr "Διακωδικοποίηση σε HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,11 +408,11 @@ msgstr "Discord Πλούσια Παρουσία"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Πάντα να παραλείπονται οι εισαγωγές"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Να γίνεται ερώτηση για να παραλείπονται οι εισαγωγές"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
