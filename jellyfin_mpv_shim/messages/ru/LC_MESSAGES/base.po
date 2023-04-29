@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-08 11:39+0000\n"
-"Last-Translator: argalion79 <lotms@mail.ru>\n"
+"PO-Revision-Date: 2023-05-01 08:39+0000\n"
+"Last-Translator: kyaroslav83 <yaroslav83@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
 "Language: ru\n"
@@ -409,27 +409,27 @@ msgstr "Rich Presence от Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Всегда пропускать вступительные ролики"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Спрашивать, пропускать ли вступительные ролики"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Включить предварительный просмотр миниатюр"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Использовать миниатюры JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Пропущенное вступление"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Пропустить вступительный ролик"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -494,11 +494,11 @@ msgstr "Доступ к медиатеке SyncPlay был запрещён."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync - (x{0})"
+msgstr "Скорость синхронизации (SpeedToSync) - (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Синхро отключено (Слишком много попыток)"
+msgstr "Синхронизация отключена (слишком много попыток)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
