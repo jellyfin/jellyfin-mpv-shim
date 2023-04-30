@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-01-19 13:24+0000\n"
-"Last-Translator: marcus2799 <marcus@mail.bg>\n"
+"PO-Revision-Date: 2023-05-01 08:39+0000\n"
+"Last-Translator: NenoRMa1eN <kosseff.k@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bg/>\n"
 "Language: bg\n"
@@ -300,7 +300,7 @@ msgstr "Английско аудио"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Японско аудио със /Английски субтитри"
+msgstr "Японско аудио с /Английски субтитри"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Транскодирай Hi10p до 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Транскодирай до H265"
+msgstr "Транскодирай HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,27 +408,27 @@ msgstr "Сървър в Дискорд"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Винаги пропускай въведенията"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Питай за пропуск на въведенията"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Активиране преглед на миниатюрни визуализации"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Използване на JellyScrub миниатюри"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Пропуснато въведение"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Търсене за пропускане на въведението"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
