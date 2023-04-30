@@ -575,8 +575,9 @@ The shaders included in the shader pack are also available under verious open so
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
 
-1. Install the dependencies: `sudo pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
+1. Install the dependencies: `pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
+    - Note: Recent distributions make pip unusable by default. Consider using conda or add a virtualenv to your user's path.
 2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-mpv-shim`
     - You can also download a zip build.
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
