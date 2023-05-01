@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-07-19 22:22+0000\n"
-"Last-Translator: Franco Castillo <castillofrancodamian@gmail.com>\n"
+"PO-Revision-Date: 2023-05-02 17:39+0000\n"
+"Last-Translator: Brian Bentancour <bbab40@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/es_AR/>\n"
 "Language: es_AR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -358,9 +358,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Transcodificar Hi10p a 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506 jellyfin_mpv_shim/menu.py:508
-#, fuzzy
 msgid "Transcode HDR"
-msgstr "Transcodificar a H265"
+msgstr "Transcodificar a HDR"
 
 #: jellyfin_mpv_shim/menu.py:507 jellyfin_mpv_shim/menu.py:509
 msgid "Direct Paths"
@@ -420,11 +419,11 @@ msgstr "Preguntar para saltar las intros"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Activar la vista previa de miniaturas"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Usar miniaturas de JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:446
 msgid "Skipped Intro"
@@ -432,7 +431,7 @@ msgstr "Intro omitida"
 
 #: jellyfin_mpv_shim/player.py:470 jellyfin_mpv_shim/player.py:448
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Intentar omitir la introducción"
 
 #: jellyfin_mpv_shim/player.py:579 jellyfin_mpv_shim/player.py:547
 msgid ""
@@ -498,7 +497,7 @@ msgstr "Se denegó el acceso a la biblioteca SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (x{0})"
+msgstr "Velocidad para sincronizar (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
