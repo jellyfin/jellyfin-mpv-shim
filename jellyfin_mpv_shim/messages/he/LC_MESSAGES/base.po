@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-15 23:04+0000\n"
-"Last-Translator: netanel <natanelhenya@gmail.com>\n"
+"PO-Revision-Date: 2023-05-06 00:39+0000\n"
+"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -487,11 +487,11 @@ msgstr "יצירת קבוצות SyncPlay אינה מאופשרת."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "SyncPlay"
+msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "SyncPlay"
+msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
