@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-01-25 07:37+0000\n"
-"Last-Translator: Tiondal <tiondal@protonmail.ch>\n"
+"PO-Revision-Date: 2023-05-06 00:39+0000\n"
+"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sq/>\n"
 "Language: sq\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Përzgjedhja e këngëve"
+msgstr "Përzgjedhja e këngëve..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Nuk mund të shtohet serveri.\n"
-"Ju lutem shikoni informacionin e lidhjes"
+"Ju lutem shikoni informacionin e lidhjes."
 
 #: jellyfin_mpv_shim/gui_mgr.py:269
 msgid "Fail"
