@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-03-28 00:28+0000\n"
-"Last-Translator: Rhodri <rhodrilld@gmail.com>\n"
+"PO-Revision-Date: 2023-05-07 21:39+0000\n"
+"Last-Translator: Brett Healey <Bearach.goll@gmail.com>\n"
 "Language-Team: Welsh <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/cy/>\n"
 "Language: cy\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=(n==0) ? 0 : (n==1) ? 1 : (n==2) ? 2 : "
 "(n==3) ? 3 :(n==6) ? 4 : 5;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -41,11 +41,11 @@ msgstr "Gosod Dwbio: {0} iawn, {1} sain yn unig, {2} methu"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Llawlyfr: {0} iawn, {1} methu"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Gosod Cyfredol..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -225,7 +225,7 @@ msgstr "Newid Ansawdd Fideo"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "ChwaraeCysoni"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -305,7 +305,7 @@ msgstr "Sain Japaneaidd gydag Isdeitlau Saesneg"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Llawlyfr yn ôl Mynegai Trac (Llai Dibynadwy)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -356,10 +356,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Trawsgodio o Hi10p i 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Trawsgodio i H265"
+msgstr "Trawsgodio HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -371,11 +369,11 @@ msgstr "Diffodd Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Is-fath Proffil Fideo: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Is-deip Proffil Fideo"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -387,11 +385,11 @@ msgstr "Sgrîn Lawn Awtomatig"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Ceisio Allwedd Cyfryngau"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Defnyddiwch Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
@@ -407,31 +405,31 @@ msgstr "Gwirio am Ddiweddariadau"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Presenoldeb Cyfoethog Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Hepgor Rhagarweiniadau bob amser"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Gofynnwch i Hepgor Intros"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Galluogi rhagolwg mân-luniau"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Defnyddio mân-luniau JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Wedi hepgor y Cyflwyniad"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Ceisio Hepgor y Cyflwyniad"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -564,28 +562,27 @@ msgstr "Uchel Gyffredinol (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Anime4K x4 Faithful (For SD)"
+msgstr "Anime4K x4 Ffyddlon (Ar gyfer SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
-#, fuzzy
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Anime4K x4 Perceptual (For SD)"
+msgstr "Anime4K x4 Canfyddiadol (Ar gyfer SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Perceptual + Deblur (For SD)"
+msgstr "Anime4K x4 Canfyddiadol + Deblur (Ar gyfer SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Anime4K x2 Faithful (For HD)"
+msgstr "Anime4K x2 Ffyddlon (Ar gyfer HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 Perceptual (For HD)"
+msgstr "Anime4K x2 Canfyddiadol (Ar gyfer HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Deblur (For HD)"
+msgstr "Anime4K x2 Canfyddiadol + Deblur (Ar gyfer HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
