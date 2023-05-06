@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-23 20:39+0000\n"
-"Last-Translator: Pranav Avva <pranav.avva@gmail.com>\n"
+"PO-Revision-Date: 2023-05-07 21:39+0000\n"
+"Last-Translator: TheSharingBrother <thesharingbrother@proton.me>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hi/>\n"
 "Language: hi\n"
@@ -44,7 +44,7 @@ msgstr "मैनुअल: {0} ठीक है, {1} विफल"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "वर्तमान चयनित किया जा रहा..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -52,7 +52,7 @@ msgstr "सर्वर URL: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr "उपयोगकर्ता नाम "
+msgstr "उपयोगकर्ता नाम: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
