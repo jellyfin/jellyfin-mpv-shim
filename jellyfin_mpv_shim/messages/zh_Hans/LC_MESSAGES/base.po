@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-22 15:39+0000\n"
-"Last-Translator: 小造xu_zh <ngc7331@outlook.com>\n"
+"PO-Revision-Date: 2023-05-08 19:21+0000\n"
+"Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -76,7 +76,7 @@ msgstr "准备投屏"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "在Jellyfin中选择您的媒体并在此处播放"
+msgstr "在 Jellyfin 中选择您的媒体并在此处播放"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
