@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-08 19:21+0000\n"
+"PO-Revision-Date: 2023-05-16 02:28+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/zh_Hans/>\n"
@@ -236,7 +236,7 @@ msgstr "更改视频播放预设"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "自动设置音频/字幕（整个系列）"
+msgstr "自动设置音频/字幕（整个节目）"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -268,11 +268,11 @@ msgstr "关闭菜单"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "选择音频轨道"
+msgstr "选择音频音轨"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "选择字幕轨道"
+msgstr "选择字幕音轨"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -292,7 +292,7 @@ msgstr "未转码"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "选择系列的音频/字幕"
+msgstr "选择节目音频/字幕"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -300,11 +300,11 @@ msgstr "英语音频"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "日语音频 / 英语字母"
+msgstr "日语音频 / 英语字幕"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "使用轨道索引手动选择（可靠性更低）"
+msgstr "使用手动选择音轨索引（可靠性更低）"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
