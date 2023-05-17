@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-16 17:46+0000\n"
-"Last-Translator: Jonne Saloranta <saloranta.jonne@gmail.com>\n"
+"PO-Revision-Date: 2023-05-18 17:21+0000\n"
+"Last-Translator: Oskari Lavinto <olavinto@protonmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
 "Language: fi\n"
@@ -225,7 +225,7 @@ msgstr "Vaihda videon laatu"
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 #: jellyfin_mpv_shim/syncplay.py:632
 msgid "SyncPlay"
-msgstr "Synkronoitu toisto"
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -407,7 +407,7 @@ msgstr "Tarkista päivitykset"
 
 #: jellyfin_mpv_shim/menu.py:554 jellyfin_mpv_shim/menu.py:559
 msgid "Discord Rich Presence"
-msgstr "Discord Rikas Läsnäolo"
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Always Skip Intros"
@@ -496,7 +496,7 @@ msgstr "Pääsy SyncPlay-kirjastoon kielletty."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "Nopeuta synkronointiin (x{0})"
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -504,7 +504,7 @@ msgstr "Synkronointi on poistettu käytöstä (liikaa yrityksiä)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Kelaa synkronointiin (x{0})"
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
