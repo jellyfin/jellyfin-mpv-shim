@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-09-28 04:54+0000\n"
-"Last-Translator: Burak Meric <mburakmeric22@gmail.com>\n"
+"PO-Revision-Date: 2023-05-23 16:21+0000\n"
+"Last-Translator: PakuDrag <iceclout@tutanota.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
 "Language: tr\n"
@@ -410,11 +410,11 @@ msgstr "Discord Rich Presence Özelliği"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Her Zaman Girişi Geç"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Girişi Geçmek için Sor"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -426,7 +426,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Giriş Geçildi"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
