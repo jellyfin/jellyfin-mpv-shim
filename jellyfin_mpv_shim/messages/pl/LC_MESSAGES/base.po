@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-05 10:39+0000\n"
-"Last-Translator: kaypiff <kpiff@proton.me>\n"
+"PO-Revision-Date: 2023-05-25 17:21+0000\n"
+"Last-Translator: Patryk Radziszewski <patrygo222@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pl/>\n"
 "Language: pl\n"
@@ -405,7 +405,7 @@ msgstr "Sprawdź Aktualizacje"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Bogata obecność na Discordzie"
+msgstr "Discord Bogata Obecność"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
