@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-25 19:39+0000\n"
-"Last-Translator: alison2033 <a23030485@gmail.com>\n"
+"PO-Revision-Date: 2023-05-28 19:21+0000\n"
+"Last-Translator: theGUI001 <lghmelo@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -292,7 +292,7 @@ msgstr "Sem transcodificação"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Selecione Áudio/Legenda para Series"
+msgstr "Selecione Áudio/Legenda para Séries"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -396,7 +396,7 @@ msgstr "Espelhamento de tela"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Escrever logs ao arquivo"
+msgstr "Escrever logs no arquivo"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -411,9 +411,8 @@ msgid "Always Skip Intros"
 msgstr "Sempre Pular Abertura"
 
 #: jellyfin_mpv_shim/menu.py:557
-#, fuzzy
 msgid "Ask to Skip Intros"
-msgstr "Pedir para pular introduções"
+msgstr "Perguntar para pular introduções"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -421,17 +420,15 @@ msgstr "Habilitar miniaturas de imagens"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr "Usar miniaturas de imagens de JellyScrub"
+msgstr "Usar miniaturas de imagens do JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
-#, fuzzy
 msgid "Skipped Intro"
-msgstr "Introdução ignorada"
+msgstr "Introdução pulada"
 
 #: jellyfin_mpv_shim/player.py:470
-#, fuzzy
 msgid "Seek to Skip Intro"
-msgstr "Procure pular introdução"
+msgstr "Tentar pular introdução"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -492,7 +489,7 @@ msgstr "O acesso ao grupo SyncPlay foi negado."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "O acesso a biblioteca SyncPlay foi negado."
+msgstr "O acesso à biblioteca SyncPlay foi negado."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
