@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-28 19:21+0000\n"
-"Last-Translator: RJS <zibenscilveeks@aicis.id.lv>\n"
+"PO-Revision-Date: 2023-06-02 05:21+0000\n"
+"Last-Translator: Artūrs Jānis Ņikitins <ajnikitins@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
 "Language: lv\n"
@@ -563,27 +563,27 @@ msgstr "Generic High (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Anime4K x4 Faithful (Priekš SD)"
+msgstr "Anime4K x4 Faithful (SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Anime4K x4 Perceptual (Priekš SD)"
+msgstr "Anime4K x4 Perceptual (SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Perceptual + Deblur (Priekš SD)"
+msgstr "Anime4K x4 Perceptual + Deblur (SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr "Anime4K x2 Faithful (Priekš HD)"
+msgstr "Anime4K x2 Faithful (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 Perceptual (Priekš HD)"
+msgstr "Anime4K x2 Perceptual (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Deblur (Priekš HD)"
+msgstr "Anime4K x2 Perceptual + Deblur (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
