@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-12-25 23:51+0000\n"
-"Last-Translator: DuaLee <cony.j.lee@gmail.com>\n"
+"PO-Revision-Date: 2023-06-02 05:21+0000\n"
+"Last-Translator: John Lim <johnlim3142@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -414,7 +414,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "인트로 건너뛰기전에 항상 물어보기"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
