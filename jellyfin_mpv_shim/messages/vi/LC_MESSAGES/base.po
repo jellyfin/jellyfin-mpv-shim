@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-27 20:43+0000\n"
-"Last-Translator: Toby Cm <newtobycm@gmail.com>\n"
+"PO-Revision-Date: 2023-06-05 21:21+0000\n"
+"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
 "Language: vi\n"
@@ -368,11 +368,11 @@ msgstr "Tắt tính năng Phát Trực Tiếp"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Loại phụ hồ sơ video: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Loại phụ hồ sơ video"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
