@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-06-07 20:21+0000\n"
-"Last-Translator: Alexandre Cezario <acezario@gmail.com>\n"
+"Last-Translator: Fernando Alves <fernandu.alves@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -396,7 +396,7 @@ msgstr "Espelhamento de tela"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Escrever logs no arquivo"
+msgstr "Escrever logs para arquivo"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
