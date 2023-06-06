@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-06-07 20:21+0000\n"
-"Last-Translator: Fernando Alves <fernandu.alves@gmail.com>\n"
+"Last-Translator: Andrew H. King <ahkdigital@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -412,7 +412,7 @@ msgstr "Sempre Pular Abertura"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Perguntar para pular introduções"
+msgstr "Pergunte Sobre Pular Abertura"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
