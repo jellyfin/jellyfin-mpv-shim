@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-31 20:39+0000\n"
-"Last-Translator: Drembii <drembii@gmail.com>\n"
+"PO-Revision-Date: 2023-06-23 12:41+0000\n"
+"Last-Translator: pricootz <paul_pricootz@yahoo.it>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ro/>\n"
 "Language: ro\n"
@@ -57,7 +57,7 @@ msgstr "Nume utilizator: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "Parola: "
+msgstr "Parolă: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -141,7 +141,7 @@ msgstr "Meniul Aplicației"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr "Deschideți dosarul de configurare"
+msgstr "Deschideți fișierul de configurare"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
@@ -253,7 +253,7 @@ msgstr "Profiluri de Redare Video"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr "SVP Setări"
+msgstr "Setări SVP"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
@@ -429,7 +429,7 @@ msgstr "Sari peste introducere"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Încearcă să sari peste introducere"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
