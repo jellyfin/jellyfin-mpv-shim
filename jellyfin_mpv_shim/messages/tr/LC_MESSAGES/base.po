@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-23 16:21+0000\n"
-"Last-Translator: PakuDrag <iceclout@tutanota.com>\n"
+"PO-Revision-Date: 2023-06-28 22:41+0000\n"
+"Last-Translator: Murat Hasar <murathsr@gmail.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
 "Language: tr\n"
@@ -164,7 +164,7 @@ msgstr "Siyah"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Açık mavi"
+msgstr "Cam göbeği"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Hi10p'ten 8bit'e dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "H265'e dönüştürün"
+msgstr "HDR'e dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -370,11 +368,11 @@ msgstr "Direkt Oynatmayı Devre Dışı Bırak"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Video Profil Alttipi"
+msgstr "Video Profili Alt Türü: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Video Profil Alt Tipi"
+msgstr "Video Profili Alt Türü"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -406,7 +404,7 @@ msgstr "Güncellemeleri kontrol et"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence Özelliği"
+msgstr "Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
@@ -418,11 +416,11 @@ msgstr "Girişi Geçmek için Sor"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Küçük resim önizlemelerini etkinleştirin"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "JellyScrub küçük resimlerini kullanın"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
@@ -430,7 +428,7 @@ msgstr "Giriş Geçildi"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Girişi Atlamak için Ara"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -588,7 +586,7 @@ msgstr "Anime4K x2 Perceptual + Blur kaldır (HD Kalite)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr "Shader Profili Seç"
+msgstr "Gölgelendirici Profili Seçin"
 
 #~ msgid "Transcode H265 to H264"
 #~ msgstr "H265'ten H264'e dönüştürün"
