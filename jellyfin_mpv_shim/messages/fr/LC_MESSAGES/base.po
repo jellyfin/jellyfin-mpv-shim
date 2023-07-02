@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-02-25 05:39+0000\n"
-"Last-Translator: Valentin COMTE <angenoir71880@gmail.com>\n"
+"PO-Revision-Date: 2023-07-03 17:41+0000\n"
+"Last-Translator: Nicolas Viviani <nicolas.viviani01@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fr/>\n"
 "Language: fr\n"
@@ -352,11 +352,11 @@ msgstr "Couleur des sous-titres : {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Transcoder Hi10p vers 8bit"
+msgstr "Transcoder le Hi10p en 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "Transcoder en H265"
+msgstr "Transcoder le HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -408,7 +408,7 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Toujours passer l'introduction"
+msgstr "Toujours passer les introductions"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
@@ -424,11 +424,11 @@ msgstr "Utiliser les miniatures JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr "Introduction sautée"
+msgstr "Introduction ignorée"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr "Avancer jusqu'après l'introduction"
+msgstr "Avancer pour passer l'introduction"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
