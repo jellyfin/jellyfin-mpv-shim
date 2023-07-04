@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-16 23:39+0000\n"
-"Last-Translator: Logilype <logilype@gmail.com>\n"
+"PO-Revision-Date: 2023-07-05 09:08+0000\n"
+"Last-Translator: svgaming234 <sven.kovac1@outlook.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -167,7 +167,7 @@ msgstr "Crna"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Cijan"
+msgstr "Tirkizna"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
