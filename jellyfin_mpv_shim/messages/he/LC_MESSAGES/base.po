@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-06 00:39+0000\n"
-"Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
+"PO-Revision-Date: 2023-07-05 09:08+0000\n"
+"Last-Translator: Letradical <letrad@disroot.org>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -418,7 +418,7 @@ msgstr "בקש לדלג על הפתיח"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "הפעל תצוגה מקדימה של תמונות קטנות"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
