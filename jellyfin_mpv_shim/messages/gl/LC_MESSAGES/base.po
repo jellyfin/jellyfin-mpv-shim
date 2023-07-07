@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-05 21:21+0000\n"
+"PO-Revision-Date: 2023-07-08 13:41+0000\n"
 "Last-Translator: D <dln0@proton.me>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/gl/>\n"
@@ -307,7 +307,7 @@ msgstr "Audio en Xaponés con Subtítulos en Inglés"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Manual por índice de pista (menos confiábel)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -368,7 +368,7 @@ msgstr "Localizacións Directas"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "Deshabilitar a Reprodución Directa"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
@@ -424,7 +424,7 @@ msgstr "Activar vistas previas na miniatura"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Usar miniaturas de JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
@@ -439,6 +439,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"O seu vídeo remoto está a se transcodificar \n"
+"Se non for necesario, prema c para axustar a largura de banda."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
@@ -479,19 +481,19 @@ msgstr "SVP está Deshabilitado"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "O grupo SyncPlay especificado non existe."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "Non se permite a creación de grupos SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "O acceso ao grupo SyncPlay foi denegado."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "O acceso á biblioteca SyncPlay foi denegado."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -507,11 +509,11 @@ msgstr "Saltar a Sincronización (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlay habilitado."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlay deshabilitado."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -523,7 +525,7 @@ msgstr "{0} foise."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} está almacenado no búfer."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
@@ -542,6 +544,8 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} Actualización dispoñíbel \n"
+"Abra o menú (prema c) para obter detalles."
 
 #: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
