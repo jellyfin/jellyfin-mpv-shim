@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-07-16 12:41+0000\n"
-"Last-Translator: gleb <gleb767@gmail.com>\n"
+"PO-Revision-Date: 2023-07-19 20:41+0000\n"
+"Last-Translator: IIeTp <dai_deneg_plz@mail.ru>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
 "Language: ru\n"
@@ -77,7 +77,7 @@ msgstr "Готово к вещанию"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Выберите медиаданные в Jellyfin и воспроизведите их здесь"
+msgstr "Выберите медиафайлы в Jellyfin и воспроизведите их здесь"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
@@ -121,7 +121,7 @@ msgstr "Пароль:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr "Изъять сервер"
+msgstr "Убрать сервер"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
@@ -129,7 +129,7 @@ msgstr "Закрыть"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr "Конфигурировать серверы"
+msgstr "Настроить серверы"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
