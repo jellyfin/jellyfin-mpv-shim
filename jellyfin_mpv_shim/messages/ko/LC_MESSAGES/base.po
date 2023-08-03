@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-02 05:21+0000\n"
+"PO-Revision-Date: 2023-08-04 09:34+0000\n"
 "Last-Translator: John Lim <johnlim3142@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
@@ -410,7 +410,7 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "항상 인트로를 건너뛰기"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
@@ -418,15 +418,15 @@ msgstr "인트로 건너뛰기전에 항상 물어보기"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "섬네일 미리보기 활성화하기"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "JellyScrub 섬네일 사용하기"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "인트로 건너뜀"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
