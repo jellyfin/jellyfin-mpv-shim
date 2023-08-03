@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-08-04 09:34+0000\n"
-"Last-Translator: John Lim <johnlim3142@gmail.com>\n"
+"Last-Translator: HiSkyZen <mchan030704@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Hi10p를 8bit 코덱변환"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "H265로 코덱변환"
+msgstr "HDR 트랜스코드"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
