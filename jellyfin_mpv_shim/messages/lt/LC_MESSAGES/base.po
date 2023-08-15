@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-28 19:21+0000\n"
-"Last-Translator: pranelio <pramanauskas@icloud.com>\n"
+"PO-Revision-Date: 2023-08-16 11:49+0000\n"
+"Last-Translator: Revy <r3vy@tuta.io>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
 "Language: lt\n"
@@ -22,7 +22,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Parenkami Takeliai..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -230,7 +230,7 @@ msgstr "\"SyncPlay\""
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} Išleidimo Info/Parsisiuntimas"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -370,11 +370,11 @@ msgstr "Išjungti Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Video Profilio Subtipas: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Video Profilio Subtipas"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -398,7 +398,7 @@ msgstr "Ekrano dubliavimas"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Įrašyti Žurnalus Į Failą"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -440,40 +440,40 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "Sezonas {0} - Epizodas {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "Automatinis"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "Išjungtas"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "Pasirinkti SVP profilį"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "SVP yra Neaktyvus"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "Išjungtas"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "Pabandyti Iš Naujo"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "Įjungti SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "SVP yra Išjungta"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
@@ -481,15 +481,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "SyncPlay grupių kūrimas neleidžiamas."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "SyncPlay grupės prieiga atmesta."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "Prieiga prie SyncPlay bibliotekos atmesta."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
