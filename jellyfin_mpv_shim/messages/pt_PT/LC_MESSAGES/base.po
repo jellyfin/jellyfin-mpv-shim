@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-25 10:41+0000\n"
-"Last-Translator: Pedro Remedios <pedro.remedios@gmail.com>\n"
+"PO-Revision-Date: 2023-08-25 21:40+0000\n"
+"Last-Translator: cheat2winPT <ruisantos14@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/pt_PT/>\n"
 "Language: pt_PT\n"
@@ -164,7 +164,7 @@ msgstr "Preto"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Cyan"
+msgstr "Ciano"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
