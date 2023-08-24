@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-25 19:39+0000\n"
+"PO-Revision-Date: 2023-08-25 21:40+0000\n"
 "Last-Translator: sleepycatcoding <veiko.isberg@gmail.com>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/et/>\n"
@@ -356,7 +356,7 @@ msgstr "Transkoodi Hi10p > 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "Transkoodi HDR"
+msgstr "Transkood HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -408,23 +408,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Alati jäta sissejuhatus vahele"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Küsi sissejuhatuse vahelejätmist"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Luba pisipiltide eelvaade"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "Kasuta JellyScrub pisipilte"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Sissejuhatus vahele jäetud"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
