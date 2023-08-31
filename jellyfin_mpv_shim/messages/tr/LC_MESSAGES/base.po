@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-28 22:41+0000\n"
-"Last-Translator: Murat Hasar <murathsr@gmail.com>\n"
+"PO-Revision-Date: 2023-09-01 14:40+0000\n"
+"Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
 "Language: tr\n"
@@ -56,7 +56,7 @@ msgstr "Kullanıcı Adı: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "Şifre: "
+msgstr "Parola: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -116,7 +116,7 @@ msgstr "Kullanıcı adı:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "Şifre:"
+msgstr "Parola:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -441,7 +441,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
-msgstr "Sezon {0} - Bölüm {1}"
+msgstr "{0}. Sezon - {1}. Bölüm"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
