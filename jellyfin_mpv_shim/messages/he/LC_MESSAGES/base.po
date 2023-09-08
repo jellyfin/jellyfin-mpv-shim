@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-07-05 09:08+0000\n"
-"Last-Translator: Letradical <letrad@disroot.org>\n"
+"PO-Revision-Date: 2023-09-09 13:40+0000\n"
+"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -356,9 +356,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "קדד Hi10p ל 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
 msgid "Transcode HDR"
-msgstr "קדד ל H265"
+msgstr "התמרת HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -422,7 +421,7 @@ msgstr "הפעל תצוגה מקדימה של תמונות קטנות"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "להשתמש בתמונות מוקטנות מ־JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
@@ -430,7 +429,7 @@ msgstr "דילג פתיח"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "דילוג על ההקדמה"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -487,11 +486,11 @@ msgstr "יצירת קבוצות SyncPlay אינה מאופשרת."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "הגישה לקבוצת SyncPlay נדחתה."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "הגישה לספריית SyncPlay נדחתה."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -586,9 +585,8 @@ msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:204
-#, fuzzy
 msgid "Select Shader Profile"
-msgstr "בחר פרופיל שיידר (Shader)"
+msgstr "נא לבחור פרופיל שיידר (Shader)"
 
 #~ msgid "Transcode H265 to H264"
 #~ msgstr "קדד H265 ל H264"
