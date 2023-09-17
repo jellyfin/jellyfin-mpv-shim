@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-09-18 11:40+0000\n"
-"Last-Translator: atomicmind <arnold.marko@gmail.com>\n"
+"Last-Translator: Jurij Martinčič <jurij.martincic@gmail.com>\n"
 "Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sl/>\n"
 "Language: sl\n"
@@ -45,7 +45,7 @@ msgstr "Ročno: {0} ok, {1} napaka"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Nastavljam trenutne..."
+msgstr "Nastavi trenutno ..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
