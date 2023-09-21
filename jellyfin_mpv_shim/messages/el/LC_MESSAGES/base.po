@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-23 12:41+0000\n"
-"Last-Translator: sanctimon <nopoets4u@netscape.net>\n"
+"PO-Revision-Date: 2023-09-22 03:48+0000\n"
+"Last-Translator: johnko1 <johnko13@gmail.com>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -428,7 +428,7 @@ msgstr "Παράλειψη Εισαγωγής"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Επιδιώξτε να παραλείψετε την εισαγωγή"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
