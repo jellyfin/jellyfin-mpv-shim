@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-25 10:41+0000\n"
-"Last-Translator: Sushil Shrestha <sushilshrestha940@gmail.com>\n"
+"PO-Revision-Date: 2023-09-28 04:41+0000\n"
+"Last-Translator: Ashmit Rajaure <ashmit.rajaure@gmail.com>\n"
 "Language-Team: Nepali <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ne/>\n"
 "Language: ne\n"
@@ -223,9 +223,8 @@ msgid "Change Video Quality"
 msgstr "भिडियो गुणस्तर परिवर्तन गर्नुहोस्"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
-#, fuzzy
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "संगै  चलाउनु"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
