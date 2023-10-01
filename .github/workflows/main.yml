@@ -8,7 +8,7 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup Python 3.9
       uses: actions/setup-python@v4
       with:
@@ -44,7 +44,7 @@ jobs:
   build-win32:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup Python 3.9
       uses: actions/setup-python@v4
       with:
