@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-04-27 12:39+0000\n"
-"Last-Translator: Alim Satria <alimsatria2017@mail.ugm.ac.id>\n"
+"PO-Revision-Date: 2023-10-02 14:09+0000\n"
+"Last-Translator: MAhoyo <welya_skullboy@yahoo.co.id>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/id/>\n"
 "Language: id\n"
@@ -404,7 +404,7 @@ msgstr "Periksa Pembaruan"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Kehadiran Kaya Discord"
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
