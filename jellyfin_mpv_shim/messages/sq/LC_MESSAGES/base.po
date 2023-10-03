@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-07-22 07:41+0000\n"
-"Last-Translator: Agi0m <gimiramadani51@gmail.com>\n"
+"PO-Revision-Date: 2023-10-04 09:41+0000\n"
+"Last-Translator: Ergys Rroga <ergys.rroga@gmail.com>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sq/>\n"
 "Language: sq\n"
@@ -56,11 +56,11 @@ msgstr "Emri i përdoruesit: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "Fjalkalimi: "
+msgstr "Fjalëkalimi: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr "Severi u shtua me sukses."
+msgstr "Serveri u shtua me sukses."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
@@ -76,7 +76,7 @@ msgstr "Gati për të shfaqur"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Zgjedh median tënde në Jellyfin dhe luaje këtu"
+msgstr "Zgjidh median tënde në Jellyfin dhe luaje këtu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
@@ -116,7 +116,7 @@ msgstr "Emri i përdoruesit:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "Fjalkalimi:"
+msgstr "Fjalëkalimi:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -128,7 +128,7 @@ msgstr "Mbyll"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr "Konfiguro serverët"
+msgstr "Konfiguro serverat"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
@@ -136,7 +136,7 @@ msgstr "Shfaq Konsolën"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr "Menyja e Aplikacionit"
+msgstr "Menuja e Aplikacionit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
@@ -208,7 +208,7 @@ msgstr "Shumë e madhe"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr "Menyja kryesore"
+msgstr "Menuja kryesore"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
@@ -236,16 +236,15 @@ msgstr "Ndrysho profilin e video shikimit"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Vendos automatikisht Audio/Subtitrat (Për të gjithë Serien)"
+msgstr "Vendos automatikisht Audio/Subtitrat (Për të gjithë Serinë)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Mbyll dhe Shëno si e Pashikuar"
+msgstr "Mbyll dhe Shënoje si e Pa shikuar"
 
 #: jellyfin_mpv_shim/menu.py:166
-#, fuzzy
 msgid "Screenshot"
-msgstr "Pamje e ekranit (Skrinshot)"
+msgstr "Pamje e ekranit"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -265,15 +264,15 @@ msgstr "Preferencat e video luajtësit"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr "Mbyll Menun"
+msgstr "Mbyll Menunë"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Zgjedh trakën e audios"
+msgstr "Zgjidh gjurmën e audios"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Zgjedh trakën e titrave"
+msgstr "Zgjidh gjurmën e titrave"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -281,7 +280,7 @@ msgstr "Asnjë"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "Zgjedh kualitetin e transkodimit"
+msgstr "Zgjidh kualitetin e transkodimit"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -293,7 +292,7 @@ msgstr "Asnjë transkoder"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Zgjedh audion/titrat për seritë"
+msgstr "Zgjidh audion/titrat për seritë"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -309,23 +308,23 @@ msgstr "Manual sipas indeksit të përcjellësit (Më pak i besueshëm)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Zgjedh proflin fillestar të transkodomit"
+msgstr "Zgjidh proflin fillestar të transkodimit"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Zgjedh ngjyrën e titrave"
+msgstr "Zgjidh ngjyrën e titrave"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Zgjedh madhësin e titrave"
+msgstr "Zgjidh madhësinë e titrave"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Zgjedh pozicionin e titrave"
+msgstr "Zgjidh pozicionin e titrave"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr "Në fund"
+msgstr "Poshtë"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
@@ -349,7 +348,7 @@ msgstr "Pozicioni i titrave: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "Ngjyra e titave: {0}"
+msgstr "Ngjyra e titrave: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
@@ -365,7 +364,7 @@ msgstr "Rrugë të drejtpërdrejta"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr "Çaktivizo luajtjen direkte"
+msgstr "Ç'aktivizo luajtjen direkte"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
@@ -377,7 +376,7 @@ msgstr "Nëntip i profilit të videos"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
-msgstr "Luaj në mënyr automatike"
+msgstr "Luaj në mënyrë automatike"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
@@ -393,7 +392,7 @@ msgstr "Përdor pref të web kërkimit"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Repliko ekranin"
+msgstr "Pasqyro ekranin"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
@@ -401,7 +400,7 @@ msgstr "Shkruaj regjistrat në dosje"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr "Shiko për përditsime"
+msgstr "Kontrollo për përditësime"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
@@ -429,7 +428,7 @@ msgstr "Kaluam intron"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr "Kërko të Kalosh intron"
+msgstr "Kërko të kalosh intron"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -437,7 +436,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Videoja në distancë është duke u transkoduar!\n"
-"Prek c për të përshtatur cilësimet ë sinjalit nëse kjo nuk është e nevojshme."
+"Prek c për të përshtatur cilësimet e sinjalit nëse kjo nuk është e nevojshme."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
@@ -450,7 +449,7 @@ msgstr "Automatik"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr "I çaktivizuar"
+msgstr "I ç'aktivizuar"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -462,7 +461,7 @@ msgstr "SVP nuk është aktiv"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr "Çaktivizo"
+msgstr "Ç'aktivizo"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
@@ -474,7 +473,7 @@ msgstr "Aktivizo SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr "SVP është i çaktivizuar"
+msgstr "SVP është i ç'aktivizuar"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
@@ -498,7 +497,7 @@ msgstr "ShpejtësiNëSkinkronizim (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Sinkronizimi u çaktivizua ( Shumë përpjekje)"
+msgstr "Sinkronizimi u ç'aktivizua ( Shumë tentativa)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -510,7 +509,7 @@ msgstr "SyncPlay u aktivizua."
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr "SyncPlay u çaktivizua."
+msgstr "SyncPlay u ç'aktivizua."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -531,7 +530,7 @@ msgstr "Grupi i {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
-msgstr "Asnjë (Çaktivizuar)"
+msgstr "Asnjë (Ç'aktivizuar)"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
@@ -559,9 +558,8 @@ msgid "Generic (FSRCNNX)"
 msgstr "I përgjithshëm (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
-#, fuzzy
 msgid "Generic High (FSRCNNX x16)"
-msgstr "I përgjithshëm i larë (FSRCNNX x16)"
+msgstr "I përgjithshëm i lartë (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
@@ -591,6 +589,5 @@ msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x4 i perceptueshëm +  Deblur (Për HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
-#, fuzzy
 msgid "Select Shader Profile"
-msgstr "Zgjedh profilin e hijëzuesit"
+msgstr "Zgjidh profilin e hijëzuesit"
