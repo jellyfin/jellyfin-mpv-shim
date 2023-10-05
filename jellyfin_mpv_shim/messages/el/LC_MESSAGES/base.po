@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-09-22 03:48+0000\n"
-"Last-Translator: johnko1 <johnko13@gmail.com>\n"
+"PO-Revision-Date: 2023-10-06 07:31+0000\n"
+"Last-Translator: [   ] <christiangrece45@gmail.com>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -32,7 +32,7 @@ msgstr "{0}: Αποτυχία"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Ορισμός Υπότιτλου: {0} εντάξει, {1} αποτυχία"
+msgstr "Ορισμός ως υποτιτλισμένο: {0} εντάξει, {1} αποτυχία"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
