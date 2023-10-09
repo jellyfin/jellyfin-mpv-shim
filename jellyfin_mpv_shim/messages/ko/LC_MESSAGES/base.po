@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-10-11 15:25+0000\n"
-"Last-Translator: 석경식 <tilesink@naver.com>\n"
+"Last-Translator: KH <kihoon.kim.dev@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -60,11 +60,11 @@ msgstr "암호: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr "서버를 성공적으로 추가했습니다."
+msgstr "서버가 성공적으로 추가되었습니다."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr "다른 서버를 추가 하시겠습니까?"
+msgstr "다른 서버를 추가하시겠습니까?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
@@ -188,15 +188,15 @@ msgstr "회색"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr "매우 작은"
+msgstr "매우 작게"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "작은"
+msgstr "작게"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "일반"
+msgstr "보통"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
@@ -204,7 +204,7 @@ msgstr "크게"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr "거대한"
+msgstr "매우 크게"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
@@ -435,8 +435,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"외부 비디오 코덱변화 중입니다!\n"
-"필요하지 않은 경우 c를 눌러 인터넷 설정을 조정하시오."
+"외부 비디오 코덱 변환 중입니다!\n"
+"필요하지 않은 경우 c를 눌러 인터넷 설정을 조정하세요."
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
@@ -473,7 +473,7 @@ msgstr "SVP 켠다"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr "SVP 꺼저있다"
+msgstr "SVP 꺼져있다"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
