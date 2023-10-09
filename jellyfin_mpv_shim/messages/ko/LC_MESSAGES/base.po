@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
 "PO-Revision-Date: 2023-10-11 15:25+0000\n"
-"Last-Translator: KH <kihoon.kim.dev@gmail.com>\n"
+"Last-Translator: HiSkyZen <mchan030704@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -428,7 +428,7 @@ msgstr "인트로 건너뜀"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "인트로 건너뛰기"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
