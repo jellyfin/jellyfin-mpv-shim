@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-08-04 09:34+0000\n"
-"Last-Translator: HiSkyZen <mchan030704@gmail.com>\n"
+"PO-Revision-Date: 2023-10-11 15:25+0000\n"
+"Last-Translator: 석경식 <tilesink@naver.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "트랙 선택 중..."
+msgstr "트랙 선택..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -48,7 +48,7 @@ msgstr "현재 설정..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr "서버 URL "
+msgstr "서버 주소: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
@@ -56,7 +56,7 @@ msgstr "아이디: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "암호 "
+msgstr "암호: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
