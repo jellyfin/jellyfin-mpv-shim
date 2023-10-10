@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-07-19 20:41+0000\n"
-"Last-Translator: kyaroslav83 <yaroslav83@gmail.com>\n"
+"PO-Revision-Date: 2023-10-11 15:25+0000\n"
+"Last-Translator: RNGIllSkillz <atrashrc@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
 "Language: ru\n"
@@ -37,9 +37,7 @@ msgstr "Задать субтитраж: {0} ОК, {1} неудачно"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
-"Выбрать дубляж: {0} файлов с дубляжом, {1} файлов только с звуком, {2} "
-"файлов без звука"
+msgstr "Выбрать дубляж: {0} ок, {1} только звук, {2} Ошибка"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
@@ -407,7 +405,7 @@ msgstr "Проверить на обновления"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Расширенная активкость (Rich Presence) в Дискорде"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
