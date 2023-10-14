@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-10-11 15:25+0000\n"
-"Last-Translator: RNGIllSkillz <atrashrc@gmail.com>\n"
+"PO-Revision-Date: 2023-10-14 15:13+0000\n"
+"Last-Translator: Spuffio <spuffioworks@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ru/>\n"
 "Language: ru\n"
@@ -69,7 +69,7 @@ msgstr "Добавить ещё сервер?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr "Добавление сервера неудачно."
+msgstr "Не удалось добавить сервер."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
