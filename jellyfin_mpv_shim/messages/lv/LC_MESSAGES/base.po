@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-02 05:21+0000\n"
-"Last-Translator: Artūrs Jānis Ņikitins <ajnikitins@gmail.com>\n"
+"PO-Revision-Date: 2023-10-17 13:24+0000\n"
+"Last-Translator: Andrejs <tlpbu@droplar.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
 "Language: lv\n"
@@ -33,11 +33,11 @@ msgstr "{0}: Neveiksme"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Uzstādīt Subtitrus: {0} ok, {1} neizdevās"
+msgstr "Uzstādīt subtitrus: {0} ok, {1} neizdevās"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Uzstādīt Subtitrus: {0} ok, {1} tikai audio, {2} neizdevās"
+msgstr "Uzstādīt subtitrus: {0} ok, {1} tikai audio, {2} neizdevās"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
@@ -45,7 +45,7 @@ msgstr "Manuāli: {0} ok, {1} neizdevās"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Iestata Pašreizējo..."
+msgstr "Iestata pašreizējo..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -85,7 +85,7 @@ msgstr "Aplikācijas žurnāls"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
-msgstr "Pievienot Serveri"
+msgstr "Pievienot serveri"
 
 #: jellyfin_mpv_shim/gui_mgr.py:248
 msgid ""
@@ -105,7 +105,7 @@ msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:282
 msgid "Server Configuration"
-msgstr "Servera Konfigurācija"
+msgstr "Servera konfigurācija"
 
 #: jellyfin_mpv_shim/gui_mgr.py:305
 msgid "Server:"
@@ -121,7 +121,7 @@ msgstr "Parole:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
-msgstr "Noņemt Serveri"
+msgstr "Noņemt serveri"
 
 #: jellyfin_mpv_shim/gui_mgr.py:343
 msgid "Close"
@@ -129,11 +129,11 @@ msgstr "Aizvērt"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Configure Servers"
-msgstr "Konfigurēt Serverus"
+msgstr "Konfigurēt serverus"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr "Parādīt Konsoli"
+msgstr "Parādīt konsoli"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
@@ -141,7 +141,7 @@ msgstr "Aplikācijas Izvēlne"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
-msgstr "Atvērt Konfigurācijas Mapi"
+msgstr "Atvērt konfigurācijas mapi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:460
 msgid "Quit"
@@ -209,19 +209,19 @@ msgstr "Milzīgs"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr "Galvenā Izvēlne"
+msgstr "Galvenā izvēlne"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr "Mainīt Audio"
+msgstr "Mainīt audio"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Mainīt Subtitrus"
+msgstr "Mainīt subtitrus"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr "Mainīt Video Kvalitāti"
+msgstr "Mainīt video kvalitāti"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
@@ -229,19 +229,19 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v{0} Informācija Par Laidienu/Lejupielāde"
+msgstr "MPV Shim v{0} informācija par laidienu/Lejupielāde"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr "Mainīt Video Atskaņošanas Profilu"
+msgstr "Mainīt video atskaņošanas profilu"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Automātiska audio/ subtitru iestatīšana (Visām Sērijām)"
+msgstr "Automātiska audio/subtitru iestatīšana (visām sērijām)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Iziet un Atzīmēt kā Neskatīts"
+msgstr "Iziet un atzīmēt kā neskatītu"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -249,7 +249,7 @@ msgstr "Ekrānuzņēmums"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr "Video Atskaņošanas Profili"
+msgstr "Video atskaņošanas profili"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
@@ -257,23 +257,23 @@ msgstr "SVP Iestatījumi"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
-msgstr "Video Iestatījumi"
+msgstr "Video iestatījumi"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
-msgstr "Atskaņotāja Iestatījumi"
+msgstr "Atskaņotāja iestatījumi"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr "Aizvērt Izvēlni"
+msgstr "Aizvērt izvēlni"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Izvēlēties Audio Celiņu"
+msgstr "Izvēlēties audio celiņu"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Izvēlēties Subtitru Celiņu"
+msgstr "Izvēlēties subtitru celiņu"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -281,7 +281,7 @@ msgstr "Nav"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "Atlasiet Transkodēšanas Kvalitāti"
+msgstr "Izvēlēties transkodēšanas kvalitāti"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -289,11 +289,11 @@ msgstr "Maksimums"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "Bez Transkodēšanas"
+msgstr "Bez transkodēšanas"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Izvēlieties Sērijas Audio/Subtitrus"
+msgstr "Izvēlieties sērijas audio/subtitrus"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -305,51 +305,51 @@ msgstr "Japāņu audio ar subtitriem angļu valodā"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manuāli pēc Celiņa Indeksa (Mazāk Uzticama)"
+msgstr "Manuāli pēc celiņa indeksa (mazāk uzticama)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Izvēlēties Noklusējuma Transkodēšanas Profilu"
+msgstr "Izvēlēties noklusējuma transkodēšanas profilu"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Atlasiet Subtirtru Krāsu"
+msgstr "Izvēlēties subtitru krāsu"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Izvēlēties Subtitru Lielumu"
+msgstr "Izvēlēties subtitru izmēru"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Atlasiet Subtitru Pozīciju"
+msgstr "Izvēlēties subtitru pozīciju"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr "Apakša"
+msgstr "Apakšā"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr "Augša"
+msgstr "Augšā"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr "Vidus"
+msgstr "Pa vidu"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Attālā Transkodēšanas Kvalitāte: {0:0.1f} Mbps"
+msgstr "Attālinātās transkodēšanas kvalitāte: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr "Subtitru Lielums: {0}"
+msgstr "Subtitru izmērs: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr "Subtitru Pozīcija: {0}"
+msgstr "Subtitru pozīcija: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "Subtitru Krāsa: {0}"
+msgstr "Subtitru krāsa: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
@@ -361,7 +361,7 @@ msgstr "Transkodēt HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
-msgstr "Tiešie Ceļi"
+msgstr "Tiešie ceļi"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
@@ -369,23 +369,23 @@ msgstr "Atslēgt Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Video Profila Apakštips: {0}"
+msgstr "Video profila apakštips: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Video Profila Apakštips"
+msgstr "Video profila apakštips"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
-msgstr "Automātiskā Atskaņošana"
+msgstr "Automātiskā atskaņošana"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr "Automātiskais Pilnekrāna Ekrāns"
+msgstr "Automātiskais pilnekrāna režims"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr "Mediju Atslēgas Meklēšana"
+msgstr "Mediju atslēgas meklēšana"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
@@ -393,15 +393,15 @@ msgstr "Izmantot Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Ekrāna Dublēšana"
+msgstr "Ekrāna dublēšana"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Ierakstiet Žurnālus Failā"
+msgstr "Ierakstiet žurnālus failā"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr "Pārbaudīt Atjauninājumus"
+msgstr "Pārbaudīt atjauninājumus"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
@@ -409,11 +409,11 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Vienmēr Izlaist Ievadus"
+msgstr "Vienmēr izlaist ievadu"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Jautāt vai Izlaist Ievadus"
+msgstr "Jautāt, vai izlaist ievadu"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -429,7 +429,7 @@ msgstr "Izlaists ievads"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr "Meklēt, lai Izlaistu Ievadu"
+msgstr "Meklēt, lai Izlaistu ievadu"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -459,7 +459,7 @@ msgstr "Izvēlēties SVP Profilu"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr "SVP nav Aktīvs"
+msgstr "SVP nav aktīvs"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -499,7 +499,7 @@ msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Sinhronizācija Atspējota (Pārāk Daudz Mēģinājumu)"
+msgstr "Sinhronizācija atspējota (pārāk daudz mēģinājumu)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -535,7 +535,7 @@ msgstr "Nav (Atspējots)"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
-msgstr "Jauna Grupa"
+msgstr "Jauna grupa"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
