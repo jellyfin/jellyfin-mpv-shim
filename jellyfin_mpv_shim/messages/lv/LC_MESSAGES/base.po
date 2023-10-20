@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-10-17 13:24+0000\n"
+"PO-Revision-Date: 2023-10-21 14:25+0000\n"
 "Last-Translator: Andrejs <tlpbu@droplar.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
@@ -81,7 +81,7 @@ msgstr "Izvēlieties multividi iekš Jellyfin un atskaņojiet to šeit"
 
 #: jellyfin_mpv_shim/gui_mgr.py:155
 msgid "Application Log"
-msgstr "Aplikācijas žurnāls"
+msgstr "Lietotnes žurnāls"
 
 #: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
 msgid "Add Server"
@@ -137,7 +137,7 @@ msgstr "Parādīt konsoli"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr "Aplikācijas Izvēlne"
+msgstr "Lietotnes izvēlne"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
@@ -442,7 +442,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:946
 msgid "Season {0} - Episode {1}"
-msgstr "{0} sezona - {1} epizode"
+msgstr "{0}. sezona - {1}. epizode"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
@@ -587,4 +587,4 @@ msgstr "Anime4K x2 Perceptual + Deblur (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr "Izvēlieties Ēnotāja Profilu"
+msgstr "Izvēlieties ēnotāja profilu"
