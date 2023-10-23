@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-08-25 21:40+0000\n"
-"Last-Translator: cheat2winPT <ruisantos14@gmail.com>\n"
+"PO-Revision-Date: 2023-10-24 23:25+0000\n"
+"Last-Translator: Mário Gomes <mhfgomes18@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
 "Language: pt\n"
@@ -494,7 +494,7 @@ msgstr "O acesso à biblioteca SyncPlay foi negado."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "Velocidade de Sincronização (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -502,7 +502,7 @@ msgstr "Sincronização desativada (muitas tentativas)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "Saltar a Sincronização (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
