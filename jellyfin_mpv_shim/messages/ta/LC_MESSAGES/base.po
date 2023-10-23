@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2022-09-28 04:54+0000\n"
-"Last-Translator: K.B.Dharun Krishna <kbdharunkrishna@gmail.com>\n"
+"PO-Revision-Date: 2023-10-24 23:25+0000\n"
+"Last-Translator: Vijay <vcmvijay@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ta/>\n"
 "Language: ta\n"
@@ -164,7 +164,7 @@ msgstr "கருப்பு"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "சியான்"
+msgstr "நீல-பச்சை நிறம்"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "டிரான்ஸ்கோட் Hi10p முதல் 8bit வரை"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "H265 க்கு டிரான்ஸ்கோட்"
+msgstr "H265 டிரான்ஸ்கோட்"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -410,27 +408,27 @@ msgstr "இருப்பை நிராகரி"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "முன்னோட்டங்களை எப்போதும் தவிர்"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "முன்னோட்டங்களை தவிர்க்க சொல்லி கேள்"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "படங்களின் முன்னோட்டங்களை கான்பி"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr ""
+msgstr "JellyScrub முன்னோட்டங்களை பயன்படுத்து"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr ""
+msgstr "முன்னோட்டம் தவிர்க்க பட்டது"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "முன்னோட்டத்தை தவிர்க்க காணொளியை நகர்த்தவும்"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
