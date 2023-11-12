@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-08-16 11:49+0000\n"
-"Last-Translator: Revy <r3vy@tuta.io>\n"
+"PO-Revision-Date: 2023-11-13 16:25+0000\n"
+"Last-Translator: Simas Šimas <taoleifhelp.10258@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
 "Language: lt\n"
@@ -338,7 +338,7 @@ msgstr "Viduryje"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "Perkodavimo"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -386,7 +386,7 @@ msgstr "Automatinis pilno ekrano režimas"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Turinio"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
@@ -477,7 +477,7 @@ msgstr "SVP yra Išjungta"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
@@ -497,7 +497,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "Sync išjungta (Pernelyg Daug Bandymų)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
