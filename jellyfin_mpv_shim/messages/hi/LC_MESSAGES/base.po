@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-05-07 21:39+0000\n"
-"Last-Translator: TheSharingBrother <thesharingbrother@proton.me>\n"
+"PO-Revision-Date: 2023-11-27 09:30+0000\n"
+"Last-Translator: Tushar Joshi <tj.joshi@gmail.com>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hi/>\n"
 "Language: hi\n"
@@ -148,7 +148,7 @@ msgstr "बंद करना"
 
 #: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
-msgstr ""
+msgstr " (ट्रांसकोड)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -212,19 +212,19 @@ msgstr "मेन्यू"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "ध्वनि की माध्यम बदलें"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "उपशीर्षक बदलें"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "चलचित्र की गुणवत्ता को बदलें"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr ""
+msgstr "सिंकप्लेई"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
