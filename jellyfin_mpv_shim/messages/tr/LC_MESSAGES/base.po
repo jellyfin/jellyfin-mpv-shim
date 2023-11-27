@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-09-01 14:40+0000\n"
+"PO-Revision-Date: 2023-11-28 22:30+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
@@ -236,7 +236,7 @@ msgstr "Video Oynatma Profilini Değiştir"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Sesi ve Altyazıları Otomatik Ayarla (Tüm Seri İçin)"
+msgstr "Sesi ve Altyazıları Otomatik Ayarla (Tüm Diziler İçin)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -292,7 +292,7 @@ msgstr "Kod Dönüştürme Yok"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Dizi için Ses/Altyazı Seçin"
+msgstr "Dizi için Ses ve Altyazı Seçin"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
