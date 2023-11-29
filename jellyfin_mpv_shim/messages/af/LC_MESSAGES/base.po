@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-01-09 16:51+0000\n"
-"Last-Translator: Stephen Cox <stephencoxmail@gmail.com>\n"
+"PO-Revision-Date: 2023-11-30 09:30+0000\n"
+"Last-Translator: Bryan T <weblate@bryanturner.co.za>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/af/>\n"
 "Language: af\n"
@@ -296,7 +296,7 @@ msgstr "Kies Klank/Sub-titels vir Reeks"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr ""
+msgstr "Engelse Klank"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
@@ -304,35 +304,35 @@ msgstr "Japanese Klank met Engelse Sub-titels"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "Handleiding volgens Snitindeks (Minder Betroubaar)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "Kies Verstek Transkodeerprofiel"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Kies Sub-titel Kleur"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Kies Sub-titel Grootte"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Kies Sub-titel Posisie"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "Onderkant"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "Bokant"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "Middelkant"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode HDR"
-msgstr " (Transkodeer )"
+msgstr "Transkodeer HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
