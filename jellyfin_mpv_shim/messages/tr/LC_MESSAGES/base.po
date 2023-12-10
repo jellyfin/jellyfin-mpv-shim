@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-12-04 03:30+0000\n"
+"PO-Revision-Date: 2023-12-12 19:20+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
@@ -268,7 +268,7 @@ msgstr "Menüyü Kapat"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Ses Parçasını Seçin"
+msgstr "Ses Parçası Seçin"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
@@ -353,19 +353,19 @@ msgstr "Altyazı Rengi: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Hi10p'ten 8bit'e dönüştürün"
+msgstr "Hi10p'ten 8bit'e kod dönüştürün"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "HDR'e dönüştürün"
+msgstr "HDR kod dönüştürme"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
-msgstr "Direkt Yol"
+msgstr "Doğrudan Yollar"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr "Direkt Oynatmayı Devre Dışı Bırak"
+msgstr "Doğrudan Oynatmayı Devre Dışı Bırak"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
