@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-12-12 19:20+0000\n"
+"PO-Revision-Date: 2023-12-19 09:34+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
@@ -200,7 +200,7 @@ msgstr "Normal"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "Geniş"
+msgstr "Büyük"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -240,7 +240,7 @@ msgstr "Sesi ve Altyazıları Otomatik Ayarla (Tüm Diziler İçin)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Çık ve İzlenmedi Olarak İşaretle"
+msgstr "İzlenmedi Olarak İşaretle ve Çıkış Yap"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -303,9 +303,8 @@ msgid "Japanese Audio w/ English Subtitles"
 msgstr "Japonca Ses, İngilizce Altyazılı"
 
 #: jellyfin_mpv_shim/menu.py:391
-#, fuzzy
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Gömülü Kayıda Göre Kılavuz (Daha Az Güvenilir)"
+msgstr "Sizin Tarafınızdan Parça Dizinine Göre (Daha Az Güvenilir)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
