@@ -15,7 +15,7 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        curl -L https://github.com/iwalton3/mpv-winbuild-cmake/releases/download/v20230304-git-362256e/mpv-dev-x86_64-20230304-git-362256e.7z > mpv.7z
+        curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20231215/mpv-dev-x86_64-20231215-git-e9d0a31.7z > mpv.7z
         7z x mpv.7z
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
@@ -51,7 +51,7 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        curl -L https://github.com/iwalton3/mpv-winbuild-cmake/releases/download/v20230304-git-362256e/mpv-dev-i686-20230304-git-362256e.7z > mpv.7z
+        curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20231215/mpv-dev-i686-20231215-git-e9d0a31.7z > mpv.7z
         7z x mpv.7z
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
