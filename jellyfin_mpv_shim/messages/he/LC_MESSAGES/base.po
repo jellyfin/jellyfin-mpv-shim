@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-12-19 09:34+0000\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+"PO-Revision-Date: 2023-12-26 20:30+0000\n"
+"Last-Translator: Xanadu Cosmobullion <refaelba@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -149,7 +149,7 @@ msgstr "צא"
 
 #: jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
-msgstr " (קידוד)"
+msgstr " (המרת קידוד)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -522,7 +522,7 @@ msgstr "{0} עזב."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} נטען למתמון."
+msgstr "{0} טוען."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
