@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-09-12 00:40+0000\n"
-"Last-Translator: felix920506 <felix920506@gmail.com>\n"
+"PO-Revision-Date: 2023-12-26 20:30+0000\n"
+"Last-Translator: 李恩霆 (Lee,EN-TING) <timothylee0802@outlook.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/zh_Hant/>\n"
 "Language: zh_Hant\n"
@@ -224,7 +224,7 @@ msgstr "更換影片品質"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "SyncPlay 遠端同步播放器"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -408,7 +408,7 @@ msgstr "Discord 整合"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "總是跳過開頭"
+msgstr "總是跳過片頭"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
@@ -416,11 +416,11 @@ msgstr "請跳過序幕"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
-msgstr "開啟縮略圖預覽"
+msgstr "啟用縮圖預覽"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr "使用 JellyScrub 縮略圖"
+msgstr "使用JellyScrub縮圖"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
