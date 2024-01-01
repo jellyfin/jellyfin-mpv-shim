@@ -37,7 +37,7 @@ jobs:
         ./artifacts.sh standard
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
@@ -73,7 +73,7 @@ jobs:
         ./artifacts.sh legacy
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-legacy32
         path: ${{ github.workspace }}/publish/InstallerLegacy/*.exe
