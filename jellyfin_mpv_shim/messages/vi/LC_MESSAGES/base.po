@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-06-05 21:21+0000\n"
+"PO-Revision-Date: 2024-01-27 18:30+0000\n"
 "Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
@@ -545,7 +545,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:245
 msgid "Unkn"
-msgstr ""
+msgstr "Ko rõ"
 
 #: jellyfin_mpv_shim/utils.py:246
 msgid " Forced"
