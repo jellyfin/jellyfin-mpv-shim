@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-01-27 18:30+0000\n"
+"PO-Revision-Date: 2024-01-30 14:30+0000\n"
 "Last-Translator: antti202 <anttipel@gmail.com>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/et/>\n"
@@ -404,7 +404,7 @@ msgstr "Otsi uuendusi"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discordi Rikas Kohalolek"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
@@ -428,7 +428,7 @@ msgstr "Sissejuhatus vahele jäetud"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Küsi sissejuhatuse vahelejätmist"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -585,7 +585,7 @@ msgstr "Anime4K x2 Perceptual + Deblur (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "Vali Varjutaja Profiil"
 
 #~ msgid "Transcode H265 to H264"
 #~ msgstr "Transkoodi H265 > H264"
