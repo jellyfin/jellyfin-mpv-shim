@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-08-15 18:34+0000\n"
-"Last-Translator: Alexander Weimer <alexskypie@gmail.com>\n"
+"PO-Revision-Date: 2024-02-02 04:08+0000\n"
+"Last-Translator: Tarzoq <Apocalypse.Eve1Ap@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
 "Language: sv\n"
@@ -420,7 +420,7 @@ msgstr "Använd miniatyr-förhandsvisning"
 
 #: jellyfin_mpv_shim/menu.py:562
 msgid "Use JellyScrub thumbnails"
-msgstr "Använd JellyScrub miniatyr-förhandsvisningar"
+msgstr "Använd JellyScrub tumnaglar"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
