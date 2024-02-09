@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-24 16:39+0000\n"
-"Last-Translator: Calvin Ng <calvin.alexander.ng@gmail.com>\n"
+"PO-Revision-Date: 2024-02-09 07:35+0000\n"
+"Last-Translator: hatsiko panado <dedioskimoy96@gmail.com>\n"
 "Language-Team: Filipino <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fil/>\n"
 "Language: fil\n"
@@ -369,7 +369,7 @@ msgstr "I-disable ang Direktang pag-play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "Video Profile Subtype: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
