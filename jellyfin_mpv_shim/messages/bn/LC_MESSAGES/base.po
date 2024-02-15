@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-31 20:39+0000\n"
-"Last-Translator: Sunip Mukherjee <sunipkmukherjee@gmail.com>\n"
+"PO-Revision-Date: 2024-02-16 22:37+0000\n"
+"Last-Translator: Tamojit Sarkar <taniakol1984@gmail.com>\n"
 "Language-Team: Bengali <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bn/>\n"
 "Language: bn\n"
@@ -20,15 +20,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "ট্র্যাক নির্বাচন চলছে..."
+msgstr "ট্র্যাক নির্বাচন করা হচ্ছে..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: সাবটাইটেল অনুপস্থিত"
+msgstr "{0}: এর কোন সাবটাইটেল নেই"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: ব্যর্থ"
+msgstr "{0}: ব্যার্থ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
