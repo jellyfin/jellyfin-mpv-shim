@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-02-25 18:28+0000\n"
-"Last-Translator: Leonardo Lopes da Luz <thesimulador@gmail.com>\n"
+"PO-Revision-Date: 2024-02-26 03:26+0000\n"
+"Last-Translator: Mário Gomes <mhfgomes18@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
 "Language: pt\n"
@@ -502,7 +502,7 @@ msgstr "Sincronização desativada (muitas tentativas)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Pular a Sincronização (x{0})"
+msgstr "Saltar para Sincronizar (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
