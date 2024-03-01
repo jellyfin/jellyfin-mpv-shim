@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-02-26 03:26+0000\n"
-"Last-Translator: Mário Gomes <mhfgomes18@gmail.com>\n"
+"PO-Revision-Date: 2024-03-02 02:38+0000\n"
+"Last-Translator: alison2033 <a23030485@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
 "Language: pt\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -52,11 +52,11 @@ msgstr "URL do servidor "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr "Utilizador: "
+msgstr "Usuário: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "Palavra-passe: "
+msgstr "Senha: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -112,11 +112,11 @@ msgstr "Servidor:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:310
 msgid "Username:"
-msgstr "Utilizador:"
+msgstr "Usuário:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:315
 msgid "Password:"
-msgstr "Palavra-passe:"
+msgstr "Senha:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:340
 msgid "Remove Server"
@@ -132,11 +132,11 @@ msgstr "Configurar Servidores"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Show Console"
-msgstr "Mostrar Consola"
+msgstr "Mostrar console"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Application Menu"
-msgstr "Menu da aplicação"
+msgstr "Menu do Aplicativo"
 
 #: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Open Config Folder"
