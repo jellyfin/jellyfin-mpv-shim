@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-03-22 21:39+0000\n"
-"Last-Translator: azam <azamshul@gmail.com>\n"
+"PO-Revision-Date: 2024-03-05 03:38+0000\n"
+"Last-Translator: silsha fux <hallo@silsha.me>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -196,7 +196,7 @@ msgstr "小さい"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "ノーマル"
+msgstr "正常"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
