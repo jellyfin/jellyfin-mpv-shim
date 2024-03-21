@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-02-23 19:37+0000\n"
-"Last-Translator: Giuseppe Stelluto <logins@gstelluto.com>\n"
+"PO-Revision-Date: 2024-03-22 05:48+0000\n"
+"Last-Translator: VitoFe <vito-7@hotmail.it>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/it/>\n"
 "Language: it\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -403,9 +403,8 @@ msgid "Check for Updates"
 msgstr "Controlla aggiornamenti"
 
 #: jellyfin_mpv_shim/menu.py:554
-#, fuzzy
 msgid "Discord Rich Presence"
-msgstr "Presenza Discord (Rich Presence)"
+msgstr "Stato Dettagliato Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
