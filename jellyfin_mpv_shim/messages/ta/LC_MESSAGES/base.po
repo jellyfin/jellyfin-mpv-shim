@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-10-24 23:25+0000\n"
-"Last-Translator: Vijay <vcmvijay@gmail.com>\n"
+"PO-Revision-Date: 2024-04-01 00:05+0000\n"
+"Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ta/>\n"
 "Language: ta\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -404,7 +404,7 @@ msgstr "புதுப்பிப்புகளைச் சரிபார�
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "இருப்பை நிராகரி"
+msgstr "டிஸ்கார்ட் ரிச் பிரசன்ஸ்"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
