@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-11-13 16:25+0000\n"
-"Last-Translator: Simas Šimas <taoleifhelp.10258@gmail.com>\n"
+"PO-Revision-Date: 2024-04-04 12:57+0000\n"
+"Last-Translator: Kristijonas Kuzmickas <kristijonaskuzmickas@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
 "Language: lt\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n % 10 == 1 && (n % 100 < 11 || n % 100 > "
 "19)) ? 0 : ((n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 11 || n % 100 > 19)) ? "
 "1 : 2);\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -34,19 +34,19 @@ msgstr "{0}: Nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Nustatyti Subtitruotus: {0} gerai, {1} nepavykęs"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Nustatyti Įgarsintus: {1} gerai, {1} tik garsas, {2} nepavykę"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Rankinis: {0} gerai, {1} nepavykęs"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Nustatomas Dabartinis..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
