@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-04-15 19:48+0000\n"
+"PO-Revision-Date: 2024-04-16 11:04+0000\n"
 "Last-Translator: Blackspirits <blackspirits@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pt/>\n"
@@ -408,11 +408,11 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Ignorar sempre introduções"
+msgstr "Saltar sempre as introduções"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Perguntar se ignora introduções"
+msgstr "Perguntar para saltar as introduções"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -424,11 +424,11 @@ msgstr "Usar miniaturas do JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr "Introdução Ignorada"
+msgstr "Introdução ignorada"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr "Procurar ignorar a introdução"
+msgstr "Tentar saltar introdução"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
@@ -502,7 +502,7 @@ msgstr "Sincronização desativada (muitas tentativas)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Saltar para Sincronizar (x{0})"
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
