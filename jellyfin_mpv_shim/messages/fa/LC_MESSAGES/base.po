@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2023-12-22 02:30+0000\n"
-"Last-Translator: Peyman M. <peymanr34@outlook.com>\n"
+"PO-Revision-Date: 2024-04-17 01:11+0000\n"
+"Last-Translator: blackcharon <blackcharon142@gmail.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
 "Language: fa\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -355,10 +355,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "کد Hi10p را به 8 بیت تبدیل کنید"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "کد H265 را بزنید"
+msgstr "پردازش و تبدیل HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
