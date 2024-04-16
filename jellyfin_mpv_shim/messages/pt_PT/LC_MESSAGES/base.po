@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-03-30 14:24+0000\n"
+"PO-Revision-Date: 2024-04-16 11:04+0000\n"
 "Last-Translator: Blackspirits <blackspirits@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/pt_PT/>\n"
@@ -408,11 +408,11 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Saltar intros sempre"
+msgstr "Saltar sempre as introduções"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Perguntar saltar intros"
+msgstr "Perguntar para saltar as introduções"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
@@ -424,11 +424,11 @@ msgstr "Usar miniaturas de JellyScrub"
 
 #: jellyfin_mpv_shim/player.py:468
 msgid "Skipped Intro"
-msgstr "Saltar intro"
+msgstr "Introdução ignorada"
 
 #: jellyfin_mpv_shim/player.py:470
 msgid "Seek to Skip Intro"
-msgstr "Passar para saltar intro"
+msgstr "Tentar saltar introdução"
 
 #: jellyfin_mpv_shim/player.py:579
 msgid ""
