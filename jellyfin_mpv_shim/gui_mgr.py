@@ -460,7 +460,7 @@ class STrayProcess(Process):
             MenuItem(_("Quit"), die),
         ]
 
-        icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
+        icon = Icon(APP_NAME, title=USER_APP_NAME, menu=Menu(*menu_items))
         icon.icon = Image.open(get_resource("systray.png"))
         self.icon_stop = icon.stop
 
