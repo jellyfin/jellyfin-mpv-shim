@@ -15,3 +15,5 @@ jellyfin_mpv_shim/default_shader_pack/*
 .last_wc_version
 debug.log
 publish
+
+.vscode/
