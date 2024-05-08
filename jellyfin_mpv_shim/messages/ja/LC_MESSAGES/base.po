@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2023-02-16 21:43-0500\n"
-"PO-Revision-Date: 2024-03-05 03:38+0000\n"
-"Last-Translator: silsha fux <hallo@silsha.me>\n"
+"PO-Revision-Date: 2024-05-08 08:20+0000\n"
+"Last-Translator: musenq <mail@musenq.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -475,19 +475,19 @@ msgstr "SVPが無効"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "指定されたSyncPlayグループは存在しません。"
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "SyncPlayグループの作成は許可されていません。"
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "SyncPlayグループへのアクセスが拒否されました。"
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "SyncPlayライブラリへのアクセスが拒否されました。"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -503,11 +503,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "SyncPlayを有効にしました。"
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "SyncPlayを無効にしました。"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -531,7 +531,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
-msgstr ""
+msgstr "新しいグループ"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
