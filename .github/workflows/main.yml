@@ -13,6 +13,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.9
+    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+      with:
+        flavor: minimal
     - name: Install dependencies
       run: |
         curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20240513/mpv-dev-x86_64-20240513-git-61f72bd.7z > mpv.7z
@@ -49,6 +52,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.9
+    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+      with:
+        flavor: minimal
     - name: Install dependencies
       run: |
         curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20240513/mpv-dev-i686-20240513-git-61f72bd.7z > mpv.7z
