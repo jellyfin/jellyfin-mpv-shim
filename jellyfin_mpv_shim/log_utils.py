@@ -12,7 +12,7 @@ bad_patterns = (
 
 sanitize_logs = False
 root_logger = logging.getLogger("")
-root_logger.level = logging.DEBUG
+root_logger.level = logging.INFO
 
 
 def sanitize(message):
@@ -52,14 +52,20 @@ def enable_sanitization():
     sanitize_logs = True
 
 
-def configure_log(destination):
+def configure_log(destination, level: str="info"):
+    lvl = logging.getLevelNamesMapping()[level.upper()]
+
     handler = logging.StreamHandler(destination)
     handler.setFormatter(CustomFormatter())
+    handler.setLevel(lvl)
     root_logger.addHandler(handler)
 
 
-def configure_log_file(destination: str):
+def configure_log_file(destination: str, level: str="info"):
+    lvl = logging.getLevelNamesMapping()[level.upper()]
+
     handler = logging.FileHandler(destination, mode="w")
     # Never allow logging API keys to a file.
     handler.setFormatter(CustomFormatter(True))
+    handler.setLevel(lvl)
     root_logger.addHandler(handler)
