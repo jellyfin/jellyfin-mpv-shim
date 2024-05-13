@@ -1,5 +1,6 @@
 from setuptools import setup
 import sys
+import os
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -16,9 +17,22 @@ if sys.platform.startswith("win32"):
     extras["all"] += win_extra
     extras["mirror"] += win_extra
 
+packages = [
+    "jellyfin_mpv_shim",
+    "jellyfin_mpv_shim.display_mirror",
+    "jellyfin_mpv_shim.messages",
+    "jellyfin_mpv_shim.default_shader_pack",
+    "jellyfin_mpv_shim.default_shader_pack.shaders",
+    "jellyfin_mpv_shim.integration"
+]
+
+for dir in os.listdir("jellyfin_mpv_shim/messages"):
+    if os.path.isdir("jellyfin_mpv_shim/messages/" + dir + "/LC_MESSAGES"):
+        packages.append("jellyfin_mpv_shim.messages." + dir + ".LC_MESSAGES")
+
 setup(
     name="jellyfin-mpv-shim",
-    version="2.6.0",
+    version="2.7.0",
     author="Izzie Walton",
     author_email="izzie@iwalton.com",
     description="Cast media from Jellyfin Mobile and Web apps to MPV.",
@@ -26,7 +40,7 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/jellyfin/jellyfin-mpv-shim",
-    packages=["jellyfin_mpv_shim", "jellyfin_mpv_shim.display_mirror"],
+    packages=packages,
     package_data={
         "jellyfin_mpv_shim.display_mirror": ["*.css", "*.html"],
         "jellyfin_mpv_shim": ["systray.png"],
