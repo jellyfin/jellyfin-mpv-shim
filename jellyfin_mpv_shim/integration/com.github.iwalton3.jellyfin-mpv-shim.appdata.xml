@@ -6,7 +6,9 @@
   <project_license>GPL-3.0</project_license>
   <name>Jellyfin MPV Shim</name>
   <summary>Cast-only client for Jellyfin Media Server</summary>
-  <developer_name>Izzie Walton</developer_name>
+  <developer id="com.github.iwalton3">
+    <name>Izzie Walton</name>
+  </developer>
 
   <description>
     <p>
@@ -55,6 +57,7 @@
   <provides>
     <binary>jellyfin-mpv-shim</binary>
   </provides>
+  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
 
   <content_rating type="oars-1.1" />
   <releases>
