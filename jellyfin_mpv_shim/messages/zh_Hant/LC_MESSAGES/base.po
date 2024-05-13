@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-16 21:43-0500\n"
+"POT-Creation-Date: 2024-05-13 18:08-0400\n"
 "PO-Revision-Date: 2023-12-26 20:30+0000\n"
 "Last-Translator: 李恩霆 (Lee,EN-TING) <timothylee0802@outlook.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
@@ -78,15 +78,15 @@ msgstr "準備投放"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "在Jellyfin中選擇您的媒體並在此處播放"
 
-#: jellyfin_mpv_shim/gui_mgr.py:155
+#: jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
 msgstr "應用程式日誌"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
 msgstr "新增伺服器"
 
-#: jellyfin_mpv_shim/gui_mgr.py:248
+#: jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -94,55 +94,55 @@ msgstr ""
 "無法添加伺服器。\n"
 "請檢查您的連接資訊。"
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
 msgstr "連接失敗"
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
 msgstr "已連接"
 
-#: jellyfin_mpv_shim/gui_mgr.py:282
+#: jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
 msgstr "伺服器設置"
 
-#: jellyfin_mpv_shim/gui_mgr.py:305
+#: jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
 msgstr "伺服器："
 
-#: jellyfin_mpv_shim/gui_mgr.py:310
+#: jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
 msgstr "使用者名稱："
 
-#: jellyfin_mpv_shim/gui_mgr.py:315
+#: jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
 msgstr "密碼："
 
-#: jellyfin_mpv_shim/gui_mgr.py:340
+#: jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
 msgstr "刪除伺服器"
 
-#: jellyfin_mpv_shim/gui_mgr.py:343
+#: jellyfin_mpv_shim/gui_mgr.py:342
 msgid "Close"
 msgstr "關閉"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Configure Servers"
 msgstr "設置伺服器"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Show Console"
 msgstr "顯示控制台"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Application Menu"
 msgstr "應用程式選單"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Open Config Folder"
 msgstr "開啟設置資料夾"
 
-#: jellyfin_mpv_shim/gui_mgr.py:460
+#: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Quit"
 msgstr "退出"
 
@@ -418,19 +418,15 @@ msgstr "請跳過序幕"
 msgid "Enable thumbnail previews"
 msgstr "啟用縮圖預覽"
 
-#: jellyfin_mpv_shim/menu.py:562
-msgid "Use JellyScrub thumbnails"
-msgstr "使用JellyScrub縮圖"
-
-#: jellyfin_mpv_shim/player.py:468
+#: jellyfin_mpv_shim/player.py:484
 msgid "Skipped Intro"
 msgstr "已跳過序幕"
 
-#: jellyfin_mpv_shim/player.py:470
+#: jellyfin_mpv_shim/player.py:486
 msgid "Seek to Skip Intro"
 msgstr "直接進入正片"
 
-#: jellyfin_mpv_shim/player.py:579
+#: jellyfin_mpv_shim/player.py:595
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -438,7 +434,7 @@ msgstr ""
 "你在遠端的影片正在轉碼!\n"
 "若不需要請按 C 來調整頻寬設定。"
 
-#: jellyfin_mpv_shim/player.py:946
+#: jellyfin_mpv_shim/player.py:962
 msgid "Season {0} - Episode {1}"
 msgstr "第{0}季 - 第{1}集"
 
@@ -543,11 +539,11 @@ msgstr ""
 "MPV Shim v{0} 更新可用\n"
 "打開選單(按 C)了解詳細資訊。"
 
-#: jellyfin_mpv_shim/utils.py:245
+#: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
 msgstr "未知"
 
-#: jellyfin_mpv_shim/utils.py:246
+#: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
 msgstr " 強制"
 
@@ -586,6 +582,9 @@ msgstr "Anime4K x2 Perceptual + 去模糊 (供高畫質)"
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "選擇陰影設定檔"
+
+#~ msgid "Use JellyScrub thumbnails"
+#~ msgstr "使用JellyScrub縮圖"
 
 #~ msgid "Transcode H265 to H264"
 #~ msgstr "從H.265轉碼至H.264"

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-16 21:43-0500\n"
+"POT-Creation-Date: 2024-05-13 18:08-0400\n"
 "PO-Revision-Date: 2022-11-16 11:34+0000\n"
 "Last-Translator: Predrag Ljubenović <predragljubenovic@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -14,8 +14,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
@@ -79,15 +79,15 @@ msgstr "Спремно за емитовање"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Изаберите свој медиј у Jellyfin-у и пустите га овде"
 
-#: jellyfin_mpv_shim/gui_mgr.py:155
+#: jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
 msgstr "Дневник апликација"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
 msgstr "Додај сервер"
 
-#: jellyfin_mpv_shim/gui_mgr.py:248
+#: jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -95,55 +95,55 @@ msgstr ""
 "Додавање сервера није успело.\n"
 "Молимо проверите податке о вези."
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
 msgstr "Неуспешно"
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
 msgstr "У реду"
 
-#: jellyfin_mpv_shim/gui_mgr.py:282
+#: jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
 msgstr "Конфигурација сервера"
 
-#: jellyfin_mpv_shim/gui_mgr.py:305
+#: jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
 msgstr "Сервер:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:310
+#: jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
 msgstr "Корисничко име:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:315
+#: jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
 msgstr "Лозинка:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:340
+#: jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
 msgstr "Уклоните сервер"
 
-#: jellyfin_mpv_shim/gui_mgr.py:343
+#: jellyfin_mpv_shim/gui_mgr.py:342
 msgid "Close"
 msgstr "Затвори"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Configure Servers"
 msgstr "Конфигуриши сервере"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Show Console"
 msgstr "Прикажи конзолу"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Application Menu"
 msgstr "Мени апликације"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Open Config Folder"
 msgstr "Отвори фасциклу за конфигурисање"
 
-#: jellyfin_mpv_shim/gui_mgr.py:460
+#: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Quit"
 msgstr "Одустани"
 
@@ -421,19 +421,15 @@ msgstr ""
 msgid "Enable thumbnail previews"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:562
-msgid "Use JellyScrub thumbnails"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py:468
+#: jellyfin_mpv_shim/player.py:484
 msgid "Skipped Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:470
+#: jellyfin_mpv_shim/player.py:486
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:579
+#: jellyfin_mpv_shim/player.py:595
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -442,7 +438,7 @@ msgstr ""
 "Притисните c да бисте подесили подешавања пропусног опсега ако то није "
 "потребно."
 
-#: jellyfin_mpv_shim/player.py:946
+#: jellyfin_mpv_shim/player.py:962
 msgid "Season {0} - Episode {1}"
 msgstr "Сезона {0} - Епизода {1}"
 
@@ -545,11 +541,11 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:245
+#: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
 msgstr "Непознато"
 
-#: jellyfin_mpv_shim/utils.py:246
+#: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
 msgstr " Форсирано"
 

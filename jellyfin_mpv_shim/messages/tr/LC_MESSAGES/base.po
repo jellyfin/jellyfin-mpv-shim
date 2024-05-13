@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-16 21:43-0500\n"
+"POT-Creation-Date: 2024-05-13 18:08-0400\n"
 "PO-Revision-Date: 2023-12-19 09:34+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -78,15 +78,15 @@ msgstr "Yayınlamaya hazır"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Dosyayı Jellyfinden seçip burada oynat"
 
-#: jellyfin_mpv_shim/gui_mgr.py:155
+#: jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
 msgstr "Uygulama Günlüğü"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
 msgstr "Sunucu ekle"
 
-#: jellyfin_mpv_shim/gui_mgr.py:248
+#: jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -94,55 +94,55 @@ msgstr ""
 "Sunucu eklenemedi.\n"
 "Lütfen bağlantınızı kontrol ediniz."
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
 msgstr "Hata"
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
 msgstr "Tamam"
 
-#: jellyfin_mpv_shim/gui_mgr.py:282
+#: jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
 msgstr "Sunucu Yapılandırması"
 
-#: jellyfin_mpv_shim/gui_mgr.py:305
+#: jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
 msgstr "Sunucu:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:310
+#: jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
 msgstr "Kullanıcı adı:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:315
+#: jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
 msgstr "Parola:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:340
+#: jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
 msgstr "Sunucuyu Kaldır"
 
-#: jellyfin_mpv_shim/gui_mgr.py:343
+#: jellyfin_mpv_shim/gui_mgr.py:342
 msgid "Close"
 msgstr "Kapat"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Configure Servers"
 msgstr "Sunucuları Yapılandır"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Show Console"
 msgstr "Konsolu göster"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Application Menu"
 msgstr "Uygulama Menüsü"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Open Config Folder"
 msgstr "Yapılandırma Klasörünü Aç"
 
-#: jellyfin_mpv_shim/gui_mgr.py:460
+#: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Quit"
 msgstr "Çıkış Yap"
 
@@ -418,19 +418,15 @@ msgstr "Girişi Geçmek için Sor"
 msgid "Enable thumbnail previews"
 msgstr "Küçük resim önizlemelerini etkinleştirin"
 
-#: jellyfin_mpv_shim/menu.py:562
-msgid "Use JellyScrub thumbnails"
-msgstr "JellyScrub küçük resimlerini kullanın"
-
-#: jellyfin_mpv_shim/player.py:468
+#: jellyfin_mpv_shim/player.py:484
 msgid "Skipped Intro"
 msgstr "Giriş Geçildi"
 
-#: jellyfin_mpv_shim/player.py:470
+#: jellyfin_mpv_shim/player.py:486
 msgid "Seek to Skip Intro"
 msgstr "Girişi Atlamak için Ara"
 
-#: jellyfin_mpv_shim/player.py:579
+#: jellyfin_mpv_shim/player.py:595
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -439,7 +435,7 @@ msgstr ""
 "Bunun yapılmasına gerek yoksa bant genişliği ayarını yapmak için c tuşuna "
 "basın."
 
-#: jellyfin_mpv_shim/player.py:946
+#: jellyfin_mpv_shim/player.py:962
 msgid "Season {0} - Episode {1}"
 msgstr "{0}. Sezon - {1}. Bölüm"
 
@@ -544,11 +540,11 @@ msgstr ""
 "MPV Shim v{0} Güncelleme Mevcut\n"
 "Detaylar için menüyü aç (c'ye bas)."
 
-#: jellyfin_mpv_shim/utils.py:245
+#: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
 msgstr "Blnmyr"
 
-#: jellyfin_mpv_shim/utils.py:246
+#: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
 msgstr " Gömülü"
 
@@ -587,6 +583,9 @@ msgstr "Anime4K x2 Perceptual + Blur kaldır (HD Kalite)"
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "Gölgelendirici Profili Seçin"
+
+#~ msgid "Use JellyScrub thumbnails"
+#~ msgstr "JellyScrub küçük resimlerini kullanın"
 
 #~ msgid "Transcode H265 to H264"
 #~ msgstr "H265'ten H264'e dönüştürün"

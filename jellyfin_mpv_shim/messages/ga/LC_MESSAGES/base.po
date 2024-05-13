@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-02-16 21:43-0500\n"
+"POT-Creation-Date: 2024-05-13 18:08-0400\n"
 "PO-Revision-Date: 2024-02-16 22:37+0000\n"
 "Last-Translator: gearoidkeane <gearoidocathain@gmail.com>\n"
 "Language-Team: Irish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -14,8 +14,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=5; plural=n==1 ? 0 : n==2 ? 1 : (n>2 && n<7) ? 2 :("
-"n>6 && n<11) ? 3 : 4;\n"
+"Plural-Forms: nplurals=5; plural=n==1 ? 0 : n==2 ? 1 : (n>2 && n<7) ? 2 :"
+"(n>6 && n<11) ? 3 : 4;\n"
 "X-Generator: Weblate 4.14.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
@@ -79,69 +79,69 @@ msgstr "Réidh le caitheamh"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Roghnaigh do chuid meáin i Jellyfin agus séinn é anseo"
 
-#: jellyfin_mpv_shim/gui_mgr.py:155
+#: jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
 msgstr "Taifead Féidhmchláir"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247 jellyfin_mpv_shim/gui_mgr.py:337
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:248
+#: jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:269
+#: jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:282
+#: jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:305
+#: jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:310
+#: jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:315
+#: jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:340
+#: jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:343
+#: jellyfin_mpv_shim/gui_mgr.py:342
 msgid "Close"
 msgstr "Dún"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Configure Servers"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Show Console"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Application Menu"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Open Config Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:460
+#: jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Quit"
 msgstr ""
 
@@ -417,25 +417,21 @@ msgstr ""
 msgid "Enable thumbnail previews"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:562
-msgid "Use JellyScrub thumbnails"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py:468
+#: jellyfin_mpv_shim/player.py:484
 msgid "Skipped Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:470
+#: jellyfin_mpv_shim/player.py:486
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:579
+#: jellyfin_mpv_shim/player.py:595
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:946
+#: jellyfin_mpv_shim/player.py:962
 msgid "Season {0} - Episode {1}"
 msgstr ""
 
@@ -538,11 +534,11 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:245
+#: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:246
+#: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
 msgstr ""
 
