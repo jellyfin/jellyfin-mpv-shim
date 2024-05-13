@@ -5,7 +5,7 @@ terms of the GPLv3, as this is the more restrictive license.
 
 ## MIT License
 
-Copyright (c) 2019 Ian Walton  
+Copyright (c) 2019 Izzie Walton
 Copyright (c) 2014 Weston Nielson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

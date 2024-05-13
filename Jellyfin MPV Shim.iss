@@ -3,7 +3,7 @@
 
 #define MyAppName "Jellyfin MPV Shim"
 #define MyAppVersion "2.6.0"
-#define MyAppPublisher "Ian Walton"
+#define MyAppPublisher "Izzie Walton"
 #define MyAppURL "https://github.com/jellyfin/jellyfin-mpv-shim"
 #define MyAppExeName "run.exe"
 
