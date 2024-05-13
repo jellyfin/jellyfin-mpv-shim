@@ -89,7 +89,7 @@ The menu enables you to:
 On your computer, use the mouse or arrow keys, enter, and escape to navigate.
 On your phone, use the arrow buttons, ok, back, and home to navigate.
 
-### Shader Packs 
+### Shader Packs
 
 Shader packs are a recent feature addition that allows you to easily use advanced video
 shaders and video quality settings. These usually require a lot of configuration to use,
@@ -213,7 +213,7 @@ You can use the config file to enable and disable features.
     - This requests the GitHub releases page and checks for a new version.
     - Update checks are performed when playing media, once per day.
  - `notify_updates` - Display update notification when playing media. Default: `true`
-    - Notification will only display once until the application is restarted. 
+    - Notification will only display once until the application is restarted.
  - `discord_presence` - Enable Discord rich presence support. Default: `false`
  - `menu_mouse` - Enable mouse support in the menu. Default: `true`
      - This requires MPV to be compiled with lua support.
@@ -313,15 +313,13 @@ use `shader_pack_custom`.
 
 ### Trickplay Thumbnails
 
-MPV will automatically display thumbnail previews. By default it uses the Jellyfin chapter images
-but it can also use JellyScrub as the source. Please note that this feature will download and
+MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. Please note that this feature will download and
 uncompress all of the chapter images before it becomes available for a video. For a 4 hour movie this
 causes disk usage of about 250 MB, but for the average TV episode it is around 40 MB. It also requires
 overriding the default MPV OSC, which may conflict with some custom user script. Trickplay is compatible
 with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua).
 
  - `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
- - `thumbnail_jellyscrub` - Use JellyScrub as the thumbnail source instead of chapter images. (Default: `false`)
  - `thumbnail_osc_builtin` - Disable this setting if you want to use your own custom osc but leave trickplay enabled. (Default: `true`)
  - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
 
@@ -446,16 +444,16 @@ Run `xrandr`. It should look something like this:
 Screen 0: minimum 8 x 8, current 3520 x 1080, maximum 16384 x 16384
 VGA-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 521mm x 293mm
    1920x1080     60.00*+
-   1680x1050     59.95  
-   1440x900      59.89  
-   1280x1024     75.02    60.02  
-   1280x960      60.00  
-   1280x800      59.81  
-   1280x720      60.00  
-   1152x864      75.00  
-   1024x768      75.03    70.07    60.00  
-   800x600       75.00    72.19    60.32    56.25  
-   640x480       75.00    59.94  
+   1680x1050     59.95
+   1440x900      59.89
+   1280x1024     75.02    60.02
+   1280x960      60.00
+   1280x800      59.81
+   1280x720      60.00
+   1152x864      75.00
+   1024x768      75.03    70.07    60.00
+   800x600       75.00    72.19    60.32    56.25
+   640x480       75.00    59.94
 LVDS-0 connected 1600x900+1920+180 (normal left inverted right x axis y axis) 309mm x 174mm
    1600x900      59.98*+
 ```
@@ -484,8 +482,8 @@ Set `mpv_ext` to `true` in the config. Add `script=/path/to/mpris.so` to `mpv.co
 
 ### Run Multiple Instances (#45)
 
-You can pass `--config /path/to/folder` to run another copy of the player. Please 
-note that running multiple copies of the desktop client is currently not supported. 
+You can pass `--config /path/to/folder` to run another copy of the player. Please
+note that running multiple copies of the desktop client is currently not supported.
 
 ### Audio Passthrough
 
@@ -536,7 +534,7 @@ On Linux, the process is similar, except that you don't need to set the `mpv_ext
 On macOS, external MPV is already the default and is the only supported player mode.
 
 In the long term, I may look into a method of terminating MPV when not in use. This will require
-a lot of changes to the software. 
+a lot of changes to the software.
 
 ### Player Sizing (#91)
 
