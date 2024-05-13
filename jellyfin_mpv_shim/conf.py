@@ -130,7 +130,6 @@ class Settings(SettingsBase):
     skip_intro_always: bool = False
     skip_intro_prompt: bool = False
     thumbnail_enable: bool = True
-    thumbnail_jellyscrub: bool = False
     thumbnail_osc_builtin: bool = True
     thumbnail_preferred_size: int = 320
 

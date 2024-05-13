@@ -558,9 +558,6 @@ class OSDMenu(object):
                 self.get_settings_toggle(
                     _("Enable thumbnail previews"), "thumbnail_enable"
                 ),
-                self.get_settings_toggle(
-                    _("Use JellyScrub thumbnails"), "thumbnail_jellyscrub"
-                ),
             ],
         )
 

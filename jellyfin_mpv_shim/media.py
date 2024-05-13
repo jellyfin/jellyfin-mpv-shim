@@ -271,42 +271,29 @@ class Video(object):
             yield data.getvalue()
 
     def get_hls_tile_images(self, width, count):
-        for i in range(1, count + 1):
+        for i in range(0, count):
             data = BytesIO()
             self.client.jellyfin._get_stream(
-                f"Trickplay/{self.media_source['Id']}/{width}/{i}.jpg", data
+                f"Videos/{self.item['Id']}/Trickplay/{width}/{i}.jpg?MediaSourceId={self.media_source['Id']}", data
             )
             yield data.getvalue()
 
     def get_bif(self, prefer_width=320):
-        # requires JellyScrub plugin
-        manifest = self.client.jellyfin._get(
-            f"Trickplay/{self.media_source['Id']}/GetManifest"
-        )
+        manifest = self.item.get("Trickplay")
+        print(manifest)
         if (
             manifest is not None
-            and manifest.get("WidthResolutions") is not None
-            and len(manifest["WidthResolutions"]) > 0
+            and manifest.get(self.media_source['Id']) is not None
+            and len(manifest[self.media_source['Id']]) > 0
         ):
-            available_widths = manifest["WidthResolutions"]
-            if type(manifest["WidthResolutions"]) is dict:
-                available_widths = [int(x) for x in manifest["WidthResolutions"].keys()]
+            available_widths = [int(x) for x in manifest[self.media_source['Id']].keys()]
 
             if prefer_width is not None:
                 width = min(available_widths, key=lambda x: abs(x - prefer_width))
             else:
                 width = max(available_widths)
 
-            if type(manifest["WidthResolutions"]) is dict:
-                return manifest["WidthResolutions"][str(width)]
-            else:
-                data = BytesIO()
-                self.client.jellyfin._get_stream(
-                    f"Trickplay/{self.media_source['Id']}/{width}/GetBIF", data
-                )
-
-                data.seek(0)
-                return data
+            return manifest[self.media_source['Id']][str(width)]
         else:
             return None
 

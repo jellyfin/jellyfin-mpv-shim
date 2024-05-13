@@ -50,77 +50,67 @@ class TrickPlay(threading.Thread):
                     continue
 
                 video = self.player.get_video()
-                if settings.thumbnail_jellyscrub:
-                    try:
-                        data = video.get_bif(settings.thumbnail_preferred_size)
+                try:
+                    data = video.get_bif(settings.thumbnail_preferred_size)
+                    if (
+                        not self.player.has_video()
+                        or video != self.player.get_video()
+                    ):
+                        # Video changed while we were getting the bif file
+                        continue
+
+                    if data:
+                        with open(img_file, "wb") as fh:
+                            img_count = math.ceil(
+                                data["ThumbnailCount"]
+                                / data["TileWidth"]
+                                / data["TileHeight"]
+                            )
+                            bifdecode.decompress_tiles(
+                                data["Width"],
+                                data["Height"],
+                                data["TileWidth"],
+                                data["TileHeight"],
+                                data["ThumbnailCount"],
+                                video.get_hls_tile_images(
+                                    data["Width"], img_count
+                                ),
+                                fh,
+                            )
+
+                        bif_meta = {
+                            "count": data["ThumbnailCount"],
+                            "multiplier": data["Interval"],
+                            "width": data["Width"],
+                            "height": data["Height"],
+                        }
+
                         if (
                             not self.player.has_video()
                             or video != self.player.get_video()
                         ):
-                            # Video changed while we were getting the bif file
+                            # Video changed while we were decompressing the bif file
                             continue
 
-                        if data:
-                            if type(data) is not dict:
-                                bif = bifdecode.decode(data)
-
-                                with open(img_file, "wb") as fh:
-                                    bif_meta = bifdecode.decompress_bif(
-                                        bif["images"], fh
-                                    )
-                                    bif_meta["multiplier"] = bif["multiplier"]
-                            else:
-                                with open(img_file, "wb") as fh:
-                                    img_count = math.ceil(
-                                        data["TileCount"]
-                                        / data["TileWidth"]
-                                        / data["TileHeight"]
-                                    )
-                                    bifdecode.decompress_tiles(
-                                        data["Width"],
-                                        data["Height"],
-                                        data["TileWidth"],
-                                        data["TileHeight"],
-                                        data["TileCount"],
-                                        video.get_hls_tile_images(
-                                            data["Width"], img_count
-                                        ),
-                                        fh,
-                                    )
-
-                                bif_meta = {
-                                    "count": data["TileCount"],
-                                    "multiplier": data["Interval"],
-                                    "width": data["Width"],
-                                    "height": data["Height"],
-                                }
-
-                            if (
-                                not self.player.has_video()
-                                or video != self.player.get_video()
-                            ):
-                                # Video changed while we were decompressing the bif file
-                                continue
-
-                            self.player.script_message(
-                                "shim-trickplay-bif",
-                                str(bif_meta["count"]),
-                                str(bif_meta["multiplier"]),
-                                str(bif_meta["width"]),
-                                str(bif_meta["height"]),
-                                img_file,
-                            )
-                            log.info(
-                                f"Collected {bif_meta['count']} bif preview images"
-                            )
-                            continue
-                        else:
-                            log.warning("No bif file available")
-                    except:
-                        log.error(
-                            "Could not get bif file. Do you have the plugin installed?",
-                            exc_info=True,
+                        self.player.script_message(
+                            "shim-trickplay-bif",
+                            str(bif_meta["count"]),
+                            str(bif_meta["multiplier"]),
+                            str(bif_meta["width"]),
+                            str(bif_meta["height"]),
+                            img_file,
                         )
+                        log.info(
+                            f"Collected {bif_meta['count']} trickplay preview images"
+                        )
+                        continue
+                    else:
+                        log.warning("No trickplay data available")
+                except:
+                    log.error(
+                        "Could not get trickplay data.",
+                        exc_info=True,
+                    )
 
                 chapter_data = video.get_chapters()
 
