@@ -10,10 +10,8 @@ from . import i18n
 from .conf import settings
 from .clients import clientManager
 from .constants import APP_NAME
-from .log_utils import configure_log, enable_sanitization, configure_log_file
+from .log_utils import configure_log, configure_log_file, enable_sanitization, root_logger
 
-configure_log(sys.stdout)
-log = logging.getLogger("")
 logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 
@@ -25,9 +23,12 @@ def main():
     if settings.sanitize_output:
         enable_sanitization()
 
+    configure_log(sys.stdout, settings.mpv_log_level)
     if settings.write_logs:
         log_file = conffile.get(APP_NAME, "log.txt")
-        configure_log_file(log_file)
+        configure_log_file(log_file, settings.mpv_log_level)
+    
+    log = root_logger
 
     if sys.platform.startswith("darwin"):
         multiprocessing.set_start_method("forkserver")

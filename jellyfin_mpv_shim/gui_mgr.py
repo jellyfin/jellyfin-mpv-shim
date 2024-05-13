@@ -11,7 +11,7 @@ from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
 from .utils import get_resource
-from .log_utils import CustomFormatter
+from .log_utils import CustomFormatter, root_logger
 from .i18n import _
 
 log = logging.getLogger("gui_mgr")
@@ -52,7 +52,6 @@ except KeyError:
 
 # Setup a log handler for log items.
 log_cache = deque([], 1000)
-root_logger = logging.getLogger("")
 
 
 class GUILogHandler(logging.Handler):
@@ -460,7 +459,7 @@ class STrayProcess(Process):
             MenuItem(_("Quit"), die),
         ]
 
-        icon = Icon(USER_APP_NAME, menu=Menu(*menu_items))
+        icon = Icon(APP_NAME, title=USER_APP_NAME, menu=Menu(*menu_items))
         icon.icon = Image.open(get_resource("systray.png"))
         self.icon_stop = icon.stop
 
