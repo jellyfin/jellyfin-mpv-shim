@@ -280,7 +280,6 @@ class Video(object):
 
     def get_bif(self, prefer_width=320):
         manifest = self.item.get("Trickplay")
-        print(manifest)
         if (
             manifest is not None
             and manifest.get(self.media_source["Id"]) is not None
