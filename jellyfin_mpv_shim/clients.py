@@ -24,7 +24,7 @@ from typing import Optional
 def expo(max_value: Optional[int] = None):
     n = 0
     while True:
-        a = 2 ** n
+        a = 2**n
         if max_value is None or a < max_value:
             yield a
             n += 1

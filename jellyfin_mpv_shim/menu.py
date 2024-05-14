@@ -108,7 +108,7 @@ class OSDMenu(object):
                 fmt = "\n   **{0}**"
             menu_text += fmt.format(item[0])
 
-        self.playerManager.show_text(menu_text, 2 ** 30, 1)
+        self.playerManager.show_text(menu_text, 2**30, 1)
 
     def mouse_select(self, idx: int):
         if idx < 0 or idx > len(self.menu_list):

@@ -52,10 +52,7 @@ class TrickPlay(threading.Thread):
                 video = self.player.get_video()
                 try:
                     data = video.get_bif(settings.thumbnail_preferred_size)
-                    if (
-                        not self.player.has_video()
-                        or video != self.player.get_video()
-                    ):
+                    if not self.player.has_video() or video != self.player.get_video():
                         # Video changed while we were getting the bif file
                         continue
 
@@ -72,9 +69,7 @@ class TrickPlay(threading.Thread):
                                 data["TileWidth"],
                                 data["TileHeight"],
                                 data["ThumbnailCount"],
-                                video.get_hls_tile_images(
-                                    data["Width"], img_count
-                                ),
+                                video.get_hls_tile_images(data["Width"], img_count),
                                 fh,
                             )
 

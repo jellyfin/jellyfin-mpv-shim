@@ -275,7 +275,7 @@ def get_profile(
                         "Condition": "LessThanEqual",
                         "Property": "Height",
                         "Value": "1080",
-                    }
+                    },
                 ],
             }
         )

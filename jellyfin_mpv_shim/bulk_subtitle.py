@@ -29,7 +29,7 @@ def render_message(message, show_text):
     text = _("Selecting Tracks...")
     for message in messages[-6:]:
         text += "\n   " + message
-    show_text(text, 2 ** 30, 1)
+    show_text(text, 2**30, 1)
 
 
 def process_series(mode, player: "PlayerManager_type", m_raid=None, m_rsid=None):

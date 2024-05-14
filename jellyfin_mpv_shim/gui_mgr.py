@@ -45,7 +45,6 @@ try:
     def open_config():
         show_file(confdir(APP_NAME))
 
-
 except KeyError:
     open_config = None
     log.warning("Platform does not support opening folders.")

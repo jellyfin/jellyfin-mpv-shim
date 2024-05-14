@@ -172,7 +172,6 @@ class Video(object):
             and settings.direct_paths
             and (settings.remote_direct_paths or self.parent.is_local)
         ):
-
             if platform.startswith("win32") or platform.startswith("cygwin"):
                 # matches on SMB scheme
                 match = re.search("(?:\\\\).+:.*@(.+)", self.media_source["Path"])
@@ -274,7 +273,8 @@ class Video(object):
         for i in range(0, count):
             data = BytesIO()
             self.client.jellyfin._get_stream(
-                f"Videos/{self.item['Id']}/Trickplay/{width}/{i}.jpg?MediaSourceId={self.media_source['Id']}", data
+                f"Videos/{self.item['Id']}/Trickplay/{width}/{i}.jpg?MediaSourceId={self.media_source['Id']}",
+                data,
             )
             yield data.getvalue()
 
@@ -283,17 +283,19 @@ class Video(object):
         print(manifest)
         if (
             manifest is not None
-            and manifest.get(self.media_source['Id']) is not None
-            and len(manifest[self.media_source['Id']]) > 0
+            and manifest.get(self.media_source["Id"]) is not None
+            and len(manifest[self.media_source["Id"]]) > 0
         ):
-            available_widths = [int(x) for x in manifest[self.media_source['Id']].keys()]
+            available_widths = [
+                int(x) for x in manifest[self.media_source["Id"]].keys()
+            ]
 
             if prefer_width is not None:
                 width = min(available_widths, key=lambda x: abs(x - prefer_width))
             else:
                 width = max(available_widths)
 
-            return manifest[self.media_source['Id']][str(width)]
+            return manifest[self.media_source["Id"]][str(width)]
         else:
             return None
 

@@ -476,7 +476,6 @@ class PlayerManager(object):
             and self._player.playback_time > self._video.intro_start
             and self._player.playback_time < self._video.intro_end
         ):
-
             if not self.is_in_intro:
                 if settings.skip_intro_always and not self.intro_has_triggered:
                     self.intro_has_triggered = True

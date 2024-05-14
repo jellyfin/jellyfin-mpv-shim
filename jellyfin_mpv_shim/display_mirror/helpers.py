@@ -19,7 +19,6 @@ from ..clients import clientManager
 
 # noinspection PyPep8Naming,PyPep8Naming
 def getUrl(serverAddress, name):
-
     if not name:
         raise Exception("Url name cannot be empty")
 
