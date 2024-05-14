@@ -63,11 +63,14 @@
   <releases>
     <release version="2.7.0" date="2024-05-13">
       <description>
+        <p>Changes:</p>
+        <ul>
           <li>Switch to native Jellyfin Trickplay support.</li>
           <li>Update mpv version to latest git version.</li>
           <li>Fix support for newer MPV versions. (#377)</li>
           <li>Make log level configurable. (#379)</li>
           <li>Fix icon title. (#380)</li>
+        </ul>
       </description>
     </release>
     <release version="2.6.0" date="2023-03-07">
