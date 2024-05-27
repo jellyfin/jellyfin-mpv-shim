@@ -220,6 +220,8 @@ class ClientManager(object):
         client.start(websocket=True)
 
         client.jellyfin.post_capabilities(CAPABILITIES)
+        # Small delay so the server has time to process request
+        time.sleep(3)
         return self.validate_client(client)
 
     def remove_client(self, uuid: str):
