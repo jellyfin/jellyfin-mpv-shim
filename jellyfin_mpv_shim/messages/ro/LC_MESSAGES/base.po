@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-05-13 18:08-0400\n"
-"PO-Revision-Date: 2024-05-29 02:52+0000\n"
+"PO-Revision-Date: 2024-05-30 13:16+0000\n"
 "Last-Translator: Petrică Andrei-Cosmin <drembii@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ro/>\n"
@@ -269,7 +269,7 @@ msgstr "Închideți Meniul"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Selectați Pista Audio"
+msgstr "Selectați Pistă Audio"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
@@ -289,7 +289,7 @@ msgstr "Maxim"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "Fără conversie"
+msgstr "Fără transcodare"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
@@ -305,11 +305,11 @@ msgstr "Audio în japoneză cu Subtitrare în engleză"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manual prin Track Index (mai puțin fiabil)"
+msgstr "Manual prin indice de urmărie (mai puțin fiabil)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Selectează profilul implicit de decodare"
+msgstr "Selectează profilul implicit de transcodare"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
@@ -325,7 +325,7 @@ msgstr "Selectează poziția subtitrării"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr "Bază"
+msgstr "Dedesubt"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
