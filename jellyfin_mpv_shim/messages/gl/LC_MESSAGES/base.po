@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-05-13 18:08-0400\n"
+"POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2023-07-08 13:41+0000\n"
 "Last-Translator: D <dln0@proton.me>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
@@ -79,15 +79,15 @@ msgstr "Listo para transmitir"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Seleccione a súa multimedia en Jellyfin e reprodúzaa aquí"
 
-#: jellyfin_mpv_shim/gui_mgr.py:154
+#: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
 msgstr "Rexistros da aplicación"
 
-#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
+#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
 msgstr "Engadir servidor"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247
+#: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -95,59 +95,59 @@ msgstr ""
 "Non foi posíbel engadir o servidor.\n"
 "Por favor, revise os parámetros de conexión."
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
 msgstr "Fallo"
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
 msgstr "Ok"
 
-#: jellyfin_mpv_shim/gui_mgr.py:281
+#: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
 msgstr "Configuración do Servidor"
 
-#: jellyfin_mpv_shim/gui_mgr.py:304
+#: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
 msgstr "Servidor:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:309
+#: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
 msgstr "Usuario:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:314
+#: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
 msgstr "Contrasinal:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:339
+#: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
 msgstr "Eliminar Servidor"
 
-#: jellyfin_mpv_shim/gui_mgr.py:342
+#: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
 msgstr "Fechar"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
 msgstr "Configurar Servidores"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
 msgstr "Ver Consola"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
 msgstr "Menú da aplicación"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
 msgstr "Abrir o cartafol de configuración"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
 msgstr "Saír"
 
-#: jellyfin_mpv_shim/media.py:130
+#: jellyfin_mpv_shim/media.py:139
 #, fuzzy
 msgid " (Transcode)"
 msgstr " (Transcodificar)"
@@ -418,19 +418,43 @@ msgstr "Saltar introdución sempre"
 msgid "Ask to Skip Intros"
 msgstr "Solicitar saltar as introduccións"
 
+#: jellyfin_mpv_shim/menu.py:558
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always Skip Credits"
+msgstr "Saltar introdución sempre"
+
 #: jellyfin_mpv_shim/menu.py:559
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Ask to Skip Credits"
+msgstr "Solicitar saltar as introduccións"
+
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Activar vistas previas na miniatura"
 
-#: jellyfin_mpv_shim/player.py:484
+#: jellyfin_mpv_shim/player.py:487
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "Introdución Saltada"
+
+#: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Introdución Saltada"
 
-#: jellyfin_mpv_shim/player.py:486
+#: jellyfin_mpv_shim/player.py:490
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "Intentar saltar a introdución"
+
+#: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
 msgstr "Intentar saltar a introdución"
 
-#: jellyfin_mpv_shim/player.py:595
+#: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -438,7 +462,7 @@ msgstr ""
 "O seu vídeo remoto está a se transcodificar \n"
 "Se non for necesario, prema c para axustar a largura de banda."
 
-#: jellyfin_mpv_shim/player.py:962
+#: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
 msgstr "Temporada {0} - Episodio {1}"
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-05-13 18:08-0400\n"
+"POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2024-04-18 18:00+0000\n"
 "Last-Translator: Alan Azar <alanazar304@hotmail.com>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -78,15 +78,15 @@ msgstr "Gati për të shfaqur"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Zgjidh median tënde në Jellyfin dhe luaje këtu"
 
-#: jellyfin_mpv_shim/gui_mgr.py:154
+#: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
 msgstr "Regjistri i aplikacionit"
 
-#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
+#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
 msgstr "Shto server"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247
+#: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -94,59 +94,59 @@ msgstr ""
 "Nuk mund të shtohet serveri.\n"
 "Ju lutem shikoni informacionin e lidhjes."
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
 msgstr "Dështoi"
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
 msgstr "Ok"
 
-#: jellyfin_mpv_shim/gui_mgr.py:281
+#: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
 msgstr "Konfigurimi i serverit"
 
-#: jellyfin_mpv_shim/gui_mgr.py:304
+#: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
 msgstr "Serveri:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:309
+#: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
 msgstr "Emri i përdoruesit:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:314
+#: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
 msgstr "Fjalëkalimi:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:339
+#: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
 msgstr "Hiq Serverin"
 
-#: jellyfin_mpv_shim/gui_mgr.py:342
+#: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
 msgstr "Mbyll"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
 msgstr "Konfiguro serverat"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
 msgstr "Shfaq Konsolën"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
 msgstr "Menuja e Aplikacionit"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
 msgstr "Hap Dosjen e Konfigurimit"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
 msgstr "Hiq dorë"
 
-#: jellyfin_mpv_shim/media.py:130
+#: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
 msgstr " {Transkodo}"
 
@@ -414,19 +414,43 @@ msgstr "Gjithmonë kalo introt"
 msgid "Ask to Skip Intros"
 msgstr "Pyet për të kaluar introt"
 
+#: jellyfin_mpv_shim/menu.py:558
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always Skip Credits"
+msgstr "Gjithmonë kalo introt"
+
 #: jellyfin_mpv_shim/menu.py:559
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Ask to Skip Credits"
+msgstr "Pyet për të kaluar introt"
+
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Aktivizo pamjet paraprake"
 
-#: jellyfin_mpv_shim/player.py:484
+#: jellyfin_mpv_shim/player.py:487
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "Kaluam intron"
+
+#: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Kaluam intron"
 
-#: jellyfin_mpv_shim/player.py:486
+#: jellyfin_mpv_shim/player.py:490
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "Kërko të kalosh intron"
+
+#: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
 msgstr "Kërko të kalosh intron"
 
-#: jellyfin_mpv_shim/player.py:595
+#: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -434,7 +458,7 @@ msgstr ""
 "Videoja në distancë është duke u transkoduar!\n"
 "Prek c për të përshtatur cilësimet e sinjalit nëse kjo nuk është e nevojshme."
 
-#: jellyfin_mpv_shim/player.py:962
+#: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
 msgstr "Sezoni {0} - Episodi {1}"
 

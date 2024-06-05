@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-05-13 18:08-0400\n"
+"POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2024-02-10 16:30+0000\n"
 "Last-Translator: p6laris <Yunissurchy@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
@@ -78,15 +78,15 @@ msgstr "ئامادەیە بۆ پەخشکردن"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "میدیای خۆت هەڵبژێرە لە جێلی فین وە کاری پێ بکە لێرە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:154
+#: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
 msgstr "ڕووداوتۆمارگەری نەرمەواڵە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
+#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
 msgstr "زیادکردنی ڕاژە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247
+#: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -94,59 +94,59 @@ msgstr ""
 "ناتوانرا ڕاژە زیاد بکرێ. \n"
 "تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
 msgstr "شکست"
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
 msgstr "باشە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:281
+#: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
 msgstr "ڕێکخستنی ڕاژە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:304
+#: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
 msgstr "ڕاژە:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:309
+#: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
 msgstr "ناوی بەکار‌هێنەر:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:314
+#: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
 msgstr "وشەی نهێنی:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:339
+#: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
 msgstr "لابردنی ڕاژە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:342
+#: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
 msgstr "داخستن"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
 msgstr "ڕیکخستنی ڕاژەکان"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
 msgstr "پیشاندانی مێزی فەرمان"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
 msgstr "هەڵبژێرەی نەرمەواڵە"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
 msgstr "کردنەوەی بوخچەی ڕیکخستن"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
 msgstr "چوونەدەرەوە"
 
-#: jellyfin_mpv_shim/media.py:130
+#: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
 msgstr " (تڕانسکۆد)"
 
@@ -414,19 +414,43 @@ msgstr "هەردەم سەرەتاکان بپەڕێنە"
 msgid "Ask to Skip Intros"
 msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
 
+#: jellyfin_mpv_shim/menu.py:558
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always Skip Credits"
+msgstr "هەردەم سەرەتاکان بپەڕێنە"
+
 #: jellyfin_mpv_shim/menu.py:559
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Ask to Skip Credits"
+msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
+
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "لابردنی وێنەی بچووكی پێشبینین"
 
-#: jellyfin_mpv_shim/player.py:484
+#: jellyfin_mpv_shim/player.py:487
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "سەرەتا پەڕێنراوەکان"
 
-#: jellyfin_mpv_shim/player.py:486
+#: jellyfin_mpv_shim/player.py:490
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
+
+#: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
 msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
 
-#: jellyfin_mpv_shim/player.py:595
+#: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -434,7 +458,7 @@ msgstr ""
 "لە ئێستادا پرۆسەی کۆدکردنەکە لەسەر ڤیدیۆیەکی ئۆنلاین بەڕێوەدەچێت! \n"
 "دەست بنێ بە c بۆ ڕیکخستنی ڕیکخستنەکان ئەگەر ئەمە پێویست نییە."
 
-#: jellyfin_mpv_shim/player.py:962
+#: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
 msgstr "وەرز {0} - ئەڵقە {1}"
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-05-13 18:08-0400\n"
+"POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2024-05-30 13:16+0000\n"
 "Last-Translator: Petrică Andrei-Cosmin <drembii@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -79,15 +79,15 @@ msgstr "Gata de proiectat"
 msgid "Select your media in Jellyfin and play it here"
 msgstr "Selectați-vă conținutul media în Jellyfin și redați-l aici"
 
-#: jellyfin_mpv_shim/gui_mgr.py:154
+#: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
 msgstr "Jurnalul Aplicației"
 
-#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
+#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
 msgstr "Adaugă Server"
 
-#: jellyfin_mpv_shim/gui_mgr.py:247
+#: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
@@ -95,59 +95,59 @@ msgstr ""
 "Nu s-a putut adăuga serverul.\n"
 "Vă rugăm să verificați informațiile conexiunii."
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
 msgstr "Eșuat"
 
-#: jellyfin_mpv_shim/gui_mgr.py:268
+#: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
 msgstr "Ok"
 
-#: jellyfin_mpv_shim/gui_mgr.py:281
+#: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
 msgstr "Configurare Server"
 
-#: jellyfin_mpv_shim/gui_mgr.py:304
+#: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
 msgstr "Server:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:309
+#: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
 msgstr "Utilizator:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:314
+#: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
 msgstr "Parolă:"
 
-#: jellyfin_mpv_shim/gui_mgr.py:339
+#: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
 msgstr "Eliminați Serverul"
 
-#: jellyfin_mpv_shim/gui_mgr.py:342
+#: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
 msgstr "Închide"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
 msgstr "Configurați Serverele"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
 msgstr "Afișați Consola"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
 msgstr "Meniul Aplicației"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
 msgstr "Deschideți folderul de configurare"
 
-#: jellyfin_mpv_shim/gui_mgr.py:459
+#: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
 msgstr "Ieșire"
 
-#: jellyfin_mpv_shim/media.py:130
+#: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
 msgstr " (Transcodare)"
 
@@ -415,19 +415,43 @@ msgstr "Treci mereu peste introducere"
 msgid "Ask to Skip Intros"
 msgstr "Întreabă înainte să treci peste introducere"
 
+#: jellyfin_mpv_shim/menu.py:558
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always Skip Credits"
+msgstr "Treci mereu peste introducere"
+
 #: jellyfin_mpv_shim/menu.py:559
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Ask to Skip Credits"
+msgstr "Întreabă înainte să treci peste introducere"
+
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Activați previzualizările în miniatură"
 
-#: jellyfin_mpv_shim/player.py:484
+#: jellyfin_mpv_shim/player.py:487
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "Sari peste introducere"
+
+#: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Sari peste introducere"
 
-#: jellyfin_mpv_shim/player.py:486
+#: jellyfin_mpv_shim/player.py:490
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "Încearcă să sari peste introducere"
+
+#: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
 msgstr "Încearcă să sari peste introducere"
 
-#: jellyfin_mpv_shim/player.py:595
+#: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -435,7 +459,7 @@ msgstr ""
 "Videoclipul tău se transcodează!\n"
 "Apasă C pentru a ajusta setările lățimii de bandă dacă nu e nevoie."
 
-#: jellyfin_mpv_shim/player.py:962
+#: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
 msgstr "Sezonul {0} - Episodul {1}"
 
