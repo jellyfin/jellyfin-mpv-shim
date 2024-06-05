@@ -177,21 +177,22 @@ class ClientManager(object):
             return True
         return False
 
-    def validate_client(self, client: "JellyfinClient"):
+    def validate_client(self, client: "JellyfinClient", dry_run=False):
         for f_client in client.jellyfin.sessions(
             params={"ControllableByUserId": "{UserId}"}
         ):
             if f_client.get("DeviceId") == settings.client_uuid:
                 break
         else:
-            log.warning(
-                "Client is not actually connected. (It does not show in the client list.)"
-            )
-            # WebSocketDisconnect doesn't always happen here.
-            client.callback = lambda *_: None
-            client.callback_ws = lambda *_: None
-            client.stop()
-            client.callback("WebSocketDisconnect", None)
+            if not dry_run:
+                log.warning(
+                    "Client is not actually connected. (It does not show in the client list.)"
+                )
+                # WebSocketDisconnect doesn't always happen here.
+                client.callback = lambda *_: None
+                client.callback_ws = lambda *_: None
+                client.stop()
+                client.callback("WebSocketDisconnect", None)
             return False
 
         return True
@@ -220,9 +221,19 @@ class ClientManager(object):
         client.start(websocket=True)
 
         client.jellyfin.post_capabilities(CAPABILITIES)
-        # Small delay so the server has time to process request
+
+        # Check connection
+        if self.validate_client(client, True):
+            return True
+
+        # Wait and check connection again before destroying/re-creating client
+        log.info("Not connected yet, waiting 3 seconds...")
         time.sleep(3)
-        return self.validate_client(client)
+        is_connected = self.validate_client(client)
+
+        if is_connected:
+            log.info("Actually connected now.")
+        return is_connected
 
     def remove_client(self, uuid: str):
         self.credentials = [
