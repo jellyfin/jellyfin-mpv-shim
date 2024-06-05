@@ -153,7 +153,6 @@ class PlayerManager(object):
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
-        self.intro_has_triggered = False
         self.trickplay = None
 
         if is_using_ext_mpv:
@@ -461,31 +460,61 @@ class PlayerManager(object):
             self.timeline_trigger.set()
 
     def skip_intro(self):
-        self._player.playback_time = self._video.intro_end
+        _, intro = self._video.get_current_intro(self._player.playback_time)
+
+        self._player.playback_time = intro.end
+        intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
 
     @synchronous("_lock")
     def update(self):
         if (
-            (settings.skip_intro_always or settings.skip_intro_prompt)
+            (
+                settings.skip_intro_always
+                or settings.skip_intro_prompt
+                or settings.skip_credits_always
+                or settings.skip_credits_prompt
+            )
             and not self.syncplay.is_enabled()
             and self._video is not None
-            and self._video.intro_start is not None
             and self._player.playback_time is not None
-            and self._player.playback_time > self._video.intro_start
-            and self._player.playback_time < self._video.intro_end
         ):
-            if not self.is_in_intro:
-                if settings.skip_intro_always and not self.intro_has_triggered:
-                    self.intro_has_triggered = True
+            ready_to_skip, intro = self._video.get_current_intro(
+                self._player.playback_time
+            )
+
+            if intro is not None:
+                should_prompt = (
+                    intro.type != "Credits" and settings.skip_intro_prompt
+                ) or (intro.type == "Credits" and settings.skip_credits_prompt)
+                should_skip = (not intro.has_triggered) and (
+                    (intro.type != "Credits" and settings.skip_intro_always)
+                    or (intro.type == "Credits" and settings.skip_credits_always)
+                )
+
+                if should_skip and ready_to_skip:
+                    intro.has_triggered = True
                     self.skip_intro()
-                    self._player.show_text(_("Skipped Intro"), 3000, 1)
-                elif settings.skip_intro_prompt:
-                    self._player.show_text(_("Seek to Skip Intro"), 3000, 1)
-            self.is_in_intro = True
-        else:
-            self.is_in_intro = False
+                    self._player.show_text(
+                        _("Skipped Credits")
+                        if intro.type == "Credits"
+                        else _("Skipped Intro"),
+                        3000,
+                        1,
+                    )
+
+                if not self.is_in_intro and should_prompt:
+                    self._player.show_text(
+                        _("Seek to Skip Credits")
+                        if intro.type == "Credits"
+                        else _("Seek to Skip Intro"),
+                        3000,
+                        1,
+                    )
+                self.is_in_intro = True
+            else:
+                self.is_in_intro = False
 
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
@@ -547,7 +576,6 @@ class PlayerManager(object):
         self._player.force_media_title = video.get_proper_title()
         self._video = video
         self.is_in_intro = False
-        self.intro_has_triggered = False
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 

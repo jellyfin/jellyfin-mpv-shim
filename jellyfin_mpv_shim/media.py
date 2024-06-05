@@ -12,10 +12,19 @@ from .i18n import _
 
 log = logging.getLogger("media")
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 
 if TYPE_CHECKING:
     from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
+
+
+class Intro(object):
+    def __init__(self, type, start, end, ui_start):
+        self.type: str = type  # "Credits" or "Introduction"
+        self.start: float = start
+        self.end: float = end
+        self.ui_start: float = ui_start
+        self.has_triggered: bool = False
 
 
 class Video(object):
@@ -47,9 +56,8 @@ class Video(object):
         self.playback_info = None
         self.media_source = None
         self.srcid = srcid
+        self.intros: List[Intro] = []
         self.intro_tried = False
-        self.intro_start = None
-        self.intro_end = None
 
     def map_streams(self):
         self.subtitle_seq = {}
@@ -241,16 +249,29 @@ class Video(object):
         # provided by plugin
         try:
             skip_intro_data = self.client.jellyfin._get(
-                f"Episode/{media_source_id}/IntroTimestamps"
+                f"Episode/{media_source_id}/IntroSkipperSegments"
             )
-            if skip_intro_data is not None and skip_intro_data["Valid"]:
-                self.intro_start = skip_intro_data["IntroStart"]
-                self.intro_end = skip_intro_data["IntroEnd"]
+            for type, intro in skip_intro_data.items():
+                if intro["Valid"]:
+                    self.intros.append(
+                        Intro(
+                            type,
+                            intro["IntroStart"],
+                            intro["IntroEnd"],
+                            intro["ShowSkipPromptAt"],
+                        )
+                    )
         except:
             log.warning(
                 "Fetching intro data failed. Do you have the plugin installed?",
                 exc_info=1,
             )
+
+    def get_current_intro(self, time):
+        for intro in self.intros:
+            if (intro.ui_start <= time or intro.start <= time) and time <= intro.end:
+                return intro.start <= time, intro
+        return False, None
 
     def get_chapters(self):
         return [
@@ -322,7 +343,12 @@ class Video(object):
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
-        if settings.skip_intro_always or settings.skip_intro_prompt:
+        if (
+            settings.skip_intro_always
+            or settings.skip_intro_prompt
+            or settings.skip_credits_always
+            or settings.skip_credits_prompt
+        ):
             self.get_intro(self.media_source["Id"])
 
         self.map_streams()

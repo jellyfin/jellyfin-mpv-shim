@@ -399,10 +399,12 @@ Other miscellaneous configuration options. You probably won't have to change the
 
 ### Skip Intro Support
 
-This functionality is considered experimental and requires the third-party [SkipIntro server plugin](https://github.com/ConfusedPolarBear/intro-skipper). It works the same ways as it did on MPV Shim for Plex.
+This functionality is considered experimental and requires the third-party [SkipIntro server plugin](https://github.com/jumoog/intro-skipper). It works the same ways as it did on MPV Shim for Plex.
 
  - `skip_intro_always` - Always skip intros, without asking. Default: `false`
  - `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `false`
+ - `skip_credits_always` - Always skip credits, without asking. Default: `false`
+ - `skip_credits_prompt` - Prompt to skip credits via seeking. Default: `false`
 
 ### MPV Configuration
 
