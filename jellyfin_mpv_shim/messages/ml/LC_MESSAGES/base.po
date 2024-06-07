@@ -78,73 +78,74 @@ msgstr ""
 msgid "Select your media in Jellyfin and play it here"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:153
+#: jellyfin_mpv_shim/gui_mgr.py:153 jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
 msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:246
+#: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
+#: jellyfin_mpv_shim/gui_mgr.py:267 jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
+#: jellyfin_mpv_shim/gui_mgr.py:267 jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:280
+#: jellyfin_mpv_shim/gui_mgr.py:280 jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:303
+#: jellyfin_mpv_shim/gui_mgr.py:303 jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:308
+#: jellyfin_mpv_shim/gui_mgr.py:308 jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:313
+#: jellyfin_mpv_shim/gui_mgr.py:313 jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:338
+#: jellyfin_mpv_shim/gui_mgr.py:338 jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:341
+#: jellyfin_mpv_shim/gui_mgr.py:341 jellyfin_mpv_shim/gui_mgr.py:342
 msgid "Close"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:454
+#: jellyfin_mpv_shim/gui_mgr.py:454 jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Configure Servers"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:455 jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Show Console"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:456 jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Application Menu"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:457 jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Open Config Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:458 jellyfin_mpv_shim/gui_mgr.py:459
 msgid "Quit"
 msgstr ""
 
-#: jellyfin_mpv_shim/media.py:139
+#: jellyfin_mpv_shim/media.py:139 jellyfin_mpv_shim/media.py:130
 msgid " (Transcode)"
 msgstr ""
 
@@ -162,7 +163,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "സിയാൻ"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -198,31 +199,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "വലുത്"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "വൻ"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "പ്രധാന മെനു"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
-msgstr ""
+msgstr "ഓഡിയോ മാറ്റുക"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr ""
+msgstr "സബ്ടൈറ്റിൽ മാറ്റുക"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr ""
+msgstr "വീഡിയോ നിലവാരം മാറ്റുക"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr ""
+msgstr "സമന്വയ പ്ലേ"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -274,7 +275,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "ഒന്നുമില്ല"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -420,7 +421,7 @@ msgstr ""
 msgid "Ask to Skip Credits"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:561 jellyfin_mpv_shim/menu.py:559
 msgid "Enable thumbnail previews"
 msgstr ""
 
@@ -428,7 +429,7 @@ msgstr ""
 msgid "Skipped Credits"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:487
+#: jellyfin_mpv_shim/player.py:487 jellyfin_mpv_shim/player.py:484
 msgid "Skipped Intro"
 msgstr ""
 
@@ -436,17 +437,17 @@ msgstr ""
 msgid "Seek to Skip Credits"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:490
+#: jellyfin_mpv_shim/player.py:490 jellyfin_mpv_shim/player.py:486
 msgid "Seek to Skip Intro"
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:598
+#: jellyfin_mpv_shim/player.py:598 jellyfin_mpv_shim/player.py:595
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:965
+#: jellyfin_mpv_shim/player.py:965 jellyfin_mpv_shim/player.py:962
 msgid "Season {0} - Episode {1}"
 msgstr ""
 
