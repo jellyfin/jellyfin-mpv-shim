@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-03-25 13:38+0000\n"
+"PO-Revision-Date: 2024-06-09 16:41+0000\n"
 "Last-Translator: Kityn <kitynska@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pl/>\n"
@@ -416,36 +416,28 @@ msgid "Ask to Skip Intros"
 msgstr "Pytaj o pominięcie wstępów"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Zawsze pomijaj wstępy"
+msgstr "Zawsze pomijaj napisy końcowe"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Pytaj o pominięcie wstępów"
+msgstr "Pytaj o pominięcie napisów końcowych"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Włącz podgląd miniatur"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Pominięte wprowadzenie"
+msgstr "Pominięte napisy końcowe"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Pominięte wprowadzenie"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Przewiń, aby pominąć wstęp"
+msgstr "Przewiń, aby pominąć napisy końcowe"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
