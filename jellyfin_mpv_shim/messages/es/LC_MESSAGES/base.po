@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-05-23 16:21+0000\n"
-"Last-Translator: Matias Barros <matiasabarros94@gmail.com>\n"
+"PO-Revision-Date: 2024-06-09 16:41+0000\n"
+"Last-Translator: celticslment <celticslment@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/es/>\n"
 "Language: es\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Solicitar saltar las introducciones"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Saltar introducción siempre"
+msgstr "Saltar siempre los créditos"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Solicitar saltar las introducciones"
+msgstr "Solicitar omitir créditos"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Activar vistas previas en miniatura"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Introducción Salteada"
+msgstr "Créditos omitidos"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Introducción Salteada"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Intentar saltar la introducción"
+msgstr "Solicitar omitir créditos"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
