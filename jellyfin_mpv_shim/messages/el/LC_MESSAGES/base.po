@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-10-06 07:31+0000\n"
-"Last-Translator: [   ] <christiangrece45@gmail.com>\n"
+"PO-Revision-Date: 2024-06-11 08:41+0000\n"
+"Last-Translator: sanctimon <nopoets4u@netscape.net>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,16 +415,12 @@ msgid "Ask to Skip Intros"
 msgstr "Να γίνεται ερώτηση για να παραλείπονται οι εισαγωγές"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Πάντα να παραλείπονται οι εισαγωγές"
+msgstr "Πάντα να παραλείπονται οι τίτλοι τέλους"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Να γίνεται ερώτηση για να παραλείπονται οι εισαγωγές"
+msgstr "Παράλειψη τίτλων τέλους κατόπιν ερώτησης"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
