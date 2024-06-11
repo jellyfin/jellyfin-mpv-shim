@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-10-06 07:31+0000\n"
-"Last-Translator: Bas <weblate@hanka.mp>\n"
+"PO-Revision-Date: 2024-06-11 08:41+0000\n"
+"Last-Translator: Stijn Grievink <stijngrievink@gmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Vragen om intro's over te slaan"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Intro's altijd overslaan"
+msgstr "Aftiteling altijd overslaan"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Vragen om intro's over te slaan"
+msgstr "Vragen om aftiteling over te slaan"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Miniatuurvoorbeelden inschakelen"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Intro  overgeslagen"
+msgstr "Aftiteling  overgeslagen"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Intro  overgeslagen"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Terug- of vooruitspoelen om intro over te slaan"
+msgstr "Terug- of vooruitspoelen om aftiteling over te slaan"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
