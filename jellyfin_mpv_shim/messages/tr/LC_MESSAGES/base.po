@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-12-19 09:34+0000\n"
+"PO-Revision-Date: 2024-06-13 07:41+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Girişi Geçmek için Sor"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Her Zaman Girişi Geç"
+msgstr "Her Zaman Jeneriği Geç"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Girişi Geçmek için Sor"
+msgstr "Jeneriği Geçmek için Sor"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Küçük resim önizlemelerini etkinleştirin"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Giriş Geçildi"
+msgstr "Jenerik Geçildi"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Giriş Geçildi"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Girişi Atlamak için Ara"
+msgstr "Jeneriği Atlamak için Ara"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
