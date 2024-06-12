@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-03-22 05:48+0000\n"
-"Last-Translator: VitoFe <vito-7@hotmail.it>\n"
+"PO-Revision-Date: 2024-06-13 07:41+0000\n"
+"Last-Translator: millallo <millallo@tiscali.it>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/it/>\n"
 "Language: it\n"
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Chiedi di saltare le introduzioni"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Salta sempre le introduzioni"
+msgstr "Salta sempre i riconoscimenti"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Chiedi di saltare le introduzioni"
+msgstr "Chiedi di saltare i riconoscimenti"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Abilita le anteprime in miniatura"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Introduzione saltata"
+msgstr "Riconoscimenti saltati"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Introduzione saltata"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Cerca di saltare l'intro"
+msgstr "Avanza per saltare i riconoscimenti"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
