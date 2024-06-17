@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-10-21 14:25+0000\n"
-"Last-Translator: Andrejs <tlpbu@droplar.com>\n"
+"PO-Revision-Date: 2024-06-18 05:41+0000\n"
+"Last-Translator: Daniel ひっかもりい <hikkamorii@loli.expert>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
 "Language: lv\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n % 10 == 0 || n % 100 >= 11 && n % 100 <= "
 "19) ? 0 : ((n % 10 == 1 && n % 100 != 11) ? 1 : 2);\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -575,11 +575,12 @@ msgstr " Piespiedu"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr "Generic (FSRCNNX)"
+msgstr "Standārts (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
+#, fuzzy
 msgid "Generic High (FSRCNNX x16)"
-msgstr "Generic High (FSRCNNX x16)"
+msgstr "Standārts Kvalitatīvs (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
