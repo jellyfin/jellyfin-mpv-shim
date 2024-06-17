@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-13 07:41+0000\n"
+"PO-Revision-Date: 2024-06-18 05:41+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/tr/>\n"
@@ -416,7 +416,7 @@ msgstr "Girişi Geçmek için Sor"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr "Her Zaman Jeneriği Geç"
+msgstr "Jeneriği Her Zaman Geç"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
