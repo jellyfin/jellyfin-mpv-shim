@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-05-06 13:01+0000\n"
-"Last-Translator: Arielnoder <arielnoder@gmail.com>\n"
+"PO-Revision-Date: 2024-06-18 05:41+0000\n"
+"Last-Translator: Nir Israel Hen <nirisraelh@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -416,36 +416,28 @@ msgid "Ask to Skip Intros"
 msgstr "בקש לדלג על הפתיח"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "דלג תמיד על הפתיח"
+msgstr "דילוג על קרדיטים תמיד"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "בקש לדלג על הפתיח"
+msgstr "שאל אם לדלג על קרדיטים"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "הפעל תצוגה מקדימה של תמונות קטנות"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "דילג פתיח"
+msgstr "קרדיטים הועברו"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "דילג פתיח"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "דילוג על ההקדמה"
+msgstr "העברה לדילוג על הקרדיטים"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
