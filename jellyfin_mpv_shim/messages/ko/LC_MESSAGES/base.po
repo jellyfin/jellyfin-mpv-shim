@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-10-11 15:25+0000\n"
-"Last-Translator: HiSkyZen <mchan030704@gmail.com>\n"
+"PO-Revision-Date: 2024-06-18 12:23+0000\n"
+"Last-Translator: Ray Kong <ray.hyun.kong@gmail.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
 "Language: ko\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "인트로 건너뛰기전에 항상 물어보기"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "항상 인트로를 건너뛰기"
+msgstr "항상 크레딧을 건너뛰기"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "인트로 건너뛰기전에 항상 물어보기"
+msgstr "크레딧 건너뛰기전에 항상 물어보기"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "섬네일 미리보기 활성화하기"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "인트로 건너뜀"
+msgstr "크레딧 건너뜀"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "인트로 건너뜀"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "인트로 건너뛰기"
+msgstr "크레딧으로 건너뛰기"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
