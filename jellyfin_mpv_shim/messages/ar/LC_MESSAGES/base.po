@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-26 00:49+0000\n"
+"PO-Revision-Date: 2024-06-26 16:27+0000\n"
 "Last-Translator: Jalal Majed <conany1@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
@@ -413,39 +413,31 @@ msgstr "تخطى المقدمات دائما"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "اسأل لتخطي المقدمات"
+msgstr "اسأل لتخطي المقدمة"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "تخطى المقدمات دائما"
+msgstr "تخطى الخاتمة دائما"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "اسأل لتخطي المقدمات"
+msgstr "اسأل لتخطي الخاتمة"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "تمكين الصور المصغرة للمعاينة"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "تم تخطي المقدمة"
+msgstr "تم تخطي الخاتمة"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "تم تخطي المقدمة"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "قم بالتنقل لتتخطى المقدمة"
+msgstr "قم بالتنقل لتتخطى الخاتمة"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
