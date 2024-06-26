@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-04-04 21:39+0000\n"
-"Last-Translator: AmmarAlhawsawi <ammaralhawsawi@outlook.com>\n"
+"PO-Revision-Date: 2024-06-26 00:49+0000\n"
+"Last-Translator: Jalal Majed <conany1@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ar/>\n"
 "Language: ar\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -381,7 +381,7 @@ msgstr "التشغيل التلقائي"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr "تكبير الشاشة تلقائي"
+msgstr "تكبير تلقائي للشاشة"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
