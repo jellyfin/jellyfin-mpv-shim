@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-27 06:55+0000\n"
-"Last-Translator: lucas philippe <lucas.philippe.nunes@gmail.com>\n"
+"PO-Revision-Date: 2024-06-30 02:41+0000\n"
+"Last-Translator: Leonardo de Macedo Sartorello <leo.sartorello98@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -435,10 +435,8 @@ msgid "Skipped Intro"
 msgstr "Introdução pulada"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Tentar pular introdução"
+msgstr "Tentar pular créditos"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
