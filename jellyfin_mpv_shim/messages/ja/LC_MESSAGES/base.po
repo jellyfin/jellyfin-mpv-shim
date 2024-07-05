@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-05-08 08:20+0000\n"
-"Last-Translator: musenq <mail@musenq.com>\n"
+"PO-Revision-Date: 2024-07-06 14:41+0000\n"
+"Last-Translator: MC2018 <mc2018.git@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -32,15 +32,15 @@ msgstr "{0}: 失敗"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "字幕設定: {0} OK, {1} 失敗"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "ダブ設定: {0} OK, {1} オーディオのみ, {2} 失敗"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "手動: {0} OK, {1} 失敗"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -431,10 +431,8 @@ msgid "Enable thumbnail previews"
 msgstr "サムネイルのプレビューの有効化"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "イントロをスキップしました"
+msgstr "アウトロをスキップしました"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
@@ -448,7 +446,7 @@ msgstr "イントロのスキップを尋ねる"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "イントロをスキップする"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -531,19 +529,19 @@ msgstr "SyncPlayを無効にしました。"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0}が入りました。"
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0}が出ました。"
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0}がバッファー中です。"
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr ""
+msgstr "{0}のグループ"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
