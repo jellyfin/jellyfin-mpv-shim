@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-10-02 14:09+0000\n"
-"Last-Translator: MAhoyo <welya_skullboy@yahoo.co.id>\n"
+"PO-Revision-Date: 2024-07-16 14:36+0000\n"
+"Last-Translator: andrianfajar <andrian.fajar@outlook.com>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/id/>\n"
 "Language: id\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Tanya untuk lewatkan pembuka"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Selalu lewatkan pembuka"
+msgstr "Selalu Lewati Kredit"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Tanya untuk lewatkan pembuka"
+msgstr "Minta untuk Melewati Kredit"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Aktifkan tampilan gambar mini"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Pembuka terlewati"
+msgstr "Kredit yang Dilewatkan"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Pembuka terlewati"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Loncat untuk lewatkan pembuka"
+msgstr "Berusaha untuk Melewati Kredit"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
