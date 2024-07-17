@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-02-22 15:39+0000\n"
-"Last-Translator: rushmash <rushmash@gmail.com>\n"
+"PO-Revision-Date: 2024-07-17 12:12+0000\n"
+"Last-Translator: Troja <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/be/>\n"
 "Language: be\n"
@@ -16,12 +16,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Выбар трэкаў..."
+msgstr "Выбар дарожак..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -93,7 +93,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Немагчыма дадаць сервер.\n"
-"Праверце інфармацыю аб падключэнні."
+"Праверце інфармацыю аб падлучэнні."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -225,7 +225,7 @@ msgstr "Змяніць якасць відэа"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "Функцыя SyncPlay"
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -269,11 +269,11 @@ msgstr "Зачыніць меню"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Выберыце аўдыё"
+msgstr "Выберыце аўдыёдарожку"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Выберыце субтытры"
+msgstr "Выберыце дарожку субтытраў"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -416,36 +416,28 @@ msgid "Ask to Skip Intros"
 msgstr "Спытаць каб прапусціць уступы"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Заўсёды прапускаць уступы"
+msgstr "Заўсёды прапускаць тытры"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Спытаць каб прапусціць уступы"
+msgstr "Спытаць каб прапусціць тытры"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Уключыць папярэдні прагляд мініяцюр"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Прапушчаны ўступ"
+msgstr "Прапушчаныя тытры"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Прапушчаны ўступ"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Шукаць каб прапусціць уступ"
+msgstr "Паспрабаваць прапусціць тытры"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
