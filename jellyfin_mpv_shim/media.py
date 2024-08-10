@@ -207,11 +207,21 @@ class Video(object):
         if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False
             log.debug("Using direct url.")
-            return "%s/Videos/%s/stream?static=true&MediaSourceId=%s&api_key=%s" % (
+            query_params = {
+                "static": "true",
+                "MediaSourceId": self.media_source["Id"],
+                "api_key": self.client.config.data["auth.token"],
+            }
+
+            if "LiveStreamId" in self.media_source:
+                query_params["LiveStreamId"] = self.media_source["LiveStreamId"]
+
+            query = urllib.parse.urlencode(query_params)
+
+            return "%s/Videos/%s/stream?%s" % (
                 self.client.config.data["auth.server"],
                 self.item_id,
-                self.media_source["Id"],
-                self.client.config.data["auth.token"],
+                query,
             )
         elif self.media_source["SupportsTranscoding"]:
             log.debug("Using transcode url.")
