@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-11 08:41+0000\n"
-"Last-Translator: Stijn Grievink <stijngrievink@gmail.com>\n"
+"PO-Revision-Date: 2024-08-13 14:30+0000\n"
+"Last-Translator: Freespirit297 <freespirit2907@gmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/nl/>\n"
 "Language: nl\n"
@@ -428,11 +428,11 @@ msgstr "Miniatuurvoorbeelden inschakelen"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr "Aftiteling  overgeslagen"
+msgstr "Aftiteling overgeslagen"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr "Intro  overgeslagen"
+msgstr "Intro overgeslagen"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
