@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-12-26 20:30+0000\n"
-"Last-Translator: 李恩霆 (Lee,EN-TING) <timothylee0802@outlook.com>\n"
+"PO-Revision-Date: 2024-08-20 19:12+0000\n"
+"Last-Translator: Yuchen <yuchen_jimmy@outlook.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-desktop/zh_Hant/>\n"
 "Language: zh_Hant\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,26 +415,20 @@ msgid "Ask to Skip Intros"
 msgstr "請跳過序幕"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "總是跳過片頭"
+msgstr "總是跳過片尾"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "請跳過序幕"
+msgstr "詢問跳過片尾"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "啟用縮圖預覽"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "已跳過序幕"
+msgstr "已跳過片尾"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
