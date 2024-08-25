@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-07-28 09:34+0000\n"
+"PO-Revision-Date: 2024-08-25 07:12+0000\n"
 "Last-Translator: aky <arksky@naver.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ko/>\n"
@@ -68,7 +68,7 @@ msgstr "다른 서버를 추가하시겠습니까?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr "서버 추가에 실패했습니다."
+msgstr "서버 추가를 실패했습니다."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -76,11 +76,11 @@ msgstr "캐스팅 준비 되었습니다"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "젤리핀에서 미디어를 선택하여 재생하십시오."
+msgstr "젤리핀에서 미디어를 선택하여 재생하십시오"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "애플리케이션 로그"
+msgstr "응용 프로그램 로그"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
@@ -104,11 +104,11 @@ msgstr "오케이"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr "서버 설정"
+msgstr "서버 구성"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
-msgstr "서버:"
+msgstr "서버"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
@@ -128,7 +128,7 @@ msgstr "닫기"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "서버 설정"
+msgstr "서버 구성"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -140,7 +140,7 @@ msgstr "어플 메뉴"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
-msgstr "설정 폴더 열기"
+msgstr "구성 폴더 열기"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
@@ -356,7 +356,7 @@ msgstr "Hi10p를 8bit 코덱변환"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "HDR 트랜스코드"
+msgstr "HDR 변환"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -412,7 +412,7 @@ msgstr "항상 인트로를 건너뛰기"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "인트로 건너뛰기전에 항상 물어보기"
+msgstr "인트로를 건너뛰기전에 먼저 물어보기"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
@@ -469,7 +469,7 @@ msgstr "SVP 프로필 선택"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr "SVP가 꺼저있다"
+msgstr "SVP 비활성화"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -477,15 +477,15 @@ msgstr "끄다"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "다시 하다"
+msgstr "재시도"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr "SVP 켠다"
+msgstr "SVP 활성화"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr "SVP 꺼져있다"
+msgstr "SVP 비활성화"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
