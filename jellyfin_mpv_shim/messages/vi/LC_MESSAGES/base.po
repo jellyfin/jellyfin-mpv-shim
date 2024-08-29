@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-01-27 18:30+0000\n"
-"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
+"PO-Revision-Date: 2024-08-30 04:41+0000\n"
+"Last-Translator: Nguyen Thanh <congquynh284@yahoo.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/vi/>\n"
 "Language: vi\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.4.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -388,7 +388,7 @@ msgstr "Phím đi tới"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Ưu tiên tìm kiếm trên web"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
@@ -404,7 +404,7 @@ msgstr "Kiểm Tra Cập Nhật"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Hiển thị lên Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "Hỏi để bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Luôn bỏ qua đoạn mở đầu"
+msgstr "Luôn bỏ qua đoạn giới thiệu"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Hỏi để bỏ qua đoạn mở đầu"
+msgstr "Hỏi để bỏ qua đoạn giới thiệu"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Bật hình nhỏ xem trước"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Đã bỏ qua đoạn mở đầu"
+msgstr "Đã bỏ qua đoạn giới thiệu"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Đã bỏ qua đoạn mở đầu"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Đi tới để bỏ qua đoạn mở đầu"
+msgstr "Đi tới để bỏ qua đoạn giới thiệu"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
@@ -513,7 +505,7 @@ msgstr "Truy cập vào thư viện SyncPlay đã bị từ chối."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "Tốc độ đồng bộ (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -521,7 +513,7 @@ msgstr "Đồng Độ Đã Bị Tắt (Quá Nhiều Lần Thử)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "Bỏ qua đồng bộ (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
