@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-04-17 01:11+0000\n"
-"Last-Translator: blackcharon <blackcharon142@gmail.com>\n"
+"PO-Revision-Date: 2024-09-06 07:41+0000\n"
+"Last-Translator: Hoomaane79 <Hoomaanebrahimi@yahoo.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
 "Language: fa\n"
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "برای رد کردن تیتراژ سوال بپرس"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "رد کردن همیشگی تیتراژ"
+msgstr "رد کردن همیشگی تیتراژ پایانی"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "برای رد کردن تیتراژ سوال بپرس"
+msgstr "برای رد کردن تیتراژ پایانی سوال بپرس"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "فعال کردن پیش‌نمایش های بندانگشتی"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "تیتراژ رد شده"
+msgstr "تیتراژ پایانی رد شده"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "تیتراژ رد شده"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "پرش برای رد کردن تیتراژ"
+msgstr "پرش برای رد کردن تیتراژ پایانی"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
