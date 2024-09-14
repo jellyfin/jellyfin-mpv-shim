@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-08-23 19:40+0000\n"
-"Last-Translator: Ovidiu Popa <ovidiub.popa@gmail.com>\n"
+"PO-Revision-Date: 2024-09-16 00:41+0000\n"
+"Last-Translator: sand14 <sand.avrigeanu@yahoo.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ro/>\n"
 "Language: ro\n"
@@ -337,7 +337,7 @@ msgstr "Mijloc"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Calitatea conversiei remote: {0:0.1f} Mbps"
+msgstr "Calitatea conversiei la distanță: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -416,36 +416,28 @@ msgid "Ask to Skip Intros"
 msgstr "Întreabă înainte să treci peste introducere"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Treci mereu peste introducere"
+msgstr "Sari întotdeauna peste credite"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Întreabă înainte să treci peste introducere"
+msgstr "Întreabă înainte să treci peste credite"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Activați previzualizările în miniatură"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Sari peste introducere"
+msgstr "Credite sărite"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Sari peste introducere"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Încearcă să sari peste introducere"
+msgstr "Căutați pentru a sări peste credite"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
