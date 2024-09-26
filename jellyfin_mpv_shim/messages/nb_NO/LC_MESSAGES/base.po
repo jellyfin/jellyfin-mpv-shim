@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-08-31 20:41+0000\n"
-"Last-Translator: Martin Clüwer Slåtsve <slotsvemartin@gmail.com>\n"
+"PO-Revision-Date: 2024-09-27 21:41+0000\n"
+"Last-Translator: BromTeque <weblate@bromteque.com>\n"
 "Language-Team: Norwegian Bokmål <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/nb_NO/>\n"
 "Language: nb_NO\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -428,7 +428,7 @@ msgstr "Aktiver forhåndsvisning av miniatyrbilder"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr "Hoppet over slutteksten"
+msgstr "Hoppet over rulleteksten"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
@@ -436,7 +436,7 @@ msgstr "Hoppet over introen"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Søk for å hoppe over sluttekst"
+msgstr "Søk for å hoppe over rulletekst"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
