@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-11 20:57+0000\n"
-"Last-Translator: Justin <derjustin05@gmail.com>\n"
+"PO-Revision-Date: 2024-09-27 21:41+0000\n"
+"Last-Translator: Max Bruch <max@biaq.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -72,7 +72,7 @@ msgstr "Hinzufügen des Servers fehlgeschlagen."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr "Bereit für Übertragung"
+msgstr "Bereit zur Übertragung"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
@@ -80,7 +80,7 @@ msgstr "Wähle deine Medien in Jellyfin und spiele sie hier ab"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "Anwendungslogs"
+msgstr "Anwendungsprotokoll"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
@@ -243,6 +243,7 @@ msgid "Quit and Mark Unwatched"
 msgstr "Schließen und als ungesehen markieren"
 
 #: jellyfin_mpv_shim/menu.py:166
+#, fuzzy
 msgid "Screenshot"
 msgstr "Bildschirmfoto"
 
@@ -363,8 +364,9 @@ msgid "Direct Paths"
 msgstr "Direkte Pfade"
 
 #: jellyfin_mpv_shim/menu.py:508
+#, fuzzy
 msgid "Disable Direct Play"
-msgstr "Direktes Abspielen deaktivieren"
+msgstr "Direct Play deaktivieren"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
@@ -380,7 +382,7 @@ msgstr "Automatisch Abspielen"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr "Automatisch Vollbild"
+msgstr "Automatisches Vollbild"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
@@ -435,10 +437,12 @@ msgid "Skipped Intro"
 msgstr "Intro übersprungen"
 
 #: jellyfin_mpv_shim/player.py:490
+#, fuzzy
 msgid "Seek to Skip Credits"
 msgstr "Versuche, Credits zu überspringen"
 
 #: jellyfin_mpv_shim/player.py:490
+#, fuzzy
 msgid "Seek to Skip Intro"
 msgstr "Versuche, Intro zu überspringen"
 
@@ -448,8 +452,8 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Dein Remote-Video wird transkodiert!\n"
-"Drücke C, um die Bandbreiteneinstellungen anzupassen, falls dies nicht "
-"notwenig sein sollte."
+"Drücke C, um die verwendete Bandbreite anzupassen, falls dies nicht "
+"erwünscht sein sollte."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
@@ -505,8 +509,9 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Zugriff zur SyncPlay-Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:150
+#, fuzzy
 msgid "SpeedToSync (x{0})"
-msgstr "Geschwindigkeit zum Synchronisieren (x{0})"
+msgstr "SpeedToSync (Aufholen) (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
