@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-09-06 07:41+0000\n"
+"PO-Revision-Date: 2024-10-05 16:41+0000\n"
 "Last-Translator: Hoomaane79 <Hoomaanebrahimi@yahoo.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fa/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -356,7 +356,7 @@ msgstr "کد Hi10p را به 8 بیت تبدیل کنید"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "پردازش و تبدیل HDR"
+msgstr "رمزگردانی HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -424,7 +424,7 @@ msgstr "برای رد کردن تیتراژ پایانی سوال بپرس"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr "فعال کردن پیش‌نمایش های بندانگشتی"
+msgstr "فعال کردن پیش نمایش تصاویر"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
