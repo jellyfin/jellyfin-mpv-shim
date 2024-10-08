@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-18 05:41+0000\n"
-"Last-Translator: Nir Israel Hen <nirisraelh@gmail.com>\n"
+"PO-Revision-Date: 2024-10-09 22:41+0000\n"
+"Last-Translator: Roi Gabay <roigby@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
 "n % 10 == 0) ? 2 : 3));\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -598,7 +598,7 @@ msgstr "Anime4K x2 Perceptual + Deblur (ל־HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr "נא לבחור פרופיל שיידר (Shader)"
+msgstr "בחר פרופיל הצללה (Shader)"
 
 #~ msgid "Use JellyScrub thumbnails"
 #~ msgstr "להשתמש בתמונות מוקטנות מ־JellyScrub"
