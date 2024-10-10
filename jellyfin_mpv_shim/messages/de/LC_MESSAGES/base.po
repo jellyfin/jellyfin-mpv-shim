@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-09-27 21:41+0000\n"
-"Last-Translator: Max Bruch <max@biaq.de>\n"
+"PO-Revision-Date: 2024-10-11 07:53+0000\n"
+"Last-Translator: Manuel Weber <m.weber-1999@hotmail.de>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -437,7 +437,6 @@ msgid "Skipped Intro"
 msgstr "Intro übersprungen"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
 msgid "Seek to Skip Credits"
 msgstr "Versuche, Credits zu überspringen"
 
