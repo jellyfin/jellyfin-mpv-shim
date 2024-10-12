@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-11 07:53+0000\n"
-"Last-Translator: Manuel Weber <m.weber-1999@hotmail.de>\n"
+"PO-Revision-Date: 2024-10-13 23:41+0000\n"
+"Last-Translator: Justin <derjustin05@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Wähle Spuren aus..."
+msgstr "Spuren auswählen..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -243,7 +243,6 @@ msgid "Quit and Mark Unwatched"
 msgstr "Schließen und als ungesehen markieren"
 
 #: jellyfin_mpv_shim/menu.py:166
-#, fuzzy
 msgid "Screenshot"
 msgstr "Bildschirmfoto"
 
@@ -364,7 +363,6 @@ msgid "Direct Paths"
 msgstr "Direkte Pfade"
 
 #: jellyfin_mpv_shim/menu.py:508
-#, fuzzy
 msgid "Disable Direct Play"
 msgstr "Direct Play deaktivieren"
 
@@ -441,9 +439,8 @@ msgid "Seek to Skip Credits"
 msgstr "Versuche, Credits zu überspringen"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
 msgid "Seek to Skip Intro"
-msgstr "Versuche, Intro zu überspringen"
+msgstr "Intro überspringen"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -508,7 +505,6 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Zugriff zur SyncPlay-Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:150
-#, fuzzy
 msgid "SpeedToSync (x{0})"
 msgstr "SpeedToSync (Aufholen) (x{0})"
 
