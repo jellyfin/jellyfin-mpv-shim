@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-03-07 08:59+0000\n"
-"Last-Translator: Gurmeet Athwal <gurmeet.athwal@gmail.com>\n"
+"PO-Revision-Date: 2024-10-17 07:04+0000\n"
+"Last-Translator: Abhiraj <abhiraj.official15@gmail.com>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hi/>\n"
 "Language: hi\n"
@@ -15,32 +15,32 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "ट्रैक्स का चयन ..."
+msgstr "ट्रैक्स का चुनाव..।"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: कोई उपशीर्षक नहीं"
+msgstr "{0}: उपशीर्षक उपलब्ध नहीं है"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: विफल"
+msgstr "{0}: असफल"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "उपशीर्षक चुनें : {0} सफल, {1} असफल"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "अनुवादन चुनें: {0} सफल, {1} सिर्फ ध्वनि, {2} असफल"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "मैनुअल: {0} ठीक है, {1} विफल"
+msgstr "मैनुअल : {0} ठीक है, {1} असफल"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
