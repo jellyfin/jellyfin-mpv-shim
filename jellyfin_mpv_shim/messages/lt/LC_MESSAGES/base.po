@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2024-10-19 13:41+0000\n"
-"Last-Translator: JP <tylquest.sh@gmail.com>\n"
+"Last-Translator: Simas Šimas <taoleifhelp.10258@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
 "Language: lt\n"
@@ -457,6 +457,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Jūsų nuotolinis vaizdo įrašas perkoduojamas!\n"
+"Paspauskite c pakeisti duomenų srauto nustatymus, jei tai nereikalinga."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
@@ -533,11 +535,11 @@ msgstr "SyncPlay išjungtas."
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} prisijungė."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} atsijungė."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
@@ -545,7 +547,7 @@ msgstr "{0} kraunasi."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr ""
+msgstr "{0} Grupė"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
