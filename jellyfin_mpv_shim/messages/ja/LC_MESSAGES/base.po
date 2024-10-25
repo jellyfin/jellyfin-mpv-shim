@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-09-26 17:24+0000\n"
-"Last-Translator: Tim Wang <mizuki-tim@proton.me>\n"
+"PO-Revision-Date: 2024-10-26 04:22+0000\n"
+"Last-Translator: marudosurdo <marudosurdo@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
 "Language: ja\n"
@@ -44,7 +44,7 @@ msgstr "手動: {0} OK, {1} 失敗"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "現在の構成..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -507,7 +507,7 @@ msgstr "SyncPlayライブラリへのアクセスが拒否されました。"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "同期速度 (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
