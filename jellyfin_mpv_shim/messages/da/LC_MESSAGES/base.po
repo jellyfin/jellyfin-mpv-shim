@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-07-01 18:41+0000\n"
-"Last-Translator: Sebastian Snoer <ssnoer@proton.me>\n"
+"PO-Revision-Date: 2024-11-17 23:00+0000\n"
+"Last-Translator: M Alb <matias.albretsen@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
 "Language: da\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -76,7 +76,7 @@ msgstr "Klar til at caste"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "Vælg dine medier i Jellyfin og afspil det her"
+msgstr "Vælg dine medier i Jellyfin, og afspil dem her"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
@@ -220,7 +220,7 @@ msgstr "Skift undertekster"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
-msgstr "Skift video kvalitet"
+msgstr "Skift videokvalitet"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
@@ -236,7 +236,7 @@ msgstr "Skift videoafspilningsprofil"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Indstil automatisk Lyd/Undertekster (Hele serier)"
+msgstr "Indstil automatisk Lyd/Undertekster (Hele serien)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -256,11 +256,11 @@ msgstr "SVP indstillinger"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
-msgstr "Video prefærencer"
+msgstr "Videopræferencer"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
-msgstr "Afspiller prefærencer"
+msgstr "Afspillerpræferencer"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
@@ -292,7 +292,7 @@ msgstr "Ingen omkodning"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Skift lyd/undertekster for serier"
+msgstr "Skift lyd/undertekster for serien"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -304,7 +304,7 @@ msgstr "Japansk lyd med engelske undertekster"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manuelt med spor indeks (Mindre pålidelig)"
+msgstr "Manuelt efter spor indeks (Mindre pålidelig)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -392,7 +392,7 @@ msgstr "Brug web søge prefærencer"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Vis spejling"
+msgstr "Skærmspejling"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
@@ -408,31 +408,31 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Altid spring over introer"
+msgstr "Spring altid introer over"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Spørg om at spring over introer"
+msgstr "Spørg om at springe introer over"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr "Altid spring over rulletekster"
+msgstr "Spring altid rulletekster over"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr "Spørg om at spring over rulletekster"
+msgstr "Spørg om at springe rulletekster over"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr "Aktiver forhåndsvisning af thumbnails"
+msgstr "Aktiver forhåndsvisning af miniaturebilleder"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr "Rulleteksten sprunget over"
+msgstr "Sprunget rulleteksten over"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr "Introer sprunget over"
+msgstr "Sprunget introer over"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
@@ -530,11 +530,11 @@ msgstr "{0} er tilsluttet."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr "{0} er frakoblet."
+msgstr "{0} har forladt."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} indekseres."
+msgstr "{0} bufferlagrers."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
