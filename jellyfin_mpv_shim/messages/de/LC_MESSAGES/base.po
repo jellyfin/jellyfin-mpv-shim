@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2024-12-10 09:19+0000\n"
-"Last-Translator: leoreinmann <leo@reinmann.me>\n"
+"Last-Translator: Leo <zqla.loewe@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -404,7 +404,7 @@ msgstr "Auf Updates prüfen"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Discord Aktivitätsstatus"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
