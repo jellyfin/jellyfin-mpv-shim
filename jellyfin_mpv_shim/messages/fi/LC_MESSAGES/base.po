@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-24 04:34+0000\n"
+"PO-Revision-Date: 2024-12-14 12:01+0000\n"
 "Last-Translator: John Doe <diefor-93@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/fi/>\n"
@@ -396,7 +396,7 @@ msgstr "Näytön peilaus"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Kirjoita lokit tiedostoon"
+msgstr "Tallenna lokit tiedostoon"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
