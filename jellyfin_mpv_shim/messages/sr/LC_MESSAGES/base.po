@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2022-11-16 11:34+0000\n"
-"Last-Translator: Predrag Ljubenović <predragljubenovic@gmail.com>\n"
+"PO-Revision-Date: 2024-12-20 17:56+0000\n"
+"Last-Translator: Zigi84 <Zigi.rage@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -356,10 +356,8 @@ msgid "Transcode Hi10p to 8bit"
 msgstr "Прекодирај Hi10p у 8 бита"
 
 #: jellyfin_mpv_shim/menu.py:506
-#, fuzzy
-#| msgid "Transcode to H265"
 msgid "Transcode HDR"
-msgstr "Транскодирај у Х265"
+msgstr "Транскодирај у HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -395,7 +393,7 @@ msgstr "Користи подешавања Web претраге"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Пресликавање екрана"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
