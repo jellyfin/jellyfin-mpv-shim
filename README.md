@@ -251,7 +251,7 @@ for media playback on macOS. Additionally, due to Flatpak sandbox restrictions, 
 practical to use in most cases for the Flatpak version.
 
 - `mpv_ext` - Enable usage of the external player by default. Default: `false`
-    - The external player may still be used by default if `libmpv1` is not available.
+    - The external player may still be used by default if `libmpv` is not available.
 - `mpv_ext_path` - The path to the `mpv` binary to use. By default it uses the one in the PATH. Default: `null`
     - If you are using Windows, make sure to use two backslashes. Example: `C:\\path\\to\\mpv.exe`
 - `mpv_ext_ipc` - The path to the socket to control MPV. Default: `null`
@@ -584,7 +584,7 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
 4. Run prepare script: `./gen_pkg.sh`
     - To do this manually, download the web client, shader pack, and build the language files.
-5. Ensure you have a copy of `libmpv1` or `mpv` available.
+5. Ensure you have a copy of `libmpv` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
 7. You should now be able to run the program with `./run.py`. Installation is possible with `sudo pip3 install .`.
     - You can also install the package with `./gen_pkg.sh --install`.
@@ -607,7 +607,7 @@ To compile all `*.po` files to `*.mo`:
 
 You can [install the software from flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim). The pip installation is less integrated but takes up less space if you're not already using flatpak.
 
-If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
+If you are on Linux, you can install via pip. You'll need [libmpv](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```

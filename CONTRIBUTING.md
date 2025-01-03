@@ -34,7 +34,7 @@ starting development on a feature. If you PR a feature with required dependencie
 optional ones.
 
 Current Dependencies:
- - `python-mpv` - Provides `libmpv1` playback backend.
+ - `python-mpv` - Provides `libmpv` playback backend.
  - `python-mpv-jsonipc` - Provides `mpv` playback backend. (First-Party)
  - `jellyfin-apiclient-python` - Provides API client to Jellyfin. (First-Party)
  - `pywin32` - Allows window management on Windows. (Optional)
