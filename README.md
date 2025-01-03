@@ -679,7 +679,6 @@ You may also need to edit the batch file for 32 bit builds to point to the right
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-2.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-7. Run `get_pywebview_natives.py`.
-8. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
+7. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
     - This builds the translation files and downloads the shader packs.
-9. Run `build-win.bat`.
+8. Run `build-win.bat`.
