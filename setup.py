@@ -60,9 +60,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     extras_require=extras,
-    python_requires=">=3.9",
+    python_requires=">=3.7",
     install_requires=[
-        "python-mpv @ git+https://github.com/jaseg/python-mpv.git@main",
+        "mpv @ git+https://github.com/jaseg/python-mpv.git@main",
         "jellyfin-apiclient-python>=1.9.2",
         "python-mpv-jsonipc>=1.2.0",
         "requests",

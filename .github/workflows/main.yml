@@ -9,12 +9,14 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
     - name: Setup Python 3.13
       uses: actions/setup-python@v5
       with:
         python-version: 3.13
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+    - name: Setup git SDK
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
       with:
         flavor: minimal
     - name: Download mpv
@@ -52,12 +54,14 @@ jobs:
   build-win32:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python 3.9
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Setup Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+        python-version: 3.13
+    - name: Setup git SDK
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
       with:
         flavor: minimal
     - name: Download mpv
