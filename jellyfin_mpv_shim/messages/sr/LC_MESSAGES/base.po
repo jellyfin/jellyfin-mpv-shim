@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-05 23:36+0000\n"
+"PO-Revision-Date: 2025-01-05 23:38+0000\n"
 "Last-Translator: Nikola Jevtovic <themacorporation@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
@@ -409,11 +409,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Увек прескочи интро"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Питај да ли да се прескочи интро"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
