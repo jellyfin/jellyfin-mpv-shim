@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-08-03 07:41+0000\n"
-"Last-Translator: Andrejs <tlpbu@droplar.com>\n"
+"PO-Revision-Date: 2025-01-05 21:07+0000\n"
+"Last-Translator: Frederiks Kronbergs <theguitarcuber16@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
 "Language: lv\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n % 10 == 0 || n % 100 >= 11 && n % 100 <= "
 "19) ? 0 : ((n % 10 == 1 && n % 100 != 11) ? 1 : 2);\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -416,36 +416,28 @@ msgid "Ask to Skip Intros"
 msgstr "Jautāt, vai izlaist ievadu"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Vienmēr izlaist ievadu"
+msgstr "Vienmēr izlaist afišas titrus"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Jautāt, vai izlaist ievadu"
+msgstr "Jautāt, vai izlaist afišas titrus"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Ieslēgt sīktēlu priekšskatījumus"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Izlaists ievads"
+msgstr "Izlaisti afišas titri"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "Izlaists ievads"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "Meklēt, lai Izlaistu ievadu"
+msgstr "Meklēt, lai Izlaistu afišas titrus"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
