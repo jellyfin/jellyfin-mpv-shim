@@ -417,7 +417,7 @@ msgstr "Питај да ли да се прескочи интро"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr ""
+msgstr "Увек прескочи одјавну шпицу"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
