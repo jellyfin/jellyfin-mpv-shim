@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-12-20 17:56+0000\n"
-"Last-Translator: Zigi84 <Zigi.rage@gmail.com>\n"
+"PO-Revision-Date: 2025-01-05 23:36+0000\n"
+"Last-Translator: Nikola Jevtovic <themacorporation@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -397,7 +397,7 @@ msgstr "Пресликавање екрана"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Запиши логове у фајл"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
