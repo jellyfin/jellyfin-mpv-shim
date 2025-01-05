@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-05 23:38+0000\n"
+"PO-Revision-Date: 2025-01-05 23:42+0000\n"
 "Last-Translator: Nikola Jevtovic <themacorporation@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
@@ -421,19 +421,19 @@ msgstr "Увек прескочи одјавну шпицу"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr ""
+msgstr "Питај да ли да се прескочи одјавна шпица"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Омогући преглед сличица"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr ""
+msgstr "Прескочене одјавне шпице"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Прескочени интрои"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
