@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-20 15:41+0000\n"
-"Last-Translator: Tobias Karlsson <jellyfin@hoidi.se>\n"
+"PO-Revision-Date: 2025-01-08 12:01+0000\n"
+"Last-Translator: Johan Tidén <johan.tiden@proton.me>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sv/>\n"
 "Language: sv\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -440,7 +440,7 @@ msgstr "Sök för att hopa över eftertexter"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr "Sök för att hopa över introt"
+msgstr "Sök för att hoppa över introt"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -448,7 +448,7 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "Din fjärrvideo håller på att omkodas!\n"
-"Tryck C för att anpassa bredbandsinställningar om detta inte är nödvändigt."
+"Tryck C för att anpassa bandbreddsinställningar om detta inte är nödvändigt."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
