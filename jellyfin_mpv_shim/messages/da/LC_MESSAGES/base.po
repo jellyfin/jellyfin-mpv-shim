@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-11-17 23:00+0000\n"
+"PO-Revision-Date: 2025-01-09 14:01+0000\n"
 "Last-Translator: M Alb <matias.albretsen@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
@@ -268,7 +268,7 @@ msgstr "Luk menu"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Skift lyd spor"
+msgstr "Vælg lyd spor"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
