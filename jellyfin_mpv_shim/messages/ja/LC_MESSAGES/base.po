@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-26 04:22+0000\n"
+"PO-Revision-Date: 2025-01-12 18:01+0000\n"
 "Last-Translator: marudosurdo <marudosurdo@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ja/>\n"
@@ -435,10 +435,8 @@ msgid "Skipped Intro"
 msgstr "イントロをスキップしました"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Seek to Skip Credits"
-msgstr "イントロのスキップを尋ねる"
+msgstr "クレジットをスキップする"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
@@ -515,7 +513,7 @@ msgstr "同期が停止（試行回数の上限超過）"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -543,7 +541,7 @@ msgstr "{0}のグループ"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
-msgstr ""
+msgstr "無し（無効）"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
@@ -554,22 +552,24 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV シム v{0} アップデートが利用可能\n"
+"詳細については、メニューを開きます (c を押します)。"
 
 #: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
-msgstr ""
+msgstr "未知"
 
 #: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
-msgstr ""
+msgstr " 強制"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "ジェネリック (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "ジェネリック 高解像度 (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
