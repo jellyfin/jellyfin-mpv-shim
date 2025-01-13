@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2025-01-14 03:26+0000\n"
-"Last-Translator: Kristijonas Kuzmickas <kristijonaskuzmickas@gmail.com>\n"
+"Last-Translator: Nerijus <nerijusn76@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
 "Language: lt\n"
@@ -166,7 +166,7 @@ msgstr "Juoda"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "žalsvai mėlyna"
+msgstr "Žalsvai mėlyna"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -491,7 +491,7 @@ msgstr "SVP yra Išjungta"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "SyncPlay"
+msgstr "Nurodyta SyncPlay grupė neegzistuoja."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
