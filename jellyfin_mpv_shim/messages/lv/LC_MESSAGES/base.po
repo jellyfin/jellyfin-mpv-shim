@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-05 21:07+0000\n"
-"Last-Translator: Frederiks Kronbergs <theguitarcuber16@gmail.com>\n"
+"PO-Revision-Date: 2025-01-26 07:41+0000\n"
+"Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lv/>\n"
 "Language: lv\n"
@@ -570,9 +570,8 @@ msgid "Generic (FSRCNNX)"
 msgstr "Vispārīgs (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
-#, fuzzy
 msgid "Generic High (FSRCNNX x16)"
-msgstr "Generic High (FSRCNNX x16)"
+msgstr "Universāls augsts (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
