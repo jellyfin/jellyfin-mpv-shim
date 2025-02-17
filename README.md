@@ -647,16 +647,18 @@ To install the CLI version:
 1. Install brew. ([Instructions](https://brew.sh/))
 2. Install python3 and mpv. `brew install python mpv`
 3. Install pipx. `brew install pipx`
-4. Install jellyfin-mpv-shim. `pipx install jellyfin-mpv-shim`
-5. Run `jellyfin-mpv-shim`.
+4. Set path `pipx ensurepath`
+5. Install jellyfin-mpv-shim. `pipx install jellyfin-mpv-shim`
+6. Run `jellyfin-mpv-shim`.
 
 If you'd like to install the GUI version, you need a working copy of tkinter.
 
 1. Install TK and mpv. `brew install python-tk mpv`
 2. Install python3. `brew install python`
 3. Install pipx. `brew install pipx`
-4. Install jellyfin-mpv-shim and pystray. `pipx install 'jellyfin-mpv-shim[gui]'`
-5. Run `jellyfin-mpv-shim`.
+4. Set path `pipx ensurepath`
+5. Install jellyfin-mpv-shim and pystray. `pipx install 'jellyfin-mpv-shim[gui]'`
+6. Run `jellyfin-mpv-shim`.
 
 Display mirroring is not tested on macOS, but may be installable with 'pipx install 'jellyfin-mpv-shim[mirror]'`.
 
