@@ -99,7 +99,8 @@ def main():
             halt = Event()
             user_interface.stop_callback = halt.set
             try:
-                halt.wait()
+                while not halt.wait(timeout=1):
+                    pass
             except KeyboardInterrupt:
                 print("")
                 log.info("Stopping services...")
@@ -109,7 +110,6 @@ def main():
         actionThread.stop()
         clientManager.stop()
         user_interface.stop()
-
 
 if __name__ == "__main__":
     main()
