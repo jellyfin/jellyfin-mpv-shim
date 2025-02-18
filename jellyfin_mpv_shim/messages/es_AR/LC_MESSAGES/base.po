@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-09 14:01+0000\n"
+"PO-Revision-Date: 2025-02-18 23:28+0000\n"
 "Last-Translator: Franco Castillo <castillofrancodamian@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/es_AR/>\n"
@@ -128,7 +128,7 @@ msgstr "Cerrar"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "Configurar Servidores"
+msgstr "Configurar servidores"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
