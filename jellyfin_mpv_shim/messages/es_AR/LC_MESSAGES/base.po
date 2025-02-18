@@ -7,8 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2025-02-18 23:28+0000\n"
-"Last-Translator: adrian gustavo martinez <adrian.gustavo.martinez@gmail.com>"
-"\n"
+"Last-Translator: Brian Bentancour <bbab40@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/es_AR/>\n"
 "Language: es_AR\n"
@@ -225,7 +224,7 @@ msgstr "Cambiar la calidad del video"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Reproducción sincronizada"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
