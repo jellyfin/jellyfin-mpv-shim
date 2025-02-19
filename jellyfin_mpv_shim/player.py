@@ -202,6 +202,13 @@ class PlayerManager(object):
             mpv_options["config"] = True
             mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
+        if settings.tls_client_cert and settings.tls_client_key:
+            mpv_options['tls_cert_file'] = settings.tls_client_cert
+            mpv_options['tls_key_file'] = settings.tls_client_key
+
+            if settings.tls_server_ca:
+                mpv_options['tls_ca_file'] = settings.tls_server_ca
+
         self._player = mpv.MPV(
             input_default_bindings=True,
             input_vo_keyboard=True,
@@ -210,6 +217,7 @@ class PlayerManager(object):
             loglevel=settings.mpv_log_level,
             **mpv_options,
         )
+        
         self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
 
