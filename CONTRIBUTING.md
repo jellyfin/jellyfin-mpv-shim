@@ -68,7 +68,7 @@ Current Dependencies:
  - `rich_presence.py` - Module which implements Discord Rich Presence integration.
  - `svp_integration.py` - Implements SVP API and menu functionality for controlling SVP.
  - `syncplay.py` - Implements the SyncPlay time syncing events and algorithms.
-     - Note that time syncing with the server is [part of the api client](https://github.com/iwalton3/jellyfin-apiclient-python/blob/master/jellyfin_apiclient_python/timesync_manager.py). 
+     - Note that time syncing with the server is [part of the api client](https://github.com/jellyfin/jellyfin-apiclient-python/blob/master/jellyfin_apiclient_python/timesync_manager.py). 
  - `timeline.py` - Thread to trigger playback events to the Jellyfin server.
      - Note: `player.py` is where the actual response is created.
  - `update_check.py` - Implements update checking, notifications, and the menu option to open the release page.

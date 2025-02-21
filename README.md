@@ -403,7 +403,7 @@ Other miscellaneous configuration options. You probably won't have to change the
 
 ### Skip Intro Support
 
-This functionality is considered experimental and requires the third-party [SkipIntro server plugin](https://github.com/jumoog/intro-skipper). It works the same ways as it did on MPV Shim for Plex.
+It works the same ways as it did on MPV Shim for Plex.
 
 - `skip_intro_always` - Always skip intros, without asking. Default: `false`
 - `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `false`
