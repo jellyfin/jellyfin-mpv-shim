@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-13 07:41+0000\n"
+"PO-Revision-Date: 2025-02-23 13:01+0000\n"
 "Last-Translator: millallo <millallo@tiscali.it>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/it/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.7.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -80,11 +80,11 @@ msgstr "Seleziona il tuo media in Jellyfin e riproducilo qui"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "Log applicazione"
+msgstr "Log Applicazione"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "Aggiungi server"
+msgstr "Aggiungi Server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Impossibile aggiungere server.\n"
-"Per favore, controlla le tue informazioni di connessione."
+"controlla le informazioni di connessione."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -128,7 +128,7 @@ msgstr "Chiudi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "Configura server"
+msgstr "Configura Server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -164,7 +164,7 @@ msgstr "Nero"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Ciano"
+msgstr "Celeste"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -288,7 +288,7 @@ msgstr "Massimo"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "No transcodifica"
+msgstr "Nessuna transcodifica"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
