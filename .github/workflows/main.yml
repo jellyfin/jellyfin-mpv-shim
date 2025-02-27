@@ -4,28 +4,35 @@ on:
   push:
     branches:
       - master
+      - main
 jobs:
   build-win64:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python 3.9
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Setup Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+        python-version: 3.13
+    - name: Setup git SDK
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
       with:
         flavor: minimal
+    - name: Download mpv
+      id: mpv
+      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: 'mpv-dev-x86_64-v3*.7z'
     - name: Install dependencies
       run: |
-        curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20240513/mpv-dev-x86_64-20240513-git-61f72bd.7z > mpv.7z
-        7z x mpv.7z
+        7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
-        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
-        pip install .[all] pywebview==3.4 pywin32==304
+        pip install .[all] pythonnet pywebview pywin32
         ./gen_pkg.sh --skip-build
-        python ./get_pywebview_natives.py
       shell: bash
     - name: PyInstaller Bootloader
       run: |
@@ -47,24 +54,30 @@ jobs:
   build-win32:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python 3.9
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Setup Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+        python-version: 3.13
+    - name: Setup git SDK
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
       with:
         flavor: minimal
+    - name: Download mpv
+      id: mpv
+      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: 'mpv-dev-i686*.7z'
     - name: Install dependencies
       run: |
-        curl -L https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20240513/mpv-dev-i686-20240513-git-61f72bd.7z > mpv.7z
-        7z x mpv.7z
+        7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
-        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
-        pip install .[all] pywebview==3.4 pywin32==304
+        pip install .[all] pythonnet pywebview pywin32
         ./gen_pkg.sh --skip-build
-        python ./get_pywebview_natives.py
       shell: bash
     - name: PyInstaller Bootloader
       run: |

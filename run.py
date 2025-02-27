@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Newer revisions of python-mpv require mpv-1.dll in the PATH.
+# Newer revisions of python-mpv require mpv-2.dll in the PATH.
 import os
 import sys
 import multiprocessing

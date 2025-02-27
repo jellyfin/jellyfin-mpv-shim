@@ -41,9 +41,9 @@ if not settings.mpv_ext:
         # noinspection PyPackageRequirements
         import mpv
 
-        log.info("Using libmpv1 playback backend.")
+        log.info("Using libmpv playback backend.")
     except OSError:
-        log.warning("Could not find libmpv1.")
+        log.warning("Could not find libmpv.")
         python_mpv_available = False
 
 if settings.mpv_ext or not python_mpv_available:
