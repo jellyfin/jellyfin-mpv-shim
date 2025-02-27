@@ -134,6 +134,9 @@ class Settings(SettingsBase):
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
     thumbnail_preferred_size: int = 320
+    tls_client_cert: Optional[str] = None
+    tls_client_key: Optional[str] = None
+    tls_server_ca: Optional[str] = None
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
