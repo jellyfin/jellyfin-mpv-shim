@@ -24,7 +24,7 @@ def _show_file_darwin(path: str):
     subprocess.Popen(["open", path])
 
 
-def _show_file_linux(path: str):
+def _show_file_xdg(path: str):
     subprocess.Popen(["xdg-open", path])
 
 
@@ -33,14 +33,18 @@ def _show_file_win32(path: str):
 
 
 _show_file_func = {
-    "darwin": _show_file_darwin,
-    "linux": _show_file_linux,
-    "win32": _show_file_win32,
-    "cygwin": _show_file_win32,
+    "darwin":  _show_file_darwin,
+    "linux":   _show_file_xdg,
+    "openbsd": _show_file_xdg,
+    "win32":   _show_file_win32,
+    "cygwin":  _show_file_win32,
 }
 
 try:
-    show_file = _show_file_func[sys.platform]
+    show_file = None
+    for platform, func in _show_file_func.items():
+        if sys.platform.startswith(platform):
+            show_file = func
 
     def open_config():
         show_file(confdir(APP_NAME))

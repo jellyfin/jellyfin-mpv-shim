@@ -24,6 +24,7 @@ def win32(app: str):
 
 confdirs = (
     ("linux", posix),
+    ("openbsd", posix),
     ("win32", win32),
     ("cygwin", posix),
     (
