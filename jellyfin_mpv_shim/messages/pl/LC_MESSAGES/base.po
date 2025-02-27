@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-15 06:41+0000\n"
+"PO-Revision-Date: 2025-02-27 11:39+0000\n"
 "Last-Translator: Kityn <kitynska@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/pl/>\n"
@@ -479,7 +479,7 @@ msgstr "Wyłącz"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "Ponów próbę"
+msgstr "Ponów"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
