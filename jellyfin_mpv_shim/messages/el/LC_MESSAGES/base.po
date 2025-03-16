@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-28 11:41+0000\n"
-"Last-Translator: Spiros Vita <vitabytes@proton.me>\n"
+"PO-Revision-Date: 2025-03-17 10:01+0000\n"
+"Last-Translator: Thunderstrike116 <thunderstrike116@gmail.com>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -420,7 +420,7 @@ msgstr "Πάντα να παραλείπονται οι τίτλοι τέλου�
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr "Παράλειψη τίτλων τέλους κατόπιν ερώτησης"
+msgstr "Ερώτηση για παράλειψη τίτλων τέλους"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
