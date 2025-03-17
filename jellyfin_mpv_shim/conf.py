@@ -128,9 +128,9 @@ class Settings(SettingsBase):
     force_audio_codec: Optional[str] = None
     health_check_interval: Optional[int] = 300
     skip_intro_always: bool = False
-    skip_intro_prompt: bool = False
+    skip_intro_enable: bool = True
     skip_credits_always: bool = False
-    skip_credits_prompt: bool = False
+    skip_credits_enable: bool = True
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
     thumbnail_preferred_size: int = 320

@@ -19,11 +19,10 @@ if TYPE_CHECKING:
 
 
 class Intro(object):
-    def __init__(self, type, start, end, ui_start):
-        self.type: str = type  # "Credits" or "Introduction"
+    def __init__(self, type, start, end):
+        self.type: str = type  # "Intro" or "Outro"
         self.start: float = start
         self.end: float = end
-        self.ui_start: float = ui_start
         self.has_triggered: bool = False
 
 
@@ -258,28 +257,26 @@ class Video(object):
 
         # provided by plugin
         try:
-            skip_intro_data = self.client.jellyfin._get(
-                f"Episode/{media_source_id}/IntroSkipperSegments"
+            skip_intro_data = self.client.jellyfin.media_segments(
+                f"/{media_source_id}?includeSegmentTypes=Outro&includeSegmentTypes=Intro"
             )
-            for type, intro in skip_intro_data.items():
-                if intro["Valid"]:
-                    self.intros.append(
-                        Intro(
-                            type,
-                            intro["IntroStart"],
-                            intro["IntroEnd"],
-                            intro["ShowSkipPromptAt"],
-                        )
+            for intro in skip_intro_data["Items"]:
+                self.intros.append(
+                    Intro(
+                        intro["Type"], # Intro or Outro
+                        intro["StartTicks"] / 10000000,
+                        intro["EndTicks"] / 10000000
                     )
+                )
         except:
             log.warning(
-                "Fetching intro data failed. Do you have the plugin installed?",
+                "Fetching intro data failed.",
                 exc_info=1,
             )
 
     def get_current_intro(self, time):
         for intro in self.intros:
-            if (intro.ui_start <= time or intro.start <= time) and time <= intro.end:
+            if intro.start <= time and time <= intro.end:
                 return intro.start <= time, intro
         return False, None
 
@@ -355,9 +352,9 @@ class Video(object):
         self.media_source = self.get_best_media_source(self.srcid)
         if (
             settings.skip_intro_always
-            or settings.skip_intro_prompt
+            or settings.skip_intro_enable
             or settings.skip_credits_always
-            or settings.skip_credits_prompt
+            or settings.skip_credits_enable
         ):
             self.get_intro(self.media_source["Id"])
 

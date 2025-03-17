@@ -217,7 +217,7 @@ class PlayerManager(object):
             loglevel=settings.mpv_log_level,
             **mpv_options,
         )
-        
+
         self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
 
@@ -483,9 +483,9 @@ class PlayerManager(object):
         if (
             (
                 settings.skip_intro_always
-                or settings.skip_intro_prompt
+                or settings.skip_intro_enable
                 or settings.skip_credits_always
-                or settings.skip_credits_prompt
+                or settings.skip_credits_enable
             )
             and not self.syncplay.is_enabled()
             and self._video is not None
@@ -497,11 +497,11 @@ class PlayerManager(object):
 
             if intro is not None:
                 should_prompt = (
-                    intro.type != "Credits" and settings.skip_intro_prompt
-                ) or (intro.type == "Credits" and settings.skip_credits_prompt)
+                    intro.type != "Outro" and settings.skip_intro_enable
+                ) or (intro.type == "Outro" and settings.skip_credits_enable)
                 should_skip = (not intro.has_triggered) and (
-                    (intro.type != "Credits" and settings.skip_intro_always)
-                    or (intro.type == "Credits" and settings.skip_credits_always)
+                    (intro.type != "Outro" and settings.skip_intro_always)
+                    or (intro.type == "Outro" and settings.skip_credits_always)
                 )
 
                 if should_skip and ready_to_skip:
@@ -509,7 +509,7 @@ class PlayerManager(object):
                     self.skip_intro()
                     self._player.show_text(
                         _("Skipped Credits")
-                        if intro.type == "Credits"
+                        if intro.type == "Outro"
                         else _("Skipped Intro"),
                         3000,
                         1,
@@ -518,7 +518,7 @@ class PlayerManager(object):
                 if not self.is_in_intro and should_prompt:
                     self._player.show_text(
                         _("Seek to Skip Credits")
-                        if intro.type == "Credits"
+                        if intro.type == "Outro"
                         else _("Seek to Skip Intro"),
                         3000,
                         1,

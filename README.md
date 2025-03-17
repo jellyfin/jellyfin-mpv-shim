@@ -403,12 +403,12 @@ Other miscellaneous configuration options. You probably won't have to change the
 
 ### Skip Intro Support
 
-It works the same ways as it did on MPV Shim for Plex.
+It works the same ways as it did on MPV Shim for Plex. Now uses the MediaSegments API!
 
 - `skip_intro_always` - Always skip intros, without asking. Default: `false`
-- `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `false`
+- `skip_intro_enable` - Prompt to skip intro via seeking. Default: `true`
 - `skip_credits_always` - Always skip credits, without asking. Default: `false`
-- `skip_credits_prompt` - Prompt to skip credits via seeking. Default: `false`
+- `skip_credits_enable` - Prompt to skip credits via seeking. Default: `true`
 
 ### MPV Configuration
 
