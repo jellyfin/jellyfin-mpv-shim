@@ -214,7 +214,10 @@ class PlayerManager(object):
         self.syncplay = SyncPlayManager(self)
 
         if discord_presence:
-            register_join_event(self.syncplay.discord_join_group)
+            try:
+                register_join_event(self.syncplay.discord_join_group)
+            except Exception:
+                log.error("Could not register Discord join callback.", exc_info=True)
 
         if hasattr(self._player, "osc"):
             self.enable_osc(settings.enable_osc)
