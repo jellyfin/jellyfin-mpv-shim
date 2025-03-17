@@ -185,9 +185,17 @@ class ClientManager(object):
         return False
 
     def validate_client(self, client: "JellyfinClient", dry_run=False):
-        for f_client in client.jellyfin.sessions(
+        client_list = client.jellyfin.sessions(
             params={"ControllableByUserId": "{UserId}"}
-        ):
+        )
+
+        if client_list is None:
+            log.warning(
+                "Client check failed, proceeding anyways. (Client list is unset.)"
+            )
+            return True
+
+        for f_client in client_list:
             if f_client.get("DeviceId") == settings.client_uuid:
                 break
         else:
