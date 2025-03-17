@@ -398,7 +398,7 @@ class PlayerManager(object):
                 ):
                     self.syncplay.seek_request(play_time)
                 else:
-                    log.debug("SyncPlay Buffering: {0}".format(value))
+                    log.info("SyncPlay Buffering: {0}".format(value))
                     if value:
                         self.syncplay.on_buffer()
                     else:
@@ -560,7 +560,7 @@ class PlayerManager(object):
             self.trickplay.clear()
 
         if settings.log_decisions:
-            log.debug("Playing: {0}".format(url))
+            log.info("Playing: {0}".format(url))
         if self.get_webview() is not None and settings.display_mirroring:
             # noinspection PyUnresolvedReferences
             self.get_webview().hide()
@@ -573,7 +573,7 @@ class PlayerManager(object):
             log.error("Timeout when waiting for media duration. Stopping playback!")
             self.stop()
             return
-        log.debug("Finished waiting for media duration.")
+        log.info("Finished waiting for media duration.")
         if settings.fullscreen and not self.fullscreen_disable:
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
@@ -643,7 +643,7 @@ class PlayerManager(object):
             self.exec_stop_cmd()
             return
 
-        log.debug("PlayerManager::stop stopping playback of %s" % self._video)
+        log.info("PlayerManager::stop stopping playback of %s" % self._video)
 
         self.should_send_timeline = False
         options = self.get_timeline_options()
@@ -758,7 +758,7 @@ class PlayerManager(object):
             self._video.set_played()
         if self._video.parent.has_next and settings.auto_play:
             if has_lock:
-                log.debug("PlayerManager::finished_callback starting next episode")
+                log.info("PlayerManager::finished_callback starting next episode")
                 new_video = self._video.parent.get_next().video
                 self.send_timeline_stopped(True)
                 if self.syncplay.is_enabled():
@@ -766,7 +766,7 @@ class PlayerManager(object):
                 else:
                     self.play(new_video)
             else:
-                log.debug("PlayerManager::finished_callback No lock, skipping...")
+                log.info("PlayerManager::finished_callback No lock, skipping...")
         else:
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
@@ -774,7 +774,7 @@ class PlayerManager(object):
             if self.syncplay.is_enabled():
                 self.syncplay.disable_sync_play(False)
 
-            log.debug("PlayerManager::finished_callback reached end")
+            log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
         self.pause_ignore = False
 
@@ -849,20 +849,20 @@ class PlayerManager(object):
         sub_uid = self._video.sid
 
         if audio_uid is not None and not self._video.is_transcode:
-            log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
+            log.info("PlayerManager::play selecting audio stream index=%s" % audio_uid)
             self._player.audio = self._video.audio_seq[audio_uid]
 
         if sub_uid is None or sub_uid == -1:
-            log.debug("PlayerManager::play selecting subtitle stream (none)")
+            log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.debug(
+            log.info(
                 "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
             )
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
-                log.debug(
+                log.info(
                     "PlayerManager::play selecting external subtitle id=%s" % sub_uid
                 )
                 self.load_external_sub(sub_uid)
@@ -885,12 +885,12 @@ class PlayerManager(object):
             try:
                 sub_url = self._video.subtitle_url[sub_id]
                 if settings.log_decisions:
-                    log.debug("Load External Subtitle: {0}".format(sub_url))
+                    log.info("Load External Subtitle: {0}".format(sub_url))
                 self._player.sub_add(sub_url)
                 self.external_subtitles[sub_id] = self._player.sub
                 self.external_subtitles_rev[self._player.sub] = sub_id
             except SystemError:
-                log.debug("PlayerManager::could not load external subtitle")
+                log.info("PlayerManager::could not load external subtitle")
 
     @synchronous("_lock")
     def toggle_fullscreen(self):

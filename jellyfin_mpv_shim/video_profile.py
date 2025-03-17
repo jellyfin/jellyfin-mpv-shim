@@ -144,12 +144,12 @@ class VideoProfileManager:
             for key, value in settings_to_apply:
                 if (key, value) in already_set:
                     continue
-                log.debug("Set MPV setting {0} to {1}".format(key, value))
+                log.info("Set MPV setting {0} to {1}".format(key, value))
                 setattr(self.player, key, value)
                 already_set.add((key, value))
 
             # Apply Shaders
-            log.debug("Set shaders: {0}".format(shaders_to_apply))
+            log.info("Set shaders: {0}".format(shaders_to_apply))
             self.player.glsl_shaders = shaders_to_apply
             self.current_profile = profile_name
             return True

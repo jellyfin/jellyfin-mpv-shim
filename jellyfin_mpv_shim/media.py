@@ -206,7 +206,7 @@ class Video(object):
 
         if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False
-            log.debug("Using direct url.")
+            log.info("Using direct url.")
             query_params = {
                 "static": "true",
                 "MediaSourceId": self.media_source["Id"],
@@ -224,7 +224,7 @@ class Video(object):
                 query,
             )
         elif self.media_source["SupportsTranscoding"]:
-            log.debug("Using transcode url.")
+            log.info("Using transcode url.")
             self.is_transcode = True
             return self.client.config.data["auth.server"] + self.media_source.get(
                 "TranscodingUrl"
@@ -342,7 +342,7 @@ class Video(object):
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr
 
-        log.debug(
+        log.info(
             "Bandwidth: local={0}, bitrate={1}, force={2}".format(
                 self.parent.is_local, video_bitrate, force_transcode
             )
@@ -377,8 +377,8 @@ class Video(object):
 
         if settings.log_decisions:
             if len(self.playback_info["MediaSources"]) > 1:
-                log.debug("Full Playback Info: {0}".format(self.playback_info))
-            log.debug("Media Decision: {0}".format(self.media_source))
+                log.info("Full Playback Info: {0}".format(self.playback_info))
+            log.info("Media Decision: {0}".format(self.media_source))
         return url
 
     def get_duration(self):
