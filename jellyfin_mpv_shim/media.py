@@ -349,7 +349,7 @@ class Video(object):
         )
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
         self.playback_info = self.client.jellyfin.get_play_info(
-            self.item_id, profile, self.aid, self.sid
+            self.item_id, profile, self.aid, self.sid, media_source_id=self.srcid
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
