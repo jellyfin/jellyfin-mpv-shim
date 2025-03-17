@@ -470,7 +470,10 @@ class STrayProcess(Process):
             icon.visible = True
             self.r_queue.put(("ready", None))
 
-        icon.run(setup=setup)
+        try:
+            icon.run(setup=setup)
+        except Exception:
+            pass
         self.r_queue.put(("die", None))
 
 
