@@ -94,6 +94,10 @@ class ClientManager(object):
         )
         client.config.data["http.user_agent"] = USER_AGENT
         client.config.data["auth.ssl"] = not settings.ignore_ssl_cert
+        client.config.data["auth.tls_client_cert"] = settings.tls_client_cert
+        client.config.data["auth.tls_client_key"] = settings.tls_client_key
+        client.config.data["auth.tls_server_ca"] = settings.tls_server_ca
+        client.auth.create_session_with_client_auth()
         return client
 
     def _connect_all(self):
