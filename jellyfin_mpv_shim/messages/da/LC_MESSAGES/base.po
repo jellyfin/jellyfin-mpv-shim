@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-09 14:01+0000\n"
+"PO-Revision-Date: 2025-03-03 16:54+0000\n"
 "Last-Translator: M Alb <matias.albretsen@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
@@ -204,7 +204,7 @@ msgstr "Stor"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr "Meget stor"
+msgstr "Kæmpe"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
@@ -272,7 +272,7 @@ msgstr "Vælg lyd spor"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Skift undertekst spor"
+msgstr "Vælg undertekst spor"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -312,15 +312,15 @@ msgstr "Skift standard omkodningsprofil"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Skift farve på undertekster"
+msgstr "Vælg farve på undertekster"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Skift størrelse på undertekster"
+msgstr "Vælg størrelse på undertekster"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Skift placering for undertekster"
+msgstr "Vælg placering for undertekster"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"

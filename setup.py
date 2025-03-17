@@ -13,7 +13,7 @@ extras = {
 }
 
 if sys.platform.startswith("win32"):
-    win_extra = ["pywin32", "clr-loader==0.1.7", "pythonnet==3.0.0a2"]
+    win_extra = ["pywin32", "clr-loader", "pythonnet"]
     extras["all"] += win_extra
     extras["mirror"] += win_extra
 
@@ -60,9 +60,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     extras_require=extras,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
-        "python-mpv",
+        "mpv @ git+https://github.com/jaseg/python-mpv.git@main",
         "jellyfin-apiclient-python>=1.9.2",
         "python-mpv-jsonipc>=1.2.0",
         "requests",

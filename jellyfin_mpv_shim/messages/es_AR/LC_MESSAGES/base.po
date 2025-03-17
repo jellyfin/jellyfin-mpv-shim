@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-09 14:01+0000\n"
-"Last-Translator: Franco Castillo <castillofrancodamian@gmail.com>\n"
+"PO-Revision-Date: 2025-02-18 23:28+0000\n"
+"Last-Translator: Brian Bentancour <bbab40@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/es_AR/>\n"
 "Language: es_AR\n"
@@ -128,7 +128,7 @@ msgstr "Cerrar"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "Configurar Servidores"
+msgstr "Configurar servidores"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -224,7 +224,7 @@ msgstr "Cambiar la calidad del video"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Reproducción sincronizada"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -307,22 +307,18 @@ msgid "Manual by Track Index (Less Reliable)"
 msgstr "Manual por índice de pista (Menos confiable)"
 
 #: jellyfin_mpv_shim/menu.py:421
-#, fuzzy
 msgid "Select Default Transcode Profile"
 msgstr "Seleccioná el perfil de transcodificación predeterminado"
 
 #: jellyfin_mpv_shim/menu.py:456
-#, fuzzy
 msgid "Select Subtitle Color"
 msgstr "Seleccionar el color de los subtítulos"
 
 #: jellyfin_mpv_shim/menu.py:465
-#, fuzzy
 msgid "Select Subtitle Size"
 msgstr "Seleccionar el tamaño de los subtítulos"
 
 #: jellyfin_mpv_shim/menu.py:475
-#, fuzzy
 msgid "Select Subtitle Position"
 msgstr "Seleccionar la posición de los subtítulos"
 
