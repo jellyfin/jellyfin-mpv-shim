@@ -59,6 +59,22 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.9.0" date="2025-03-17">
+      <description>
+        <p>Changes:</p>
+        <ul>
+          <li>Ignore empty client list failures. (#422)</li>
+          <li>Update skip intro to use official media segments API.</li>
+          <li>Pass media source into PlaybackInfo.</li>
+          <li>Add optional mtls support. (#426)</li>
+          <li>Catch exceptions when registering Discord join callback. (#440)</li>
+          <li>Catch exceptions from pystray. (#434)</li>
+          <li>Make main halt event work on non-glibc systems. (#432)</li>
+          <li>Use latest package versions. (#429)</li>
+          <li>OpenBSD improvements. (#428)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.8.0" date="2024-06-05">
       <description>
         <p>Changes:</p>
