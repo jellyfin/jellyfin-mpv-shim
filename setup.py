@@ -62,7 +62,7 @@ setup(
     extras_require=extras,
     python_requires=">=3.7",
     install_requires=[
-        "mpv @ git+https://github.com/jaseg/python-mpv.git@main",
+        "python-mpv>=1.0.7",
         "jellyfin-apiclient-python>=1.11.0",
         "python-mpv-jsonipc>=1.2.0",
         "requests",
