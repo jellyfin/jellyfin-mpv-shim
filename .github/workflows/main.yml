@@ -51,6 +51,51 @@ jobs:
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
+  build-win64-legacy:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.13
+    - name: Setup git SDK
+      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      with:
+        flavor: minimal
+    - name: Download mpv
+      id: mpv
+      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: 'mpv-dev-x86_64-[0-9]*-git-*.7z'
+    - name: Install dependencies
+      run: |
+        7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
+        mv libmpv-2.dll mpv-2.dll
+        pip install wheel
+        pip install .[all] pythonnet pywebview pywin32
+        ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: PyInstaller Bootloader
+      run: |
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; pip install .
+      shell: bash
+    - name: Main Build
+      run: |
+        .\build-win.bat
+      shell: cmd
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh legacy64
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-legacy64
+        path: ${{ github.workspace }}/publish/Installer/*.exe
   build-win32:
     runs-on: windows-latest
     steps:

@@ -8,4 +8,7 @@ then
 elif [[ "$1" == "legacy" ]]
 then
     cp dist/jellyfin-mpv-shim_version_installer.exe publish/InstallerLegacy/jellyfin-mpv-shim_${version}_LEGACY32_installer.exe || exit 1
+elif [[ "$1" == "legacy64" ]]
+then
+    cp dist/jellyfin-mpv-shim_version_installer.exe publish/Installer/jellyfin-mpv-shim_${version}_LEGACY64_installer.exe || exit 1
 fi
