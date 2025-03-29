@@ -508,22 +508,18 @@ class PlayerManager(object):
                     intro.has_triggered = True
                     self.skip_intro()
                     self._player.show_text(
-                        (
-                            _("Skipped Credits")
-                            if intro.type == "Outro"
-                            else _("Skipped Intro")
-                        ),
+                        _("Skipped Credits")
+                        if intro.type == "Outro"
+                        else _("Skipped Intro"),
                         3000,
                         1,
                     )
 
                 if not self.is_in_intro and should_prompt:
                     self._player.show_text(
-                        (
-                            _("Seek to Skip Credits")
-                            if intro.type == "Outro"
-                            else _("Seek to Skip Intro")
-                        ),
+                        _("Seek to Skip Credits")
+                        if intro.type == "Outro"
+                        else _("Seek to Skip Intro"),
                         3000,
                         1,
                     )
@@ -868,7 +864,9 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
+            log.info(
+                "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
+            )
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
