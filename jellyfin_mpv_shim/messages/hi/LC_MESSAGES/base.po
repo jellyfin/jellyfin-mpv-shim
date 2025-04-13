@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-10-17 07:04+0000\n"
-"Last-Translator: Abhiraj <abhiraj.official15@gmail.com>\n"
+"PO-Revision-Date: 2025-04-14 02:20+0000\n"
+"Last-Translator: Pranavi <pranavi.sharma79@gmail.com>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hi/>\n"
 "Language: hi\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.10.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -228,7 +228,7 @@ msgstr "सिंकप्लेई"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} रिलीज जानकारी/डाउनलोड"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -236,15 +236,15 @@ msgstr "वीडियो प्लेबैक प्रोफाइल बद
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "ऑडियो/उपशीर्षक स्वतः सेट करें (संपूर्ण श्रृंखला)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "छोड़ें और अनदेखा चिह्नित करें"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "स्क्रीनशॉट"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
