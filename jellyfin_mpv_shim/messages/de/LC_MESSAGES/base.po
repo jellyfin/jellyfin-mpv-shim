@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-03-20 09:01+0000\n"
-"Last-Translator: Martin Just <martin.peter.just@gmail.com>\n"
+"PO-Revision-Date: 2025-04-20 13:18+0000\n"
+"Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/de/>\n"
 "Language: de\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.10.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -32,15 +32,15 @@ msgstr "{0}: Fehler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Setze Untertitel: {0} Ok, {1} Fehler"
+msgstr "Setze Untertitel: {0} ok, {1} fehlgeschlagen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Setze synchronisiert: {0} ok, {1} nur Audio, {2} Fehler"
+msgstr "Setze synchronisiert: {0} ok, {1} nur Audio, {2} fehlgeschlagen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manuell: {0} Ok, {1} Fehler"
+msgstr "Manuell: {0} ok, {1} fehlgeschlagen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -236,11 +236,11 @@ msgstr "Wiedergabeprofil des Videos ändern"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Setze Audio/Untertitel automatisch (Ganze Serie)"
+msgstr "Audio/Untertitel automatisch einstellen (Ganze Serie)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Schließen und als ungesehen markieren"
+msgstr "Verlassen und als ungesehen markieren"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -506,7 +506,7 @@ msgstr "Der Zugriff zu der SyncPlay-Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "SpeedToSync (Aufholen) (x{0})"
+msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -514,7 +514,7 @@ msgstr "Synchronisieren deaktiviert (Zu viele Versuche)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Springe zum Synchronisieren (x{0})"
+msgstr "SkipToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
