@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-03-23 11:01+0000\n"
-"Last-Translator: Paul Uriarte <pauluriarte2@gmail.com>\n"
+"PO-Revision-Date: 2025-05-12 15:05+0000\n"
+"Last-Translator: \"Thadah D. Denyse\" <gontzalpujana@protonmail.com>\n"
 "Language-Team: Basque <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/eu/>\n"
 "Language: eu\n"
@@ -164,7 +164,7 @@ msgstr "Beltza"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Zian"
+msgstr "Ziana"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
