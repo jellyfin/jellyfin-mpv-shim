@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2023-07-08 13:41+0000\n"
-"Last-Translator: D <dln0@proton.me>\n"
+"PO-Revision-Date: 2025-05-15 03:38+0000\n"
+"Last-Translator: Yago Raña Gayoso <yago.rana.gayoso@gmail.com>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/gl/>\n"
 "Language: gl\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.10.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -148,7 +148,6 @@ msgid "Quit"
 msgstr "Saír"
 
 #: jellyfin_mpv_shim/media.py:139
-#, fuzzy
 msgid " (Transcode)"
 msgstr " (Transcodificar)"
 
@@ -326,8 +325,9 @@ msgid "Select Subtitle Position"
 msgstr "Seleccione Posición de Subtítulo"
 
 #: jellyfin_mpv_shim/menu.py:477
+#, fuzzy
 msgid "Bottom"
-msgstr ""
+msgstr "Inferior"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
@@ -419,26 +419,20 @@ msgid "Ask to Skip Intros"
 msgstr "Solicitar saltar as introduccións"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "Saltar introdución sempre"
+msgstr "Saltar créditos sempre"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "Solicitar saltar as introduccións"
+msgstr "Solicitar saltar os créditos"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "Activar vistas previas na miniatura"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "Introdución Saltada"
+msgstr "Créditos saltados"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
