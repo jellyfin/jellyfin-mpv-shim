@@ -185,9 +185,7 @@ class ClientManager(object):
         return False
 
     def validate_client(self, client: "JellyfinClient", dry_run=False):
-        client_list = client.jellyfin.sessions(
-            params={"ControllableByUserId": "{UserId}"}
-        )
+        client_list = client.jellyfin.sessions()
 
         if client_list is None:
             log.warning(
