@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2022-08-06 12:22+0000\n"
-"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
+"PO-Revision-Date: 2025-06-12 13:01+0000\n"
+"Last-Translator: Battseren Badral <bbattseren88@gmail.com>\n"
 "Language-Team: Mongolian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/mn/>\n"
 "Language: mn\n"
@@ -15,32 +15,32 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Дууг сонгож байна..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Хадмал алга"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Алдаа"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Дэд гарчиг тохируулагдлаа: {0} амжилттай, {1} бүтэлгүйтлээ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Хөрвүүлэх тохиргоо: {0} амжилттай, {1} зөвхөн дуу, {2} бүтэлгүйтлээ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Гар аргаар: {0} зүгээр, {1} алдаа"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
