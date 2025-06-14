@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-06-14 14:01+0000\n"
+"PO-Revision-Date: 2025-06-15 22:01+0000\n"
 "Last-Translator: Battseren Badral <bbattseren88@gmail.com>\n"
 "Language-Team: Mongolian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/mn/>\n"
@@ -372,90 +372,93 @@ msgstr "Видео профайлын дэд төрөл: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "Видео профайлын дэд"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
-msgstr ""
+msgstr "Автоматаар тоглуулах"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "Автомат бүтэн дэлгэц"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr ""
+msgstr "Хэвлэл мэдээллийн түлхүүр хайх"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "Web Search Pref ашиглах"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr ""
+msgstr "Дэлгэцийн хуваалцах"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr ""
+msgstr "Лог файл руу бичих"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr ""
+msgstr "Шинэчлэлт шалгах"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord-ийн өргөтгөсөн оролцоо"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "Үргэлж танилцуулгыг алгасах"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "Оршил хэсгийг алгасах эсэхийг асуух"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr ""
+msgstr "Үргэлж кредит алгасах"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr ""
+msgstr "Кредитыг алгасах эсэхийг асууx"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Жижиг зургуудын урьдчилсан харагдац идэвхжүүлэх"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr ""
+msgstr "Алгассан кредит"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr ""
+msgstr "Оршилыг алгассан"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "Кредитыг алгасахаар шууд шилжих"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "Танилцуулга алгасахыг эрэлхийл"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"Таны алсын видео транскодлогдож байна!\n"
+"Хэрэв шаардлагагүй гэж үзвэл зурвасын тохиргоог өөрчлөхийн тулд C товчийг "
+"дарна уу."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "{0}-р улирал – {1}-р анги"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "Автомат"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
