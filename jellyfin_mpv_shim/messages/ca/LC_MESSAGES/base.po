@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-06-12 13:01+0000\n"
-"Last-Translator: Joan Montané <jmontane@gmail.com>\n"
+"PO-Revision-Date: 2025-06-25 08:51+0000\n"
+"Last-Translator: Pere <pere.ortiz@proton.me>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ca/>\n"
 "Language: ca\n"
@@ -85,7 +85,7 @@ msgstr "Registre de l'aplicació"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "Afegeix un servidor"
+msgstr "Afegir servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
@@ -121,7 +121,7 @@ msgstr "Contrasenya:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
-msgstr "Elimina el servidor"
+msgstr "Eliminar servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
