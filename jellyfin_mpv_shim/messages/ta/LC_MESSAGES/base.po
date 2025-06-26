@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-04-01 00:05+0000\n"
+"PO-Revision-Date: 2025-06-26 13:51+0000\n"
 "Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ta/>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -415,36 +415,28 @@ msgid "Ask to Skip Intros"
 msgstr "முன்னோட்டங்களை தவிர்க்க சொல்லி கேள்"
 
 #: jellyfin_mpv_shim/menu.py:558
-#, fuzzy
-#| msgid "Always Skip Intros"
 msgid "Always Skip Credits"
-msgstr "முன்னோட்டங்களை எப்போதும் தவிர்"
+msgstr "எப்போதும் கிரெடிட்களைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/menu.py:559
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Ask to Skip Credits"
-msgstr "முன்னோட்டங்களை தவிர்க்க சொல்லி கேள்"
+msgstr "கிரெடிட்களைத் தவிர்க்கச் சொல்லுங்கள்"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
 msgstr "படங்களின் முன்னோட்டங்களை கான்பி"
 
 #: jellyfin_mpv_shim/player.py:487
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skipped Credits"
-msgstr "முன்னோட்டம் தவிர்க்க பட்டது"
+msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
 msgstr "முன்னோட்டம் தவிர்க்க பட்டது"
 
 #: jellyfin_mpv_shim/player.py:490
-#, fuzzy
-#| msgid "Seek to Skip Intro"
 msgid "Seek to Skip Credits"
-msgstr "முன்னோட்டத்தை தவிர்க்க காணொளியை நகர்த்தவும்"
+msgstr "கிரெடிட்களைத் தவிர்க்க முயற்சிக்கவும்"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
