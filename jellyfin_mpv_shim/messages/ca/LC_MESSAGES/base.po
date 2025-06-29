@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-06-25 08:51+0000\n"
-"Last-Translator: Pere <pere.ortiz@proton.me>\n"
+"PO-Revision-Date: 2025-06-29 16:35+0000\n"
+"Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ca/>\n"
 "Language: ca\n"
@@ -511,7 +511,7 @@ msgstr "Velocitat per la Sincronització (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Sincronització desactivada (Masses intents)"
+msgstr "Sincronització desactivada (Massa intents)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -579,11 +579,11 @@ msgstr "Anime4K x4 Faithful (Per a resolució estàndar)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Anime4K x4 Perceptual (Per a resolució estàndar)"
+msgstr "Anime4K x4 Perceptiu (Per a resolució estàndard)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Perceptual + Deblur (Per a resolució estàndar)"
+msgstr "Anime4K x4 Perceptiu + Desdifumina(Per a resolució estàndard)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
@@ -591,11 +591,11 @@ msgstr "Anime4K x2 Faithful (Per a alta resolució)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 Perceptual (Per a alta resolució)"
+msgstr "Anime4K x2 Perceptiu (Per a alta resolució)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Deblur (Per a alta resolució)"
+msgstr "Anime4K x2 Perceptiu+ Desdifumina (Per a alta resolució)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
