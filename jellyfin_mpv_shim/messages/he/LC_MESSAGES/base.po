@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-05-15 03:38+0000\n"
+"PO-Revision-Date: 2025-07-04 11:41+0000\n"
 "Last-Translator: Tal Sarid <sarid.tal@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/he/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
 "n % 10 == 0) ? 2 : 3));\n"
-"X-Generator: Weblate 5.10.4\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -77,7 +77,7 @@ msgstr "מוכן לשדר"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr "בחר את המדיה הרצויה בג'ליפין ונגן פה"
+msgstr "בחר את המדיה הרצויה ב-Jellyfin ונגן אותה פה"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
