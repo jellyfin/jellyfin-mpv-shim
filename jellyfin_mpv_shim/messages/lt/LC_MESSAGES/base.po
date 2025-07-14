@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-07-14 09:38+0000\n"
+"PO-Revision-Date: 2025-07-14 13:43+0000\n"
 "Last-Translator: sharanchius <sharanchius@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/lt/>\n"
@@ -22,7 +22,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Parenkami Takeliai..."
+msgstr "Parenkami takeliai..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
@@ -34,19 +34,19 @@ msgstr "{0}: Nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Nustatyti Subtitruotus: {0} gerai, {1} nepavykęs"
+msgstr "Nustatyti Subtitruotus: {0} gerai, {1} nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Nustatyti Įgarsintus: {1} gerai, {1} tik garsas, {2} nepavykę"
+msgstr "Nustatyti Įgarsintus: {1} gerai, {1} tik garsas, {2} nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Rankinis: {0} gerai, {1} nepavykęs"
+msgstr "Rankinis: {0} gerai, {1} nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr "Nustatomas Dabartinis..."
+msgstr "Nustatomas dabartinis..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -54,7 +54,7 @@ msgstr "Serverio adresas: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr "Vartotojo vardas "
+msgstr "Prisijungimo vardas "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
@@ -82,11 +82,11 @@ msgstr "Pasirink savo turinį Jellyfin ir leisk jį čia"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "Aplikacijos žurnalas"
+msgstr "Programos žurnalas"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "Pridėti Serverį"
+msgstr "Pridėti serverį"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
@@ -102,7 +102,7 @@ msgstr "Nepavyko"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr "Ok"
+msgstr "Gerai"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
@@ -114,7 +114,7 @@ msgstr "Serveris:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
-msgstr "Vartotojo vardas:"
+msgstr "Prisijungimo vardas:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
@@ -138,7 +138,7 @@ msgstr "Rodyti konsolę"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
-msgstr "Aplikacijos meniu"
+msgstr "Programos meniu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
@@ -338,7 +338,7 @@ msgstr "Viduryje"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Perkodavimo"
+msgstr "Nuotolinio perkodavimo kokybė: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -370,11 +370,11 @@ msgstr "Išjungti Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Video Profilio Subtipas: {0}"
+msgstr "Video profilio subtipas: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Video Profilio Subtipas"
+msgstr "Video profilio subtipas"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -386,11 +386,11 @@ msgstr "Automatinis pilno ekrano režimas"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr "Turinio"
+msgstr "Medijos raktinių nuorodų paieška"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr "Naudoti Žiniatinklio Paieškos Nustatymus"
+msgstr "Naudoti žiniatinklio paieškos nustatymus"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
@@ -398,7 +398,7 @@ msgstr "Ekrano dubliavimas"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Įrašyti Žurnalus Į Failą"
+msgstr "Įrašyti žurnalus į failą"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -406,7 +406,7 @@ msgstr "Tikrinti, ar yra atnaujinimų"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "\"Discord Rich Presence\""
+msgstr "Daugiau informacijos Discord platformoje"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
@@ -438,7 +438,7 @@ msgstr "Praleistas intro"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Klausti, ar praleisti titrus"
+msgstr "Klausti, ar praleisti pabaigos titrus"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
@@ -471,7 +471,7 @@ msgstr "Pasirinkti SVP profilį"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr "SVP yra Neaktyvus"
+msgstr "SVP yra neaktyvus"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
@@ -479,7 +479,7 @@ msgstr "Išjungtas"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "Pabandyti Iš Naujo"
+msgstr "Pabandyti iš naujo"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -511,7 +511,7 @@ msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr "Sync išjungta (Pernelyg Daug Bandymų)"
+msgstr "Sinchronizacija išjungta (Pernelyg daug bandymų)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -539,7 +539,7 @@ msgstr "{0} kraunasi."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr "{0} Grupė"
+msgstr "{0} grupė"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
@@ -595,7 +595,7 @@ msgstr "Anime4K x2 Percepcinis (HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 Perceptual + Deblur (HD Raiškai)"
+msgstr "Anime4K x2 Percepcinis + Deblur (HD Raiškai)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
