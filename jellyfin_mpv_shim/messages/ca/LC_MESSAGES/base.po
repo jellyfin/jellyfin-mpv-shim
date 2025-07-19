@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-07-09 19:51+0000\n"
+"PO-Revision-Date: 2025-07-19 13:50+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ca/>\n"
@@ -32,15 +32,15 @@ msgstr "{0}: Error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Estableix subtitulat: {0} ok, {1} error"
+msgstr "Estableix subtitulat: {0} d'acord, {1} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Estableix doblatge: {0} ok, {1} només àudio, {2} error"
+msgstr "Estableix doblatge: {0} d'acord, {1} només àudio, {2} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manual: {0} ok, {1} error"
+msgstr "Manual: {0} d'acord, {1} error"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -313,7 +313,7 @@ msgstr "Selecciona el perfil de transcodificació per defecte"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Selecciona els color dels subtítols"
+msgstr "Selecciona el color dels subtítols"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
@@ -353,7 +353,7 @@ msgstr "Color dels subtítols: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Transcodificació d'Hi10p a 8bit"
+msgstr "Transcodificació d'Hi10p a 8 bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
