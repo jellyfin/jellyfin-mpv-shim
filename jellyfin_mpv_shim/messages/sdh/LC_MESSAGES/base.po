@@ -6,104 +6,109 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-07-26 19:59+0000\n"
+"Last-Translator: Djwarf <djwar.fettah@outlook.com>\n"
+"Language-Team: Kurdish (Southern) <https://translate.jellyfin.org/projects/"
+"jellyfin/jellyfin-desktop/sdh/>\n"
 "Language: sdh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Hilbijartina Şopan..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Jêrnivîs tune ne"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Têkçûn"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "Jêrnivîsê saz bike: {0} baş e, {1} têk diçe"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Set Dublajkirî: {0} baş e, {1} tenê deng, {2} têk çû"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Destan: {0} başe, {1} têk çûye"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "Sazkirina Niha..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr ""
+msgstr "Server URL: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "Navê bikarhêner: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "Şîfre: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr ""
+msgstr "Serwer bi serkeftî hate zêdekirin."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "Pêşkêşkarek din lê zêde bike?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr ""
+msgstr "Zêdekirina serverê têk çû."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Ji bo avêtinê amade ye"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Medyaya xwe di Jellyfin de hilbijêre û li vir bilîze"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr ""
+msgstr "Têketina Serlêdanê"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr ""
+msgstr "Server lê zêde bike"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Nekarî serverê lê zêde bike.\n"
+"Ji kerema xwe agahiyên girêdana xwe kontrol bikin."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
-msgstr ""
+msgstr "Biserîneçûn"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr ""
+msgstr "Bash"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr ""
+msgstr "Veavakirina Server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
-msgstr ""
+msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
