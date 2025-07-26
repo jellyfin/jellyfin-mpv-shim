@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-02-10 16:30+0000\n"
-"Last-Translator: p6laris <Yunissurchy@gmail.com>\n"
+"PO-Revision-Date: 2025-07-26 19:21+0000\n"
+"Last-Translator: Djwarf <djwar.fettah@outlook.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-desktop/ckb/>\n"
 "Language: ckb\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -497,7 +497,7 @@ msgstr "SVP لەکارخراوە"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "Grûpa SyncPlay a diyarkirî tune ye."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
