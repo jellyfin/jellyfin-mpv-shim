@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2025-08-10 13:16+0000\n"
-"Last-Translator: Vitabytes <vitaspiros@gmail.com>\n"
+"Last-Translator: Thunderstrike116 <thunderstrike116@gmail.com>\n"
 "Language-Team: Greek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/el/>\n"
 "Language: el\n"
@@ -478,7 +478,7 @@ msgstr "Απενεργοποίηση"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "Προσπαθήστε ξανά"
+msgstr "Δοκιμή ξανά"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
