@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-07-24 02:15+0000\n"
+"PO-Revision-Date: 2025-08-18 15:18+0000\n"
 "Last-Translator: Zhelyan Radoev <jelioradoev@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bg/>\n"
@@ -478,7 +478,7 @@ msgstr "Изключи"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "Повтори отново"
+msgstr "Повтори"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
