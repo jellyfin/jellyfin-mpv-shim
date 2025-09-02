@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-02-16 22:37+0000\n"
-"Last-Translator: Tamojit Sarkar <taniakol1984@gmail.com>\n"
+"PO-Revision-Date: 2025-09-03 19:51+0000\n"
+"Last-Translator: Md Ashikur Rahman <ashikurrahman068@gmail.com>\n"
 "Language-Team: Bengali <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/bn/>\n"
 "Language: bn\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -32,39 +32,39 @@ msgstr "{0}: ব্যার্থ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "সাব সেট করা হয়েছে: {0} ঠিক আছে, {1} ব্যর্থ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "ডাব সেট করা হয়েছে: {0} ঠিক আছে, {1} শুধু অডিও, {2} ব্যর্থ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "ম্যানুয়াল: {0} ঠিক আছে, {1} ব্যর্থ"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "বর্তমান সেট করা হচ্ছে..।"
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr "সার্ভার লিঙ্কঃ "
+msgstr "সার্ভার ইউ আর এল: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr "ব্যবহারকারীর নামঃ "
+msgstr "ব্যবহারকারীর নাম: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "পাসওয়ার্ডঃ "
+msgstr "পাসওয়ার্ড: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr "সার্ভার সংযুক্তি সফল।"
+msgstr "সার্ভার সফলভাবে যোগ করা হয়েছে।"
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr "অন্য সার্ভার সংযুক্ত করবেন?"
+msgstr "আরেকটি সার্ভার যোগ করুন?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
@@ -72,7 +72,7 @@ msgstr "সার্ভার সংযুক্ত করা যায়নি।
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "কাস্ট করার জন্য প্রস্তুত"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
@@ -91,8 +91,8 @@ msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
-"সার্ভার সংযুক্তি সম্ভব হয়নিI\n"
-"দয়া করে আপনার কানেকশনের তথ্য পর্যালোচনা করুনI"
+"সার্ভার সংযুক্তি সম্ভব হয়নি.\n"
+"দয়া করে আপনার কানেকশনের তথ্য পর্যালোচনা করুন।"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -120,7 +120,7 @@ msgstr "পাসওয়ার্ড:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
-msgstr "সার্ভার অপসারণ"
+msgstr "সার্ভার মুছে ফেলুন"
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
@@ -164,7 +164,7 @@ msgstr "কালো"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "আকাশী"
+msgstr "সায়ান"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -192,15 +192,15 @@ msgstr "ক্ষুদ্র"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr "ক্ষুদ্র"
+msgstr "ছোট"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "সাধারণ"
+msgstr "স্বাভাবিক"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr "বড়"
+msgstr "বড়"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
@@ -228,11 +228,11 @@ msgstr "সিঙ্ক প্লে"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} প্রকাশের তথ্য/ডাউনলোড"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "ভিডিও প্লেব্যাক প্রোফাইল পরিবর্তন করুন"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
@@ -248,349 +248,353 @@ msgstr "স্ক্রিনশট"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "ভিডিও প্লেব্যাক প্রোফাইলসমূহ"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr ""
+msgstr "এসভিপি সেটিংস"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
-msgstr ""
+msgstr "ভিডিও পছন্দসমূহ"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
-msgstr ""
+msgstr "প্লেয়ার পছন্দসমূহ"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr ""
+msgstr "মেনু বন্ধ করুন"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "অডিও ট্র্যাক নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "সাবটাইটেল ট্র্যাক নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "কোনোটিই নয়"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "ট্রান্সকোড মান নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr ""
+msgstr "সর্বাধিক"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr ""
+msgstr "কোনো ট্রান্সকোড নয়"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "সিরিজের জন্য অডিও/সাবটাইটেল নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
-msgstr ""
+msgstr "ইংরেজি অডিও"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "জাপানি অডিও সহ / ইংরেজি সাবটাইটেল"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "ম্যানুয়াল ট্র্যাক ইনডেক্স দ্বারা (কম নির্ভরযোগ্য)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr ""
+msgstr "ডিফল্ট ট্রান্সকোড প্রোফাইল নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "সাবটাইটেল রঙ নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "সাবটাইটেল সাইজ নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "সাবটাইটেল অবস্থান নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "নিচে"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "উপরে"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "মধ্যভাগে"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "রিমোট ট্রান্সকোড মান: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "সাবটাইটেল সাইজ: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "সাবটাইটেল অবস্থান: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "সাবটাইটেল রঙ: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr ""
+msgstr "Hi10p ট্রান্সকোড 8bit এ"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr ""
+msgstr "HDR ট্রান্সকোড করুন"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
-msgstr ""
+msgstr "ডিরেক্ট পাথসমূহ"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr ""
+msgstr "ডিরেক্ট প্লে অক্ষম করুন"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr ""
+msgstr "ভিডিও প্রোফাইল সাবটাইপ: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr ""
+msgstr "ভিডিও প্রোফাইল সাবটাইপ"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
-msgstr ""
+msgstr "অটো প্লে"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "অটো ফুলস্ক্রিন"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
-msgstr ""
+msgstr "মিডিয়া কী সিক"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr ""
+msgstr "ওয়েব সিক পছন্দ ব্যবহার করুন"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr ""
+msgstr "ডিসপ্লে মিররিং"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr ""
+msgstr "লগ ফাইলে লিখুন"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr ""
+msgstr "আপডেট চেক করুন"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "ডিসকর্ড রিচ প্রেজেন্স"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "সর্বদা ইন্ট্রো স্কিপ করুন"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "ইন্ট্রো স্কিপ করতে জিজ্ঞাসা করুন"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr ""
+msgstr "সর্বদা ক্রেডিট স্কিপ করুন"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr ""
+msgstr "ক্রেডিট স্কিপ করতে জিজ্ঞাসা করুন"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "থাম্বনেইল প্রিভিউ সক্ষম করুন"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr ""
+msgstr "ক্রেডিট স্কিপ হয়েছে"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr ""
+msgstr "ইন্ট্রো স্কিপ হয়েছে"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "ক্রেডিট স্কিপ করতে সিক করুন"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "ইন্ট্রো স্কিপ করতে সিক করুন"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"আপনার রিমোট ভিডিও ট্রান্সকোড হচ্ছে!\n"
+"যদি এটি প্রয়োজন না হয়, ব্যান্ডউইথ সেটিংস সমন্বয় করতে c চাপুন।"
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "সিজন {0} - এপিসোড {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "স্বয়ংক্রিয়"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "অক্ষম"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr ""
+msgstr "এসভিপি প্রোফাইল নির্বাচন করুন"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr ""
+msgstr "এসভিপি সক্রিয় নয়"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "অক্ষম করুন"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "পুনঃচেষ্টা করুন"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr ""
+msgstr "এসভিপি সক্ষম করুন"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
-msgstr ""
+msgstr "এসভিপি অক্ষম আছে"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "নির্দিষ্ট SyncPlay গ্রুপটি বিদ্যমান নেই।"
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "সিঙ্কপ্লে গ্রুপ তৈরি করা অনুমোদিত নয়।"
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "সিঙ্কপ্লে গ্রুপে অ্যাক্সেস অস্বীকৃত হয়েছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "সিঙ্কপ্লে লাইব্রেরিতে অ্যাক্সেস অস্বীকৃত হয়েছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr ""
+msgstr "স্পিডটুসিঙ্ক (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "সিঙ্ক অক্ষম (অনেক প্রচেষ্টা হয়েছে)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr ""
+msgstr "স্কিপটুসিঙ্ক (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "সিঙ্কপ্লে সক্রিয় হয়েছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "সিঙ্কপ্লে অক্ষম হয়েছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} যোগ হয়েছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} ছেড়ে গেছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} বাফার করছে।"
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr ""
+msgstr "{0}-এর গ্রুপ"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
-msgstr ""
+msgstr "কোনোটিই নেই (অক্ষম)"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
-msgstr ""
+msgstr "নতুন গ্রুপ"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"MPV Shim v{0} আপডেট উপলব্ধ\n"
+"বিস্তারিত জানার জন্য মেনু খুলুন (c চাপুন)।"
 
 #: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
-msgstr ""
+msgstr "অজানা"
 
 #: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
-msgstr ""
+msgstr " জবরদস্তি"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "সাধারণ (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "উচ্চ মানের সাধারণ (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 ফেইথফুল (SD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 পারসেপচুয়াল (SD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 পারসেপচুয়াল + ডিব্লার (SD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 ফেইথফুল (HD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 পারসেপচুয়াল (HD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 পারসেপচুয়াল + ডিব্লার (HD-এর জন্য)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "শেডার প্রোফাইল নির্বাচন করুন"
