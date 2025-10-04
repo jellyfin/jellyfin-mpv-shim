@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
 "PO-Revision-Date: 2025-10-05 11:04+0000\n"
-"Last-Translator: nenadsuperzmaj <nenadsuperzmaj@gmail.com>\n"
+"Last-Translator: nema imena <cika.dzo132@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -253,7 +253,7 @@ msgstr "Профил репродукције снимка"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr "SVP поставке"
+msgstr "СВП Подешавања"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
@@ -309,7 +309,7 @@ msgstr "Ручно по индексу записа (мање поуздано)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Одабери подразумевани профил конверзије формата"
+msgstr "Одабир подразумеваног профила транскодирања"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
@@ -353,7 +353,7 @@ msgstr "Боја титла: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Прекодирај Hi10p у 8 бита"
+msgstr "Транскодирај Хи10п у 8 бита"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
