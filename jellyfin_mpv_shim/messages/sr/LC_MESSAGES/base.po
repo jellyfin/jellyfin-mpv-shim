@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-01-12 18:01+0000\n"
-"Last-Translator: Nikola Jevtovic <themacorporation@gmail.com>\n"
+"PO-Revision-Date: 2025-10-05 11:04+0000\n"
+"Last-Translator: nenadsuperzmaj <nenadsuperzmaj@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/sr/>\n"
 "Language: sr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -181,11 +181,11 @@ msgstr "Магента"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr "Црвена"
+msgstr "Црвено"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr "Сива"
+msgstr "Сиво"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
@@ -229,7 +229,7 @@ msgstr "СинкПлеј"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v{0} Информације о издању/Преузимање"
+msgstr "MPV Shim v{0} Информације/Преузимање"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -397,7 +397,7 @@ msgstr "Пресликавање екрана"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Запиши логове у фајл"
+msgstr "Упиши дневнике у датотеку"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -409,11 +409,11 @@ msgstr "Присутан Discord Rich"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr "Увек прескочи интро"
+msgstr "Увек прескочи увод"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Питај да ли да се прескочи интро"
+msgstr "Питај да прескочиш увод"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
