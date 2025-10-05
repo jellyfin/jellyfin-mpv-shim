@@ -6,26 +6,29 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-10-05 11:21+0000\n"
+"Last-Translator: khanthaphot <khanthaphot@gmail.com>\n"
+"Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-desktop/th/>\n"
 "Language: th\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "กำลังเลือกแทร็ก..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: ไม่มีคำบรรยาย"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: ล้มเหลว"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -41,7 +44,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "กำลังเลือกค่าใช้งาน..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -49,27 +52,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "ชื่อผู้ใช้: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "รหัสผ่าน: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr ""
+msgstr "เพิ่มเซิร์ฟเวอร์เรียบร้อยแล้ว"
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "เพิ่มเซิร์ฟเวอร์อีกหรือไม่?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr ""
+msgstr "การเพิ่มเซิร์ฟเวอร์ล้มเหลว"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "พร้อมสำหรับการแคสต์"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
@@ -91,11 +94,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
-msgstr ""
+msgstr "ล้มเหลว"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr ""
+msgstr "ตกลง"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
@@ -119,7 +122,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
-msgstr ""
+msgstr "ปิด"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
@@ -139,7 +142,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
-msgstr ""
+msgstr "ออก"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
@@ -203,7 +206,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr ""
+msgstr "เมนูหลัก"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
@@ -259,11 +262,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr ""
+msgstr "ปิดเมนู"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr ""
+msgstr "เลือกแทร็กเสียง"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
@@ -323,11 +326,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "ด้านบน"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "ตรงกลาง"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
@@ -335,15 +338,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "ขนาดคำบรรยาย: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "ตำแหน่งคำบรรยาย: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "สีคำบรรยาย: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
@@ -371,11 +374,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
-msgstr ""
+msgstr "เล่นอัตโนมัติ"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr ""
+msgstr "เต็มหน้าจออัตโนมัติ"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
@@ -395,7 +398,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr ""
+msgstr "ตรวจสอบการอัปเดต"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
@@ -403,19 +406,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
-msgstr ""
+msgstr "ข้ามอินโทรเสมอ"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr ""
+msgstr "ถามก่อนข้ามอินโทร"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr ""
+msgstr "ข้ามเครดิตเสมอ"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr ""
+msgstr "ถามก่อนข้ามเครดิต"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
@@ -423,19 +426,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr ""
+msgstr "ข้ามเครดิตแล้ว"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
-msgstr ""
+msgstr "ข้ามอินโทรแล้ว"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "เลื่อนเพื่อข้ามเครดิต"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr ""
+msgstr "เลื่อนเพื่อข้ามอินโทร"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -445,16 +448,16 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "ซีซัน {0} - ตอนที่ {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "อัตโนมัติ"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "ปิดใช้งาน"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -466,11 +469,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "ปิดการใช้งาน"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "ลองใหม่อีกครั้ง"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -518,19 +521,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
-msgstr ""
+msgstr "{0} เข้าร่วมแล้ว"
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr ""
+msgstr "{0} ออกจากกลุ่มแล้ว"
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr ""
+msgstr "{0} กำลังบัฟเฟอร์"
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr ""
+msgstr "กลุ่มของ {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
@@ -538,7 +541,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
-msgstr ""
+msgstr "สร้างกลุ่มใหม่"
 
 #: jellyfin_mpv_shim/update_check.py:67
 msgid ""
