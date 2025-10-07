@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-07-30 14:41+0000\n"
-"Last-Translator: vyrmin <p.puljic@protonmail.com>\n"
+"PO-Revision-Date: 2025-10-07 19:45+0000\n"
+"Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/hr/>\n"
 "Language: hr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -151,7 +151,7 @@ msgstr "Izlaz"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
-msgstr " (Konverzija formata)"
+msgstr " (Transkodiraj)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -283,7 +283,7 @@ msgstr "Ništa"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
-msgstr "Odaberi kvalitetu konverzije formata"
+msgstr "Odaberi kvalitetu transkodiranja"
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
@@ -291,7 +291,7 @@ msgstr "Maksimum"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
-msgstr "Nema konverzije formata"
+msgstr "Nema transkodiranja"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
@@ -311,7 +311,7 @@ msgstr "Ručno postavljanje po indeksu zapisa (Manje pouzdano)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Odaberi zadani profil konverzije formata"
+msgstr "Odaberi zadani profil transkodiranja"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
@@ -339,7 +339,7 @@ msgstr "Sredina"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Kvaliteta pretvorbe formata udaljenog zapisa: {0:0.f} Mbps"
+msgstr "Kvaliteta udaljenog transkodiranja: {0:0.f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -355,11 +355,11 @@ msgstr "Boja titlova: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Transkodiranje Hi10p u 8bit"
+msgstr "Transkodiraj Hi10p u 8bit"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "Transkodiranje u HDR"
+msgstr "Transkodiraj u HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -450,8 +450,9 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Vaš se video transkodira!\n"
-"Pritisni \"c\" za prilagodbu postavki propusnosti veze."
+"Tvoj se video transkodira!\n"
+"Pritisni tipku „c“ za prilagodbu postavki propusnosti veze ako to nije "
+"potrebno."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
