@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-09-21 12:32+0000\n"
-"Last-Translator: l00d3r <stensilver@gmail.com>\n"
+"PO-Revision-Date: 2025-10-09 12:39+0000\n"
+"Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/et/>\n"
 "Language: et\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -144,7 +144,7 @@ msgstr "Ava seadistuste kaust"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
-msgstr "Lõpeta"
+msgstr "Välju"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
