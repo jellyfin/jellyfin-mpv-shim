@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-03-03 16:54+0000\n"
-"Last-Translator: M Alb <matias.albretsen@gmail.com>\n"
+"PO-Revision-Date: 2025-10-12 02:01+0000\n"
+"Last-Translator: tais0222 <matzontais@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/da/>\n"
 "Language: da\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -56,7 +56,7 @@ msgstr "Brugernavn: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr "Kodeord: "
+msgstr "Adgangskode: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -116,7 +116,7 @@ msgstr "Brugernavn:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
-msgstr "Kodeord:"
+msgstr "Adgangskode:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
