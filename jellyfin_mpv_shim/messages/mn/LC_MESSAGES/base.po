@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-10-29 00:02+0000\n"
+"PO-Revision-Date: 2025-10-29 22:47+0000\n"
 "Last-Translator: Battseren Badral <bbattseren88@gmail.com>\n"
 "Language-Team: Mongolian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/mn/>\n"
@@ -148,7 +148,7 @@ msgstr "Гарах"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
-msgstr " (Шилжүүлэн бичих)"
+msgstr " (Хувиргах)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
