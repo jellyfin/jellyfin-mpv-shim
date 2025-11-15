@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-06-26 13:51+0000\n"
-"Last-Translator: stelle <itsazripp2@gmail.com>\n"
+"PO-Revision-Date: 2025-11-15 02:16+0000\n"
+"Last-Translator: Gopinath Muruti <gopinath.muruti@gmail.com>\n"
 "Language-Team: Malay <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-desktop/ms/>\n"
 "Language: ms\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.14\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -52,11 +52,11 @@ msgstr "URL Pelayan: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "Nama pengguna: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "Kata laluan: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -128,19 +128,19 @@ msgstr "Tutup"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr ""
+msgstr "Konfigurasikan Pelayan"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
-msgstr ""
+msgstr "Tunjukkan Konsol"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
-msgstr ""
+msgstr "Menu Aplikasi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Buka Folder Konfigurasi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
@@ -148,7 +148,7 @@ msgstr "Keluar"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
-msgstr ""
+msgstr " (Transkod)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
