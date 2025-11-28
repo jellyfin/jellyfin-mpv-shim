@@ -6,27 +6,29 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-11-28 20:01+0000\n"
+"Last-Translator: Gatolocoses <gatolocosess@gmail.com>\n"
+"Language-Team: Spanish (Mexico) <https://translate.jellyfin.org/projects/"
+"jellyfin/jellyfin-desktop/es_MX/>\n"
 "Language: es_MX\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.14\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Seleccionado pistas..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "Sin subtítulos"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Fallo"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -58,19 +60,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr ""
+msgstr "Servidor agregado satisfactoriamente."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "Agregar otro servidor?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr ""
+msgstr "Fallo al agregar servidor."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Listo para transmitir"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
@@ -78,33 +80,35 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr ""
+msgstr "Registros de aplicación"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr ""
+msgstr "Agregar servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"No se pudo agregar el servidor.\n"
+"Porfsvor revise su información de conexión."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
-msgstr ""
+msgstr "Fallo"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr ""
+msgstr "Configuración de configuración"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
-msgstr ""
+msgstr "Servidor:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
