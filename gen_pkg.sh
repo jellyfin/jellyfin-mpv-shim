@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This script:
 # - Checks the current version
 # - Verifies all versions match and are newer
@@ -7,7 +7,7 @@
 # - Generates locales
 # - Builds the python package
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit 1
 
 function download_compat {
     if [[ "$AZ_CACHE" != "" ]]
