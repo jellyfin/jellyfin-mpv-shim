@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import logging
 import sys
 import multiprocessing
@@ -21,9 +22,26 @@ logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        prog=APP_NAME,
+        description="Jellyfin MPV Shim - Cast media from Jellyfin to MPV"
+    )
+    parser.add_argument(
+        "--gui",
+        dest="enable_gui",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable the GUI (overrides config file setting)"
+    )
+    args = parser.parse_args()
+
     conf_file = conffile.get(APP_NAME, "conf.json")
     load_success = settings.load(conf_file)
     i18n.configure()
+
+    # Override GUI setting if command-line argument is provided
+    if args.enable_gui:
+        settings.enable_gui = True
 
     if settings.sanitize_output:
         enable_sanitization()
