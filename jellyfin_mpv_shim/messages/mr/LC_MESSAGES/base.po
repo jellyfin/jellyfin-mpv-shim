@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-12-15 09:53+0000\n"
+"PO-Revision-Date: 2025-12-16 05:55+0000\n"
 "Last-Translator: sabretou <sabretou@gmail.com>\n"
 "Language-Team: Marathi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/mr/>\n"
@@ -473,7 +473,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "पुन्हा प्रयत्न करा"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -591,4 +591,4 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "शेडर प्रोफाइल निवडा"
