@@ -6,10 +6,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-11-28 20:01+0000\n"
-"Last-Translator: Gatolocoses <gatolocosess@gmail.com>\n"
+"PO-Revision-Date: 2025-12-20 05:23+0000\n"
+"Last-Translator: Warper <warper@ymail.com>\n"
 "Language-Team: Spanish (Mexico) <https://translate.jellyfin.org/projects/"
-"jellyfin/jellyfin-desktop/es_MX/>\n"
+"jellyfin/jellyfin-mpv-shim/es_MX/>\n"
 "Language: es_MX\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Seleccionado pistas..."
+msgstr "Seleccionando pistas..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
