@@ -61,32 +61,7 @@ def synchronous(tlockname: str):
 
 
 def is_local_domain(client: "JellyfinClient_type"):
-    # With Jellyfin, it is significantly more likely the user will be using
-    # an address that is a hairpin NAT. We want to detect this and avoid
-    # imposing limits in this case.
-    url = client.config.data.get("auth.server", "")
-    domain = urllib.parse.urlparse(url).hostname
-
-    addr_info = socket.getaddrinfo(domain, 8096)[0]
-    ip = addr_info[4][0]
-    is_local = ipaddress.ip_address(ip).is_private
-
-    if not is_local:
-        if addr_info[0] == socket.AddressFamily.AF_INET:
-            try:
-                wan_ip = requests.get(
-                    "https://checkip.amazonaws.com/", timeout=(3, 10)
-                ).text.strip("\r\n")
-                return ip == wan_ip
-            except Exception:
-                log.warning(
-                    "checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.",
-                    exc_info=True,
-                )
-                return False
-        elif addr_info[0] == socket.AddressFamily.AF_INET6:
-            return False
-    return True
+    return client.jellyfin._get("System/Endpoint")["IsInNetwork"]
 
 
 def mpv_color_to_plex(color: str):
