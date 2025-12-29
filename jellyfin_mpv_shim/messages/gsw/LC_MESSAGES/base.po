@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-10-28 09:23+0000\n"
-"Last-Translator: Pascal Wiesmann <pascal-wwe@hotmail.de>\n"
+"PO-Revision-Date: 2025-12-29 17:50+0000\n"
+"Last-Translator: wrecker454 <jellyfin.wrecker454@passmail.net>\n"
 "Language-Team: Alemannic <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/gsw/>\n"
+"jellyfin-mpv-shim/gsw/>\n"
 "Language: gsw\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -64,7 +64,7 @@ msgstr "Server erfolgrich hinzuegfüegt."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "En wiitere server hinzuefüege?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
@@ -112,23 +112,23 @@ msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
-msgstr ""
+msgstr "Benutzername:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
-msgstr ""
+msgstr "Passwort:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
-msgstr ""
+msgstr "Server entfärne"
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
-msgstr ""
+msgstr "Schlüsse"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr ""
+msgstr "Servers konfiguriere"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -140,7 +140,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Konfig ordner öffne"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
