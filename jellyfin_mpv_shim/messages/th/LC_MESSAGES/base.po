@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-12-29 17:50+0000\n"
+"PO-Revision-Date: 2025-12-31 08:52+0000\n"
 "Last-Translator: SamuWhale <themorajr@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -84,15 +84,15 @@ msgstr "บันทึกของแอปพลิเคชัน"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "เพิ่มเซิร์ฟเวอร์"
+msgstr "เพิ่มเซริฟเวอร์"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของท่าน"
+"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
+"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -517,11 +517,11 @@ msgstr "ข้ามเพื่อซิงค์ (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr ""
+msgstr "เปิดใช้งาน SyncPlay แล้ว"
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr ""
+msgstr "ปิดใช้งาน SyncPlay แล้ว"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
@@ -541,7 +541,7 @@ msgstr "กลุ่มของ {0}"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
-msgstr ""
+msgstr "ไม่มี (ปิดใช้งาน)"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
@@ -552,47 +552,49 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"มีการอัปเดต MPV Shim v{0} แล้ว\n"
+"เปิดเมนู (กด c) เพื่อดูรายละเอียด"
 
 #: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
-msgstr ""
+msgstr "ไม่ทราบ"
 
 #: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
-msgstr ""
+msgstr " บังคับ"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr ""
+msgstr "ทั่วไป (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr ""
+msgstr "ระดับสูงทั่วไป (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (สำหรับ SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (สำหรับ SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Animechk kch Perceptual + Deblur (สำหรับ SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (สำหรับ HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (สำหรับ HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (สำหรับ HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr ""
+msgstr "เลือกโปรไฟล์ Shader"
