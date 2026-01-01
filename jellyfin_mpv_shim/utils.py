@@ -343,3 +343,145 @@ def get_resource(*path):
 def get_text(*path):
     with open(get_resource(*path)) as fh:
         return fh.read()
+
+
+def get_mpv_config_paths():
+    """
+    Get list of mpv config file paths to check, in priority order.
+    
+    Priority (highest to lowest):
+    1. jellyfin-mpv-shim/mpv.conf - Shim-specific config (allows different settings for shim)
+    2. $MPV_HOME/mpv.conf - User explicitly set MPV_HOME environment variable
+    3. $XDG_CONFIG_HOME/mpv/mpv.conf or ~/.config/mpv/mpv.conf - Standard user config
+    4. Platform-specific defaults - Fallback location
+    
+    Returns:
+        List of paths to check. Only includes paths that exist.
+    
+    Note: The function returns the first file that CONTAINS the requested key,
+    not the first file that EXISTS. This allows fallthrough to lower priority
+    configs if a higher priority config exists but doesn't have the key.
+    """
+    from . import conffile
+    from .constants import APP_NAME
+    import os
+    
+    paths = []
+    
+    # 1. Shim's own config directory (highest priority)
+    try:
+        shim_mpv_conf = conffile.get(APP_NAME, "mpv.conf", True)
+        if os.path.exists(shim_mpv_conf):
+            paths.append(shim_mpv_conf)
+    except Exception:
+        pass
+    
+    # 2. MPV_HOME environment variable (user explicitly set)
+    mpv_home = os.environ.get("MPV_HOME")
+    if mpv_home:
+        mpv_home_conf = os.path.join(mpv_home, "mpv.conf")
+        if os.path.exists(mpv_home_conf):
+            paths.append(mpv_home_conf)
+    
+    # 3. XDG_CONFIG_HOME on Linux/Unix (standard behavior)
+    if not sys.platform.startswith("win32"):
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        if xdg_config:
+            xdg_mpv_conf = os.path.join(xdg_config, "mpv", "mpv.conf")
+        else:
+            xdg_mpv_conf = os.path.join(os.path.expanduser("~"), ".config", "mpv", "mpv.conf")
+        
+        if os.path.exists(xdg_mpv_conf):
+            paths.append(xdg_mpv_conf)
+    
+    # 4. Platform-specific defaults (lowest priority)
+    if sys.platform.startswith("darwin"):
+        # macOS: ~/Library/Application Support/mpv/mpv.conf
+        macos_conf = os.path.join(
+            os.path.expanduser("~"), "Library", "Application Support", "mpv", "mpv.conf"
+        )
+        if os.path.exists(macos_conf):
+            paths.append(macos_conf)
+    elif sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+        # Windows: %APPDATA%\mpv\mpv.conf
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            win_conf = os.path.join(appdata, "mpv", "mpv.conf")
+            if os.path.exists(win_conf):
+                paths.append(win_conf)
+    
+    return paths
+
+
+def get_mpv_config_value(key: str) -> Optional[str]:
+    """
+    Read a configuration value from mpv.conf file.
+    
+    Checks multiple mpv config locations in priority order (see get_mpv_config_paths()).
+    Returns the value from the first file that contains the requested key.
+    
+    Args:
+        key: Configuration key to look for (e.g., "alang", "slang")
+    
+    Returns:
+        The value as a string, or None if not found in any config file.
+    
+    Priority order:
+    1. jellyfin-mpv-shim/mpv.conf (shim-specific settings)
+    2. $MPV_HOME/mpv.conf (if MPV_HOME is set)
+    3. $XDG_CONFIG_HOME/mpv/mpv.conf or ~/.config/mpv/mpv.conf (standard location)
+    4. Platform-specific defaults (~/Library/Application Support/mpv/mpv.conf on macOS,
+       %APPDATA%/mpv/mpv.conf on Windows)
+    
+    Note: If a higher priority file exists but doesn't contain the key, the function
+    continues searching lower priority files. Only returns None if the key is not
+    found in ANY file.
+    """
+    paths_to_check = get_mpv_config_paths()
+    
+    # Try each path in order
+    for mpv_conf_path in paths_to_check:
+        try:
+            with open(mpv_conf_path, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    # Strip whitespace and skip comments/empty lines
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    
+                    # Parse key=value or key value format
+                    if "=" in line:
+                        conf_key, conf_value = line.split("=", 1)
+                        conf_key = conf_key.strip()
+                        conf_value = conf_value.strip()
+                    else:
+                        parts = line.split(None, 1)
+                        if len(parts) != 2:
+                            continue
+                        conf_key, conf_value = parts
+                    
+                    if conf_key == key:
+                        if settings.log_decisions:
+                            log.info(
+                                f"Found {key}={conf_value} in {mpv_conf_path}"
+                            )
+                        return conf_value
+        except Exception:
+            log.warning(f"Could not read {mpv_conf_path} for key '{key}'", exc_info=True)
+            continue
+    
+    return None
+
+
+def parse_language_list(lang_string: Optional[str]) -> list:
+    """
+    Parse a comma-separated language preference string into a list.
+    Returns empty list if input is None or empty.
+    """
+    if not lang_string:
+        return []
+    
+    # Split by comma and strip whitespace
+    langs = [lang.strip() for lang in lang_string.split(",")]
+    # Filter out empty strings
+    return [lang for lang in langs if lang]
