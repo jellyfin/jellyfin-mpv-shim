@@ -33,11 +33,11 @@ def _show_file_win32(path: str):
 
 
 _show_file_func = {
-    "darwin":  _show_file_darwin,
-    "linux":   _show_file_xdg,
+    "darwin": _show_file_darwin,
+    "linux": _show_file_xdg,
     "openbsd": _show_file_xdg,
-    "win32":   _show_file_win32,
-    "cygwin":  _show_file_win32,
+    "win32": _show_file_win32,
+    "cygwin": _show_file_win32,
 }
 
 try:
