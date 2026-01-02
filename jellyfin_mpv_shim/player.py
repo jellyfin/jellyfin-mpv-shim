@@ -154,6 +154,7 @@ class PlayerManager(object):
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
         self.trickplay = None
+        self._shutdown_flag = False  # Flag to indicate shutdown in progress
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -473,13 +474,18 @@ class PlayerManager(object):
     def skip_intro(self):
         _, intro = self._video.get_current_intro(self._player.playback_time)
 
-        self._player.playback_time = intro.end
+        if not self._player.playback_abort:
+            self._player.command("seek", intro.end, "absolute")
+
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
 
     @synchronous("_lock")
     def update(self):
+        if self._shutdown_flag:
+            return
+        playback_time = self._safe_get_property("playback_time")
         if (
             (
                 settings.skip_intro_always
@@ -489,10 +495,10 @@ class PlayerManager(object):
             )
             and not self.syncplay.is_enabled()
             and self._video is not None
-            and self._player.playback_time is not None
+            and playback_time is not None
         ):
             ready_to_skip, intro = self._video.get_current_intro(
-                self._player.playback_time
+                playback_time
             )
 
             if intro is not None:
@@ -647,7 +653,8 @@ class PlayerManager(object):
         if self.syncplay.is_enabled():
             self.syncplay.disable_sync_play(False)
 
-        if not self._video or self._player.playback_abort:
+        playback_abort = self._safe_get_property("playback_abort", True)
+        if not self._video or playback_abort:
             self.exec_stop_cmd()
             return
 
@@ -658,7 +665,10 @@ class PlayerManager(object):
         self.set_paused(False)
         local_video = self._video
         self._video = None
-        self._player.command("stop")
+        try:
+            self._player.command("stop")
+        except (BrokenPipeError, OSError):
+            log.debug("MPV already terminated during stop")
         local_video.terminate_transcode()
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
@@ -1018,10 +1028,13 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline(self):
+        if self._shutdown_flag:
+            return
+        playback_abort = self._safe_get_property("playback_abort", True)
         if (
             self.should_send_timeline
             and self._video
-            and not self._player.playback_abort
+            and not playback_abort
         ):
             self._video.client.jellyfin.session_progress(self.get_timeline_options())
             try:
@@ -1060,9 +1073,13 @@ class PlayerManager(object):
             self._player.keep_open = self._video.parent.has_next
 
     def terminate(self):
+        self._shutdown_flag = True
         self.stop()
         if is_using_ext_mpv:
-            self._player.terminate()
+            try:
+                self._player.terminate()
+            except (BrokenPipeError, OSError):
+                log.debug("MPV already terminated")
 
         if self.trickplay:
             self.trickplay.stop()
@@ -1075,17 +1092,40 @@ class PlayerManager(object):
         seek_right = custom_prefs.get("skipForwardLength") or 30000
         return -int(seek_left) / 1000, int(seek_right) / 1000
 
+    def _safe_get_property(self, name: str, default=None):
+        """
+        Safely get MPV property, handling shutdown and broken pipe errors.
+
+        Args:
+            name: The MPV property name to retrieve
+            default: Default value to return if property cannot be accessed
+
+        Returns:
+            The property value or default if unavailable
+        """
+        if self._shutdown_flag:
+            return default
+        try:
+            return getattr(self._player, name)
+        except (BrokenPipeError, OSError):
+            return default
+
     # Wrappers to avoid private access
     def is_active(self):
-        return bool(self._player and self._video)
+        return bool(self._player and self._video and not self._shutdown_flag)
 
     def is_playing(self):
-        return bool(self._video and not self._player.playback_abort)
+        if self._shutdown_flag:
+            return False
+        playback_abort = self._safe_get_property("playback_abort", True)
+        return bool(self._video and not playback_abort)
 
     def is_not_paused(self):
-        return bool(
-            self._video and not self._player.playback_abort and not self._player.pause
-        )
+        if self._shutdown_flag:
+            return False
+        playback_abort = self._safe_get_property("playback_abort", True)
+        pause = self._safe_get_property("pause", False)
+        return bool(self._video and not playback_abort and not pause)
 
     def has_video(self):
         return self._video is not None

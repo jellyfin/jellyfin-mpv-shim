@@ -105,10 +105,15 @@ def main():
                 print("")
                 log.info("Stopping services...")
     finally:
-        playerManager.terminate()
+        # Stop threads first to prevent them from accessing MPV during shutdown
+        log.debug("Stopping timeline and action threads...")
         timelineManager.stop()
         actionThread.stop()
+        log.debug("Terminating player...")
+        playerManager.terminate()
+        log.debug("Stopping client manager...")
         clientManager.stop()
+        log.debug("Stopping user interface...")
         user_interface.stop()
 
 if __name__ == "__main__":

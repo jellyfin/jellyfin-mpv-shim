@@ -18,8 +18,12 @@ class ActionThread(threading.Thread):
     def run(self):
         force_next = False
         while not self.halt:
-            if playerManager.is_active() or force_next:
-                playerManager.update()
+            try:
+                if playerManager.is_active() or force_next:
+                    playerManager.update()
+            except (BrokenPipeError, OSError):
+                # MPV terminated, exit gracefully
+                break
 
             force_next = False
             if self.trigger.wait(1):
