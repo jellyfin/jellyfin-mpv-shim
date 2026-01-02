@@ -3,6 +3,7 @@ from io import BytesIO
 
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -11,8 +12,10 @@ except ImportError:
 
 def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh):
     if not PIL_AVAILABLE:
-        raise ImportError("Pillow (PIL) is required for trickplay thumbnails. Install with: pip install pillow")
-    
+        raise ImportError(
+            "Pillow (PIL) is required for trickplay thumbnails. Install with: pip install pillow"
+        )
+
     image_count = 0
 
     for image in tiles:
@@ -41,8 +44,10 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh):
 
 def decompress_bif(images, fh):
     if not PIL_AVAILABLE:
-        raise ImportError("Pillow (PIL) is required for trickplay thumbnails. Install with: pip install pillow")
-    
+        raise ImportError(
+            "Pillow (PIL) is required for trickplay thumbnails. Install with: pip install pillow"
+        )
+
     height = None
     width = None
     image_count = 0

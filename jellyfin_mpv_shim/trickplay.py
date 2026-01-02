@@ -9,6 +9,7 @@ from .constants import APP_NAME
 
 try:
     from . import bifdecode
+
     BIFDECODE_AVAILABLE = bifdecode.PIL_AVAILABLE
 except ImportError:
     BIFDECODE_AVAILABLE = False
@@ -43,9 +44,11 @@ class TrickPlay(threading.Thread):
 
     def run(self):
         if not BIFDECODE_AVAILABLE:
-            log.warning("Trickplay thumbnails disabled: Pillow (PIL) not available. Install with: pip install pillow")
+            log.warning(
+                "Trickplay thumbnails disabled: Pillow (PIL) not available. Install with: pip install pillow"
+            )
             return
-        
+
         while not self.halt:
             self.trigger.wait()
             self.trigger.clear()
