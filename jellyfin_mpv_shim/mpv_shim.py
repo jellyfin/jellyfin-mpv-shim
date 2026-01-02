@@ -105,6 +105,8 @@ def main():
                 print("")
                 log.info("Stopping services...")
     finally:
+        # Mark player as shutting down to prevent further operations
+        playerManager.shutdown()
         # Stop threads first to prevent them from accessing MPV during shutdown
         log.debug("Stopping timeline and action threads...")
         timelineManager.stop()

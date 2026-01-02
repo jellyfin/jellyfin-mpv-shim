@@ -1073,7 +1073,6 @@ class PlayerManager(object):
             self._player.keep_open = self._video.parent.has_next
 
     def terminate(self):
-        self._shutdown_flag = True
         self.stop()
         if is_using_ext_mpv:
             try:
@@ -1083,6 +1082,10 @@ class PlayerManager(object):
 
         if self.trickplay:
             self.trickplay.stop()
+
+    def shutdown(self):
+        """Mark player as shutting down to prevent further operations."""
+        self._shutdown_flag = True
 
     def get_seek_times(self):
         if self._jf_settings is None:
