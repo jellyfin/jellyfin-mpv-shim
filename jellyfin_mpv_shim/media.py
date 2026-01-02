@@ -3,6 +3,7 @@ import urllib.parse
 import os.path
 import re
 import pathlib
+import requests
 from io import BytesIO
 from sys import platform
 
@@ -157,13 +158,52 @@ class Video(object):
             return settings.remote_kbps
 
     def terminate_transcode(self):
-        if self.is_transcode:
-            try:
-                self.client.jellyfin.close_transcode(
-                    self.client.config.data["app.device_id"]
+        """
+        Terminate an active transcode session.
+        
+        The Jellyfin API requires both deviceId and playSessionId to stop a transcode.
+        If playback_info is not available or there's no active session, we skip the call
+        or handle errors gracefully.
+        """
+        if not self.is_transcode:
+            return
+        
+        # Only attempt to terminate if we have playback info with a PlaySessionId
+        if not self.playback_info or "PlaySessionId" not in self.playback_info:
+            if settings.log_decisions:
+                log.debug("No PlaySessionId available, skipping transcode termination")
+            return
+        
+        try:
+            device_id = self.client.config.data["app.device_id"]
+            play_session_id = self.playback_info["PlaySessionId"]
+            server_url = self.client.config.data["auth.server"]
+            
+            # Make direct DELETE request with both required parameters
+            url = f"{server_url}/Videos/ActiveEncodings"
+            params = {
+                "deviceId": device_id,
+                "playSessionId": play_session_id
+            }
+            headers = self.client.jellyfin.get_default_headers()
+            
+            response = requests.delete(url, params=params, headers=headers, timeout=5)
+            
+            # 204 = success, 400/404 = no active session (which is fine)
+            if response.status_code == 204:
+                if settings.log_decisions:
+                    log.info("Transcode session terminated successfully")
+            elif response.status_code in (400, 404):
+                if settings.log_decisions:
+                    log.debug("No active transcode session to terminate (already stopped)")
+            else:
+                log.warning(
+                    f"Unexpected response when terminating transcode: {response.status_code}"
                 )
-            except:
-                log.warning("Terminating transcode failed.", exc_info=1)
+        except requests.exceptions.Timeout:
+            log.warning("Timeout while terminating transcode session")
+        except Exception:
+            log.warning("Terminating transcode failed.", exc_info=1)
 
     def _get_url_from_source(self):
         # Only use Direct Paths if:
