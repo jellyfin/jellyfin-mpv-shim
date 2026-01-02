@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-07-17 12:12+0000\n"
-"Last-Translator: Troja <d.iwowi.b@gmail.com>\n"
+"PO-Revision-Date: 2026-01-02 11:39+0000\n"
+"Last-Translator: Dzmitry Zubialevich <dzmitry.zubialevich@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/be/>\n"
+"jellyfin-mpv-shim/be/>\n"
 "Language: be\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -25,7 +25,7 @@ msgstr "Выбар дарожак..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: без субтытраў"
+msgstr "{0}: без субцітраў"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
@@ -33,7 +33,7 @@ msgstr "{0}: Няўдача"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Усталюйце субтытры: {0} ОК, {1} няўдача"
+msgstr "Задаць субцітраж: {0} ОК, {1} няўдала"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -217,7 +217,7 @@ msgstr "Змяніць аўдыё"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Змяніць субтытры"
+msgstr "Змяніць субцітры"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
@@ -237,7 +237,7 @@ msgstr "Змяніць профіль прайгравання відэа"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Аўтаматычна ўстанаўліваць аўдыё/субтытры (увесь серыял)"
+msgstr "Аўтаматычна задаваць аўдыя/субцітры (увесь серыял)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -273,7 +273,7 @@ msgstr "Выберыце аўдыёдарожку"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Выберыце дарожку субтытраў"
+msgstr "Выбраць дарожку субцітраў"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -293,7 +293,7 @@ msgstr "Без перакадзіравання"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Выберыце аўдыё/субтытры для серыі"
+msgstr "Выбраць аўдыя/субцітры для серыі"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -301,7 +301,7 @@ msgstr "Ангельскае аудыё"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Японскае аўдыё з ангельскімі субтытрамі"
+msgstr "Японскае аўдыя з англійскімі субцітрамі"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
@@ -313,15 +313,15 @@ msgstr "Выберыце профіль перакадзіравання па з
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Выберыце колер субтытраў"
+msgstr "Выбраць колер субцітраў"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Выберыце памер субтытраў"
+msgstr "Выбраць памер субцітраў"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Выберыце палажэнне субтытраў"
+msgstr "Выбраць пазіцыю субцітраў"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
@@ -341,15 +341,15 @@ msgstr "Якасць дыстанцыйнага перакадзіравання
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr "Памер субтытраў: {0}"
+msgstr "Памер субцітраў: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr "Пазіцыя субтытраў: {0}"
+msgstr "Пазіцыя субцітраў: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "Колер субтытраў: {0}"
+msgstr "Колер субцітраў: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
