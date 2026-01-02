@@ -180,9 +180,7 @@ class Video(object):
             if alang_str:
                 alang_prefs = parse_language_list(alang_str)
                 if alang_prefs:
-                    selected_aid = self._select_stream_by_language(
-                        "Audio", alang_prefs
-                    )
+                    selected_aid = self._select_stream_by_language("Audio", alang_prefs)
                     if selected_aid is not None:
                         self.aid = selected_aid
                         if settings.log_decisions:
@@ -212,14 +210,14 @@ class Video(object):
         """
         Select a stream based on language preference list from a media source.
         Returns the stream Index, or None if no match found.
-        
+
         Optimized with O(n) complexity using dictionary lookup instead of nested loops.
-        
+
         Args:
             media_source: Media source dictionary containing MediaStreams
             stream_type: "Audio" or "Subtitle"
             lang_prefs: List of language codes in preference order
-        
+
         Returns:
             Stream Index if found, None otherwise
         """
@@ -260,13 +258,13 @@ class Video(object):
         """
         Select a stream based on language preference list.
         Returns the stream Index, or None if no match found.
-        
+
         Optimized with O(n) complexity using dictionary lookup instead of nested loops.
-        
+
         Args:
             stream_type: "Audio" or "Subtitle"
             lang_prefs: List of language codes in preference order
-        
+
         Returns:
             Stream Index if found, None otherwise
         """
@@ -275,9 +273,7 @@ class Video(object):
 
         # Get all streams of the specified type
         streams = [
-            s
-            for s in self.media_source["MediaStreams"]
-            if s.get("Type") == stream_type
+            s for s in self.media_source["MediaStreams"] if s.get("Type") == stream_type
         ]
 
         if not streams:
