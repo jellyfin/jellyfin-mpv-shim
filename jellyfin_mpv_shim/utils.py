@@ -349,11 +349,20 @@ def get_mpv_config_paths():
     """
     Get list of mpv config file paths to check, in priority order.
     
-    Priority (highest to lowest):
+    Respects mpv_ext_no_ovr setting:
+    - If False (default): Shim config has highest priority
+    - If True: Skip shim config, use only user's global MPV config
+    
+    Priority (when mpv_ext_no_ovr = False, default):
     1. jellyfin-mpv-shim/mpv.conf - Shim-specific config (allows different settings for shim)
     2. $MPV_HOME/mpv.conf - User explicitly set MPV_HOME environment variable
     3. $XDG_CONFIG_HOME/mpv/mpv.conf or ~/.config/mpv/mpv.conf - Standard user config
     4. Platform-specific defaults - Fallback location
+    
+    Priority (when mpv_ext_no_ovr = True):
+    1. $MPV_HOME/mpv.conf - User explicitly set MPV_HOME environment variable
+    2. $XDG_CONFIG_HOME/mpv/mpv.conf or ~/.config/mpv/mpv.conf - Standard user config
+    3. Platform-specific defaults - Fallback location
     
     Returns:
         List of paths to check. Only includes paths that exist.
@@ -369,12 +378,15 @@ def get_mpv_config_paths():
     paths = []
     
     # 1. Shim's own config directory (highest priority)
-    try:
-        shim_mpv_conf = conffile.get(APP_NAME, "mpv.conf", True)
-        if os.path.exists(shim_mpv_conf):
-            paths.append(shim_mpv_conf)
-    except Exception:
-        pass
+    # ONLY if mpv_ext_no_ovr is False (default behavior)
+    # When mpv_ext_no_ovr is True, user wants to use their own MPV config exclusively
+    if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
+        try:
+            shim_mpv_conf = conffile.get(APP_NAME, "mpv.conf", True)
+            if os.path.exists(shim_mpv_conf):
+                paths.append(shim_mpv_conf)
+        except Exception:
+            pass
     
     # 2. MPV_HOME environment variable (user explicitly set)
     mpv_home = os.environ.get("MPV_HOME")
