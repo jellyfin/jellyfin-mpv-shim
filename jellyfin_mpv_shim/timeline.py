@@ -35,7 +35,10 @@ class TimelineManager(threading.Thread):
                     if self.is_idle and settings.idle_ended_cmd:
                         os.system(settings.idle_ended_cmd)
                     self.delay_idle()
-                if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
+                if (
+                    self.idleTimer.elapsed() > settings.idle_cmd_delay
+                    and not self.is_idle
+                ):
                     if (
                         settings.idle_when_paused
                         and settings.stop_idle

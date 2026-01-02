@@ -497,9 +497,7 @@ class PlayerManager(object):
             and self._video is not None
             and playback_time is not None
         ):
-            ready_to_skip, intro = self._video.get_current_intro(
-                playback_time
-            )
+            ready_to_skip, intro = self._video.get_current_intro(playback_time)
 
             if intro is not None:
                 should_prompt = (
@@ -1031,11 +1029,7 @@ class PlayerManager(object):
         if self._shutdown_flag:
             return
         playback_abort = self._safe_get_property("playback_abort", True)
-        if (
-            self.should_send_timeline
-            and self._video
-            and not playback_abort
-        ):
+        if self.should_send_timeline and self._video and not playback_abort:
             self._video.client.jellyfin.session_progress(self.get_timeline_options())
             try:
                 if self.syncplay.is_enabled():
