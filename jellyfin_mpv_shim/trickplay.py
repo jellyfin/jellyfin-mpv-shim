@@ -4,9 +4,15 @@ import logging
 import math
 
 from .conf import settings
-from . import bifdecode
 from . import conffile
 from .constants import APP_NAME
+
+try:
+    from . import bifdecode
+    BIFDECODE_AVAILABLE = bifdecode.PIL_AVAILABLE
+except ImportError:
+    BIFDECODE_AVAILABLE = False
+    bifdecode = None
 
 log = logging.getLogger("trickplay")
 img_file = conffile.get(APP_NAME, "raw_images.bin")
@@ -36,6 +42,10 @@ class TrickPlay(threading.Thread):
             os.remove(img_file)
 
     def run(self):
+        if not BIFDECODE_AVAILABLE:
+            log.warning("Trickplay thumbnails disabled: Pillow (PIL) not available. Install with: pip install pillow")
+            return
+        
         while not self.halt:
             self.trigger.wait()
             self.trigger.clear()
