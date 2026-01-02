@@ -36,7 +36,11 @@ def main():
     log = root_logger
 
     if sys.platform.startswith("darwin"):
-        multiprocessing.set_start_method("forkserver")
+        try:
+            multiprocessing.set_start_method("forkserver")
+        except RuntimeError:
+            # Context already set, ignore (happens in Python 3.14+)
+            pass
 
     user_interface = None
     mirror = None
