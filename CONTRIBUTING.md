@@ -14,12 +14,42 @@ be sure that there are no `api_key` values in the information you are sharing.
 
 The core use-case of this application is to allow someone to cast media from their Jellyfin server to MPV.
 The most basic version of this is command-line only. I would like to retain this "degraded" mode of operation
-regardless of what features are added, despite the default (provided the required dependencies are installed) 
+regardless of what features are added, despite the default (provided the required dependencies are installed)
 being to run with a system tray and GUI.
 
 If you would like to add additional features that disrupt or make the command-line workflow impossible, please
 allow the features to be disabled from the config file. For instance, the GUI and CLI are two separate modules
 that are swapped between depending on the situation.
+
+## Code Style and Quality
+
+This project follows the [Black](https://github.com/psf/black) code style for Python formatting. We use
+pre-commit hooks to automatically check and format code before commits.
+
+### Setting Up Pre-commit Hooks
+
+After cloning the repository, install and set up pre-commit:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+
+# (Optional) Run against all files to check current state
+pre-commit run --all-files
+```
+
+The pre-commit hooks will automatically:
+- Format Python code with Black (88 character line length)
+- Remove trailing whitespace
+- Ensure files end with a newline
+- Check YAML syntax
+- Detect merge conflicts
+- Prevent committing large files
+
+If the hooks make changes to your files, review the changes and commit again.
 
 ## Adding Dependencies
 
@@ -68,7 +98,7 @@ Current Dependencies:
  - `rich_presence.py` - Module which implements Discord Rich Presence integration.
  - `svp_integration.py` - Implements SVP API and menu functionality for controlling SVP.
  - `syncplay.py` - Implements the SyncPlay time syncing events and algorithms.
-     - Note that time syncing with the server is [part of the api client](https://github.com/jellyfin/jellyfin-apiclient-python/blob/master/jellyfin_apiclient_python/timesync_manager.py). 
+     - Note that time syncing with the server is [part of the api client](https://github.com/jellyfin/jellyfin-apiclient-python/blob/master/jellyfin_apiclient_python/timesync_manager.py).
  - `timeline.py` - Thread to trigger playback events to the Jellyfin server.
      - Note: `player.py` is where the actual response is created.
  - `update_check.py` - Implements update checking, notifications, and the menu option to open the release page.

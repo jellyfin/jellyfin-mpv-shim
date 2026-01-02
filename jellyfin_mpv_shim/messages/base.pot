@@ -589,4 +589,3 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr ""
-
