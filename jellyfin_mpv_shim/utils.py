@@ -413,12 +413,20 @@ def get_mpv_config_paths():
     return paths
 
 
+# Module-level cache for parsed config files
+_mpv_config_cache = {}
+_mpv_config_mtime = {}
+
+
 def get_mpv_config_value(key: str) -> Optional[str]:
     """
-    Read a configuration value from mpv.conf file.
+    Read a configuration value from mpv.conf file with caching.
     
     Checks multiple mpv config locations in priority order (see get_mpv_config_paths()).
     Returns the value from the first file that contains the requested key.
+    
+    Config files are cached in memory and only re-parsed if the file modification
+    time changes, significantly improving performance for repeated lookups.
     
     Args:
         key: Configuration key to look for (e.g., "alang", "slang")
@@ -442,30 +450,53 @@ def get_mpv_config_value(key: str) -> Optional[str]:
     # Try each path in order
     for mpv_conf_path in paths_to_check:
         try:
-            with open(mpv_conf_path, "r", encoding="utf-8") as fh:
-                for line in fh:
-                    # Strip whitespace and skip comments/empty lines
-                    line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-                    
-                    # Parse key=value or key value format
-                    if "=" in line:
-                        conf_key, conf_value = line.split("=", 1)
-                        conf_key = conf_key.strip()
-                        conf_value = conf_value.strip()
-                    else:
-                        parts = line.split(None, 1)
-                        if len(parts) != 2:
+            # Check if we need to reload the config file
+            current_mtime = os.path.getmtime(mpv_conf_path)
+            
+            # Cache miss or file modified - parse the config
+            if (mpv_conf_path not in _mpv_config_cache or 
+                _mpv_config_mtime.get(mpv_conf_path) != current_mtime):
+                
+                config_dict = {}
+                with open(mpv_conf_path, "r", encoding="utf-8") as fh:
+                    for line in fh:
+                        # Strip whitespace and skip comments/empty lines
+                        line = line.strip()
+                        if not line or line.startswith("#"):
                             continue
-                        conf_key, conf_value = parts
-                    
-                    if conf_key == key:
-                        if settings.log_decisions:
-                            log.info(
-                                f"Found {key}={conf_value} in {mpv_conf_path}"
-                            )
-                        return conf_value
+                        
+                        # Parse key=value or key value format
+                        if "=" in line:
+                            conf_key, conf_value = line.split("=", 1)
+                            conf_key = conf_key.strip()
+                            conf_value = conf_value.strip()
+                        else:
+                            parts = line.split(None, 1)
+                            if len(parts) != 2:
+                                continue
+                            conf_key, conf_value = parts
+                        
+                        # Store in dictionary (first occurrence wins)
+                        if conf_key not in config_dict:
+                            config_dict[conf_key] = conf_value
+                
+                # Update cache
+                _mpv_config_cache[mpv_conf_path] = config_dict
+                _mpv_config_mtime[mpv_conf_path] = current_mtime
+                
+                if settings.log_decisions:
+                    log.debug(f"Parsed and cached mpv config from {mpv_conf_path}")
+            
+            # O(1) lookup from cache
+            if key in _mpv_config_cache[mpv_conf_path]:
+                value = _mpv_config_cache[mpv_conf_path][key]
+                if settings.log_decisions:
+                    log.info(f"Found {key}={value} in {mpv_conf_path}")
+                return value
+                
+        except FileNotFoundError:
+            # File was deleted between get_mpv_config_paths() and now
+            continue
         except Exception:
             log.warning(f"Could not read {mpv_conf_path} for key '{key}'", exc_info=True)
             continue

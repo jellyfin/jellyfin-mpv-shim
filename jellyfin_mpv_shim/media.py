@@ -213,6 +213,8 @@ class Video(object):
         Select a stream based on language preference list from a media source.
         Returns the stream Index, or None if no match found.
         
+        Optimized with O(n) complexity using dictionary lookup instead of nested loops.
+        
         Args:
             media_source: Media source dictionary containing MediaStreams
             stream_type: "Audio" or "Subtitle"
@@ -234,13 +236,21 @@ class Video(object):
         if not streams:
             return None
 
-        # Try each language preference in order
+        # Build language-to-index mapping for O(1) lookup
+        # Use first stream for each language (preserves priority)
+        lang_to_index = {}
+        for stream in streams:
+            stream_lang = stream.get("Language")
+            if stream_lang:
+                lang_lower = stream_lang.lower()
+                if lang_lower not in lang_to_index:
+                    lang_to_index[lang_lower] = stream["Index"]
+
+        # Find first matching preference - O(n) instead of O(n*m)
         for lang_pref in lang_prefs:
             lang_pref_lower = lang_pref.lower()
-            for stream in streams:
-                stream_lang = stream.get("Language")
-                if stream_lang and stream_lang.lower() == lang_pref_lower:
-                    return stream["Index"]
+            if lang_pref_lower in lang_to_index:
+                return lang_to_index[lang_pref_lower]
 
         return None
 
@@ -250,6 +260,8 @@ class Video(object):
         """
         Select a stream based on language preference list.
         Returns the stream Index, or None if no match found.
+        
+        Optimized with O(n) complexity using dictionary lookup instead of nested loops.
         
         Args:
             stream_type: "Audio" or "Subtitle"
@@ -271,13 +283,21 @@ class Video(object):
         if not streams:
             return None
 
-        # Try each language preference in order
+        # Build language-to-index mapping for O(1) lookup
+        # Use first stream for each language (preserves priority)
+        lang_to_index = {}
+        for stream in streams:
+            stream_lang = stream.get("Language")
+            if stream_lang:
+                lang_lower = stream_lang.lower()
+                if lang_lower not in lang_to_index:
+                    lang_to_index[lang_lower] = stream["Index"]
+
+        # Find first matching preference - O(n) instead of O(n*m)
         for lang_pref in lang_prefs:
             lang_pref_lower = lang_pref.lower()
-            for stream in streams:
-                stream_lang = stream.get("Language")
-                if stream_lang and stream_lang.lower() == lang_pref_lower:
-                    return stream["Index"]
+            if lang_pref_lower in lang_to_index:
+                return lang_to_index[lang_pref_lower]
 
         return None
 
