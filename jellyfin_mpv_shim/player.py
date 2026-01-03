@@ -953,7 +953,7 @@ class PlayerManager(object):
         self.last_seek = safe_pos
         self.pause_ignore = player.pause
         options = {
-            "VolumeLevel": int(player.volume or 100),
+            "VolumeLevel": int(none_fallback(player.volume, 100)),
             "IsMuted": player.mute,
             "IsPaused": player.pause,
             "RepeatMode": "RepeatNone",
