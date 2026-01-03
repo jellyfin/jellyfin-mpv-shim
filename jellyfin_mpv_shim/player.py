@@ -946,16 +946,25 @@ class PlayerManager(object):
         # PlaylistItemId is dynamically generated. A more stable Id will be used
         # if queue manipulation is added as a feature.
         player = self._player
+
+        # Cache player properties to reduce IPC calls (especially with external MPV)
+        volume = player.volume
+        mute = player.mute
+        pause = player.pause
+        duration = player.duration
+        cache_buffering = player.cache_buffering_state
+        playback_time = player.playback_time
+
         if finished:
             safe_pos = self._video.get_duration() or 0
         else:
-            safe_pos = player.playback_time or 0
+            safe_pos = playback_time or 0
         self.last_seek = safe_pos
-        self.pause_ignore = player.pause
+        self.pause_ignore = pause
         options = {
-            "VolumeLevel": int(none_fallback(player.volume, 100)),
-            "IsMuted": player.mute,
-            "IsPaused": player.pause,
+            "VolumeLevel": int(none_fallback(volume, 100)),
+            "IsMuted": mute,
+            "IsPaused": pause,
             "RepeatMode": "RepeatNone",
             # "MaxStreamingBitrate": 140000000,
             "PositionTicks": int(safe_pos * 10000000),
@@ -971,17 +980,15 @@ class PlayerManager(object):
             "ItemId": self._video.item_id,
             "NowPlayingQueue": self._video.parent.queue,
         }
-        if player.duration is not None:
+        if duration is not None:
             options["BufferedRanges"] = [
                 {
                     "start": int(safe_pos * 10000000),
                     "end": int(
                         (
                             (
-                                player.duration
-                                - safe_pos
-                                * none_fallback(player.cache_buffering_state, 0)
-                                / 100
+                                duration
+                                - safe_pos * none_fallback(cache_buffering, 0) / 100
                             )
                             + safe_pos
                         )
@@ -1007,9 +1014,9 @@ class PlayerManager(object):
                 send_presence(
                     title,
                     subtitle,
-                    player.playback_time,
-                    player.duration,
-                    not player.pause,
+                    playback_time,
+                    duration,
+                    not pause,
                     self.syncplay.current_group,
                 )
             except Exception:
