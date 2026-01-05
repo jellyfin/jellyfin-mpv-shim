@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-01-02 11:39+0000\n"
+"PO-Revision-Date: 2026-01-05 13:51+0000\n"
 "Last-Translator: Dzmitry Zubialevich <dzmitry.zubialevich@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -454,7 +454,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr "Сезон {0} - Эпізод {1}"
+msgstr "Сезон {0} - Серыя {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
