@@ -6,37 +6,37 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2022-08-06 12:22+0000\n"
-"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
+"PO-Revision-Date: 2026-01-10 14:36+0000\n"
+"Last-Translator: Samuvel Paul <samuvalpaul@outlook.com>\n"
 "Language-Team: Malayalam <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ml/>\n"
+"jellyfin-mpv-shim/ml/>\n"
 "Language: ml\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "ട്രാക്കുകൾ തിരഞ്ഞെടുക്കുന്നു..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: സബ്റ്റൈറ്റിലുകൾ ലഭ്യമല്ല"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: പരാജയം"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "സബ്റ്റൈറ്റിൽ ഉള്ളവ: {0} ഓക്കെ, {1} പരാജയം"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "ഡബ്ബ് ചെയ്തിട്ടുള്ളവ: {0} ഓക്കെ, {1} ശബ്ദം മാത്രം, {2} പരാജയം"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
@@ -44,31 +44,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
-msgstr ""
+msgstr "നിലവിൽ വരുത്തുന്നു..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr ""
+msgstr "സെർവർ യൂ ആർ എൽ: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "ഉപയോക്തൃനാമം: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "പാസ്‌വേഡ് "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr ""
+msgstr "സെർവർ വിജയകരമായി ചേർത്തിരിക്കുന്നു."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "മറ്റൊരു സെർവർ ചേർക്കണോ?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr ""
+msgstr "സെർവർ ചേർക്കുന്നത് പരാജയപ്പെട്ടു."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -77,45 +77,48 @@ msgstr ""
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
 msgstr ""
+"നിങ്ങളുടെ മീഡിയാ ഫയലുകൾ ജെല്ലീഫിന്നിൽ തിരഞ്ഞെടുക്കുകയും അവ ഇവിടെ പ്ലേ ചെയ്യുകയും ചെയ്യുക"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153 jellyfin_mpv_shim/gui_mgr.py:154
 msgid "Application Log"
-msgstr ""
+msgstr "ആപ്ലിക്കേഷൻ ലോഗുകൾ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 #: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:336
 msgid "Add Server"
-msgstr ""
+msgstr "സെർവർ ചേർക്കുക"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246 jellyfin_mpv_shim/gui_mgr.py:247
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"സെർവർ ചേർക്കാൻ സാധിച്ചില്ല.\n"
+"ദയവായി നിങ്ങളുടെ ഇന്റർനെറ്റുമായി ബന്ധപ്പെട്ട വിവരങ്ങൾ പരിശോധിക്കുക."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267 jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Fail"
-msgstr ""
+msgstr "പരാജയം"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267 jellyfin_mpv_shim/gui_mgr.py:268
 msgid "Ok"
-msgstr ""
+msgstr "ഓക്കെ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280 jellyfin_mpv_shim/gui_mgr.py:281
 msgid "Server Configuration"
-msgstr ""
+msgstr "സെർവർ ക്രമീകരണങ്ങൾ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303 jellyfin_mpv_shim/gui_mgr.py:304
 msgid "Server:"
-msgstr ""
+msgstr "സെർവർ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308 jellyfin_mpv_shim/gui_mgr.py:309
 msgid "Username:"
-msgstr ""
+msgstr "ഉപയോക്തൃനാമം:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313 jellyfin_mpv_shim/gui_mgr.py:314
 msgid "Password:"
-msgstr ""
+msgstr "പാസ്‌വേഡ്:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338 jellyfin_mpv_shim/gui_mgr.py:339
 msgid "Remove Server"
