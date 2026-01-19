@@ -263,9 +263,9 @@ class Video(object):
             for intro in skip_intro_data["Items"]:
                 self.intros.append(
                     Intro(
-                        intro["Type"], # Intro or Outro
+                        intro["Type"],  # Intro or Outro
                         intro["StartTicks"] / 10000000,
-                        intro["EndTicks"] / 10000000
+                        intro["EndTicks"] / 10000000,
                     )
                 )
         except:

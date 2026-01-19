@@ -58,7 +58,7 @@ function client_message_handler(event)
         img_width = tonumber(event["args"][2])
         img_height = tonumber(event["args"][3])
         img_file = event["args"][4]
-        
+
         img_chapters = {}
         for timestamp in string.gmatch(event["args"][5], '([^,]+)') do
             table.insert(img_chapters, tonumber(timestamp))
