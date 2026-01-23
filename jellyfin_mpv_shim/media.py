@@ -159,16 +159,46 @@ class Video(object):
 
     def terminate_transcode(self):
         """
-        Terminate an active transcode session.
+        Terminate an active transcode session and/or close live stream.
 
-        The Jellyfin API requires both deviceId and playSessionId to stop a transcode.
-        If playback_info is not available or there's no active session, we skip the call
-        or handle errors gracefully.
+        For Live TV streams, we need to call /LiveStreams/Close with the LiveStreamId.
+        For regular transcodes, we call /Videos/ActiveEncodings with deviceId and playSessionId.
+
+        Some streams may require both calls.
         """
         if not self.is_transcode:
             return
 
-        # Only attempt to terminate if we have playback info with a PlaySessionId
+        server_url = self.client.config.data["auth.server"]
+        headers = self.client.jellyfin.get_default_headers()
+
+        # Step 1: Close live stream if this is a live TV stream
+        live_stream_id = None
+        if self.media_source and "LiveStreamId" in self.media_source:
+            live_stream_id = self.media_source["LiveStreamId"]
+
+            if live_stream_id:
+                try:
+                    url = f"{server_url}/LiveStreams/Close"
+                    params = {"liveStreamId": live_stream_id}
+
+                    log.info(f"Closing live stream: {live_stream_id}")
+                    response = requests.post(
+                        url, params=params, headers=headers, timeout=5
+                    )
+
+                    if response.status_code == 204:
+                        log.info("Live stream closed successfully")
+                    else:
+                        log.warning(
+                            f"Unexpected response when closing live stream: {response.status_code}"
+                        )
+                except requests.exceptions.Timeout:
+                    log.warning("Timeout while closing live stream")
+                except Exception:
+                    log.warning("Closing live stream failed.", exc_info=True)
+
+        # Step 2: Terminate transcode session (for regular transcodes or as fallback)
         if not self.playback_info or "PlaySessionId" not in self.playback_info:
             if settings.log_decisions:
                 log.debug("No PlaySessionId available, skipping transcode termination")
@@ -177,19 +207,20 @@ class Video(object):
         try:
             device_id = self.client.config.data["app.device_id"]
             play_session_id = self.playback_info["PlaySessionId"]
-            server_url = self.client.config.data["auth.server"]
 
-            # Make direct DELETE request with both required parameters
             url = f"{server_url}/Videos/ActiveEncodings"
             params = {"deviceId": device_id, "playSessionId": play_session_id}
-            headers = self.client.jellyfin.get_default_headers()
+
+            log.info(
+                f"Terminating transcode session: deviceId={device_id}, "
+                f"playSessionId={play_session_id}, liveStreamId={live_stream_id or 'N/A'}"
+            )
 
             response = requests.delete(url, params=params, headers=headers, timeout=5)
 
             # 204 = success, 400/404 = no active session (which is fine)
             if response.status_code == 204:
-                if settings.log_decisions:
-                    log.info("Transcode session terminated successfully")
+                log.info("Transcode session terminated successfully")
             elif response.status_code in (400, 404):
                 if settings.log_decisions:
                     log.debug(
@@ -202,7 +233,7 @@ class Video(object):
         except requests.exceptions.Timeout:
             log.warning("Timeout while terminating transcode session")
         except Exception:
-            log.warning("Terminating transcode failed.", exc_info=1)
+            log.warning("Terminating transcode failed.", exc_info=True)
 
     def _get_url_from_source(self):
         # Only use Direct Paths if:
