@@ -189,6 +189,8 @@ class Video(object):
 
                     if response.status_code == 204:
                         log.info("Live stream closed successfully")
+                        # Live stream closure handles everything, no need to terminate transcode
+                        return
                     else:
                         log.warning(
                             f"Unexpected response when closing live stream: {response.status_code}"
@@ -198,7 +200,7 @@ class Video(object):
                 except Exception:
                     log.warning("Closing live stream failed.", exc_info=True)
 
-        # Step 2: Terminate transcode session (for regular transcodes or as fallback)
+        # Step 2: Terminate transcode session (for regular transcodes or if live stream closure failed)
         if not self.playback_info or "PlaySessionId" not in self.playback_info:
             if settings.log_decisions:
                 log.debug("No PlaySessionId available, skipping transcode termination")
