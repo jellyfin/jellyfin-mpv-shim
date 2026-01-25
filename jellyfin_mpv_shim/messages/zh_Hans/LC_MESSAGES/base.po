@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-01-25 03:33+0000\n"
+"PO-Revision-Date: 2026-01-25 04:25+0000\n"
 "Last-Translator: ldmheaye <lhydeema@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -228,7 +228,7 @@ msgstr "同步播放"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr "MPV Shim v{0} 发布信息/下载"
+msgstr "MPV Shim v{0} 发布信息与下载"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -236,7 +236,7 @@ msgstr "更改视频播放预设"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "自动设置音频/字幕（整个节目）"
+msgstr "自动设置音轨/字幕（整季）"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -304,7 +304,7 @@ msgstr "日语音频 / 英语字幕"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "使用手动选择音轨索引（可靠性更低）"
+msgstr "使用手动选择音轨索引（可靠性较低）"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
