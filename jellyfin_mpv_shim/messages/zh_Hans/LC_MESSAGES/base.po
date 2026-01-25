@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-01-25 04:25+0000\n"
+"PO-Revision-Date: 2026-01-25 05:08+0000\n"
 "Last-Translator: ldmheaye <lhydeema@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -447,8 +447,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"你的远程视频正在转码中！\n"
-"如果不需要，请按下 C 以调整带宽。"
+"正在远程转码视频！\n"
+"如无需转码，按 C 键调整带宽设置。"
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
@@ -469,7 +469,7 @@ msgstr "选择 SVP 配置预设"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
-msgstr "SVP 未激活"
+msgstr "SVP 未启用"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
