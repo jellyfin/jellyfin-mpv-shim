@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-07-16 14:41+0000\n"
-"Last-Translator: madman38 <madman3838@proton.me>\n"
+"PO-Revision-Date: 2026-01-25 10:04+0000\n"
+"Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/tr/>\n"
+"jellyfin-mpv-shim/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -24,7 +24,7 @@ msgstr "Parça Seçiliyor..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: Alt yazı Yok"
+msgstr "{0}: Altyazı Yok"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
@@ -32,7 +32,7 @@ msgstr "{0}: Hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Alt yazıları Ayarla: {0} tamam, {1} hata"
+msgstr "Altyazıları Ayarla: {0} tamam, {1} hata"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -216,7 +216,7 @@ msgstr "Sesi Değiştir"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Alt yazıları Değiştir"
+msgstr "Altyazıları Değiştir"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
@@ -236,7 +236,7 @@ msgstr "Video Oynatma Profilini Değiştir"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Sesi ve Alt yazıları Otomatik Ayarla (Tüm Diziler İçin)"
+msgstr "Sesi ve Altyazıları Otomatik Ayarla (Tüm Diziler İçin)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -272,7 +272,7 @@ msgstr "Ses Parçası Seçin"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Alt yazı Dosyasını Seç"
+msgstr "Altyazı Dosyasını Seç"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -292,7 +292,7 @@ msgstr "Kod Dönüştürme Yok"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Dizi için Ses ve Alt yazı Seçin"
+msgstr "Dizi için Ses ve Altyazı Seçin"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -300,7 +300,7 @@ msgstr "İngilizce Ses"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Japonca Ses, İngilizce Alt yazılı"
+msgstr "Japonca Ses, İngilizce Altyazılı"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
@@ -312,15 +312,15 @@ msgstr "Varsayılan Kod Dönüştürme Profilini Seçin"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "Alt yazı Rengini Seç"
+msgstr "Altyazı Rengini Seç"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
-msgstr "Alt yazı Boyutunu Seçin"
+msgstr "Altyazı Boyutunu Seçin"
 
 #: jellyfin_mpv_shim/menu.py:475
 msgid "Select Subtitle Position"
-msgstr "Alt yazı Konumunu Seçin"
+msgstr "Altyazı Konumunu Seçin"
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
@@ -340,15 +340,15 @@ msgstr "Uzaktan Kod Dönüştürme Kalitesi: {0:0.1f} Mb/sn"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr "Alt yazı Boyutu: {0}"
+msgstr "Altyazı Boyutu: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr "Alt yazı Konumu: {0}"
+msgstr "Altyazı Konumu: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "Alt yazı Rengi: {0}"
+msgstr "Altyazı Rengi: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
