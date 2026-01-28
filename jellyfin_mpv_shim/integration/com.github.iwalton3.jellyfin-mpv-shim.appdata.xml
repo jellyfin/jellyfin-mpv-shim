@@ -373,4 +373,10 @@
       </description>
     </release>
   </releases>
+  <keywords>
+    <keyword>mpv cast client</keyword>
+    <keyword>jellyfin media server</keyword>
+    <keyword>media server client</keyword>
+    <keyword>media player cast</keyword>
+  </keywords>
 </component>
