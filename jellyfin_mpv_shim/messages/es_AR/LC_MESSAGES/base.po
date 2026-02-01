@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-02-18 23:28+0000\n"
-"Last-Translator: Brian Bentancour <bbab40@gmail.com>\n"
+"PO-Revision-Date: 2026-02-01 17:36+0000\n"
+"Last-Translator: Augusto <tasken@gmail.com>\n"
 "Language-Team: Spanish (Argentina) <https://translate.jellyfin.org/projects/"
-"jellyfin/jellyfin-desktop/es_AR/>\n"
+"jellyfin/jellyfin-mpv-shim/es_AR/>\n"
 "Language: es_AR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -404,7 +404,7 @@ msgstr "Buscar actualizaciones"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord Rich Presence"
+msgstr "Estado Detallado en Discord"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
