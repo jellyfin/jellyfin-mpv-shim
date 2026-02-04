@@ -1,12 +1,13 @@
+import getpass
+import json
 import logging
 import os
-import uuid
-import socket
-import json
 import os.path
+import socket
 import sys
-import getpass
+import uuid
 from typing import Optional
+
 from .settings_base import SettingsBase
 
 log = logging.getLogger("conf")
@@ -59,6 +60,8 @@ class Settings(SettingsBase):
     mpv_ext_path: Optional[str] = None
     mpv_ext_ipc: Optional[str] = None
     mpv_ext_start: bool = True
+    mpv_ext_start_retries: int = 10
+    mpv_ext_start_retry_delay_ms: int = 3000
     mpv_ext_no_ovr: bool = False
     enable_osc: bool = True
     use_web_seek: bool = False
