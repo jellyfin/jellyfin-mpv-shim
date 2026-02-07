@@ -1,22 +1,21 @@
 import logging
 import os
+import platform
 import sys
 import time
-import platform
-
-from threading import RLock, Lock, Event
-from queue import Queue
 from collections import OrderedDict
+from queue import Queue
+from threading import Event, Lock, RLock
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
-from .utils import synchronous, Timer, none_fallback, get_resource
 from .conf import settings
-from .menu import OSDMenu
 from .constants import APP_NAME
+from .i18n import _
+from .menu import OSDMenu
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
-from .i18n import _
+from .utils import Timer, get_resource, none_fallback, synchronous
 
 if TYPE_CHECKING:
     from .media import Video as Video_type
@@ -28,7 +27,7 @@ mpv_log = logging.getLogger("mpv")
 discord_presence = False
 if settings.discord_presence:
     try:
-        from .rich_presence import register_join_event, send_presence, clear_presence
+        from .rich_presence import clear_presence, register_join_event, send_presence
 
         discord_presence = True
     except Exception:
@@ -209,14 +208,23 @@ class PlayerManager(object):
             if settings.tls_server_ca:
                 mpv_options['tls_ca_file'] = settings.tls_server_ca
 
-        self._player = mpv.MPV(
-            input_default_bindings=True,
-            input_vo_keyboard=True,
-            input_media_keys=settings.media_keys,
-            log_handler=mpv_log_handler,
-            loglevel=settings.mpv_log_level,
-            **mpv_options,
-        )
+        mpv_args = {
+            "input_default_bindings": True,
+            "input_vo_keyboard": True,
+            "input_media_keys": settings.media_keys,
+            "log_handler": mpv_log_handler,
+            "loglevel": settings.mpv_log_level,
+        }
+
+        if is_using_ext_mpv:
+            mpv_args.update(
+                {
+                    "start_retries": settings.mpv_ext_start_retries,
+                    "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
+                }
+            )
+
+        self._player = mpv.MPV(**mpv_args, **mpv_options)
 
         self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
