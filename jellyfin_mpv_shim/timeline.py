@@ -34,6 +34,15 @@ class TimelineManager(threading.Thread):
                 if self.is_idle and settings.idle_ended_cmd:
                     os.system(settings.idle_ended_cmd)
                 self.delay_idle()
+
+            # Dynamic interval based on playback state
+            if playerManager.is_not_paused():
+                interval = 5  # Playing - normal update frequency
+            elif playerManager.is_paused():
+                interval = 10  # Paused - reduced update frequency
+            else:
+                interval = 5  # Stopped/unknown - default frequency
+
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
                 if (
                     settings.idle_when_paused
@@ -44,7 +53,7 @@ class TimelineManager(threading.Thread):
                 if settings.idle_cmd:
                     os.system(settings.idle_cmd)
                 self.is_idle = True
-            if self.trigger.wait(5):
+            if self.trigger.wait(interval):
                 self.trigger.clear()
 
     def delay_idle(self):
