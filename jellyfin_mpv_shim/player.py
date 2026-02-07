@@ -1104,6 +1104,8 @@ class PlayerManager(object):
         self._player.osd_font_size = font_size
 
     def enable_osc(self, enabled: bool):
+        if settings.mpv_ext and settings.mpv_ext_no_ovr:
+            return  # Don't override user's MPV config
         if settings.thumbnail_enable and self.trickplay:
             self.script_message(
                 "osc-visibility", "auto" if enabled else "never", "False"
