@@ -6,29 +6,29 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-02-23 13:01+0000\n"
-"Last-Translator: millallo <millallo@tiscali.it>\n"
+"PO-Revision-Date: 2026-02-09 10:10+0000\n"
+"Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/it/>\n"
+"jellyfin-mpv-shim/it/>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Selezionando tracce..."
+msgstr "Selezione delle tracce..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: No Sottotitoli"
+msgstr "{0}: Nessun sottotitolo"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Fallito"
+msgstr "{0}: non riuscito"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -68,7 +68,7 @@ msgstr "Aggiungere un altro server?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr "Aggiunta server fallita."
+msgstr "Aggiunta server non riuscita."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -80,11 +80,11 @@ msgstr "Seleziona il tuo media in Jellyfin e riproducilo qui"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "Log Applicazione"
+msgstr "Log applicazione"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "Aggiungi Server"
+msgstr "Aggiungi server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Impossibile aggiungere server.\n"
-"controlla le informazioni di connessione."
+"Controlla le informazioni di connessione."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
