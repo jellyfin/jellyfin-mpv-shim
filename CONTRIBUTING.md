@@ -37,6 +37,7 @@ Current Dependencies:
  - `python-mpv` - Provides `libmpv` playback backend.
  - `python-mpv-jsonipc` - Provides `mpv` playback backend. (First-Party)
  - `jellyfin-apiclient-python` - Provides API client to Jellyfin. (First-Party)
+ - `pillow` - Provides image processing for trickplay thumbnails and systray icon. (Optional)
  - `pywin32` - Allows window management on Windows. (Optional)
  - `pystray` - Provides systray icon. (Optional)
  - `tkinter` - Provides GUI for adding servers and viewing logs. (Optional)
