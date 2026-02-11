@@ -153,6 +153,7 @@ class PlayerManager(object):
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
+        self.playback_time_before_seek = None
         self.trickplay = None
 
         if is_using_ext_mpv:
@@ -397,6 +398,20 @@ class PlayerManager(object):
             if self.do_not_handle_pause:
                 return
 
+            # Handle intro skip for any forward seek (including custom key bindings)
+            if value:
+                # Seeking started - store current position
+                self.playback_time_before_seek = self._player.playback_time
+            else:
+                # Seeking ended - check if we should skip intro
+                if (
+                    self.is_in_intro
+                    and self.playback_time_before_seek is not None
+                    and self._player.playback_time is not None
+                    and self._player.playback_time > self.playback_time_before_seek
+                ):
+                    self.skip_intro()
+
             if self.syncplay.is_enabled():
                 play_time = self._player.playback_time
                 if (
@@ -473,7 +488,9 @@ class PlayerManager(object):
     def skip_intro(self):
         _, intro = self._video.get_current_intro(self._player.playback_time)
 
-        self._player.playback_time = intro.end
+        if not self._player.playback_abort:
+            self._player.command("seek", intro.end, "absolute")
+        
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
@@ -713,8 +730,6 @@ class PlayerManager(object):
                 if absolute:
                     if self.syncplay.is_enabled():
                         self.last_seek = offset
-                    if self.is_in_intro and offset > self._player.playback_time:
-                        self.skip_intro()
                     p2 = "absolute"
                     if exact:
                         p2 += "+exact"
@@ -722,12 +737,6 @@ class PlayerManager(object):
                 else:
                     if self.syncplay.is_enabled():
                         self.last_seek = self._player.playback_time + offset
-                    if (
-                        self.is_in_intro
-                        and self._player.playback_time + offset
-                        > self._player.playback_time
-                    ):
-                        self.skip_intro()
                     if exact:
                         self._player.command("seek", offset, "exact")
                     else:
