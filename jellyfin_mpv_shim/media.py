@@ -99,6 +99,10 @@ class Video(object):
             if not sub.get("IsExternal"):
                 index += 1
 
+        # Apply mpv.conf alang/slang preferences first (if no stream explicitly set)
+        self._apply_mpv_lang_preferences()
+
+        # Fall back to Jellyfin server defaults if mpv.conf didn't select anything
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")
 
@@ -107,6 +111,191 @@ class Video(object):
 
         if user_sid is not None and self.sid is None:
             self.sid = user_sid
+
+    def _apply_lang_prefs_from_item(self):
+        """
+        Apply language preferences from mpv.conf using item metadata.
+        This is called before get_play_info to ensure correct stream selection for transcoding.
+        """
+        from .utils import get_mpv_config_value, parse_language_list
+
+        # Get media sources from item
+        media_sources = self.item.get("MediaSources", [])
+        if not media_sources:
+            return
+
+        # Use the first media source (or preferred one if srcid is set)
+        media_source = None
+        if self.srcid:
+            for ms in media_sources:
+                if ms.get("Id") == self.srcid:
+                    media_source = ms
+                    break
+        if not media_source:
+            media_source = media_sources[0]
+
+        # Apply alang (audio language) preference
+        if self.aid is None:
+            alang_str = get_mpv_config_value("alang")
+            if alang_str:
+                alang_prefs = parse_language_list(alang_str)
+                if alang_prefs:
+                    selected_aid = self._select_stream_by_language_from_source(
+                        media_source, "Audio", alang_prefs
+                    )
+                    if selected_aid is not None:
+                        self.aid = selected_aid
+                        if settings.log_decisions:
+                            log.info(
+                                f"Selected audio stream {selected_aid} based on alang preference: {alang_str}"
+                            )
+
+        # Apply slang (subtitle language) preference
+        if self.sid is None:
+            slang_str = get_mpv_config_value("slang")
+            if slang_str:
+                slang_prefs = parse_language_list(slang_str)
+                if slang_prefs:
+                    selected_sid = self._select_stream_by_language_from_source(
+                        media_source, "Subtitle", slang_prefs
+                    )
+                    if selected_sid is not None:
+                        self.sid = selected_sid
+                        if settings.log_decisions:
+                            log.info(
+                                f"Selected subtitle stream {selected_sid} based on slang preference: {slang_str}"
+                            )
+
+    def _apply_mpv_lang_preferences(self):
+        """
+        Apply audio and subtitle language preferences from mpv.conf.
+        Only applies if streams are not already explicitly selected.
+        This is called after get_play_info for direct play scenarios.
+        """
+        from .utils import get_mpv_config_value, parse_language_list
+
+        # Apply alang (audio language) preference
+        if self.aid is None:
+            alang_str = get_mpv_config_value("alang")
+            if alang_str:
+                alang_prefs = parse_language_list(alang_str)
+                if alang_prefs:
+                    selected_aid = self._select_stream_by_language("Audio", alang_prefs)
+                    if selected_aid is not None:
+                        self.aid = selected_aid
+                        if settings.log_decisions:
+                            log.info(
+                                f"Selected audio stream {selected_aid} based on alang preference: {alang_str}"
+                            )
+
+        # Apply slang (subtitle language) preference
+        if self.sid is None:
+            slang_str = get_mpv_config_value("slang")
+            if slang_str:
+                slang_prefs = parse_language_list(slang_str)
+                if slang_prefs:
+                    selected_sid = self._select_stream_by_language(
+                        "Subtitle", slang_prefs
+                    )
+                    if selected_sid is not None:
+                        self.sid = selected_sid
+                        if settings.log_decisions:
+                            log.info(
+                                f"Selected subtitle stream {selected_sid} based on slang preference: {slang_str}"
+                            )
+
+    def _select_stream_by_language_from_source(
+        self, media_source: dict, stream_type: str, lang_prefs: list
+    ) -> Optional[int]:
+        """
+        Select a stream based on language preference list from a media source.
+        Returns the stream Index, or None if no match found.
+
+        Optimized with O(n) complexity using dictionary lookup instead of nested loops.
+
+        Args:
+            media_source: Media source dictionary containing MediaStreams
+            stream_type: "Audio" or "Subtitle"
+            lang_prefs: List of language codes in preference order
+
+        Returns:
+            Stream Index if found, None otherwise
+        """
+        if not media_source or not lang_prefs:
+            return None
+
+        # Get all streams of the specified type
+        streams = [
+            s
+            for s in media_source.get("MediaStreams", [])
+            if s.get("Type") == stream_type
+        ]
+
+        if not streams:
+            return None
+
+        # Build language-to-index mapping for O(1) lookup
+        # Use first stream for each language (preserves priority)
+        lang_to_index = {}
+        for stream in streams:
+            stream_lang = stream.get("Language")
+            if stream_lang:
+                lang_lower = stream_lang.lower()
+                if lang_lower not in lang_to_index:
+                    lang_to_index[lang_lower] = stream["Index"]
+
+        # Find first matching preference - O(n) instead of O(n*m)
+        for lang_pref in lang_prefs:
+            lang_pref_lower = lang_pref.lower()
+            if lang_pref_lower in lang_to_index:
+                return lang_to_index[lang_pref_lower]
+
+        return None
+
+    def _select_stream_by_language(
+        self, stream_type: str, lang_prefs: list
+    ) -> Optional[int]:
+        """
+        Select a stream based on language preference list.
+        Returns the stream Index, or None if no match found.
+
+        Optimized with O(n) complexity using dictionary lookup instead of nested loops.
+
+        Args:
+            stream_type: "Audio" or "Subtitle"
+            lang_prefs: List of language codes in preference order
+
+        Returns:
+            Stream Index if found, None otherwise
+        """
+        if not self.media_source or not lang_prefs:
+            return None
+
+        # Get all streams of the specified type
+        streams = [
+            s for s in self.media_source["MediaStreams"] if s.get("Type") == stream_type
+        ]
+
+        if not streams:
+            return None
+
+        # Build language-to-index mapping for O(1) lookup
+        # Use first stream for each language (preserves priority)
+        lang_to_index = {}
+        for stream in streams:
+            stream_lang = stream.get("Language")
+            if stream_lang:
+                lang_lower = stream_lang.lower()
+                if lang_lower not in lang_to_index:
+                    lang_to_index[lang_lower] = stream["Index"]
+
+        # Find first matching preference - O(n) instead of O(n*m)
+        for lang_pref in lang_prefs:
+            lang_pref_lower = lang_pref.lower()
+            if lang_pref_lower in lang_to_index:
+                return lang_to_index[lang_pref_lower]
+
+        return None
 
     def get_current_streams(self):
         return self.aid, self.sid
@@ -338,6 +527,11 @@ class Video(object):
 
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr
+
+        # Apply language preferences from item metadata before requesting playback info
+        # This ensures the correct streams are selected for transcoding
+        if self.aid is None or self.sid is None:
+            self._apply_lang_prefs_from_item()
 
         log.info(
             "Bandwidth: local={0}, bitrate={1}, force={2}".format(
