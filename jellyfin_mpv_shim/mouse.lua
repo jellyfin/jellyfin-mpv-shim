@@ -2,7 +2,7 @@ last_idx = -1
 function mouse_handler()
     local x, y = mp.get_mouse_pos()
     local hy = mp.get_property_native("osd-height")
-    if hy == nil 
+    if hy == nil
     then
         return
     end
