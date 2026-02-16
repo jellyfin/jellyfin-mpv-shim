@@ -36,7 +36,15 @@ def main():
     log = root_logger
 
     if sys.platform.startswith("darwin"):
-        multiprocessing.set_start_method("forkserver")
+        try:
+            # Use 'spawn' to avoid Objective-C fork crashes with GUI frameworks.
+            # - Python 3.7: default is 'fork' (unsafe with Obj-C)
+            # - Python 3.8+: default is 'spawn' (this is a no-op but explicit)
+            # - Python 3.14: 'forkserver' also crashes with Obj-C (issue #473)
+            multiprocessing.set_start_method("spawn")
+        except RuntimeError:
+            # Context already set, ignore
+            pass
 
     user_interface = None
     mirror = None
