@@ -298,6 +298,9 @@ class PlayerManager(object):
 
         @keypress(settings.kb_menu)
         def menu_open():
+            if self.do_not_handle_pause:
+                self._player.show_text(_("Please wait, loading..."), 1000, 1)
+                return
             if not self.menu.is_menu_shown:
                 self.menu.show_menu()
             else:
