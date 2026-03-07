@@ -266,6 +266,7 @@ practical to use in most cases for the Flatpak version.
 - `mpv_ext_no_ovr` - Disable built-in mpv configuration files and use user defaults.
   - Please note that some scripts and settings, such as ones to keep MPV open, may break
       functionality in MPV Shim.
+- `mpv_ext_restart` - Restart external MPV between episodes, on stop, and at end of media to free memory. Default: `false`
 
 ### Keyboard Shortcuts
 
