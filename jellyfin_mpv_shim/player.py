@@ -161,7 +161,7 @@ class PlayerManager(object):
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
                     "mpv_location": mpv_location,
-                    "player-operation-mode": "cplayer",
+                    "player_operation_mode": "cplayer",
                 }
             )
 
@@ -203,11 +203,11 @@ class PlayerManager(object):
             mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
         if settings.tls_client_cert and settings.tls_client_key:
-            mpv_options['tls_cert_file'] = settings.tls_client_cert
-            mpv_options['tls_key_file'] = settings.tls_client_key
+            mpv_options["tls_cert_file"] = settings.tls_client_cert
+            mpv_options["tls_key_file"] = settings.tls_client_key
 
             if settings.tls_server_ca:
-                mpv_options['tls_ca_file'] = settings.tls_server_ca
+                mpv_options["tls_ca_file"] = settings.tls_server_ca
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -864,9 +864,7 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info(
-                "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
-            )
+            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
