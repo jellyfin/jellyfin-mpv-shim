@@ -681,7 +681,7 @@ class PlayerManager(object):
             self.trickplay.clear()
 
         # Defer player restart to main thread to avoid issues when called from event handlers
-        if is_using_ext_mpv:
+        if is_using_ext_mpv and settings.mpv_ext_restart:
             self.put_task(self._restart_mpv)
 
     def get_volume(self, percent: bool = False):
@@ -790,7 +790,7 @@ class PlayerManager(object):
                 if self.syncplay.is_enabled():
                     self.syncplay.request_next(self._video.get_playlist_id())
                 # Restart mpv to free memory between episodes (external mpv only)
-                if is_using_ext_mpv:
+                if is_using_ext_mpv and settings.mpv_ext_restart:
                     self.put_task(self._restart_mpv, new_video)
                 else:
                     self.play(new_video)
@@ -806,7 +806,7 @@ class PlayerManager(object):
             log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
             # Restart mpv to free memory before potentially playing next video (external mpv only)
-            if is_using_ext_mpv:
+            if is_using_ext_mpv and settings.mpv_ext_restart:
                 self.put_task(self._restart_mpv)
         self.pause_ignore = False
 
