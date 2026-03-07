@@ -122,16 +122,12 @@ class PlayerManager(object):
     """
 
     def __init__(self):
+        self._init_state()
+        self._init_player()
+        self._setup_event_handlers()
+
+    def _init_state(self):
         self._video = None
-        mpv_options = OrderedDict()
-        mpv_location = settings.mpv_ext_path
-        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
-        if (
-            mpv_location is None
-            and platform.system() == "Darwin"
-            and getattr(sys, "frozen", False)
-        ):
-            mpv_location = get_resource("mpv")
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -154,6 +150,17 @@ class PlayerManager(object):
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
         self.trickplay = None
+
+    def _get_mpv_options(self):
+        mpv_options = OrderedDict()
+        mpv_location = settings.mpv_ext_path
+        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
+        if (
+            mpv_location is None
+            and platform.system() == "Darwin"
+            and getattr(sys, "frozen", False)
+        ):
+            mpv_location = get_resource("mpv")
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -209,6 +216,11 @@ class PlayerManager(object):
             if settings.tls_server_ca:
                 mpv_options["tls_ca_file"] = settings.tls_server_ca
 
+        return mpv_options
+
+    def _init_player(self):
+        mpv_options = self._get_mpv_options()
+
         self._player = mpv.MPV(
             input_default_bindings=True,
             input_vo_keyboard=True,
@@ -244,6 +256,7 @@ class PlayerManager(object):
             # This can lead to unwanted skipping of videos
             self._player.resume_playback = False
 
+    def _setup_event_handlers(self):
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
             def wrapper(func):
