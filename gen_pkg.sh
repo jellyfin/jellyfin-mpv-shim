@@ -139,4 +139,3 @@ then
     echo "Building release package."
     python3 setup.py sdist bdist_wheel > /dev/null
 fi
-
