@@ -49,7 +49,7 @@ setup(
     packages=packages,
     package_data={
         "jellyfin_mpv_shim.display_mirror": ["*.css", "*.html"],
-        "jellyfin_mpv_shim": ["systray.png"],
+        "jellyfin_mpv_shim": ["systray.png", "logo.png"],
     },
     entry_points={
         "console_scripts": ["jellyfin-mpv-shim=jellyfin_mpv_shim.mpv_shim:main"]
