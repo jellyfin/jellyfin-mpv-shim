@@ -1122,10 +1122,12 @@ class PlayerManager(object):
         if enabled:
             self._player.force_window = True
             self._player.keep_open = True
-            self._player.play("")
+            self._player.image_display_duration = "inf"
+            self._player.play(get_resource("logo.png"))
             if settings.fullscreen:
                 self._player.fs = True
         else:
+            self._player.image_display_duration = 1
             self._player.keep_open = False
             if self._player.playback_abort:
                 self._player.force_window = False
