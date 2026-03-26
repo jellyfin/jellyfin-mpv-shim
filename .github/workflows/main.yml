@@ -10,18 +10,18 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Setup Python 3.13
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.13
     - name: Setup git SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
         flavor: minimal
     - name: Download mpv
       id: mpv
-      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
         latest: true
@@ -32,6 +32,7 @@ jobs:
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install .[all] pythonnet pywebview pywin32
+        winget install --id JRSoftware.InnoSetup -e -s winget || true || true
         ./gen_pkg.sh --skip-build
       shell: bash
     - name: PyInstaller Bootloader
@@ -47,7 +48,7 @@ jobs:
         ./artifacts.sh standard
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
@@ -55,18 +56,18 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Setup Python 3.13
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.13
     - name: Setup git SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
         flavor: minimal
     - name: Download mpv
       id: mpv
-      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
         latest: true
@@ -77,6 +78,7 @@ jobs:
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install .[all] pythonnet pywebview pywin32
+        winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
       shell: bash
     - name: PyInstaller Bootloader
@@ -92,26 +94,26 @@ jobs:
         ./artifacts.sh legacy64
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows-legacy64
         path: ${{ github.workspace }}/publish/Installer/*.exe
-  build-win32:
+  build-win32-legacy:
     runs-on: windows-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Setup Python 3.13
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.13
     - name: Setup git SDK
-      uses: git-for-windows/setup-git-for-windows-sdk@v1
+      uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
         flavor: minimal
     - name: Download mpv
       id: mpv
-      uses: nguyenngoclongdev/release-downloader@v0.0.1
+      uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
         latest: true
@@ -122,6 +124,7 @@ jobs:
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install .[all] pythonnet pywebview pywin32
+        winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
       shell: bash
     - name: PyInstaller Bootloader
@@ -137,7 +140,7 @@ jobs:
         ./artifacts.sh legacy
       shell: bash
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows-legacy32
         path: ${{ github.workspace }}/publish/InstallerLegacy/*.exe
