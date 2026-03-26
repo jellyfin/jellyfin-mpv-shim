@@ -1150,7 +1150,10 @@ function window_controls(topbar)
     ne = new_element("close", "button")
     ne.content = "\238\132\149"
     ne.eventresponder["mbtn_left_up"] =
-        function () mp.commandv("quit") end
+        function ()
+            msg.info("close button clicked")
+            mp.commandv("script-message", "shim-close")
+        end
     lo = add_layout("close")
     lo.geometry = alignment == "left" and first_geo or third_geo
     lo.style = osc_styles.wcButtons

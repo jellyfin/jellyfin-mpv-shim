@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+
 import platform
 
 from threading import RLock, Lock, Event
@@ -123,15 +124,6 @@ class PlayerManager(object):
 
     def __init__(self):
         self._video = None
-        mpv_options = OrderedDict()
-        mpv_location = settings.mpv_ext_path
-        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
-        if (
-            mpv_location is None
-            and platform.system() == "Darwin"
-            and getattr(sys, "frozen", False)
-        ):
-            mpv_location = get_resource("mpv")
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -154,7 +146,20 @@ class PlayerManager(object):
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
         self.trickplay = None
+        self._mpv_alive = False
 
+        self._init_mpv()
+
+    def _init_mpv(self):
+        mpv_location = settings.mpv_ext_path
+        if (
+            mpv_location is None
+            and platform.system() == "Darwin"
+            and getattr(sys, "frozen", False)
+        ):
+            mpv_location = get_resource("mpv")
+
+        mpv_options = OrderedDict()
         if is_using_ext_mpv:
             mpv_options.update(
                 {
@@ -228,6 +233,10 @@ class PlayerManager(object):
                 log.error("Could not register Discord join callback.", exc_info=True)
 
         if hasattr(self._player, "osc"):
+            # Ensure the built-in OSC is disabled when using trickplay-osc,
+            # even if the user's mpv.conf has osc=yes.
+            if settings.thumbnail_enable and self.trickplay:
+                self._player.osc = False
             self.enable_osc(settings.enable_osc)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
@@ -257,7 +266,8 @@ class PlayerManager(object):
         @self._player.on_key_press("STOP")
         @keypress(settings.kb_stop)
         def handle_stop():
-            self.stop()
+            log.info("handle_stop triggered")
+            self.put_task(self.stop_and_close)
 
         @keypress(settings.kb_prev)
         def handle_prev():
@@ -429,6 +439,38 @@ class PlayerManager(object):
                         self.syncplay.play_request()
                         self.set_paused(True, True)
 
+        @self._player.event_callback("shutdown")
+        def handle_shutdown(event):
+            log.info("mpv shutdown event received")
+            if self._video:
+                self.should_send_timeline = False
+                local_video = self._video
+                self._video = None
+                try:
+                    options = {
+                        "PositionTicks": int((self.last_seek or 0) * 10000000),
+                        "PlaybackStartTimeTicks": int(
+                            (self.start_time or 0) * 10000000
+                        ),
+                        "PlayMethod": "Transcode"
+                        if local_video.is_transcode
+                        else "DirectPlay",
+                        "PlaySessionId": local_video.playback_info["PlaySessionId"],
+                        "ItemId": local_video.item_id,
+                    }
+                    local_video.client.jellyfin.session_stop(options)
+                except Exception:
+                    log.warning(
+                        "Could not report playback stop to server.", exc_info=True
+                    )
+                try:
+                    local_video.terminate_transcode()
+                except Exception:
+                    pass
+            self.exec_stop_cmd()
+            import threading
+            threading.Thread(target=self._terminate_mpv, daemon=True).start()
+
         @self._player.event_callback("client-message")
         def handle_client_message(event):
             try:
@@ -453,8 +495,16 @@ class PlayerManager(object):
                     self.menu.mouse_select(int(args[1]))
                 elif args[0] == "shim-menu-click":
                     self.menu.menu_action("ok")
+                elif args[0] == "shim-close":
+                    log.info("Received shim-close message")
+                    if self._video and not self._player.playback_abort:
+                        self.put_task(self.stop_and_close)
+                    else:
+                        self.put_task(self.force_window, False)
             except Exception:
                 log.warning("Error when processing client-message.", exc_info=True)
+
+        self._mpv_alive = True
 
     # Put a task to the event queue.
     # This ensures the task executes outside
@@ -559,6 +609,10 @@ class PlayerManager(object):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
     ):
+        if not self._mpv_alive:
+            log.info("mpv is dead, reinitializing")
+            self._init_mpv()
+
         self.pause_ignore = True
         self.do_not_handle_pause = True
         self.url = url
@@ -647,6 +701,9 @@ class PlayerManager(object):
         if self.syncplay.is_enabled():
             self.syncplay.disable_sync_play(False)
 
+        if self.menu.is_menu_shown:
+            self.menu.hide_menu()
+
         if not self._video or self._player.playback_abort:
             self.exec_stop_cmd()
             return
@@ -665,6 +722,17 @@ class PlayerManager(object):
 
         if self.trickplay:
             self.trickplay.clear()
+
+    def stop_and_close(self):
+        log.info("stop_and_close: stopping playback")
+        self.stop()
+        log.info("stop_and_close: disabling OSC")
+        self.enable_osc(False)
+        log.info("stop_and_close: closing window")
+        self._player.keep_open = False
+        self._player.force_window = False
+        self._player.command("stop")
+        log.info("stop_and_close: done")
 
     def get_volume(self, percent: bool = False):
         if self._player:
@@ -1059,6 +1127,15 @@ class PlayerManager(object):
         if self._video:
             self._player.keep_open = self._video.parent.has_next
 
+    def _terminate_mpv(self):
+        log.info("Terminating mpv instance")
+        self._mpv_alive = False
+        try:
+            self._player.terminate()
+        except Exception:
+            log.debug("Error terminating mpv", exc_info=True)
+        log.info("mpv instance terminated")
+
     def terminate(self):
         self.stop()
         if is_using_ext_mpv:
@@ -1108,6 +1185,8 @@ class PlayerManager(object):
             self.script_message(
                 "osc-visibility", "auto" if enabled else "never", "False"
             )
+            if hasattr(self._player, "osc"):
+                self._player.osc = False
         else:
             if hasattr(self._player, "osc"):
                 self._player.osc = enabled
@@ -1127,7 +1206,10 @@ class PlayerManager(object):
                 self._player.fs = True
         else:
             self._player.keep_open = False
-            if self._player.playback_abort:
+            if not self._video:
+                self._player.force_window = False
+                self._player.command("stop")
+            elif self._player.playback_abort:
                 self._player.force_window = False
                 self._player.play("")
             else:
