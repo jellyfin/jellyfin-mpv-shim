@@ -122,16 +122,13 @@ class PlayerManager(object):
     """
 
     def __init__(self):
+        self._init_state()
+        self._init_player()
+        self._setup_event_handlers()
+
+    def _init_state(self):
         self._video = None
-        mpv_options = OrderedDict()
-        mpv_location = settings.mpv_ext_path
-        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
-        if (
-            mpv_location is None
-            and platform.system() == "Darwin"
-            and getattr(sys, "frozen", False)
-        ):
-            mpv_location = get_resource("mpv")
+        self._restarting = False
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -155,13 +152,24 @@ class PlayerManager(object):
         self.is_in_intro = False
         self.trickplay = None
 
+    def _get_mpv_options(self):
+        mpv_options = OrderedDict()
+        mpv_location = settings.mpv_ext_path
+        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
+        if (
+            mpv_location is None
+            and platform.system() == "Darwin"
+            and getattr(sys, "frozen", False)
+        ):
+            mpv_location = get_resource("mpv")
+
         if is_using_ext_mpv:
             mpv_options.update(
                 {
                     "start_mpv": settings.mpv_ext_start,
                     "ipc_socket": settings.mpv_ext_ipc,
                     "mpv_location": mpv_location,
-                    "player-operation-mode": "cplayer",
+                    "player_operation_mode": "cplayer",
                 }
             )
 
@@ -203,11 +211,16 @@ class PlayerManager(object):
             mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
         if settings.tls_client_cert and settings.tls_client_key:
-            mpv_options['tls_cert_file'] = settings.tls_client_cert
-            mpv_options['tls_key_file'] = settings.tls_client_key
+            mpv_options["tls_cert_file"] = settings.tls_client_cert
+            mpv_options["tls_key_file"] = settings.tls_client_key
 
             if settings.tls_server_ca:
-                mpv_options['tls_ca_file'] = settings.tls_server_ca
+                mpv_options["tls_ca_file"] = settings.tls_server_ca
+
+        return mpv_options
+
+    def _init_player(self):
+        mpv_options = self._get_mpv_options()
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -244,6 +257,7 @@ class PlayerManager(object):
             # This can lead to unwanted skipping of videos
             self._player.resume_playback = False
 
+    def _setup_event_handlers(self):
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
             def wrapper(func):
@@ -394,7 +408,7 @@ class PlayerManager(object):
 
         @self._player.property_observer("seeking")
         def handle_seeking(_name, value: bool):
-            if self.do_not_handle_pause:
+            if self.do_not_handle_pause or self._restarting:
                 return
 
             if self.syncplay.is_enabled():
@@ -414,7 +428,7 @@ class PlayerManager(object):
 
         @self._player.property_observer("pause")
         def pause_handler(_name, value: bool):
-            if self.do_not_handle_pause:
+            if self.do_not_handle_pause or self._restarting:
                 return
 
             if not self._player.playback_abort:
@@ -666,6 +680,10 @@ class PlayerManager(object):
         if self.trickplay:
             self.trickplay.clear()
 
+        # Defer player restart to main thread to avoid issues when called from event handlers
+        if is_using_ext_mpv and settings.mpv_ext_restart:
+            self.put_task(self._restart_mpv)
+
     def get_volume(self, percent: bool = False):
         if self._player:
             if not percent:
@@ -771,6 +789,9 @@ class PlayerManager(object):
                 self.send_timeline_stopped(True)
                 if self.syncplay.is_enabled():
                     self.syncplay.request_next(self._video.get_playlist_id())
+                # Restart mpv to free memory between episodes (external mpv only)
+                if is_using_ext_mpv and settings.mpv_ext_restart:
+                    self.put_task(self._restart_mpv, new_video)
                 else:
                     self.play(new_video)
             else:
@@ -784,6 +805,9 @@ class PlayerManager(object):
 
             log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
+            # Restart mpv to free memory before potentially playing next video (external mpv only)
+            if is_using_ext_mpv and settings.mpv_ext_restart:
+                self.put_task(self._restart_mpv)
         self.pause_ignore = False
 
     @synchronous("_lock")
@@ -864,9 +888,7 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info(
-                "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
-            )
+            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
@@ -1066,6 +1088,57 @@ class PlayerManager(object):
 
         if self.trickplay:
             self.trickplay.stop()
+
+    def _restart_mpv(self, video=None):
+        log.info("PlayerManager::_restart_mpv restarting external mpv")
+        self._restarting = True
+        old_trickplay = self.trickplay
+        old_player = self._player
+
+        try:
+            if old_player.mpv_process:
+                old_player.mpv_process.process.kill()
+                try:
+                    old_player.mpv_process.process.wait(timeout=5)
+                except Exception:
+                    pass
+                if os.name != "nt" and os.path.exists(
+                    old_player.mpv_process.ipc_socket
+                ):
+                    try:
+                        os.remove(old_player.mpv_process.ipc_socket)
+                    except Exception:
+                        pass
+            if old_player.mpv_inter:
+                old_player.mpv_inter.stop(join=True)
+            old_player.event_handler.stop(join=True)
+        except Exception:
+            log.warning("Error during MPV shutdown.", exc_info=True)
+
+        self._init_player()
+        self._setup_event_handlers()
+
+        try:
+            wait_property(self._player, "pause", timeout=5)
+            log.info("PlayerManager::_restart_mpv new MPV is ready")
+        except Exception:
+            log.warning("New MPV ready check timed out, but continuing.")
+
+        self._restarting = False
+        self._jf_settings = None
+
+        if old_trickplay:
+            try:
+                from .trickplay import TrickPlay
+
+                self.trickplay = TrickPlay(self)
+                self.trickplay.start()
+            except Exception:
+                log.error("Could not re-enable trickplay.", exc_info=True)
+                self.trickplay = None
+
+        if video:
+            self.play(video)
 
     def get_seek_times(self):
         if self._jf_settings is None:

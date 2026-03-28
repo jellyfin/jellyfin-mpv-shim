@@ -60,6 +60,7 @@ class Settings(SettingsBase):
     mpv_ext_ipc: Optional[str] = None
     mpv_ext_start: bool = True
     mpv_ext_no_ovr: bool = False
+    mpv_ext_restart: bool = False
     enable_osc: bool = True
     use_web_seek: bool = False
     display_mirroring: bool = False
