@@ -5,7 +5,7 @@ import os
 import jellyfin_apiclient_python.exceptions
 
 from .conf import settings
-from .player import playerManager
+from .player import playerManager, _mpv_errors
 from .utils import Timer
 
 log = logging.getLogger("timeline")
@@ -59,6 +59,8 @@ class TimelineManager(threading.Thread):
             playerManager.send_timeline()
         except jellyfin_apiclient_python.exceptions.HTTPException:
             # FIXME: Log this
+            pass
+        except _mpv_errors:
             pass
 
 
