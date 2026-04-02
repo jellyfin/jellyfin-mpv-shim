@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-04-02 04:48+0000\n"
+"PO-Revision-Date: 2026-04-02 13:22+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -224,7 +224,7 @@ msgstr "轉畫質"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "「同步播放」"
+msgstr "「一齊睇」"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -489,19 +489,19 @@ msgstr "SVP 停用咗"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "指定嘅「同步播放」群組唔存在。"
+msgstr "指定嘅「一齊睇」群組唔存在。"
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr "未准許建立「同步播放」群組。"
+msgstr "未准許建立「一齊睇」群組。"
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr "「同步播放」群組存取被拒。"
+msgstr "「一齊睇」群組存取被拒。"
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr "「同步播放」媒體櫃存取被拒。"
+msgstr "「一齊睇」媒體櫃存取被拒。"
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -517,11 +517,11 @@ msgstr "跳轉同步 (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
-msgstr "已啟用「同步播放」。"
+msgstr "已啟用「一齊睇」。"
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr "經已停用「同步播放」。"
+msgstr "經已停用「一齊睇」。"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
