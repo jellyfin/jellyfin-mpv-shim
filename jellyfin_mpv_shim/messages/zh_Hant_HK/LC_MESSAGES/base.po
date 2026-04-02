@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-03-31 16:00+0000\n"
+"PO-Revision-Date: 2026-04-02 04:48+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -196,7 +196,7 @@ msgstr "細"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr "普通"
+msgstr "正常"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
@@ -240,7 +240,7 @@ msgstr "自動設定聲軌/字幕 (套用至全劇)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "離開兼標記做未睇過"
+msgstr "離開兼標記做未睇"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
