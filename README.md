@@ -186,6 +186,9 @@ You can adjust the basic transcoder settings via the menu.
 - `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
 - `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
   - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
+  - `path_substitutions` - Rewrite the path reported by Jellyfin before opening it directly. Default: `[]`
+    - This is useful when Jellyfin runs in Docker and reports paths like `/media/shows/...` but your playback machine needs a Windows path such as `Z:\\media\\shows\\...` or `\\\\TRUENAS\\Media\\shows\\...`.
+    - Format: `[["/media", "Z:\\media"], ["/mnt/media", "\\\\TRUENAS\\Media"]]`
   - Note that `Shared network folder` support was deprecated in Jellyfin 10.9, and is no longer exposed in the Jellyfin UI.
 - `allow_transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
   - If you enable this, it'll allow remuxing to HEVC but it'll also break force transcoding of Dolby Vision and HDR content if those settings are used. (See [this bug](https://github.com/jellyfin/jellyfin/issues/9313).)
