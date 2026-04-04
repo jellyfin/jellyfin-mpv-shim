@@ -226,14 +226,19 @@ class ClientManager(object):
                         time.sleep(timeout)
                         if self.connect_client(server, False):
                             break
+            elif event_name == "WebSocketConnect":
+                log.info("WebSocket connected, posting capabilities")
+                try:
+                    client.jellyfin.post_capabilities(CAPABILITIES)
+                except Exception:
+                    log.warning("Failed to post capabilities on reconnect", exc_info=True)
+                self.callback(client, event_name, data)
             else:
                 self.callback(client, event_name, data)
 
         client.callback = event
         client.callback_ws = event
         client.start(websocket=True)
-
-        client.jellyfin.post_capabilities(CAPABILITIES)
 
         # Check connection
         if self.validate_client(client, True):
