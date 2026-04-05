@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-04-03 23:42+0000\n"
+"PO-Revision-Date: 2026-04-05 09:36+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "加唔到伺服器。\n"
-"唔該檢查下你輸入嘅連線資料。"
+"唔該check吓你輸入嘅連線資料。"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -400,7 +400,7 @@ msgstr "將 Log 寫入檔案"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
-msgstr "檢查更新"
+msgstr "check吓更新"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
