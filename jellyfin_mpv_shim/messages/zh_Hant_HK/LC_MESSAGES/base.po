@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-04-05 09:36+0000\n"
+"PO-Revision-Date: 2026-04-05 22:08+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -312,7 +312,7 @@ msgstr "揀預設轉碼設定檔"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
-msgstr "揀字幕顏色"
+msgstr "揀字幕色水"
 
 #: jellyfin_mpv_shim/menu.py:465
 msgid "Select Subtitle Size"
@@ -348,7 +348,7 @@ msgstr "字幕位置：{0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "字幕顏色：{0}"
+msgstr "字幕色水：{0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
@@ -364,7 +364,7 @@ msgstr "直接路徑 (Direct Paths)"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr "停用直接播放 (Direct Play)"
+msgstr "熄咗直接播放 (Direct Play)"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
@@ -521,7 +521,7 @@ msgstr "已啟用「一齊睇」。"
 
 #: jellyfin_mpv_shim/syncplay.py:250
 msgid "SyncPlay disabled."
-msgstr "經已停用「一齊睇」。"
+msgstr "經已熄咗「一齊睇」。"
 
 #: jellyfin_mpv_shim/syncplay.py:313
 msgid "{0} has joined."
