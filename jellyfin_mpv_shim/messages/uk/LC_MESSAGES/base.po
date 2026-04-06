@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2024-06-09 16:41+0000\n"
-"Last-Translator: stanol <stanol777@gmail.com>\n"
+"PO-Revision-Date: 2026-04-06 09:36+0000\n"
+"Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/uk/>\n"
+"jellyfin-mpv-shim/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -353,11 +353,11 @@ msgstr "Колір субтитрів: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
-msgstr "Перекодувати Hi10p на 8біт"
+msgstr "Перекодовувати Hi10p на 8біт"
 
 #: jellyfin_mpv_shim/menu.py:506
 msgid "Transcode HDR"
-msgstr "Перекодувати HDR"
+msgstr "Перекодовувати HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
@@ -381,7 +381,7 @@ msgstr "Автовідтворення"
 
 #: jellyfin_mpv_shim/menu.py:547
 msgid "Auto Fullscreen"
-msgstr "Автоматично на весь екран"
+msgstr "Автоматичний повноекранний режим"
 
 #: jellyfin_mpv_shim/menu.py:548
 msgid "Media Key Seek"
@@ -393,7 +393,7 @@ msgstr "Використовувати Web Seek Pref"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
-msgstr "Зеркальне відображення дисплея"
+msgstr "Дублювання екрана"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
@@ -437,11 +437,11 @@ msgstr "Пропущений вступ"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Спробувати пропустити титри"
+msgstr "Пропустити титри"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr "Шукати, щоб пропустити вступ"
+msgstr "Пропустити заставку"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -479,7 +479,7 @@ msgstr "Вимкнено"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr "Повторення"
+msgstr "Повторити"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
