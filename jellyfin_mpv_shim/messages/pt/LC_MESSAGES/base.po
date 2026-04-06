@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-04-06 08:50+0000\n"
-"Last-Translator: RmigD <ruimigueldias@gmail.com>\n"
+"PO-Revision-Date: 2026-04-06 18:59+0000\n"
+"Last-Translator: Blackspirits <blackspirits@gmail.com>\n"
 "Language-Team: Portuguese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pt/>\n"
 "Language: pt\n"
@@ -48,7 +48,7 @@ msgstr "Configuração atual..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr "URL do Servidor: "
+msgstr "URL do servidor: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Não foi possível adicionar o servidor.\n"
-"Por favor, verifique as suas informações de ligação."
+"Verifique os dados de ligação."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -100,11 +100,11 @@ msgstr "Falhou"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr "Ok"
+msgstr "OK"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr "Configurações do servidor"
+msgstr "Configuração do servidor"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
