@@ -1114,6 +1114,7 @@ class PlayerManager(object):
                     player.duration,
                     not player.pause,
                     self.syncplay.current_group,
+                    self._video.item.get("Type"),
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
