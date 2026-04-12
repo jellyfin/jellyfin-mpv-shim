@@ -138,10 +138,13 @@ class EventHandler(object):
         command = arguments.get("Command")
         if command == "PlayPause":
             playerManager.toggle_pause()
+            timelineManager.send_timeline()
         elif command == "Pause":
             playerManager.pause_if_playing()
+            timelineManager.send_timeline()
         elif command == "Unpause":
             playerManager.play_if_paused()
+            timelineManager.send_timeline()
         elif command == "PreviousTrack":
             playerManager.play_prev()
         elif command == "NextTrack":
