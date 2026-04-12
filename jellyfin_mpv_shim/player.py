@@ -747,19 +747,17 @@ class PlayerManager(object):
 
     def stop_and_close(self):
         log.info("stop_and_close: stopping playback")
+        self.menu.is_menu_shown = False
         self.stop()
         if not self._mpv_alive:
             return
         try:
-            log.info("stop_and_close: disabling OSC")
-            self.enable_osc(False)
-            log.info("stop_and_close: closing window")
             self._player.keep_open = False
             self._player.force_window = False
-            self._player.command("stop")
-            log.info("stop_and_close: done")
+            self._player.command("quit")
         except _mpv_errors:
             self._handle_mpv_disconnect()
+        log.info("stop_and_close: done")
 
     def get_volume(self, percent: bool = False):
         if self._player:
@@ -1226,31 +1224,53 @@ class PlayerManager(object):
     def get_video(self):
         return self._video
 
-    def show_text(self, text: str, duration: int, level: int = 1):
+    def show_text(self, text: str, duration: int = -1, level: int = 1):
         if not self._mpv_alive:
             return
         try:
-            self._player.show_text(text, duration, level)
+            self._player.show_text(text, str(duration), level)
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
+    _default_osd_back_color = "#C8000000"
+    _default_osd_font_size = 55
+
     def get_osd_settings(self):
-        return self._player.osd_back_color, self._player.osd_font_size
+        if not self._mpv_alive:
+            return self._default_osd_back_color, self._default_osd_font_size
+        try:
+            return (
+                self._player.osd_back_color or self._default_osd_back_color,
+                self._player.osd_font_size or self._default_osd_font_size,
+            )
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return self._default_osd_back_color, self._default_osd_font_size
 
     def set_osd_settings(self, back_color: str, font_size: int):
-        self._player.osd_back_color = back_color
-        self._player.osd_font_size = font_size
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.osd_back_color = back_color
+            self._player.osd_font_size = font_size
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def enable_osc(self, enabled: bool):
-        if settings.thumbnail_enable and self.trickplay:
-            self.script_message(
-                "osc-visibility", "auto" if enabled else "never", "False"
-            )
-            if hasattr(self._player, "osc"):
-                self._player.osc = False
-        else:
-            if hasattr(self._player, "osc"):
-                self._player.osc = enabled
+        if not self._mpv_alive:
+            return
+        try:
+            if settings.thumbnail_enable and self.trickplay:
+                self.script_message(
+                    "osc-visibility", "auto" if enabled else "never", "False"
+                )
+                if hasattr(self._player, "osc"):
+                    self._player.osc = False
+            else:
+                if hasattr(self._player, "osc"):
+                    self._player.osc = enabled
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def triggered_menu(self, enabled: bool):
         self.script_message("shim-menu-enable", "True" if enabled else "False")
@@ -1264,7 +1284,10 @@ class PlayerManager(object):
 
     def force_window(self, enabled: bool):
         if not self._mpv_alive:
-            return
+            if not enabled:
+                return
+            log.info("mpv is dead, reinitializing for menu window")
+            self._init_mpv()
         try:
             if enabled:
                 self._player.force_window = True
@@ -1276,7 +1299,7 @@ class PlayerManager(object):
                 self._player.keep_open = False
                 if not self._video:
                     self._player.force_window = False
-                    self._player.command("stop")
+                    self._player.command("quit")
                 elif self._player.playback_abort:
                     self._player.force_window = False
                     self._player.play("")
