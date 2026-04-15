@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-02-06 22:08+0000\n"
+"PO-Revision-Date: 2026-04-15 12:45+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -25,7 +25,7 @@ msgstr "Odabir pjesama..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: Nema podnaslova"
+msgstr "{0}: Nema titlova"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
@@ -219,7 +219,7 @@ msgstr "Promijenite zapis zvuka"
 
 #: jellyfin_mpv_shim/menu.py:137
 msgid "Change Subtitles"
-msgstr "Promjena podnaslova"
+msgstr "Promijeni titlove"
 
 #: jellyfin_mpv_shim/menu.py:138
 msgid "Change Video Quality"
@@ -239,7 +239,7 @@ msgstr "Promijeni profil video reprodukcije"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Automatsko postavljanje zvuka/podnaslova (cjelokupna sezona)"
+msgstr "Automatsko postavljanje zvuka/titlova (cjelokupna sezona)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -303,7 +303,7 @@ msgstr "Engleski zvuk"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr "Japanski zvuk sa engleskim titlovima"
+msgstr "Japanski zvuk s engleskim titlovima"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
