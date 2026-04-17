@@ -308,6 +308,14 @@ class Video(object):
 
     def get_bif(self, prefer_width=320):
         manifest = self.item.get("Trickplay")
+        if manifest is None:
+            # Trickplay data may not be included in default item fields.
+            # Re-fetch the item with the Trickplay field explicitly requested.
+            item = self.client.jellyfin.users(
+                "/Items/%s" % self.item_id,
+                params={"Fields": "Trickplay"},
+            )
+            manifest = item.get("Trickplay")
         if (
             manifest is not None
             and manifest.get(self.media_source["Id"]) is not None
