@@ -895,8 +895,8 @@ class PlayerManager(object):
             return
 
         video = self._video
-        video.set_played(False)
         self.stop_and_close()
+        video.set_played(False)
 
     @synchronous("_lock")
     def play_next(self):
