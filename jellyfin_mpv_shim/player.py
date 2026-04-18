@@ -747,14 +747,13 @@ class PlayerManager(object):
 
     def stop_and_close(self):
         log.info("stop_and_close: stopping playback")
-        self.menu.is_menu_shown = False
         self.stop()
         if not self._mpv_alive:
             return
         try:
             self._player.keep_open = False
             self._player.force_window = False
-            self._player.command("quit")
+            self._player.command("stop")
         except _mpv_errors:
             self._handle_mpv_disconnect()
         log.info("stop_and_close: done")
@@ -896,8 +895,8 @@ class PlayerManager(object):
             return
 
         video = self._video
-        self.stop()
         video.set_played(False)
+        self.stop_and_close()
 
     @synchronous("_lock")
     def play_next(self):
@@ -1224,7 +1223,7 @@ class PlayerManager(object):
     def get_video(self):
         return self._video
 
-    def show_text(self, text: str, duration: int = -1, level: int = 1):
+    def show_text(self, text: str, duration: int, level: int = 1):
         if not self._mpv_alive:
             return
         try:
@@ -1299,7 +1298,7 @@ class PlayerManager(object):
                 self._player.keep_open = False
                 if not self._video:
                     self._player.force_window = False
-                    self._player.command("quit")
+                    self._player.command("stop")
                 elif self._player.playback_abort:
                     self._player.force_window = False
                     self._player.play("")
