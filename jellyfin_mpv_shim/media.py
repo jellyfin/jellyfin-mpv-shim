@@ -208,18 +208,21 @@ class Video(object):
                 )
                 continue
 
-            normalized_source = source.replace("\\", "/").rstrip("/")
+            expanded_source = os.path.expanduser(os.path.expandvars(source))
+            expanded_target = os.path.expanduser(os.path.expandvars(target))
+
+            normalized_source = expanded_source.replace("\\", "/").rstrip("/")
             if not normalized_source:
                 continue
 
             if normalized_path == normalized_source:
-                log.debug("Rewriting media path %s to %s", path, target)
-                return target
+                log.debug("Rewriting media path %s to %s", path, expanded_target)
+                return expanded_target
 
             source_prefix = normalized_source + "/"
             if normalized_path.startswith(source_prefix):
                 suffix = normalized_path[len(source_prefix) :]
-                rewritten_path = cls._join_substituted_path(target, suffix)
+                rewritten_path = cls._join_substituted_path(expanded_target, suffix)
                 log.debug("Rewriting media path %s to %s", path, rewritten_path)
                 return rewritten_path
 
@@ -251,9 +254,23 @@ class Video(object):
                     )
 
             source_path = self._apply_path_substitutions(source_path)
+            parsed_source_path = urllib.parse.urlparse(source_path)
+            if not parsed_source_path.scheme:
+                expanded_source_path = os.path.expanduser(
+                    os.path.expandvars(source_path)
+                )
+                if expanded_source_path != source_path:
+                    log.debug(
+                        "Expanded direct path %s to %s",
+                        source_path,
+                        expanded_source_path,
+                    )
+                source_path = expanded_source_path
+                parsed_source_path = urllib.parse.urlparse(source_path)
+
             self.media_source["Path"] = source_path
 
-            if urllib.parse.urlparse(source_path).scheme:
+            if parsed_source_path.scheme:
                 self.is_transcode = False
                 log.debug("Using remote direct path.")
                 # translate path for windows
