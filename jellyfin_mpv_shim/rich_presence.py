@@ -1,5 +1,6 @@
 from pypresence import Client
 import time
+from pypresence.types import ActivityType, StatusDisplayType
 
 client_id = "743296148592263240"
 RPC = Client(client_id)
@@ -17,6 +18,7 @@ def send_presence(
     duration: float = None,
     playing: bool = False,
     syncplay_group: str = None,
+    media_type: str = None,
 ):
     small_image = "play-dark3" if playing else None
     start = None
@@ -26,6 +28,8 @@ def send_presence(
         end = int(start + duration)
 
     payload = {
+        "activity_type": ActivityType.LISTENING if media_type and media_type == "Audio" else ActivityType.WATCHING,
+        "status_display_type": StatusDisplayType.DETAILS,
         "state": subtitle if subtitle else "Unknown Media",
         "details": title,
         "instance": False,
