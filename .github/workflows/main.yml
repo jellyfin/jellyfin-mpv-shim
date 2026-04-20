@@ -14,7 +14,7 @@ jobs:
     - name: Setup Python 3.13
       uses: actions/setup-python@v6
       with:
-        python-version: 3.13
+        python-version: 3.14
     - name: Setup git SDK
       uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
@@ -60,7 +60,7 @@ jobs:
     - name: Setup Python 3.13
       uses: actions/setup-python@v6
       with:
-        python-version: 3.13
+        python-version: 3.14
     - name: Setup git SDK
       uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
@@ -106,7 +106,7 @@ jobs:
     - name: Setup Python 3.13
       uses: actions/setup-python@v6
       with:
-        python-version: 3.13
+        python-version: 3.14
     - name: Setup git SDK
       uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
