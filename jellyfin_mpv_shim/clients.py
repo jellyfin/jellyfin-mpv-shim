@@ -15,6 +15,59 @@ import logging
 import re
 import threading
 
+import socket
+import ipaddress
+from urllib.parse import urlparse
+
+# Get all local IPv4 addresses for host machine
+def get_local_ips():
+    local_ips = []
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            local_ips.append(ipaddress.ip_address(s.getsockname()[0]))
+    except OSError:
+        pass
+    
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = ipaddress.ip_address(info[4][0])
+            if ip not in local_ips and ip.is_private:
+                local_ips.append(ip)
+    except socket.gaierror:
+        pass
+    
+    return local_ips
+
+# Extract hostname/IP from a URL.
+def extract_host(url):
+    parsed = urlparse(url)
+    return parsed.hostname  # Handles port stripping automatically
+
+# Check if string is valid IPv4 address
+def is_ipv4(host):
+    try:
+        ipaddress.IPv4Address(host)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
+# Check if host IP is on the same subnet as any local IP
+def is_local_subnet(host, local_ips, prefix_length=24):
+    try:
+        target_ip = ipaddress.IPv4Address(host)
+    except ipaddress.AddressValueError:
+        return False
+    
+    if not target_ip.is_private:
+        return False
+    
+    for local_ip in local_ips:
+        net = ipaddress.ip_network(f"{local_ip}/{prefix_length}", strict=False)
+        if target_ip in net:
+            return True
+    return False
+
 log = logging.getLogger("clients")
 path_regex = re.compile("^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
 
@@ -105,9 +158,44 @@ class ClientManager(object):
 
     def _connect_all(self):
         is_logged_in = False
-        for server in self.credentials:
+
+        local_ips = get_local_ips()
+
+        def connection_priority(server):
+            host = extract_host(server["address"])
+            
+            # Highest priority: same subnet as us
+            if is_ipv4(host) and is_local_subnet(host, local_ips):
+                return 0
+            
+            # Second priority: other private IPs (maybe reachable via VPN, etc.)
+            if is_ipv4(host):
+                try:
+                    if ipaddress.IPv4Address(host).is_private:
+                        return 1
+                except ipaddress.AddressValueError:
+                    pass
+            
+            # Lowest priority: hostnames / external addresses
+            return 2
+        
+        # Sort creds list by local-first priority
+        sorted_credentials = sorted(self.credentials, key=connection_priority)
+
+        # Array to stash server Ids, to avoid double-connecting to servers
+        # and avoid clobbering the preferred connection
+        connected_servers = []
+
+        for server in sorted_credentials:
+            # Test if we've connected to this server already
+            if server["Id"] in connected_servers:
+                # If so, skip connecting
+                continue
             if self.connect_client(server):
                 is_logged_in = True
+
+                # If valid connection, add Id of server to array
+                connected_servers.append(server["Id"])
         return is_logged_in
 
     def try_connect(self):
