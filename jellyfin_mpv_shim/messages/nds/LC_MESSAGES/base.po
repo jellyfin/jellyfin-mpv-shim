@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-11-30 12:57+0000\n"
-"Last-Translator: 4phips <zellphilipp@gmail.com>\n"
+"PO-Revision-Date: 2026-05-01 08:19+0000\n"
+"Last-Translator: \"@reco-tec\" <mods_vincas_2s@icloud.com>\n"
 "Language-Team: German (Low) <https://translate.jellyfin.org/projects/"
-"jellyfin/jellyfin-desktop/nds/>\n"
+"jellyfin/jellyfin-mpv-shim/nds/>\n"
 "Language: nds\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -39,8 +39,9 @@ msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
 msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
+#, fuzzy
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Manuell: {0} ok, {1} fehlerhaft"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -48,7 +49,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr ""
+msgstr "Server URL: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
@@ -72,73 +73,76 @@ msgstr "Hinzufügen des Servers fehlgeschlagen."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Bereit zum Spiegeln"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Wähle deine Inhalte in Jellyfin und spiel sie hier"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr ""
+msgstr "Applikationslog"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
 msgstr "Server hinzufügen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
+#, fuzzy
 msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"Hinzufügen vom Server fehlgeschlagen.\n"
+"Bitte überprüfe deine Verbindungsinformationen."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
-msgstr ""
+msgstr "Fehler"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr ""
+msgstr "Server Konfiguration"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
-msgstr ""
+msgstr "Server:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
-msgstr ""
+msgstr "Benutzername:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
-msgstr ""
+msgstr "Passwort:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
-msgstr ""
+msgstr "Server entfernen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
-msgstr ""
+msgstr "Schließen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr ""
+msgstr "Server konfigurieren"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
-msgstr ""
+msgstr "Konsole anzeigen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
-msgstr ""
+msgstr "Applikationsmenü"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
-msgstr ""
+msgstr "Konfigurationsordner öffnen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
@@ -162,7 +166,7 @@ msgstr "Schwarz"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr ""
+msgstr "Türkis"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -174,7 +178,7 @@ msgstr "Grün"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "Magenta"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
@@ -230,23 +234,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
-msgstr ""
+msgstr "Videowiedergabeprofil ändern"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:163
+#, fuzzy
 msgid "Quit and Mark Unwatched"
-msgstr ""
+msgstr "Beenden und als ungesehen markieren"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "Bildschrimfoto"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
-msgstr ""
+msgstr "Videowiedergabeprofile"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
@@ -254,7 +259,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
-msgstr ""
+msgstr "Video Einstellungen"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
