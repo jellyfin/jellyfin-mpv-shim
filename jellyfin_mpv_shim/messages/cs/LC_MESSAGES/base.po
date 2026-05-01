@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-04-20 19:15+0000\n"
-"Last-Translator: Jindřich Planeta <21planeta@opengate.cz>\n"
+"PO-Revision-Date: 2026-05-01 12:03+0000\n"
+"Last-Translator: Fjuro <fjuro@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -404,7 +404,7 @@ msgstr "Zkontrolovat aktualizace"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Přítomnost na Discordu"
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"
