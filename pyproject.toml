@@ -17,8 +17,8 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
-    "jellyfin-apiclient-python>=1.11.0",
-    "python-mpv-jsonipc>=1.2.1",
+    "jellyfin-apiclient-python>=1.12.0",
+    "python-mpv-jsonipc>=1.2.2",
     "requests",
 ]
 
