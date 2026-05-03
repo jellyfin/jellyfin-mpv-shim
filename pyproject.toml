@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jellyfin-mpv-shim"
+description = "Cast media from Jellyfin Mobile and Web apps to MPV."
+readme = "README.md"
+authors = [{ name = "Izzie Walton", email = "izzie@iwalton.com" }]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.md"]
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+dependencies = [
+    "python-mpv>=1.0.8",
+    "jellyfin-apiclient-python>=1.11.0",
+    "python-mpv-jsonipc>=1.2.1",
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://github.com/jellyfin/jellyfin-mpv-shim"
+
+[project.optional-dependencies]
+gui = ["pystray", "pillow"]
+mirror = [
+    "Jinja2",
+    "pywebview>=6.1",
+    "pywin32; sys_platform == 'win32'",
+    "clr-loader; sys_platform == 'win32'",
+    "pythonnet; sys_platform == 'win32'",
+]
+discord = ["pypresence"]
+all = [
+    "Jinja2",
+    "pywebview>=6.1",
+    "pystray",
+    "pypresence",
+    "pillow",
+    "pywin32; sys_platform == 'win32'",
+    "clr-loader; sys_platform == 'win32'",
+    "pythonnet; sys_platform == 'win32'",
+]
+
+[project.scripts]
+jellyfin-mpv-shim = "jellyfin_mpv_shim.mpv_shim:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "jellyfin_mpv_shim.constants.CLIENT_VERSION" }
+
+[tool.setuptools.packages.find]
+include = ["jellyfin_mpv_shim*"]
+
+[tool.setuptools.package-data]
+jellyfin_mpv_shim = [
+    "systray.png",
+    "*.lua",
+    "messages/base.pot",
+    "messages/*/LC_MESSAGES/*.mo",
+    "default_shader_pack/**/*",
+    "integration/**/*",
+]
+"jellyfin_mpv_shim.display_mirror" = ["*.css", "*.html"]
