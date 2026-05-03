@@ -59,6 +59,8 @@ class Settings(SettingsBase):
     mpv_ext_path: Optional[str] = None
     mpv_ext_ipc: Optional[str] = None
     mpv_ext_start: bool = True
+    mpv_ext_start_retries: int = 10
+    mpv_ext_start_retry_delay_ms: int = 3000
     mpv_ext_no_ovr: bool = False
     enable_osc: bool = True
     use_web_seek: bool = False

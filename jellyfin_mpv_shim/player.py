@@ -174,6 +174,8 @@ class PlayerManager(object):
                     "ipc_socket": settings.mpv_ext_ipc,
                     "mpv_location": mpv_location,
                     "player-operation-mode": "cplayer",
+                    "start_retries": settings.mpv_ext_start_retries,
+                    "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
                 }
             )
 
