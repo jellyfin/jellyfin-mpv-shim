@@ -59,6 +59,15 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="2.10.0" date="2026-05-03">
+      <description>
+        <p>Changes:</p>
+        <ul>
+          <li>(pending release)</li>
+        </ul>
+      </description>
+    </release>
+  <releases>
     <release version="2.9.0" date="2025-03-17">
       <description>
         <p>Changes:</p>
