@@ -61,6 +61,7 @@ include = ["jellyfin_mpv_shim*"]
 [tool.setuptools.package-data]
 jellyfin_mpv_shim = [
     "systray.png",
+    "logo.png",
     "*.lua",
     "messages/base.pot",
     "messages/*/LC_MESSAGES/*.mo",
