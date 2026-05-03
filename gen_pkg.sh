@@ -65,10 +65,13 @@ then
 fi
 
 # Verify versioning
+# Note: pyproject.toml derives the version dynamically from constants.py, so it
+# is not checked here. constants.py is the single source of truth for the
+# Python package; the Inno Setup and Flatpak appdata files must be kept in sync
+# manually.
 current_version=$(get_resource_version jellyfin/jellyfin-mpv-shim)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
-setup_version=$(grep 'version=' setup.py | cut -d '"' -f 2 | sed 's/.post.*//g')
 iss_version=$(grep '^#define MyAppVersion' "Jellyfin MPV Shim.iss" | cut -d '"' -f 2)
 appdata_version=$(grep 'release version="' jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml | \
     head -n 1 | cut -d '"' -f 2)
@@ -79,11 +82,11 @@ then
     echo "If you are building a release, the publish will not succeed."
 fi
 
-if [[ "$constants_version" != "$setup_version" || "$setup_version" != "$iss_version" || "$iss_version" != "$appdata_version" ]]
+if [[ "$constants_version" != "$iss_version" || "$iss_version" != "$appdata_version" ]]
 then
     echo "Error: The release does not have the same version numbers in all files!"
     echo "Please correct this before releasing!"
-    echo "Constants: $constants_version, Setup: $setup_version, ISS: $iss_version, Flatpak: $appdata_version"
+    echo "Constants: $constants_version, ISS: $iss_version, Flatpak: $appdata_version"
 fi
 
 # Generate translations
@@ -137,6 +140,6 @@ then
     rm -r build/ dist/ .eggs 2> /dev/null
     mkdir build/ dist/
     echo "Building release package."
-    python3 setup.py sdist bdist_wheel > /dev/null
+    python3 -m build > /dev/null
 fi
 

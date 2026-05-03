@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-06-03 09:34+0000\n"
-"Last-Translator: General-c4 <warmeastern@gmail.com>\n"
+"PO-Revision-Date: 2026-05-02 16:20+0000\n"
+"Last-Translator: Hassan Alabdulaal <hassan.b2018@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ar/>\n"
+"jellyfin-mpv-shim/ar/>\n"
 "Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -225,7 +225,7 @@ msgstr "تغيير جودة الفيديو"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "مشاهدة معا"
+msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -405,7 +405,7 @@ msgstr "التحقق من وجود تحديثات"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "حضور غني على Discord"
+msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"

@@ -1,14 +1,32 @@
 from pypresence import Client
-import time
 from pypresence.types import ActivityType, StatusDisplayType
+import time
+import logging
+
+log = logging.getLogger("rich_presence")
 
 client_id = "743296148592263240"
-RPC = Client(client_id)
-RPC.start()
+RPC = None
+
+
+def _ensure_connected():
+    global RPC
+    if RPC is not None:
+        return True
+    try:
+        rpc = Client(client_id)
+        rpc.start()
+        RPC = rpc
+        log.info("Connected to Discord Rich Presence.")
+        return True
+    except Exception:
+        log.debug("Discord is not available yet.", exc_info=True)
+        return False
 
 
 def register_join_event(syncplay_join_group: callable):
-    RPC.register_event("activity_join", syncplay_join_group)
+    if _ensure_connected():
+        RPC.register_event("activity_join", syncplay_join_group)
 
 
 def send_presence(
@@ -20,6 +38,9 @@ def send_presence(
     syncplay_group: str = None,
     media_type: str = None,
 ):
+    if not _ensure_connected():
+        return
+
     small_image = "play-dark3" if playing else None
     start = None
     end = None
@@ -45,8 +66,19 @@ def send_presence(
         payload["party_size"] = [1, 100]
         payload["join"] = syncplay_group
 
-    RPC.set_activity(**payload)
+    try:
+        RPC.set_activity(**payload)
+    except Exception:
+        log.warning("Discord connection lost.", exc_info=True)
+        RPC = None
 
 
 def clear_presence():
-    RPC.clear_activity()
+    global RPC
+    if RPC is None:
+        return
+    try:
+        RPC.clear_activity()
+    except Exception:
+        log.warning("Discord connection lost.", exc_info=True)
+        RPC = None
