@@ -157,13 +157,30 @@ class Video(object):
             return settings.remote_kbps
 
     def terminate_transcode(self):
-        if self.is_transcode:
+        if not self.is_transcode:
+            return
+
+        # Live TV streams are torn down server-side by closing the live stream;
+        # that closes the transcode as a side effect, so we skip the second call.
+        live_stream_id = (self.media_source or {}).get("LiveStreamId")
+        if live_stream_id:
             try:
-                self.client.jellyfin.close_transcode(
-                    self.client.config.data["app.device_id"]
-                )
-            except:
-                log.warning("Terminating transcode failed.", exc_info=1)
+                self.client.jellyfin.close_live_stream(live_stream_id)
+                return
+            except Exception:
+                log.warning("Closing live stream failed.", exc_info=True)
+
+        play_session_id = (self.playback_info or {}).get("PlaySessionId")
+        if play_session_id is None:
+            return
+
+        try:
+            self.client.jellyfin.close_transcode(
+                self.client.config.data["app.device_id"],
+                play_session_id,
+            )
+        except Exception:
+            log.warning("Terminating transcode failed.", exc_info=True)
 
     def _get_url_from_source(self):
         # Only use Direct Paths if:

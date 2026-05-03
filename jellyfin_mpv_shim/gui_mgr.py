@@ -439,11 +439,14 @@ class STrayProcess(Process):
 
     def run(self):
         import os
+        import sys
 
-        # Force X11 backend for GTK to fix Wayland startup issues
-        if "WAYLAND_DISPLAY" in os.environ:
-            del os.environ["WAYLAND_DISPLAY"]
-        os.environ["GDK_BACKEND"] = "x11"
+        # Force X11 backend for GTK to fix Wayland startup issues. GDK_BACKEND
+        # and WAYLAND_DISPLAY only mean anything to GTK on Linux/BSD; on
+        # Windows and macOS pystray uses native APIs, so leave the env alone.
+        if sys.platform.startswith("linux") or sys.platform.startswith("freebsd"):
+            os.environ.pop("WAYLAND_DISPLAY", None)
+            os.environ["GDK_BACKEND"] = "x11"
 
         try:
             from pystray import Icon, MenuItem, Menu
