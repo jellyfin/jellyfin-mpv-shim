@@ -7,6 +7,7 @@ from io import BytesIO
 from sys import platform
 
 from .conf import settings
+from .language_config import apply as apply_language_config
 from .utils import is_local_domain, get_profile, get_seq
 from .i18n import _
 
@@ -98,6 +99,16 @@ class Video(object):
 
             if not sub.get("IsExternal"):
                 index += 1
+
+        # language_config overrides cast-time aid/sid; the user explicitly
+        # opted into preferences and the menu is the runtime escape hatch.
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, self.media_source, self.item
+        )
+        if rule_aid is not None:
+            self.aid = rule_aid
+        if rule_sid is not None:
+            self.sid = rule_sid
 
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")

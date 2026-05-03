@@ -6,8 +6,14 @@ import json
 import os.path
 import sys
 import getpass
-from typing import Optional
-from .settings_base import SettingsBase
+from typing import List, Optional
+from .settings_base import SettingsBase, object_types
+from .language_config import LanguageRule, parse_language_config
+
+# Register the structured-type parser. Done here (rather than in
+# settings_base.py) to keep settings_base free of dependencies that would
+# otherwise cycle through conf.py.
+object_types[Optional[List[LanguageRule]]] = parse_language_config
 
 log = logging.getLogger("conf")
 config_path = None
@@ -137,6 +143,7 @@ class Settings(SettingsBase):
     tls_client_cert: Optional[str] = None
     tls_client_key: Optional[str] = None
     tls_server_ca: Optional[str] = None
+    language_config: Optional[List[LanguageRule]] = None
 
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
