@@ -438,7 +438,19 @@ class STrayProcess(Process):
         Process.__init__(self)
 
     def run(self):
-        from pystray import Icon, MenuItem, Menu
+        import os
+
+        # Force X11 backend for GTK to fix Wayland startup issues
+        if "WAYLAND_DISPLAY" in os.environ:
+            del os.environ["WAYLAND_DISPLAY"]
+        os.environ["GDK_BACKEND"] = "x11"
+
+        try:
+            from pystray import Icon, MenuItem, Menu
+        except Exception as e:
+            log.error(f"Failed to import pystray: {e}")
+            self.r_queue.put(("die", None))
+            return
 
         def get_wrapper(command):
             def wrapper():
