@@ -155,6 +155,11 @@ class LoggerWindowProcess(Process):
         root = tk.Tk()
         self.root = root
         root.title(_("Application Log"))
+        try:
+            icon_img = tk.PhotoImage(file=get_resource("logo.png"))
+            root.iconphoto(True, icon_img)
+        except Exception:
+            pass
         text = tk.Text(root)
         text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
         text.config(wrap=tk.WORD)
@@ -282,6 +287,11 @@ class PreferencesWindowProcess(Process):
         self.messagebox = messagebox
         root = tk.Tk()
         root.title(_("Server Configuration"))
+        try:
+            icon_img = tk.PhotoImage(file=get_resource("logo.png"))
+            root.iconphoto(True, icon_img)
+        except Exception:
+            pass
         self.root = root
 
         self.servers = {}
