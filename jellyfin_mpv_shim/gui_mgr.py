@@ -384,7 +384,10 @@ class UserInterface(threading.Thread):
         while True:
             action, param = self.r_queue.get()
             if hasattr(self, action):
-                getattr(self, action)()
+                try:
+                    getattr(self, action)()
+                except Exception:
+                    log.error("Error handling tray action: %s", action, exc_info=True)
             elif action == "die":
                 self._die()
                 if self.stop_callback:
