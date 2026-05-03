@@ -384,7 +384,10 @@ class UserInterface(threading.Thread):
         while True:
             action, param = self.r_queue.get()
             if hasattr(self, action):
-                getattr(self, action)()
+                try:
+                    getattr(self, action)()
+                except Exception:
+                    log.error("Error handling tray action: %s", action, exc_info=True)
             elif action == "die":
                 self._die()
                 if self.stop_callback:
@@ -438,7 +441,22 @@ class STrayProcess(Process):
         Process.__init__(self)
 
     def run(self):
-        from pystray import Icon, MenuItem, Menu
+        import os
+        import sys
+
+        # Force X11 backend for GTK to fix Wayland startup issues. GDK_BACKEND
+        # and WAYLAND_DISPLAY only mean anything to GTK on Linux/BSD; on
+        # Windows and macOS pystray uses native APIs, so leave the env alone.
+        if sys.platform.startswith("linux") or sys.platform.startswith("freebsd"):
+            os.environ.pop("WAYLAND_DISPLAY", None)
+            os.environ["GDK_BACKEND"] = "x11"
+
+        try:
+            from pystray import Icon, MenuItem, Menu
+        except Exception as e:
+            log.error(f"Failed to import pystray: {e}")
+            self.r_queue.put(("die", None))
+            return
 
         def get_wrapper(command):
             def wrapper():

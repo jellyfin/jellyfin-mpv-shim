@@ -1,13 +1,12 @@
-import getpass
-import json
 import logging
 import os
-import os.path
-import socket
-import sys
 import uuid
+import socket
+import json
+import os.path
+import sys
+import getpass
 from typing import Optional
-
 from .settings_base import SettingsBase
 
 log = logging.getLogger("conf")

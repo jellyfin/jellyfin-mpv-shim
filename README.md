@@ -708,5 +708,3 @@ copy it into a new folder called mpv32. You may also need to edit the batch file
 7. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
     - This builds the translation files and downloads the shader packs.
 8. Run `build-win.bat`.
-
-**NOTE:** If you are encountering an issue regarding "msgfmt" not being found, run `winget install -e --id GnuWin32.GetText` and add `C:\Program Files (x86)\GnuWin32\bin` to your PATH.

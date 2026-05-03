@@ -6,33 +6,33 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-02-23 13:01+0000\n"
-"Last-Translator: millallo <millallo@tiscali.it>\n"
+"PO-Revision-Date: 2026-04-23 17:58+0000\n"
+"Last-Translator: cricca <cry.calva@hotmail.it>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/it/>\n"
+"jellyfin-mpv-shim/it/>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "Selezionando tracce..."
+msgstr "Selezione delle tracce..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr "{0}: No Sottotitoli"
+msgstr "{0}: Nessun sottotitolo"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr "{0}: Fallito"
+msgstr "{0}: non riuscito"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Imposta sottotitolo {0} ok, {1} fallito"
+msgstr "Imposta sottotitoli: {0} ok, {1} fallito"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
@@ -68,7 +68,7 @@ msgstr "Aggiungere un altro server?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr "Aggiunta server fallita."
+msgstr "Aggiunta server non riuscita."
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
@@ -80,11 +80,11 @@ msgstr "Seleziona il tuo media in Jellyfin e riproducilo qui"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr "Log Applicazione"
+msgstr "Log applicazione"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr "Aggiungi Server"
+msgstr "Aggiungi server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
@@ -92,7 +92,7 @@ msgid ""
 "Please check your connection information."
 msgstr ""
 "Impossibile aggiungere server.\n"
-"controlla le informazioni di connessione."
+"Controlla le informazioni di connessione."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -128,7 +128,7 @@ msgstr "Chiudi"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "Configura Server"
+msgstr "Configura server"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -136,7 +136,7 @@ msgstr "Mostra console"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
-msgstr "Menù applicazione"
+msgstr "Menu applicazione"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
@@ -164,7 +164,7 @@ msgstr "Nero"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Celeste"
+msgstr "Ciano"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
@@ -208,7 +208,7 @@ msgstr "Enorme"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
-msgstr "Menù principale"
+msgstr "Menu principale"
 
 #: jellyfin_mpv_shim/menu.py:136
 msgid "Change Audio"
@@ -224,7 +224,7 @@ msgstr "Cambia qualità video"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Riproduzione sincronizzata"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
@@ -236,7 +236,7 @@ msgstr "Cambia profilo riproduzione video"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Impostazione automatica Audio/Sottotitoli (intera serie)"
+msgstr "Impostazione automatica audio/sottotitoli (intera serie)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -244,7 +244,7 @@ msgstr "Esci e segna come Non visto"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr "Istantanea"
+msgstr "Schermata"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -260,11 +260,11 @@ msgstr "Preferenze video"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
-msgstr "Preferenze player"
+msgstr "Preferenze lettore"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
-msgstr "Chiudi menù"
+msgstr "Chiudi menu"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
@@ -292,7 +292,7 @@ msgstr "Nessuna transcodifica"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Seleziona Audio/Sottotitoli per serie"
+msgstr "Seleziona audio/sottotitoli per serie"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -340,7 +340,7 @@ msgstr "Qualità transcodifica remota: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr "Grandezza sottotitoli: {0}"
+msgstr "Dimensione sottotitoli: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
@@ -364,15 +364,15 @@ msgstr "Percorsi diretti"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr "Disabilita Streaming Diretto"
+msgstr "Disabilita Direct Play"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Sottotipo Di Profilo Video: {0}"
+msgstr "Sottotipo profilo video: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Sottotipo Di Profilo Video"
+msgstr "Sottotipo profilo video"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -440,7 +440,7 @@ msgstr "Avanza per saltare i riconoscimenti"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr "Cerca di saltare l'intro"
+msgstr "Cerca di saltare l'introduzione"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
@@ -578,11 +578,11 @@ msgstr "Anime4K x4 fedele (per SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr "Anime4K x4 percezionale (per SD)"
+msgstr "Anime4K x4 percettivo (per SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 percezionale + deblur (per SD)"
+msgstr "Anime4K x4 percettivo + deblur (per SD)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
@@ -590,11 +590,11 @@ msgstr "Anime4K x2 fedele (per HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr "Anime4K x2 percezionale (per HD)"
+msgstr "Anime4K x2 percettivo (per HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr "Anime4K x2 percezionale + deblur (per HD)"
+msgstr "Anime4K x2 percettivo + deblur (per HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"

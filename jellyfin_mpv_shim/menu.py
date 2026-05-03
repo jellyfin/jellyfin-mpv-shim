@@ -122,10 +122,6 @@ class OSDMenu(object):
 
     def show_menu(self):
         self.is_menu_shown = True
-        self.playerManager.set_osd_settings("#CC333333", 40)
-
-        self.playerManager.enable_osc(False)
-        self.playerManager.triggered_menu(True)
 
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
@@ -180,14 +176,20 @@ class OSDMenu(object):
             ]
         )
 
+        # Ensure mpv window is available when not playing.
+        if self.playerManager.playback_is_aborted():
+            self.playerManager.force_window(True)
+
+        self.playerManager.set_osd_settings("#CC333333", 40)
+        self.playerManager.enable_osc(False)
+        self.playerManager.triggered_menu(True)
+
         self.refresh_menu()
 
         # Wait until the menu renders to pause.
         time.sleep(0.2)
 
-        if self.playerManager.playback_is_aborted():
-            self.playerManager.force_window(True)
-        else:
+        if not self.playerManager.playback_is_aborted():
             if not self.playerManager.syncplay.is_enabled():
                 self.playerManager.set_paused(True)
 

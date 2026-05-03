@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-01-25 05:08+0000\n"
-"Last-Translator: ldmheaye <lhydeema@outlook.com>\n"
+"PO-Revision-Date: 2026-04-16 08:45+0000\n"
+"Last-Translator: wabisabi926 <liwenliang926@163.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -404,7 +404,7 @@ msgstr "检查更新"
 
 #: jellyfin_mpv_shim/menu.py:554
 msgid "Discord Rich Presence"
-msgstr "Discord丰富状态"
+msgstr "Discord 高级状态"
 
 #: jellyfin_mpv_shim/menu.py:556
 msgid "Always Skip Intros"

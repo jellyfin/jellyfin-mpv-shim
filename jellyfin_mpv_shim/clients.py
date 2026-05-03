@@ -64,17 +64,92 @@ class ClientManager(object):
             self.health_check = PeriodicHealthCheck(self.check_all_clients)
             self.health_check.start()
 
+    @staticmethod
+    def _get_cli_credential_args():
+        server = None
+        username = None
+        password = ""
+        for i, arg in enumerate(sys.argv):
+            if arg == "--server" and len(sys.argv) > i + 1:
+                server = sys.argv[i + 1]
+            elif arg == "--username" and len(sys.argv) > i + 1:
+                username = sys.argv[i + 1]
+            elif arg == "--password" and len(sys.argv) > i + 1:
+                password = sys.argv[i + 1]
+        if server and username:
+            return server, username, password
+        return None
+
+    def _find_existing_credential(self, server: str, username: str):
+        """Find an existing credential matching the given server and username."""
+        if server.endswith("/"):
+            server = server[:-1]
+        for cred in self.credentials:
+            cred_address = cred.get("address", "").rstrip("/")
+            cred_username = cred.get("username", "")
+            if cred_address == server and cred_username == username:
+                return cred
+        return None
+
+    def _update_account(self, server: str, username: str, password: str):
+        """Update an existing account by re-authenticating with new credentials."""
+        existing = self._find_existing_credential(server, username)
+        if existing is None:
+            return False
+
+        # Disconnect the old client
+        self._disconnect_client(uuid=existing["uuid"])
+        # Remove the old credential
+        self.credentials = [
+            c for c in self.credentials if c["uuid"] != existing["uuid"]
+        ]
+        self.save_credentials()
+
+        # Re-login with updated credentials
+        return self.login(server, username, password)
+
     def cli_connect(self):
         is_logged_in = self.try_connect()
         add_another = False
+        clear_accounts = "clear" in sys.argv
 
         if "add" in sys.argv:
             add_another = True
 
+        cli_creds = self._get_cli_credential_args()
+
+        if clear_accounts:
+            log.info(_("Clearing all existing accounts."))
+            self.remove_all_clients()
+            is_logged_in = False
+
+        if cli_creds:
+            server, username, password = cli_creds
+            if not clear_accounts:
+                existing = self._find_existing_credential(server, username)
+                if existing is not None:
+                    log.info(_("Account already exists. Updating credentials."))
+                    if self._update_account(server, username, password):
+                        log.info(_("Successfully updated server credentials."))
+                        is_logged_in = True
+                    else:
+                        log.warning(_("Updating server credentials failed."))
+                    cli_creds = None
+
+            if cli_creds and (not is_logged_in or add_another or clear_accounts):
+                is_logged_in = self.login(server, username, password)
+                if is_logged_in:
+                    log.info(_("Successfully added server."))
+                else:
+                    log.warning(_("Adding server failed."))
+
         while not is_logged_in or add_another:
             server = input(_("Server URL: "))
             username = input(_("Username: "))
-            password = getpass(_("Password: "))
+            try:
+                password = getpass(_("Password: "))
+            except (EOFError, OSError):
+                password = ""
 
             is_logged_in = self.login(server, username, password)
 
@@ -226,14 +301,19 @@ class ClientManager(object):
                         time.sleep(timeout)
                         if self.connect_client(server, False):
                             break
+            elif event_name == "WebSocketConnect":
+                log.info("WebSocket connected, posting capabilities")
+                try:
+                    client.jellyfin.post_capabilities(CAPABILITIES)
+                except Exception:
+                    log.warning("Failed to post capabilities on reconnect", exc_info=True)
+                self.callback(client, event_name, data)
             else:
                 self.callback(client, event_name, data)
 
         client.callback = event
         client.callback_ws = event
         client.start(websocket=True)
-
-        client.jellyfin.post_capabilities(CAPABILITIES)
 
         # Check connection
         if self.validate_client(client, True):

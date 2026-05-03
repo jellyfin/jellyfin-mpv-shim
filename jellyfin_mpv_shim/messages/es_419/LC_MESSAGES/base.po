@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-04-28 00:56+0000\n"
-"Last-Translator: lazyphoton <achaves@ecuaserver.net>\n"
+"PO-Revision-Date: 2026-02-15 03:07+0000\n"
+"Last-Translator: Ramiro Farias <ramirofarias.dev@gmail.com>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
-"projects/jellyfin/jellyfin-desktop/es_419/>\n"
+"projects/jellyfin/jellyfin-mpv-shim/es_419/>\n"
 "Language: es_419\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.10.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -164,7 +164,7 @@ msgstr "Negro"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
-msgstr "Cyan"
+msgstr "Cian"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"

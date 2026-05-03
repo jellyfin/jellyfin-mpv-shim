@@ -1,21 +1,23 @@
 import logging
 import os
-import platform
 import sys
 import time
-from collections import OrderedDict
+
+import platform
+
+from threading import RLock, Lock, Event
 from queue import Queue
-from threading import Event, Lock, RLock
+from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
+from .utils import synchronous, Timer, none_fallback, get_resource
 from .conf import settings
-from .constants import APP_NAME
-from .i18n import _
 from .menu import OSDMenu
+from .constants import APP_NAME
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
-from .utils import Timer, get_resource, none_fallback, synchronous
+from .i18n import _
 
 if TYPE_CHECKING:
     from .media import Video as Video_type
@@ -27,7 +29,7 @@ mpv_log = logging.getLogger("mpv")
 discord_presence = False
 if settings.discord_presence:
     try:
-        from .rich_presence import clear_presence, register_join_event, send_presence
+        from .rich_presence import register_join_event, send_presence, clear_presence
 
         discord_presence = True
     except Exception:
@@ -50,6 +52,12 @@ if settings.mpv_ext or not python_mpv_available:
 
     log.info("Using external mpv playback backend.")
     is_using_ext_mpv = True
+
+# Collect backend-specific exceptions for MPV disconnection/shutdown.
+# libmpv raises ShutdownError; external mpv (jsonipc) raises BrokenPipeError.
+_mpv_errors = (BrokenPipeError,)
+if hasattr(mpv, "ShutdownError"):
+    _mpv_errors = (BrokenPipeError, mpv.ShutdownError)
 
 SUBTITLE_POS = {
     "top": 0,
@@ -122,15 +130,6 @@ class PlayerManager(object):
 
     def __init__(self):
         self._video = None
-        mpv_options = OrderedDict()
-        mpv_location = settings.mpv_ext_path
-        # Use bundled path for MPV if not specified by user, on Mac OS, and frozen
-        if (
-            mpv_location is None
-            and platform.system() == "Darwin"
-            and getattr(sys, "frozen", False)
-        ):
-            mpv_location = get_resource("mpv")
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -152,8 +151,22 @@ class PlayerManager(object):
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
         self.is_in_intro = False
+        self.playback_time_before_seek = None
         self.trickplay = None
+        self._mpv_alive = False
 
+        self._init_mpv()
+
+    def _init_mpv(self):
+        mpv_location = settings.mpv_ext_path
+        if (
+            mpv_location is None
+            and platform.system() == "Darwin"
+            and getattr(sys, "frozen", False)
+        ):
+            mpv_location = get_resource("mpv")
+
+        mpv_options = OrderedDict()
         if is_using_ext_mpv:
             mpv_options.update(
                 {
@@ -161,6 +174,8 @@ class PlayerManager(object):
                     "ipc_socket": settings.mpv_ext_ipc,
                     "mpv_location": mpv_location,
                     "player-operation-mode": "cplayer",
+                    "start_retries": settings.mpv_ext_start_retries,
+                    "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
                 }
             )
 
@@ -208,23 +223,14 @@ class PlayerManager(object):
             if settings.tls_server_ca:
                 mpv_options['tls_ca_file'] = settings.tls_server_ca
 
-        mpv_args = {
-            "input_default_bindings": True,
-            "input_vo_keyboard": True,
-            "input_media_keys": settings.media_keys,
-            "log_handler": mpv_log_handler,
-            "loglevel": settings.mpv_log_level,
-        }
-
-        if is_using_ext_mpv:
-            mpv_args.update(
-                {
-                    "start_retries": settings.mpv_ext_start_retries,
-                    "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
-                }
-            )
-
-        self._player = mpv.MPV(**mpv_args, **mpv_options)
+        self._player = mpv.MPV(
+            input_default_bindings=True,
+            input_vo_keyboard=True,
+            input_media_keys=settings.media_keys,
+            log_handler=mpv_log_handler,
+            loglevel=settings.mpv_log_level,
+            **mpv_options,
+        )
 
         self.menu = OSDMenu(self, self._player)
         self.syncplay = SyncPlayManager(self)
@@ -236,6 +242,10 @@ class PlayerManager(object):
                 log.error("Could not register Discord join callback.", exc_info=True)
 
         if hasattr(self._player, "osc"):
+            # Ensure the built-in OSC is disabled when using trickplay-osc,
+            # even if the user's mpv.conf has osc=yes.
+            if settings.thumbnail_enable and self.trickplay:
+                self._player.osc = False
             self.enable_osc(settings.enable_osc)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
@@ -265,7 +275,8 @@ class PlayerManager(object):
         @self._player.on_key_press("STOP")
         @keypress(settings.kb_stop)
         def handle_stop():
-            self.stop()
+            log.info("handle_stop triggered")
+            self.put_task(self.stop_and_close)
 
         @keypress(settings.kb_prev)
         def handle_prev():
@@ -306,6 +317,9 @@ class PlayerManager(object):
 
         @keypress(settings.kb_menu)
         def menu_open():
+            if self.do_not_handle_pause:
+                self._player.show_text(_("Please wait, loading..."), 1000, 1)
+                return
             if not self.menu.is_menu_shown:
                 self.menu.show_menu()
             else:
@@ -405,6 +419,20 @@ class PlayerManager(object):
             if self.do_not_handle_pause:
                 return
 
+            # Handle intro skip for any forward seek (including custom key bindings)
+            if value:
+                # Seeking started - store current position
+                self.playback_time_before_seek = self._player.playback_time
+            else:
+                # Seeking ended - check if we should skip intro
+                if (
+                    self.is_in_intro
+                    and self.playback_time_before_seek is not None
+                    and self._player.playback_time is not None
+                    and self._player.playback_time > self.playback_time_before_seek
+                ):
+                    self.skip_intro()
+
             if self.syncplay.is_enabled():
                 play_time = self._player.playback_time
                 if (
@@ -437,6 +465,38 @@ class PlayerManager(object):
                         self.syncplay.play_request()
                         self.set_paused(True, True)
 
+        @self._player.event_callback("shutdown")
+        def handle_shutdown(event):
+            log.info("mpv shutdown event received")
+            if self._video:
+                self.should_send_timeline = False
+                local_video = self._video
+                self._video = None
+                try:
+                    options = {
+                        "PositionTicks": int((self.last_seek or 0) * 10000000),
+                        "PlaybackStartTimeTicks": int(
+                            (self.start_time or 0) * 10000000
+                        ),
+                        "PlayMethod": "Transcode"
+                        if local_video.is_transcode
+                        else "DirectPlay",
+                        "PlaySessionId": local_video.playback_info["PlaySessionId"],
+                        "ItemId": local_video.item_id,
+                    }
+                    local_video.client.jellyfin.session_stop(options)
+                except Exception:
+                    log.warning(
+                        "Could not report playback stop to server.", exc_info=True
+                    )
+                try:
+                    local_video.terminate_transcode()
+                except Exception:
+                    pass
+            self.exec_stop_cmd()
+            import threading
+            threading.Thread(target=self._terminate_mpv, daemon=True).start()
+
         @self._player.event_callback("client-message")
         def handle_client_message(event):
             try:
@@ -461,8 +521,16 @@ class PlayerManager(object):
                     self.menu.mouse_select(int(args[1]))
                 elif args[0] == "shim-menu-click":
                     self.menu.menu_action("ok")
+                elif args[0] == "shim-close":
+                    log.info("Received shim-close message")
+                    if self._video and not self._player.playback_abort:
+                        self.put_task(self.stop_and_close)
+                    else:
+                        self.put_task(self.force_window, False)
             except Exception:
                 log.warning("Error when processing client-message.", exc_info=True)
+
+        self._mpv_alive = True
 
     # Put a task to the event queue.
     # This ensures the task executes outside
@@ -481,66 +549,75 @@ class PlayerManager(object):
     def skip_intro(self):
         _, intro = self._video.get_current_intro(self._player.playback_time)
 
-        self._player.playback_time = intro.end
+        if not self._player.playback_abort:
+            self._player.command("seek", intro.end, "absolute")
+        
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
 
     @synchronous("_lock")
     def update(self):
-        if (
-            (
-                settings.skip_intro_always
-                or settings.skip_intro_enable
-                or settings.skip_credits_always
-                or settings.skip_credits_enable
-            )
-            and not self.syncplay.is_enabled()
-            and self._video is not None
-            and self._player.playback_time is not None
-        ):
-            ready_to_skip, intro = self._video.get_current_intro(
-                self._player.playback_time
-            )
-
-            if intro is not None:
-                should_prompt = (
-                    intro.type != "Outro" and settings.skip_intro_enable
-                ) or (intro.type == "Outro" and settings.skip_credits_enable)
-                should_skip = (not intro.has_triggered) and (
-                    (intro.type != "Outro" and settings.skip_intro_always)
-                    or (intro.type == "Outro" and settings.skip_credits_always)
+        try:
+            if (
+                (
+                    settings.skip_intro_always
+                    or settings.skip_intro_enable
+                    or settings.skip_credits_always
+                    or settings.skip_credits_enable
+                )
+                and not self.syncplay.is_enabled()
+                and self._video is not None
+                and self._player.playback_time is not None
+            ):
+                ready_to_skip, intro = self._video.get_current_intro(
+                    self._player.playback_time
                 )
 
-                if should_skip and ready_to_skip:
-                    intro.has_triggered = True
-                    self.skip_intro()
-                    self._player.show_text(
-                        _("Skipped Credits")
-                        if intro.type == "Outro"
-                        else _("Skipped Intro"),
-                        3000,
-                        1,
+                if intro is not None:
+                    should_prompt = (
+                        intro.type != "Outro" and settings.skip_intro_enable
+                    ) or (intro.type == "Outro" and settings.skip_credits_enable)
+                    should_skip = (not intro.has_triggered) and (
+                        (intro.type != "Outro" and settings.skip_intro_always)
+                        or (intro.type == "Outro" and settings.skip_credits_always)
                     )
 
-                if not self.is_in_intro and should_prompt:
-                    self._player.show_text(
-                        _("Seek to Skip Credits")
-                        if intro.type == "Outro"
-                        else _("Seek to Skip Intro"),
-                        3000,
-                        1,
-                    )
-                self.is_in_intro = True
-            else:
-                self.is_in_intro = False
+                    if should_skip and ready_to_skip:
+                        intro.has_triggered = True
+                        self.skip_intro()
+                        self._player.show_text(
+                            _("Skipped Credits")
+                            if intro.type == "Outro"
+                            else _("Skipped Intro"),
+                            3000,
+                            1,
+                        )
+
+                    if not self.is_in_intro and should_prompt:
+                        self._player.show_text(
+                            _("Seek to Skip Credits")
+                            if intro.type == "Outro"
+                            else _("Seek to Skip Intro"),
+                            3000,
+                            1,
+                        )
+                    self.is_in_intro = True
+                else:
+                    self.is_in_intro = False
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return
 
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
             func(*args)
-        if self._video and not self._player.playback_abort:
-            if not self.is_paused():
-                self.last_update.restart()
+        try:
+            if self._video and not self._player.playback_abort:
+                if not self.is_paused():
+                    self.last_update.restart()
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def play(
         self,
@@ -567,6 +644,10 @@ class PlayerManager(object):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
     ):
+        if not self._mpv_alive:
+            log.info("mpv is dead, reinitializing")
+            self._init_mpv()
+
         self.pause_ignore = True
         self.do_not_handle_pause = True
         self.url = url
@@ -655,7 +736,19 @@ class PlayerManager(object):
         if self.syncplay.is_enabled():
             self.syncplay.disable_sync_play(False)
 
-        if not self._video or self._player.playback_abort:
+        if self.menu.is_menu_shown:
+            self.menu.hide_menu()
+
+        if not self._video or not self._mpv_alive:
+            self.exec_stop_cmd()
+            return
+
+        try:
+            if self._player.playback_abort:
+                self.exec_stop_cmd()
+                return
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
             self.exec_stop_cmd()
             return
 
@@ -673,6 +766,19 @@ class PlayerManager(object):
 
         if self.trickplay:
             self.trickplay.clear()
+
+    def stop_and_close(self):
+        log.info("stop_and_close: stopping playback")
+        self.stop()
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.keep_open = False
+            self._player.force_window = False
+            self._player.command("stop")
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        log.info("stop_and_close: done")
 
     def get_volume(self, percent: bool = False):
         if self._player:
@@ -721,8 +827,6 @@ class PlayerManager(object):
                 if absolute:
                     if self.syncplay.is_enabled():
                         self.last_seek = offset
-                    if self.is_in_intro and offset > self._player.playback_time:
-                        self.skip_intro()
                     p2 = "absolute"
                     if exact:
                         p2 += "+exact"
@@ -730,12 +834,6 @@ class PlayerManager(object):
                 else:
                     if self.syncplay.is_enabled():
                         self.last_seek = self._player.playback_time + offset
-                    if (
-                        self.is_in_intro
-                        and self._player.playback_time + offset
-                        > self._player.playback_time
-                    ):
-                        self.skip_intro()
                     if exact:
                         self._player.command("seek", offset, "exact")
                     else:
@@ -760,8 +858,11 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def is_paused(self):
-        if not self._player.playback_abort:
-            return self._player.pause
+        try:
+            if not self._player.playback_abort:
+                return self._player.pause
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
         return False
 
     @synchronous("_lock")
@@ -808,7 +909,7 @@ class PlayerManager(object):
             return
 
         video = self._video
-        self.stop()
+        self.stop_and_close()
         video.set_played(False)
 
     @synchronous("_lock")
@@ -939,7 +1040,12 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def script_message(self, command, *args):
-        self._player.command("script-message", command, *args)
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.command("script-message", command, *args)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def get_track_ids(self):
         return self._video.aid, self._video.sid
@@ -1019,6 +1125,7 @@ class PlayerManager(object):
                     player.duration,
                     not player.pause,
                     self.syncplay.current_group,
+                    self._video.item.get("Type"),
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
@@ -1026,17 +1133,21 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline(self):
-        if (
-            self.should_send_timeline
-            and self._video
-            and not self._player.playback_abort
-        ):
-            self._video.client.jellyfin.session_progress(self.get_timeline_options())
-            try:
-                if self.syncplay.is_enabled():
-                    self.syncplay.sync_playback_time()
-            except:
-                log.error("Error syncing playback time.", exc_info=True)
+        try:
+            if (
+                self.should_send_timeline
+                and self._video
+                and not self._player.playback_abort
+            ):
+                self._video.client.jellyfin.session_progress(self.get_timeline_options())
+                try:
+                    if self.syncplay.is_enabled():
+                        self.syncplay.sync_playback_time()
+                except:
+                    log.error("Error syncing playback time.", exc_info=True)
+        except _mpv_errors:
+            log.warning("MPV connection lost during timeline update.")
+            self._handle_mpv_disconnect()
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
@@ -1067,6 +1178,23 @@ class PlayerManager(object):
         if self._video:
             self._player.keep_open = self._video.parent.has_next
 
+    def _handle_mpv_disconnect(self):
+        if not self._mpv_alive:
+            return
+        log.info("MPV connection lost, marking as dead for reconnect on next play.")
+        self.should_send_timeline = False
+        self._video = None
+        self._mpv_alive = False
+
+    def _terminate_mpv(self):
+        log.info("Terminating mpv instance")
+        self._mpv_alive = False
+        try:
+            self._player.terminate()
+        except Exception:
+            log.debug("Error terminating mpv", exc_info=True)
+        log.info("mpv instance terminated")
+
     def terminate(self):
         self.stop()
         if is_using_ext_mpv:
@@ -1088,12 +1216,20 @@ class PlayerManager(object):
         return bool(self._player and self._video)
 
     def is_playing(self):
-        return bool(self._video and not self._player.playback_abort)
+        try:
+            return bool(self._video and not self._player.playback_abort)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return False
 
     def is_not_paused(self):
-        return bool(
-            self._video and not self._player.playback_abort and not self._player.pause
-        )
+        try:
+            return bool(
+                self._video and not self._player.playback_abort and not self._player.pause
+            )
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return False
 
     def has_video(self):
         return self._video is not None
@@ -1102,44 +1238,91 @@ class PlayerManager(object):
         return self._video
 
     def show_text(self, text: str, duration: int, level: int = 1):
-        self._player.show_text(text, duration, level)
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.show_text(text, str(duration), level)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+
+    _default_osd_back_color = "#C8000000"
+    _default_osd_font_size = 55
 
     def get_osd_settings(self):
-        return self._player.osd_back_color, self._player.osd_font_size
+        if not self._mpv_alive:
+            return self._default_osd_back_color, self._default_osd_font_size
+        try:
+            return (
+                self._player.osd_back_color or self._default_osd_back_color,
+                self._player.osd_font_size or self._default_osd_font_size,
+            )
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return self._default_osd_back_color, self._default_osd_font_size
 
     def set_osd_settings(self, back_color: str, font_size: int):
-        self._player.osd_back_color = back_color
-        self._player.osd_font_size = font_size
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.osd_back_color = back_color
+            self._player.osd_font_size = font_size
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def enable_osc(self, enabled: bool):
-        if settings.thumbnail_enable and self.trickplay:
-            self.script_message(
-                "osc-visibility", "auto" if enabled else "never", "False"
-            )
-        else:
-            if hasattr(self._player, "osc"):
-                self._player.osc = enabled
+        if settings.mpv_ext and settings.mpv_ext_no_ovr:
+            return  # Don't override user's MPV config
+
+        if not self._mpv_alive:
+            return
+        try:
+            if settings.thumbnail_enable and self.trickplay:
+                self.script_message(
+                    "osc-visibility", "auto" if enabled else "never", "False"
+                )
+                if hasattr(self._player, "osc"):
+                    self._player.osc = False
+            else:
+                if hasattr(self._player, "osc"):
+                    self._player.osc = enabled
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def triggered_menu(self, enabled: bool):
         self.script_message("shim-menu-enable", "True" if enabled else "False")
 
     def playback_is_aborted(self):
-        return self._player.playback_abort
+        try:
+            return self._player.playback_abort
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return True
 
     def force_window(self, enabled: bool):
-        if enabled:
-            self._player.force_window = True
-            self._player.keep_open = True
-            self._player.play("")
-            if settings.fullscreen:
-                self._player.fs = True
-        else:
-            self._player.keep_open = False
-            if self._player.playback_abort:
-                self._player.force_window = False
+        if not self._mpv_alive:
+            if not enabled:
+                return
+            log.info("mpv is dead, reinitializing for menu window")
+            self._init_mpv()
+        try:
+            if enabled:
+                self._player.force_window = True
+                self._player.keep_open = True
                 self._player.play("")
+                if settings.fullscreen:
+                    self._player.fs = True
             else:
-                self.upd_player_hide()
+                self._player.keep_open = False
+                if not self._video:
+                    self._player.force_window = False
+                    self._player.command("stop")
+                elif self._player.playback_abort:
+                    self._player.force_window = False
+                    self._player.play("")
+                else:
+                    self.upd_player_hide()
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def add_ipc(self, ipc_name: str):
         self._player.input_ipc_server = ipc_name
