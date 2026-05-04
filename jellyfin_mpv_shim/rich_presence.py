@@ -49,7 +49,11 @@ def send_presence(
         end = int(start + duration)
 
     payload = {
-        "activity_type": ActivityType.LISTENING if media_type and media_type == "Audio" else ActivityType.WATCHING,
+        "activity_type": (
+            ActivityType.LISTENING
+            if media_type and media_type == "Audio"
+            else ActivityType.WATCHING
+        ),
         "status_display_type": StatusDisplayType.DETAILS,
         "state": subtitle if subtitle else "Unknown Media",
         "details": title,

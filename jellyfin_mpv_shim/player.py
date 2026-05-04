@@ -217,11 +217,11 @@ class PlayerManager(object):
             mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
         if settings.tls_client_cert and settings.tls_client_key:
-            mpv_options['tls_cert_file'] = settings.tls_client_cert
-            mpv_options['tls_key_file'] = settings.tls_client_key
+            mpv_options["tls_cert_file"] = settings.tls_client_cert
+            mpv_options["tls_key_file"] = settings.tls_client_key
 
             if settings.tls_server_ca:
-                mpv_options['tls_ca_file'] = settings.tls_server_ca
+                mpv_options["tls_ca_file"] = settings.tls_server_ca
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -478,9 +478,9 @@ class PlayerManager(object):
                         "PlaybackStartTimeTicks": int(
                             (self.start_time or 0) * 10000000
                         ),
-                        "PlayMethod": "Transcode"
-                        if local_video.is_transcode
-                        else "DirectPlay",
+                        "PlayMethod": (
+                            "Transcode" if local_video.is_transcode else "DirectPlay"
+                        ),
                         "PlaySessionId": local_video.playback_info["PlaySessionId"],
                         "ItemId": local_video.item_id,
                     }
@@ -495,6 +495,7 @@ class PlayerManager(object):
                     pass
             self.exec_stop_cmd()
             import threading
+
             threading.Thread(target=self._terminate_mpv, daemon=True).start()
 
         @self._player.event_callback("client-message")
@@ -551,7 +552,7 @@ class PlayerManager(object):
 
         if not self._player.playback_abort:
             self._player.command("seek", intro.end, "absolute")
-        
+
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
@@ -587,18 +588,22 @@ class PlayerManager(object):
                         intro.has_triggered = True
                         self.skip_intro()
                         self._player.show_text(
-                            _("Skipped Credits")
-                            if intro.type == "Outro"
-                            else _("Skipped Intro"),
+                            (
+                                _("Skipped Credits")
+                                if intro.type == "Outro"
+                                else _("Skipped Intro")
+                            ),
                             3000,
                             1,
                         )
 
                     if not self.is_in_intro and should_prompt:
                         self._player.show_text(
-                            _("Seek to Skip Credits")
-                            if intro.type == "Outro"
-                            else _("Seek to Skip Intro"),
+                            (
+                                _("Seek to Skip Credits")
+                                if intro.type == "Outro"
+                                else _("Seek to Skip Intro")
+                            ),
                             3000,
                             1,
                         )
@@ -973,9 +978,7 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info(
-                "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
-            )
+            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
@@ -1146,7 +1149,9 @@ class PlayerManager(object):
                 and self._video
                 and not self._player.playback_abort
             ):
-                self._video.client.jellyfin.session_progress(self.get_timeline_options())
+                self._video.client.jellyfin.session_progress(
+                    self.get_timeline_options()
+                )
                 try:
                     if self.syncplay.is_enabled():
                         self.syncplay.sync_playback_time()
@@ -1232,7 +1237,9 @@ class PlayerManager(object):
     def is_not_paused(self):
         try:
             return bool(
-                self._video and not self._player.playback_abort and not self._player.pause
+                self._video
+                and not self._player.playback_abort
+                and not self._player.pause
             )
         except _mpv_errors:
             self._handle_mpv_disconnect()

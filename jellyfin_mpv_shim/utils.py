@@ -111,9 +111,17 @@ def get_profile(
 
     if settings.force_video_codec:
         transcode_codecs = settings.force_video_codec
-    elif settings.allow_transcode_to_h265 and not settings.prefer_transcode_to_h265 and not settings.transcode_hevc:
+    elif (
+        settings.allow_transcode_to_h265
+        and not settings.prefer_transcode_to_h265
+        and not settings.transcode_hevc
+    ):
         transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
-    elif settings.allow_transcode_to_h265 and settings.prefer_transcode_to_h265 and not settings.transcode_hevc:
+    elif (
+        settings.allow_transcode_to_h265
+        and settings.prefer_transcode_to_h265
+        and not settings.transcode_hevc
+    ):
         transcode_codecs = "h265,hevc,h264,mpeg4,mpeg2video"
     else:
         transcode_codecs = "h264,mpeg4,mpeg2video"

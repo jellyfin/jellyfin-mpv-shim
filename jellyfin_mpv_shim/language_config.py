@@ -61,13 +61,16 @@ def parse_language_config(value) -> Optional[List[LanguageRule]]:
         if unknown:
             log.warning(
                 "language_config[%d] has unknown fields %s (ignored)",
-                i, sorted(unknown),
+                i,
+                sorted(unknown),
             )
         filtered = {k: v for k, v in item.items() if k in known}
         try:
             rules.append(LanguageRule(**filtered))
         except Exception:
-            log.warning("language_config[%d] failed to parse, skipping", i, exc_info=True)
+            log.warning(
+                "language_config[%d] failed to parse, skipping", i, exc_info=True
+            )
     return rules
 
 
@@ -100,12 +103,12 @@ def _filter_subtype(streams: list, subtype: str) -> list:
 
     if subtype == "signs":
         return [
-            s for s in streams
-            if s.get("IsForced") or sign_weight(_track_title(s)) > 0
+            s for s in streams if s.get("IsForced") or sign_weight(_track_title(s)) > 0
         ]
     if subtype == "full":
         return [
-            s for s in streams
+            s
+            for s in streams
             if not s.get("IsForced") and sign_weight(_track_title(s)) == 0
         ]
     log.warning("language_config: unknown subtype %r (ignored)", subtype)
@@ -140,7 +143,9 @@ def _matches_type(item: dict, rule_type: Optional[str]) -> bool:
     return item.get("Type") in expected
 
 
-def _try_match(rule: LanguageRule, source: dict, item: dict) -> Optional[Tuple[Optional[int], Optional[int]]]:
+def _try_match(
+    rule: LanguageRule, source: dict, item: dict
+) -> Optional[Tuple[Optional[int], Optional[int]]]:
     """Return (aid, sid) if the rule matches, else None. Either aid or sid may be None."""
     if not _matches_type(item, rule.type):
         return None
@@ -204,7 +209,9 @@ def _try_match(rule: LanguageRule, source: dict, item: dict) -> Optional[Tuple[O
     return aid, sid
 
 
-def apply(rules: Optional[List[LanguageRule]], source: dict, item: dict) -> Tuple[Optional[int], Optional[int]]:
+def apply(
+    rules: Optional[List[LanguageRule]], source: dict, item: dict
+) -> Tuple[Optional[int], Optional[int]]:
     """Walk the rule list; return (aid, sid) from the first matching rule, or (None, None)."""
     if not rules or not source:
         return None, None

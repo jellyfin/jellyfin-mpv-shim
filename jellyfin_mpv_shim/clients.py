@@ -19,6 +19,7 @@ import socket
 import ipaddress
 from urllib.parse import urlparse
 
+
 # Get all local IPv4 addresses for host machine
 def get_local_ips():
     local_ips = []
@@ -28,7 +29,7 @@ def get_local_ips():
             local_ips.append(ipaddress.ip_address(s.getsockname()[0]))
     except OSError:
         pass
-    
+
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
             ip = ipaddress.ip_address(info[4][0])
@@ -36,13 +37,15 @@ def get_local_ips():
                 local_ips.append(ip)
     except socket.gaierror:
         pass
-    
+
     return local_ips
+
 
 # Extract hostname/IP from a URL.
 def extract_host(url):
     parsed = urlparse(url)
     return parsed.hostname  # Handles port stripping automatically
+
 
 # Check if string is valid IPv4 address
 def is_ipv4(host):
@@ -52,21 +55,23 @@ def is_ipv4(host):
     except ipaddress.AddressValueError:
         return False
 
+
 # Check if host IP is on the same subnet as any local IP
 def is_local_subnet(host, local_ips, prefix_length=24):
     try:
         target_ip = ipaddress.IPv4Address(host)
     except ipaddress.AddressValueError:
         return False
-    
+
     if not target_ip.is_private:
         return False
-    
+
     for local_ip in local_ips:
         net = ipaddress.ip_network(f"{local_ip}/{prefix_length}", strict=False)
         if target_ip in net:
             return True
     return False
+
 
 log = logging.getLogger("clients")
 path_regex = re.compile("^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
@@ -238,11 +243,11 @@ class ClientManager(object):
 
         def connection_priority(server):
             host = extract_host(server["address"])
-            
+
             # Highest priority: same subnet as us
             if is_ipv4(host) and is_local_subnet(host, local_ips):
                 return 0
-            
+
             # Second priority: other private IPs (maybe reachable via VPN, etc.)
             if is_ipv4(host):
                 try:
@@ -250,10 +255,10 @@ class ClientManager(object):
                         return 1
                 except ipaddress.AddressValueError:
                     pass
-            
+
             # Lowest priority: hostnames / external addresses
             return 2
-        
+
         # Sort creds list by local-first priority
         sorted_credentials = sorted(self.credentials, key=connection_priority)
 
@@ -394,7 +399,9 @@ class ClientManager(object):
                 try:
                     client.jellyfin.post_capabilities(CAPABILITIES)
                 except Exception:
-                    log.warning("Failed to post capabilities on reconnect", exc_info=True)
+                    log.warning(
+                        "Failed to post capabilities on reconnect", exc_info=True
+                    )
                 self.callback(client, event_name, data)
             else:
                 self.callback(client, event_name, data)
