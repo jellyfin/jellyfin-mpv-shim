@@ -182,6 +182,69 @@ class Video(object):
         except Exception:
             log.warning("Terminating transcode failed.", exc_info=True)
 
+    @staticmethod
+    def _join_substituted_path(target: str, suffix: str):
+        if not suffix:
+            return target
+
+        is_windows_path = (
+            target.startswith("\\\\")
+            or re.match(r"^[a-zA-Z]:[\\/]", target) is not None
+            or "\\" in target
+        )
+
+        separator = "\\" if is_windows_path else "/"
+        clean_target = target.rstrip("\\/")
+        clean_suffix = suffix.strip("\\/")
+        if not clean_suffix:
+            return clean_target
+        if is_windows_path:
+            clean_suffix = clean_suffix.replace("/", "\\")
+        else:
+            clean_suffix = clean_suffix.replace("\\", "/")
+        return clean_target + separator + clean_suffix
+
+    @classmethod
+    def _apply_path_substitutions(cls, path: str):
+        substitutions = settings.path_substitutions or []
+        normalized_path = path.replace("\\", "/")
+
+        for substitution in substitutions:
+            if not isinstance(substitution, (list, tuple)) or len(substitution) != 2:
+                log.warning(
+                    "Ignoring invalid path substitution: %r",
+                    substitution,
+                )
+                continue
+
+            source, target = substitution
+            if not isinstance(source, str) or not isinstance(target, str):
+                log.warning(
+                    "Ignoring invalid path substitution: %r",
+                    substitution,
+                )
+                continue
+
+            expanded_source = os.path.expanduser(os.path.expandvars(source))
+            expanded_target = os.path.expanduser(os.path.expandvars(target))
+
+            normalized_source = expanded_source.replace("\\", "/").rstrip("/")
+            if not normalized_source:
+                continue
+
+            if normalized_path == normalized_source:
+                log.debug("Rewriting media path %s to %s", path, expanded_target)
+                return expanded_target
+
+            source_prefix = normalized_source + "/"
+            if normalized_path.startswith(source_prefix):
+                suffix = normalized_path[len(source_prefix) :]
+                rewritten_path = cls._join_substituted_path(expanded_target, suffix)
+                log.debug("Rewriting media path %s to %s", path, rewritten_path)
+                return rewritten_path
+
+        return path
+
     def _get_url_from_source(self):
         # Only use Direct Paths if:
         # - The media source supports direct paths.
@@ -196,29 +259,47 @@ class Video(object):
             and settings.direct_paths
             and (settings.remote_direct_paths or self.parent.is_local)
         ):
+            source_path = self.media_source["Path"]
             if platform.startswith("win32") or platform.startswith("cygwin"):
                 # matches on SMB scheme
-                match = re.search("(?:\\\\).+:.*@(.+)", self.media_source["Path"])
+                match = re.search("(?:\\\\).+:.*@(.+)", source_path)
                 if match:
                     # replace forward slash to backward slashes
                     log.debug("cleaned up credentials from path")
-                    self.media_source["Path"] = str(
+                    source_path = str(
                         pathlib.Path("\\\\" + match.groups()[0])
                     )
 
-            if urllib.parse.urlparse(self.media_source["Path"]).scheme:
+            source_path = self._apply_path_substitutions(source_path)
+            parsed_source_path = urllib.parse.urlparse(source_path)
+            if not parsed_source_path.scheme:
+                expanded_source_path = os.path.expanduser(
+                    os.path.expandvars(source_path)
+                )
+                if expanded_source_path != source_path:
+                    log.debug(
+                        "Expanded direct path %s to %s",
+                        source_path,
+                        expanded_source_path,
+                    )
+                source_path = expanded_source_path
+                parsed_source_path = urllib.parse.urlparse(source_path)
+
+            self.media_source["Path"] = source_path
+
+            if parsed_source_path.scheme:
                 self.is_transcode = False
                 log.debug("Using remote direct path.")
                 # translate path for windows
                 # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo,
                 # translate it to mediaserver/foo
-                return str(pathlib.Path(self.media_source["Path"]))
+                return str(pathlib.Path(source_path))
             else:
                 # If there's no uri scheme, check if the file exixsts because it might not be mounted
-                if os.path.isfile(self.media_source["Path"]):
+                if os.path.isfile(source_path):
                     log.debug("Using local direct path.")
                     self.is_transcode = False
-                    return self.media_source["Path"]
+                    return source_path
 
         if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False

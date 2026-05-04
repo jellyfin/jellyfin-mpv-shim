@@ -38,6 +38,7 @@ class Settings(SettingsBase):
     idle_cmd_delay: int = 60
     direct_paths: bool = False
     remote_direct_paths: bool = False
+    path_substitutions: list = []
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False
