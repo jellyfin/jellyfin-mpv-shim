@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2025-12-31 08:52+0000\n"
-"Last-Translator: SamuWhale <themorajr@gmail.com>\n"
+"PO-Revision-Date: 2026-05-04 02:27+0000\n"
+"Last-Translator: Bunyapat Thaibkhom <topstenbyp@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -223,8 +223,9 @@ msgid "Change Video Quality"
 msgstr "เปลี่ยนความละเอียดวิดีโอ"
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
+#, fuzzy
 msgid "SyncPlay"
-msgstr "เล่นแบบ Sync"
+msgstr "ซิงค์เพลย์"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
