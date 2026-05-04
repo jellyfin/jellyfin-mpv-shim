@@ -30,7 +30,8 @@ class TimelineManager(threading.Thread):
             if playerManager.is_active() and (
                 not settings.idle_when_paused or not playerManager.is_paused()
             ):
-                self.send_timeline()
+                if not playerManager.is_paused():
+                    self.send_timeline()
                 if self.is_idle and settings.idle_ended_cmd:
                     os.system(settings.idle_ended_cmd)
                 self.delay_idle()
