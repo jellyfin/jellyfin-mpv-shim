@@ -263,6 +263,8 @@ practical to use in most cases for the Flatpak version.
 - `mpv_ext_start` - Start a managed copy of MPV with the client. Default: `true`
   - If not specified, the user must start MPV prior to launching the client.
   - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
+- `mpv_ext_start_retries` - The number of times to retry starting MPV if it fails to start. Default: `10`
+- `mpv_ext_start_retry_delay_ms` - The delay in milliseconds between retries. Default: `3000`
 - `mpv_ext_no_ovr` - Disable built-in mpv configuration files and use user defaults.
   - Please note that some scripts and settings, such as ones to keep MPV open, may break
       functionality in MPV Shim.
