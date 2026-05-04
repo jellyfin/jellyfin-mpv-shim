@@ -63,11 +63,32 @@
       <description>
         <p>Changes:</p>
         <ul>
-          <li>(pending release)</li>
+          <li>Fix python 3.14 compat issues on macOS (#487)</li>
+          <li>Fix transcode termination failure (#492, #481)</li>
+          <li>Prevent crash when opening menu during stream load (#493)</li>
+          <li>Fix mpv_ext_no_ovr and OSC interaction (#499)</li>
+          <li>Fix intro skip and custom seek bindings (#491)</li>
+          <li>Make Pillow dependency optional (#494)</li>
+          <li>Fix system tray icon to use X11 (#506)</li>
+          <li>Fix H.265 transcode preference not being used in some cases (#531)</li>
+          <li>Fix capability reporting, state sync, and websocket reconnect (#515)</li>
+          <li>Fix application menu handling (#528)</li>
+          <li>Fix installer not able to close application (#529)</li>
+          <li>Add CLI flags to configure/update/delete account (#519)</li>
+          <li>Use Jellyfin logo as window icon and idle background (#513)</li>
+          <li>Add path substitutions feature (#511)</li>
+          <li>Make external mpv process start retries and retry delay configurable in settings (#504)</li>
+          <li>Implement local-network priority for Jellyfin server connections (#502)</li>
+          <li>Added new language_config feature, allows mpv-style alang/slang config, conditional preferences, and more</li>
+          <li>Fix issue where volume 0% is reported as 100% (#497)</li>
+          <li>Add --help, --debug, --gui, and --no-gui options (#477)</li>
+          <li>Make connection retry and health check more robust.</li>
+          <li>Fix issue where ipv6 connections always register as remote. (#482)</li>
+          <li>Fix issue where OSC menu didn't have background, affecting usability.</li>
+          <li>Upgrade mpv version.</li>
         </ul>
       </description>
     </release>
-  <releases>
     <release version="2.9.0" date="2025-03-17">
       <description>
         <p>Changes:</p>
