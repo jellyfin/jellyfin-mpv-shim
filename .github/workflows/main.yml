@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+      - working
 jobs:
   build-win64:
     runs-on: windows-latest
@@ -31,7 +32,7 @@ jobs:
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
-        pip install .[all] pythonnet pywebview pywin32
+        pip install .[all] pywin32
         winget install --id JRSoftware.InnoSetup -e -s winget || true || true
         ./gen_pkg.sh --skip-build
       shell: bash
@@ -77,7 +78,7 @@ jobs:
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
-        pip install .[all] pythonnet pywebview pywin32
+        pip install .[all] pywin32
         winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
       shell: bash
@@ -123,7 +124,7 @@ jobs:
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
-        pip install .[all] pythonnet pywebview pywin32
+        pip install .[all] pywin32
         winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
       shell: bash

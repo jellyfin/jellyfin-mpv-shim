@@ -86,6 +86,7 @@
           <li>Fix issue where ipv6 connections always register as remote. (#482)</li>
           <li>Fix issue where OSC menu didn't have background, affecting usability.</li>
           <li>Upgrade mpv version.</li>
+          <li>Replace webview-based display mirror with tkinter-based one.</li>
         </ul>
       </description>
     </release>
