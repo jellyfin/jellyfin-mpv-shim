@@ -6,7 +6,6 @@ from getpass import getpass
 from .constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
 from .i18n import _
 
-import sys
 import os.path
 import json
 import uuid
@@ -19,6 +18,7 @@ import socket
 import ipaddress
 from urllib.parse import urlparse
 
+
 # Get all local IPv4 addresses for host machine
 def get_local_ips():
     local_ips = []
@@ -28,7 +28,7 @@ def get_local_ips():
             local_ips.append(ipaddress.ip_address(s.getsockname()[0]))
     except OSError:
         pass
-    
+
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
             ip = ipaddress.ip_address(info[4][0])
@@ -36,13 +36,15 @@ def get_local_ips():
                 local_ips.append(ip)
     except socket.gaierror:
         pass
-    
+
     return local_ips
+
 
 # Extract hostname/IP from a URL.
 def extract_host(url):
     parsed = urlparse(url)
     return parsed.hostname  # Handles port stripping automatically
+
 
 # Check if string is valid IPv4 address
 def is_ipv4(host):
@@ -52,24 +54,26 @@ def is_ipv4(host):
     except ipaddress.AddressValueError:
         return False
 
+
 # Check if host IP is on the same subnet as any local IP
 def is_local_subnet(host, local_ips, prefix_length=24):
     try:
         target_ip = ipaddress.IPv4Address(host)
     except ipaddress.AddressValueError:
         return False
-    
+
     if not target_ip.is_private:
         return False
-    
+
     for local_ip in local_ips:
         net = ipaddress.ip_network(f"{local_ip}/{prefix_length}", strict=False)
         if target_ip in net:
             return True
     return False
 
+
 log = logging.getLogger("clients")
-path_regex = re.compile("^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
+path_regex = re.compile(r"^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
 
 from typing import Optional
 
@@ -91,7 +95,7 @@ class PeriodicHealthCheck(threading.Thread):
         self.trigger = threading.Event()
         self.callback = callback
 
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
 
     def stop(self):
         self.halt = True
@@ -119,18 +123,10 @@ class ClientManager(object):
 
     @staticmethod
     def _get_cli_credential_args():
-        server = None
-        username = None
-        password = ""
-        for i, arg in enumerate(sys.argv):
-            if arg == "--server" and len(sys.argv) > i + 1:
-                server = sys.argv[i + 1]
-            elif arg == "--username" and len(sys.argv) > i + 1:
-                username = sys.argv[i + 1]
-            elif arg == "--password" and len(sys.argv) > i + 1:
-                password = sys.argv[i + 1]
-        if server and username:
-            return server, username, password
+        from .args import get_args
+        a = get_args()
+        if a.server and a.username:
+            return a.server, a.username, a.password
         return None
 
     def _find_existing_credential(self, server: str, username: str):
@@ -162,12 +158,12 @@ class ClientManager(object):
         return self.login(server, username, password)
 
     def cli_connect(self):
-        is_logged_in = self.try_connect()
-        add_another = False
-        clear_accounts = "clear" in sys.argv
+        from .args import get_args
+        cli_commands = set(get_args().command or [])
 
-        if "add" in sys.argv:
-            add_another = True
+        is_logged_in = self.try_connect()
+        add_another = "add" in cli_commands
+        clear_accounts = "clear" in cli_commands
 
         cli_creds = self._get_cli_credential_args()
 
@@ -238,11 +234,11 @@ class ClientManager(object):
 
         def connection_priority(server):
             host = extract_host(server["address"])
-            
+
             # Highest priority: same subnet as us
             if is_ipv4(host) and is_local_subnet(host, local_ips):
                 return 0
-            
+
             # Second priority: other private IPs (maybe reachable via VPN, etc.)
             if is_ipv4(host):
                 try:
@@ -250,10 +246,10 @@ class ClientManager(object):
                         return 1
                 except ipaddress.AddressValueError:
                     pass
-            
+
             # Lowest priority: hostnames / external addresses
             return 2
-        
+
         # Sort creds list by local-first priority
         sorted_credentials = sorted(self.credentials, key=connection_priority)
 
@@ -348,7 +344,18 @@ class ClientManager(object):
         return False
 
     def validate_client(self, client: "JellyfinClient", dry_run=False):
-        client_list = client.jellyfin.sessions()
+        # Use the apiclient's lower-level _http to bound retries and timeout
+        # for this specific call. The default 30s × 5 retries can wedge the
+        # health-check thread for ~2.5 minutes if the server is unresponsive.
+        # On exception, fall through to the "not in client list" branch below
+        # to force a reconnect (a timeout is a broken connection).
+        try:
+            client_list = client.jellyfin._http(
+                "GET", "Sessions", {"params": None, "timeout": 10, "retry": 1}
+            )
+        except Exception:
+            log.warning("Health check session query failed; treating as disconnected.", exc_info=True)
+            client_list = []
 
         if client_list is None:
             log.warning(
@@ -394,7 +401,9 @@ class ClientManager(object):
                 try:
                     client.jellyfin.post_capabilities(CAPABILITIES)
                 except Exception:
-                    log.warning("Failed to post capabilities on reconnect", exc_info=True)
+                    log.warning(
+                        "Failed to post capabilities on reconnect", exc_info=True
+                    )
                 self.callback(client, event_name, data)
             else:
                 self.callback(client, event_name, data)
@@ -479,8 +488,21 @@ class ClientManager(object):
 
     def check_all_clients(self):
         log.info("Performing client health check...")
-        for client in self.clients.values():
+        # list() because validate_client may mutate self.clients via the
+        # synthesized WebSocketDisconnect path.
+        for client in list(self.clients.values()):
             self.validate_client(client)
+        # Retry credentials that aren't currently connected. Without this, a
+        # server that fails the initial connect (e.g. shim started before LAN
+        # was up) is never tried again until the user restarts the app —
+        # the long-standing reliability hole behind issues #344 / #410.
+        for server in self.credentials:
+            if server["uuid"] not in self.clients and not self.is_stopping:
+                log.info(
+                    "Health check: retrying disconnected server %s",
+                    server.get("address"),
+                )
+                self.connect_client(server, do_retries=False)
 
     def stop(self):
         if self.health_check:

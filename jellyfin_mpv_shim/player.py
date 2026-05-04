@@ -154,6 +154,9 @@ class PlayerManager(object):
         self.playback_time_before_seek = None
         self.trickplay = None
         self._mpv_alive = False
+        # Last known playback position; used when MPV exits (e.g. OSC 'x'
+        # button) before we get to send the final timeline update.
+        self._last_playback_position = 0
 
         self._init_mpv()
 
@@ -217,11 +220,11 @@ class PlayerManager(object):
             mpv_options["config_dir"] = conffile.confdir(APP_NAME)
 
         if settings.tls_client_cert and settings.tls_client_key:
-            mpv_options['tls_cert_file'] = settings.tls_client_cert
-            mpv_options['tls_key_file'] = settings.tls_client_key
+            mpv_options["tls_cert_file"] = settings.tls_client_cert
+            mpv_options["tls_key_file"] = settings.tls_client_key
 
             if settings.tls_server_ca:
-                mpv_options['tls_ca_file'] = settings.tls_server_ca
+                mpv_options["tls_ca_file"] = settings.tls_server_ca
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -478,9 +481,9 @@ class PlayerManager(object):
                         "PlaybackStartTimeTicks": int(
                             (self.start_time or 0) * 10000000
                         ),
-                        "PlayMethod": "Transcode"
-                        if local_video.is_transcode
-                        else "DirectPlay",
+                        "PlayMethod": (
+                            "Transcode" if local_video.is_transcode else "DirectPlay"
+                        ),
                         "PlaySessionId": local_video.playback_info["PlaySessionId"],
                         "ItemId": local_video.item_id,
                     }
@@ -495,6 +498,7 @@ class PlayerManager(object):
                     pass
             self.exec_stop_cmd()
             import threading
+
             threading.Thread(target=self._terminate_mpv, daemon=True).start()
 
         @self._player.event_callback("client-message")
@@ -551,7 +555,7 @@ class PlayerManager(object):
 
         if not self._player.playback_abort:
             self._player.command("seek", intro.end, "absolute")
-        
+
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
@@ -587,18 +591,22 @@ class PlayerManager(object):
                         intro.has_triggered = True
                         self.skip_intro()
                         self._player.show_text(
-                            _("Skipped Credits")
-                            if intro.type == "Outro"
-                            else _("Skipped Intro"),
+                            (
+                                _("Skipped Credits")
+                                if intro.type == "Outro"
+                                else _("Skipped Intro")
+                            ),
                             3000,
                             1,
                         )
 
                     if not self.is_in_intro and should_prompt:
                         self._player.show_text(
-                            _("Seek to Skip Credits")
-                            if intro.type == "Outro"
-                            else _("Seek to Skip Intro"),
+                            (
+                                _("Seek to Skip Credits")
+                                if intro.type == "Outro"
+                                else _("Seek to Skip Intro")
+                            ),
                             3000,
                             1,
                         )
@@ -973,9 +981,7 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info(
-                "PlayerManager::play selecting subtitle stream index=%s" % sub_uid
-            )
+            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
@@ -1061,16 +1067,30 @@ class PlayerManager(object):
         # if queue manipulation is added as a feature.
         player = self._player
 
-        # Cache player properties to reduce IPC calls (especially with external MPV)
-        volume = player.volume
-        mute = player.mute
-        pause = player.pause
-        duration = player.duration
-        cache_buffering = player.cache_buffering_state
-        playback_time = player.playback_time
+        # Cache player properties to reduce IPC calls (especially with external
+        # MPV). Tolerate MPV being mid-shutdown — closing via the OSC 'x'
+        # button can race the final timeline send and would otherwise crash.
+        try:
+            volume = player.volume
+            mute = player.mute
+            pause = player.pause
+            duration = player.duration
+            cache_buffering = player.cache_buffering_state
+            playback_time = player.playback_time
+        except _mpv_errors:
+            volume = mute = pause = duration = cache_buffering = playback_time = None
+
+        if playback_time is not None:
+            self._last_playback_position = playback_time
 
         if finished:
-            safe_pos = self._video.get_duration() or 0
+            # When MPV has already exited we don't actually know if the video
+            # finished — fall back to the last known position rather than
+            # marking it as fully watched.
+            if playback_time is None:
+                safe_pos = self._last_playback_position
+            else:
+                safe_pos = self._video.get_duration() or 0
         else:
             safe_pos = playback_time or 0
         self.last_seek = safe_pos
@@ -1146,7 +1166,9 @@ class PlayerManager(object):
                 and self._video
                 and not self._player.playback_abort
             ):
-                self._video.client.jellyfin.session_progress(self.get_timeline_options())
+                self._video.client.jellyfin.session_progress(
+                    self.get_timeline_options()
+                )
                 try:
                     if self.syncplay.is_enabled():
                         self.syncplay.sync_playback_time()
@@ -1232,7 +1254,9 @@ class PlayerManager(object):
     def is_not_paused(self):
         try:
             return bool(
-                self._video and not self._player.playback_abort and not self._player.pause
+                self._video
+                and not self._player.playback_abort
+                and not self._player.pause
             )
         except _mpv_errors:
             self._handle_mpv_disconnect()
@@ -1257,22 +1281,36 @@ class PlayerManager(object):
 
     def get_osd_settings(self):
         if not self._mpv_alive:
-            return self._default_osd_back_color, self._default_osd_font_size
+            return self._default_osd_back_color, self._default_osd_font_size, None
         try:
+            # osd-border-style was added in mpv ~0.34. Tolerate it being absent.
+            try:
+                border_style = self._player.osd_border_style
+            except Exception:
+                border_style = None
             return (
                 self._player.osd_back_color or self._default_osd_back_color,
                 self._player.osd_font_size or self._default_osd_font_size,
+                border_style,
             )
         except _mpv_errors:
             self._handle_mpv_disconnect()
-            return self._default_osd_back_color, self._default_osd_font_size
+            return self._default_osd_back_color, self._default_osd_font_size, None
 
-    def set_osd_settings(self, back_color: str, font_size: int):
+    def set_osd_settings(self, back_color: str, font_size: int, border_style=None):
         if not self._mpv_alive:
             return
         try:
             self._player.osd_back_color = back_color
             self._player.osd_font_size = font_size
+            if border_style is not None:
+                # Required to make osd-back-color actually render as a filled
+                # box on mpv 0.36+ where the default shifted to
+                # outline-and-shadow (no background fill).
+                try:
+                    self._player.osd_border_style = border_style
+                except Exception:
+                    pass
         except _mpv_errors:
             self._handle_mpv_disconnect()
 

@@ -61,7 +61,12 @@ class SettingsBase:
     def dict(self):
         result = {}
         for attr in self.__fields__:
-            result[attr] = getattr(self, attr)
+            value = getattr(self, attr)
+            # Structured fields opt in by exposing _to_dict() on their items.
+            if isinstance(value, list) and value and hasattr(value[0], "_to_dict"):
+                result[attr] = [item._to_dict() for item in value]
+            else:
+                result[attr] = value
         return result
 
     def parse_obj(self, object):

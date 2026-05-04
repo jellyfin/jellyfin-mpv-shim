@@ -69,24 +69,40 @@ def is_local_domain(client: "JellyfinClient_type"):
 
     addr_info = socket.getaddrinfo(domain, 8096)[0]
     ip = addr_info[4][0]
-    is_local = ipaddress.ip_address(ip).is_private
+    if ipaddress.ip_address(ip).is_private:
+        return True
 
-    if not is_local:
-        if addr_info[0] == socket.AddressFamily.AF_INET:
-            try:
-                wan_ip = requests.get(
-                    "https://checkip.amazonaws.com/", timeout=(3, 10)
-                ).text.strip("\r\n")
-                return ip == wan_ip
-            except Exception:
-                log.warning(
-                    "checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.",
-                    exc_info=True,
-                )
-                return False
-        elif addr_info[0] == socket.AddressFamily.AF_INET6:
+    if addr_info[0] == socket.AddressFamily.AF_INET:
+        # IPv4 hairpin NAT: compare against our own WAN IP. We don't trust the
+        # server's view of the client because reverse proxies routinely lie
+        # (every connection looks like 127.0.0.1 / the proxy's IP).
+        try:
+            wan_ip = requests.get(
+                "https://checkip.amazonaws.com/", timeout=(3, 10)
+            ).text.strip("\r\n")
+            return ip == wan_ip
+        except Exception:
+            log.warning(
+                "checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.",
+                exc_info=True,
+            )
             return False
-    return True
+
+    # IPv6: home networks typically use globally-routable prefixes, so the
+    # is_private check above misses real LAN connections. Fall back to the
+    # server's /System/Endpoint, which compares against the admin-configured
+    # local network subnets. Less robust than the IPv4 path (a misconfigured
+    # reverse proxy could lie) but the only signal available without enumerating
+    # local interface addresses.
+    try:
+        endpoint = client.jellyfin._get("System/Endpoint")
+        return bool(endpoint.get("IsInNetwork"))
+    except Exception:
+        log.warning(
+            "Could not query /System/Endpoint for IPv6 locality. Assuming remote.",
+            exc_info=True,
+        )
+        return False
 
 
 def mpv_color_to_plex(color: str):
@@ -111,9 +127,17 @@ def get_profile(
 
     if settings.force_video_codec:
         transcode_codecs = settings.force_video_codec
-    elif settings.allow_transcode_to_h265 and not settings.prefer_transcode_to_h265 and not settings.transcode_hevc:
+    elif (
+        settings.allow_transcode_to_h265
+        and not settings.prefer_transcode_to_h265
+        and not settings.transcode_hevc
+    ):
         transcode_codecs = "h264,h265,hevc,mpeg4,mpeg2video"
-    elif settings.allow_transcode_to_h265 and settings.prefer_transcode_to_h265 and not settings.transcode_hevc:
+    elif (
+        settings.allow_transcode_to_h265
+        and settings.prefer_transcode_to_h265
+        and not settings.transcode_hevc
+    ):
         transcode_codecs = "h265,hevc,h264,mpeg4,mpeg2video"
     else:
         transcode_codecs = "h264,mpeg4,mpeg2video"

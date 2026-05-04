@@ -417,6 +417,78 @@ It works the same ways as it did on MPV Shim for Plex. Now uses the MediaSegment
 - `skip_credits_always` - Always skip credits, without asking. Default: `false`
 - `skip_credits_enable` - Prompt to skip credits via seeking. Default: `true`
 
+### Language Config (Power User)
+
+`language_config` is an opt-in list of preference rules for picking audio and subtitle tracks automatically.
+Most users should leave it unset and stick with the per-show preferences in the application menu — this is
+for people who tire of repeating the same selection on every video and know exactly what they want.
+
+Each rule is a JSON object. Rules are evaluated in order; the first rule whose constraints can all be
+satisfied sets the audio and subtitle tracks. If no rule matches, the Jellyfin server defaults apply
+(same as if `language_config` were unset). When a rule matches, it overrides any track that was selected
+from the casting client — open the in-player menu to override at runtime.
+
+A rule sets only what it specifies: `{"alang": "jpn"}` selects Japanese audio and leaves the subtitle
+track to the server default.
+
+Constraints (rule fails to match if any cannot be satisfied):
+
+- `type` - `"movie"` or `"series"` (matches `Episode` items).
+- `alang` - mpv-style comma-separated audio language priority list (e.g. `"jpn,eng"`).
+- `slang` - same for subtitles.
+- `amatch` - regex that must match an audio track's title.
+- `smatch` - same for subtitles.
+- `subtype` - `"signs"` or `"full"`. Note the asymmetry:
+  - `"signs"` requires **positive identification**: the subtitle title must contain `sign`, `song`, `op/ed`,
+    or `lyric`, **or** the track must be marked forced. A plain "English" track will not qualify.
+  - `"full"` is the **negation**: any subtitle that is not positively identified as signs/songs and is not
+    marked forced. Untitled or generically-titled tracks (like "English") count as full.
+
+Biases (narrow the candidate set without rejecting the rule):
+
+- `aprefer` - regex bias over audio track titles, applied after `alang` selects a language.
+- `sprefer` - same for subtitles. Useful for avoiding commentary tracks: `"aprefer": "^(?!.*commentary)"`.
+
+When multiple subtitles in the matching language are available, the same dialogue-vs-signs scoring used by
+the menu's "subbed" / "dubbed" options breaks the tie — full-dialogue tracks beat signs/songs tracks even
+without a `subtype` constraint. So `{"slang": "eng"}` on a release with both `English Dialogue` and
+`Signs/Songs` will pick the dialogue track.
+
+For anime with full English subtitles and Japanese audio, while leaving movies untouched:
+
+```json
+"language_config": [
+    {"type": "series", "alang": "jpn", "slang": "eng", "subtype": "full"},
+    {"type": "series", "alang": "jpn", "slang": "eng"},
+    {"alang": "eng"}
+]
+```
+
+The `type: "series"` constraint is what keeps a movie that happens to ship a Japanese dub from being
+auto-selected. If you'd rather have Ghibli-style anime films also match, drop the `type` constraint from
+the first two rules — at the cost of occasionally picking a Japanese dub on a Western film.
+
+For English audio with signs/songs subtitles, falling back to subbed when no dub exists:
+
+```json
+"language_config": [
+    {"alang": "eng", "slang": "eng", "subtype": "signs"},
+    {"alang": "eng"},
+    {"alang": "jpn", "slang": "eng", "subtype": "full"},
+    {"alang": "jpn", "slang": "eng"}
+]
+```
+
+For a movies-only rule that defers to the menu for series:
+
+```json
+"language_config": [
+    {"type": "movie", "alang": "eng,jpn", "slang": "eng"}
+]
+```
+
+Anything more specific than this is probably better handled by a custom mpv lua script.
+
 ### MPV Configuration
 
 You can configure mpv directly using the `mpv.conf` and `input.conf` files. (It is in the same folder as `conf.json`.)

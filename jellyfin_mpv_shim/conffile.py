@@ -3,6 +3,8 @@ import os
 import sys
 import getpass
 
+from .args import get_args
+
 # If no platform is matched, use the current directory.
 _confdir = None
 username = getpass.getuser()
@@ -39,13 +41,8 @@ for platform, directory in confdirs:
     if sys.platform.startswith(platform):
         _confdir = directory
 
-custom_config = None
-for i, arg in enumerate(sys.argv):
-    if arg == "--config" and len(sys.argv) > i + 1:
-        custom_config = sys.argv[i + 1]
-
-
 def confdir(app: str):
+    custom_config = get_args().config
     if custom_config is not None:
         return custom_config
     elif _confdir is not None:
