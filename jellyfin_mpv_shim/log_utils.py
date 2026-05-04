@@ -64,6 +64,10 @@ def enable_sanitization():
 
 def configure_log(destination, level: str = "info"):
     lvl = level_mapping[level.upper()]
+    # Records below the logger's level never reach handlers, so widen the root
+    # logger if a handler asks for something more permissive.
+    if lvl < root_logger.level:
+        root_logger.level = lvl
 
     handler = logging.StreamHandler(destination)
     handler.setFormatter(CustomFormatter())
@@ -73,6 +77,8 @@ def configure_log(destination, level: str = "info"):
 
 def configure_log_file(destination: str, level: str = "info"):
     lvl = level_mapping[level.upper()]
+    if lvl < root_logger.level:
+        root_logger.level = lvl
 
     handler = logging.FileHandler(destination, mode="w")
     # Never allow logging API keys to a file.

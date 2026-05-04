@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import logging
 import sys
 import multiprocessing
@@ -8,8 +7,8 @@ from threading import Event
 
 from . import conffile
 from . import i18n
+from .args import get_args
 from .conf import settings
-from .clients import clientManager
 from .constants import APP_NAME
 from .log_utils import (
     configure_log,
@@ -22,34 +21,26 @@ logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog=APP_NAME,
-        description="Jellyfin MPV Shim - Cast media from Jellyfin to MPV"
-    )
-    parser.add_argument(
-        "--gui",
-        dest="enable_gui",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help="Enable the GUI (overrides config file setting)"
-    )
-    args = parser.parse_args()
+    args = get_args()
 
     conf_file = conffile.get(APP_NAME, "conf.json")
     load_success = settings.load(conf_file)
     i18n.configure()
 
-    # Override GUI setting if command-line argument is provided
-    if args.enable_gui:
-        settings.enable_gui = True
+    # CLI overrides applied after config load so they win.
+    if args.enable_gui is not None:
+        settings.enable_gui = args.enable_gui
+    if args.mpv_loglevel is not None:
+        settings.mpv_log_level = args.mpv_loglevel
 
     if settings.sanitize_output:
         enable_sanitization()
 
-    configure_log(sys.stdout, settings.mpv_log_level)
+    app_log_level = "debug" if args.debug else settings.mpv_log_level
+    configure_log(sys.stdout, app_log_level)
     if settings.write_logs:
         log_file = conffile.get(APP_NAME, "log.txt")
-        configure_log_file(log_file, settings.mpv_log_level)
+        configure_log_file(log_file, app_log_level)
 
     log = root_logger
 
@@ -94,6 +85,7 @@ def main():
     if not user_interface:
         from .cli_mgr import user_interface
 
+    from .clients import clientManager
     from .player import playerManager
     from .action_thread import actionThread
     from .event_handler import eventHandler

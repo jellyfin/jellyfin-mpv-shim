@@ -6,7 +6,6 @@ from getpass import getpass
 from .constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
 from .i18n import _
 
-import sys
 import os.path
 import json
 import uuid
@@ -96,7 +95,7 @@ class PeriodicHealthCheck(threading.Thread):
         self.trigger = threading.Event()
         self.callback = callback
 
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
 
     def stop(self):
         self.halt = True
@@ -124,18 +123,10 @@ class ClientManager(object):
 
     @staticmethod
     def _get_cli_credential_args():
-        server = None
-        username = None
-        password = ""
-        for i, arg in enumerate(sys.argv):
-            if arg == "--server" and len(sys.argv) > i + 1:
-                server = sys.argv[i + 1]
-            elif arg == "--username" and len(sys.argv) > i + 1:
-                username = sys.argv[i + 1]
-            elif arg == "--password" and len(sys.argv) > i + 1:
-                password = sys.argv[i + 1]
-        if server and username:
-            return server, username, password
+        from .args import get_args
+        a = get_args()
+        if a.server and a.username:
+            return a.server, a.username, a.password
         return None
 
     def _find_existing_credential(self, server: str, username: str):
@@ -167,12 +158,12 @@ class ClientManager(object):
         return self.login(server, username, password)
 
     def cli_connect(self):
-        is_logged_in = self.try_connect()
-        add_another = False
-        clear_accounts = "clear" in sys.argv
+        from .args import get_args
+        cli_commands = set(get_args().command or [])
 
-        if "add" in sys.argv:
-            add_another = True
+        is_logged_in = self.try_connect()
+        add_another = "add" in cli_commands
+        clear_accounts = "clear" in cli_commands
 
         cli_creds = self._get_cli_credential_args()
 
