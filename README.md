@@ -216,7 +216,7 @@ You can use the config file to enable and disable features.
   - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
-- `display_mirroring` - Enable webview-based display mirroring (content preview). Default: `false`
+- `display_mirroring` - Enable display mirroring (content preview window). Default: `false`
 - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
 - `check_updates` - Check for updates via GitHub. Default: `true`
   - This requests the GitHub releases page and checks for a new version.
@@ -647,10 +647,10 @@ The project is written entirely in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
-using Windows and would like mpv to be maximize properly, `pywin32` is also needed. The GUI
-component uses `pystray` and `tkinter`, but there is a fallback cli mode. The mirroring dependencies
-are `Jinja2` and `pywebview`, along with platform-specific dependencies. (See the installation and building
-guides for details on platform-specific dependencies for display mirroring.)
+using Windows and would like mpv to maximize properly, `pywin32` is also needed. The GUI
+component uses `pystray` and `tkinter`, but there is a fallback cli mode. Display mirroring uses
+`tkinter` and `Pillow` (the same dependencies as the GUI), and is rendered as a fullscreen tkinter
+window — no webview required.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
@@ -668,7 +668,7 @@ The shaders included in the shader pack are also available under verious open so
 
 If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
 
-1. Install the dependencies: `pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray Jinja2 pywebview python-mpv-jsonipc pypresence`.
+1. Install the dependencies: `pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray pillow python-mpv-jsonipc pypresence`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
     - Note: Recent distributions make pip unusable by default. Consider using conda or add a virtualenv to your user's path.
 2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-mpv-shim`
@@ -714,13 +714,13 @@ sudo pip3 install pystray
 sudo apt install python3-tk
 ```
 
-If you would like display mirroring support, install the mirroring dependencies:
+If you would like display mirroring support, install the mirroring dependencies (tkinter + Pillow,
+the same packages as the GUI):
 
 ```bash
-sudo apt install python3-jinja2 python3-webview
+sudo apt install python3-tk python3-pil python3-pil.imagetk
 # -- OR --
 sudo pip3 install jellyfin-mpv-shim[mirror]
-sudo apt install gir1.2-webkit2-4.0
 ```
 
 Discord rich presence support:
@@ -778,7 +778,7 @@ copy it into a new folder called mpv32. You may also need to edit the batch file
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
     - You can update the project later with `git pull`.
 2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-3. After installing python3, open `cmd` as admin and run `pip install --upgrade .[all] pythonnet pywebview pywin32`.
+3. After installing python3, open `cmd` as admin and run `pip install --upgrade .[all] pywin32`.
 4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 5. Extract the `mpv-2.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
 6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.

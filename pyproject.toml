@@ -27,23 +27,13 @@ Homepage = "https://github.com/jellyfin/jellyfin-mpv-shim"
 
 [project.optional-dependencies]
 gui = ["pystray", "pillow"]
-mirror = [
-    "Jinja2",
-    "pywebview>=6.1",
-    "pywin32; sys_platform == 'win32'",
-    "clr-loader; sys_platform == 'win32'",
-    "pythonnet; sys_platform == 'win32'",
-]
+mirror = ["pillow"]
 discord = ["pypresence"]
 all = [
-    "Jinja2",
-    "pywebview>=6.1",
     "pystray",
     "pypresence",
     "pillow",
     "pywin32; sys_platform == 'win32'",
-    "clr-loader; sys_platform == 'win32'",
-    "pythonnet; sys_platform == 'win32'",
 ]
 
 [project.scripts]
@@ -68,4 +58,3 @@ jellyfin_mpv_shim = [
     "default_shader_pack/**/*",
     "integration/**/*",
 ]
-"jellyfin_mpv_shim.display_mirror" = ["*.css", "*.html"]
