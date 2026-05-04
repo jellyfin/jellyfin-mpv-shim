@@ -154,6 +154,9 @@ class PlayerManager(object):
         self.playback_time_before_seek = None
         self.trickplay = None
         self._mpv_alive = False
+        # Last known playback position; used when MPV exits (e.g. OSC 'x'
+        # button) before we get to send the final timeline update.
+        self._last_playback_position = 0
 
         self._init_mpv()
 
@@ -1064,16 +1067,30 @@ class PlayerManager(object):
         # if queue manipulation is added as a feature.
         player = self._player
 
-        # Cache player properties to reduce IPC calls (especially with external MPV)
-        volume = player.volume
-        mute = player.mute
-        pause = player.pause
-        duration = player.duration
-        cache_buffering = player.cache_buffering_state
-        playback_time = player.playback_time
+        # Cache player properties to reduce IPC calls (especially with external
+        # MPV). Tolerate MPV being mid-shutdown — closing via the OSC 'x'
+        # button can race the final timeline send and would otherwise crash.
+        try:
+            volume = player.volume
+            mute = player.mute
+            pause = player.pause
+            duration = player.duration
+            cache_buffering = player.cache_buffering_state
+            playback_time = player.playback_time
+        except _mpv_errors:
+            volume = mute = pause = duration = cache_buffering = playback_time = None
+
+        if playback_time is not None:
+            self._last_playback_position = playback_time
 
         if finished:
-            safe_pos = self._video.get_duration() or 0
+            # When MPV has already exited we don't actually know if the video
+            # finished — fall back to the last known position rather than
+            # marking it as fully watched.
+            if playback_time is None:
+                safe_pos = self._last_playback_position
+            else:
+                safe_pos = self._video.get_duration() or 0
         else:
             safe_pos = playback_time or 0
         self.last_seek = safe_pos

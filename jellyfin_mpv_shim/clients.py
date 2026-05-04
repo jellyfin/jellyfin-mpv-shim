@@ -73,7 +73,7 @@ def is_local_subnet(host, local_ips, prefix_length=24):
 
 
 log = logging.getLogger("clients")
-path_regex = re.compile("^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
+path_regex = re.compile(r"^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
 
 from typing import Optional
 
@@ -344,7 +344,18 @@ class ClientManager(object):
         return False
 
     def validate_client(self, client: "JellyfinClient", dry_run=False):
-        client_list = client.jellyfin.sessions()
+        # Use the apiclient's lower-level _http to bound retries and timeout
+        # for this specific call. The default 30s × 5 retries can wedge the
+        # health-check thread for ~2.5 minutes if the server is unresponsive.
+        # On exception, fall through to the "not in client list" branch below
+        # to force a reconnect (a timeout is a broken connection).
+        try:
+            client_list = client.jellyfin._http(
+                "GET", "Sessions", {"params": None, "timeout": 10, "retry": 1}
+            )
+        except Exception:
+            log.warning("Health check session query failed; treating as disconnected.", exc_info=True)
+            client_list = []
 
         if client_list is None:
             log.warning(
@@ -477,8 +488,21 @@ class ClientManager(object):
 
     def check_all_clients(self):
         log.info("Performing client health check...")
-        for client in self.clients.values():
+        # list() because validate_client may mutate self.clients via the
+        # synthesized WebSocketDisconnect path.
+        for client in list(self.clients.values()):
             self.validate_client(client)
+        # Retry credentials that aren't currently connected. Without this, a
+        # server that fails the initial connect (e.g. shim started before LAN
+        # was up) is never tried again until the user restarts the app —
+        # the long-standing reliability hole behind issues #344 / #410.
+        for server in self.credentials:
+            if server["uuid"] not in self.clients and not self.is_stopping:
+                log.info(
+                    "Health check: retrying disconnected server %s",
+                    server.get("address"),
+                )
+                self.connect_client(server, do_retries=False)
 
     def stop(self):
         if self.health_check:
