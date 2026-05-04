@@ -1281,22 +1281,36 @@ class PlayerManager(object):
 
     def get_osd_settings(self):
         if not self._mpv_alive:
-            return self._default_osd_back_color, self._default_osd_font_size
+            return self._default_osd_back_color, self._default_osd_font_size, None
         try:
+            # osd-border-style was added in mpv ~0.34. Tolerate it being absent.
+            try:
+                border_style = self._player.osd_border_style
+            except Exception:
+                border_style = None
             return (
                 self._player.osd_back_color or self._default_osd_back_color,
                 self._player.osd_font_size or self._default_osd_font_size,
+                border_style,
             )
         except _mpv_errors:
             self._handle_mpv_disconnect()
-            return self._default_osd_back_color, self._default_osd_font_size
+            return self._default_osd_back_color, self._default_osd_font_size, None
 
-    def set_osd_settings(self, back_color: str, font_size: int):
+    def set_osd_settings(self, back_color: str, font_size: int, border_style=None):
         if not self._mpv_alive:
             return
         try:
             self._player.osd_back_color = back_color
             self._player.osd_font_size = font_size
+            if border_style is not None:
+                # Required to make osd-back-color actually render as a filled
+                # box on mpv 0.36+ where the default shifted to
+                # outline-and-shadow (no background fill).
+                try:
+                    self._player.osd_border_style = border_style
+                except Exception:
+                    pass
         except _mpv_errors:
             self._handle_mpv_disconnect()
 

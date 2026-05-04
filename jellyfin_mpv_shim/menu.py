@@ -70,6 +70,7 @@ class OSDMenu(object):
         (
             self.original_osd_color,
             self.original_osd_size,
+            self.original_osd_border_style,
         ) = player_manager.get_osd_settings()
 
         self.profile_menu = None
@@ -180,7 +181,7 @@ class OSDMenu(object):
         if self.playerManager.playback_is_aborted():
             self.playerManager.force_window(True)
 
-        self.playerManager.set_osd_settings("#CC333333", 40)
+        self.playerManager.set_osd_settings("#CC333333", 40, "background-box")
         self.playerManager.enable_osc(False)
         self.playerManager.triggered_menu(True)
 
@@ -196,7 +197,9 @@ class OSDMenu(object):
     def hide_menu(self):
         if self.is_menu_shown:
             self.playerManager.set_osd_settings(
-                self.original_osd_color, self.original_osd_size
+                self.original_osd_color,
+                self.original_osd_size,
+                self.original_osd_border_style,
             )
             self.playerManager.show_text("", 0, 0)
 
