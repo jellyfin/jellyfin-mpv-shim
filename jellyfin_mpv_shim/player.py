@@ -157,6 +157,11 @@ class PlayerManager(object):
         # Last known playback position; used when MPV exits (e.g. OSC 'x'
         # button) before we get to send the final timeline update.
         self._last_playback_position = 0
+        # Timestamp of the most recent intro/credits prompt or skip toast.
+        # Used to debounce the prompt loop so a skip event isn't immediately
+        # overwritten by a "Seek to Skip Credits" prompt when the post-skip
+        # position lands inside an outro segment (common on short videos).
+        self._last_intro_msg_time = 0.0
 
         self._init_mpv()
 
@@ -559,6 +564,7 @@ class PlayerManager(object):
         intro.has_triggered = True
         self.timeline_handle()
         self.is_in_intro = False
+        self._last_intro_msg_time = time.time()
 
     @synchronous("_lock")
     def update(self):
@@ -599,8 +605,13 @@ class PlayerManager(object):
                             3000,
                             1,
                         )
+                        self._last_intro_msg_time = time.time()
 
-                    if not self.is_in_intro and should_prompt:
+                    if (
+                        not self.is_in_intro
+                        and should_prompt
+                        and time.time() - self._last_intro_msg_time > 3
+                    ):
                         self._player.show_text(
                             (
                                 _("Seek to Skip Credits")
@@ -610,6 +621,7 @@ class PlayerManager(object):
                             3000,
                             1,
                         )
+                        self._last_intro_msg_time = time.time()
                     self.is_in_intro = True
                 else:
                     self.is_in_intro = False
@@ -1303,14 +1315,15 @@ class PlayerManager(object):
         try:
             self._player.osd_back_color = back_color
             self._player.osd_font_size = font_size
-            if border_style is not None:
-                # Required to make osd-back-color actually render as a filled
-                # box on mpv 0.36+ where the default shifted to
-                # outline-and-shadow (no background fill).
-                try:
-                    self._player.osd_border_style = border_style
-                except Exception:
-                    pass
+            # Required to make osd-back-color actually render as a filled box
+            # on mpv 0.36+ where the default shifted to outline-and-shadow.
+            # If the caller doesn't have a saved value (e.g. the original read
+            # failed at OSDMenu init), fall back to the modern mpv default
+            # rather than leaving the property at whatever the menu set it to.
+            try:
+                self._player.osd_border_style = border_style or "outline-and-shadow"
+            except Exception:
+                pass  # Older mpv that lacks the property; nothing to restore.
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
