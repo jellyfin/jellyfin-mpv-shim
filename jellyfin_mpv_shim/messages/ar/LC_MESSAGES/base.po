@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-05-02 16:20+0000\n"
-"Last-Translator: Hassan Alabdulaal <hassan.b2018@gmail.com>\n"
+"PO-Revision-Date: 2026-05-15 14:08+0000\n"
+"Last-Translator: Ziad El Kalali <ziadad@hotmail.fr>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
 "Language: ar\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr "جاري اختيار المقاطع..."
+msgstr "اختيار المقاطع..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
