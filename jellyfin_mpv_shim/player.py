@@ -1,5 +1,6 @@
 import logging
 import os
+import shlex
 import sys
 import time
 
@@ -270,14 +271,44 @@ class PlayerManager(object):
             # This can lead to unwanted skipping of videos
             self._player.resume_playback = False
 
+        orig_keybinds = {}
+
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
+            if key is not None:
+                # Store the original key binding to be used as default later
+                # We also ignore "custom-bind" that is created by the json-ipc shim
+                binds = [b for b in self._player.input_bindings
+                           if b.get('key').upper() == key.upper() and
+                              b.get('cmd', '') != 'custom-bind']
+                if binds:
+                    # Pick the bind with highest priority
+                    best_bind = max(binds, key=lambda x: x.get('priority', 0))
+                    orig_keybinds[key] = best_bind
+
             def wrapper(func):
                 if key is not None:
                     self._player.on_key_press(key)(func)
                 return func
 
             return wrapper
+
+
+        def exec_command(command: str):
+            """Execute a command in mpv. Also handles chain of commands joined by ';'"""
+            for single_cmd in command.split(";"):
+                single_cmd = single_cmd.strip()
+                if single_cmd:
+                    # shlex.split safely parses the mpv command string (handling quotes correctly)
+                    self._player.command(*shlex.split(single_cmd))
+
+        def fallback_to_default(key):
+            """Run the original command associated with the keybinding"""
+            orig_bind = orig_keybinds.get(key)
+            if orig_bind is not None:
+                exec_command(orig_bind.get('cmd'))
+                return True
+            return False
 
         @self._player.on_key_press("CLOSE_WIN")
         @self._player.on_key_press("STOP")
@@ -349,41 +380,39 @@ class PlayerManager(object):
         def menu_left():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("left")
-            else:
+            elif not fallback_to_default(settings.kb_menu_left):
                 self.kb_seek("left")
 
         @keypress(settings.kb_menu_right)
         def menu_right():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("right")
-            else:
-                if self.is_in_intro:
-                    self.skip_intro()
-                else:
-                    self.kb_seek("right")
+            elif self.is_in_intro:
+                self.skip_intro()
+            elif not fallback_to_default(settings.kb_menu_right):
+                self.kb_seek("right")
 
         @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("up")
-            else:
-                if self.is_in_intro:
-                    self.skip_intro()
-                else:
-                    self.kb_seek("up")
+            elif self.is_in_intro:
+                self.skip_intro()
+            elif not fallback_to_default(settings.kb_menu_up):
+                self.kb_seek("up")
 
         @keypress(settings.kb_menu_down)
         def menu_down():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("down")
-            else:
+            elif not fallback_to_default(settings.kb_menu_down):
                 self.kb_seek("down")
 
         @keypress(settings.kb_pause)
         def handle_pause():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("ok")
-            else:
+            elif not fallback_to_default(settings.kb_pause):
                 self.toggle_pause()
 
         @keypress(settings.kb_fullscreen)
