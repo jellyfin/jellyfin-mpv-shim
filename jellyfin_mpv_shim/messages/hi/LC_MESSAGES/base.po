@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-04-14 02:20+0000\n"
-"Last-Translator: Pranavi <pranavi.sharma79@gmail.com>\n"
+"PO-Revision-Date: 2026-05-21 07:45+0000\n"
+"Last-Translator: Dart og <onice757@gmail.com>\n"
 "Language-Team: Hindi <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/hi/>\n"
+"jellyfin-mpv-shim/hi/>\n"
 "Language: hi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.10.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -224,7 +224,7 @@ msgstr "चलचित्र की गुणवत्ता को बदल�
 
 #: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
-msgstr "सिंकप्लेई"
+msgstr "सिंकप्ले"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
