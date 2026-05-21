@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-05-20 10:59+0000\n"
+"PO-Revision-Date: 2026-05-21 07:45+0000\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ka/>\n"
@@ -52,11 +52,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "მომხმარებლის სახელი: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "პაროლი: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -94,11 +94,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
-msgstr ""
+msgstr "ჩავარდნა"
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Ok"
-msgstr ""
+msgstr "დიახ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
@@ -106,15 +106,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
-msgstr ""
+msgstr "სერვერი:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:308
 msgid "Username:"
-msgstr ""
+msgstr "მომხმარებლის სახელი:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
-msgstr ""
+msgstr "პაროლი:"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
@@ -122,7 +122,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:341
 msgid "Close"
-msgstr ""
+msgstr "დახურვა"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
@@ -142,23 +142,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
-msgstr ""
+msgstr "გასვლა"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
-msgstr ""
+msgstr " (ტრანსკოდირება)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
-msgstr ""
+msgstr "თეთრი"
 
 #: jellyfin_mpv_shim/menu.py:29
 msgid "Yellow"
-msgstr ""
+msgstr "ყვითელი"
 
 #: jellyfin_mpv_shim/menu.py:30
 msgid "Black"
-msgstr ""
+msgstr "შავი"
 
 #: jellyfin_mpv_shim/menu.py:31
 msgid "Cyan"
@@ -166,43 +166,43 @@ msgstr "ცისფერი"
 
 #: jellyfin_mpv_shim/menu.py:32
 msgid "Blue"
-msgstr ""
+msgstr "ლურჯი"
 
 #: jellyfin_mpv_shim/menu.py:33
 msgid "Green"
-msgstr ""
+msgstr "მწვანე"
 
 #: jellyfin_mpv_shim/menu.py:34
 msgid "Magenta"
-msgstr ""
+msgstr "მოვარდისფრო იისფერი"
 
 #: jellyfin_mpv_shim/menu.py:35
 msgid "Red"
-msgstr ""
+msgstr "წითელი"
 
 #: jellyfin_mpv_shim/menu.py:36
 msgid "Gray"
-msgstr ""
+msgstr "ნაცრისფერი"
 
 #: jellyfin_mpv_shim/menu.py:40
 msgid "Tiny"
-msgstr ""
+msgstr "პაწაწინა"
 
 #: jellyfin_mpv_shim/menu.py:41
 msgid "Small"
-msgstr ""
+msgstr "პატარა"
 
 #: jellyfin_mpv_shim/menu.py:42
 msgid "Normal"
-msgstr ""
+msgstr "ნორმალური"
 
 #: jellyfin_mpv_shim/menu.py:43
 msgid "Large"
-msgstr ""
+msgstr "დიდი"
 
 #: jellyfin_mpv_shim/menu.py:44
 msgid "Huge"
-msgstr ""
+msgstr "უზარმაზარი"
 
 #: jellyfin_mpv_shim/menu.py:130
 msgid "Main Menu"
@@ -242,7 +242,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
-msgstr ""
+msgstr "ეკრანის ანაბეჭდი"
 
 #: jellyfin_mpv_shim/menu.py:170
 msgid "Video Playback Profiles"
@@ -274,7 +274,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
-msgstr ""
+msgstr "არცერთი"
 
 #: jellyfin_mpv_shim/menu.py:345
 msgid "Select Transcode Quality"
@@ -282,7 +282,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:346
 msgid "Maximum"
-msgstr ""
+msgstr "მაქსიმუმი"
 
 #: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
 msgid "No Transcode"
@@ -322,15 +322,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py:477
 msgid "Bottom"
-msgstr ""
+msgstr "ქვედა"
 
 #: jellyfin_mpv_shim/menu.py:478
 msgid "Top"
-msgstr ""
+msgstr "ზედა"
 
 #: jellyfin_mpv_shim/menu.py:479
 msgid "Middle"
-msgstr ""
+msgstr "შუა"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
@@ -453,11 +453,11 @@ msgstr ""
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
 msgid "Automatic"
-msgstr ""
+msgstr "ავტომატური"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr ""
+msgstr "გათიშულია"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
@@ -469,11 +469,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr ""
+msgstr "გათიშვა"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
-msgstr ""
+msgstr "თავიდან ცდა"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -551,11 +551,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
-msgstr ""
+msgstr "უცნ"
 
 #: jellyfin_mpv_shim/utils.py:308
 msgid " Forced"
-msgstr ""
+msgstr " ძალით"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
