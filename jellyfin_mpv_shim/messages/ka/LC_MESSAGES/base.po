@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-05-24 10:26+0000\n"
+"PO-Revision-Date: 2026-05-24 14:38+0000\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ka/>\n"
@@ -32,15 +32,15 @@ msgstr "{0}: ჩავარდა"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr ""
+msgstr "სუბტიტრები: {0} ok, {1} ჩავარდა"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "დუბლირების დამატება: {0} ok, {1} მხოლოდ აუდიო, {2} ჩავარდა"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "ხელით: {0} კარგია, {1} ჩავარდა"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -76,7 +76,7 @@ msgstr "მზადაა ტრანსლაციისთვის"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "აირჩიეთ თქვენი მედია Jellyfin-ში და დაუკარით ის აქ"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
@@ -91,6 +91,8 @@ msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
+"სერვერის დამატება შეუძლებელია.\n"
+"შეამოწმეთ თქვენი კავშირის ინფორმაცია."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -226,7 +228,7 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/menu.py:145
 msgid "MPV Shim v{0} Release Info/Download"
-msgstr ""
+msgstr "MPV Shim v{0} გამოცემის ინფორმაცია/გადმოწერა"
 
 #: jellyfin_mpv_shim/menu.py:153
 msgid "Change Video Playback Profile"
@@ -234,7 +236,7 @@ msgstr "ვიდეოს დაკვრის პროფილის შე
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr ""
+msgstr "აუდიოს/სუბტიტრების ავტომატური დაყენება (მთელ სერიალზე)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
@@ -298,11 +300,11 @@ msgstr "ინგლისური აუდიო"
 
 #: jellyfin_mpv_shim/menu.py:386
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "იაპონური აუდიო ინგლისური სუბტიტრებით"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr ""
+msgstr "ხელით, ტრეკის ინდექსის მიხედვით (ნაკლებად სანდო)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
@@ -334,7 +336,7 @@ msgstr "შუა"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr ""
+msgstr "დაშორებული ტრანსკოდირების ხარისხი: {0:0.1f} მბ/წმ"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
@@ -445,10 +447,12 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
+"მიმდინარეობს თქვენი დაშორებული ვიდეოს ტრანსკოდირება.\n"
+"თუ ეს საჭირო არაა, გამტარობის მოსარგებად დააჭირეთ ღილაკს c."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr ""
+msgstr "სეზონი {0} - ეპიზოდი {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
@@ -485,19 +489,19 @@ msgstr "SVP გათიშულია"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr ""
+msgstr "SyncPlay-ის მითითებული ჯგუფი არ არსებობს."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
-msgstr ""
+msgstr "SyncPlay-ის ჯგუფების შექმნა დაშვებული არაა."
 
 #: jellyfin_mpv_shim/syncplay.py:23
 msgid "SyncPlay group access was denied."
-msgstr ""
+msgstr "SyncPlay-ის ჯგუფთან წვდომა აკრძალულია."
 
 #: jellyfin_mpv_shim/syncplay.py:24
 msgid "Access to the SyncPlay library was denied."
-msgstr ""
+msgstr "SyncPlay-ის ბიბლიოთეკასთან წვდომა აკრძალულია."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
@@ -505,7 +509,7 @@ msgstr "SpeedToSync (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
-msgstr ""
+msgstr "სინქრონიზაცია გათიშულია (მეტისმეტად ბევრი მცდელობა)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
@@ -548,6 +552,8 @@ msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
 msgstr ""
+"ხელმისაწვდომია MPV Shim v{0}-ის განახლება\n"
+"დეტალებისთვის გახსენით მენიუ (ღილაკი c)."
 
 #: jellyfin_mpv_shim/utils.py:307
 msgid "Unkn"
@@ -567,27 +573,27 @@ msgstr "ზოგადი მაღალი (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Faithful (SD-ისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual (SD-ისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 Perceptual + Deblur (SD-ისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Faithful (HD-ისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:26
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual (HD-ისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:27
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 Perceptual + Deblur (HD-iისთვის)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
