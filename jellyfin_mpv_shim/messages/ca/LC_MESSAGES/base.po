@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-07-24 17:27+0000\n"
+"PO-Revision-Date: 2026-06-10 22:10+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ca/>\n"
+"jellyfin-mpv-shim/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -241,7 +241,7 @@ msgstr "Configuració automàtica d'àudio/subtítols (sèrie completa)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Tanca i marcar com a no vist"
+msgstr "Tanca i marca com a no vist"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -361,7 +361,7 @@ msgstr "Transcodifica l'HDR"
 
 #: jellyfin_mpv_shim/menu.py:507
 msgid "Direct Paths"
-msgstr "Rutes directes"
+msgstr "Camins directes"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
@@ -389,7 +389,7 @@ msgstr "Cerca de la tecla multimèdia"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Use Web Seek Pref"
-msgstr "Utilitza les preferències de cerca web"
+msgstr "Utilitza les preferències de cerca al web"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Display Mirroring"
@@ -413,15 +413,15 @@ msgstr "Salta sempre les introduccions"
 
 #: jellyfin_mpv_shim/menu.py:557
 msgid "Ask to Skip Intros"
-msgstr "Demanar salta les introduccions"
+msgstr "Demana saltar les introduccions"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr "Omet sempre els crèdits"
+msgstr "Salta sempre els crèdits"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr "Demana ometre els crèdits"
+msgstr "Demana saltar els crèdits"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
@@ -429,7 +429,7 @@ msgstr "Activa la vista prèvia de les miniatures"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr "Crèdits omesos"
+msgstr "Crèdits saltats"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
@@ -437,7 +437,7 @@ msgstr "Introducció saltada"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Demana ometre els crèdits"
+msgstr "Demana saltar els crèdits"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
@@ -449,8 +449,8 @@ msgid ""
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
 "El vídeo remot s'està transcodificant!\n"
-"Premeu c per a ajustar la configuració de l'amplada de banda si no és "
-"necessari."
+"Si no és necessari, premeu c per a ajustar la configuració de l'amplada de "
+"banda."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
@@ -491,7 +491,7 @@ msgstr "SVP està desactivat"
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
-msgstr "El grup de SyncPlay especificat no existeix."
+msgstr "El grup especificat de SyncPlay no existeix."
 
 #: jellyfin_mpv_shim/syncplay.py:22
 msgid "Creating SyncPlay groups is not allowed."
@@ -507,7 +507,7 @@ msgstr "S'ha denegat l'accés a la biblioteca de SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py:150
 msgid "SpeedToSync (x{0})"
-msgstr "Velocitat per la Sincronització (x{0})"
+msgstr "Velocitat per la sincronització (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:161
 msgid "Sync Disabled (Too Many Attempts)"
@@ -515,7 +515,7 @@ msgstr "Sincronització desactivada (Massa intents)"
 
 #: jellyfin_mpv_shim/syncplay.py:169
 msgid "SkipToSync (x{0})"
-msgstr "Salta a la sincronizació (x{0})"
+msgstr "Salta a la sincronització (x{0})"
 
 #: jellyfin_mpv_shim/syncplay.py:230
 msgid "SyncPlay enabled."
@@ -535,7 +535,7 @@ msgstr "{0} ha marxat."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} està en buffer."
+msgstr "{0} està emmagatzemant memòria intermèdia."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
@@ -567,15 +567,15 @@ msgstr " Forçat"
 
 #: jellyfin_mpv_shim/video_profile.py:18
 msgid "Generic (FSRCNNX)"
-msgstr "Genèric (FSRCNNX)"
+msgstr "Genèrica (FSRCNNX)"
 
 #: jellyfin_mpv_shim/video_profile.py:19
 msgid "Generic High (FSRCNNX x16)"
-msgstr "Genèric alt (FSRCNNX x16)"
+msgstr "Genèrica alta (FSRCNNX x16)"
 
 #: jellyfin_mpv_shim/video_profile.py:20
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr "Anime4K x4 Faithful (Per a resolució estàndar)"
+msgstr "Anime4K x4 Faithful (Per a resolució estàndard)"
 
 #: jellyfin_mpv_shim/video_profile.py:21
 msgid "Anime4K x4 Perceptual (For SD)"
@@ -583,7 +583,7 @@ msgstr "Anime4K x4 Perceptiu (Per a resolució estàndard)"
 
 #: jellyfin_mpv_shim/video_profile.py:22
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr "Anime4K x4 Perceptiu + Desdifumina(Per a resolució estàndard)"
+msgstr "Anime4K x4 Perceptiu + Desdifumina (Per a resolució estàndard)"
 
 #: jellyfin_mpv_shim/video_profile.py:25
 msgid "Anime4K x2 Faithful (For HD)"
