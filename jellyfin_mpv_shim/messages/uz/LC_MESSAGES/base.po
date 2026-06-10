@@ -6,27 +6,29 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2026-06-10 22:10+0000\n"
+"Last-Translator: someone522 <eldorerkin99@gmail.com>\n"
+"Language-Team: Uzbek <https://translate.jellyfin.org/projects/jellyfin/"
+"jellyfin-mpv-shim/uz/>\n"
 "Language: uz\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
 msgid "Selecting Tracks..."
-msgstr ""
+msgstr "Treklar tanlanmoqda..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:105
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: Subtitrlar Yo'q"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:142
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: Muvaffaqiyatsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
 msgid "Set Subbed: {0} ok, {1} fail"
@@ -38,7 +40,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:158
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "Qo'lda: {0} ok, {1} Muvaffaqiyatsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
 msgid "Setting Current..."
@@ -46,39 +48,39 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr ""
+msgstr "Server Manzili: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
-msgstr ""
+msgstr "Foydalanuvchi nomi: "
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "Parol: "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
-msgstr ""
+msgstr "Muvofaqiyatli server qo'shildi."
 
 #: jellyfin_mpv_shim/clients.py:83
 msgid "Add another server?"
-msgstr ""
+msgstr "Boshqa server qo'shilsinmI?"
 
 #: jellyfin_mpv_shim/clients.py:86
 msgid "Adding server failed."
-msgstr ""
+msgstr "Server muvofaqiyatsiz qo'shildi"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:116
 msgid "Ready to cast"
-msgstr ""
+msgstr "Translyatsiya qilishga tayyor"
 
 #: jellyfin_mpv_shim/display_mirror/__init__.py:118
 msgid "Select your media in Jellyfin and play it here"
-msgstr ""
+msgstr "Mediyangizni Jellyfinda tanlang va shu yerda ijro qiling"
 
 #: jellyfin_mpv_shim/gui_mgr.py:153
 msgid "Application Log"
-msgstr ""
+msgstr "Ilova jurnali"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
