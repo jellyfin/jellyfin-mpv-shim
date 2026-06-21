@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-06-10 22:10+0000\n"
+"PO-Revision-Date: 2026-06-21 14:18+0000\n"
 "Last-Translator: someone522 <eldorerkin99@gmail.com>\n"
 "Language-Team: Uzbek <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uz/>\n"
@@ -43,8 +43,9 @@ msgid "Manual: {0} ok, {1} fail"
 msgstr "Qo'lda: {0} ok, {1} Muvaffaqiyatsiz"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:163
+#, fuzzy
 msgid "Setting Current..."
-msgstr ""
+msgstr "Quyidagi joriy qilinmoqda..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
@@ -84,7 +85,7 @@ msgstr "Ilova jurnali"
 
 #: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
 msgid "Add Server"
-msgstr ""
+msgstr "Server qo'shish"
 
 #: jellyfin_mpv_shim/gui_mgr.py:246
 msgid ""
