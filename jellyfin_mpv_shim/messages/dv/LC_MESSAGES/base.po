@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-04-08 23:44+0000\n"
-"Last-Translator: Shaim117 <mohamedshaimlabyg@gmail.com>\n"
+"PO-Revision-Date: 2026-06-21 23:00+0000\n"
+"Last-Translator: Naveed Ali Anwar <hello@naveedalianwar.com>\n"
 "Language-Team: Dhivehi <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/dv/>\n"
 "Language: dv\n"
@@ -56,7 +56,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:77
 msgid "Password: "
-msgstr ""
+msgstr "ފާސްބަސް "
 
 #: jellyfin_mpv_shim/clients.py:82
 msgid "Successfully added server."
@@ -114,7 +114,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:313
 msgid "Password:"
-msgstr ""
+msgstr "ފާސްބަސް"
 
 #: jellyfin_mpv_shim/gui_mgr.py:338
 msgid "Remove Server"
