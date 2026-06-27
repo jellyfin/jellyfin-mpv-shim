@@ -34,6 +34,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="enable or disable the GUI (overrides config)",
     )
     parser.add_argument(
+        "--minimized",
+        dest="start_minimized",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="start with the library browser minimized to the system tray (overrides config)",
+    )
+    parser.add_argument(
         "--mpv-loglevel",
         dest="mpv_loglevel",
         choices=("fatal", "error", "warn", "info", "debug"),

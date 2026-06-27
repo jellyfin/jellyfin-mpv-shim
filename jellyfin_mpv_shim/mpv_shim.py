@@ -30,6 +30,8 @@ def main():
     # CLI overrides applied after config load so they win.
     if args.enable_gui is not None:
         settings.enable_gui = args.enable_gui
+    if args.start_minimized is not None:
+        settings.start_minimized = args.start_minimized
     if args.mpv_loglevel is not None:
         settings.mpv_log_level = args.mpv_loglevel
 
@@ -62,6 +64,9 @@ def main():
     get_webview = lambda: None
     if settings.enable_gui:
         try:
+            # Tkinter is optional in some Python builds; probe it before
+            # committing to the GUI so we cleanly fall back to the CLI.
+            import tkinter  # noqa: F401
             from .gui_mgr import user_interface
 
             use_gui = True

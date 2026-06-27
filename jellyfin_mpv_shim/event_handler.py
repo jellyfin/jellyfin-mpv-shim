@@ -34,6 +34,52 @@ def bind(event_name: str):
     return decorator
 
 
+def start_playback(
+    client: "JellyfinClient_type",
+    item_ids: list,
+    start_index: int = 0,
+    offset_ticks=None,
+    user_id=None,
+    aid=None,
+    sid=None,
+    srcid=None,
+    sync_play_group=None,
+):
+    """Begin playback of one or more items from the beginning of `item_ids`.
+
+    Shared by the websocket "Play" event and the local library browser so both
+    funnel through identical setup (pre/post hooks, timeline, SyncPlay). Returns
+    True if a playable video was found and handed to the player.
+    """
+    media = Media(
+        client,
+        item_ids,
+        seq=start_index,
+        user_id=user_id,
+        aid=aid,
+        sid=sid,
+        srcid=srcid,
+    )
+
+    offset = offset_ticks
+    if offset is not None:
+        offset /= 10000000
+
+    video = media.video
+    if not video:
+        return False
+
+    if settings.pre_media_cmd:
+        os.system(settings.pre_media_cmd)
+    playerManager.play(video, offset, is_initial_play=True)
+    timelineManager.send_timeline()
+    if sync_play_group is not None:
+        playerManager.syncplay.join_group(sync_play_group)
+    if settings.play_cmd:
+        os.system(settings.play_cmd)
+    return True
+
+
 class EventHandler(object):
     mirror = None
 
@@ -59,31 +105,18 @@ class EventHandler(object):
             seq = arguments.get("StartIndex")
             if seq is None:
                 seq = 0
-            media = Media(
+            log.debug("EventHandler::playMedia %s" % arguments.get("ItemIds"))
+            start_playback(
                 client,
                 arguments.get("ItemIds"),
-                seq=seq,
+                start_index=seq,
+                offset_ticks=arguments.get("StartPositionTicks"),
                 user_id=arguments.get("ControllingUserId"),
                 aid=arguments.get("AudioStreamIndex"),
                 sid=arguments.get("SubtitleStreamIndex"),
                 srcid=arguments.get("MediaSourceId"),
+                sync_play_group=arguments.get("SyncPlayGroup"),
             )
-
-            log.debug("EventHandler::playMedia %s" % media)
-            offset = arguments.get("StartPositionTicks")
-            if offset is not None:
-                offset /= 10000000
-
-            video = media.video
-            if video:
-                if settings.pre_media_cmd:
-                    os.system(settings.pre_media_cmd)
-                playerManager.play(video, offset, is_initial_play=True)
-                timelineManager.send_timeline()
-                if arguments.get("SyncPlayGroup") is not None:
-                    playerManager.syncplay.join_group(arguments["SyncPlayGroup"])
-                if settings.play_cmd:
-                    os.system(settings.play_cmd)
         elif play_command == "PlayLast":
             playerManager.get_video().parent.insert_items(
                 arguments.get("ItemIds"), append=True

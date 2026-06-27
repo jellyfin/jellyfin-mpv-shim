@@ -61,6 +61,12 @@ class Settings(SettingsBase):
     subtitle_position: str = "bottom"
     fullscreen: bool = True
     enable_gui: bool = True
+    start_minimized: bool = False
+    library_page_size: int = 100
+    library_image_width: int = 280
+    library_image_cache_mb: int = 256
+    library_last_server: Optional[str] = None
+    sync_path: Optional[str] = None
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None
