@@ -14,6 +14,9 @@ import logging
 import re
 import threading
 
+from datetime import datetime
+from urllib.parse import quote
+
 import socket
 import ipaddress
 from urllib.parse import urlparse
@@ -74,6 +77,19 @@ def is_local_subnet(host, local_ips, prefix_length=24):
 
 log = logging.getLogger("clients")
 path_regex = re.compile(r"^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$")
+
+# How often to poll the server while waiting for the user to authorize a
+# Quick Connect request, and how long to keep polling before giving up.
+QUICK_CONNECT_POLL_SECS = 3
+QUICK_CONNECT_TIMEOUT_SECS = 300
+
+
+class QuickConnectError(Exception):
+    """Raised when a Quick Connect login cannot be completed.
+
+    The message is user-facing (already translated) so callers can surface it
+    directly in the CLI or GUI.
+    """
 
 from typing import Optional
 
@@ -157,6 +173,25 @@ class ClientManager(object):
         # Re-login with updated credentials
         return self.login(server, username, password)
 
+    def _cli_quick_connect(self, server: str):
+        """Run a Quick Connect login from the terminal, printing the code."""
+
+        def show_code(code):
+            print(
+                _(
+                    "Open Jellyfin, go to your user menu -> Quick Connect, "
+                    "and enter this code:"
+                )
+            )
+            print("    " + code)
+            print(_("Waiting for authorization..."))
+
+        try:
+            return self.login_with_quick_connect(server, code_callback=show_code)
+        except QuickConnectError as e:
+            log.warning(str(e))
+            return False
+
     def cli_connect(self):
         from .args import get_args
         cli_commands = set(get_args().command or [])
@@ -164,6 +199,8 @@ class ClientManager(object):
         is_logged_in = self.try_connect()
         add_another = "add" in cli_commands
         clear_accounts = "clear" in cli_commands
+        use_quick_connect = get_args().quick_connect
+        server_arg = get_args().server
 
         cli_creds = self._get_cli_credential_args()
 
@@ -171,6 +208,16 @@ class ClientManager(object):
             log.info(_("Clearing all existing accounts."))
             self.remove_all_clients()
             is_logged_in = False
+
+        # Non-interactive Quick Connect: only the server URL is required.
+        if use_quick_connect and server_arg:
+            cli_creds = None
+            if not is_logged_in or add_another or clear_accounts:
+                if self._cli_quick_connect(server_arg):
+                    log.info(_("Successfully added server."))
+                    is_logged_in = True
+                else:
+                    log.warning(_("Adding server failed."))
 
         if cli_creds:
             server, username, password = cli_creds
@@ -194,13 +241,16 @@ class ClientManager(object):
 
         while not is_logged_in or add_another:
             server = input(_("Server URL: "))
-            username = input(_("Username: "))
-            try:
-                password = getpass(_("Password: "))
-            except (EOFError, OSError):
-                password = ""
+            if use_quick_connect:
+                is_logged_in = self._cli_quick_connect(server)
+            else:
+                username = input(_("Username: "))
+                try:
+                    password = getpass(_("Password: "))
+                except (EOFError, OSError):
+                    password = ""
 
-            is_logged_in = self.login(server, username, password)
+                is_logged_in = self.login(server, username, password)
 
             if is_logged_in:
                 log.info(_("Successfully added server."))
@@ -303,9 +353,8 @@ class ClientManager(object):
         with open(credentials_location, "w") as cf:
             json.dump(self.credentials, cf)
 
-    def login(
-        self, server: str, username: str, password: str, force_unique: bool = False
-    ):
+    @staticmethod
+    def _normalize_server(server: str) -> str:
         if server.endswith("/"):
             server = server[:-1]
 
@@ -322,26 +371,177 @@ class ClientManager(object):
             )
             port = ":8096"
 
-        server = "".join(filter(bool, (protocol, ipv6_host, ipv4_host, port, path)))
+        return "".join(filter(bool, (protocol, ipv6_host, ipv4_host, port, path)))
+
+    def _finalize_login(
+        self, client: "JellyfinClient", username: str, force_unique: bool = False
+    ):
+        """Stash a freshly-authenticated client into our credential store.
+
+        The client must already hold a valid AccessToken for its first server
+        (either from a password login or a Quick Connect exchange).
+        """
+        credentials = client.auth.credentials.get_credentials()
+        server = credentials["Servers"][0]
+        if force_unique:
+            server["uuid"] = server["Id"]
+        else:
+            server["uuid"] = str(uuid.uuid4())
+        server["username"] = username
+        if force_unique and server["Id"] in self.clients:
+            return True
+        self.connect_client(server)
+        self.credentials.append(server)
+        self.save_credentials()
+        return True
+
+    def login(
+        self, server: str, username: str, password: str, force_unique: bool = False
+    ):
+        server = self._normalize_server(server)
 
         client = self.client_factory()
         client.auth.connect_to_address(server)
         result = client.auth.login(server, username, password)
         if "AccessToken" in result:
-            credentials = client.auth.credentials.get_credentials()
-            server = credentials["Servers"][0]
-            if force_unique:
-                server["uuid"] = server["Id"]
-            else:
-                server["uuid"] = str(uuid.uuid4())
-            server["username"] = username
-            if force_unique and server["Id"] in self.clients:
-                return True
-            self.connect_client(server)
-            self.credentials.append(server)
-            self.save_credentials()
-            return True
+            return self._finalize_login(client, username, force_unique)
         return False
+
+    @staticmethod
+    def _qc_request(client, path, method="get", json_body=None):
+        """Issue a Quick Connect request reusing the client's device headers.
+
+        The connection manager's API/session carry the X-Emby-Authorization
+        device identity that the server ties the Quick Connect request to, so
+        we go through it rather than building a bare request.
+        """
+        api = client.auth.API
+        headers = api.get_default_headers()
+        data = None
+        if json_body is not None:
+            headers["Content-type"] = "application/json"
+            data = json.dumps(json_body)
+        address = client.auth.credentials.get_credentials()["Servers"][0]["address"]
+        return api.send_request(
+            address,
+            path,
+            method=method,
+            headers=headers,
+            data=data,
+            timeout=(5, 30),
+            session=client.auth.session,
+        )
+
+    def quick_connect_initiate(self, server: str):
+        """Start a Quick Connect request against ``server``.
+
+        Returns ``(client, secret, code)``. The ``code`` must be shown to the
+        user to enter in their (already authenticated) Jellyfin session.
+        Raises QuickConnectError if the server is unreachable or has Quick
+        Connect disabled.
+        """
+        server = self._normalize_server(server)
+        client = self.client_factory()
+        client.auth.connect_to_address(server)
+        if not client.auth.credentials.get_credentials().get("Servers"):
+            raise QuickConnectError(_("Could not connect to the server."))
+
+        enabled = self._qc_request(client, "QuickConnect/Enabled")
+        if enabled.status_code != 200 or not enabled.json():
+            raise QuickConnectError(_("Quick Connect is not enabled on this server."))
+
+        initiate = self._qc_request(client, "QuickConnect/Initiate", method="post")
+        if initiate.status_code != 200:
+            raise QuickConnectError(_("Could not start Quick Connect."))
+
+        data = initiate.json()
+        return client, data["Secret"], data["Code"]
+
+    def quick_connect_wait(self, client, secret: str, should_cancel=None):
+        """Poll until the Quick Connect request is authorized, then log in.
+
+        Returns True on success, False on timeout/cancellation/failure.
+        ``should_cancel`` is an optional callable polled between attempts.
+        """
+        deadline = time.time() + QUICK_CONNECT_TIMEOUT_SECS
+        authorized = False
+        while time.time() < deadline:
+            if should_cancel is not None and should_cancel():
+                return False
+            state = self._qc_request(
+                client, "QuickConnect/Connect?secret=" + quote(secret)
+            )
+            if state.status_code == 200 and state.json().get("Authenticated"):
+                authorized = True
+                break
+            time.sleep(QUICK_CONNECT_POLL_SECS)
+
+        if not authorized:
+            log.warning("Quick Connect timed out waiting for authorization.")
+            return False
+
+        auth = self._qc_request(
+            client,
+            "Users/AuthenticateWithQuickConnect",
+            method="post",
+            json_body={"Secret": secret},
+        )
+        if auth.status_code != 200:
+            log.warning(
+                "Quick Connect authentication failed with status %s.",
+                auth.status_code,
+            )
+            return False
+        result = auth.json()
+        if "AccessToken" not in result:
+            return False
+
+        self._store_quick_connect_credentials(client, result)
+        return self._finalize_login(client, result["User"]["Name"])
+
+    @staticmethod
+    def _store_quick_connect_credentials(client, data):
+        """Replicate ConnectionManager.login's credential bookkeeping.
+
+        The apiclient has no Quick Connect support, so after we obtain an
+        AuthenticationResult ourselves we have to record the token where the
+        rest of the client expects it before reusing the normal login tail.
+        """
+        cm = client.auth
+        credentials = cm.credentials.get_credentials()
+        cm.config.data["auth.user_id"] = data["User"]["Id"]
+        cm.config.data["auth.token"] = data["AccessToken"]
+
+        for server in credentials["Servers"]:
+            if server["Id"] == data["ServerId"]:
+                found_server = server
+                break
+        else:
+            raise QuickConnectError(_("Quick Connect returned an unknown server."))
+
+        found_server["DateLastAccessed"] = datetime.now().strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        found_server["UserId"] = data["User"]["Id"]
+        found_server["AccessToken"] = data["AccessToken"]
+
+        cm.credentials.add_update_server(credentials["Servers"], found_server)
+        cm.credentials.add_update_user(
+            found_server, {"Id": data["User"]["Id"], "IsSignedInOffline": True}
+        )
+        cm.credentials.set_credentials(credentials)
+
+    def login_with_quick_connect(self, server: str, code_callback=None, should_cancel=None):
+        """High-level Quick Connect login.
+
+        Initiates the request, hands the user-facing code to ``code_callback``,
+        then blocks polling until authorized. Raises QuickConnectError on setup
+        failure; returns True/False from the wait phase.
+        """
+        client, secret, code = self.quick_connect_initiate(server)
+        if code_callback is not None:
+            code_callback(code)
+        return self.quick_connect_wait(client, secret, should_cancel=should_cancel)
 
     def validate_client(self, client: "JellyfinClient", dry_run=False):
         # Use the apiclient's lower-level _http to bound retries and timeout

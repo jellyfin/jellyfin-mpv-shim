@@ -9,7 +9,7 @@ import queue
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
-from .clients import clientManager
+from .clients import clientManager, QuickConnectError
 from .utils import get_resource
 from .log_utils import CustomFormatter, root_logger
 from .i18n import _
@@ -203,6 +203,21 @@ class PreferencesWindow(threading.Thread):
                 except Exception:
                     log.error("Error while adding server.", exc_info=True)
                     self.handle("error")
+            elif action == "quick_connect":
+                try:
+                    is_logged_in = clientManager.login_with_quick_connect(
+                        param,
+                        code_callback=lambda code: self.handle("qc_code", code),
+                    )
+                    if is_logged_in:
+                        self.handle("upd", clientManager.credentials)
+                    else:
+                        self.handle("error")
+                except QuickConnectError as e:
+                    self.handle("qc_error", str(e))
+                except Exception:
+                    log.error("Error during Quick Connect.", exc_info=True)
+                    self.handle("error")
             elif action == "remove":
                 clientManager.remove_client(param)
                 self.handle("upd", clientManager.credentials)
@@ -239,6 +254,8 @@ class PreferencesWindowProcess(Process):
         self.password = None
         self.add_button = None
         self.remove_button = None
+        self.quick_connect_button = None
+        self.qc_status = None
         Process.__init__(self)
 
     def update(self):
@@ -247,16 +264,28 @@ class PreferencesWindowProcess(Process):
                 action, param = self.queue.get_nowait()
                 if action == "upd":
                     self.update_servers(param)
-                    self.add_button.config(state=self.tk.NORMAL)
-                    self.remove_button.config(state=self.tk.NORMAL)
+                    self.qc_status.set("")
+                    self._enable_buttons()
                 elif action == "error":
+                    self.qc_status.set("")
                     self.messagebox.showerror(
                         _("Add Server"),
                         _(
                             "Could not add server.\nPlease check your connection information."
                         ),
                     )
-                    self.add_button.config(state=self.tk.NORMAL)
+                    self._enable_buttons()
+                elif action == "qc_code":
+                    self.qc_status.set(
+                        _(
+                            "Quick Connect code: {code}\n"
+                            "Enter it in Jellyfin under your user menu -> Quick Connect."
+                        ).format(code=param)
+                    )
+                elif action == "qc_error":
+                    self.qc_status.set("")
+                    self.messagebox.showerror(_("Quick Connect"), param)
+                    self._enable_buttons()
                 elif action == "die":
                     self.root.destroy()
                     self.root.quit()
@@ -264,6 +293,11 @@ class PreferencesWindowProcess(Process):
         except queue.Empty:
             pass
         self.root.after(100, self.update)
+
+    def _enable_buttons(self):
+        self.add_button.config(state=self.tk.NORMAL)
+        self.remove_button.config(state=self.tk.NORMAL)
+        self.quick_connect_button.config(state=self.tk.NORMAL)
 
     def update_servers(self, server_list):
         self.servers = server_list
@@ -330,6 +364,10 @@ class PreferencesWindowProcess(Process):
         password_box = ttk.Entry(c, textvariable=self.password, show="*")
         password_box.grid(column=2, row=2)
 
+        self.qc_status = tk.StringVar()
+        qc_status_label = ttk.Label(c, textvariable=self.qc_status, wraplength=240)
+        qc_status_label.grid(column=1, row=5, columnspan=2, sticky=tk.W)
+
         def add_server():
             self.add_button.config(state=tk.DISABLED)
             self.r_queue.put(
@@ -338,6 +376,18 @@ class PreferencesWindowProcess(Process):
                     (self.servername.get(), self.username.get(), self.password.get()),
                 )
             )
+
+        def quick_connect():
+            server = self.servername.get()
+            if not server:
+                self.messagebox.showerror(
+                    _("Quick Connect"), _("Please enter a server URL first.")
+                )
+                return
+            self.add_button.config(state=tk.DISABLED)
+            self.quick_connect_button.config(state=tk.DISABLED)
+            self.qc_status.set(_("Starting Quick Connect..."))
+            self.r_queue.put(("quick_connect", server))
 
         def remove_server():
             self.remove_button.config(state=tk.DISABLED)
@@ -348,6 +398,10 @@ class PreferencesWindowProcess(Process):
 
         self.add_button = ttk.Button(c, text=_("Add Server"), command=add_server)
         self.add_button.grid(column=2, row=3, pady=5, sticky=tk.E)
+        self.quick_connect_button = ttk.Button(
+            c, text=_("Quick Connect"), command=quick_connect
+        )
+        self.quick_connect_button.grid(column=1, row=3, pady=5, sticky=tk.W)
         self.remove_button = ttk.Button(
             c, text=_("Remove Server"), command=remove_server
         )
