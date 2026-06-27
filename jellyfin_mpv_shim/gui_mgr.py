@@ -274,6 +274,7 @@ class UserInterface(threading.Thread):
             "settings": settings.dict(),
             "settings_schema": _settings_schema(),
             "sync_state": syncManager.state(),
+            "catalog_path": syncManager.db.path if syncManager.db else None,
         }
 
     def _send_browser(self, message):

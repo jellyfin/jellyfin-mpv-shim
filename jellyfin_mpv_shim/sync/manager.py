@@ -103,6 +103,7 @@ class SyncManager:
             self._add_row(server_uuid, server_id, item)
             added += 1
         if added:
+            log.info("Queued %d item(s) for offline download.", added)
             self._notify_change()
             self._wake.set()
         return added
@@ -216,6 +217,7 @@ class SyncManager:
             return
         self.db.update(item_id, status=STATUS_DOWNLOADING)
         self._notify_change()
+        log.info("Downloading %s…", row.get("name") or item_id)
         try:
             item = json.loads(row["item_json"] or "{}")
             source = json.loads(row["source_json"] or "{}")
@@ -236,6 +238,8 @@ class SyncManager:
             self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
                            downloaded_bytes=size,
                            size_bytes=size or (row.get("size_bytes") or 0))
+            log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
+                     size / (1 << 20))
         except Exception:
             log.error("Download failed for %s", item_id, exc_info=True)
             self.db.update(item_id, status=STATUS_ERROR)

@@ -74,6 +74,7 @@ class BrowserApp:
         self.sync_items = set(sync_state.get("items") or [])
         self.sync_series = set(sync_state.get("series") or [])
         self.sync_total = sync_state.get("total_bytes", 0)
+        self.catalog_path = self.options.get("catalog_path")
         self._download_dialog = None
 
         self.source = LibrarySource(

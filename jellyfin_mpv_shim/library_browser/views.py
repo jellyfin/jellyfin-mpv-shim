@@ -10,6 +10,8 @@ import logging
 from ..i18n import _
 from ..constants import USER_APP_NAME
 from ..utils import get_sub_display_title, get_resource
+from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
+                       STATUS_PENDING, STATUS_ERROR)
 from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
@@ -817,6 +819,95 @@ class LogsPanel:
         self.text.see("end")
 
 
+class DownloadsPanel:
+    """Offline downloads management: disk usage, status/progress, remove."""
+
+    def __init__(self, app, parent):
+        self.app = app
+        self.container = VScrollFrame(app, parent)
+        self.container.widget().pack(fill="both", expand=True)
+        self._rows = {}  # item_id -> status Label
+        self.refresh()
+
+    def _open_db(self):
+        if not self.app.catalog_path:
+            return None
+        try:
+            return SyncDB(self.app.catalog_path, read_only=True)
+        except Exception:
+            return None
+
+    def refresh(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        body = self.container.body()
+        for child in body.winfo_children():
+            child.destroy()
+        self._rows = {}
+
+        db = self._open_db()
+        rows = db.list() if db else []
+        total = db.total_size() if db else self.app.sync_total
+        if db:
+            db.close()
+
+        tk.Label(body, text=_("Downloads — %s used") % human_size(total),
+                 bg=CARD_BG, fg=TEXT_FG, font=("TkDefaultFont", 16, "bold")).pack(
+            anchor="w", padx=16, pady=(12, 8))
+        if not rows:
+            tk.Label(body, text=_("Nothing downloaded yet."), bg=CARD_BG,
+                     fg=SUBTLE_FG).pack(anchor="w", padx=16)
+            return
+        for row in rows:
+            self._add_row(body, row)
+
+    def _add_row(self, body, row):
+        tk, ttk = self.app.tk, self.app.ttk
+        frame = tk.Frame(body, bg=ENTRY_BG)
+        frame.pack(fill="x", padx=16, pady=2)
+        name = row.get("name") or row.get("item_id")
+        if row.get("series_name"):
+            s, e = row.get("parent_index"), row.get("index_number")
+            if s is not None and e is not None:
+                name = "%s · S%dE%d · %s" % (row["series_name"], s, e, name)
+            else:
+                name = "%s · %s" % (row["series_name"], name)
+        tk.Label(frame, text=name, bg=ENTRY_BG, fg=TEXT_FG, anchor="w").pack(
+            side="left", padx=8, pady=6)
+        ttk.Button(frame, text=_("Remove"),
+                   command=lambda i=row["item_id"]: self.app.delete_download(item_id=i)
+                   ).pack(side="right", padx=8)
+        lbl = tk.Label(frame, text=self._status_text(row), bg=ENTRY_BG, fg=SUBTLE_FG)
+        lbl.pack(side="right", padx=8)
+        self._rows[row["item_id"]] = lbl
+
+    @staticmethod
+    def _status_text(row):
+        status = row.get("status")
+        if status == STATUS_COMPLETE:
+            return human_size(row.get("size_bytes") or 0)
+        if status == STATUS_DOWNLOADING:
+            dl, tot = row.get("downloaded_bytes") or 0, row.get("size_bytes") or 0
+            return _("Downloading %d%%") % (int(dl * 100 / tot) if tot else 0)
+        if status == STATUS_PENDING:
+            return _("Queued")
+        if status == STATUS_ERROR:
+            return _("Failed")
+        return status or ""
+
+    def on_download_progress(self, payload):
+        lbl = self._rows.get(payload.get("item_id"))
+        if lbl is not None:
+            dl, tot = payload.get("downloaded", 0), payload.get("total", 0)
+            try:
+                lbl.config(text=_("Downloading %d%%") % (
+                    int(dl * 100 / tot) if tot else 0))
+            except Exception:
+                pass
+
+    def on_sync_state(self, _ss):
+        self.refresh()
+
+
 # Friendly, grouped settings (in-player-menu + README-documented keys). Anything
 # not listed here shows under the auto-generated "Advanced" toggle.
 SETTINGS_SECTIONS = [
@@ -964,6 +1055,7 @@ class SettingsView(BaseView):
         self.settings_panel = None
         self.servers_panel = None
         self.logs_panel = None
+        self.downloads_panel = None
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -971,18 +1063,23 @@ class SettingsView(BaseView):
         nb.pack(fill="both", expand=True)
 
         settings_tab = tk.Frame(nb, bg=CARD_BG)
+        downloads_tab = tk.Frame(nb, bg=CARD_BG)
         servers_tab = tk.Frame(nb, bg=CARD_BG)
         logs_tab = tk.Frame(nb, bg=CARD_BG)
         nb.add(settings_tab, text=_("Settings"))
+        nb.add(downloads_tab, text=_("Downloads"))
         nb.add(servers_tab, text=_("Servers"))
         nb.add(logs_tab, text=_("Logs"))
 
         self.settings_panel = SettingsPanel(self.app, settings_tab)
+        self.downloads_panel = DownloadsPanel(self.app, downloads_tab)
         self.servers_panel = ServersPanel(self.app, servers_tab)
         self.logs_panel = LogsPanel(self.app, logs_tab)
 
         tab = self.route.get("tab")
-        if tab == "servers":
+        if tab == "downloads":
+            nb.select(downloads_tab)
+        elif tab == "servers":
             nb.select(servers_tab)
         elif tab == "logs":
             nb.select(logs_tab)
@@ -1007,6 +1104,14 @@ class SettingsView(BaseView):
     def on_settings_data(self, values):
         if self.settings_panel:
             self.settings_panel.on_data(values)
+
+    def on_download_progress(self, payload):
+        if self.downloads_panel:
+            self.downloads_panel.on_download_progress(payload)
+
+    def on_sync_state(self, ss):
+        if self.downloads_panel:
+            self.downloads_panel.on_sync_state(ss)
 
 
 class DownloadDialog:
