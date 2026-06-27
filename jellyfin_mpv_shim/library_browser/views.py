@@ -362,6 +362,7 @@ class SeasonView(BaseView):
         super().__init__(app, route)
         self.seasons = []
         self.ep_grid = None
+        self._episodes = []
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -372,8 +373,10 @@ class SeasonView(BaseView):
         bar.pack(fill="x", padx=8, pady=4)
         ttk.Button(bar, text=_("◀ %s") % self.route.get("series_title", _("Series")),
                    command=self._to_series).pack(side="left")
+        ttk.Button(bar, text=_("▶ Play Next Up"), style="Accent.TButton",
+                   command=self._play_next_up).pack(side="left", padx=12)
         tk.Label(bar, text=self.route.get("title", ""), bg=CARD_BG, fg=TEXT_FG,
-                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=12)
+                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
 
         self.season_var = tk.StringVar()
         self.season_box = ttk.Combobox(bar, textvariable=self.season_var,
@@ -408,6 +411,22 @@ class SeasonView(BaseView):
         self.app.navigate({"kind": "series", "series_id": self.route["series_id"],
                            "title": self.route.get("series_title", "")})
 
+    def _play_next_up(self):
+        server = self.app.current_server
+        sid = self.route["series_id"]
+
+        def work():
+            return self.app.source.get_next_up(server, sid)
+
+        def done(ep):
+            if ep:
+                self.app.play_episode(ep, resume_auto=True)
+            elif self._episodes:
+                # Fully watched (no next-up): start the season from the top.
+                self.app.play_episode(self._episodes[0])
+
+        self.app.run_async(work, done, lambda _e: None)
+
     def _on_switch(self):
         idx = self.season_box.current()
         if 0 <= idx < len(self.seasons):
@@ -421,6 +440,8 @@ class SeasonView(BaseView):
             return self.app.source.get_episodes(server, sid, season_id)
 
         def done(eps):
+            self._episodes = eps
+
             def subtitle(item):
                 num = item.get("IndexNumber")
                 prefix = ("%d. " % num) if num is not None else ""
@@ -604,17 +625,20 @@ class DetailView(BaseView):
         aid = self._audio_map.get(self.audio_var.get()) if self.audio_var else None
         sid = self._sub_map.get(self.sub_var.get()) if self.sub_var else None
         srcid = self.media_source.get("Id") if self.media_source else None
-        # v1: queue just this item. A future improvement is to queue the rest of
-        # the season for episodes so the player's autoplay-next chains them.
-        self.app.play({
-            "server_uuid": self.app.current_server,
-            "item_ids": [self.item["Id"]],
-            "start_index": 0,
-            "offset_ticks": offset_ticks or None,
-            "media_source_id": srcid,
-            "audio_index": aid,
-            "subtitle_index": sid,
-        })
+        if self.item.get("Type") == "Episode":
+            # Queue the rest of the season so autoplay-next chains episodes.
+            self.app.play_episode(self.item, offset_ticks=offset_ticks,
+                                  aid=aid, sid=sid, srcid=srcid)
+        else:
+            self.app.play({
+                "server_uuid": self.app.current_server,
+                "item_ids": [self.item["Id"]],
+                "start_index": 0,
+                "offset_ticks": offset_ticks or None,
+                "media_source_id": srcid,
+                "audio_index": aid,
+                "subtitle_index": sid,
+            })
 
 
 class _ServerForm:

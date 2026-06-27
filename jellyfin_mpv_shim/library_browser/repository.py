@@ -187,6 +187,19 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         return api.users("/Items/%s" % item_id, params={"Fields": DETAIL_FIELDS})
 
+    def get_next_up(self, server_uuid, series_id):
+        """The next episode to watch for a series (resume or next unwatched)."""
+        api = self._conn(server_uuid).api
+        result = api.shows("/NextUp", {
+            "UserId": "{UserId}",
+            "SeriesId": series_id,
+            "Limit": 1,
+            "Fields": LIST_FIELDS,
+            "EnableImageTypes": "Primary,Thumb,Backdrop",
+        }) or {}
+        items = result.get("Items", [])
+        return items[0] if items else None
+
     def search(self, server_uuid, term, limit=60):
         api = self._conn(server_uuid).api
         result = api.search_media_items(

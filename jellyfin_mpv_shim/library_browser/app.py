@@ -266,6 +266,50 @@ class BrowserApp:
         log.info("Requesting playback: %s", payload.get("item_ids"))
         self.r_queue.put(("play", payload))
 
+    def play_episode(self, episode, offset_ticks=None, resume_auto=False,
+                     aid=None, sid=None, srcid=None):
+        """Play an episode, queueing the rest of its season so the player's
+        autoplay-next chains through the remaining episodes (like the web app).
+
+        Falls back to a single-item play if the season can't be resolved.
+        ``resume_auto`` derives the resume position from the episode's UserData
+        when ``offset_ticks`` is not given (used by the Play-Next-Up button).
+        """
+        server = self.current_server
+        ep_id = episode.get("Id")
+        series_id = episode.get("SeriesId")
+        season_id = episode.get("SeasonId")
+        if resume_auto and offset_ticks is None:
+            offset_ticks = (episode.get("UserData") or {}).get(
+                "PlaybackPositionTicks") or None
+
+        def send(item_ids, start_index):
+            self.play({
+                "server_uuid": server,
+                "item_ids": item_ids,
+                "start_index": start_index,
+                "offset_ticks": offset_ticks,
+                "media_source_id": srcid,
+                "audio_index": aid,
+                "subtitle_index": sid,
+            })
+
+        if not (ep_id and series_id and season_id):
+            send([ep_id], 0)
+            return
+
+        def work():
+            return self.source.get_episodes(server, series_id, season_id)
+
+        def done(eps):
+            ids = [e.get("Id") for e in eps if e.get("Id")]
+            if ep_id in ids:
+                send(ids, ids.index(ep_id))
+            else:
+                send([ep_id], 0)
+
+        self.run_async(work, done, lambda _e: send([ep_id], 0))
+
     def add_server(self, payload):
         self.r_queue.put(("add_server", payload))
 
