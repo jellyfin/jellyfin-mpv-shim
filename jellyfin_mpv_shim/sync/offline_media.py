@@ -30,9 +30,14 @@ def should_play_local(item_id):
 
 
 def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None):
-    if not should_play_local(item_id):
+    db = syncManager.db
+    if db is None or not db.is_complete(item_id):
         return None
-    return OfflineVideo(item_id, parent, aid, sid, srcid)
+    # Use local when there's no live client (fully offline), or by preference.
+    if getattr(parent, "client", None) is None or settings.work_offline \
+            or settings.prefer_downloaded:
+        return OfflineVideo(item_id, parent, aid, sid, srcid)
+    return None
 
 
 class OfflineVideo(Video):
@@ -52,7 +57,16 @@ class OfflineVideo(Video):
         self._source = json.loads(row.get("source_json") or "{}")
         self._server_uuid = row.get("server_uuid")
         self._local_path = os.path.join(syncManager.root, row["file_path"])
-        self._subs_dir = os.path.join(os.path.dirname(self._local_path), "subs")
+        self._item_dir = os.path.dirname(self._local_path)
+        self._subs_dir = os.path.join(self._item_dir, "subs")
+        self._trickplay = None
+        tp_json = os.path.join(self._item_dir, "trickplay.json")
+        if os.path.exists(tp_json):
+            try:
+                with open(tp_json) as fh:
+                    self._trickplay = json.load(fh)
+            except Exception:
+                self._trickplay = None
 
         self.is_tv = self.item.get("Type") == "Episode"
         self.subtitle_seq = {}
@@ -150,3 +164,23 @@ class OfflineVideo(Video):
 
     def get_intro(self, media_source_id):
         return  # no intro/credits detection for offline playback
+
+    # -- trickplay (scrubbing previews) -----------------------------------
+
+    def get_bif(self, prefer_width=320):
+        return self._trickplay["data"] if self._trickplay else None
+
+    def get_hls_tile_images(self, width, count):
+        if not self._trickplay:
+            return
+        tp_dir = os.path.join(self._item_dir, "trickplay",
+                              str(self._trickplay["width"]))
+        for i in range(count):
+            try:
+                with open(os.path.join(tp_dir, "%d.jpg" % i), "rb") as fh:
+                    yield fh.read()
+            except OSError:
+                return
+
+    def get_chapters(self):
+        return None  # chapter-image previews need the server; skip offline

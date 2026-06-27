@@ -168,7 +168,10 @@ class HomeView(BaseView):
             if self.spinner is not None:
                 self.spinner.destroy()
                 self.spinner = None
-            if not self.rendered:
+            # Server unreachable with downloads available → fall back to offline.
+            if not self.app.is_offline and self.app.sync_items:
+                self.app.offline_fallback()
+            elif not self.rendered:
                 self._error(self.frame, e)
 
         self.app.run_async(work, done, fail)

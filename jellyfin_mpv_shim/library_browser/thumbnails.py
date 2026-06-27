@@ -129,32 +129,39 @@ class ThumbnailStore:
         self._results.put((key, image))
 
     def _load_image(self, key, url, box):
-        path = os.path.join(self.cache_dir, key + ".img")
-        data = None
-        if os.path.exists(path):
-            try:
-                os.utime(path, None)  # touch for LRU pruning
-                with open(path, "rb") as fh:
-                    data = fh.read()
-            except OSError:
-                data = None
-
-        if data is None:
-            resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl)
-            resp.raise_for_status()
-            data = resp.content
-            tmp = path + ".tmp"
-            try:
-                with open(tmp, "wb") as fh:
-                    fh.write(data)
-                os.replace(tmp, path)
-            except OSError:
-                log.debug("Could not write thumbnail cache %s", path, exc_info=True)
+        if url.startswith("http://") or url.startswith("https://"):
+            data = self._load_remote(key, url)
+        else:
+            # Local file (offline artwork) — read directly, no network cache.
+            with open(url, "rb") as fh:
+                data = fh.read()
 
         image = Image.open(BytesIO(data))
         image = image.convert("RGB")
         image.thumbnail(box, Image.LANCZOS)
         return image
+
+    def _load_remote(self, key, url):
+        path = os.path.join(self.cache_dir, key + ".img")
+        if os.path.exists(path):
+            try:
+                os.utime(path, None)  # touch for LRU pruning
+                with open(path, "rb") as fh:
+                    return fh.read()
+            except OSError:
+                pass
+
+        resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl)
+        resp.raise_for_status()
+        data = resp.content
+        tmp = path + ".tmp"
+        try:
+            with open(tmp, "wb") as fh:
+                fh.write(data)
+            os.replace(tmp, path)
+        except OSError:
+            log.debug("Could not write thumbnail cache %s", path, exc_info=True)
+        return data
 
     # -- internals ---------------------------------------------------------
 

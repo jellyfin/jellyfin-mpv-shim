@@ -14,7 +14,8 @@ from ..constants import USER_APP_NAME, APP_NAME
 from ..conffile import confdir
 from ..utils import get_resource
 from ..i18n import _
-from .repository import LibrarySource, PLAYABLE_TYPES, SERIES_TYPES, FOLDER_TYPES
+from .repository import (LibrarySource, OfflineLibrarySource, PLAYABLE_TYPES,
+                         SERIES_TYPES, FOLDER_TYPES)
 from .thumbnails import ThumbnailStore
 from .views import VIEW_TYPES
 from .theme import (apply_dark_theme, WINDOW_BG, CARD_BG, PANEL_BG, SUBTLE_FG,
@@ -81,12 +82,17 @@ class BrowserApp:
         self.catalog_path = self.options.get("catalog_path")
         self._download_dialog = None
 
+        self._live_servers = servers
+        self._verify_ssl = verify_ssl
+        self.is_offline = False
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
             self.options.get("player_name", "mpv-shim"), verify_ssl)
         self.current_server = self._initial_server()
 
         self._build_chrome()
+        if self.settings_values.get("work_offline"):
+            self._enter_offline()
         self._refresh_server_switcher()
         self._show_initial()
         self._update_statusbar()
@@ -131,6 +137,16 @@ class BrowserApp:
             side="left", padx=(4, 0))
 
         self.topbar = bar
+
+        # Offline banner (shown when work_offline or the server is unreachable).
+        self.banner = tk.Frame(self.root, bg="#5a3a00")
+        self.banner_label = tk.Label(self.banner, text="", bg="#5a3a00",
+                                     fg="#ffd479", anchor="w")
+        self.banner_label.pack(side="left", padx=12, pady=4)
+        ttk.Button(self.banner, text=_("Go Online"),
+                   command=lambda: self.set_offline(False)).pack(
+            side="right", padx=8, pady=2)
+
         self.content = tk.Frame(self.root, bg=CARD_BG)
         self.content.pack(fill="both", expand=True)
 
@@ -143,6 +159,59 @@ class BrowserApp:
                    command=lambda: self.navigate(
                        {"kind": "settings", "tab": "downloads"})).pack(
             side="right", padx=8, pady=4)
+
+    # -- offline mode ------------------------------------------------------
+
+    def _show_banner(self, text):
+        self.banner_label.config(text=text)
+        if not self.banner.winfo_ismapped():
+            self.banner.pack(fill="x", side="top", before=self.content)
+
+    def _hide_banner(self):
+        if self.banner.winfo_ismapped():
+            self.banner.pack_forget()
+
+    def _enter_offline(self, message=None):
+        if self.catalog_path is None:
+            return
+        try:
+            if not isinstance(self.source, OfflineLibrarySource):
+                self.source.stop()
+        except Exception:
+            pass
+        self.source = OfflineLibrarySource(self.catalog_path)
+        self.is_offline = True
+        self.current_server = "offline"
+        self.home_cache = {}
+        self._refresh_server_switcher()
+        self._show_banner(message or _("Offline — showing downloaded content."))
+
+    def _exit_offline(self):
+        self.source = LibrarySource(
+            self._live_servers, self.options.get("device_id", ""),
+            self.options.get("player_name", "mpv-shim"), self._verify_ssl)
+        self.is_offline = False
+        self.current_server = self._initial_server()
+        self.home_cache = {}
+        self._refresh_server_switcher()
+        self._hide_banner()
+
+    def set_offline(self, offline):
+        if offline:
+            self._enter_offline()
+        else:
+            self._exit_offline()
+        if self.current_server:
+            self.navigate({"kind": "home"}, reset=True)
+        else:
+            self.navigate({"kind": "login"}, reset=True)
+
+    def offline_fallback(self):
+        """Auto-switch to the catalog when the live server is unreachable."""
+        if self.is_offline or self.catalog_path is None or not self.sync_items:
+            return
+        self._enter_offline(_("Server unreachable — showing downloads."))
+        self.navigate({"kind": "home"}, reset=True)
 
     def _update_statusbar(self):
         if self.sync_active and self.sync_active > 0:
@@ -468,7 +537,11 @@ class BrowserApp:
                 self._dispatch_view("on_log_line", param)
         elif cmd == "settings_data":
             if isinstance(param, dict):
+                was_offline = bool(self.settings_values.get("work_offline"))
                 self.settings_values = param
+                now_offline = bool(param.get("work_offline"))
+                if now_offline != was_offline:
+                    self.set_offline(now_offline)
             self._dispatch_view("on_settings_data", param)
         elif cmd == "sync_state":
             ss = param or {}

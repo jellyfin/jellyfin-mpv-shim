@@ -339,14 +339,20 @@ class UserInterface(threading.Thread):
     def on_play(self, payload):
         from .event_handler import start_playback
 
-        client = clientManager.clients.get((payload or {}).get("server_uuid"))
+        payload = payload or {}
+        item_ids = payload.get("item_ids") or []
+        client = clientManager.clients.get(payload.get("server_uuid"))
         if client is None:
-            log.warning("Play requested for an unknown/disconnected server.")
-            return
+            # Offline: play locally if the first item is downloaded.
+            if not (item_ids and syncManager.db
+                    and syncManager.db.is_complete(item_ids[0])):
+                log.warning("Play requested for a disconnected server with no "
+                            "local copy.")
+                return
         try:
             start_playback(
                 client,
-                payload.get("item_ids") or [],
+                item_ids,
                 start_index=payload.get("start_index", 0),
                 offset_ticks=payload.get("offset_ticks"),
                 aid=payload.get("audio_index"),

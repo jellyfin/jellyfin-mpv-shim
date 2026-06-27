@@ -7,6 +7,7 @@ Downloads pull the original file via /Items/{id}/Download.
 
 import json
 import logging
+import math
 import os
 import shutil
 import threading
@@ -241,10 +242,35 @@ class SyncManager:
             if pending:
                 row = pending[0]
             if row is None:
+                # Idle: replay any playstate captured while offline.
+                self._sync_playstate()
                 self._wake.wait(5)
                 self._wake.clear()
                 continue
             self._download(row)
+
+    def _sync_playstate(self):
+        """Replay watched marks recorded offline once a server is reachable."""
+        pending = self.db.list_playstate()
+        if not pending:
+            return
+        done = []
+        for entry in pending:
+            client = self.get_client(entry.get("server_uuid"))
+            if client is None:
+                continue  # still offline for this server
+            try:
+                if entry.get("played") is not None:
+                    client.jellyfin.item_played(entry["item_id"],
+                                                bool(entry["played"]))
+                done.append(entry["id"])
+            except Exception:
+                log.debug("Failed to replay playstate %s", entry.get("id"),
+                          exc_info=True)
+        if done:
+            self.db.clear_playstate(done)
+            log.info("Synced %d offline playstate change(s) to the server.",
+                     len(done))
 
     def _download(self, row):
         item_id = row["item_id"]
@@ -267,6 +293,7 @@ class SyncManager:
                 json.dump(source, fh)
             self._download_artwork(client, item, item_dir)
             self._download_subs(client, item_id, source, item_dir)
+            self._download_trickplay(client, item_id, source, item_dir)
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             url = client.jellyfin.download_url(item_id)
@@ -315,6 +342,53 @@ class SyncManager:
                         last_push = downloaded
         os.replace(tmp, dest)
         return downloaded
+
+    def _download_trickplay(self, client, item_id, source, item_dir):
+        """Download trickplay (scrubbing preview) tiles for offline use."""
+        api = client.jellyfin
+        try:
+            full = api.users("/Items/%s" % item_id,
+                             params={"Fields": "Trickplay"}) or {}
+        except Exception:
+            return
+        manifest = (full.get("Trickplay") or {}).get(source.get("Id")) or {}
+        widths = []
+        for key in manifest.keys():
+            try:
+                widths.append(int(key))
+            except ValueError:
+                pass
+        if not widths:
+            return
+        prefer = settings.thumbnail_preferred_size or 320
+        width = min(widths, key=lambda w: abs(w - prefer))
+        data = manifest[str(width)]
+        try:
+            tiles = math.ceil(
+                data["ThumbnailCount"] / data["TileWidth"] / data["TileHeight"])
+        except Exception:
+            return
+
+        server = client.config.data.get("auth.server", "").rstrip("/")
+        token = urllib.parse.quote(client.config.data.get("auth.token", ""))
+        verify = not settings.ignore_ssl_cert
+        tp_dir = os.path.join(item_dir, "trickplay", str(width))
+        os.makedirs(tp_dir, exist_ok=True)
+        for i in range(tiles):
+            url = "%s/Videos/%s/Trickplay/%s/%s.jpg?MediaSourceId=%s&api_key=%s" % (
+                server, item_id, width, i, source.get("Id"), token)
+            try:
+                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp.raise_for_status()
+                with open(os.path.join(tp_dir, "%d.jpg" % i), "wb") as fh:
+                    fh.write(resp.content)
+            except Exception:
+                log.debug("Trickplay tile %d failed for %s", i, item_id,
+                          exc_info=True)
+                return
+        with open(os.path.join(item_dir, "trickplay.json"), "w") as fh:
+            json.dump({"width": width, "data": data}, fh)
+        log.debug("Downloaded %d trickplay tiles for %s.", tiles, item_id)
 
     def _download_artwork(self, client, item, item_dir):
         api = client.jellyfin

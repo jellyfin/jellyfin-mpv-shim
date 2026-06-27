@@ -8,13 +8,16 @@ Every method returns plain Jellyfin item DTO dicts (or lists of them) so the
 same shapes work whether they came from the server or a local cache.
 """
 
+import json
 import logging
+import os
 import urllib.parse
 
 from jellyfin_apiclient_python import JellyfinClient
 
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
+from ..sync.db import SyncDB, STATUS_COMPLETE
 
 log = logging.getLogger("library_browser.repository")
 
@@ -276,3 +279,173 @@ class LibrarySource:
                 server_uuid, item["ParentBackdropItemId"], "Backdrop/0",
                 parent_tags[0], width, height=height, fill=fill)
         return None
+
+
+class OfflineLibrarySource:
+    """LibrarySource-compatible browser backed by the offline catalog.
+
+    Mirrors the normal browsing UI (libraries → grids → series → seasons →
+    episodes) filtered to downloaded content, with artwork from local files.
+    Reads the catalog read-only and caches rows in memory.
+    """
+
+    def __init__(self, catalog_path):
+        self.catalog_path = catalog_path
+        self.root = os.path.dirname(catalog_path) if catalog_path else None
+        self._rows = {}
+        self._items = []
+        self.reload()
+
+    def reload(self):
+        rows = []
+        if self.catalog_path:
+            db = SyncDB(self.catalog_path, read_only=True)
+            rows = db.list(status=STATUS_COMPLETE)
+            db.close()
+        self._rows = {r["item_id"]: r for r in rows}
+        self._items = []
+        for row in rows:
+            try:
+                self._items.append(json.loads(row["item_json"]))
+            except (TypeError, ValueError):
+                pass
+
+    def stop(self):
+        pass
+
+    def servers(self):
+        return [{"uuid": "offline", "name": _("Downloaded")}]
+
+    # -- browsing ----------------------------------------------------------
+
+    def get_libraries(self, server_uuid):
+        libs = []
+        if any(i.get("Type") in ("Movie", "Video") for i in self._items):
+            libs.append({"Id": "offline:movies", "Name": _("Movies"),
+                         "Type": "CollectionFolder", "CollectionType": "movies",
+                         "ImageTags": {}})
+        if any(i.get("Type") == "Episode" for i in self._items):
+            libs.append({"Id": "offline:tv", "Name": _("TV Shows"),
+                         "Type": "CollectionFolder", "CollectionType": "tvshows",
+                         "ImageTags": {}})
+        return libs
+
+    def _series_list(self):
+        seen, order = {}, []
+        for item in self._items:
+            if item.get("Type") != "Episode":
+                continue
+            sid = item.get("SeriesId")
+            if not sid or sid in seen:
+                continue
+            seen[sid] = {"Id": sid, "Name": item.get("SeriesName") or _("Series"),
+                         "Type": "Series", "ImageTags": {}}
+            order.append(sid)
+        return [seen[s] for s in order]
+
+    def get_home_rows(self, server_uuid):
+        rows = []
+        movies = [i for i in self._items if i.get("Type") in ("Movie", "Video")]
+        if movies:
+            rows.append({"title": _("Downloaded Movies"), "items": movies})
+        series = self._series_list()
+        if series:
+            rows.append({"title": _("Downloaded Shows"), "items": series})
+        return rows
+
+    def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
+                          sort_order="Ascending", start_index=0, limit=100):
+        if parent_id == "offline:movies":
+            items = [i for i in self._items if i.get("Type") in ("Movie", "Video")]
+        elif parent_id == "offline:tv":
+            items = self._series_list()
+        else:
+            items = []
+        items = sorted(items, key=lambda i: (i.get("Name") or "").lower())
+        return items[start_index:start_index + limit], len(items)
+
+    def get_seasons(self, server_uuid, series_id):
+        seen, order = {}, []
+        for item in self._items:
+            if item.get("Type") != "Episode" or item.get("SeriesId") != series_id:
+                continue
+            key = item.get("SeasonId") or ("p%s" % item.get("ParentIndexNumber"))
+            if key in seen:
+                continue
+            pidx = item.get("ParentIndexNumber")
+            seen[key] = {"Id": item.get("SeasonId") or key,
+                         "Name": (_("Season %d") % pidx if pidx is not None
+                                  else _("Episodes")),
+                         "Type": "Season", "ImageTags": {}, "IndexNumber": pidx}
+            order.append(key)
+        return sorted((seen[k] for k in order),
+                      key=lambda s: s.get("IndexNumber") or 0)
+
+    def get_episodes(self, server_uuid, series_id, season_id):
+        eps = [i for i in self._items
+               if i.get("Type") == "Episode" and i.get("SeriesId") == series_id
+               and i.get("SeasonId") == season_id]
+        eps.sort(key=lambda i: (i.get("ParentIndexNumber") or 0,
+                                i.get("IndexNumber") or 0))
+        return eps
+
+    def get_item(self, server_uuid, item_id):
+        row = self._rows.get(item_id)
+        if not row or not row.get("item_json"):
+            return None
+        return json.loads(row["item_json"])
+
+    def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
+        eps = [i for i in self._items
+               if i.get("Type") == "Episode" and i.get("SeriesId") == series_id]
+        eps.sort(key=lambda i: (i.get("ParentIndexNumber") or 0,
+                                i.get("IndexNumber") or 0))
+        if start_item_id:
+            ids = [e.get("Id") for e in eps]
+            if start_item_id in ids:
+                eps = eps[ids.index(start_item_id):]
+        return eps[:limit]
+
+    def get_next_up(self, server_uuid, series_id):
+        eps = self.get_series_queue(server_uuid, series_id)
+        for ep in eps:
+            if not (ep.get("UserData") or {}).get("Played"):
+                return ep
+        return eps[0] if eps else None
+
+    def search(self, server_uuid, term, limit=60):
+        needle = term.lower()
+        return [i for i in self._items
+                if needle in (i.get("Name") or "").lower()][:limit]
+
+    # -- images (local files) ---------------------------------------------
+
+    def _art_path(self, item_id, image_type):
+        row = self._rows.get(item_id)
+        if not row or not row.get("file_path") or not self.root:
+            return None
+        item_dir = os.path.join(self.root, os.path.dirname(row["file_path"]))
+        kind = (image_type or "").lower()
+        if kind.startswith("backdrop"):
+            name = "backdrop.jpg"
+        elif kind.startswith("thumb"):
+            name = "thumb.jpg"
+        else:
+            name = "poster.jpg"
+        path = os.path.join(item_dir, name)
+        if os.path.exists(path):
+            return path
+        fallback = os.path.join(item_dir, "poster.jpg")
+        return fallback if os.path.exists(fallback) else None
+
+    def image_spec(self, item, image_type="Primary", width=280):
+        if self._art_path(item.get("Id"), image_type):
+            return item["Id"], image_type, "offline"
+        return None
+
+    def image_url(self, server_uuid, item_id, image_type, tag, width,
+                  height=None, fill=False):
+        return self._art_path(item_id, image_type)
+
+    def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
+        return self._art_path(item.get("Id"), "Backdrop")

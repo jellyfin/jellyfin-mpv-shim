@@ -1176,6 +1176,7 @@ class PlayerManager(object):
             if (
                 self.should_send_timeline
                 and self._video
+                and self._video.client is not None
                 and not self._player.playback_abort
             ):
                 self._video.client.jellyfin.session_progress(
@@ -1192,6 +1193,8 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
+        if self._video.client is None:
+            return  # offline playback: no server session to open
         self._video.client.jellyfin.session_playing(self.get_timeline_options())
 
     @synchronous("_tl_lock")
@@ -1204,7 +1207,8 @@ class PlayerManager(object):
         if client is None:
             client = self._video.client
 
-        client.jellyfin.session_stop(options)
+        if client is not None:
+            client.jellyfin.session_stop(options)
 
         if self.get_webview() is not None and settings.display_mirroring:
             self.get_webview().show()
@@ -1246,6 +1250,8 @@ class PlayerManager(object):
 
     def get_seek_times(self):
         if self._jf_settings is None:
+            if self._video.client is None:
+                return -15.0, 30.0  # offline: server prefs unavailable, use defaults
             self._jf_settings = self._video.client.jellyfin.get_user_settings()
         custom_prefs = self._jf_settings.get("CustomPrefs") or {}
         seek_left = custom_prefs.get("skipBackLength") or 15000
