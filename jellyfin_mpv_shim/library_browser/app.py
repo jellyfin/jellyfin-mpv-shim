@@ -257,7 +257,9 @@ class BrowserApp:
             except Exception as exc:
                 log.warning("Background task failed", exc_info=True)
                 if on_error:
-                    self._ui_queue.put(lambda: on_error(exc))
+                    # Bind exc now: Python clears the `as exc` name when the
+                    # except block exits, so a bare closure would NameError.
+                    self._ui_queue.put(lambda exc=exc: on_error(exc))
                 return
             self._ui_queue.put(lambda: done(result))
         self._api_pool.submit(task)
