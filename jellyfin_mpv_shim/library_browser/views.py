@@ -715,24 +715,29 @@ class LoginView(BaseView):
         self.form.on_result(result)
 
 
-class ServersView(BaseView):
-    """Manage saved servers (status + remove) and add new ones."""
+class ServersPanel:
+    """Saved-server management, embedded in the Settings notebook."""
 
-    def _build(self):
+    def __init__(self, app, parent):
+        self.app = app
+        self.container = VScrollFrame(app, parent)
+        self.container.widget().pack(fill="both", expand=True)
+        self.form = None
+        self.refresh()
+
+    def refresh(self):
         tk, ttk = self.app.tk, self.app.ttk
-        container = VScrollFrame(self.app, self.frame)
-        container.widget().pack(fill="both", expand=True)
-        body = container.body()
+        body = self.container.body()
+        for child in body.winfo_children():
+            child.destroy()
 
         tk.Label(body, text=_("Servers"), bg=CARD_BG, fg=TEXT_FG,
                  font=("TkDefaultFont", 16, "bold")).pack(anchor="w", padx=16,
                                                           pady=(12, 8))
-
-        servers = self.app.server_list
-        if not servers:
+        if not self.app.server_list:
             tk.Label(body, text=_("No servers configured yet."), bg=CARD_BG,
                      fg=SUBTLE_FG).pack(anchor="w", padx=16)
-        for cred in servers:
+        for cred in self.app.server_list:
             row = tk.Frame(body, bg=ENTRY_BG)
             row.pack(fill="x", padx=16, pady=3)
             status = _("Connected") if cred.get("connected") else _("Offline")
@@ -754,31 +759,25 @@ class ServersView(BaseView):
         self.form.widget().pack(anchor="w", padx=16, pady=(0, 16))
 
     def on_server_result(self, result):
-        self.form.on_result(result)
+        if self.form:
+            self.form.on_result(result)
 
 
-class LogView(BaseView):
-    """Live application log viewer."""
+class LogsPanel:
+    """Live application log viewer, embedded in the Settings notebook."""
 
-    def _build(self):
-        tk, ttk = self.app.tk, self.app.ttk
-        bar = tk.Frame(self.frame, bg=CARD_BG)
-        bar.pack(fill="x")
-        tk.Label(bar, text=_("Application Log"), bg=CARD_BG, fg=TEXT_FG,
-                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=12, pady=6)
-
-        wrap = tk.Frame(self.frame, bg=CARD_BG)
-        wrap.pack(fill="both", expand=True)
-        self.text = tk.Text(wrap, bg="#111316", fg="#d8d8d8", wrap="word", bd=0,
+    def __init__(self, app, parent):
+        self.app = app
+        tk, ttk = app.tk, app.ttk
+        self.text = tk.Text(parent, bg="#111316", fg="#d8d8d8", wrap="word", bd=0,
                             highlightthickness=0, insertbackground="#d8d8d8",
                             font=("TkFixedFont", 9), state="disabled")
-        scroll = ttk.Scrollbar(wrap, orient="vertical", command=self.text.yview)
+        scroll = ttk.Scrollbar(parent, orient="vertical", command=self.text.yview)
         self.text.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
         self.text.pack(side="left", fill="both", expand=True)
-
-        self._set("\n".join(self.app.log_lines))
-        self.app.request_logs()
+        self._set("\n".join(app.log_lines))
+        app.request_logs()
 
     def _set(self, content):
         self.text.config(state="normal")
@@ -797,6 +796,198 @@ class LogView(BaseView):
         self.text.see("end")
 
 
+# Friendly, grouped settings (in-player-menu + README-documented keys). Anything
+# not listed here shows under the auto-generated "Advanced" toggle.
+SETTINGS_SECTIONS = [
+    (_("Interface"), ["player_name", "enable_gui", "start_minimized", "fullscreen",
+                      "enable_osc", "raise_mpv", "check_updates", "notify_updates"]),
+    (_("Playback"), ["audio_output", "auto_play", "always_transcode", "local_kbps",
+                     "remote_kbps", "direct_paths", "remote_direct_paths",
+                     "playback_timeout"]),
+    (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
+                                  "subtitle_position", "lang_filter",
+                                  "lang_filter_sub", "lang_filter_audio"]),
+    (_("Transcoding"), ["allow_transcode_to_h265", "prefer_transcode_to_h265",
+                        "transcode_hevc", "transcode_av1", "transcode_4k",
+                        "transcode_hdr", "transcode_hi10p",
+                        "transcode_dolby_vision", "force_video_codec",
+                        "force_audio_codec"]),
+    (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
+                                 "skip_credits_enable", "skip_credits_always"]),
+    (_("Library Browser"), ["library_page_size", "library_image_width",
+                            "library_image_cache_mb"]),
+]
+
+SETTINGS_ENUMS = {
+    "subtitle_position": ["top", "bottom"],
+    "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
+    "shader_pack_subtype": ["lq", "hq"],
+}
+
+_ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC", "mpv": "MPV",
+             "hdr": "HDR", "av1": "AV1", "h265": "H265", "hevc": "HEVC",
+             "kbps": "kbps", "url": "URL", "ipc": "IPC", "uuid": "UUID",
+             "svp": "SVP", "id": "ID", "4k": "4K", "hi10p": "Hi10P"}
+
+
+def _label_for(key):
+    return " ".join(_ACRONYMS.get(w, w.capitalize()) for w in key.split("_"))
+
+
+class SettingsPanel:
+    """Generated config form: curated sections + an Advanced toggle for the rest."""
+
+    def __init__(self, app, parent):
+        self.app = app
+        tk = app.tk
+        self.vars = {}  # key -> (tk var, type)
+        self.show_advanced = tk.BooleanVar(value=False)
+        self.container = VScrollFrame(app, parent)
+        self.container.widget().pack(fill="both", expand=True)
+        self._build()
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        body = self.container.body()
+        schema = self.app.settings_schema
+
+        curated = set()
+        for title, keys in SETTINGS_SECTIONS:
+            present = [k for k in keys if schema.get(k, "skip") != "skip"]
+            curated.update(present)
+            self._section(body, title, present)
+
+        # Advanced section (built once, shown/hidden by the toggle).
+        toggle = ttk.Checkbutton(body, text=_("Show advanced settings"),
+                                 variable=self.show_advanced,
+                                 command=self._toggle_advanced)
+        toggle.pack(anchor="w", padx=16, pady=(14, 0))
+
+        self.adv_frame = tk.Frame(body, bg=CARD_BG)
+        advanced = sorted(k for k, t in schema.items()
+                          if t != "skip" and k not in curated)
+        self._section(self.adv_frame, _("Advanced"), advanced)
+
+        self.save_row = tk.Frame(body, bg=CARD_BG)
+        self.save_row.pack(fill="x", padx=16, pady=14)
+        self.status = tk.Label(self.save_row, text="", bg=CARD_BG, fg=SUBTLE_FG)
+        self.status.pack(side="right", padx=8)
+        ttk.Button(self.save_row, text=_("Save Settings"), style="Accent.TButton",
+                   command=self._save).pack(side="left")
+        tk.Label(body, text=_("Some changes take effect after restarting."),
+                 bg=CARD_BG, fg=SUBTLE_FG).pack(anchor="w", padx=16, pady=(0, 16))
+
+    def _toggle_advanced(self):
+        if self.show_advanced.get():
+            self.adv_frame.pack(fill="x", before=self.save_row)
+        else:
+            self.adv_frame.pack_forget()
+
+    def _section(self, parent, title, keys):
+        tk, ttk = self.app.tk, self.app.ttk
+        if not keys:
+            return
+        tk.Label(parent, text=title, bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 13, "bold")).pack(anchor="w", padx=16,
+                                                          pady=(14, 4))
+        grid = tk.Frame(parent, bg=CARD_BG)
+        grid.pack(fill="x", padx=16)
+        grid.columnconfigure(1, weight=1)
+        for row, key in enumerate(keys):
+            vtype = self.app.settings_schema.get(key, "str")
+            value = self.app.settings_values.get(key)
+            tk.Label(grid, text=_label_for(key), bg=CARD_BG, fg=SUBTLE_FG,
+                     anchor="w").grid(row=row, column=0, sticky="w", padx=(0, 12),
+                                      pady=3)
+            if vtype == "bool":
+                var = tk.BooleanVar(value=bool(value))
+                ttk.Checkbutton(grid, variable=var).grid(row=row, column=1,
+                                                         sticky="w", pady=3)
+            elif key in SETTINGS_ENUMS:
+                var = tk.StringVar(value="" if value is None else str(value))
+                ttk.Combobox(grid, textvariable=var, state="readonly", width=28,
+                             values=SETTINGS_ENUMS[key]).grid(row=row, column=1,
+                                                              sticky="w", pady=3)
+            else:
+                var = tk.StringVar(value="" if value is None else str(value))
+                ttk.Entry(grid, textvariable=var, width=34).grid(
+                    row=row, column=1, sticky="w", pady=3)
+            self.vars[key] = (var, vtype)
+
+    def _save(self):
+        changes = {}
+        for key, (var, vtype) in self.vars.items():
+            if vtype == "bool":
+                changes[key] = bool(var.get())
+            else:
+                text = var.get().strip()
+                changes[key] = text  # main coerces; empty string -> None/blank
+        self.app.save_settings(changes)
+        self.status.config(text=_("Saved."))
+
+    def on_data(self, values):
+        # Refresh the displayed values after a save round-trip (coercion may have
+        # adjusted them).
+        self.app.settings_values = values
+        for key, (var, vtype) in self.vars.items():
+            if key in values:
+                var.set(values[key] if vtype == "bool"
+                        else ("" if values[key] is None else str(values[key])))
+
+
+class SettingsView(BaseView):
+    """Unified Settings screen: Settings / Servers / Logs tabs."""
+
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self.settings_panel = None
+        self.servers_panel = None
+        self.logs_panel = None
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        nb = ttk.Notebook(self.frame)
+        nb.pack(fill="both", expand=True)
+
+        settings_tab = tk.Frame(nb, bg=CARD_BG)
+        servers_tab = tk.Frame(nb, bg=CARD_BG)
+        logs_tab = tk.Frame(nb, bg=CARD_BG)
+        nb.add(settings_tab, text=_("Settings"))
+        nb.add(servers_tab, text=_("Servers"))
+        nb.add(logs_tab, text=_("Logs"))
+
+        self.settings_panel = SettingsPanel(self.app, settings_tab)
+        self.servers_panel = ServersPanel(self.app, servers_tab)
+        self.logs_panel = LogsPanel(self.app, logs_tab)
+
+        tab = self.route.get("tab")
+        if tab == "servers":
+            nb.select(servers_tab)
+        elif tab == "logs":
+            nb.select(logs_tab)
+
+    # Forward IPC-driven updates to the relevant panel.
+    def on_server_result(self, result):
+        if self.servers_panel:
+            self.servers_panel.on_server_result(result)
+
+    def on_servers_changed(self, _server_list):
+        if self.servers_panel:
+            self.servers_panel.refresh()
+
+    def on_log_init(self, lines):
+        if self.logs_panel:
+            self.logs_panel.on_log_init(lines)
+
+    def on_log_line(self, line):
+        if self.logs_panel:
+            self.logs_panel.on_log_line(line)
+
+    def on_settings_data(self, values):
+        if self.settings_panel:
+            self.settings_panel.on_data(values)
+
+
 VIEW_TYPES = {
     "home": HomeView,
     "grid": GridView,
@@ -805,6 +996,5 @@ VIEW_TYPES = {
     "detail": DetailView,
     "search": SearchView,
     "login": LoginView,
-    "servers": ServersView,
-    "logs": LogView,
+    "settings": SettingsView,
 }

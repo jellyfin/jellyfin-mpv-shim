@@ -4,17 +4,40 @@ import subprocess
 from multiprocessing import Process, Queue
 import threading
 import sys
+import typing
 import logging
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
-from .conf import settings
+from .conf import settings, Settings
 from .utils import get_resource
 from .log_utils import CustomFormatter, root_logger
 from .i18n import _
 
 log = logging.getLogger("gui_mgr")
+
+
+def _classify_setting(ann):
+    """Map a Settings annotation to a simple widget type for the config UI."""
+    if ann is bool:
+        return "bool"
+    if ann is int:
+        return "int"
+    if ann is float:
+        return "float"
+    if ann is str:
+        return "str"
+    if typing.get_origin(ann) is typing.Union:
+        non_none = [a for a in typing.get_args(ann) if a is not type(None)]
+        if len(non_none) == 1:
+            return _classify_setting(non_none[0])
+    return "skip"  # lists / language_config etc. — not editable in the form
+
+
+def _settings_schema():
+    return {key: _classify_setting(ann)
+            for key, ann in Settings.__annotations__.items()}
 
 # From https://stackoverflow.com/questions/6631299/
 # This is for opening the config directory.
@@ -244,6 +267,8 @@ class UserInterface(threading.Thread):
             "start_hidden": start_hidden,
             "last_server": settings.library_last_server,
             "server_list": self._collect_credentials(),
+            "settings": settings.dict(),
+            "settings_schema": _settings_schema(),
         }
 
     def _send_browser(self, message):
@@ -362,15 +387,31 @@ class UserInterface(threading.Thread):
     def on_request_logs(self, _param):
         self._send_browser(("log_init", list(log_cache)))
 
+    def on_save_settings(self, changes):
+        if isinstance(changes, dict):
+            try:
+                data = settings.dict()
+                data.update(changes)
+                safe = settings.parse_obj(data)
+                for key in changes:
+                    # Only apply values that coerced cleanly; parse_obj falls
+                    # back to the default for bad input, which we must not write.
+                    if key in safe.__fields_set__:
+                        setattr(settings, key, getattr(safe, key))
+                settings.save()
+            except Exception:
+                log.error("Failed to save settings", exc_info=True)
+        self._send_browser(("settings_data", settings.dict()))
+
     def on_show_preferences(self, _param):
-        # Tray "Configure Servers" → open the browser on the Servers screen.
+        # Tray "Configure Servers" → open the browser on the Servers tab.
         self._send_browser(("show", None))
-        self._send_browser(("navigate", {"kind": "servers"}))
+        self._send_browser(("navigate", {"kind": "settings", "tab": "servers"}))
 
     def on_show_console(self, _param):
-        # Tray "Show Console" → open the browser on the log viewer.
+        # Tray "Show Console" → open the browser on the Logs tab.
         self._send_browser(("show", None))
-        self._send_browser(("navigate", {"kind": "logs"}))
+        self._send_browser(("navigate", {"kind": "settings", "tab": "logs"}))
 
     def on_open_player_menu(self, _param):
         self.open_player_menu()

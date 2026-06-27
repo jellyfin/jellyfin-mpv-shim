@@ -68,6 +68,8 @@ class BrowserApp:
         self.home_cache = {}  # server_uuid -> (libraries, rows); stale-while-revalidate
         self.server_list = list(self.options.get("server_list") or [])  # all creds
         self.log_lines = deque(maxlen=2000)
+        self.settings_values = dict(self.options.get("settings") or {})
+        self.settings_schema = dict(self.options.get("settings_schema") or {})
 
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
@@ -97,8 +99,8 @@ class BrowserApp:
         ttk.Button(bar, text=_("🏠 Home"), width=8,
                    command=lambda: self.navigate({"kind": "home"}, reset=True)).pack(
             side="left", padx=2, pady=6)
-        ttk.Button(bar, text=_("⚙ Servers"), width=10,
-                   command=lambda: self.navigate({"kind": "servers"})).pack(
+        ttk.Button(bar, text=_("⚙ Settings"), width=10,
+                   command=lambda: self.navigate({"kind": "settings"})).pack(
             side="left", padx=2, pady=6)
 
         # Server switcher (hidden when only one server).
@@ -341,6 +343,9 @@ class BrowserApp:
     def request_logs(self):
         self.r_queue.put(("request_logs", None))
 
+    def save_settings(self, changes):
+        self.r_queue.put(("save_settings", changes))
+
     # -- IPC pump ----------------------------------------------------------
 
     def _pump(self):
@@ -396,6 +401,10 @@ class BrowserApp:
             if param is not None:
                 self.log_lines.append(param)
                 self._dispatch_view("on_log_line", param)
+        elif cmd == "settings_data":
+            if isinstance(param, dict):
+                self.settings_values = param
+            self._dispatch_view("on_settings_data", param)
         elif cmd == "die":
             self._shutdown()
 
@@ -429,8 +438,8 @@ class BrowserApp:
         self._refresh_server_switcher()
 
         kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
-        if kind == "servers":
-            self._render_top()  # refresh the list/status in place
+        if kind == "settings":
+            self._dispatch_view("on_servers_changed", self.server_list)
         elif self.current_server:
             if kind in (None, "login"):
                 self.navigate({"kind": "home"}, reset=True)

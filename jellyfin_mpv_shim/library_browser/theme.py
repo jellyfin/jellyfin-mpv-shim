@@ -65,6 +65,18 @@ def apply_dark_theme(root, ttk):
                         bordercolor=WINDOW_BG, arrowcolor=TEXT_FG, relief="flat")
         style.map(orient, background=[("active", BUTTON_ACTIVE)])
 
+    style.configure("TNotebook", background=CARD_BG, borderwidth=0)
+    style.configure("TNotebook.Tab", background=PANEL_BG, foreground=SUBTLE_FG,
+                    padding=(16, 7), borderwidth=0)
+    style.map("TNotebook.Tab",
+              background=[("selected", CARD_BG), ("active", BUTTON_ACTIVE)],
+              foreground=[("selected", TEXT_FG)])
+
+    style.configure("TCheckbutton", background=CARD_BG, foreground=TEXT_FG,
+                    focuscolor=CARD_BG)
+    style.map("TCheckbutton", background=[("active", CARD_BG)],
+              indicatorcolor=[("selected", ACCENT)])
+
     # The Combobox dropdown is a classic Tk Listbox; style it via the option DB.
     root.option_add("*TCombobox*Listbox.background", ENTRY_BG)
     root.option_add("*TCombobox*Listbox.foreground", TEXT_FG)
