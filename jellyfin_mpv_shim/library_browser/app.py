@@ -557,7 +557,12 @@ class BrowserApp:
             self.sync_downloading = ss.get("downloading")
             self._dl_percent = None  # new item / state change; await fresh progress
             self._update_statusbar()
-            self._dispatch_view("on_sync_state", ss)
+            # Refresh views whose download buttons/state changed.
+            kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
+            if kind in ("detail", "series"):
+                self._render_top()
+            else:
+                self._dispatch_view("on_sync_state", ss)
         elif cmd == "download_estimate":
             if self._download_dialog is not None:
                 self._download_dialog.on_estimate(param or {})

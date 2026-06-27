@@ -781,6 +781,9 @@ class PlayerManager(object):
         self._video = None
         self._player.command("stop")
         local_video.terminate_transcode()
+        if local_video.client is None and hasattr(local_video,
+                                                  "record_offline_progress"):
+            local_video.record_offline_progress(options.get("PositionTicks"))
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
 
@@ -993,7 +996,10 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
+            log.info("PlayerManager::play selecting subtitle stream index=%s "
+                     "(embedded map=%s external=%s)" % (
+                         sub_uid, self._video.subtitle_seq,
+                         list(self._video.subtitle_url)))
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
@@ -1001,6 +1007,9 @@ class PlayerManager(object):
                     "PlayerManager::play selecting external subtitle id=%s" % sub_uid
                 )
                 self.load_external_sub(sub_uid)
+            else:
+                log.warning("PlayerManager::subtitle index %s not in embedded or "
+                            "external maps; leaving current selection.", sub_uid)
 
     @synchronous("_lock")
     def set_streams(self, audio_uid: int, sub_uid: int):
@@ -1203,6 +1212,14 @@ class PlayerManager(object):
 
         if options is None:
             options = self.get_timeline_options(finished)
+
+        # Capture offline progress for the auto-advance / finish paths (stop()
+        # handles the explicit-stop case before clearing self._video).
+        if client is None and self._video is not None \
+                and self._video.client is None \
+                and hasattr(self._video, "record_offline_progress"):
+            self._video.record_offline_progress(
+                options.get("PositionTicks"), finished)
 
         if client is None and self._video is not None:
             client = self._video.client

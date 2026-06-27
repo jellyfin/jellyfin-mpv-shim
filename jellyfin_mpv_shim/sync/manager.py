@@ -250,7 +250,8 @@ class SyncManager:
             self._download(row)
 
     def _sync_playstate(self):
-        """Replay watched marks recorded offline once a server is reachable."""
+        """Replay offline playstate once a server is reachable — advancing only:
+        mark watched if the server hasn't, and push a later resume position."""
         pending = self.db.list_playstate()
         if not pending:
             return
@@ -260,9 +261,17 @@ class SyncManager:
             if client is None:
                 continue  # still offline for this server
             try:
-                if entry.get("played") is not None:
-                    client.jellyfin.item_played(entry["item_id"],
-                                                bool(entry["played"]))
+                server_ud = client.jellyfin.get_userdata_for_item(
+                    entry["item_id"]) or {}
+                update = {}
+                if entry.get("played") and not server_ud.get("Played"):
+                    update["Played"] = True
+                local_pos = entry.get("position_ticks") or 0
+                if local_pos > (server_ud.get("PlaybackPositionTicks") or 0):
+                    update["PlaybackPositionTicks"] = local_pos
+                if update:
+                    client.jellyfin.update_userdata_for_item(entry["item_id"],
+                                                             update)
                 done.append(entry["id"])
             except Exception:
                 log.debug("Failed to replay playstate %s", entry.get("id"),

@@ -385,7 +385,7 @@ class ClientManager(object):
             if event_name == "WebSocketDisconnect":
                 timeout_gen = expo(100)
                 if server["uuid"] in self.clients:
-                    while not self.is_stopping:
+                    while not self.is_stopping and not settings.work_offline:
                         timeout = next(timeout_gen)
                         log.info(
                             "No connection to server. Next try in {0} second(s)".format(
@@ -487,6 +487,8 @@ class ClientManager(object):
             client.stop()
 
     def check_all_clients(self):
+        if settings.work_offline:
+            return  # don't touch the network in offline mode
         log.info("Performing client health check...")
         # list() because validate_client may mutate self.clients via the
         # synthesized WebSocketDisconnect path.

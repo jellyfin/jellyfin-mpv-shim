@@ -153,11 +153,25 @@ class OfflineVideo(Video):
             except Exception:
                 log.warning("Failed to report watched online; queueing.",
                             exc_info=True)
+        # Offline: only queue advances (watched), never un-watches.
+        if watched:
+            try:
+                syncManager.db.upsert_playstate(self._server_uuid, self.item_id,
+                                                played=True)
+            except Exception:
+                log.debug("Failed to queue offline playstate", exc_info=True)
+
+    def record_offline_progress(self, position_ticks, finished=False):
+        """Queue resume position (and watched, if finished) made while offline."""
+        if self.client is not None:
+            return  # online: the timeline already reports progress
         try:
-            syncManager.db.add_playstate(self._server_uuid, self.item_id,
-                                         played=watched)
+            syncManager.db.upsert_playstate(
+                self._server_uuid, self.item_id,
+                position_ticks=position_ticks,
+                played=True if finished else None)
         except Exception:
-            log.debug("Failed to queue offline playstate", exc_info=True)
+            log.debug("Failed to queue offline progress", exc_info=True)
 
     def terminate_transcode(self):
         pass  # nothing to tear down for a local file

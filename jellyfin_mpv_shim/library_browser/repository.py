@@ -376,9 +376,15 @@ class OfflineLibrarySource:
             if key in seen:
                 continue
             pidx = item.get("ParentIndexNumber")
-            seen[key] = {"Id": item.get("SeasonId") or key,
-                         "Name": (_("Season %d") % pidx if pidx is not None
-                                  else _("Episodes")),
+            if item.get("SeasonName"):
+                name = item["SeasonName"]
+            elif pidx == 0:
+                name = _("Specials")
+            elif pidx is not None:
+                name = _("Season %d") % pidx
+            else:
+                name = _("Episodes")
+            seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
                          "Type": "Season", "ImageTags": {}, "IndexNumber": pidx}
             order.append(key)
         return sorted((seen[k] for k in order),

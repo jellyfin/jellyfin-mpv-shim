@@ -120,14 +120,31 @@ class SyncDB:
             self._conn.execute("DELETE FROM downloads WHERE item_id=?", (item_id,))
             self._conn.commit()
 
-    def add_playstate(self, server_uuid, item_id, position_ticks=None, played=None):
+    def upsert_playstate(self, server_uuid, item_id, position_ticks=None,
+                         played=None):
+        """One pending row per item; position advances (max), played sticks True."""
         with self._lock:
-            self._conn.execute(
-                "INSERT INTO pending_playstate "
-                "(server_uuid, item_id, position_ticks, played, created_at) "
-                "VALUES (?,?,?,?,?)",
-                (server_uuid, item_id, position_ticks,
-                 None if played is None else int(played), int(time.time())))
+            existing = self._conn.execute(
+                "SELECT id, position_ticks, played FROM pending_playstate "
+                "WHERE server_uuid=? AND item_id=?",
+                (server_uuid, item_id)).fetchone()
+            if existing:
+                new_pos = existing["position_ticks"]
+                if position_ticks is not None:
+                    new_pos = max(new_pos or 0, position_ticks)
+                new_played = existing["played"]
+                if played:
+                    new_played = 1
+                self._conn.execute(
+                    "UPDATE pending_playstate SET position_ticks=?, played=? "
+                    "WHERE id=?", (new_pos, new_played, existing["id"]))
+            else:
+                self._conn.execute(
+                    "INSERT INTO pending_playstate "
+                    "(server_uuid, item_id, position_ticks, played, created_at) "
+                    "VALUES (?,?,?,?,?)",
+                    (server_uuid, item_id, position_ticks,
+                     1 if played else None, int(time.time())))
             self._conn.commit()
 
     def clear_playstate(self, ids):

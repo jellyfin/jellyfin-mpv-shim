@@ -884,6 +884,21 @@ class DownloadsPanel:
             self._series_block(body, sid, series_map[sid])
 
     @staticmethod
+    def _season_title(row):
+        try:
+            name = json.loads(row.get("item_json") or "{}").get("SeasonName")
+        except (TypeError, ValueError):
+            name = None
+        if name:
+            return name
+        pidx = row.get("parent_index")
+        if pidx == 0:
+            return _("Specials")
+        if pidx:
+            return _("Season %d") % pidx
+        return _("Episodes")
+
+    @staticmethod
     def _is_watched(row):
         try:
             return bool(json.loads(row.get("userdata_json") or "{}").get("Played"))
@@ -920,9 +935,8 @@ class DownloadsPanel:
 
         for key in season_order:
             srows = season_map[key]
-            pidx = srows[0].get("parent_index")
             season_id = srows[0].get("season_id")
-            title = _("Season %d") % pidx if pidx is not None else _("Episodes")
+            title = self._season_title(srows[0])
             shdr = tk.Frame(body, bg=CARD_BG)
             shdr.pack(fill="x", padx=(28, 12))
             tk.Label(shdr, text=title, bg=CARD_BG, fg=SUBTLE_FG,
