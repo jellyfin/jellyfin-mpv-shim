@@ -27,6 +27,18 @@ CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
 
 
+def _sub_format(codec):
+    """Map a subtitle codec to the format extension the server should serve."""
+    c = (codec or "").lower()
+    if c in ("ass", "ssa"):
+        return "ass"
+    if c in ("vtt", "webvtt"):
+        return "vtt"
+    if c in ("sub", "subviewer", "microdvd"):
+        return "sub"
+    return "srt"  # subrip and unknowns -> srt
+
+
 class SyncManager:
     def __init__(self):
         self.db = None
@@ -254,7 +266,7 @@ class SyncManager:
             with open(os.path.join(item_dir, "source.json"), "w") as fh:
                 json.dump(source, fh)
             self._download_artwork(client, item, item_dir)
-            self._download_subs(client, source, item_dir)
+            self._download_subs(client, item_id, source, item_dir)
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             url = client.jellyfin.download_url(item_id)
@@ -325,31 +337,43 @@ class SyncManager:
                 log.debug("Artwork %s failed for %s", name, item.get("Id"),
                           exc_info=True)
 
-    def _download_subs(self, client, source, item_dir):
-        server = client.config.data.get("auth.server", "")
+    def _download_subs(self, client, item_id, source, item_dir):
+        """Fetch every external subtitle as a sidecar (subs/<index>.<fmt>).
+
+        The cached source (from get_item) usually has no DeliveryUrl, so we build
+        the subtitle stream URL ourselves. Embedded subtitles ride along inside
+        the downloaded original file and need no sidecar.
+        """
+        server = client.config.data.get("auth.server", "").rstrip("/")
         token = client.config.data.get("auth.token", "")
         verify = not settings.ignore_ssl_cert
+        media_source_id = source.get("Id") or item_id
         subs_dir = os.path.join(item_dir, "subs")
         for stream in source.get("MediaStreams") or []:
             if stream.get("Type") != "Subtitle" or not stream.get("IsExternal"):
                 continue
-            delivery = stream.get("DeliveryUrl")
-            if not delivery:
+            index = stream.get("Index")
+            if index is None:
                 continue
-            url = delivery if stream.get("IsExternalUrl") else (server + delivery)
+            fmt = _sub_format(stream.get("Codec"))
+            delivery = stream.get("DeliveryUrl")
+            if delivery:
+                url = delivery if stream.get("IsExternalUrl") else (server + delivery)
+            else:
+                url = "%s/Videos/%s/%s/Subtitles/%s/0/Stream.%s" % (
+                    server, item_id, media_source_id, index, fmt)
             sep = "&" if "?" in url else "?"
             url = "%s%sapi_key=%s" % (url, sep, urllib.parse.quote(token))
-            codec = stream.get("Codec") or "srt"
             try:
                 os.makedirs(subs_dir, exist_ok=True)
                 resp = requests.get(url, timeout=(10, 30), verify=verify)
                 resp.raise_for_status()
-                fname = "%s.%s" % (stream.get("Index"), codec)
-                with open(os.path.join(subs_dir, fname), "wb") as fh:
+                with open(os.path.join(subs_dir, "%s.%s" % (index, fmt)), "wb") as fh:
                     fh.write(resp.content)
+                log.debug("Downloaded subtitle stream %s (%s).", index, fmt)
             except Exception:
                 log.debug("Subtitle download failed for stream %s",
-                          stream.get("Index"), exc_info=True)
+                          index, exc_info=True)
 
 
 syncManager = SyncManager()

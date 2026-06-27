@@ -7,6 +7,7 @@ PlaybackInfo / transcode calls. ``offline_video_factory`` is registered with
 or remote video independently.
 """
 
+import glob
 import json
 import logging
 import os
@@ -107,10 +108,11 @@ class OfflineVideo(Video):
                 self.subtitle_uid[index] = sub["Index"]
                 self.subtitle_seq[sub["Index"]] = index
             elif sub.get("IsExternal"):
-                path = os.path.join(self._subs_dir, "%s.%s" % (
-                    sub.get("Index"), sub.get("Codec") or "srt"))
-                if os.path.exists(path):
-                    self.subtitle_url[sub["Index"]] = path
+                # Match the downloaded sidecar regardless of its extension.
+                matches = glob.glob(os.path.join(
+                    self._subs_dir, "%s.*" % sub.get("Index")))
+                if matches:
+                    self.subtitle_url[sub["Index"]] = matches[0]
             elif sub.get("DeliveryMethod") == "Encode":
                 self.subtitle_enc.add(sub["Index"])
             if not sub.get("IsExternal"):
