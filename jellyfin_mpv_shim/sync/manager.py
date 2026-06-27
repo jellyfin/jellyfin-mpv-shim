@@ -19,6 +19,7 @@ import requests
 from ..conf import settings
 from ..conffile import confdir
 from ..constants import APP_NAME
+from ..utils import get_profile
 from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
                  STATUS_ERROR)
 
@@ -294,6 +295,11 @@ class SyncManager:
         try:
             item = json.loads(row["item_json"] or "{}")
             source = json.loads(row["source_json"] or "{}")
+            # Prefer the PlaybackInfo MediaSource: it has DeliveryMethod /
+            # DeliveryUrl and full stream details the plain item manifest omits.
+            pb_source = self._playback_source(client, item_id, row)
+            if pb_source:
+                source = pb_source
             item_dir = self._item_dir(row)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "item.json"), "w") as fh:
@@ -306,6 +312,9 @@ class SyncManager:
             if item.get("Type") == "Episode" and item.get("SeriesId"):
                 self._download_series_art(client, row.get("server_id"),
                                           item["SeriesId"])
+                if item.get("SeasonId"):
+                    self._download_season_art(client, row.get("server_id"),
+                                              item["SeasonId"])
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             url = client.jellyfin.download_url(item_id)
@@ -315,7 +324,9 @@ class SyncManager:
             rel = os.path.relpath(media_path, self.root)
             self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
                            downloaded_bytes=size,
-                           size_bytes=size or (row.get("size_bytes") or 0))
+                           size_bytes=size or (row.get("size_bytes") or 0),
+                           media_source_id=source.get("Id") or row.get("media_source_id"),
+                           source_json=json.dumps(source))
             log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
                      size / (1 << 20))
         except Exception:
@@ -427,6 +438,40 @@ class SyncManager:
                     fh.write(resp.content)
             except Exception:
                 log.debug("Series art failed: %s", url, exc_info=True)
+
+    def _playback_source(self, client, item_id, row):
+        """Resolve the full MediaSource via PlaybackInfo (metadata only)."""
+        try:
+            info = client.jellyfin.get_play_info(
+                item_id, get_profile(is_remote=False), is_playback=False,
+                media_source_id=row.get("media_source_id"))
+        except Exception:
+            log.debug("PlaybackInfo failed for %s; using item manifest.",
+                      item_id, exc_info=True)
+            return None
+        sources = (info or {}).get("MediaSources") or []
+        if not sources:
+            return None
+        msid = row.get("media_source_id")
+        return next((s for s in sources if s.get("Id") == msid), sources[0])
+
+    def _download_season_art(self, client, server_id, season_id):
+        """Cache season poster so offline season tiles have artwork."""
+        season_dir = os.path.join(self.root, server_id or "server", "season",
+                                  season_id)
+        poster = os.path.join(season_dir, "poster.jpg")
+        if os.path.exists(poster):
+            return
+        os.makedirs(season_dir, exist_ok=True)
+        verify = not settings.ignore_ssl_cert
+        try:
+            resp = requests.get(client.jellyfin.artwork(season_id, "Primary", 600),
+                                timeout=(10, 30), verify=verify)
+            resp.raise_for_status()
+            with open(poster, "wb") as fh:
+                fh.write(resp.content)
+        except Exception:
+            log.debug("Season art failed for %s", season_id, exc_info=True)
 
     def _download_artwork(self, client, item, item_dir):
         api = client.jellyfin

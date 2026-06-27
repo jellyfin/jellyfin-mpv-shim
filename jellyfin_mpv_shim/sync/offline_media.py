@@ -118,18 +118,19 @@ class OfflineVideo(Video):
         for sub in streams:
             if sub.get("Type") != "Subtitle":
                 continue
-            if sub.get("DeliveryMethod") == "Embed":
-                self.subtitle_uid[index] = sub["Index"]
-                self.subtitle_seq[sub["Index"]] = index
-            elif sub.get("IsExternal"):
-                # Match the downloaded sidecar regardless of its extension.
+            if sub.get("IsExternal"):
+                # External: downloaded sidecar (named <index>.<fmt>); match it
+                # regardless of extension.
                 matches = glob.glob(os.path.join(
                     self._subs_dir, "%s.*" % sub.get("Index")))
                 if matches:
                     self.subtitle_url[sub["Index"]] = matches[0]
-            elif sub.get("DeliveryMethod") == "Encode":
-                self.subtitle_enc.add(sub["Index"])
-            if not sub.get("IsExternal"):
+            else:
+                # Embedded in the downloaded original file. The cached source
+                # (from get_item) often lacks DeliveryMethod, so we key off
+                # IsExternal rather than DeliveryMethod == "Embed".
+                self.subtitle_uid[index] = sub["Index"]
+                self.subtitle_seq[sub["Index"]] = index
                 index += 1
 
         rule_aid, rule_sid = apply_language_config(

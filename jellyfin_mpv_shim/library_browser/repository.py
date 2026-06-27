@@ -305,6 +305,7 @@ class OfflineLibrarySource:
         self._rows = {r["item_id"]: r for r in rows}
         self._items = []
         self._series_server = {}  # series_id -> server_id (for series artwork)
+        self._season_server = {}  # season_id -> server_id (for season artwork)
         for row in rows:
             try:
                 self._items.append(json.loads(row["item_json"]))
@@ -312,6 +313,9 @@ class OfflineLibrarySource:
                 pass
             if row.get("type") == "Episode" and row.get("series_id"):
                 self._series_server.setdefault(row["series_id"], row.get("server_id"))
+                if row.get("season_id"):
+                    self._season_server.setdefault(row["season_id"],
+                                                   row.get("server_id"))
 
     def stop(self):
         pass
@@ -465,6 +469,12 @@ class OfflineLibrarySource:
                                       self._series_server[item_id] or "server",
                                       "series", item_id)
             return self._in_dir(series_dir, name)
+        # Season artwork.
+        if item_id in self._season_server:
+            season_dir = os.path.join(self.root,
+                                      self._season_server[item_id] or "server",
+                                      "season", item_id)
+            return self._in_dir(season_dir, name)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
             return self._representative(("Movie", "Video"))
