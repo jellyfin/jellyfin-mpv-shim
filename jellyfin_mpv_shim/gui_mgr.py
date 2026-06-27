@@ -5,7 +5,6 @@ from multiprocessing import Process, Queue
 import threading
 import sys
 import logging
-import queue
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
@@ -54,7 +53,8 @@ except KeyError:
     open_config = None
     log.warning("Platform does not support opening folders.")
 
-# Setup a log handler for log items.
+# Setup a log handler for log items. The library browser's log viewer renders
+# these (forwarded over the IPC queue); log_cache seeds it on open.
 log_cache = deque([], 1000)
 
 
@@ -78,300 +78,12 @@ guiHandler = GUILogHandler()
 guiHandler.setFormatter(CustomFormatter())
 root_logger.addHandler(guiHandler)
 
-# Why am I using another process for the GUI windows?
-# Because both pystray and tkinter must run
-# in the main thread of their respective process.
 
-
-class LoggerWindow(threading.Thread):
-    def __init__(self):
-        self.dead = False
-        self.queue = None
-        self.r_queue = None
-        self.process = None
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self.queue = Queue()
-        self.r_queue = Queue()
-        self.process = LoggerWindowProcess(self.queue, self.r_queue)
-
-        def handle(message):
-            self.handle("append", message)
-
-        self.process.start()
-        handle("\n".join(log_cache))
-        guiHandler.callback = handle
-        while True:
-            action, param = self.r_queue.get()
-            if action == "die":
-                self._die()
-                break
-
-    def handle(self, action: str, params=None):
-        self.queue.put((action, params))
-
-    def stop(self):
-        self.r_queue.put(("die", None))
-
-    def _die(self):
-        guiHandler.callback = None
-        self.handle("die")
-        self.process.terminate()
-        self.dead = True
-
-
-class LoggerWindowProcess(Process):
-    def __init__(self, queue: Queue, r_queue: Queue):
-        self.queue = queue
-        self.r_queue = r_queue
-        self.tk = None
-        self.root = None
-        self.text = None
-        Process.__init__(self)
-
-    def update(self):
-        try:
-            self.text.config(state=self.tk.NORMAL)
-            while True:
-                action, param = self.queue.get_nowait()
-                if action == "append":
-                    self.text.config(state=self.tk.NORMAL)
-                    self.text.insert(self.tk.END, "\n")
-                    self.text.insert(self.tk.END, param)
-                    self.text.config(state=self.tk.DISABLED)
-                    self.text.see(self.tk.END)
-                elif action == "die":
-                    self.root.destroy()
-                    self.root.quit()
-                    return
-        except queue.Empty:
-            pass
-        self.text.after(100, self.update)
-
-    def run(self):
-        import tkinter as tk
-
-        self.tk = tk
-        root = tk.Tk()
-        self.root = root
-        root.title(_("Application Log"))
-        try:
-            icon_img = tk.PhotoImage(file=get_resource("logo.png"))
-            root.iconphoto(True, icon_img)
-        except Exception:
-            pass
-        text = tk.Text(root)
-        text.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
-        text.config(wrap=tk.WORD)
-        self.text = text
-        yscroll = tk.Scrollbar(command=text.yview)
-        text["yscrollcommand"] = yscroll.set
-        yscroll.pack(side=tk.RIGHT, fill=tk.Y)
-        text.config(state=tk.DISABLED)
-        self.update()
-        root.mainloop()
-        self.r_queue.put(("die", None))
-
-
-class PreferencesWindow(threading.Thread):
-    def __init__(self):
-        self.dead = False
-        self.dead_trigger = threading.Event()
-        self.queue = None
-        self.r_queue = None
-        self.process = None
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self.queue = Queue()
-        self.r_queue = Queue()
-        self.process = PreferencesWindowProcess(self.queue, self.r_queue)
-        self.process.start()
-        self.handle("upd", clientManager.credentials)
-        while True:
-            action, param = self.r_queue.get()
-            if action == "die":
-                self._die()
-                break
-            elif action == "add":
-                try:
-                    is_logged_in = clientManager.login(*param)
-                    if is_logged_in:
-                        self.handle("upd", clientManager.credentials)
-                    else:
-                        self.handle("error")
-                except Exception:
-                    log.error("Error while adding server.", exc_info=True)
-                    self.handle("error")
-            elif action == "remove":
-                clientManager.remove_client(param)
-                self.handle("upd", clientManager.credentials)
-
-    def handle(self, action: str, params=None):
-        self.queue.put((action, params))
-
-    def stop(self):
-        self.r_queue.put(("die", None))
-
-    def block_until_close(self):
-        self.dead_trigger.wait()
-
-    def _die(self):
-        self.dead_trigger.set()
-        self.handle("die")
-        self.process.terminate()
-        self.dead = True
-
-
-class PreferencesWindowProcess(Process):
-    def __init__(self, queue: Queue, r_queue: Queue):
-        self.queue = queue
-        self.r_queue = r_queue
-        self.servers = None
-        self.server_ids = None
-        self.tk = None
-        self.messagebox = None
-        self.root = None
-        self.serverList = None
-        self.current_uuid = None
-        self.servername = None
-        self.username = None
-        self.password = None
-        self.add_button = None
-        self.remove_button = None
-        Process.__init__(self)
-
-    def update(self):
-        try:
-            while True:
-                action, param = self.queue.get_nowait()
-                if action == "upd":
-                    self.update_servers(param)
-                    self.add_button.config(state=self.tk.NORMAL)
-                    self.remove_button.config(state=self.tk.NORMAL)
-                elif action == "error":
-                    self.messagebox.showerror(
-                        _("Add Server"),
-                        _(
-                            "Could not add server.\nPlease check your connection information."
-                        ),
-                    )
-                    self.add_button.config(state=self.tk.NORMAL)
-                elif action == "die":
-                    self.root.destroy()
-                    self.root.quit()
-                    return
-        except queue.Empty:
-            pass
-        self.root.after(100, self.update)
-
-    def update_servers(self, server_list):
-        self.servers = server_list
-        self.server_ids = [x["uuid"] for x in self.servers]
-        self.serverList.set(
-            [
-                "{0} ({1}, {2})".format(
-                    server["Name"],
-                    server["username"],
-                    _("Ok") if server["connected"] else _("Fail"),
-                )
-                for server in self.servers
-            ]
-        )
-
-    def run(self):
-        import tkinter as tk
-        from tkinter import ttk, messagebox
-
-        self.tk = tk
-        self.messagebox = messagebox
-        root = tk.Tk()
-        root.title(_("Server Configuration"))
-        try:
-            icon_img = tk.PhotoImage(file=get_resource("logo.png"))
-            root.iconphoto(True, icon_img)
-        except Exception:
-            pass
-        self.root = root
-
-        self.servers = {}
-        self.server_ids = []
-        self.serverList = tk.StringVar(value=[])
-        self.current_uuid = None
-
-        def server_select(_x):
-            idxs = serverlist.curselection()
-            if len(idxs) == 1:
-                self.current_uuid = self.server_ids[idxs[0]]
-
-        c = ttk.Frame(root, padding=(5, 5, 12, 0))
-        c.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
-        root.grid_columnconfigure(0, weight=1)
-        root.grid_rowconfigure(0, weight=1)
-
-        serverlist = tk.Listbox(c, listvariable=self.serverList, height=10, width=40)
-        serverlist.grid(column=0, row=0, rowspan=6, sticky=(tk.N, tk.S, tk.E, tk.W))
-        c.grid_columnconfigure(0, weight=1)
-        c.grid_rowconfigure(4, weight=1)
-
-        servername_label = ttk.Label(c, text=_("Server:"))
-        servername_label.grid(column=1, row=0, sticky=tk.E)
-        self.servername = tk.StringVar()
-        servername_box = ttk.Entry(c, textvariable=self.servername)
-        servername_box.grid(column=2, row=0)
-        username_label = ttk.Label(c, text=_("Username:"))
-        username_label.grid(column=1, row=1, sticky=tk.E)
-        self.username = tk.StringVar()
-        username_box = ttk.Entry(c, textvariable=self.username)
-        username_box.grid(column=2, row=1)
-        password_label = ttk.Label(c, text=_("Password:"))
-        password_label.grid(column=1, row=2, sticky=tk.E)
-        self.password = tk.StringVar()
-        password_box = ttk.Entry(c, textvariable=self.password, show="*")
-        password_box.grid(column=2, row=2)
-
-        def add_server():
-            self.add_button.config(state=tk.DISABLED)
-            self.r_queue.put(
-                (
-                    "add",
-                    (self.servername.get(), self.username.get(), self.password.get()),
-                )
-            )
-
-        def remove_server():
-            self.remove_button.config(state=tk.DISABLED)
-            self.r_queue.put(("remove", self.current_uuid))
-
-        def close():
-            self.r_queue.put(("die", None))
-
-        self.add_button = ttk.Button(c, text=_("Add Server"), command=add_server)
-        self.add_button.grid(column=2, row=3, pady=5, sticky=tk.E)
-        self.remove_button = ttk.Button(
-            c, text=_("Remove Server"), command=remove_server
-        )
-        self.remove_button.grid(column=1, row=4, padx=5, pady=10, sticky=(tk.E, tk.S))
-        close_button = ttk.Button(c, text=_("Close"), command=close)
-        close_button.grid(column=2, row=4, pady=10, sticky=(tk.E, tk.S))
-
-        serverlist.bind("<<ListboxSelect>>", server_select)
-        self.update()
-        root.mainloop()
-        self.r_queue.put(("die", None))
-
-
-# Q: OK. So you put Tkinter in it's own process.
-#    Now why is Pystray in another process too?!
-# A: Because if I don't, MPV and GNOME Appindicator
-#    try to access the same resources and cause the
-#    entire application to segfault.
-#
-# The library browser is yet another Tkinter process for the same reason: the
-# tray (pystray) and a Tkinter window cannot share one process, since both want
-# the main thread. UserInterface (this thread, in the main process) owns both
-# child processes and brokers messages between them and the player.
+# Why are the tray and the browser window separate processes (from each other
+# and from the player)? Because pystray and Tkinter each require the main thread
+# of their process, and historically pystray + libmpv in one process segfaults
+# with GNOME AppIndicator. UserInterface (this thread, in the main process) owns
+# both child processes and brokers messages between them and the player.
 
 
 class BrowserProcess(Process):
@@ -394,8 +106,6 @@ class UserInterface(threading.Thread):
     def __init__(self):
         self.dead = False
         self.open_player_menu = lambda: None
-        self.log_window = None
-        self.preferences_window = None
         self.stop_callback = None
         self.gui_ready = None
         self.r_queue = None
@@ -436,6 +146,7 @@ class UserInterface(threading.Thread):
 
     def _die(self):
         self._shutting_down = True
+        guiHandler.callback = None
 
         if self.browser_process is not None:
             self._send_browser(("die", None))
@@ -447,18 +158,12 @@ class UserInterface(threading.Thread):
             self.tray_process.terminate()
         self.dead = True
 
-        if self.log_window and not self.log_window.dead:
-            self.log_window.stop()
-        if self.preferences_window and not self.preferences_window.dead:
-            self.preferences_window.stop()
-
     # -- startup -----------------------------------------------------------
 
     def login_servers(self):
-        is_logged_in = clientManager.try_connect()
-        if not is_logged_in:
-            self.show_preferences()
-            self.preferences_window.block_until_close()
+        # Non-blocking: the browser shows its own login screen when no servers
+        # are connected (the old blocking PreferencesWindow is gone).
+        clientManager.try_connect()
         self.start_browser()
 
     def start_browser(self):
@@ -485,12 +190,18 @@ class UserInterface(threading.Thread):
             self._browser_options(start_hidden),
         )
         self.browser_process.start()
+        # Forward live log lines to the browser's log viewer.
+        guiHandler.callback = self._forward_log
 
     def refresh_servers(self):
         if self.browser_process is not None and self.browser_process.is_alive():
-            self._send_browser(("servers", self._collect_servers()))
+            self._send_browser(("servers", {
+                "connected": self._collect_servers(),
+                "all": self._collect_credentials(),
+            }))
 
     def _collect_servers(self):
+        """Connected servers with tokens — what the browser browses with."""
         name_by_uuid = {
             cred.get("uuid"): cred.get("Name") or cred.get("address")
             for cred in clientManager.credentials
@@ -513,7 +224,16 @@ class UserInterface(threading.Thread):
         return servers
 
     @staticmethod
-    def _browser_options(start_hidden):
+    def _collect_credentials():
+        """All saved servers with status — what the Servers screen manages."""
+        return [{
+            "uuid": cred.get("uuid"),
+            "name": cred.get("Name") or cred.get("address"),
+            "username": cred.get("username", ""),
+            "connected": bool(cred.get("connected")),
+        } for cred in clientManager.credentials]
+
+    def _browser_options(self, start_hidden):
         return {
             "page_size": settings.library_page_size,
             "image_width": settings.library_image_width,
@@ -523,6 +243,7 @@ class UserInterface(threading.Thread):
             "verify_ssl": not settings.ignore_ssl_cert,
             "start_hidden": start_hidden,
             "last_server": settings.library_last_server,
+            "server_list": self._collect_credentials(),
         }
 
     def _send_browser(self, message):
@@ -531,6 +252,15 @@ class UserInterface(threading.Thread):
                 self.browser_cmd_queue.put(message)
             except Exception:
                 log.debug("Failed to message browser process", exc_info=True)
+
+    def _forward_log(self, line):
+        # Called from arbitrary logging threads — must not log (would recurse).
+        q = self.browser_cmd_queue
+        if q is not None:
+            try:
+                q.put(("log_line", line))
+            except Exception:
+                pass
 
     # -- action handlers (on_<action>) ------------------------------------
 
@@ -596,11 +326,51 @@ class UserInterface(threading.Thread):
             except Exception:
                 log.debug("Failed to persist last server", exc_info=True)
 
+    def on_add_server(self, payload):
+        payload = payload or {}
+        server = payload.get("server", "")
+        username = payload.get("username", "")
+        password = payload.get("password", "")
+
+        # Logging in hits the network; run it off the event loop so the UI stays
+        # responsive and other actions keep flowing.
+        def work():
+            ok = False
+            try:
+                ok = clientManager.login(server, username, password)
+            except Exception:
+                log.error("Error while adding server.", exc_info=True)
+            self._send_browser(("server_result", {
+                "ok": ok,
+                "error": None if ok else _(
+                    "Could not connect. Please check your details."),
+            }))
+            if ok:
+                self.refresh_servers()
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_remove_server(self, uuid):
+        if not uuid:
+            return
+        try:
+            clientManager.remove_client(uuid)
+        except Exception:
+            log.error("Error while removing server.", exc_info=True)
+        self.refresh_servers()
+
+    def on_request_logs(self, _param):
+        self._send_browser(("log_init", list(log_cache)))
+
     def on_show_preferences(self, _param):
-        self.show_preferences()
+        # Tray "Configure Servers" → open the browser on the Servers screen.
+        self._send_browser(("show", None))
+        self._send_browser(("navigate", {"kind": "servers"}))
 
     def on_show_console(self, _param):
-        self.show_console()
+        # Tray "Show Console" → open the browser on the log viewer.
+        self._send_browser(("show", None))
+        self._send_browser(("navigate", {"kind": "logs"}))
 
     def on_open_player_menu(self, _param):
         self.open_player_menu()
@@ -613,16 +383,6 @@ class UserInterface(threading.Thread):
     def _mark_gui_ready(self):
         if self.gui_ready and not self.gui_ready.is_set():
             self.gui_ready.set()
-
-    def show_console(self):
-        if self.log_window is None or self.log_window.dead:
-            self.log_window = LoggerWindow()
-            self.log_window.start()
-
-    def show_preferences(self):
-        if self.preferences_window is None or self.preferences_window.dead:
-            self.preferences_window = PreferencesWindow()
-            self.preferences_window.start()
 
     @staticmethod
     def open_config_brs():

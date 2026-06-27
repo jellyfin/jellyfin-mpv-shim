@@ -7,6 +7,7 @@ this module stays importable from the main process (e.g. for smoke tests).
 import logging
 import os
 import queue
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 from ..constants import USER_APP_NAME, APP_NAME
@@ -63,7 +64,10 @@ class BrowserApp:
         self._api_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="lib-api")
         self._ui_queue = queue.Queue()
         self.nav_stack = []
+        self.current_view = None
         self.home_cache = {}  # server_uuid -> (libraries, rows); stale-while-revalidate
+        self.server_list = list(self.options.get("server_list") or [])  # all creds
+        self.log_lines = deque(maxlen=2000)
 
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
@@ -72,12 +76,7 @@ class BrowserApp:
 
         self._build_chrome()
         self._refresh_server_switcher()
-
-        if self.current_server:
-            self.navigate({"kind": "home"}, reset=True)
-        else:
-            self._show_message(_("No servers connected.\n"
-                                 "Add one from the tray menu › Configure Servers."))
+        self._show_initial()
 
         if self.options.get("start_hidden"):
             self.root.withdraw()
@@ -98,6 +97,9 @@ class BrowserApp:
         ttk.Button(bar, text=_("🏠 Home"), width=8,
                    command=lambda: self.navigate({"kind": "home"}, reset=True)).pack(
             side="left", padx=2, pady=6)
+        ttk.Button(bar, text=_("⚙ Servers"), width=10,
+                   command=lambda: self.navigate({"kind": "servers"})).pack(
+            side="left", padx=2, pady=6)
 
         # Server switcher (hidden when only one server).
         self.server_var = tk.StringVar()
@@ -115,9 +117,15 @@ class BrowserApp:
         ttk.Button(search_frame, text=_("Search"), command=self._do_search).pack(
             side="left", padx=(4, 0))
 
-        self._server_in_bar = bar
+        self.topbar = bar
         self.content = tk.Frame(self.root, bg=CARD_BG)
         self.content.pack(fill="both", expand=True)
+
+    def _show_initial(self):
+        if self.current_server:
+            self.navigate({"kind": "home"}, reset=True)
+        else:
+            self.navigate({"kind": "login"}, reset=True)
 
     def _refresh_server_switcher(self):
         servers = self.source.servers()
@@ -203,8 +211,16 @@ class BrowserApp:
 
     def _render_top(self):
         route = self.nav_stack[-1]
+        # The login screen is full-window chrome-free; everything else shows the
+        # top bar.
+        if route["kind"] == "login":
+            self.topbar.pack_forget()
+        elif not self.topbar.winfo_ismapped():
+            self.topbar.pack(fill="x", side="top", before=self.content)
+
         for child in self.content.winfo_children():
             child.destroy()
+        self.current_view = None
         view_cls = VIEW_TYPES.get(route["kind"])
         if view_cls is None:
             log.error("Unknown view kind %s", route["kind"])
@@ -213,6 +229,7 @@ class BrowserApp:
             view = view_cls(self, route)
             frame = view.build(self.content)
             frame.pack(fill="both", expand=True)
+            self.current_view = view
         except Exception:
             log.error("Failed to build view %s", route["kind"], exc_info=True)
             self._show_message(_("Something went wrong rendering this screen."))
@@ -248,6 +265,16 @@ class BrowserApp:
     def play(self, payload):
         log.info("Requesting playback: %s", payload.get("item_ids"))
         self.r_queue.put(("play", payload))
+
+    def add_server(self, payload):
+        self.r_queue.put(("add_server", payload))
+
+    def remove_server(self, uuid):
+        if uuid:
+            self.r_queue.put(("remove_server", uuid))
+
+    def request_logs(self):
+        self.r_queue.put(("request_logs", None))
 
     # -- IPC pump ----------------------------------------------------------
 
@@ -291,27 +318,60 @@ class BrowserApp:
             self.root.withdraw()
         elif cmd == "servers":
             self._reload_servers(param)
+        elif cmd == "server_result":
+            self._dispatch_view("on_server_result", param or {})
+        elif cmd == "navigate":
+            if param:
+                self.navigate(param)
+        elif cmd == "log_init":
+            self.log_lines.clear()
+            self.log_lines.extend(param or [])
+            self._dispatch_view("on_log_init", list(self.log_lines))
+        elif cmd == "log_line":
+            if param is not None:
+                self.log_lines.append(param)
+                self._dispatch_view("on_log_line", param)
         elif cmd == "die":
             self._shutdown()
 
-    def _reload_servers(self, servers):
+    def _dispatch_view(self, method, arg):
+        view = self.current_view
+        handler = getattr(view, method, None) if view is not None else None
+        if callable(handler):
+            try:
+                handler(arg)
+            except Exception:
+                log.debug("View %s handler failed", method, exc_info=True)
+
+    def _reload_servers(self, payload):
+        if isinstance(payload, dict):
+            connected = payload.get("connected") or []
+            self.server_list = list(payload.get("all") or [])
+        else:  # backwards-compatible: a bare connected list
+            connected = payload or []
         try:
             self.source.stop()
         except Exception:
             pass
         verify_ssl = self.options.get("verify_ssl", True)
         self.source = LibrarySource(
-            servers, self.options.get("device_id", ""),
+            connected, self.options.get("device_id", ""),
             self.options.get("player_name", "mpv-shim"), verify_ssl)
         self.home_cache = {}
         server_list = self.source.servers()
         if self.current_server not in {s["uuid"] for s in server_list}:
             self.current_server = server_list[0]["uuid"] if server_list else None
         self._refresh_server_switcher()
-        if self.current_server:
-            self.navigate({"kind": "home"}, reset=True)
+
+        kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
+        if kind == "servers":
+            self._render_top()  # refresh the list/status in place
+        elif self.current_server:
+            if kind in (None, "login"):
+                self.navigate({"kind": "home"}, reset=True)
+            # otherwise leave the current screen alone (just updated the switcher)
         else:
-            self._show_message(_("No servers connected."))
+            self.navigate({"kind": "login"}, reset=True)
 
     # -- lifecycle ---------------------------------------------------------
 

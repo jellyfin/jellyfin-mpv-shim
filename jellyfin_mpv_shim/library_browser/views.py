@@ -8,8 +8,9 @@ network.
 import logging
 
 from ..i18n import _
-from ..utils import get_sub_display_title
-from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG
+from ..constants import USER_APP_NAME
+from ..utils import get_sub_display_title, get_resource
+from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key,
 )
@@ -616,6 +617,173 @@ class DetailView(BaseView):
         })
 
 
+class _ServerForm:
+    """Shared server-credential entry form used by Login and Servers views."""
+
+    def __init__(self, app, parent, on_submit, button_text):
+        tk, ttk = app.tk, app.ttk
+        self.app = app
+        self._on_submit = on_submit
+        self.server = tk.StringVar()
+        self.user = tk.StringVar()
+        self.pw = tk.StringVar()
+
+        self.frame = tk.Frame(parent, bg=CARD_BG)
+        rows = [(_("Server URL"), self.server, None),
+                (_("Username"), self.user, None),
+                (_("Password"), self.pw, "*")]
+        for label, var, show in rows:
+            row = tk.Frame(self.frame, bg=CARD_BG)
+            row.pack(fill="x", pady=4)
+            tk.Label(row, text=label, bg=CARD_BG, fg=SUBTLE_FG, width=12,
+                     anchor="w").pack(side="left")
+            entry = ttk.Entry(row, textvariable=var, width=32, show=show or "")
+            entry.pack(side="left")
+            entry.bind("<Return>", lambda _e: self.submit())
+
+        self.error = tk.Label(self.frame, text="", bg=CARD_BG, fg="#e57373",
+                              wraplength=320, justify="center")
+        self.error.pack(pady=(8, 0))
+        self.button = ttk.Button(self.frame, text=button_text,
+                                 style="Accent.TButton", command=self.submit)
+        self.button.pack(pady=10)
+
+    def widget(self):
+        return self.frame
+
+    def submit(self):
+        server = self.server.get().strip()
+        user = self.user.get().strip()
+        if not server or not user:
+            self.error.config(text=_("Server and username are required."))
+            return
+        self.error.config(text=_("Connecting…"))
+        self.button.config(state="disabled")
+        self._on_submit({"server": server, "username": user, "password": self.pw.get()})
+
+    def on_result(self, result):
+        if result.get("ok"):
+            self.error.config(text="")
+            self.server.set("")
+            self.user.set("")
+            self.pw.set("")
+            self.button.config(state="normal")
+        else:
+            self.error.config(
+                text=result.get("error") or _("Could not connect. Check your details."))
+            self.button.config(state="normal")
+
+
+class LoginView(BaseView):
+    """Full-screen first-run / signed-out login with the app logo."""
+
+    def _build(self):
+        tk = self.app.tk
+        wrap = tk.Frame(self.frame, bg=CARD_BG)
+        wrap.place(relx=0.5, rely=0.5, anchor="center")
+
+        try:
+            from PIL import Image, ImageTk
+            img = Image.open(get_resource("logo_ui.png"))
+            img.thumbnail((360, 360), Image.LANCZOS)
+            self._logo = ImageTk.PhotoImage(img)
+            tk.Label(wrap, image=self._logo, bg=CARD_BG).pack(pady=(0, 14))
+        except Exception:
+            tk.Label(wrap, text=USER_APP_NAME, bg=CARD_BG, fg=TEXT_FG,
+                     font=("TkDefaultFont", 20, "bold")).pack(pady=14)
+
+        tk.Label(wrap, text=_("Sign in to your Jellyfin server"), bg=CARD_BG,
+                 fg=SUBTLE_FG).pack(pady=(0, 10))
+        self.form = _ServerForm(self.app, wrap, self.app.add_server, _("Connect"))
+        self.form.widget().pack()
+
+    def on_server_result(self, result):
+        # On success the incoming server list re-navigates to Home automatically.
+        self.form.on_result(result)
+
+
+class ServersView(BaseView):
+    """Manage saved servers (status + remove) and add new ones."""
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        container = VScrollFrame(self.app, self.frame)
+        container.widget().pack(fill="both", expand=True)
+        body = container.body()
+
+        tk.Label(body, text=_("Servers"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 16, "bold")).pack(anchor="w", padx=16,
+                                                          pady=(12, 8))
+
+        servers = self.app.server_list
+        if not servers:
+            tk.Label(body, text=_("No servers configured yet."), bg=CARD_BG,
+                     fg=SUBTLE_FG).pack(anchor="w", padx=16)
+        for cred in servers:
+            row = tk.Frame(body, bg=ENTRY_BG)
+            row.pack(fill="x", padx=16, pady=3)
+            status = _("Connected") if cred.get("connected") else _("Offline")
+            color = "#7bd88f" if cred.get("connected") else "#e57373"
+            tk.Label(row, text=cred.get("name", "?"), bg=ENTRY_BG, fg=TEXT_FG,
+                     font=("TkDefaultFont", 11, "bold")).pack(side="left", padx=8,
+                                                              pady=6)
+            tk.Label(row, text=cred.get("username", ""), bg=ENTRY_BG,
+                     fg=SUBTLE_FG).pack(side="left", padx=8)
+            tk.Label(row, text=status, bg=ENTRY_BG, fg=color).pack(side="left", padx=8)
+            ttk.Button(row, text=_("Remove"),
+                       command=lambda u=cred.get("uuid"): self.app.remove_server(u)
+                       ).pack(side="right", padx=8)
+
+        tk.Label(body, text=_("Add a server"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 13, "bold")).pack(anchor="w", padx=16,
+                                                          pady=(18, 4))
+        self.form = _ServerForm(self.app, body, self.app.add_server, _("Add Server"))
+        self.form.widget().pack(anchor="w", padx=16, pady=(0, 16))
+
+    def on_server_result(self, result):
+        self.form.on_result(result)
+
+
+class LogView(BaseView):
+    """Live application log viewer."""
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        bar = tk.Frame(self.frame, bg=CARD_BG)
+        bar.pack(fill="x")
+        tk.Label(bar, text=_("Application Log"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=12, pady=6)
+
+        wrap = tk.Frame(self.frame, bg=CARD_BG)
+        wrap.pack(fill="both", expand=True)
+        self.text = tk.Text(wrap, bg="#111316", fg="#d8d8d8", wrap="word", bd=0,
+                            highlightthickness=0, insertbackground="#d8d8d8",
+                            font=("TkFixedFont", 9), state="disabled")
+        scroll = ttk.Scrollbar(wrap, orient="vertical", command=self.text.yview)
+        self.text.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.text.pack(side="left", fill="both", expand=True)
+
+        self._set("\n".join(self.app.log_lines))
+        self.app.request_logs()
+
+    def _set(self, content):
+        self.text.config(state="normal")
+        self.text.delete("1.0", "end")
+        self.text.insert("end", content)
+        self.text.config(state="disabled")
+        self.text.see("end")
+
+    def on_log_init(self, lines):
+        self._set("\n".join(lines))
+
+    def on_log_line(self, line):
+        self.text.config(state="normal")
+        self.text.insert("end", "\n" + line)
+        self.text.config(state="disabled")
+        self.text.see("end")
+
+
 VIEW_TYPES = {
     "home": HomeView,
     "grid": GridView,
@@ -623,4 +791,7 @@ VIEW_TYPES = {
     "season": SeasonView,
     "detail": DetailView,
     "search": SearchView,
+    "login": LoginView,
+    "servers": ServersView,
+    "logs": LogView,
 }
