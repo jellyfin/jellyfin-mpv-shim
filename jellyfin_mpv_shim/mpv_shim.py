@@ -96,7 +96,10 @@ def main():
     from .event_handler import eventHandler
     from .timeline import timelineManager
     from .sync.manager import syncManager
+    from .sync.offline_media import offline_video_factory
+    from .media import set_video_factory
 
+    set_video_factory(offline_video_factory)
     clientManager.callback = eventHandler.handle_event
     timelineManager.start()
     playerManager.timeline_trigger = timelineManager.trigger

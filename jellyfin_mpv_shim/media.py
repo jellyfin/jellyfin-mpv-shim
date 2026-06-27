@@ -19,6 +19,28 @@ if TYPE_CHECKING:
     from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
 
 
+# Pluggable video constructor so downloaded items can resolve to a local
+# OfflineVideo without media.py importing the sync package (avoids a cycle).
+_video_factory = None
+
+
+def set_video_factory(factory):
+    global _video_factory
+    _video_factory = factory
+
+
+def build_video(item_id, parent, aid=None, sid=None, srcid=None):
+    if _video_factory is not None:
+        try:
+            video = _video_factory(item_id, parent, aid, sid, srcid)
+            if video is not None:
+                return video
+        except Exception:
+            log.warning("Offline video factory failed for %s", item_id,
+                        exc_info=True)
+    return Video(item_id, parent, aid, sid, srcid)
+
+
 class Intro(object):
     def __init__(self, type, start, end):
         self.type: str = type  # "Intro" or "Outro"
@@ -545,9 +567,14 @@ class Media(object):
         self.seq = seq
         self.user_id = user_id
 
-        self.video = Video(self.queue[seq]["Id"], self, aid, sid, srcid)
+        self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid)
         self.is_tv = self.video.is_tv
-        self.is_local = is_local_domain(client)
+        try:
+            self.is_local = is_local_domain(client) if client is not None else True
+        except Exception:
+            # Offline / unreachable server — locality only affects bitrate and
+            # transcode decisions, which local playback ignores anyway.
+            self.is_local = True
         self.has_next = seq < len(queue) - 1
         self.has_prev = seq > 0
 
@@ -584,7 +611,7 @@ class Media(object):
             return self.video
 
         if index < len(self.queue):
-            return Video(self.queue[index]["Id"], self)
+            return build_video(self.queue[index]["Id"], self)
 
         log.error("Media::get_video couldn't find video at index %s" % index)
 
