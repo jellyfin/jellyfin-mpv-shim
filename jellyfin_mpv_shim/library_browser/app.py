@@ -70,6 +70,11 @@ class BrowserApp:
         self.log_lines = deque(maxlen=2000)
         self.settings_values = dict(self.options.get("settings") or {})
         self.settings_schema = dict(self.options.get("settings_schema") or {})
+        sync_state = self.options.get("sync_state") or {}
+        self.sync_items = set(sync_state.get("items") or [])
+        self.sync_series = set(sync_state.get("series") or [])
+        self.sync_total = sync_state.get("total_bytes", 0)
+        self._download_dialog = None
 
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
@@ -346,6 +351,36 @@ class BrowserApp:
     def save_settings(self, changes):
         self.r_queue.put(("save_settings", changes))
 
+    # -- downloads ---------------------------------------------------------
+
+    def is_downloaded(self, item):
+        if item.get("Id") in self.sync_items:
+            return True
+        if item.get("Type") == "Series" and item.get("Id") in self.sync_series:
+            return True
+        return False
+
+    def open_download_dialog(self, server_uuid, item_id, item_type, title):
+        from .views import DownloadDialog
+        if self._download_dialog is not None:
+            return
+        self._download_dialog = DownloadDialog(self, server_uuid, item_id,
+                                               item_type, title)
+
+    def estimate_download(self, server_uuid, item_id, item_type):
+        self.r_queue.put(("estimate_download", {
+            "server_uuid": server_uuid, "item_id": item_id,
+            "item_type": item_type}))
+
+    def download(self, server_uuid, item_id, item_type, include_watched):
+        self.r_queue.put(("download", {
+            "server_uuid": server_uuid, "item_id": item_id,
+            "item_type": item_type, "include_watched": include_watched}))
+
+    def delete_download(self, item_id=None, series_id=None):
+        self.r_queue.put(("delete_download", {
+            "item_id": item_id, "series_id": series_id}))
+
     # -- IPC pump ----------------------------------------------------------
 
     def _pump(self):
@@ -405,6 +440,17 @@ class BrowserApp:
             if isinstance(param, dict):
                 self.settings_values = param
             self._dispatch_view("on_settings_data", param)
+        elif cmd == "sync_state":
+            ss = param or {}
+            self.sync_items = set(ss.get("items") or [])
+            self.sync_series = set(ss.get("series") or [])
+            self.sync_total = ss.get("total_bytes", 0)
+            self._dispatch_view("on_sync_state", ss)
+        elif cmd == "download_estimate":
+            if self._download_dialog is not None:
+                self._download_dialog.on_estimate(param or {})
+        elif cmd == "download_progress":
+            self._dispatch_view("on_download_progress", param or {})
         elif cmd == "die":
             self._shutdown()
 

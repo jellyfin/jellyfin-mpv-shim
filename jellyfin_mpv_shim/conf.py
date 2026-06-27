@@ -67,6 +67,9 @@ class Settings(SettingsBase):
     library_image_cache_mb: int = 256
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
+    work_offline: bool = False
+    prefer_downloaded: bool = True
+    sync_max_storage_mb: Optional[int] = None
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None

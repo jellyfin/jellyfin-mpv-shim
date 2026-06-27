@@ -49,6 +49,15 @@ def played_percent(item):
     return None
 
 
+def human_size(num):
+    num = float(num or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if num < 1024:
+            return ("%d %s" % (num, unit)) if unit == "B" else ("%.1f %s" % (num, unit))
+        num /= 1024
+    return "%.1f TB" % num
+
+
 def item_subtitle(item):
     itype = item.get("Type")
     if itype == "Episode":
@@ -114,8 +123,15 @@ class MediaTile:
         pct = played_percent(item)
         if pct:
             bar_w = int(w * pct / 100.0)
-            self.canvas.create_rectangle(0, h - 4, w, h, fill="#444", width=0)
-            self.canvas.create_rectangle(0, h - 4, bar_w, h, fill=ACCENT, width=0)
+            self.canvas.create_rectangle(0, h - 4, w, h, fill="#444", width=0,
+                                         tags="overlay")
+            self.canvas.create_rectangle(0, h - 4, bar_w, h, fill=ACCENT, width=0,
+                                         tags="overlay")
+        if app.is_downloaded(item):
+            self.canvas.create_oval(w - 28, 6, w - 6, 28, fill=ACCENT,
+                                    outline="#101216", tags="overlay")
+            self.canvas.create_text(w - 17, 16, text="✓", fill="#ffffff",
+                                    font=("TkDefaultFont", 10, "bold"), tags="overlay")
 
         self.title = tk.Label(self.frame, text=item.get("Name", ""), bg=CARD_BG,
                               fg=TEXT_FG, wraplength=w, justify="center",
@@ -153,6 +169,7 @@ class MediaTile:
                           photo.width(), photo.height(), w, h, self.item.get("Name"))
             self.canvas.delete("img")
             self.canvas.create_image(w // 2, h // 2, image=photo, tags="img")
+            self.canvas.tag_raise("overlay")  # keep resume bar / badge above art
             self._photo = photo  # keep a reference
         except Exception:
             pass

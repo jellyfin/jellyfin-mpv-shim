@@ -95,6 +95,7 @@ def main():
     from .action_thread import actionThread
     from .event_handler import eventHandler
     from .timeline import timelineManager
+    from .sync.manager import syncManager
 
     clientManager.callback = eventHandler.handle_event
     timelineManager.start()
@@ -104,6 +105,7 @@ def main():
     playerManager.get_webview = get_webview
     user_interface.open_player_menu = playerManager.menu.show_menu
     eventHandler.mirror = mirror
+    syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
     user_interface.start()
     user_interface.login_servers()
 
@@ -131,6 +133,7 @@ def main():
         playerManager.terminate()
         timelineManager.stop()
         actionThread.stop()
+        syncManager.stop()
         clientManager.stop()
         user_interface.stop()
 

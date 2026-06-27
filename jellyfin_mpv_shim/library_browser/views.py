@@ -12,7 +12,7 @@ from ..constants import USER_APP_NAME
 from ..utils import get_sub_display_title, get_resource
 from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG
 from .widgets import (
-    ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key,
+    ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
 )
 
 log = logging.getLogger("library_browser.views")
@@ -327,6 +327,17 @@ class SeriesView(BaseView):
                 self.app.ttk.Button(
                     actions, text=_("▶ Play Next Up"), style="Accent.TButton",
                     command=lambda: self.app.play_next_up(sid)).pack(side="left")
+                if sid in self.app.sync_series:
+                    self.app.ttk.Button(
+                        actions, text=_("🗑 Remove downloads"),
+                        command=lambda: self.app.delete_download(series_id=sid)
+                        ).pack(side="left", padx=8)
+                else:
+                    self.app.ttk.Button(
+                        actions, text=_("⬇ Download Series"),
+                        command=lambda: self.app.open_download_dialog(
+                            self.app.current_server, sid, "Series",
+                            item.get("Name", "")) ).pack(side="left", padx=8)
                 meta = metadata_line(item)
                 if meta:
                     self.app.tk.Label(body, text=meta, bg=CARD_BG, fg=SUBTLE_FG,
@@ -379,6 +390,10 @@ class SeasonView(BaseView):
                    command=self._to_series).pack(side="left")
         ttk.Button(bar, text=_("▶ Play Next Up"), style="Accent.TButton",
                    command=self._play_next_up).pack(side="left", padx=12)
+        ttk.Button(bar, text=_("⬇ Download Season"),
+                   command=lambda: self.app.open_download_dialog(
+                       self.app.current_server, self.route["season_id"], "Season",
+                       self.route.get("title", ""))).pack(side="left")
         tk.Label(bar, text=self.route.get("title", ""), bg=CARD_BG, fg=TEXT_FG,
                  font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
 
@@ -602,9 +617,15 @@ class DetailView(BaseView):
             ttk.Button(row, text=_("Go to Series"),
                        command=self._to_series).pack(side="left", padx=16)
 
-        # Placeholder for the future offline-sync feature.
-        ttk.Button(row, text=_("Download (coming soon)"), state="disabled").pack(
-            side="right")
+        if self.app.is_downloaded(item):
+            ttk.Button(row, text=_("🗑 Remove download"),
+                       command=lambda: self.app.delete_download(item_id=item["Id"])
+                       ).pack(side="right")
+        else:
+            ttk.Button(row, text=_("⬇ Download"),
+                       command=lambda: self.app.open_download_dialog(
+                           self.app.current_server, item["Id"], item.get("Type"),
+                           item.get("Name", ""))).pack(side="right")
 
     def _to_series(self):
         self.app.navigate({"kind": "series", "series_id": self.item["SeriesId"],
@@ -986,6 +1007,77 @@ class SettingsView(BaseView):
     def on_settings_data(self, values):
         if self.settings_panel:
             self.settings_panel.on_data(values)
+
+
+class DownloadDialog:
+    """Modal: estimate the download, choose whether to include watched, confirm."""
+
+    def __init__(self, app, server_uuid, item_id, item_type, title):
+        self.app = app
+        self.server_uuid = server_uuid
+        self.item_id = item_id
+        self.item_type = item_type
+        self._is_collection = item_type in ("Series", "Season")
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(_("Download"))
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.geometry("460x250")
+        win.resizable(False, False)
+
+        tk.Label(win, text=title or _("Download"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 13, "bold"), wraplength=420,
+                 justify="left").pack(anchor="w", padx=16, pady=(14, 4))
+        self.info = tk.Label(win, text=_("Estimating download size…"), bg=CARD_BG,
+                             fg=SUBTLE_FG, justify="left", wraplength=420)
+        self.info.pack(anchor="w", padx=16, pady=4)
+
+        self.include_watched = tk.BooleanVar(value=False)
+        if self._is_collection:
+            self.watched_chk = ttk.Checkbutton(
+                win, text=_("Include watched episodes"),
+                variable=self.include_watched, state="disabled")
+            self.watched_chk.pack(anchor="w", padx=16, pady=6)
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(side="bottom", fill="x", padx=16, pady=14)
+        ttk.Button(btns, text=_("Cancel"), command=self.close).pack(side="right")
+        self.dl_btn = ttk.Button(btns, text=_("Download"), style="Accent.TButton",
+                                 command=self._confirm, state="disabled")
+        self.dl_btn.pack(side="right", padx=8)
+
+        win.protocol("WM_DELETE_WINDOW", self.close)
+        app.estimate_download(server_uuid, item_id, item_type)
+
+    def on_estimate(self, est):
+        count = est.get("count", 0)
+        already = est.get("already_count", 0)
+        watched = est.get("watched_count", 0)
+        lines = [_("%(n)d item(s), about %(size)s") % {
+            "n": count, "size": human_size(est.get("total_bytes", 0))}]
+        if watched and self._is_collection:
+            lines.append(_("%d watched") % watched)
+        if already:
+            lines.append(_("%d already downloaded") % already)
+        self.info.config(text="\n".join(lines))
+        if self._is_collection and watched:
+            self.watched_chk.config(state="normal")
+        self.dl_btn.config(state="normal" if count else "disabled")
+
+    def _confirm(self):
+        include = self.include_watched.get() if self._is_collection else True
+        self.app.download(self.server_uuid, self.item_id, self.item_type, include)
+        self.close()
+
+    def close(self):
+        self.app._download_dialog = None
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
 
 
 VIEW_TYPES = {

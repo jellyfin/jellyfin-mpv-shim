@@ -11,6 +11,7 @@ from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager
 from .conf import settings, Settings
+from .sync.manager import syncManager
 from .utils import get_resource
 from .log_utils import CustomFormatter, root_logger
 from .i18n import _
@@ -215,6 +216,9 @@ class UserInterface(threading.Thread):
         self.browser_process.start()
         # Forward live log lines to the browser's log viewer.
         guiHandler.callback = self._forward_log
+        # Push download catalog changes / progress to the browser.
+        syncManager.on_change = self._push_sync_state
+        syncManager.on_progress = self._push_download_progress
 
     def refresh_servers(self):
         if self.browser_process is not None and self.browser_process.is_alive():
@@ -269,6 +273,7 @@ class UserInterface(threading.Thread):
             "server_list": self._collect_credentials(),
             "settings": settings.dict(),
             "settings_schema": _settings_schema(),
+            "sync_state": syncManager.state(),
         }
 
     def _send_browser(self, message):
@@ -286,6 +291,13 @@ class UserInterface(threading.Thread):
                 q.put(("log_line", line))
             except Exception:
                 pass
+
+    def _push_sync_state(self):
+        self._send_browser(("sync_state", syncManager.state()))
+
+    def _push_download_progress(self, item_id, downloaded, total):
+        self._send_browser(("download_progress", {
+            "item_id": item_id, "downloaded": downloaded, "total": total}))
 
     # -- action handlers (on_<action>) ------------------------------------
 
@@ -402,6 +414,50 @@ class UserInterface(threading.Thread):
             except Exception:
                 log.error("Failed to save settings", exc_info=True)
         self._send_browser(("settings_data", settings.dict()))
+
+    def on_estimate_download(self, payload):
+        payload = payload or {}
+
+        def work():
+            try:
+                est = syncManager.estimate(payload.get("server_uuid"),
+                                           payload.get("item_id"),
+                                           payload.get("item_type"))
+            except Exception:
+                log.error("Download estimate failed", exc_info=True)
+                est = {"count": 0, "total_bytes": 0, "watched_count": 0}
+            est["item_id"] = payload.get("item_id")
+            self._send_browser(("download_estimate", est))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_download(self, payload):
+        payload = payload or {}
+
+        def work():
+            try:
+                syncManager.enqueue(payload.get("server_uuid"),
+                                    payload.get("item_id"),
+                                    payload.get("item_type"),
+                                    payload.get("include_watched", False))
+            except Exception:
+                log.error("Enqueue download failed", exc_info=True)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_delete_download(self, payload):
+        payload = payload or {}
+
+        def work():
+            try:
+                if payload.get("series_id"):
+                    syncManager.delete_series(payload["series_id"])
+                elif payload.get("item_id"):
+                    syncManager.delete_item(payload["item_id"])
+            except Exception:
+                log.error("Delete download failed", exc_info=True)
+
+        threading.Thread(target=work, daemon=True).start()
 
     def on_show_preferences(self, _param):
         # Tray "Configure Servers" → open the browser on the Servers tab.
