@@ -304,11 +304,14 @@ class OfflineLibrarySource:
             db.close()
         self._rows = {r["item_id"]: r for r in rows}
         self._items = []
+        self._series_server = {}  # series_id -> server_id (for series artwork)
         for row in rows:
             try:
                 self._items.append(json.loads(row["item_json"]))
             except (TypeError, ValueError):
                 pass
+            if row.get("type") == "Episode" and row.get("series_id"):
+                self._series_server.setdefault(row["series_id"], row.get("server_id"))
 
     def stop(self):
         pass
@@ -391,9 +394,14 @@ class OfflineLibrarySource:
 
     def get_item(self, server_uuid, item_id):
         row = self._rows.get(item_id)
-        if not row or not row.get("item_json"):
-            return None
-        return json.loads(row["item_json"])
+        if row and row.get("item_json"):
+            return json.loads(row["item_json"])
+        # Synthesize a Series DTO so the series overview page renders offline.
+        if item_id in self._series_server:
+            name = next((i.get("SeriesName") for i in self._items
+                         if i.get("SeriesId") == item_id), _("Series"))
+            return {"Id": item_id, "Name": name, "Type": "Series", "ImageTags": {}}
+        return None
 
     def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
         eps = [i for i in self._items
@@ -420,23 +428,56 @@ class OfflineLibrarySource:
 
     # -- images (local files) ---------------------------------------------
 
-    def _art_path(self, item_id, image_type):
-        row = self._rows.get(item_id)
-        if not row or not row.get("file_path") or not self.root:
-            return None
-        item_dir = os.path.join(self.root, os.path.dirname(row["file_path"]))
+    @staticmethod
+    def _name_for(image_type):
         kind = (image_type or "").lower()
         if kind.startswith("backdrop"):
-            name = "backdrop.jpg"
-        elif kind.startswith("thumb"):
-            name = "thumb.jpg"
-        else:
-            name = "poster.jpg"
+            return "backdrop.jpg"
+        if kind.startswith("thumb"):
+            return "thumb.jpg"
+        return "poster.jpg"
+
+    def _in_dir(self, item_dir, name):
         path = os.path.join(item_dir, name)
         if os.path.exists(path):
             return path
         fallback = os.path.join(item_dir, "poster.jpg")
         return fallback if os.path.exists(fallback) else None
+
+    def _art_path(self, item_id, image_type):
+        if not self.root or not item_id:
+            return None
+        name = self._name_for(image_type)
+        # Downloaded item (movie/episode).
+        row = self._rows.get(item_id)
+        if row and row.get("file_path"):
+            return self._in_dir(os.path.join(self.root,
+                                             os.path.dirname(row["file_path"])), name)
+        # Series artwork (cached separately from its episodes).
+        if item_id in self._series_server:
+            series_dir = os.path.join(self.root,
+                                      self._series_server[item_id] or "server",
+                                      "series", item_id)
+            return self._in_dir(series_dir, name)
+        # Synthetic library previews use a representative download.
+        if item_id == "offline:movies":
+            return self._representative(("Movie", "Video"))
+        if item_id == "offline:tv":
+            for series_id in self._series_server:
+                path = self._art_path(series_id, "Primary")
+                if path:
+                    return path
+            return self._representative(("Episode",))
+        return None
+
+    def _representative(self, types):
+        for row in self._rows.values():
+            if row.get("type") in types and row.get("file_path"):
+                path = self._in_dir(os.path.join(
+                    self.root, os.path.dirname(row["file_path"])), "poster.jpg")
+                if path:
+                    return path
+        return None
 
     def image_spec(self, item, image_type="Primary", width=280):
         if self._art_path(item.get("Id"), image_type):

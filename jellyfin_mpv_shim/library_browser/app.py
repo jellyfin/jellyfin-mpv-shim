@@ -226,7 +226,12 @@ class BrowserApp:
             self.statusbar.pack_forget()
 
     def _show_initial(self):
-        if self.current_server:
+        if self.is_offline or self.current_server:
+            self.navigate({"kind": "home"}, reset=True)
+        elif self.catalog_path and (self.server_list or self.sync_items):
+            # We have accounts (or downloads) but couldn't reach any server —
+            # show the offline catalog rather than the first-run login screen.
+            self._enter_offline(_("Server unreachable — showing downloads."))
             self.navigate({"kind": "home"}, reset=True)
         else:
             self.navigate({"kind": "login"}, reset=True)

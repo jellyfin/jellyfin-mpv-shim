@@ -294,6 +294,9 @@ class SyncManager:
             self._download_artwork(client, item, item_dir)
             self._download_subs(client, item_id, source, item_dir)
             self._download_trickplay(client, item_id, source, item_dir)
+            if item.get("Type") == "Episode" and item.get("SeriesId"):
+                self._download_series_art(client, row.get("server_id"),
+                                          item["SeriesId"])
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             url = client.jellyfin.download_url(item_id)
@@ -389,6 +392,32 @@ class SyncManager:
         with open(os.path.join(item_dir, "trickplay.json"), "w") as fh:
             json.dump({"width": width, "data": data}, fh)
         log.debug("Downloaded %d trickplay tiles for %s.", tiles, item_id)
+
+    def _download_series_art(self, client, server_id, series_id):
+        """Cache series poster/backdrop so offline series tiles + the series page
+        have artwork (episodes only carry their own images)."""
+        series_dir = os.path.join(self.root, server_id or "server", "series",
+                                  series_id)
+        poster = os.path.join(series_dir, "poster.jpg")
+        backdrop = os.path.join(series_dir, "backdrop.jpg")
+        if os.path.exists(poster) and os.path.exists(backdrop):
+            return
+        api = client.jellyfin
+        verify = not settings.ignore_ssl_cert
+        os.makedirs(series_dir, exist_ok=True)
+        jobs = []
+        if not os.path.exists(poster):
+            jobs.append((poster, api.artwork(series_id, "Primary", 600)))
+        if not os.path.exists(backdrop):
+            jobs.append((backdrop, api.artwork(series_id, "Backdrop", 1280)))
+        for path, url in jobs:
+            try:
+                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp.raise_for_status()
+                with open(path, "wb") as fh:
+                    fh.write(resp.content)
+            except Exception:
+                log.debug("Series art failed: %s", url, exc_info=True)
 
     def _download_artwork(self, client, item, item_dir):
         api = client.jellyfin

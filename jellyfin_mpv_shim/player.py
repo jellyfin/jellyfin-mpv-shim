@@ -1204,7 +1204,7 @@ class PlayerManager(object):
         if options is None:
             options = self.get_timeline_options(finished)
 
-        if client is None:
+        if client is None and self._video is not None:
             client = self._video.client
 
         if client is not None:
