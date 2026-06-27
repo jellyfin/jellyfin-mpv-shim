@@ -17,7 +17,8 @@ from ..i18n import _
 from .repository import LibrarySource, PLAYABLE_TYPES, SERIES_TYPES, FOLDER_TYPES
 from .thumbnails import ThumbnailStore
 from .views import VIEW_TYPES
-from .theme import apply_dark_theme, WINDOW_BG, CARD_BG, SUBTLE_FG
+from .theme import (apply_dark_theme, WINDOW_BG, CARD_BG, PANEL_BG, SUBTLE_FG,
+                    TEXT_FG)
 
 log = logging.getLogger("library_browser.app")
 
@@ -74,6 +75,9 @@ class BrowserApp:
         self.sync_items = set(sync_state.get("items") or [])
         self.sync_series = set(sync_state.get("series") or [])
         self.sync_total = sync_state.get("total_bytes", 0)
+        self.sync_active = sync_state.get("active", 0)
+        self.sync_downloading = sync_state.get("downloading")
+        self._dl_percent = None
         self.catalog_path = self.options.get("catalog_path")
         self._download_dialog = None
 
@@ -85,6 +89,7 @@ class BrowserApp:
         self._build_chrome()
         self._refresh_server_switcher()
         self._show_initial()
+        self._update_statusbar()
 
         if self.options.get("start_hidden"):
             self.root.withdraw()
@@ -128,6 +133,28 @@ class BrowserApp:
         self.topbar = bar
         self.content = tk.Frame(self.root, bg=CARD_BG)
         self.content.pack(fill="both", expand=True)
+
+        # Persistent download status bar (shown only while downloads are active).
+        self.statusbar = tk.Frame(self.root, bg=PANEL_BG)
+        self.status_label = tk.Label(self.statusbar, text="", bg=PANEL_BG,
+                                     fg=TEXT_FG, anchor="w")
+        self.status_label.pack(side="left", padx=12, pady=5)
+        ttk.Button(self.statusbar, text=_("View Downloads"),
+                   command=lambda: self.navigate(
+                       {"kind": "settings", "tab": "downloads"})).pack(
+            side="right", padx=8, pady=4)
+
+    def _update_statusbar(self):
+        if self.sync_active and self.sync_active > 0:
+            name = self.sync_downloading or _("Preparing…")
+            pct = (" %d%%" % self._dl_percent) if self._dl_percent is not None else ""
+            self.status_label.config(text=_("⬇ Downloading %(name)s%(pct)s "
+                                            "— %(n)d remaining") % {
+                "name": name, "pct": pct, "n": self.sync_active})
+            if not self.statusbar.winfo_ismapped():
+                self.statusbar.pack(side="bottom", fill="x")
+        elif self.statusbar.winfo_ismapped():
+            self.statusbar.pack_forget()
 
     def _show_initial(self):
         if self.current_server:
@@ -378,9 +405,11 @@ class BrowserApp:
             "server_uuid": server_uuid, "item_id": item_id,
             "item_type": item_type, "include_watched": include_watched}))
 
-    def delete_download(self, item_id=None, series_id=None):
+    def delete_download(self, item_id=None, series_id=None, season_id=None,
+                        watched_only=False):
         self.r_queue.put(("delete_download", {
-            "item_id": item_id, "series_id": series_id}))
+            "item_id": item_id, "series_id": series_id, "season_id": season_id,
+            "watched_only": watched_only}))
 
     # -- IPC pump ----------------------------------------------------------
 
@@ -446,12 +475,23 @@ class BrowserApp:
             self.sync_items = set(ss.get("items") or [])
             self.sync_series = set(ss.get("series") or [])
             self.sync_total = ss.get("total_bytes", 0)
+            self.sync_active = ss.get("active", 0)
+            self.sync_downloading = ss.get("downloading")
+            self._dl_percent = None  # new item / state change; await fresh progress
+            self._update_statusbar()
             self._dispatch_view("on_sync_state", ss)
         elif cmd == "download_estimate":
             if self._download_dialog is not None:
                 self._download_dialog.on_estimate(param or {})
         elif cmd == "download_progress":
-            self._dispatch_view("on_download_progress", param or {})
+            payload = param or {}
+            total = payload.get("total", 0)
+            self._dl_percent = (int(payload.get("downloaded", 0) * 100 / total)
+                                if total else None)
+            if payload.get("name"):
+                self.sync_downloading = payload["name"]
+            self._update_statusbar()
+            self._dispatch_view("on_download_progress", payload)
         elif cmd == "die":
             self._shutdown()
 

@@ -296,9 +296,10 @@ class UserInterface(threading.Thread):
     def _push_sync_state(self):
         self._send_browser(("sync_state", syncManager.state()))
 
-    def _push_download_progress(self, item_id, downloaded, total):
+    def _push_download_progress(self, item_id, name, downloaded, total):
         self._send_browser(("download_progress", {
-            "item_id": item_id, "downloaded": downloaded, "total": total}))
+            "item_id": item_id, "name": name,
+            "downloaded": downloaded, "total": total}))
 
     # -- action handlers (on_<action>) ------------------------------------
 
@@ -451,10 +452,11 @@ class UserInterface(threading.Thread):
 
         def work():
             try:
-                if payload.get("series_id"):
-                    syncManager.delete_series(payload["series_id"])
-                elif payload.get("item_id"):
-                    syncManager.delete_item(payload["item_id"])
+                syncManager.delete(
+                    item_id=payload.get("item_id"),
+                    series_id=payload.get("series_id"),
+                    season_id=payload.get("season_id"),
+                    watched_only=payload.get("watched_only", False))
             except Exception:
                 log.error("Delete download failed", exc_info=True)
 

@@ -33,7 +33,7 @@ class SyncManager:
         self.root = None
         self.get_client = lambda server_uuid: None
         self.on_change = lambda: None
-        self.on_progress = lambda item_id, downloaded, total: None
+        self.on_progress = lambda item_id, name, downloaded, total: None
 
         self._worker = None
         self._wake = threading.Event()
@@ -66,14 +66,21 @@ class SyncManager:
         return self.db.downloaded_series_ids() if self.db else set()
 
     def state(self):
-        """Lightweight snapshot the browser caches for indicators."""
+        """Snapshot the browser caches for indicators + the status bar."""
         if not self.db:
-            return {"items": [], "series": [], "total_bytes": 0}
-        return {
-            "items": sorted(self.db.downloaded_item_ids()),
-            "series": sorted(i for i in self.db.downloaded_series_ids() if i),
-            "total_bytes": self.db.total_size(),
-        }
+            return {"items": [], "series": [], "total_bytes": 0, "active": 0,
+                    "downloading": None}
+        rows = self.db.list()
+        items = [r["item_id"] for r in rows if r["status"] == STATUS_COMPLETE]
+        series = sorted({r["series_id"] for r in rows
+                         if r["status"] == STATUS_COMPLETE and r["series_id"]})
+        total = sum(r["downloaded_bytes"] or 0 for r in rows)
+        active = sum(1 for r in rows
+                     if r["status"] in (STATUS_PENDING, STATUS_DOWNLOADING))
+        downloading = next((r["name"] for r in rows
+                            if r["status"] == STATUS_DOWNLOADING), None)
+        return {"items": items, "series": series, "total_bytes": total,
+                "active": active, "downloading": downloading}
 
     # -- estimate / enqueue / delete --------------------------------------
 
@@ -116,11 +123,30 @@ class SyncManager:
         self.db.delete(item_id)
         self._notify_change()
 
-    def delete_series(self, series_id):
-        for row in self.db.list(series_id=series_id):
+    def delete(self, item_id=None, series_id=None, season_id=None,
+               watched_only=False):
+        """Flexible delete: a single item, a season, a whole series, and/or only
+        watched items within that scope."""
+        if item_id:
+            self.delete_item(item_id)
+            return
+        rows = self.db.list(series_id=series_id) if series_id else self.db.list()
+        removed = 0
+        for row in rows:
+            if season_id and row.get("season_id") != season_id:
+                continue
+            if watched_only:
+                try:
+                    userdata = json.loads(row.get("userdata_json") or "{}")
+                except ValueError:
+                    userdata = {}
+                if not userdata.get("Played"):
+                    continue
             self._remove_files(row)
             self.db.delete(row["item_id"])
-        self._notify_change()
+            removed += 1
+        if removed:
+            self._notify_change()
 
     # -- expansion / helpers ----------------------------------------------
 
@@ -232,7 +258,8 @@ class SyncManager:
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             url = client.jellyfin.download_url(item_id)
-            size = self._stream(url, media_path, item_id, row.get("size_bytes") or 0)
+            size = self._stream(url, media_path, item_id, row.get("name"),
+                                row.get("size_bytes") or 0)
 
             rel = os.path.relpath(media_path, self.root)
             self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
@@ -245,7 +272,7 @@ class SyncManager:
             self.db.update(item_id, status=STATUS_ERROR)
         self._notify_change()
 
-    def _stream(self, url, dest, item_id, expected):
+    def _stream(self, url, dest, item_id, name, expected):
         verify = not settings.ignore_ssl_cert
         tmp = dest + ".part"
         resume = os.path.getsize(tmp) if os.path.exists(tmp) else 0
@@ -270,7 +297,7 @@ class SyncManager:
                     if downloaded - last_push >= PROGRESS_STEP:
                         self.db.update(item_id, downloaded_bytes=downloaded)
                         try:
-                            self.on_progress(item_id, downloaded, total)
+                            self.on_progress(item_id, name, downloaded, total)
                         except Exception:
                             pass
                         last_push = downloaded

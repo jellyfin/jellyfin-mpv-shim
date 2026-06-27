@@ -5,6 +5,7 @@ Each view is built fresh on navigation. Views fetch data off the UI thread via
 network.
 """
 
+import json
 import logging
 
 from ..i18n import _
@@ -12,7 +13,7 @@ from ..constants import USER_APP_NAME
 from ..utils import get_sub_display_title, get_resource
 from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
                        STATUS_PENDING, STATUS_ERROR)
-from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG
+from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
 )
@@ -838,7 +839,7 @@ class DownloadsPanel:
             return None
 
     def refresh(self):
-        tk, ttk = self.app.tk, self.app.ttk
+        tk = self.app.tk
         body = self.container.body()
         for child in body.winfo_children():
             child.destroy()
@@ -857,27 +858,100 @@ class DownloadsPanel:
             tk.Label(body, text=_("Nothing downloaded yet."), bg=CARD_BG,
                      fg=SUBTLE_FG).pack(anchor="w", padx=16)
             return
-        for row in rows:
-            self._add_row(body, row)
 
-    def _add_row(self, body, row):
+        movies = [r for r in rows if not r.get("series_id")]
+        series_order, series_map = [], {}
+        for r in rows:
+            sid = r.get("series_id")
+            if not sid:
+                continue
+            if sid not in series_map:
+                series_map[sid] = []
+                series_order.append(sid)
+            series_map[sid].append(r)
+
+        if movies:
+            tk.Label(body, text=_("Movies & Videos"), bg=CARD_BG, fg=TEXT_FG,
+                     font=("TkDefaultFont", 13, "bold")).pack(
+                anchor="w", padx=16, pady=(10, 2))
+            for row in movies:
+                self._item_row(body, row, indent=24)
+
+        for sid in series_order:
+            self._series_block(body, sid, series_map[sid])
+
+    @staticmethod
+    def _is_watched(row):
+        try:
+            return bool(json.loads(row.get("userdata_json") or "{}").get("Played"))
+        except ValueError:
+            return False
+
+    def _series_block(self, body, series_id, rows):
+        tk, ttk = self.app.tk, self.app.ttk
+        name = rows[0].get("series_name") or _("Series")
+        size = sum(r.get("downloaded_bytes") or r.get("size_bytes") or 0
+                   for r in rows)
+        header = tk.Frame(body, bg=PANEL_BG)
+        header.pack(fill="x", padx=12, pady=(10, 2))
+        tk.Label(header, text="%s  ·  %d · %s" % (name, len(rows), human_size(size)),
+                 bg=PANEL_BG, fg=TEXT_FG, font=("TkDefaultFont", 12, "bold")).pack(
+            side="left", padx=8, pady=4)
+        ttk.Button(header, text=_("Remove show"),
+                   command=lambda s=series_id: self.app.delete_download(series_id=s)
+                   ).pack(side="right", padx=4, pady=2)
+        if any(self._is_watched(r) for r in rows):
+            ttk.Button(header, text=_("Remove watched"),
+                       command=lambda s=series_id: self.app.delete_download(
+                           series_id=s, watched_only=True)).pack(side="right",
+                                                                 padx=4, pady=2)
+
+        # Group episodes by season, preserving aired order.
+        season_order, season_map = [], {}
+        for r in rows:
+            key = r.get("season_id") or ("p%s" % r.get("parent_index"))
+            if key not in season_map:
+                season_map[key] = []
+                season_order.append(key)
+            season_map[key].append(r)
+
+        for key in season_order:
+            srows = season_map[key]
+            pidx = srows[0].get("parent_index")
+            season_id = srows[0].get("season_id")
+            title = _("Season %d") % pidx if pidx is not None else _("Episodes")
+            shdr = tk.Frame(body, bg=CARD_BG)
+            shdr.pack(fill="x", padx=(28, 12))
+            tk.Label(shdr, text=title, bg=CARD_BG, fg=SUBTLE_FG,
+                     font=("TkDefaultFont", 11, "bold")).pack(side="left", pady=2)
+            if season_id:
+                ttk.Button(shdr, text=_("Remove season"),
+                           command=lambda s=series_id, k=season_id:
+                           self.app.delete_download(series_id=s, season_id=k)
+                           ).pack(side="right", padx=4)
+            for row in srows:
+                self._item_row(body, row, indent=44, episode=True)
+
+    def _item_row(self, body, row, indent=24, episode=False):
         tk, ttk = self.app.tk, self.app.ttk
         frame = tk.Frame(body, bg=ENTRY_BG)
-        frame.pack(fill="x", padx=16, pady=2)
-        name = row.get("name") or row.get("item_id")
-        if row.get("series_name"):
-            s, e = row.get("parent_index"), row.get("index_number")
-            if s is not None and e is not None:
-                name = "%s · S%dE%d · %s" % (row["series_name"], s, e, name)
-            else:
-                name = "%s · %s" % (row["series_name"], name)
-        tk.Label(frame, text=name, bg=ENTRY_BG, fg=TEXT_FG, anchor="w").pack(
-            side="left", padx=8, pady=6)
+        frame.pack(fill="x", padx=(indent, 12), pady=1)
+        if episode:
+            num = row.get("index_number")
+            label = ("%d. %s" % (num, row.get("name") or "")) if num is not None \
+                else (row.get("name") or row["item_id"])
+        else:
+            label = row.get("name") or row["item_id"]
+        tk.Label(frame, text=label, bg=ENTRY_BG, fg=TEXT_FG, anchor="w").pack(
+            side="left", padx=8, pady=5)
         ttk.Button(frame, text=_("Remove"),
                    command=lambda i=row["item_id"]: self.app.delete_download(item_id=i)
                    ).pack(side="right", padx=8)
         lbl = tk.Label(frame, text=self._status_text(row), bg=ENTRY_BG, fg=SUBTLE_FG)
         lbl.pack(side="right", padx=8)
+        if self._is_watched(row):
+            tk.Label(frame, text=_("watched"), bg=ENTRY_BG, fg="#7bd88f").pack(
+                side="right", padx=4)
         self._rows[row["item_id"]] = lbl
 
     @staticmethod
