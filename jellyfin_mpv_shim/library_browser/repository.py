@@ -187,6 +187,18 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         return api.users("/Items/%s" % item_id, params={"Fields": DETAIL_FIELDS})
 
+    def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
+        """Episodes for a series in aired order, ACROSS seasons, optionally
+        starting at ``start_item_id`` — this is how the play queue crosses
+        season boundaries (mirrors jellyfin-web's getEpisodes with startItemId
+        and no SeasonId)."""
+        api = self._conn(server_uuid).api
+        params = {"UserId": "{UserId}", "Limit": limit, "Fields": LIST_FIELDS}
+        if start_item_id:
+            params["StartItemId"] = start_item_id
+        result = api.shows("/%s/Episodes" % series_id, params) or {}
+        return result.get("Items", [])
+
     def get_next_up(self, server_uuid, series_id):
         """The next episode to watch for a series (resume or next unwatched)."""
         api = self._conn(server_uuid).api

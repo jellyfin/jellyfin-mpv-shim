@@ -268,17 +268,16 @@ class BrowserApp:
 
     def play_episode(self, episode, offset_ticks=None, resume_auto=False,
                      aid=None, sid=None, srcid=None):
-        """Play an episode, queueing the rest of its season so the player's
-        autoplay-next chains through the remaining episodes (like the web app).
+        """Play an episode, queueing the following episodes (across seasons) so
+        the player's autoplay-next chains through them, like the web app.
 
-        Falls back to a single-item play if the season can't be resolved.
+        Falls back to a single-item play if the series can't be resolved.
         ``resume_auto`` derives the resume position from the episode's UserData
         when ``offset_ticks`` is not given (used by the Play-Next-Up button).
         """
         server = self.current_server
         ep_id = episode.get("Id")
         series_id = episode.get("SeriesId")
-        season_id = episode.get("SeasonId")
         if resume_auto and offset_ticks is None:
             offset_ticks = (episode.get("UserData") or {}).get(
                 "PlaybackPositionTicks") or None
@@ -294,21 +293,41 @@ class BrowserApp:
                 "subtitle_index": sid,
             })
 
-        if not (ep_id and series_id and season_id):
+        if not (ep_id and series_id):
             send([ep_id], 0)
             return
 
         def work():
-            return self.source.get_episodes(server, series_id, season_id)
+            # Episodes from this one onward, spanning seasons.
+            return self.source.get_series_queue(server, series_id, ep_id)
 
         def done(eps):
             ids = [e.get("Id") for e in eps if e.get("Id")]
-            if ep_id in ids:
+            if ids and ep_id in ids:
                 send(ids, ids.index(ep_id))
             else:
                 send([ep_id], 0)
 
         self.run_async(work, done, lambda _e: send([ep_id], 0))
+
+    def play_next_up(self, series_id):
+        """Play a series' next-up episode (or its first episode if unwatched),
+        queueing the following episodes across seasons."""
+        server = self.current_server
+
+        def work():
+            episode = self.source.get_next_up(server, series_id)
+            if episode is None:
+                # Unwatched series: NextUp may be empty — start from episode 1.
+                first = self.source.get_series_queue(server, series_id, limit=1)
+                episode = first[0] if first else None
+            return episode
+
+        def done(episode):
+            if episode:
+                self.play_episode(episode, resume_auto=True)
+
+        self.run_async(work, done, lambda _e: None)
 
     def add_server(self, payload):
         self.r_queue.put(("add_server", payload))

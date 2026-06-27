@@ -322,6 +322,11 @@ class SeriesView(BaseView):
 
             if item:
                 build_media_header(self.app, body, item)
+                actions = self.app.tk.Frame(body, bg=CARD_BG)
+                actions.pack(fill="x", padx=16, pady=(10, 0))
+                self.app.ttk.Button(
+                    actions, text=_("▶ Play Next Up"), style="Accent.TButton",
+                    command=lambda: self.app.play_next_up(sid)).pack(side="left")
                 meta = metadata_line(item)
                 if meta:
                     self.app.tk.Label(body, text=meta, bg=CARD_BG, fg=SUBTLE_FG,
@@ -362,7 +367,6 @@ class SeasonView(BaseView):
         super().__init__(app, route)
         self.seasons = []
         self.ep_grid = None
-        self._episodes = []
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -412,20 +416,7 @@ class SeasonView(BaseView):
                            "title": self.route.get("series_title", "")})
 
     def _play_next_up(self):
-        server = self.app.current_server
-        sid = self.route["series_id"]
-
-        def work():
-            return self.app.source.get_next_up(server, sid)
-
-        def done(ep):
-            if ep:
-                self.app.play_episode(ep, resume_auto=True)
-            elif self._episodes:
-                # Fully watched (no next-up): start the season from the top.
-                self.app.play_episode(self._episodes[0])
-
-        self.app.run_async(work, done, lambda _e: None)
+        self.app.play_next_up(self.route["series_id"])
 
     def _on_switch(self):
         idx = self.season_box.current()
@@ -440,8 +431,6 @@ class SeasonView(BaseView):
             return self.app.source.get_episodes(server, sid, season_id)
 
         def done(eps):
-            self._episodes = eps
-
             def subtitle(item):
                 num = item.get("IndexNumber")
                 prefix = ("%d. " % num) if num is not None else ""
