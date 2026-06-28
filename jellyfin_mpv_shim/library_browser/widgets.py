@@ -144,12 +144,14 @@ class MediaTile:
             cx, cy = w - 17, 17
             self.canvas.create_oval(cx - 11, cy - 11, cx + 11, cy + 11, fill=ACCENT,
                                     outline="#101216", tags="overlay")
-            # Draw the download arrow as vectors: the ⬇ glyph (U+2B07) isn't in
-            # the base canvas font on Windows and renders as tofu (it works in
-            # buttons because ttk does font-linking; the canvas doesn't).
-            self.canvas.create_line(cx, cy - 7, cx, cy + 5, fill="#ffffff",
-                                    width=2, arrow="last", arrowshape=(5, 6, 4),
-                                    capstyle="round", tags="overlay")
+            # Draw the download arrow as one filled polygon (shaft + head). The ⬇
+            # glyph (U+2B07) renders as tofu in the canvas font on Windows, and a
+            # stroked line + arrowhead lands the head off the even-width shaft on
+            # GDI. A polygon symmetric about cx scan-converts centered everywhere.
+            self.canvas.create_polygon(
+                cx - 1.5, cy - 7, cx + 1.5, cy - 7, cx + 1.5, cy + 1,
+                cx + 5, cy + 1, cx, cy + 7, cx - 5, cy + 1, cx - 1.5, cy + 1,
+                fill="#ffffff", outline="", tags="overlay")
         self._draw_watched_badge()
 
         self.title = tk.Label(self.frame, text=item.get("Name", ""), bg=CARD_BG,
