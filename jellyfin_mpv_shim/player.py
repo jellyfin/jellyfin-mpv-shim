@@ -678,6 +678,7 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
+        apply_memory: bool = True,
     ):
         self.should_send_timeline = False
         self.start_time = time.time()
@@ -686,7 +687,8 @@ class PlayerManager(object):
             log.error("PlayerManager::play no URL found")
             return
 
-        self._play_media(video, url, offset, no_initial_timeline, is_initial_play)
+        self._play_media(video, url, offset, no_initial_timeline, is_initial_play,
+                         apply_memory)
 
     @synchronous("_lock")
     def _play_media(
@@ -696,6 +698,7 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
+        apply_memory: bool = True,
     ):
         if not self._mpv_alive:
             log.info("mpv is dead, reinitializing")
@@ -735,7 +738,7 @@ class PlayerManager(object):
         self.upd_player_hide()
         if is_initial_play:
             self._track_memory = None  # new queue; start fresh
-        elif self._track_memory is not None:
+        elif apply_memory and self._track_memory is not None:
             self._apply_remembered_tracks(video)
         self.configure_streams()
         self._capture_track_memory(video)
@@ -1012,7 +1015,11 @@ class PlayerManager(object):
     @synchronous("_lock")
     def restart_playback(self):
         current_time = self._player.playback_time
-        self.play(self._video, current_time)
+        # Same item, same media source: the video already carries the user's
+        # exact aid/sid (e.g. a just-selected burn-in subtitle). Don't re-derive
+        # tracks from memory or we'd revert the very change that forced this
+        # restart.
+        self.play(self._video, current_time, apply_memory=False)
         return True
 
     @synchronous("_lock")
