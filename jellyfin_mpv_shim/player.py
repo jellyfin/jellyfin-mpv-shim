@@ -120,6 +120,36 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 #    the event thread, which would cause deadlock if they run there.
 
 
+def _rank_stream(prev_source, prev_index, streams, stream_type):
+    """Find the stream in `streams` best matching the previously-selected one
+    (jellyfin-web heuristic): +2 language, +2 display title, +1 relative index,
+    +1 codec; a match needs >= 3. Returns the matching stream Index or None."""
+    prev_streams = [s for s in (prev_source.get("MediaStreams") or [])
+                    if s.get("Type") == stream_type]
+    prev_stream = next((s for s in prev_streams if s.get("Index") == prev_index),
+                       None)
+    if prev_stream is None:
+        return None
+    prev_rel = prev_streams.index(prev_stream)
+
+    best_score, best_index = 0, None
+    for rel, stream in enumerate(s for s in streams if s.get("Type") == stream_type):
+        score = 0
+        if prev_stream.get("Codec") and prev_stream.get("Codec") == stream.get("Codec"):
+            score += 1
+        if prev_rel == rel:
+            score += 1
+        title = prev_stream.get("DisplayTitle")
+        if title and title == stream.get("DisplayTitle"):
+            score += 2
+        lang = prev_stream.get("Language")
+        if lang and lang != "und" and lang == stream.get("Language"):
+            score += 2
+        if score > best_score and score >= 3:
+            best_score, best_index = score, stream.get("Index")
+    return best_index
+
+
 # noinspection PyUnresolvedReferences
 class PlayerManager(object):
     """
@@ -132,6 +162,9 @@ class PlayerManager(object):
         self._video = None
         self.timeline_trigger = None
         self.action_trigger = None
+        # (media_source, aid, sid) of the playing item, carried to the next
+        # episode in the queue (jellyfin-web-style track matching).
+        self._track_memory = None
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
         self.should_send_timeline = False
@@ -700,7 +733,12 @@ class PlayerManager(object):
         self.external_subtitles_rev = {}
 
         self.upd_player_hide()
+        if is_initial_play:
+            self._track_memory = None  # new queue; start fresh
+        elif self._track_memory is not None:
+            self._apply_remembered_tracks(video)
         self.configure_streams()
+        self._capture_track_memory(video)
         self.update_subtitle_visuals()
 
         if win_utils and settings.raise_mpv and is_initial_play:
@@ -983,6 +1021,28 @@ class PlayerManager(object):
             return self._video.get_video_attr(attr, default)
         return default
 
+    def _capture_track_memory(self, video):
+        self._track_memory = ((video.media_source or {}), video.aid, video.sid)
+
+    def _apply_remembered_tracks(self, video):
+        """Carry the previous episode's audio/subtitle choice into this one,
+        matching by language/title/codec/position (jellyfin-web heuristic)."""
+        prev_source, prev_aid, prev_sid = self._track_memory
+        streams = (video.media_source or {}).get("MediaStreams") or []
+
+        if settings.remember_audio_track and prev_aid is not None:
+            match = _rank_stream(prev_source, prev_aid, streams, "Audio")
+            if match is not None:
+                video.aid = match
+
+        if settings.remember_subtitle_track:
+            if prev_sid is None or prev_sid == -1:
+                video.sid = -1  # subtitles were off — keep them off
+            else:
+                match = _rank_stream(prev_source, prev_sid, streams, "Subtitle")
+                if match is not None:
+                    video.sid = match
+
     @synchronous("_lock")
     def configure_streams(self):
         audio_uid = self._video.aid
@@ -1019,6 +1079,8 @@ class PlayerManager(object):
             self.restart_playback()
         else:
             self.configure_streams()
+        # Remember the user's manual choice for subsequent episodes.
+        self._capture_track_memory(self._video)
         self.timeline_handle()
 
     @synchronous("_lock")
