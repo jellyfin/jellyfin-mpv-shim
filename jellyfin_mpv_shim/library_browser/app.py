@@ -147,9 +147,16 @@ class BrowserApp:
         self.banner_label = tk.Label(self.banner, text="", bg="#5a3a00",
                                      fg="#ffd479", anchor="w")
         self.banner_label.pack(side="left", padx=12, pady=4)
-        ttk.Button(self.banner, text=_("Go Online"),
+        # "Configure Servers" goes straight to server management (add/fix a
+        # server) since a failed retry with downloads present would otherwise
+        # bounce back to offline and never surface the login form.
+        ttk.Button(self.banner, text=_("Configure Servers"),
+                   command=lambda: self.navigate(
+                       {"kind": "settings", "tab": "servers"})).pack(
+            side="right", padx=(4, 8), pady=2)
+        ttk.Button(self.banner, text=_("Retry"),
                    command=lambda: self.set_offline(False)).pack(
-            side="right", padx=8, pady=2)
+            side="right", padx=4, pady=2)
 
         self.content = tk.Frame(self.root, bg=CARD_BG)
         self.content.pack(fill="both", expand=True)
