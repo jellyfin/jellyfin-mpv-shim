@@ -17,6 +17,7 @@ from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
 from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
+    is_watched,
 )
 
 log = logging.getLogger("library_browser.views")
@@ -342,6 +343,13 @@ class SeriesView(BaseView):
                 self.app.ttk.Button(
                     actions, text=_("▶ Play Next Up"), style="Accent.TButton",
                     command=lambda: self.app.play_next_up(sid)).pack(side="left")
+                wlabel = (_("Mark unwatched") if is_watched(item)
+                          else _("Mark watched"))
+                self.app.ttk.Button(
+                    actions, text=wlabel,
+                    command=lambda: self.app.set_watched(
+                        server, sid, not is_watched(item), refresh=True)
+                    ).pack(side="left", padx=8)
                 if sid in self.app.sync_series:
                     self.app.ttk.Button(
                         actions, text=_("🗑 Remove downloads"),
@@ -393,6 +401,9 @@ class SeasonView(BaseView):
         super().__init__(app, route)
         self.seasons = []
         self.ep_grid = None
+        self.watched_btn = None
+        self._cur_season_id = route.get("season_id")
+        self._season_watched = False
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -409,6 +420,9 @@ class SeasonView(BaseView):
                    command=lambda: self.app.open_download_dialog(
                        self.app.current_server, self.route["season_id"], "Season",
                        self.route.get("title", ""))).pack(side="left")
+        self.watched_btn = ttk.Button(bar, text=_("Mark watched"),
+                                      command=self._toggle_season_watched)
+        self.watched_btn.pack(side="left", padx=8)
         tk.Label(bar, text=self.route.get("title", ""), bg=CARD_BG, fg=TEXT_FG,
                  font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
 
@@ -456,6 +470,7 @@ class SeasonView(BaseView):
     def _load_episodes(self, season_id):
         server = self.app.current_server
         sid = self.route["series_id"]
+        self._cur_season_id = season_id
 
         def work():
             return self.app.source.get_episodes(server, sid, season_id)
@@ -468,8 +483,19 @@ class SeasonView(BaseView):
 
             self.ep_grid.set_items(eps, server, image_type="Thumb",
                                    on_click=self.app.open_item, subtitle_fn=subtitle)
+            # Season counts as watched only when every episode is.
+            self._season_watched = bool(eps) and all(is_watched(e) for e in eps)
+            if self.watched_btn is not None:
+                self.watched_btn.config(
+                    text=_("Mark unwatched") if self._season_watched
+                    else _("Mark watched"))
 
         self.app.run_async(work, done, lambda e: self._error(self.frame, e))
+
+    def _toggle_season_watched(self):
+        if self._cur_season_id:
+            self.app.set_watched(self.app.current_server, self._cur_season_id,
+                                 not self._season_watched, refresh=True)
 
 
 class SearchView(BaseView):
@@ -648,6 +674,12 @@ class DetailView(BaseView):
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             ttk.Button(row, text=_("Go to Series"),
                        command=self._to_series).pack(side="left", padx=16)
+
+        watched = is_watched(item)
+        ttk.Button(row, text=_("Mark unwatched") if watched else _("Mark watched"),
+                   command=lambda: self.app.set_watched(
+                       self.app.current_server, item["Id"], not watched,
+                       refresh=True)).pack(side="left", padx=8)
 
         if self.app.is_downloaded(item):
             ttk.Button(row, text=_("🗑 Remove download"),

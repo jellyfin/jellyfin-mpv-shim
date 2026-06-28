@@ -440,6 +440,15 @@ class BrowserApp:
 
         self.run_async(work, done, lambda _e: None)
 
+    def set_watched(self, server_uuid, item_id, watched, refresh=False):
+        """Mark an item (movie/episode, or a whole series/season) played or
+        unplayed. ``refresh`` asks the main process to confirm so the current
+        view re-fetches (used for bulk marks that change other items); per-item
+        toggles update optimistically instead."""
+        self.r_queue.put(("set_watched", {
+            "server_uuid": server_uuid, "item_id": item_id,
+            "watched": bool(watched), "refresh": refresh}))
+
     def add_server(self, payload):
         self.r_queue.put(("add_server", payload))
 
@@ -581,6 +590,10 @@ class BrowserApp:
                 self.sync_downloading = payload["name"]
             self._update_statusbar()
             self._dispatch_view("on_download_progress", payload)
+        elif cmd == "watched_changed":
+            # A bulk watched/unwatched mark was applied server-side; re-fetch the
+            # current view so cascaded child state shows correctly.
+            self._render_top()
         elif cmd == "die":
             self._shutdown()
 

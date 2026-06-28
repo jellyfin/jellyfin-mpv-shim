@@ -521,6 +521,45 @@ class UserInterface(threading.Thread):
 
         threading.Thread(target=work, daemon=True).start()
 
+    def on_set_watched(self, payload):
+        payload = payload or {}
+        item_id = payload.get("item_id")
+        if not item_id:
+            return
+        watched = bool(payload.get("watched"))
+        server_uuid = payload.get("server_uuid")
+        refresh = payload.get("refresh", False)
+        client = clientManager.clients.get(server_uuid)
+
+        def work():
+            ok = False
+            if client is not None:
+                try:
+                    # Jellyfin cascades a played/unplayed mark on a series or
+                    # season to all its episodes, so one call covers every type.
+                    client.jellyfin.item_played(item_id, watched)
+                    ok = True
+                except Exception:
+                    log.error("Failed to set watched=%s for %s", watched, item_id,
+                              exc_info=True)
+            elif watched and syncManager.db and syncManager.db.is_complete(item_id):
+                # Fully offline: queue the watched mark (advance-only sync).
+                # Marking unwatched offline isn't representable, so it's skipped.
+                try:
+                    syncManager.db.upsert_playstate(server_uuid, item_id,
+                                                    played=True)
+                    ok = True
+                except Exception:
+                    log.error("Failed to queue offline watched mark for %s",
+                              item_id, exc_info=True)
+            else:
+                log.warning("Cannot change watched state for %s while offline.",
+                            item_id)
+            if ok and refresh:
+                self._send_browser(("watched_changed", None))
+
+        threading.Thread(target=work, daemon=True).start()
+
     def on_show_preferences(self, _param):
         # Tray "Configure Servers" → open the browser on the Servers tab.
         self._send_browser(("show", None))

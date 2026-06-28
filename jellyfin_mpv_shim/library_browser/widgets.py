@@ -17,6 +17,7 @@ horizontal carousels do NOT, so the wheel always scrolls the page vertically
 
 import logging
 
+from ..i18n import _
 from .thumbnails import make_key
 from .theme import (
     CARD_BG, PLACEHOLDER_BG, TEXT_FG, SUBTLE_FG, ACCENT, BUTTON_BG,
@@ -47,6 +48,18 @@ def played_percent(item):
     if pct:
         return float(pct)
     return None
+
+
+def is_watched(item):
+    """Whether an item counts as fully watched. Episodes/movies use the Played
+    flag; series/seasons are watched when nothing is left unplayed."""
+    data = item.get("UserData") or {}
+    if data.get("Played"):
+        return True
+    if item.get("Type") in ("Series", "Season"):
+        unplayed = data.get("UnplayedItemCount")
+        return unplayed == 0
+    return False
 
 
 def human_size(num):
@@ -132,6 +145,7 @@ class MediaTile:
                                     outline="#101216", tags="overlay")
             self.canvas.create_text(w - 17, 16, text="✓", fill="#ffffff",
                                     font=("TkDefaultFont", 10, "bold"), tags="overlay")
+        self._draw_watched_badge()
 
         self.title = tk.Label(self.frame, text=item.get("Name", ""), bg=CARD_BG,
                               fg=TEXT_FG, wraplength=w, justify="center",
@@ -145,6 +159,43 @@ class MediaTile:
 
         for widget in (self.canvas, self.title, self.frame):
             widget.bind("<Button-1>", lambda _e: on_click(item))
+            # Right-click (Button-2 on macOS) to mark watched/unwatched.
+            widget.bind("<Button-3>", self._show_context_menu)
+            widget.bind("<Button-2>", self._show_context_menu)
+
+    def _draw_watched_badge(self):
+        """Top-left check badge for watched items (download badge is top-right)."""
+        self.canvas.delete("watched")
+        if not is_watched(self.item):
+            return
+        self.canvas.create_oval(6, 6, 28, 28, fill="#2c7", outline="#101216",
+                                tags=("overlay", "watched"))
+        self.canvas.create_text(17, 16, text="✓", fill="#ffffff",
+                                font=("TkDefaultFont", 10, "bold"),
+                                tags=("overlay", "watched"))
+
+    def _show_context_menu(self, event):
+        itype = self.item.get("Type")
+        if itype not in ("Movie", "Episode", "Series", "Season"):
+            return
+        watched = is_watched(self.item)
+        menu = self.app.tk.Menu(self.frame, tearoff=0)
+        label = _("Mark unwatched") if watched else _("Mark watched")
+        menu.add_command(label=label,
+                         command=lambda: self._toggle_watched(not watched))
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def _toggle_watched(self, watched):
+        item_id = self.item.get("Id")
+        if not item_id:
+            return
+        self.app.set_watched(self.server_uuid, item_id, watched)
+        # Optimistic: reflect it immediately without a full re-render.
+        self.item.setdefault("UserData", {})["Played"] = watched
+        self._draw_watched_badge()
 
     def load(self):
         if self._requested:
