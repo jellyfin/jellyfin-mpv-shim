@@ -69,7 +69,6 @@ class Settings(SettingsBase):
     sync_path: Optional[str] = None
     work_offline: bool = False
     prefer_downloaded: bool = True
-    sync_max_storage_mb: Optional[int] = None
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None
