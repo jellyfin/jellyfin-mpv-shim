@@ -141,10 +141,15 @@ class MediaTile:
             self.canvas.create_rectangle(0, h - 4, bar_w, h, fill=ACCENT, width=0,
                                          tags="overlay")
         if app.is_downloaded(item):
-            self.canvas.create_oval(w - 28, 6, w - 6, 28, fill=ACCENT,
+            cx, cy = w - 17, 17
+            self.canvas.create_oval(cx - 11, cy - 11, cx + 11, cy + 11, fill=ACCENT,
                                     outline="#101216", tags="overlay")
-            self.canvas.create_text(w - 17, 17, text="⬇", fill="#ffffff",
-                                    font=("TkDefaultFont", 10, "bold"), tags="overlay")
+            # Draw the download arrow as vectors: the ⬇ glyph (U+2B07) isn't in
+            # the base canvas font on Windows and renders as tofu (it works in
+            # buttons because ttk does font-linking; the canvas doesn't).
+            self.canvas.create_line(cx, cy - 7, cx, cy + 5, fill="#ffffff",
+                                    width=2, arrow="last", arrowshape=(5, 6, 4),
+                                    capstyle="round", tags="overlay")
         self._draw_watched_badge()
 
         self.title = tk.Label(self.frame, text=item.get("Name", ""), bg=CARD_BG,
