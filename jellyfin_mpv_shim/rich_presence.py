@@ -70,6 +70,7 @@ def send_presence(
         payload["party_size"] = [1, 100]
         payload["join"] = syncplay_group
 
+    global RPC
     try:
         RPC.set_activity(**payload)
     except Exception:

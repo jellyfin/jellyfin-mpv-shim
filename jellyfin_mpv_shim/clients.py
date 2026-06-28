@@ -398,12 +398,21 @@ class ClientManager(object):
                             break
             elif event_name == "WebSocketConnect":
                 log.info("WebSocket connected, posting capabilities")
-                try:
-                    client.jellyfin.post_capabilities(CAPABILITIES)
-                except Exception:
-                    log.warning(
-                        "Failed to post capabilities on reconnect", exc_info=True
-                    )
+                # API might not be ready yet. retry a few times.
+                for i in range(6):
+                    if self.is_stopping:
+                        break
+                    try:
+                        client.jellyfin.post_capabilities(CAPABILITIES)
+                        break
+                    except Exception:
+                        if i == 5:
+                            log.warning(
+                                "Failed to post capabilities on connect",
+                                exc_info=True,
+                            )
+                        else:
+                            time.sleep(2)
                 self.callback(client, event_name, data)
             else:
                 self.callback(client, event_name, data)
