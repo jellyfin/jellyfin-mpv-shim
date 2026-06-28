@@ -269,7 +269,9 @@ class ClientManager(object):
                 connected_servers.append(server["Id"])
         return is_logged_in
 
-    def try_connect(self):
+    def load_credentials(self):
+        """Read saved credentials from disk. Fast (no network) — call this
+        before connecting so callers know which servers exist up front."""
         credentials_location = conffile.get(APP_NAME, "cred.json")
         if os.path.exists(credentials_location):
             with open(credentials_location) as cf:
@@ -283,6 +285,9 @@ class ClientManager(object):
                 server["username"] = ""
                 self.credentials.append(server)
 
+    def connect_all(self):
+        """Connect to all loaded credentials (call load_credentials first),
+        honouring connect_retry_mins. Returns whether any server connected."""
         is_logged_in = self._connect_all()
         if settings.connect_retry_mins and not is_logged_in:
             log.warning(
@@ -297,6 +302,10 @@ class ClientManager(object):
                     break
 
         return is_logged_in
+
+    def try_connect(self):
+        self.load_credentials()
+        return self.connect_all()
 
     def save_credentials(self):
         credentials_location = conffile.get(APP_NAME, "cred.json")

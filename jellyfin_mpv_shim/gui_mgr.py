@@ -141,6 +141,8 @@ class UserInterface(threading.Thread):
         self.browser_process = None
         self.browser_cmd_queue = None
         self.browser_ready = False
+        self._connecting = False
+        self._connect_thread = None
         self._shutting_down = False
 
         threading.Thread.__init__(self)
@@ -191,10 +193,44 @@ class UserInterface(threading.Thread):
     # -- startup -----------------------------------------------------------
 
     def login_servers(self):
-        # Non-blocking: the browser shows its own login screen when no servers
-        # are connected (the old blocking PreferencesWindow is gone).
-        clientManager.try_connect()
+        # Load saved creds synchronously (fast, no network) so the window opens
+        # knowing which servers exist, then connect in the background — the
+        # browser appears immediately in a "connecting" state instead of
+        # blocking on the network. The browser shows its own login screen when
+        # no servers connect (the old blocking PreferencesWindow is gone).
+        clientManager.load_credentials()
+        if not settings.work_offline:
+            self._connecting = True
         self.start_browser()
+        if not settings.work_offline:
+            self._begin_connect()
+
+    def _begin_connect(self):
+        """Kick off a connection attempt in the background (idempotent)."""
+        if self._connect_thread is not None and self._connect_thread.is_alive():
+            return
+        self._connecting = True
+        self._connect_thread = threading.Thread(target=self._connect_worker,
+                                                 daemon=True)
+        self._connect_thread.start()
+
+    def _connect_worker(self):
+        try:
+            clientManager.connect_all()
+        except Exception:
+            log.error("Connection attempt failed", exc_info=True)
+        finally:
+            self._connecting = False
+            self._push_connection_settled()
+
+    def _push_connection_settled(self):
+        self._send_browser(("connection_settled", {
+            "connected": self._collect_servers(),
+            "all": self._collect_credentials(),
+        }))
+
+    def on_retry_connect(self, _param):
+        self._begin_connect()
 
     def start_browser(self):
         if self.browser_process is not None and self.browser_process.is_alive():
@@ -277,6 +313,7 @@ class UserInterface(threading.Thread):
             "player_name": settings.player_name,
             "verify_ssl": not settings.ignore_ssl_cert,
             "start_hidden": start_hidden,
+            "connecting": self._connecting,
             "last_server": settings.library_last_server,
             "server_list": self._collect_credentials(),
             "settings": settings.dict(),

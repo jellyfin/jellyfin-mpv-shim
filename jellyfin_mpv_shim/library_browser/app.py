@@ -85,6 +85,10 @@ class BrowserApp:
         self._live_servers = servers
         self._verify_ssl = verify_ssl
         self.is_offline = False
+        # True while the main process is still attempting to connect; failed is
+        # set once an attempt settles with no reachable server.
+        self._connecting = bool(self.options.get("connecting"))
+        self._connect_failed = False
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
             self.options.get("player_name", "mpv-shim"), verify_ssl)
@@ -199,12 +203,63 @@ class BrowserApp:
     def set_offline(self, offline):
         if offline:
             self._enter_offline()
-        else:
-            self._exit_offline()
+            self.navigate({"kind": "home"}, reset=True)
+            return
+        # Going online.
+        self._exit_offline()
         if self.current_server:
             self.navigate({"kind": "home"}, reset=True)
+        elif self.server_list:
+            # We have accounts but no live connection yet — (re)connect and wait
+            # on the connecting screen instead of flashing the login form.
+            self.retry_connect()
         else:
             self.navigate({"kind": "login"}, reset=True)
+
+    def retry_connect(self):
+        """Ask the main process to (re)attempt the connection and show the
+        connecting screen until it settles."""
+        self._connecting = True
+        self._connect_failed = False
+        self.r_queue.put(("retry_connect", None))
+        self.navigate({"kind": "connecting"}, reset=True)
+
+    def _on_connection_settled(self, payload):
+        """Main finished a connection attempt: update state and land the user on
+        the right screen (home / downloads / login)."""
+        self.server_list = list(payload.get("all") or [])
+        connected = payload.get("connected") or []
+        self._live_servers = connected
+        self._connecting = False
+        self._connect_failed = bool(self.server_list) and not connected
+        if self.is_offline:
+            # Browsing downloads by choice/fallback — don't pull the user out;
+            # Go Online uses the refreshed connected list when they choose to.
+            return
+        self._rebuild_live_source(connected)
+        self._refresh_server_switcher()
+        kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
+        if self.current_server:
+            if kind in (None, "connecting", "login"):
+                self.navigate({"kind": "home"}, reset=True)
+        elif kind in (None, "connecting"):
+            self._show_disconnected()
+        elif kind == "login":
+            self._render_top()  # refresh the retry / failed-connection UI
+
+    def _rebuild_live_source(self, connected):
+        try:
+            self.source.stop()
+        except Exception:
+            pass
+        self.source = LibrarySource(
+            connected, self.options.get("device_id", ""),
+            self.options.get("player_name", "mpv-shim"), self._verify_ssl)
+        self._live_servers = connected
+        self.home_cache = {}
+        server_list = self.source.servers()
+        if self.current_server not in {s["uuid"] for s in server_list}:
+            self.current_server = server_list[0]["uuid"] if server_list else None
 
     def offline_fallback(self):
         """Auto-switch to the catalog when the live server is unreachable."""
@@ -228,9 +283,16 @@ class BrowserApp:
     def _show_initial(self):
         if self.is_offline or self.current_server:
             self.navigate({"kind": "home"}, reset=True)
-        elif self.catalog_path and (self.server_list or self.sync_items):
-            # We have accounts (or downloads) but couldn't reach any server —
-            # show the offline catalog rather than the first-run login screen.
+        elif self._connecting:
+            # Connection is still in flight — show the window now and wait.
+            self.navigate({"kind": "connecting"}, reset=True)
+        else:
+            self._show_disconnected()
+
+    def _show_disconnected(self):
+        """No live connection: browse downloads if we have any, otherwise the
+        login screen (which surfaces a retry when accounts exist)."""
+        if self.catalog_path and self.sync_items:
             self._enter_offline(_("Server unreachable — showing downloads."))
             self.navigate({"kind": "home"}, reset=True)
         else:
@@ -590,6 +652,8 @@ class BrowserApp:
                 self.sync_downloading = payload["name"]
             self._update_statusbar()
             self._dispatch_view("on_download_progress", payload)
+        elif cmd == "connection_settled":
+            self._on_connection_settled(param or {})
         elif cmd == "watched_changed":
             # A bulk watched/unwatched mark was applied server-side; re-fetch the
             # current view so cascaded child state shows correctly.
@@ -612,25 +676,20 @@ class BrowserApp:
             self.server_list = list(payload.get("all") or [])
         else:  # backwards-compatible: a bare connected list
             connected = payload or []
-        try:
-            self.source.stop()
-        except Exception:
-            pass
-        verify_ssl = self.options.get("verify_ssl", True)
-        self.source = LibrarySource(
-            connected, self.options.get("device_id", ""),
-            self.options.get("player_name", "mpv-shim"), verify_ssl)
-        self.home_cache = {}
-        server_list = self.source.servers()
-        if self.current_server not in {s["uuid"] for s in server_list}:
-            self.current_server = server_list[0]["uuid"] if server_list else None
+        self._live_servers = connected
+        kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
+        if self.is_offline:
+            # Don't replace the offline catalog source; just note the new creds.
+            if kind == "settings":
+                self._dispatch_view("on_servers_changed", self.server_list)
+            return
+        self._rebuild_live_source(connected)
         self._refresh_server_switcher()
 
-        kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
         if kind == "settings":
             self._dispatch_view("on_servers_changed", self.server_list)
         elif self.current_server:
-            if kind in (None, "login"):
+            if kind in (None, "login", "connecting"):
                 self.navigate({"kind": "home"}, reset=True)
             # otherwise leave the current screen alone (just updated the switcher)
         else:

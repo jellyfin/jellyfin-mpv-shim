@@ -772,6 +772,26 @@ class _ServerForm:
             self.button.config(state="normal")
 
 
+class ConnectingView(BaseView):
+    """Shown while the main process is connecting, so the window appears
+    immediately instead of waiting on the network."""
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        wrap = tk.Frame(self.frame, bg=CARD_BG)
+        wrap.place(relx=0.5, rely=0.5, anchor="center")
+
+        tk.Label(wrap, text=_("Connecting to your server…"), bg=CARD_BG,
+                 fg=TEXT_FG, font=("TkDefaultFont", 14, "bold")).pack(pady=(0, 14))
+        self.bar = ttk.Progressbar(wrap, mode="indeterminate", length=260)
+        self.bar.pack()
+        self.bar.start(12)
+        # Escape hatch if there are downloads and connecting drags on.
+        if self.app.catalog_path and self.app.sync_items:
+            ttk.Button(wrap, text=_("Work offline"),
+                       command=lambda: self.app.set_offline(True)).pack(pady=(16, 0))
+
+
 class LoginView(BaseView):
     """Full-screen first-run / signed-out login with the app logo."""
 
@@ -789,6 +809,13 @@ class LoginView(BaseView):
         except Exception:
             tk.Label(wrap, text=USER_APP_NAME, bg=CARD_BG, fg=TEXT_FG,
                      font=("TkDefaultFont", 20, "bold")).pack(pady=14)
+
+        # Surface a failed connection to saved accounts, with a retry.
+        if self.app._connect_failed and self.app.server_list:
+            tk.Label(wrap, text=_("Couldn't reach your saved server(s)."),
+                     bg=CARD_BG, fg="#e57373").pack(pady=(0, 6))
+            self.app.ttk.Button(wrap, text=_("Retry connection"),
+                                command=self.app.retry_connect).pack(pady=(0, 12))
 
         tk.Label(wrap, text=_("Sign in to your Jellyfin server"), bg=CARD_BG,
                  fg=SUBTLE_FG).pack(pady=(0, 10))
@@ -1374,5 +1401,6 @@ VIEW_TYPES = {
     "detail": DetailView,
     "search": SearchView,
     "login": LoginView,
+    "connecting": ConnectingView,
     "settings": SettingsView,
 }
