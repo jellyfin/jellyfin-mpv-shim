@@ -150,7 +150,7 @@ class MediaTile:
             # GDI. A polygon symmetric about cx scan-converts centered everywhere.
             self.canvas.create_polygon(
                 cx - 1.5, cy - 7, cx + 1.5, cy - 7, cx + 1.5, cy + 1,
-                cx + 5, cy + 1, cx, cy + 7, cx - 5, cy + 1, cx - 1.5, cy + 1,
+                cx + 6, cy + 1, cx, cy + 7, cx - 5, cy + 1, cx - 1.5, cy + 1,
                 fill="#ffffff", outline="", tags="overlay")
         self._draw_watched_badge()
 
