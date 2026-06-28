@@ -11,6 +11,7 @@ import logging
 from ..i18n import _
 from ..constants import USER_APP_NAME
 from ..utils import get_sub_display_title, get_resource
+from ..language_config import apply as apply_language_config, parse_language_config
 from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
                        STATUS_PENDING, STATUS_ERROR)
 from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG
@@ -555,6 +556,17 @@ class DetailView(BaseView):
         sources = item.get("MediaSources") or []
         return sources[0] if sources else None
 
+    def _default_track_indices(self):
+        """Defaults shown in the pickers, matching what playback will actually do:
+        language_config wins, falling back to the server's session default. Keeps
+        the UI honest so the user's global preference isn't masked by the server."""
+        server_aid = self.media_source.get("DefaultAudioStreamIndex")
+        server_sid = self.media_source.get("DefaultSubtitleStreamIndex")
+        rules = parse_language_config(self.app.settings_values.get("language_config"))
+        rule_aid, rule_sid = apply_language_config(rules, self.media_source, self.item)
+        return (rule_aid if rule_aid is not None else server_aid,
+                rule_sid if rule_sid is not None else server_sid)
+
     def _build_track_pickers(self, parent):
         tk, ttk = self.app.tk, self.app.ttk
         if not self.media_source:
@@ -562,6 +574,7 @@ class DetailView(BaseView):
         streams = self.media_source.get("MediaStreams") or []
         audios = [s for s in streams if s.get("Type") == "Audio"]
         subs = [s for s in streams if s.get("Type") == "Subtitle"]
+        default_aid, default_sid = self._default_track_indices()
 
         row = tk.Frame(parent, bg=CARD_BG)
         row.pack(fill="x", pady=(4, 8))
@@ -570,7 +583,7 @@ class DetailView(BaseView):
             tk.Label(row, text=_("Audio:"), bg=CARD_BG, fg=SUBTLE_FG).pack(side="left")
             self.audio_var = tk.StringVar()
             labels = []
-            default_idx = self.media_source.get("DefaultAudioStreamIndex")
+            default_idx = default_aid
             default_label = None
             for s in audios:
                 label = s.get("DisplayTitle") or get_sub_display_title(s)
@@ -590,7 +603,7 @@ class DetailView(BaseView):
             none_label = _("None")
             labels = [none_label]
             self._sub_map[none_label] = None
-            default_idx = self.media_source.get("DefaultSubtitleStreamIndex")
+            default_idx = default_sid
             default_label = none_label
             for s in subs:
                 label = s.get("DisplayTitle") or get_sub_display_title(s)
