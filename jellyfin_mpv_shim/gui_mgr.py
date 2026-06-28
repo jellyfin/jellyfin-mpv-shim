@@ -140,6 +140,7 @@ class UserInterface(threading.Thread):
 
         self.browser_process = None
         self.browser_cmd_queue = None
+        self.browser_ready = False
         self._shutting_down = False
 
         threading.Thread.__init__(self)
@@ -171,15 +172,20 @@ class UserInterface(threading.Thread):
     def _die(self):
         self._shutting_down = True
         guiHandler.callback = None
+        # Stop pushing into queues we're about to tear down.
+        syncManager.on_change = lambda: None
+        syncManager.on_progress = lambda item_id, name, downloaded, total: None
 
         if self.browser_process is not None:
             self._send_browser(("die", None))
             self.browser_process.join(timeout=3)
             if self.browser_process.is_alive():
                 self.browser_process.terminate()
+                self.browser_process.join(timeout=1)
 
         if self.tray_process is not None:
             self.tray_process.terminate()
+            self.tray_process.join(timeout=1)
         self.dead = True
 
     # -- startup -----------------------------------------------------------
@@ -206,6 +212,7 @@ class UserInterface(threading.Thread):
                 "showing the window instead."
             )
 
+        self.browser_ready = False
         self.browser_cmd_queue = Queue()
         self.browser_process = BrowserProcess(
             self.browser_cmd_queue,
@@ -231,10 +238,11 @@ class UserInterface(threading.Thread):
         """Connected servers with tokens — what the browser browses with."""
         name_by_uuid = {
             cred.get("uuid"): cred.get("Name") or cred.get("address")
-            for cred in clientManager.credentials
+            for cred in list(clientManager.credentials)
         }
         servers = []
-        for uuid, client in clientManager.clients.items():
+        # Snapshot: the health-check thread can mutate clients mid-iteration.
+        for uuid, client in list(clientManager.clients.items()):
             cfg = client.config.data
             token = cfg.get("auth.token")
             user_id = cfg.get("auth.user_id")
@@ -258,7 +266,7 @@ class UserInterface(threading.Thread):
             "name": cred.get("Name") or cred.get("address"),
             "username": cred.get("username", ""),
             "connected": bool(cred.get("connected")),
-        } for cred in clientManager.credentials]
+        } for cred in list(clientManager.credentials)]
 
     def _browser_options(self, start_hidden):
         return {
@@ -315,10 +323,16 @@ class UserInterface(threading.Thread):
         self._mark_gui_ready()
 
     def on_ready_browser(self, _param):
+        self.browser_ready = True
         self._mark_gui_ready()
 
     def on_show(self, _param):
-        self._send_browser(("show", None))
+        # If the window process has gone (crash, or a failed first start), bring
+        # it back rather than messaging a dead queue.
+        if self.browser_process is None or not self.browser_process.is_alive():
+            self.start_browser()
+        else:
+            self._send_browser(("show", None))
 
     def on_window_closed(self, _param):
         # New paradigm: closing the window minimizes to the tray. With no tray
@@ -332,6 +346,25 @@ class UserInterface(threading.Thread):
 
     def on_browser_died(self, _param):
         if self._shutting_down:
+            return
+        was_ready = self.browser_ready
+        self.browser_ready = False
+        # Let the dead process be reaped and allow a later relaunch via on_show.
+        if self.browser_process is not None:
+            self.browser_process.join(timeout=0)
+            self.browser_process = None
+        if not was_ready:
+            # Never came up (e.g. no display / Tk init failure). Don't take the
+            # whole app down — keep running as a cast target; the tray (if any)
+            # can relaunch the window once the display is back.
+            log.warning("Library browser failed to start; continuing without a "
+                        "window. The app still works as a cast target%s.",
+                        " (use the tray to retry)" if self.tray_alive else "")
+            self._mark_gui_ready()
+            return
+        if self.tray_alive:
+            log.warning("Library browser exited unexpectedly; minimized to tray. "
+                        "Use the tray to reopen it.")
             return
         log.warning("Library browser exited unexpectedly; shutting down.")
         self.r_queue.put(("quit", None))

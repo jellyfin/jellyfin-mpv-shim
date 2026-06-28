@@ -46,16 +46,19 @@ def main():
 
     log = root_logger
 
-    if sys.platform.startswith("darwin"):
-        try:
-            # Use 'spawn' to avoid Objective-C fork crashes with GUI frameworks.
-            # - Python 3.7: default is 'fork' (unsafe with Obj-C)
-            # - Python 3.8+: default is 'spawn' (this is a no-op but explicit)
-            # - Python 3.14: 'forkserver' also crashes with Obj-C (issue #473)
-            multiprocessing.set_start_method("spawn")
-        except RuntimeError:
-            # Context already set, ignore
-            pass
+    try:
+        # Use 'spawn' for the tray/browser child processes on every platform.
+        # - macOS: avoids Objective-C fork crashes with GUI frameworks
+        #   (3.14's 'forkserver' also crashes with Obj-C, issue #473).
+        # - Linux/Windows: these children are forked *after* the timeline/action/
+        #   sync worker threads start, so a plain fork can inherit a held lock
+        #   (e.g. logging) and deadlock the child. 'spawn' gives a clean
+        #   interpreter; the children already rely only on their IPC-supplied
+        #   options, not inherited globals, so this is safe.
+        multiprocessing.set_start_method("spawn")
+    except RuntimeError:
+        # Context already set, ignore
+        pass
 
     user_interface = None
     mirror = None
