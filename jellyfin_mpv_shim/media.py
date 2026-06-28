@@ -29,16 +29,19 @@ def set_video_factory(factory):
     _video_factory = factory
 
 
-def build_video(item_id, parent, aid=None, sid=None, srcid=None):
+def build_video(item_id, parent, aid=None, sid=None, srcid=None,
+                explicit_tracks=False):
     if _video_factory is not None:
         try:
-            video = _video_factory(item_id, parent, aid, sid, srcid)
+            video = _video_factory(item_id, parent, aid, sid, srcid,
+                                   explicit_tracks=explicit_tracks)
             if video is not None:
                 return video
         except Exception:
             log.warning("Offline video factory failed for %s", item_id,
                         exc_info=True)
-    return Video(item_id, parent, aid, sid, srcid)
+    return Video(item_id, parent, aid, sid, srcid,
+                 explicit_tracks=explicit_tracks)
 
 
 class Intro(object):
@@ -57,12 +60,14 @@ class Video(object):
         aid: Optional[int] = None,
         sid: Optional[int] = None,
         srcid: Optional[str] = None,
+        explicit_tracks: bool = False,
     ):
         self.item_id = item_id
         self.parent = parent
         self.client = parent.client
         self.aid = aid
         self.sid = sid
+        self.explicit_tracks = explicit_tracks
         self.item = self.client.jellyfin.get_item(item_id)
 
         self.is_tv = self.item.get("Type") == "Episode"
@@ -121,6 +126,12 @@ class Video(object):
 
             if not sub.get("IsExternal"):
                 index += 1
+
+        # A deliberate selection in the library browser is final: its pickers
+        # already defaulted to language_config (then the server default), so
+        # the chosen aid/sid stand as-is — including sid=None meaning "no subs".
+        if self.explicit_tracks:
+            return
 
         # language_config overrides cast-time aid/sid; the user explicitly
         # opted into preferences and the menu is the runtime escape hatch.
@@ -555,6 +566,7 @@ class Media(object):
         sid: Optional[int] = None,
         srcid: Optional[str] = None,
         queue_override: bool = True,
+        explicit_tracks: bool = False,
     ):
         if queue_override:
             self.queue = [
@@ -567,7 +579,8 @@ class Media(object):
         self.seq = seq
         self.user_id = user_id
 
-        self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid)
+        self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid,
+                                 explicit_tracks=explicit_tracks)
         self.is_tv = self.video.is_tv
         try:
             self.is_local = is_local_domain(client) if client is not None else True

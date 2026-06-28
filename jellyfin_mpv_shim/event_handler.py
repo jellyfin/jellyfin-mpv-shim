@@ -44,12 +44,17 @@ def start_playback(
     sid=None,
     srcid=None,
     sync_play_group=None,
+    explicit_tracks=False,
 ):
     """Begin playback of one or more items from the beginning of `item_ids`.
 
     Shared by the websocket "Play" event and the local library browser so both
     funnel through identical setup (pre/post hooks, timeline, SyncPlay). Returns
     True if a playable video was found and handed to the player.
+
+    `explicit_tracks` marks aid/sid as a deliberate user choice (the library
+    browser's track pickers) that should be used as-is, bypassing the
+    language_config and server-default selection in Media.map_streams.
     """
     media = Media(
         client,
@@ -59,6 +64,7 @@ def start_playback(
         aid=aid,
         sid=sid,
         srcid=srcid,
+        explicit_tracks=explicit_tracks,
     )
 
     offset = offset_ticks

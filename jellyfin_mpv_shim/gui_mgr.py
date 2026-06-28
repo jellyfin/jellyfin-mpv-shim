@@ -358,6 +358,9 @@ class UserInterface(threading.Thread):
                 aid=payload.get("audio_index"),
                 sid=payload.get("subtitle_index"),
                 srcid=payload.get("media_source_id"),
+                # The browser's pickers already reflect language_config; the
+                # user's pick is final and must not be re-derived downstream.
+                explicit_tracks=True,
             )
         except Exception:
             log.error("Failed to start playback from library browser",

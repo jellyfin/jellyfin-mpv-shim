@@ -29,19 +29,22 @@ def should_play_local(item_id):
     return bool(settings.work_offline or settings.prefer_downloaded)
 
 
-def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None):
+def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None,
+                          explicit_tracks=False):
     db = syncManager.db
     if db is None or not db.is_complete(item_id):
         return None
     # Use local when there's no live client (fully offline), or by preference.
     if getattr(parent, "client", None) is None or settings.work_offline \
             or settings.prefer_downloaded:
-        return OfflineVideo(item_id, parent, aid, sid, srcid)
+        return OfflineVideo(item_id, parent, aid, sid, srcid,
+                            explicit_tracks=explicit_tracks)
     return None
 
 
 class OfflineVideo(Video):
-    def __init__(self, item_id, parent, aid=None, sid=None, srcid=None):
+    def __init__(self, item_id, parent, aid=None, sid=None, srcid=None,
+                 explicit_tracks=False):
         # Deliberately does NOT call super().__init__ (that hits the server).
         self.item_id = item_id
         self.parent = parent
@@ -49,6 +52,7 @@ class OfflineVideo(Video):
         self.aid = aid
         self.sid = sid
         self.srcid = srcid
+        self.explicit_tracks = explicit_tracks
 
         row = syncManager.db.get(item_id)
         if not row or not row.get("file_path"):
@@ -132,6 +136,11 @@ class OfflineVideo(Video):
                 self.subtitle_uid[index] = sub["Index"]
                 self.subtitle_seq[sub["Index"]] = index
                 index += 1
+
+        # A deliberate selection in the library browser is final (see
+        # Video.map_streams): use the chosen aid/sid as-is.
+        if self.explicit_tracks:
+            return
 
         rule_aid, rule_sid = apply_language_config(
             settings.language_config, source, self.item)
