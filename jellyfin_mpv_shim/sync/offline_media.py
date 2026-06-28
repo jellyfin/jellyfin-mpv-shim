@@ -143,7 +143,8 @@ class OfflineVideo(Video):
         user_sid = source.get("DefaultSubtitleStreamIndex")
         if user_aid is not None and self.aid is None:
             self.aid = user_aid
-        if user_sid is not None and self.sid is None:
+        if (user_sid is not None and self.sid is None
+                and settings.use_server_subtitle_default):
             self.sid = user_sid
 
     def set_played(self, watched=True):

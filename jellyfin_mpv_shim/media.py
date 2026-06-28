@@ -138,7 +138,11 @@ class Video(object):
         if user_aid is not None and self.aid is None:
             self.aid = user_aid
 
-        if user_sid is not None and self.sid is None:
+        # The server's default subtitle (subtitle language preference) is
+        # unreliable on recent Jellyfin; opt-in only. Between-episode remember
+        # + the language presets cover this instead.
+        if (user_sid is not None and self.sid is None
+                and settings.use_server_subtitle_default):
             self.sid = user_sid
 
     def get_current_streams(self):

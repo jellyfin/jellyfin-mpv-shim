@@ -139,6 +139,9 @@ class Settings(SettingsBase):
     lang_filter: str = "und,eng,jpn,mis,mul,zxx"
     lang_filter_sub: bool = False
     lang_filter_audio: bool = False
+    use_server_subtitle_default: bool = False
+    remember_audio_track: bool = True
+    remember_subtitle_track: bool = True
     force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
     raise_mpv: bool = True
