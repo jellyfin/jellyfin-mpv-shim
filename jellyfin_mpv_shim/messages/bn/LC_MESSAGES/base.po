@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-06-05 13:53-0400\n"
+"POT-Creation-Date: 2026-06-27 21:50-0400\n"
 "PO-Revision-Date: 2026-05-20 10:59+0000\n"
 "Last-Translator: Sarker Siam <siamsarker36@gmail.com>\n"
 "Language-Team: Bengali <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,107 +46,594 @@ msgstr "ম্যানুয়াল: {0} ঠিক আছে, {1} ব্য�
 msgid "Setting Current..."
 msgstr "বর্তমান সেট করা হচ্ছে..।"
 
-#: jellyfin_mpv_shim/clients.py:75
-msgid "Server URL: "
-msgstr "সার্ভার ইউ আর এল: "
+#: jellyfin_mpv_shim/clients.py:171
+msgid "Clearing all existing accounts."
+msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:76
-msgid "Username: "
-msgstr "ব্যবহারকারীর নাম: "
+#: jellyfin_mpv_shim/clients.py:180
+msgid "Account already exists. Updating credentials."
+msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:77
-msgid "Password: "
-msgstr "পাসওয়ার্ড: "
+#: jellyfin_mpv_shim/clients.py:182
+#, fuzzy
+#| msgid "Successfully added server."
+msgid "Successfully updated server credentials."
+msgstr "সার্ভার সফলভাবে যোগ করা হয়েছে।"
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:185
+#, fuzzy
+#| msgid "Adding server failed."
+msgid "Updating server credentials failed."
+msgstr "সার্ভার সংযুক্ত করা যায়নি।"
+
+#: jellyfin_mpv_shim/clients.py:191 jellyfin_mpv_shim/clients.py:206
 msgid "Successfully added server."
 msgstr "সার্ভার সফলভাবে যোগ করা হয়েছে।"
 
-#: jellyfin_mpv_shim/clients.py:83
-msgid "Add another server?"
-msgstr "আরেকটি সার্ভার যোগ করুন?"
-
-#: jellyfin_mpv_shim/clients.py:86
+#: jellyfin_mpv_shim/clients.py:193 jellyfin_mpv_shim/clients.py:210
 msgid "Adding server failed."
 msgstr "সার্ভার সংযুক্ত করা যায়নি।"
 
-#: jellyfin_mpv_shim/display_mirror/__init__.py:116
+#: jellyfin_mpv_shim/clients.py:196
+msgid "Server URL: "
+msgstr "সার্ভার ইউ আর এল: "
+
+#: jellyfin_mpv_shim/clients.py:197
+msgid "Username: "
+msgstr "ব্যবহারকারীর নাম: "
+
+#: jellyfin_mpv_shim/clients.py:199
+msgid "Password: "
+msgstr "পাসওয়ার্ড: "
+
+#: jellyfin_mpv_shim/clients.py:207
+msgid "Add another server?"
+msgstr "আরেকটি সার্ভার যোগ করুন?"
+
+#: jellyfin_mpv_shim/display_mirror.py:305
 msgid "Ready to cast"
 msgstr "কাস্ট করার জন্য প্রস্তুত"
 
-#: jellyfin_mpv_shim/display_mirror/__init__.py:118
-msgid "Select your media in Jellyfin and play it here"
+#: jellyfin_mpv_shim/display_mirror.py:306
+#, fuzzy
+#| msgid "Select your media in Jellyfin and play it here"
+msgid "Select your media in Jellyfin and play it here."
 msgstr "জেলিফিনে আপনার মিডিয়া নির্বাচন করুন এবং এখানে তা চালান"
 
-#: jellyfin_mpv_shim/gui_mgr.py:153
-msgid "Application Log"
-msgstr "অ্যাপলিকেশন লগ"
-
-#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
-msgid "Add Server"
-msgstr "সার্ভার সংযুক্ত করুন"
-
-#: jellyfin_mpv_shim/gui_mgr.py:246
-msgid ""
-"Could not add server.\n"
-"Please check your connection information."
+#: jellyfin_mpv_shim/gui_mgr.py:426
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not connect. Please check your details."
 msgstr ""
 "সার্ভার সংযুক্তি সম্ভব হয়নি.\n"
 "দয়া করে আপনার কানেকশনের তথ্য পর্যালোচনা করুন।"
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
-msgid "Fail"
-msgstr "ব্যর্থ"
+#: jellyfin_mpv_shim/gui_mgr.py:632
+msgid "Show Library Browser"
+msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
-msgid "Ok"
-msgstr "সফল"
-
-#: jellyfin_mpv_shim/gui_mgr.py:280
-msgid "Server Configuration"
-msgstr "সার্ভার কনফিগারেশন"
-
-#: jellyfin_mpv_shim/gui_mgr.py:303
-msgid "Server:"
-msgstr "সার্ভার:"
-
-#: jellyfin_mpv_shim/gui_mgr.py:308
-msgid "Username:"
-msgstr "ব্যবহারকারীর নাম:"
-
-#: jellyfin_mpv_shim/gui_mgr.py:313
-msgid "Password:"
-msgstr "পাসওয়ার্ড:"
-
-#: jellyfin_mpv_shim/gui_mgr.py:338
-msgid "Remove Server"
-msgstr "সার্ভার মুছে ফেলুন"
-
-#: jellyfin_mpv_shim/gui_mgr.py:341
-msgid "Close"
-msgstr "বন্ধ"
-
-#: jellyfin_mpv_shim/gui_mgr.py:454
+#: jellyfin_mpv_shim/gui_mgr.py:633
 msgid "Configure Servers"
 msgstr "সার্ভারসমূহ কনফিগার করুন"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:634
 msgid "Show Console"
 msgstr "কনসোল দেখান"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:635
 msgid "Application Menu"
 msgstr "অ্যাপলিকেশন মেনু"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:636
 msgid "Open Config Folder"
 msgstr "কনফিগ ফোল্ডার খুলুন"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:637
 msgid "Quit"
 msgstr "প্রস্থান"
 
-#: jellyfin_mpv_shim/media.py:139
+#: jellyfin_mpv_shim/library_browser/app.py:113
+msgid "◀ Back"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:116
+msgid "🏠 Home"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:119
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "⚙ Settings"
+msgstr "এসভিপি সেটিংস"
+
+#: jellyfin_mpv_shim/library_browser/app.py:136
+msgid "Search"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:146
+msgid "Go Online"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:158
+msgid "View Downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:187
+msgid "Offline — showing downloaded content."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:213
+#: jellyfin_mpv_shim/library_browser/app.py:234
+msgid "Server unreachable — showing downloads."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:218
+msgid "Preparing…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:220
+msgid "⬇ Downloading %(name)s%(pct)s — %(n)d remaining"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:344
+msgid "Something went wrong rendering this screen."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:142
+msgid "Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:148
+msgid "Next Up"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:152
+msgid "Recently Added Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:153
+msgid "Recently Added Episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:327
+msgid "Downloaded"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:334
+msgid "Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:338
+msgid "TV Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:351
+#: jellyfin_mpv_shim/library_browser/repository.py:429
+#: jellyfin_mpv_shim/library_browser/views.py:415
+#: jellyfin_mpv_shim/library_browser/views.py:968
+msgid "Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:360
+msgid "Downloaded Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:363
+msgid "Downloaded Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:389
+#: jellyfin_mpv_shim/library_browser/views.py:954
+msgid "Specials"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:391
+#: jellyfin_mpv_shim/library_browser/views.py:956
+msgid "Season %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:393
+#: jellyfin_mpv_shim/library_browser/views.py:957
+msgid "Episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:103
+#: jellyfin_mpv_shim/library_browser/views.py:278
+msgid "Loading…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:109
+msgid "Could not load content:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:190
+msgid "Libraries"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:209
+msgid "This server has no video libraries."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:214
+msgid "Name"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:215
+msgid "Date Added"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:216
+msgid "Release Date"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:217
+msgid "Community Rating"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:218
+msgid "Random"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:247
+msgid "Sort:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:308
+msgid "%d of %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:310
+msgid "Nothing here."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:314
+msgid "Failed to load."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:344
+#: jellyfin_mpv_shim/library_browser/views.py:417
+msgid "▶ Play Next Up"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:346
+#: jellyfin_mpv_shim/library_browser/views.py:490
+#: jellyfin_mpv_shim/library_browser/views.py:679
+#: jellyfin_mpv_shim/library_browser/widgets.py:183
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Mark unwatched"
+msgstr "প্রস্থান করুন ও 'অদেখা' প্রতীক লাগান"
+
+#: jellyfin_mpv_shim/library_browser/views.py:347
+#: jellyfin_mpv_shim/library_browser/views.py:423
+#: jellyfin_mpv_shim/library_browser/views.py:491
+#: jellyfin_mpv_shim/library_browser/views.py:679
+#: jellyfin_mpv_shim/library_browser/widgets.py:183
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Mark watched"
+msgstr "প্রস্থান করুন ও 'অদেখা' প্রতীক লাগান"
+
+#: jellyfin_mpv_shim/library_browser/views.py:355
+msgid "🗑 Remove downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:360
+msgid "⬇ Download Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:375
+msgid "Seasons"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:381
+msgid "No seasons found."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:392
+msgid "Season"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:415
+msgid "◀ %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:419
+msgid "⬇ Download Season"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:506
+msgid "Results for \"%s\""
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:520
+msgid "No results."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:553
+msgid "Item not found."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:622
+msgid "Audio:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:639
+#, fuzzy
+#| msgid "Change Subtitles"
+msgid "Subtitles:"
+msgstr "সাবটাইটেল পরিবর্তন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:642 jellyfin_mpv_shim/menu.py:310
+msgid "None"
+msgstr "কোনোটিই নয়"
+
+#: jellyfin_mpv_shim/library_browser/views.py:665
+msgid "Resume from %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:668
+msgid "Play from start"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:671
+msgid "▶ Play"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:675
+msgid "Go to Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:685
+msgid "🗑 Remove download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:689
+msgid "⬇ Download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:730
+#, fuzzy
+#| msgid "Server URL: "
+msgid "Server URL"
+msgstr "সার্ভার ইউ আর এল: "
+
+#: jellyfin_mpv_shim/library_browser/views.py:731
+#, fuzzy
+#| msgid "Username:"
+msgid "Username"
+msgstr "ব্যবহারকারীর নাম:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:732
+#, fuzzy
+#| msgid "Password:"
+msgid "Password"
+msgstr "পাসওয়ার্ড:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:756
+msgid "Server and username are required."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:758
+msgid "Connecting…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:771
+msgid "Could not connect. Check your details."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:793
+msgid "Sign in to your Jellyfin server"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:795
+msgid "Connect"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:819
+#: jellyfin_mpv_shim/library_browser/views.py:1252
+#, fuzzy
+#| msgid "Server:"
+msgid "Servers"
+msgstr "সার্ভার:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:823
+#, fuzzy
+#| msgid "Server Configuration"
+msgid "No servers configured yet."
+msgstr "সার্ভার কনফিগারেশন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:828
+msgid "Connected"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:828
+msgid "Offline"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:836
+#: jellyfin_mpv_shim/library_browser/views.py:1022
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Remove"
+msgstr "সার্ভার মুছে ফেলুন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:840
+#, fuzzy
+#| msgid "Add Server"
+msgid "Add a server"
+msgstr "সার্ভার সংযুক্ত করুন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:843
+msgid "Add Server"
+msgstr "সার্ভার সংযুক্ত করুন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:915
+msgid "Downloads — %s used"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:919
+msgid "Nothing downloaded yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:935
+msgid "Movies & Videos"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:976
+msgid "Remove show"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:980
+msgid "Remove watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1003
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Remove season"
+msgstr "সার্ভার মুছে ফেলুন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1028
+msgid "watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1039
+#: jellyfin_mpv_shim/library_browser/views.py:1051
+msgid "Downloading %d%%"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1041
+msgid "Queued"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1043
+#, fuzzy
+#| msgid "Fail"
+msgid "Failed"
+msgstr "ব্যর্থ"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1063
+msgid "Interface"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1065
+msgid "Playback"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1068
+msgid "Subtitles & Languages"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1073
+#, fuzzy
+#| msgid " (Transcode)"
+msgid "Transcoding"
+msgstr " (ট্রান্সকোড)"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1078
+#, fuzzy
+#| msgid "Seek to Skip Credits"
+msgid "Skip Intro / Credits"
+msgstr "ক্রেডিট স্কিপ করতে সিক করুন"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1080
+msgid "Library Browser"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1093
+msgid "Unset"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1094
+msgid "Dubbed (shows only)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1095
+msgid "Subbed (shows only)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1096
+msgid "Dubbed (all)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1097
+msgid "Subbed (all)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1098
+msgid "Custom (set in config)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1136
+msgid "Show advanced settings"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1144
+msgid "Advanced"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1150
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Save Settings"
+msgstr "এসভিপি সেটিংস"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1152
+msgid "Some changes take effect after restarting."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1212
+msgid "Saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1250
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Settings"
+msgstr "এসভিপি সেটিংস"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1251
+msgid "Downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1253
+msgid "Logs"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1311
+#: jellyfin_mpv_shim/library_browser/views.py:1317
+#: jellyfin_mpv_shim/library_browser/views.py:1334
+msgid "Download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1320
+msgid "Estimating download size…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1327
+msgid "Include watched episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1333
+msgid "Cancel"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1345
+msgid "%(n)d item(s), about %(size)s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1348
+msgid "%d watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1350
+msgid "%d already downloaded"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py:181
 msgid " (Transcode)"
 msgstr " (ট্রান্সকোড)"
 
@@ -206,243 +693,239 @@ msgstr "বড়"
 msgid "Huge"
 msgstr "সুবিশাল"
 
-#: jellyfin_mpv_shim/menu.py:130
+#: jellyfin_mpv_shim/menu.py:127
 msgid "Main Menu"
 msgstr "প্রধান মেনু"
 
-#: jellyfin_mpv_shim/menu.py:136
+#: jellyfin_mpv_shim/menu.py:133
 msgid "Change Audio"
 msgstr "শব্দ ট্র্যাক পরিবর্তন"
 
-#: jellyfin_mpv_shim/menu.py:137
+#: jellyfin_mpv_shim/menu.py:134
 msgid "Change Subtitles"
 msgstr "সাবটাইটেল পরিবর্তন"
 
-#: jellyfin_mpv_shim/menu.py:138
+#: jellyfin_mpv_shim/menu.py:135
 msgid "Change Video Quality"
 msgstr "ভিডিয়ো গুণমান পরিবর্তন"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
+#: jellyfin_mpv_shim/menu.py:136 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "সিঙ্কপ্লে"
 
-#: jellyfin_mpv_shim/menu.py:145
+#: jellyfin_mpv_shim/menu.py:142
 msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0} প্রকাশের তথ্য/ডাউনলোড"
 
-#: jellyfin_mpv_shim/menu.py:153
+#: jellyfin_mpv_shim/menu.py:150
 msgid "Change Video Playback Profile"
 msgstr "ভিডিও প্লেব্যাক প্রোফাইল পরিবর্তন করুন"
 
-#: jellyfin_mpv_shim/menu.py:158
-msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "স্বয়ংক্রিয় অডিয়ো/সাবটাইটেল নির্বাচন (সম্পূর্ণ সিরিজ)"
-
-#: jellyfin_mpv_shim/menu.py:163
+#: jellyfin_mpv_shim/menu.py:159
 msgid "Quit and Mark Unwatched"
 msgstr "প্রস্থান করুন ও 'অদেখা' প্রতীক লাগান"
 
-#: jellyfin_mpv_shim/menu.py:166
+#: jellyfin_mpv_shim/menu.py:162
 msgid "Screenshot"
 msgstr "স্ক্রিনশট"
 
-#: jellyfin_mpv_shim/menu.py:170
+#: jellyfin_mpv_shim/menu.py:166
 msgid "Video Playback Profiles"
 msgstr "ভিডিও প্লেব্যাক প্রোফাইলসমূহ"
 
-#: jellyfin_mpv_shim/menu.py:173
+#: jellyfin_mpv_shim/menu.py:169
 msgid "SVP Settings"
 msgstr "এসভিপি সেটিংস"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
+#: jellyfin_mpv_shim/menu.py:173 jellyfin_mpv_shim/menu.py:525
 msgid "Video Preferences"
 msgstr "ভিডিও পছন্দসমূহ"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
+#: jellyfin_mpv_shim/menu.py:174 jellyfin_mpv_shim/menu.py:548
 msgid "Player Preferences"
 msgstr "প্লেয়ার পছন্দসমূহ"
 
-#: jellyfin_mpv_shim/menu.py:179
+#: jellyfin_mpv_shim/menu.py:175
 msgid "Close Menu"
 msgstr "মেনু বন্ধ করুন"
 
-#: jellyfin_mpv_shim/menu.py:261
+#: jellyfin_mpv_shim/menu.py:265
 msgid "Select Audio Track"
 msgstr "অডিও ট্র্যাক নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:298
+#: jellyfin_mpv_shim/menu.py:302
 msgid "Select Subtitle Track"
 msgstr "সাবটাইটেল ট্র্যাক নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:306
-msgid "None"
-msgstr "কোনোটিই নয়"
-
-#: jellyfin_mpv_shim/menu.py:345
+#: jellyfin_mpv_shim/menu.py:349
 msgid "Select Transcode Quality"
 msgstr "ট্রান্সকোড মান নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:346
+#: jellyfin_mpv_shim/menu.py:350
 msgid "Maximum"
 msgstr "সর্বাধিক"
 
-#: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
+#: jellyfin_mpv_shim/menu.py:350 jellyfin_mpv_shim/menu.py:427
 msgid "No Transcode"
 msgstr "কোনো ট্রান্সকোড নয়"
 
-#: jellyfin_mpv_shim/menu.py:382
+#: jellyfin_mpv_shim/menu.py:386
 msgid "Select Audio/Subtitle for Series"
 msgstr "সিরিজের জন্য অডিও/সাবটাইটেল নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:384
+#: jellyfin_mpv_shim/menu.py:388
 msgid "English Audio"
 msgstr "ইংরেজি অডিও"
 
-#: jellyfin_mpv_shim/menu.py:386
+#: jellyfin_mpv_shim/menu.py:390
 msgid "Japanese Audio w/ English Subtitles"
 msgstr "জাপানি অডিও সহ / ইংরেজি সাবটাইটেল"
 
-#: jellyfin_mpv_shim/menu.py:391
+#: jellyfin_mpv_shim/menu.py:395
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "ম্যানুয়াল ট্র্যাক ইনডেক্স দ্বারা (কম নির্ভরযোগ্য)"
 
-#: jellyfin_mpv_shim/menu.py:421
+#: jellyfin_mpv_shim/menu.py:425
 msgid "Select Default Transcode Profile"
 msgstr "ডিফল্ট ট্রান্সকোড প্রোফাইল নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:456
+#: jellyfin_mpv_shim/menu.py:460
 msgid "Select Subtitle Color"
 msgstr "সাবটাইটেল রঙ নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:465
+#: jellyfin_mpv_shim/menu.py:469
 msgid "Select Subtitle Size"
 msgstr "সাবটাইটেল সাইজ নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:475
+#: jellyfin_mpv_shim/menu.py:479
 msgid "Select Subtitle Position"
 msgstr "সাবটাইটেল অবস্থান নির্বাচন করুন"
 
-#: jellyfin_mpv_shim/menu.py:477
+#: jellyfin_mpv_shim/menu.py:481
 msgid "Bottom"
 msgstr "নিচে"
 
-#: jellyfin_mpv_shim/menu.py:478
+#: jellyfin_mpv_shim/menu.py:482
 msgid "Top"
 msgstr "উপরে"
 
-#: jellyfin_mpv_shim/menu.py:479
+#: jellyfin_mpv_shim/menu.py:483
 msgid "Middle"
 msgstr "মধ্যভাগে"
 
-#: jellyfin_mpv_shim/menu.py:486
+#: jellyfin_mpv_shim/menu.py:490
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "রিমোট ট্রান্সকোড মান: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:492
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Size: {0}"
 msgstr "সাবটাইটেল সাইজ: {0}"
 
-#: jellyfin_mpv_shim/menu.py:496
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Position: {0}"
 msgstr "সাবটাইটেল অবস্থান: {0}"
 
-#: jellyfin_mpv_shim/menu.py:500
+#: jellyfin_mpv_shim/menu.py:504
 msgid "Subtitle Color: {0}"
 msgstr "সাবটাইটেল রঙ: {0}"
 
-#: jellyfin_mpv_shim/menu.py:505
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
 msgstr "Hi10p ট্রান্সকোড 8bit এ"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Transcode HDR"
 msgstr "HDR ট্রান্সকোড করুন"
 
-#: jellyfin_mpv_shim/menu.py:507
+#: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
 msgstr "ডিরেক্ট পাথসমূহ"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:512
 msgid "Disable Direct Play"
 msgstr "ডিরেক্ট প্লে অক্ষম করুন"
 
-#: jellyfin_mpv_shim/menu.py:514
+#: jellyfin_mpv_shim/menu.py:518
 msgid "Video Profile Subtype: {0}"
 msgstr "ভিডিও প্রোফাইল সাবটাইপ: {0}"
 
-#: jellyfin_mpv_shim/menu.py:525
+#: jellyfin_mpv_shim/menu.py:529
 msgid "Video Profile Subtype"
 msgstr "ভিডিও প্রোফাইল সাবটাইপ"
 
-#: jellyfin_mpv_shim/menu.py:546
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Auto Play"
 msgstr "অটো প্লে"
 
-#: jellyfin_mpv_shim/menu.py:547
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Fullscreen"
 msgstr "অটো ফুলস্ক্রিন"
 
-#: jellyfin_mpv_shim/menu.py:548
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Media Key Seek"
 msgstr "মিডিয়া কী সিক"
 
-#: jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Use Web Seek Pref"
 msgstr "ওয়েব সিক পছন্দ ব্যবহার করুন"
 
-#: jellyfin_mpv_shim/menu.py:550
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Display Mirroring"
 msgstr "ডিসপ্লে মিররিং"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Write Logs to File"
 msgstr "লগ ফাইলে লিখুন"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Check for Updates"
 msgstr "আপডেট চেক করুন"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:558
 msgid "Discord Rich Presence"
 msgstr "ডিসকর্ড রিচ প্রেজেন্স"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:560
 msgid "Always Skip Intros"
 msgstr "সর্বদা ইন্ট্রো স্কিপ করুন"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Ask to Skip Intros"
 msgstr "ইন্ট্রো স্কিপ করতে জিজ্ঞাসা করুন"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:563
 msgid "Always Skip Credits"
 msgstr "সর্বদা ক্রেডিট স্কিপ করুন"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:566
 msgid "Ask to Skip Credits"
 msgstr "ক্রেডিট স্কিপ করতে জিজ্ঞাসা করুন"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:569
 msgid "Enable thumbnail previews"
 msgstr "থাম্বনেইল প্রিভিউ সক্ষম করুন"
 
-#: jellyfin_mpv_shim/player.py:487
+#: jellyfin_mpv_shim/player.py:362
+msgid "Please wait, loading..."
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:634
 msgid "Skipped Credits"
 msgstr "ক্রেডিট স্কিপ হয়েছে"
 
-#: jellyfin_mpv_shim/player.py:487
+#: jellyfin_mpv_shim/player.py:636
 msgid "Skipped Intro"
 msgstr "ইন্ট্রো স্কিপ হয়েছে"
 
-#: jellyfin_mpv_shim/player.py:490
+#: jellyfin_mpv_shim/player.py:650
 msgid "Seek to Skip Credits"
 msgstr "ক্রেডিট স্কিপ করতে সিক করুন"
 
-#: jellyfin_mpv_shim/player.py:490
+#: jellyfin_mpv_shim/player.py:652
 msgid "Seek to Skip Intro"
 msgstr "ইন্ট্রো স্কিপ করতে সিক করুন"
 
-#: jellyfin_mpv_shim/player.py:598
+#: jellyfin_mpv_shim/player.py:783
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -450,7 +933,7 @@ msgstr ""
 "আপনার রিমোট ভিডিও ট্রান্সকোড হচ্ছে!\n"
 "যদি এটি প্রয়োজন না হয়, ব্যান্ডউইথ সেটিংস সমন্বয় করতে c চাপুন।"
 
-#: jellyfin_mpv_shim/player.py:965
+#: jellyfin_mpv_shim/player.py:1231
 msgid "Season {0} - Episode {1}"
 msgstr "সিজন {0} - এপিসোড {1}"
 
@@ -555,11 +1038,11 @@ msgstr ""
 "MPV Shim v{0} আপডেট উপলব্ধ\n"
 "বিস্তারিত জানার জন্য মেনু খুলুন (c চাপুন)।"
 
-#: jellyfin_mpv_shim/utils.py:307
+#: jellyfin_mpv_shim/utils.py:331
 msgid "Unkn"
 msgstr "অজানা"
 
-#: jellyfin_mpv_shim/utils.py:308
+#: jellyfin_mpv_shim/utils.py:332
 msgid " Forced"
 msgstr " জবরদস্তি"
 
@@ -598,3 +1081,15 @@ msgstr "Anime4K x2 পারসেপচুয়াল + ডিব্লার 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "শেডার প্রোফাইল নির্বাচন করুন"
+
+#~ msgid "Application Log"
+#~ msgstr "অ্যাপলিকেশন লগ"
+
+#~ msgid "Ok"
+#~ msgstr "সফল"
+
+#~ msgid "Close"
+#~ msgstr "বন্ধ"
+
+#~ msgid "Auto Set Audio/Subtitles (Entire Series)"
+#~ msgstr "স্বয়ংক্রিয় অডিয়ো/সাবটাইটেল নির্বাচন (সম্পূর্ণ সিরিজ)"
