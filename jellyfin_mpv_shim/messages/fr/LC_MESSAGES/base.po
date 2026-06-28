@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-05-15 14:08+0000\n"
-"Last-Translator: Ziad El Kalali <ziadad@hotmail.fr>\n"
+"PO-Revision-Date: 2026-06-28 13:23+0000\n"
+"Last-Translator: Romain Sickenberg <haux49@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -31,9 +31,8 @@ msgid "{0}: Fail"
 msgstr "{0} : Échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:146
-#, fuzzy
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Définition des sous-titres : {0} OK, {1} échec"
+msgstr "Définition des sous-titres : {0} OK, {1} échec"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:151
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
