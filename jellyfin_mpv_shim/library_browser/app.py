@@ -257,9 +257,11 @@ class BrowserApp:
             self.options.get("player_name", "mpv-shim"), self._verify_ssl)
         self._live_servers = connected
         self.home_cache = {}
-        server_list = self.source.servers()
-        if self.current_server not in {s["uuid"] for s in server_list}:
-            self.current_server = server_list[0]["uuid"] if server_list else None
+        # Keep the current selection if it's still connected, otherwise restore
+        # the last-used server (falling back to the first) — don't just grab
+        # whichever server resolved first.
+        if self.current_server not in {s["uuid"] for s in self.source.servers()}:
+            self.current_server = self._initial_server()
 
     def offline_fallback(self):
         """Auto-switch to the catalog when the live server is unreachable."""
