@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-06-27 23:34+0200\n"
+"POT-Creation-Date: 2026-06-28 21:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,70 +43,66 @@ msgstr ""
 msgid "Setting Current..."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:181
+#: jellyfin_mpv_shim/clients.py:178
 msgid "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:187
+#: jellyfin_mpv_shim/clients.py:184
 msgid "Waiting for authorization..."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:208
+#: jellyfin_mpv_shim/clients.py:205
 msgid "Clearing all existing accounts."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:217 jellyfin_mpv_shim/clients.py:238
-#: jellyfin_mpv_shim/clients.py:256
+#: jellyfin_mpv_shim/clients.py:214 jellyfin_mpv_shim/clients.py:235
+#: jellyfin_mpv_shim/clients.py:253
 msgid "Successfully added server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:220 jellyfin_mpv_shim/clients.py:240
-#: jellyfin_mpv_shim/clients.py:260
+#: jellyfin_mpv_shim/clients.py:217 jellyfin_mpv_shim/clients.py:237
+#: jellyfin_mpv_shim/clients.py:257
 msgid "Adding server failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:227
+#: jellyfin_mpv_shim/clients.py:224
 msgid "Account already exists. Updating credentials."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:229
+#: jellyfin_mpv_shim/clients.py:226
 msgid "Successfully updated server credentials."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:232
+#: jellyfin_mpv_shim/clients.py:229
 msgid "Updating server credentials failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:243
+#: jellyfin_mpv_shim/clients.py:240
 msgid "Server URL: "
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:247
+#: jellyfin_mpv_shim/clients.py:244
 msgid "Username: "
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:249
+#: jellyfin_mpv_shim/clients.py:246
 msgid "Password: "
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:257
+#: jellyfin_mpv_shim/clients.py:254
 msgid "Add another server?"
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:447
+#: jellyfin_mpv_shim/clients.py:420
 msgid "Could not connect to the server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:451
+#: jellyfin_mpv_shim/clients.py:425
 msgid "Quick Connect is not enabled on this server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:455
+#: jellyfin_mpv_shim/clients.py:429
 msgid "Could not start Quick Connect."
-msgstr ""
-
-#: jellyfin_mpv_shim/clients.py:520
-msgid "Quick Connect returned an unknown server."
 msgstr ""
 
 #: jellyfin_mpv_shim/display_mirror.py:305
