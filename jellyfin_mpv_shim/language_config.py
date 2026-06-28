@@ -222,3 +222,41 @@ def apply(
             return result
     log.info("no rule matched")
     return None, None
+
+
+def _resolve_preset(preference, preferred_lang, source, item):
+    """Simple Dubbed/Subbed presets (the settings dropdown).
+
+    Dubbed: preferred-language audio + subtitles off (sid -1).
+    Subbed: subtitles in the preferred language (audio left to default).
+    "_shows" variants apply to episodes only.
+    """
+    if preference.endswith("_shows") and item.get("Type") != "Episode":
+        return None, None
+    streams = source.get("MediaStreams") or []
+    lang = (preferred_lang or "eng").strip().lower()
+    if preference.startswith("dubbed"):
+        audio = [s for s in streams if s.get("Type") == "Audio"]
+        match = next((s for s in audio
+                      if (s.get("Language") or "").lower() == lang), None)
+        return (match["Index"] if match else None), -1
+    if preference.startswith("subbed"):
+        subs = [s for s in streams if s.get("Type") == "Subtitle"
+                and (s.get("Language") or "").lower() == lang]
+        best = _pick_best_sub(subs, "full")
+        return None, (best["Index"] if best else None)
+    return None, None
+
+
+def resolve(source, item) -> Tuple[Optional[int], Optional[int]]:
+    """Resolve audio/subtitle preference: the dropdown preset, the custom
+    language_config rules, or nothing."""
+    from .conf import settings  # deferred: conf imports this module
+
+    pref = getattr(settings, "language_preference", "custom") or "unset"
+    if pref == "custom":
+        return apply(settings.language_config, source, item)
+    if pref == "unset":
+        return None, None
+    return _resolve_preset(pref, getattr(settings, "preferred_language", "eng"),
+                           source, item)

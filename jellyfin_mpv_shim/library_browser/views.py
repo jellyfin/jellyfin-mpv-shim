@@ -1008,7 +1008,9 @@ SETTINGS_SECTIONS = [
                      "remote_kbps", "direct_paths", "remote_direct_paths",
                      "playback_timeout"]),
     (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
-                                  "subtitle_position", "lang_filter",
+                                  "subtitle_position", "language_preference",
+                                  "preferred_language", "remember_audio_track",
+                                  "remember_subtitle_track", "lang_filter",
                                   "lang_filter_sub", "lang_filter_audio"]),
     (_("Transcoding"), ["allow_transcode_to_h265", "prefer_transcode_to_h265",
                         "transcode_hevc", "transcode_av1", "transcode_4k",
@@ -1025,6 +1027,18 @@ SETTINGS_ENUMS = {
     "subtitle_position": ["top", "bottom"],
     "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
     "shader_pack_subtype": ["lq", "hq"],
+}
+
+# Enums with friendly labels distinct from the stored value.
+SETTINGS_LABELED_ENUMS = {
+    "language_preference": [
+        (_("Unset"), "unset"),
+        (_("Dubbed (shows only)"), "dubbed_shows"),
+        (_("Subbed (shows only)"), "subbed_shows"),
+        (_("Dubbed (all)"), "dubbed_all"),
+        (_("Subbed (all)"), "subbed_all"),
+        (_("Custom (set in config)"), "custom"),
+    ],
 }
 
 _ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC", "mpv": "MPV",
@@ -1106,6 +1120,14 @@ class SettingsPanel:
                 var = tk.BooleanVar(value=bool(value))
                 ttk.Checkbutton(grid, variable=var).grid(row=row, column=1,
                                                          sticky="w", pady=3)
+            elif key in SETTINGS_LABELED_ENUMS:
+                opts = SETTINGS_LABELED_ENUMS[key]
+                val_to_label = {v: l for l, v in opts}
+                var = tk.StringVar(value=val_to_label.get(str(value), opts[0][0]))
+                ttk.Combobox(grid, textvariable=var, state="readonly", width=28,
+                             values=[l for l, _v in opts]).grid(
+                    row=row, column=1, sticky="w", pady=3)
+                vtype = "labeled"
             elif key in SETTINGS_ENUMS:
                 var = tk.StringVar(value="" if value is None else str(value))
                 ttk.Combobox(grid, textvariable=var, state="readonly", width=28,
@@ -1122,9 +1144,12 @@ class SettingsPanel:
         for key, (var, vtype) in self.vars.items():
             if vtype == "bool":
                 changes[key] = bool(var.get())
+            elif vtype == "labeled":
+                label_to_val = {l: v for l, v in SETTINGS_LABELED_ENUMS[key]}
+                changes[key] = label_to_val.get(var.get(),
+                                                SETTINGS_LABELED_ENUMS[key][0][1])
             else:
-                text = var.get().strip()
-                changes[key] = text  # main coerces; empty string -> None/blank
+                changes[key] = var.get().strip()  # main coerces; "" -> None/blank
         self.app.save_settings(changes)
         self.status.config(text=_("Saved."))
 
@@ -1133,9 +1158,16 @@ class SettingsPanel:
         # adjusted them).
         self.app.settings_values = values
         for key, (var, vtype) in self.vars.items():
-            if key in values:
-                var.set(values[key] if vtype == "bool"
-                        else ("" if values[key] is None else str(values[key])))
+            if key not in values:
+                continue
+            if vtype == "bool":
+                var.set(values[key])
+            elif vtype == "labeled":
+                val_to_label = {v: l for l, v in SETTINGS_LABELED_ENUMS[key]}
+                var.set(val_to_label.get(str(values[key]),
+                                         SETTINGS_LABELED_ENUMS[key][0][0]))
+            else:
+                var.set("" if values[key] is None else str(values[key]))
 
 
 class SettingsView(BaseView):

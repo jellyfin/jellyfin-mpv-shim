@@ -142,6 +142,8 @@ class Settings(SettingsBase):
     use_server_subtitle_default: bool = False
     remember_audio_track: bool = True
     remember_subtitle_track: bool = True
+    language_preference: str = "custom"
+    preferred_language: str = "eng"
     force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
     raise_mpv: bool = True

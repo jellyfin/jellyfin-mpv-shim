@@ -13,7 +13,7 @@ import logging
 import os
 
 from ..conf import settings
-from ..language_config import apply as apply_language_config
+from ..language_config import resolve as resolve_language_pref
 from ..media import Video
 from .manager import syncManager
 
@@ -133,8 +133,7 @@ class OfflineVideo(Video):
                 self.subtitle_seq[sub["Index"]] = index
                 index += 1
 
-        rule_aid, rule_sid = apply_language_config(
-            settings.language_config, source, self.item)
+        rule_aid, rule_sid = resolve_language_pref(source, self.item)
         if rule_aid is not None:
             self.aid = rule_aid
         if rule_sid is not None:
