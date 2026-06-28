@@ -306,6 +306,7 @@ class OfflineLibrarySource:
         self._items = []
         self._series_server = {}  # series_id -> server_id (for series artwork)
         self._season_server = {}  # season_id -> server_id (for season artwork)
+        self._season_series = {}  # season_id -> series_id (artwork fallback)
         for row in rows:
             try:
                 self._items.append(json.loads(row["item_json"]))
@@ -316,6 +317,8 @@ class OfflineLibrarySource:
                 if row.get("season_id"):
                     self._season_server.setdefault(row["season_id"],
                                                    row.get("server_id"))
+                    self._season_series.setdefault(row["season_id"],
+                                                   row["series_id"])
 
     def stop(self):
         pass
@@ -391,8 +394,11 @@ class OfflineLibrarySource:
             seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
                          "Type": "Season", "ImageTags": {}, "IndexNumber": pidx}
             order.append(key)
+        # Match Jellyfin's online order: by season number ascending (Specials =
+        # 0 first), with any unnumbered seasons last.
         return sorted((seen[k] for k in order),
-                      key=lambda s: s.get("IndexNumber") or 0)
+                      key=lambda s: (s.get("IndexNumber") is None,
+                                     s.get("IndexNumber") or 0))
 
     def get_episodes(self, server_uuid, series_id, season_id):
         eps = [i for i in self._items
@@ -469,12 +475,19 @@ class OfflineLibrarySource:
                                       self._series_server[item_id] or "server",
                                       "series", item_id)
             return self._in_dir(series_dir, name)
-        # Season artwork.
+        # Season artwork, falling back to the series image when the season has
+        # no specific artwork.
         if item_id in self._season_server:
             season_dir = os.path.join(self.root,
                                       self._season_server[item_id] or "server",
                                       "season", item_id)
-            return self._in_dir(season_dir, name)
+            found = self._in_dir(season_dir, name)
+            if found:
+                return found
+            series_id = self._season_series.get(item_id)
+            if series_id:
+                return self._art_path(series_id, image_type)
+            return None
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
             return self._representative(("Movie", "Video"))
