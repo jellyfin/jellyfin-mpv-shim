@@ -505,15 +505,21 @@ class BrowserApp:
             except Exception:
                 log.debug("UI callback error", exc_info=True)
 
-        while True:
-            try:
-                cmd, param = self.cmd_queue.get_nowait()
-            except queue.Empty:
-                break
-            self._handle_cmd(cmd, param)
-
-        if not self._closing:
-            self.root.after(30, self._pump)
+        try:
+            while True:
+                try:
+                    cmd, param = self.cmd_queue.get_nowait()
+                except queue.Empty:
+                    break
+                try:
+                    self._handle_cmd(cmd, param)
+                except Exception:
+                    # A throwing handler must never kill the pump — that would
+                    # freeze all further IPC (show/hide, progress, even die).
+                    log.error("IPC command %r failed", cmd, exc_info=True)
+        finally:
+            if not self._closing:
+                self.root.after(30, self._pump)
 
     def _handle_cmd(self, cmd, param):
         if cmd == "show":

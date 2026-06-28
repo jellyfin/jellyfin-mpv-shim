@@ -401,9 +401,20 @@ class OfflineLibrarySource:
                                      s.get("IndexNumber") or 0))
 
     def get_episodes(self, server_uuid, series_id, season_id):
-        eps = [i for i in self._items
-               if i.get("Type") == "Episode" and i.get("SeriesId") == series_id
-               and i.get("SeasonId") == season_id]
+        # Seasons without a real SeasonId get a synthetic "p<ParentIndexNumber>"
+        # id in get_seasons; match those back by ParentIndexNumber (a real
+        # SeasonId is a hex GUID and never starts with "p").
+        synthetic = isinstance(season_id, str) and season_id.startswith("p")
+        eps = []
+        for i in self._items:
+            if i.get("Type") != "Episode" or i.get("SeriesId") != series_id:
+                continue
+            if synthetic:
+                if ("p%s" % i.get("ParentIndexNumber")) != season_id:
+                    continue
+            elif i.get("SeasonId") != season_id:
+                continue
+            eps.append(i)
         eps.sort(key=lambda i: (i.get("ParentIndexNumber") or 0,
                                 i.get("IndexNumber") or 0))
         return eps

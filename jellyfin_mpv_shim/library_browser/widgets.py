@@ -174,6 +174,19 @@ class MediaTile:
         except Exception:
             pass
 
+    def unload(self):
+        """Release the artwork bitmap when scrolled far off-screen so memory
+        doesn't grow without bound on a large library. The thumbnail store's
+        cache makes the reload on scroll-back cheap; load() re-requests it."""
+        if not self._requested:
+            return
+        try:
+            self.canvas.delete("img")
+        except Exception:
+            pass
+        self._photo = None
+        self._requested = False
+
 
 class ScrollableGrid:
     """Vertically scrolling responsive grid of MediaTiles with lazy artwork.
@@ -318,11 +331,17 @@ class ScrollableGrid:
         except Exception:
             return
         pad = self.gutter // 2
+        # Keep a generous band loaded around the viewport; release bitmaps for
+        # tiles well outside it so memory tracks the window, not scroll depth.
+        unload_margin = READAHEAD_MARGIN_PX * 4
         for i, tile in enumerate(self.tiles):
             y = pad + (i // self._cols) * self.row_h
             if y + self.row_h >= top - READAHEAD_MARGIN_PX and \
                     y <= bottom + READAHEAD_MARGIN_PX:
                 tile.load()
+            elif y + self.row_h < top - unload_margin or \
+                    y > bottom + unload_margin:
+                tile.unload()
 
         if self.on_near_end and self._near_end_armed:
             try:

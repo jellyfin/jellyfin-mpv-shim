@@ -288,6 +288,14 @@ class GridView(BaseView):
             items, total = result
             self.total = total
             self.loaded += len(items)
+            # An empty page while we still think there's more would otherwise
+            # re-arm near-end and request the same page forever — stop here.
+            if not items and (total is None or self.loaded < total):
+                self.total = self.loaded
+            # Random reshuffles per request, so a second page would repeat/skip
+            # items — cap it to the first page.
+            if SORTS[self.sort_idx][1] == "Random":
+                self.total = self.loaded
             if self._first:
                 self.grid.set_items(items, server, image_type="Primary",
                                     on_click=self.app.open_item)
@@ -549,7 +557,12 @@ class DetailView(BaseView):
                 fill="x", pady=(0, 10))
 
         self.media_source = self._pick_source(item)
-        self._build_track_pickers(body)
+        try:
+            self._build_track_pickers(body)
+        except Exception:
+            # Never let a track-picker failure strand the page without a Play
+            # button — fall back to default tracks.
+            log.warning("Track picker build failed", exc_info=True)
         self._build_actions(body, item)
 
     def _pick_source(self, item):
