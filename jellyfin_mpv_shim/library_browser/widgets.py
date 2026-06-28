@@ -143,7 +143,7 @@ class MediaTile:
         if app.is_downloaded(item):
             self.canvas.create_oval(w - 28, 6, w - 6, 28, fill=ACCENT,
                                     outline="#101216", tags="overlay")
-            self.canvas.create_text(w - 17, 16, text="✓", fill="#ffffff",
+            self.canvas.create_text(w - 17, 15, text="⬇", fill="#ffffff",
                                     font=("TkDefaultFont", 10, "bold"), tags="overlay")
         self._draw_watched_badge()
 
@@ -168,7 +168,7 @@ class MediaTile:
         self.canvas.delete("watched")
         if not is_watched(self.item):
             return
-        self.canvas.create_oval(6, 6, 28, 28, fill="#2c7", outline="#101216",
+        self.canvas.create_oval(6, 6, 28, 28, fill=ACCENT, outline="#101216",
                                 tags=("overlay", "watched"))
         self.canvas.create_text(17, 16, text="✓", fill="#ffffff",
                                 font=("TkDefaultFont", 10, "bold"),
