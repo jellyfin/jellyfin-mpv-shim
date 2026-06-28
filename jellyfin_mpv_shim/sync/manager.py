@@ -29,6 +29,14 @@ CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
 
 
+class _Stopped(Exception):
+    """Raised inside the worker when the app is shutting down mid-download."""
+
+
+class _Cancelled(Exception):
+    """Raised inside the worker when the active download is being deleted."""
+
+
 def _sub_format(codec):
     """Map a subtitle codec to the format extension the server should serve."""
     c = (codec or "").lower()
@@ -52,6 +60,12 @@ class SyncManager:
         self._worker = None
         self._wake = threading.Event()
         self._stop = False
+        # Coordinates the worker with deletes of the item it is actively
+        # downloading: the worker owns cleanup so files/rows can't be yanked
+        # out from under an in-flight write.
+        self._active_lock = threading.Lock()
+        self._active_item = None
+        self._cancelled = set()
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -129,7 +143,19 @@ class SyncManager:
             self._wake.set()
         return added
 
+    def _cancel_if_active(self, item_id):
+        """If the worker is downloading `item_id`, flag it for cancellation and
+        let the worker do the file/row cleanup. Returns True if it was active."""
+        with self._active_lock:
+            if self._active_item == item_id:
+                self._cancelled.add(item_id)
+                return True
+        return False
+
     def delete_item(self, item_id):
+        if self._cancel_if_active(item_id):
+            self._notify_change()
+            return
         row = self.db.get(item_id)
         if not row:
             return
@@ -156,6 +182,9 @@ class SyncManager:
                     userdata = {}
                 if not userdata.get("Played"):
                     continue
+            if self._cancel_if_active(row["item_id"]):
+                removed += 1
+                continue
             self._remove_files(row)
             self.db.delete(row["item_id"])
             removed += 1
@@ -289,6 +318,23 @@ class SyncManager:
             log.warning("No client for download %s; leaving pending.", item_id)
             self._wake.wait(10)
             return
+        with self._active_lock:
+            if item_id in self._cancelled:
+                # Deletion requested before we got here — honour it and skip.
+                self._cancelled.discard(item_id)
+                self._remove_files(row)
+                self.db.delete(item_id)
+                self._notify_change()
+                return
+            self._active_item = item_id
+        # A delete may have raced in just before we marked the item active (it
+        # would have taken the direct path and removed the row). If the row is
+        # gone, don't resurrect it.
+        if not self.db.get(item_id):
+            self._remove_files(row)
+            with self._active_lock:
+                self._active_item = None
+            return
         self.db.update(item_id, status=STATUS_DOWNLOADING)
         self._notify_change()
         log.info("Downloading %s…", row.get("name") or item_id)
@@ -329,9 +375,22 @@ class SyncManager:
                            source_json=json.dumps(source))
             log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
                      size / (1 << 20))
+        except _Cancelled:
+            log.info("Download cancelled (deleted): %s", row.get("name") or item_id)
+            self._remove_files(row)
+            self.db.delete(item_id)
+        except _Stopped:
+            # App is quitting mid-download: leave it pending so it resumes next
+            # launch (the .part file is kept), rather than poisoning it to error.
+            log.info("Download interrupted by shutdown: %s", item_id)
+            self.db.update(item_id, status=STATUS_PENDING)
         except Exception:
             log.error("Download failed for %s", item_id, exc_info=True)
             self.db.update(item_id, status=STATUS_ERROR)
+        finally:
+            with self._active_lock:
+                self._active_item = None
+                self._cancelled.discard(item_id)
         self._notify_change()
 
     def _stream(self, url, dest, item_id, name, expected):
@@ -351,7 +410,9 @@ class SyncManager:
             with open(tmp, mode) as fh:
                 for chunk in resp.iter_content(CHUNK):
                     if self._stop:
-                        raise RuntimeError("sync stopped")
+                        raise _Stopped()
+                    if item_id in self._cancelled:
+                        raise _Cancelled()
                     if not chunk:
                         continue
                     fh.write(chunk)

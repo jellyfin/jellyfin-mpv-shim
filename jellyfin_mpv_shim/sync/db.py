@@ -160,11 +160,14 @@ class SyncDB:
     def _query(self, sql, params=()):
         if self._conn is None:
             return []
-        try:
-            return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
-        except sqlite3.Error:
-            log.debug("Catalog query failed", exc_info=True)
-            return []
+        # Reads share the one connection with the writer thread; take the lock
+        # so a read can't interleave with an in-flight write/commit.
+        with self._lock:
+            try:
+                return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
+            except sqlite3.Error:
+                log.debug("Catalog query failed", exc_info=True)
+                return []
 
     def get(self, item_id):
         rows = self._query("SELECT * FROM downloads WHERE item_id=?", (item_id,))
