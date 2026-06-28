@@ -149,13 +149,12 @@ class OSDMenu(object):
                 self.menu_list.append(
                     (_("Change Video Playback Profile"), self.profile_menu)
                 )
-            if self.playerManager.get_video().parent.is_tv:
-                self.menu_list.append(
-                    (
-                        _("Auto Set Audio/Subtitles (Entire Series)"),
-                        self.change_tracks_menu,
-                    )
-                )
+            # "Auto Set Audio/Subtitles (Entire Series)" is disabled: it worked by
+            # spamming playback events to change Jellyfin's remembered audio/sub
+            # index for the whole season, which no longer works on current server
+            # versions. Between-episode track persistence (remember_*_track) and
+            # the language preset replace it. The handler (change_tracks_menu /
+            # bulk_subtitle) is kept so this can be re-enabled if it's ever fixed.
             self.menu_list.append(
                 (_("Quit and Mark Unwatched"), self.unwatched_menu_handle)
             )

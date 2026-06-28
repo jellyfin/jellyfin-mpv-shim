@@ -224,39 +224,17 @@ def apply(
     return None, None
 
 
-def _resolve_preset(preference, preferred_lang, source, item):
-    """Simple Dubbed/Subbed presets (the settings dropdown).
+def preset_rules(preference, preferred_lang):
+    """Translate a Dubbed/Subbed dropdown choice into language_config rule dicts
+    (the same shape documented in the README).
 
-    Dubbed: preferred-language audio + subtitles off (sid -1).
-    Subbed: subtitles in the preferred language (audio left to default).
-    "_shows" variants apply to episodes only.
+    Dubbed: preferred-language audio. Subbed: full-dialogue subtitles in the
+    preferred language. "_shows" variants constrain to series.
     """
-    if preference.endswith("_shows") and item.get("Type") != "Episode":
-        return None, None
-    streams = source.get("MediaStreams") or []
     lang = (preferred_lang or "eng").strip().lower()
+    base = {"type": "series"} if preference.endswith("_shows") else {}
     if preference.startswith("dubbed"):
-        audio = [s for s in streams if s.get("Type") == "Audio"]
-        match = next((s for s in audio
-                      if (s.get("Language") or "").lower() == lang), None)
-        return (match["Index"] if match else None), -1
+        return [{**base, "alang": lang}]
     if preference.startswith("subbed"):
-        subs = [s for s in streams if s.get("Type") == "Subtitle"
-                and (s.get("Language") or "").lower() == lang]
-        best = _pick_best_sub(subs, "full")
-        return None, (best["Index"] if best else None)
-    return None, None
-
-
-def resolve(source, item) -> Tuple[Optional[int], Optional[int]]:
-    """Resolve audio/subtitle preference: the dropdown preset, the custom
-    language_config rules, or nothing."""
-    from .conf import settings  # deferred: conf imports this module
-
-    pref = getattr(settings, "language_preference", "custom") or "unset"
-    if pref == "custom":
-        return apply(settings.language_config, source, item)
-    if pref == "unset":
-        return None, None
-    return _resolve_preset(pref, getattr(settings, "preferred_language", "eng"),
-                           source, item)
+        return [{**base, "slang": lang, "subtype": "full"}]
+    return []

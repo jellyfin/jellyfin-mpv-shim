@@ -7,7 +7,7 @@ from io import BytesIO
 from sys import platform
 
 from .conf import settings
-from .language_config import resolve as resolve_language_pref
+from .language_config import apply as apply_language_config
 from .utils import is_local_domain, get_profile, get_seq
 from .i18n import _
 
@@ -122,9 +122,11 @@ class Video(object):
             if not sub.get("IsExternal"):
                 index += 1
 
-        # Language preference (dropdown preset or custom rules) overrides
-        # cast-time aid/sid; the menu is the runtime escape hatch.
-        rule_aid, rule_sid = resolve_language_pref(self.media_source, self.item)
+        # language_config overrides cast-time aid/sid; the user explicitly
+        # opted into preferences and the menu is the runtime escape hatch.
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, self.media_source, self.item
+        )
         if rule_aid is not None:
             self.aid = rule_aid
         if rule_sid is not None:
@@ -136,11 +138,7 @@ class Video(object):
         if user_aid is not None and self.aid is None:
             self.aid = user_aid
 
-        # The server's default subtitle (subtitle language preference) is
-        # unreliable on recent Jellyfin; opt-in only. Between-episode remember
-        # + the language presets cover this instead.
-        if (user_sid is not None and self.sid is None
-                and settings.use_server_subtitle_default):
+        if user_sid is not None and self.sid is None:
             self.sid = user_sid
 
     def get_current_streams(self):

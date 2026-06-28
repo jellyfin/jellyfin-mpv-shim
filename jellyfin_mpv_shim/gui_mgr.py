@@ -418,10 +418,27 @@ class UserInterface(threading.Thread):
                     # back to the default for bad input, which we must not write.
                     if key in safe.__fields_set__:
                         setattr(settings, key, getattr(safe, key))
+                self._materialize_language_preset(changes)
                 settings.save()
             except Exception:
                 log.error("Failed to save settings", exc_info=True)
         self._send_browser(("settings_data", settings.dict()))
+
+    @staticmethod
+    def _materialize_language_preset(changes):
+        """The language dropdown writes language_config rules (README-style):
+        a preset generates rules, Unset clears them, Custom leaves them alone."""
+        if "language_preference" not in changes and "preferred_language" not in changes:
+            return
+        from .language_config import preset_rules, parse_language_config
+        pref = settings.language_preference
+        if pref == "custom":
+            return
+        if pref == "unset":
+            settings.language_config = None
+            return
+        settings.language_config = parse_language_config(
+            preset_rules(pref, settings.preferred_language))
 
     def on_estimate_download(self, payload):
         payload = payload or {}

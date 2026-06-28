@@ -13,7 +13,7 @@ import logging
 import os
 
 from ..conf import settings
-from ..language_config import resolve as resolve_language_pref
+from ..language_config import apply as apply_language_config
 from ..media import Video
 from .manager import syncManager
 
@@ -133,7 +133,8 @@ class OfflineVideo(Video):
                 self.subtitle_seq[sub["Index"]] = index
                 index += 1
 
-        rule_aid, rule_sid = resolve_language_pref(source, self.item)
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, source, self.item)
         if rule_aid is not None:
             self.aid = rule_aid
         if rule_sid is not None:
@@ -142,8 +143,7 @@ class OfflineVideo(Video):
         user_sid = source.get("DefaultSubtitleStreamIndex")
         if user_aid is not None and self.aid is None:
             self.aid = user_aid
-        if (user_sid is not None and self.sid is None
-                and settings.use_server_subtitle_default):
+        if user_sid is not None and self.sid is None:
             self.sid = user_sid
 
     def set_played(self, watched=True):
