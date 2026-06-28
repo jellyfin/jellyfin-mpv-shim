@@ -60,6 +60,15 @@ def main():
         # Context already set, ignore
         pass
 
+    # If we're not the first launch, ask the running instance to surface its
+    # window (un-minimize) and exit, rather than starting a second copy.
+    from .single_instance import SingleInstance
+
+    single = SingleInstance()
+    if not single.acquire():
+        log.info("Another instance is already running; exiting.")
+        return
+
     user_interface = None
     mirror = None
     use_gui = False
@@ -113,6 +122,7 @@ def main():
     eventHandler.mirror = mirror
     syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
     user_interface.start()
+    single.on_activate = getattr(user_interface, "activate", lambda: None)
     user_interface.login_servers()
 
     if not load_success:
@@ -142,6 +152,7 @@ def main():
         syncManager.stop()
         clientManager.stop()
         user_interface.stop()
+        single.release()
 
 
 if __name__ == "__main__":

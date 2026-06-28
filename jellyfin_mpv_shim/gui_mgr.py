@@ -171,6 +171,12 @@ class UserInterface(threading.Thread):
     def stop(self):
         self.r_queue.put(("die", None))
 
+    def activate(self):
+        """Surface the window — called when a second launch is blocked. Safe to
+        call from any thread (just enqueues onto the UI action queue)."""
+        if self.r_queue is not None:
+            self.r_queue.put(("show", None))
+
     def _die(self):
         self._shutting_down = True
         guiHandler.callback = None
