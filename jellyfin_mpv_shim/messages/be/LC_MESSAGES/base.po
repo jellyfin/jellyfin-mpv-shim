@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2026-01-05 13:51+0000\n"
-"Last-Translator: Dzmitry Zubialevich <dzmitry.zubialevich@gmail.com>\n"
+"PO-Revision-Date: 2026-06-29 09:08+0000\n"
+"Last-Translator: Pavel Miniutka <pavel.miniutka@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
 "Language: be\n"
@@ -417,11 +417,11 @@ msgstr "Спытаць каб прапусціць уступы"
 
 #: jellyfin_mpv_shim/menu.py:558
 msgid "Always Skip Credits"
-msgstr "Заўсёды прапускаць тытры"
+msgstr "Заўсёды прапускаць цітры"
 
 #: jellyfin_mpv_shim/menu.py:559
 msgid "Ask to Skip Credits"
-msgstr "Спытаць каб прапусціць тытры"
+msgstr "Патыцца, ці прапускаць цітры"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
@@ -429,7 +429,7 @@ msgstr "Уключыць папярэдні прагляд мініяцюр"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
-msgstr "Прапушчаныя тытры"
+msgstr "Прапушчаныя цітры"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Intro"
@@ -437,7 +437,7 @@ msgstr "Прапушчаны ўступ"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Паспрабаваць прапусціць тытры"
+msgstr "Прапусціць цітры"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
