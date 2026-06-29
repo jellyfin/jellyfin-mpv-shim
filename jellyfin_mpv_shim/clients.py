@@ -124,6 +124,10 @@ class PeriodicHealthCheck(threading.Thread):
 class ClientManager(object):
     def __init__(self):
         self.callback = lambda client, event_name, data: None
+        # Fired when a server's status changes outside a direct user action —
+        # e.g. the background cast-session verifier confirms or gives up — so
+        # the UI can refresh the servers list. Set by the GUI.
+        self.on_servers_changed = lambda: None
         self.credentials = []
         self.clients = {}
         self.usernames = {}
@@ -316,7 +320,9 @@ class ClientManager(object):
                 connected_servers.append(server["Id"])
         return is_logged_in
 
-    def try_connect(self):
+    def load_credentials(self):
+        """Read saved credentials from disk. Fast (no network) — call this
+        before connecting so callers know which servers exist up front."""
         credentials_location = conffile.get(APP_NAME, "cred.json")
         if os.path.exists(credentials_location):
             with open(credentials_location) as cf:
@@ -330,6 +336,9 @@ class ClientManager(object):
                 server["username"] = ""
                 self.credentials.append(server)
 
+    def connect_all(self):
+        """Connect to all loaded credentials (call load_credentials first),
+        honouring connect_retry_mins. Returns whether any server connected."""
         is_logged_in = self._connect_all()
         if settings.connect_retry_mins and not is_logged_in:
             log.warning(
@@ -344,6 +353,10 @@ class ClientManager(object):
                     break
 
         return is_logged_in
+
+    def try_connect(self):
+        self.load_credentials()
+        return self.connect_all()
 
     def save_credentials(self):
         credentials_location = conffile.get(APP_NAME, "cred.json")
@@ -510,12 +523,12 @@ class ClientManager(object):
 
         return True
 
-    def setup_client(self, client: "JellyfinClient", server):
+    def setup_client(self, client: "JellyfinClient", server, do_retries=True):
         def event(event_name, data):
             if event_name == "WebSocketDisconnect":
                 timeout_gen = expo(100)
                 if server["uuid"] in self.clients:
-                    while not self.is_stopping:
+                    while not self.is_stopping and not settings.work_offline:
                         timeout = next(timeout_gen)
                         log.info(
                             "No connection to server. Next try in {0} second(s)".format(
@@ -551,18 +564,68 @@ class ClientManager(object):
         client.callback_ws = event
         client.start(websocket=True)
 
-        # Check connection
+        # The "is this device actually connected" test (does it appear in the
+        # server's Sessions list?) only governs whether we're a usable cast /
+        # remote-control target — browsing and direct playback work as soon as
+        # we hold a valid token. That check blocks for ~3s+ (and longer when it
+        # retries on a "halfway connected" client), so don't hold up the UI on
+        # it: verify in the background. Only a top-level connect (do_retries)
+        # owns the verifier; rebuilds it spawns are validated inline by it.
+        if do_retries:
+            threading.Thread(target=self._verify_connected, args=(client, server),
+                             name="verify-connected", daemon=True).start()
+
+    def _verify_connected(self, client, server):
+        """Background confirmation that the websocket session registered with
+        the server (needed only for cast / remote control; browsing already
+        works via the token). On a confirmed "halfway connected" client — one
+        that never shows up in the server's session list — rebuild it with
+        bounded retries, the same remedy the startup path used to run
+        synchronously, now off the UI's critical path."""
+        if self._is_session_live(client):
+            self._mark_cast_ready(server)
+            return
+
+        # Jellyfin client sometimes "connects" halfway but doesn't actually
+        # work. Retry a few times to reduce the odds of this happening.
+        partial_reconnect_attempts = 3
+        for i in range(partial_reconnect_attempts):
+            if self.is_stopping:
+                return
+            log.warning(
+                f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}."
+            )
+            self._disconnect_client(server=server)
+            time.sleep(1)
+            # do_retries=False: no nested verifier — we confirm it ourselves.
+            if not self.connect_client(server, False):
+                continue
+            if self._is_session_live(self.clients.get(server["uuid"])):
+                self._mark_cast_ready(server)
+                return
+        # Gave up: the device browses fine but can't be a cast target. Leave
+        # cast_ready False and let the UI reflect the final (yellow) state.
+        self.on_servers_changed()
+
+    def _mark_cast_ready(self, server):
+        if not server.get("cast_ready"):
+            server["cast_ready"] = True
+            self.on_servers_changed()
+
+    def _is_session_live(self, client):
+        """True once this device shows in the server's session list. Probes
+        once, then once more after a short delay (the session can take a moment
+        to register after the websocket connects)."""
+        if client is None:
+            return False
         if self.validate_client(client, True):
             return True
-
-        # Wait and check connection again before destroying/re-creating client
         log.info("Not connected yet, waiting 3 seconds...")
         time.sleep(3)
-        is_connected = self.validate_client(client)
-
-        if is_connected:
+        if self.validate_client(client):
             log.info("Actually connected now.")
-        return is_connected
+            return True
+        return False
 
     def remove_client(self, uuid: str):
         self.credentials = [
@@ -575,31 +638,24 @@ class ClientManager(object):
         if self.is_stopping:
             return False
 
-        is_logged_in = False
         client = self.client_factory()
         state = client.authenticate({"Servers": [server]}, discover=False)
         server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
         if server["connected"]:
-            is_logged_in = self.setup_client(client, server)
-            if is_logged_in:
-                self.clients[server["uuid"]] = client
-                if server.get("username"):
-                    self.usernames[server["uuid"]] = server["username"]
-            elif do_retries:
-                # Jellyfin client sometimes "connects" halfway but doesn't actually work.
-                # Retry three times to reduce odds of this happening.
-                partial_reconnect_attempts = 3
-                for i in range(partial_reconnect_attempts):
-                    log.warning(
-                        f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}."
-                    )
-                    self._disconnect_client(server=server)
-                    time.sleep(1)
-                    if self.connect_client(server, False):
-                        is_logged_in = True
-                        break
+            # Register the client immediately; the cast/remote-control session
+            # check (and its half-connect retries) runs in the background so the
+            # UI isn't held up. See setup_client / _verify_connected.
+            if do_retries:
+                # Top-level connect: casting is unconfirmed until the verifier
+                # says so — surfaced as "Connected (casting unavailable)" until
+                # then. Reconnect paths without a verifier are left as-is.
+                server["cast_ready"] = False
+            self.setup_client(client, server, do_retries)
+            self.clients[server["uuid"]] = client
+            if server.get("username"):
+                self.usernames[server["uuid"]] = server["username"]
 
-        return is_logged_in
+        return server["connected"]
 
     def _disconnect_client(self, uuid: Optional[str] = None, server=None):
         if uuid is None and server is not None:
@@ -626,6 +682,8 @@ class ClientManager(object):
             client.stop()
 
     def check_all_clients(self):
+        if settings.work_offline:
+            return  # don't touch the network in offline mode
         log.info("Performing client health check...")
         # list() because validate_client may mutate self.clients via the
         # synthesized WebSocketDisconnect path.

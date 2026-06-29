@@ -61,6 +61,14 @@ class Settings(SettingsBase):
     subtitle_position: str = "bottom"
     fullscreen: bool = True
     enable_gui: bool = True
+    start_minimized: bool = False
+    library_page_size: int = 100
+    library_image_width: int = 280
+    library_image_cache_mb: int = 256
+    library_last_server: Optional[str] = None
+    sync_path: Optional[str] = None
+    work_offline: bool = False
+    prefer_downloaded: bool = True
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None
@@ -130,6 +138,10 @@ class Settings(SettingsBase):
     lang_filter: str = "und,eng,jpn,mis,mul,zxx"
     lang_filter_sub: bool = False
     lang_filter_audio: bool = False
+    remember_audio_track: bool = True
+    remember_subtitle_track: bool = True
+    language_preference: str = "custom"
+    preferred_language: str = "eng"
     force_set_played: bool = False
     screenshot_dir: Optional[str] = get_default_sdir()
     raise_mpv: bool = True

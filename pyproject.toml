@@ -52,6 +52,7 @@ include = ["jellyfin_mpv_shim*"]
 jellyfin_mpv_shim = [
     "systray.png",
     "logo.png",
+    "logo_ui.png",
     "*.lua",
     "messages/base.pot",
     "messages/*/LC_MESSAGES/*.mo",

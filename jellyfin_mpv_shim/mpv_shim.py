@@ -30,6 +30,8 @@ def main():
     # CLI overrides applied after config load so they win.
     if args.enable_gui is not None:
         settings.enable_gui = args.enable_gui
+    if args.start_minimized is not None:
+        settings.start_minimized = args.start_minimized
     if args.mpv_loglevel is not None:
         settings.mpv_log_level = args.mpv_loglevel
 
@@ -44,16 +46,28 @@ def main():
 
     log = root_logger
 
-    if sys.platform.startswith("darwin"):
-        try:
-            # Use 'spawn' to avoid Objective-C fork crashes with GUI frameworks.
-            # - Python 3.7: default is 'fork' (unsafe with Obj-C)
-            # - Python 3.8+: default is 'spawn' (this is a no-op but explicit)
-            # - Python 3.14: 'forkserver' also crashes with Obj-C (issue #473)
-            multiprocessing.set_start_method("spawn")
-        except RuntimeError:
-            # Context already set, ignore
-            pass
+    try:
+        # Use 'spawn' for the tray/browser child processes on every platform.
+        # - macOS: avoids Objective-C fork crashes with GUI frameworks
+        #   (3.14's 'forkserver' also crashes with Obj-C, issue #473).
+        # - Linux/Windows: these children are forked *after* the timeline/action/
+        #   sync worker threads start, so a plain fork can inherit a held lock
+        #   (e.g. logging) and deadlock the child. 'spawn' gives a clean
+        #   interpreter; the children already rely only on their IPC-supplied
+        #   options, not inherited globals, so this is safe.
+        multiprocessing.set_start_method("spawn")
+    except RuntimeError:
+        # Context already set, ignore
+        pass
+
+    # If we're not the first launch, ask the running instance to surface its
+    # window (un-minimize) and exit, rather than starting a second copy.
+    from .single_instance import SingleInstance
+
+    single = SingleInstance()
+    if not single.acquire():
+        log.info("Another instance is already running; exiting.")
+        return
 
     user_interface = None
     mirror = None
@@ -62,6 +76,9 @@ def main():
     get_webview = lambda: None
     if settings.enable_gui:
         try:
+            # Tkinter is optional in some Python builds; probe it before
+            # committing to the GUI so we cleanly fall back to the CLI.
+            import tkinter  # noqa: F401
             from .gui_mgr import user_interface
 
             use_gui = True
@@ -90,7 +107,11 @@ def main():
     from .action_thread import actionThread
     from .event_handler import eventHandler
     from .timeline import timelineManager
+    from .sync.manager import syncManager
+    from .sync.offline_media import offline_video_factory
+    from .media import set_video_factory
 
+    set_video_factory(offline_video_factory)
     clientManager.callback = eventHandler.handle_event
     timelineManager.start()
     playerManager.timeline_trigger = timelineManager.trigger
@@ -99,7 +120,9 @@ def main():
     playerManager.get_webview = get_webview
     user_interface.open_player_menu = playerManager.menu.show_menu
     eventHandler.mirror = mirror
+    syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
     user_interface.start()
+    single.on_activate = getattr(user_interface, "activate", lambda: None)
     user_interface.login_servers()
 
     if not load_success:
@@ -126,8 +149,10 @@ def main():
         playerManager.terminate()
         timelineManager.stop()
         actionThread.stop()
+        syncManager.stop()
         clientManager.stop()
         user_interface.stop()
+        single.release()
 
 
 if __name__ == "__main__":

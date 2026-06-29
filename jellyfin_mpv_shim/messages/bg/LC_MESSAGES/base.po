@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2024-06-05 13:53-0400\n"
+"POT-Creation-Date: 2026-06-28 23:52-0400\n"
 "PO-Revision-Date: 2026-04-29 16:08+0000\n"
 "Last-Translator: d0nizam <dzhaid.nizam@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -46,107 +46,671 @@ msgstr "Ръчно: {0} да, {1} грешка"
 msgid "Setting Current..."
 msgstr "Настоящи настройки..."
 
-#: jellyfin_mpv_shim/clients.py:75
-msgid "Server URL: "
-msgstr "Адрес на сървъра: "
+#: jellyfin_mpv_shim/clients.py:182
+msgid ""
+"Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
+msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:76
-msgid "Username: "
-msgstr "Потребителско име: "
+#: jellyfin_mpv_shim/clients.py:188
+msgid "Waiting for authorization..."
+msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:77
-msgid "Password: "
-msgstr "Парола: "
+#: jellyfin_mpv_shim/clients.py:209
+msgid "Clearing all existing accounts."
+msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:82
+#: jellyfin_mpv_shim/clients.py:218 jellyfin_mpv_shim/clients.py:239
+#: jellyfin_mpv_shim/clients.py:257
 msgid "Successfully added server."
 msgstr "Успешно добавен сървър."
 
-#: jellyfin_mpv_shim/clients.py:83
-msgid "Add another server?"
-msgstr "Добавяне на друг сървър?"
-
-#: jellyfin_mpv_shim/clients.py:86
+#: jellyfin_mpv_shim/clients.py:221 jellyfin_mpv_shim/clients.py:241
+#: jellyfin_mpv_shim/clients.py:261
 msgid "Adding server failed."
 msgstr "Добавянето на сървъра е неуспешно."
 
-#: jellyfin_mpv_shim/display_mirror/__init__.py:116
-msgid "Ready to cast"
-msgstr "Готов да предава"
+#: jellyfin_mpv_shim/clients.py:228
+msgid "Account already exists. Updating credentials."
+msgstr ""
 
-#: jellyfin_mpv_shim/display_mirror/__init__.py:118
-msgid "Select your media in Jellyfin and play it here"
-msgstr "Избери своята медия в Джелифин и я пусни тук"
+#: jellyfin_mpv_shim/clients.py:230
+#, fuzzy
+#| msgid "Successfully added server."
+msgid "Successfully updated server credentials."
+msgstr "Успешно добавен сървър."
 
-#: jellyfin_mpv_shim/gui_mgr.py:153
-msgid "Application Log"
-msgstr "Лог на програмата"
+#: jellyfin_mpv_shim/clients.py:233
+#, fuzzy
+#| msgid "Adding server failed."
+msgid "Updating server credentials failed."
+msgstr "Добавянето на сървъра е неуспешно."
 
-#: jellyfin_mpv_shim/gui_mgr.py:245 jellyfin_mpv_shim/gui_mgr.py:335
-msgid "Add Server"
-msgstr "Добави сървър"
+#: jellyfin_mpv_shim/clients.py:244
+msgid "Server URL: "
+msgstr "Адрес на сървъра: "
 
-#: jellyfin_mpv_shim/gui_mgr.py:246
-msgid ""
-"Could not add server.\n"
-"Please check your connection information."
+#: jellyfin_mpv_shim/clients.py:248
+msgid "Username: "
+msgstr "Потребителско име: "
+
+#: jellyfin_mpv_shim/clients.py:250
+msgid "Password: "
+msgstr "Парола: "
+
+#: jellyfin_mpv_shim/clients.py:258
+msgid "Add another server?"
+msgstr "Добавяне на друг сървър?"
+
+#: jellyfin_mpv_shim/clients.py:433
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not connect to the server."
 msgstr ""
 "Не може да бъде добавен сървър.\n"
 "Моля,проверете информацията за връзката."
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
-msgid "Fail"
-msgstr "Грешка"
+#: jellyfin_mpv_shim/clients.py:438
+msgid "Quick Connect is not enabled on this server."
+msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:267
-msgid "Ok"
-msgstr "Добре"
+#: jellyfin_mpv_shim/clients.py:442 jellyfin_mpv_shim/gui_mgr.py:513
+msgid "Could not start Quick Connect."
+msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:280
-msgid "Server Configuration"
-msgstr "Конфигурация на сървъра"
+#: jellyfin_mpv_shim/display_mirror.py:305
+msgid "Ready to cast"
+msgstr "Готов да предава"
 
-#: jellyfin_mpv_shim/gui_mgr.py:303
-msgid "Server:"
-msgstr "Сървър:"
+#: jellyfin_mpv_shim/display_mirror.py:306
+#, fuzzy
+#| msgid "Select your media in Jellyfin and play it here"
+msgid "Select your media in Jellyfin and play it here."
+msgstr "Избери своята медия в Джелифин и я пусни тук"
 
-#: jellyfin_mpv_shim/gui_mgr.py:308
-msgid "Username:"
-msgstr "Потребителско име:"
+#: jellyfin_mpv_shim/gui_mgr.py:483
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not connect. Please check your details."
+msgstr ""
+"Не може да бъде добавен сървър.\n"
+"Моля,проверете информацията за връзката."
 
-#: jellyfin_mpv_shim/gui_mgr.py:313
-msgid "Password:"
-msgstr "Парола:"
+#: jellyfin_mpv_shim/gui_mgr.py:528
+msgid "Quick Connect was not authorized in time. Please try again."
+msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:338
-msgid "Remove Server"
-msgstr "Отдалечен сървър"
+#: jellyfin_mpv_shim/gui_mgr.py:738
+msgid "Show Library Browser"
+msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:341
-msgid "Close"
-msgstr "Затвори"
-
-#: jellyfin_mpv_shim/gui_mgr.py:454
+#: jellyfin_mpv_shim/gui_mgr.py:739
+#: jellyfin_mpv_shim/library_browser/app.py:153
 msgid "Configure Servers"
 msgstr "Конфигурирай сървъри"
 
-#: jellyfin_mpv_shim/gui_mgr.py:455
+#: jellyfin_mpv_shim/gui_mgr.py:740
 msgid "Show Console"
 msgstr "Покажи конзола"
 
-#: jellyfin_mpv_shim/gui_mgr.py:456
+#: jellyfin_mpv_shim/gui_mgr.py:741
 msgid "Application Menu"
 msgstr "Меню на приложението"
 
-#: jellyfin_mpv_shim/gui_mgr.py:457
+#: jellyfin_mpv_shim/gui_mgr.py:742
 msgid "Open Config Folder"
 msgstr "Отвори папката с настройки"
 
-#: jellyfin_mpv_shim/gui_mgr.py:458
+#: jellyfin_mpv_shim/gui_mgr.py:743
 msgid "Quit"
 msgstr "Излез"
 
-#: jellyfin_mpv_shim/media.py:139
+#: jellyfin_mpv_shim/library_browser/app.py:117
+msgid "◀ Back"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:120
+msgid "🏠 Home"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:123
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "⚙ Settings"
+msgstr "SVP Настройки"
+
+#: jellyfin_mpv_shim/library_browser/app.py:140
+msgid "Search"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:157
+#: jellyfin_mpv_shim/svp_integration.py:174
+msgid "Retry"
+msgstr "Повтори"
+
+#: jellyfin_mpv_shim/library_browser/app.py:169
+msgid "View Downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:198
+msgid "Offline — showing downloaded content."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:277
+#: jellyfin_mpv_shim/library_browser/app.py:305
+msgid "Server unreachable — showing downloads."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:282
+msgid "Preparing…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:284
+msgid "⬇ Downloading %(name)s%(pct)s — %(n)d remaining"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:415
+msgid "Something went wrong rendering this screen."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:141
+msgid "Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:147
+msgid "Next Up"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:151
+msgid "Recently Added Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:152
+msgid "Recently Added Episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:313
+msgid "Downloaded"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:320
+msgid "Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:324
+msgid "TV Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:337
+#: jellyfin_mpv_shim/library_browser/repository.py:415
+#: jellyfin_mpv_shim/library_browser/views.py:415
+#: jellyfin_mpv_shim/library_browser/views.py:1053
+msgid "Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:346
+msgid "Downloaded Movies"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:349
+msgid "Downloaded Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:375
+#: jellyfin_mpv_shim/library_browser/views.py:1039
+msgid "Specials"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:377
+#: jellyfin_mpv_shim/library_browser/views.py:1041
+msgid "Season %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/repository.py:379
+#: jellyfin_mpv_shim/library_browser/views.py:1042
+msgid "Episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:103
+#: jellyfin_mpv_shim/library_browser/views.py:278
+msgid "Loading…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:109
+msgid "Could not load content:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:190
+msgid "Libraries"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:209
+msgid "This server has no video libraries."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:214
+msgid "Name"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:215
+msgid "Date Added"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:216
+msgid "Release Date"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:217
+msgid "Community Rating"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:218
+msgid "Random"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:247
+msgid "Sort:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:308
+msgid "%d of %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:310
+msgid "Nothing here."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:314
+msgid "Failed to load."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:344
+#: jellyfin_mpv_shim/library_browser/views.py:417
+msgid "▶ Play Next Up"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:346
+#: jellyfin_mpv_shim/library_browser/views.py:490
+#: jellyfin_mpv_shim/library_browser/views.py:679
+#: jellyfin_mpv_shim/library_browser/widgets.py:190
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Mark unwatched"
+msgstr "Излез и маркирай ,като негледано"
+
+#: jellyfin_mpv_shim/library_browser/views.py:347
+#: jellyfin_mpv_shim/library_browser/views.py:423
+#: jellyfin_mpv_shim/library_browser/views.py:491
+#: jellyfin_mpv_shim/library_browser/views.py:679
+#: jellyfin_mpv_shim/library_browser/widgets.py:190
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Mark watched"
+msgstr "Излез и маркирай ,като негледано"
+
+#: jellyfin_mpv_shim/library_browser/views.py:355
+msgid "🗑 Remove downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:360
+msgid "⬇ Download Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:375
+msgid "Seasons"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:381
+msgid "No seasons found."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:392
+msgid "Season"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:415
+msgid "◀ %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:419
+msgid "⬇ Download Season"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:506
+msgid "Results for \"%s\""
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:520
+msgid "No results."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:553
+msgid "Item not found."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:622
+msgid "Audio:"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:639
+#, fuzzy
+#| msgid "Change Subtitles"
+msgid "Subtitles:"
+msgstr "Промяна на субтитри"
+
+#: jellyfin_mpv_shim/library_browser/views.py:642 jellyfin_mpv_shim/menu.py:310
+msgid "None"
+msgstr "Нито един"
+
+#: jellyfin_mpv_shim/library_browser/views.py:665
+msgid "Resume from %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:668
+msgid "Play from start"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:671
+msgid "▶ Play"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:675
+msgid "Go to Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:685
+msgid "🗑 Remove download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:689
+msgid "⬇ Download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:730
+#, fuzzy
+#| msgid "Server URL: "
+msgid "Server URL"
+msgstr "Адрес на сървъра: "
+
+#: jellyfin_mpv_shim/library_browser/views.py:731
+#, fuzzy
+#| msgid "Username:"
+msgid "Username"
+msgstr "Потребителско име:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:732
+#, fuzzy
+#| msgid "Password:"
+msgid "Password"
+msgstr "Парола:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:751
+msgid "Use Quick Connect"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:757
+msgid ""
+"Enter this code in your Jellyfin app\n"
+"(Settings → Quick Connect):"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:760
+#: jellyfin_mpv_shim/library_browser/views.py:787
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Starting…"
+msgstr "SVP Настройки"
+
+#: jellyfin_mpv_shim/library_browser/views.py:763
+#: jellyfin_mpv_shim/library_browser/views.py:1422
+msgid "Cancel"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:774
+msgid "Server and username are required."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:776
+msgid "Connecting…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:783
+msgid "Server URL is required for Quick Connect."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:817
+msgid "Could not connect. Check your details."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:830
+msgid "Connecting to your server…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:837
+msgid "Work offline"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:861
+msgid "Couldn't reach your saved server(s)."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:863
+msgid "Retry connection"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:866
+msgid "Sign in to your Jellyfin server"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:868
+msgid "Connect"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:895
+#: jellyfin_mpv_shim/library_browser/views.py:1337
+#, fuzzy
+#| msgid "Server:"
+msgid "Servers"
+msgstr "Сървър:"
+
+#: jellyfin_mpv_shim/library_browser/views.py:899
+#, fuzzy
+#| msgid "Server Configuration"
+msgid "No servers configured yet."
+msgstr "Конфигурация на сървъра"
+
+#: jellyfin_mpv_shim/library_browser/views.py:905
+msgid "Offline"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:907
+msgid "Connected"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:910
+msgid "Connected (casting unavailable)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:917
+#: jellyfin_mpv_shim/library_browser/views.py:1107
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Remove"
+msgstr "Отдалечен сървър"
+
+#: jellyfin_mpv_shim/library_browser/views.py:921
+#, fuzzy
+#| msgid "Add Server"
+msgid "Add a server"
+msgstr "Добави сървър"
+
+#: jellyfin_mpv_shim/library_browser/views.py:924
+msgid "Add Server"
+msgstr "Добави сървър"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1000
+msgid "Downloads — %s used"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1004
+msgid "Nothing downloaded yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1020
+msgid "Movies & Videos"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1061
+msgid "Remove show"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1065
+msgid "Remove watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1088
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Remove season"
+msgstr "Отдалечен сървър"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1113
+msgid "watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1124
+#: jellyfin_mpv_shim/library_browser/views.py:1136
+msgid "Downloading %d%%"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1126
+msgid "Queued"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1128
+#, fuzzy
+#| msgid "Fail"
+msgid "Failed"
+msgstr "Грешка"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1148
+msgid "Interface"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1150
+msgid "Playback"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1153
+msgid "Subtitles & Languages"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1158
+#, fuzzy
+#| msgid " (Transcode)"
+msgid "Transcoding"
+msgstr " (Транскодиране)"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1163
+#, fuzzy
+#| msgid "Seek to Skip Credits"
+msgid "Skip Intro / Credits"
+msgstr "Търсене за пропускане на надписите"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1165
+msgid "Library Browser"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1178
+msgid "Unset"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1179
+msgid "Dubbed (shows only)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1180
+msgid "Subbed (shows only)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1181
+msgid "Dubbed (all)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1182
+msgid "Subbed (all)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1183
+msgid "Custom (set in config)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1221
+msgid "Show advanced settings"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1229
+msgid "Advanced"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1235
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Save Settings"
+msgstr "SVP Настройки"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1237
+msgid "Some changes take effect after restarting."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1297
+msgid "Saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1335
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Settings"
+msgstr "SVP Настройки"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1336
+msgid "Downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1338
+msgid "Logs"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1400
+#: jellyfin_mpv_shim/library_browser/views.py:1406
+#: jellyfin_mpv_shim/library_browser/views.py:1423
+msgid "Download"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1409
+msgid "Estimating download size…"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1416
+msgid "Include watched episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1434
+msgid "%(n)d item(s), about %(size)s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1437
+msgid "%d watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1439
+msgid "%d already downloaded"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py:181
 msgid " (Transcode)"
 msgstr " (Транскодиране)"
 
@@ -206,243 +770,239 @@ msgstr "Голям"
 msgid "Huge"
 msgstr "Огромен"
 
-#: jellyfin_mpv_shim/menu.py:130
+#: jellyfin_mpv_shim/menu.py:127
 msgid "Main Menu"
 msgstr "Основно меню"
 
-#: jellyfin_mpv_shim/menu.py:136
+#: jellyfin_mpv_shim/menu.py:133
 msgid "Change Audio"
 msgstr "Промяна на аудио"
 
-#: jellyfin_mpv_shim/menu.py:137
+#: jellyfin_mpv_shim/menu.py:134
 msgid "Change Subtitles"
 msgstr "Промяна на субтитри"
 
-#: jellyfin_mpv_shim/menu.py:138
+#: jellyfin_mpv_shim/menu.py:135
 msgid "Change Video Quality"
 msgstr "Промяна качеството на видеото"
 
-#: jellyfin_mpv_shim/menu.py:139 jellyfin_mpv_shim/syncplay.py:634
+#: jellyfin_mpv_shim/menu.py:136 jellyfin_mpv_shim/syncplay.py:634
 msgid "SyncPlay"
 msgstr "синхронизирано възпроизвеждане"
 
-#: jellyfin_mpv_shim/menu.py:145
+#: jellyfin_mpv_shim/menu.py:142
 msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0} Информация за версия/Свали"
 
-#: jellyfin_mpv_shim/menu.py:153
+#: jellyfin_mpv_shim/menu.py:150
 msgid "Change Video Playback Profile"
 msgstr "Промяна профила за възпроизвеждане на видео"
 
-#: jellyfin_mpv_shim/menu.py:158
-msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Автоматично включване на Аудио/Субтитри (за целия сезон)"
-
-#: jellyfin_mpv_shim/menu.py:163
+#: jellyfin_mpv_shim/menu.py:159
 msgid "Quit and Mark Unwatched"
 msgstr "Излез и маркирай ,като негледано"
 
-#: jellyfin_mpv_shim/menu.py:166
+#: jellyfin_mpv_shim/menu.py:162
 msgid "Screenshot"
 msgstr "Снимка на екрана"
 
-#: jellyfin_mpv_shim/menu.py:170
+#: jellyfin_mpv_shim/menu.py:166
 msgid "Video Playback Profiles"
 msgstr "Профили за възпроизвеждане на видеото"
 
-#: jellyfin_mpv_shim/menu.py:173
+#: jellyfin_mpv_shim/menu.py:169
 msgid "SVP Settings"
 msgstr "SVP Настройки"
 
-#: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
+#: jellyfin_mpv_shim/menu.py:173 jellyfin_mpv_shim/menu.py:525
 msgid "Video Preferences"
 msgstr "Предпочитания за видеото"
 
-#: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
+#: jellyfin_mpv_shim/menu.py:174 jellyfin_mpv_shim/menu.py:548
 msgid "Player Preferences"
 msgstr "Предпочитания за плеъра"
 
-#: jellyfin_mpv_shim/menu.py:179
+#: jellyfin_mpv_shim/menu.py:175
 msgid "Close Menu"
 msgstr "Затвори менюто"
 
-#: jellyfin_mpv_shim/menu.py:261
+#: jellyfin_mpv_shim/menu.py:265
 msgid "Select Audio Track"
 msgstr "Избери аудио пътека"
 
-#: jellyfin_mpv_shim/menu.py:298
+#: jellyfin_mpv_shim/menu.py:302
 msgid "Select Subtitle Track"
 msgstr "Избери субтитри"
 
-#: jellyfin_mpv_shim/menu.py:306
-msgid "None"
-msgstr "Нито един"
-
-#: jellyfin_mpv_shim/menu.py:345
+#: jellyfin_mpv_shim/menu.py:349
 msgid "Select Transcode Quality"
 msgstr "Избери качество на транскодиране"
 
-#: jellyfin_mpv_shim/menu.py:346
+#: jellyfin_mpv_shim/menu.py:350
 msgid "Maximum"
 msgstr "Максимално"
 
-#: jellyfin_mpv_shim/menu.py:346 jellyfin_mpv_shim/menu.py:423
+#: jellyfin_mpv_shim/menu.py:350 jellyfin_mpv_shim/menu.py:427
 msgid "No Transcode"
 msgstr "Без транскодиране"
 
-#: jellyfin_mpv_shim/menu.py:382
+#: jellyfin_mpv_shim/menu.py:386
 msgid "Select Audio/Subtitle for Series"
 msgstr "Избери Аудио/Субтитри за сезона"
 
-#: jellyfin_mpv_shim/menu.py:384
+#: jellyfin_mpv_shim/menu.py:388
 msgid "English Audio"
 msgstr "Английско аудио"
 
-#: jellyfin_mpv_shim/menu.py:386
+#: jellyfin_mpv_shim/menu.py:390
 msgid "Japanese Audio w/ English Subtitles"
 msgstr "Японско аудио с /Английски субтитри"
 
-#: jellyfin_mpv_shim/menu.py:391
+#: jellyfin_mpv_shim/menu.py:395
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "Ръчно според индекса за пътеката (Не е надеждно)"
 
-#: jellyfin_mpv_shim/menu.py:421
+#: jellyfin_mpv_shim/menu.py:425
 msgid "Select Default Transcode Profile"
 msgstr "Профил по подразбиране при транскодиране"
 
-#: jellyfin_mpv_shim/menu.py:456
+#: jellyfin_mpv_shim/menu.py:460
 msgid "Select Subtitle Color"
 msgstr "Избери цвят на субтитрите"
 
-#: jellyfin_mpv_shim/menu.py:465
+#: jellyfin_mpv_shim/menu.py:469
 msgid "Select Subtitle Size"
 msgstr "Избери размер на субтитрите"
 
-#: jellyfin_mpv_shim/menu.py:475
+#: jellyfin_mpv_shim/menu.py:479
 msgid "Select Subtitle Position"
 msgstr "Избери позиция на субтитрите"
 
-#: jellyfin_mpv_shim/menu.py:477
+#: jellyfin_mpv_shim/menu.py:481
 msgid "Bottom"
 msgstr "Отдолу"
 
-#: jellyfin_mpv_shim/menu.py:478
+#: jellyfin_mpv_shim/menu.py:482
 msgid "Top"
 msgstr "Горе"
 
-#: jellyfin_mpv_shim/menu.py:479
+#: jellyfin_mpv_shim/menu.py:483
 msgid "Middle"
 msgstr "По средата"
 
-#: jellyfin_mpv_shim/menu.py:486
+#: jellyfin_mpv_shim/menu.py:490
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Качество при отдалечено транскодиране: {0:0.1f} Mbps"
 
-#: jellyfin_mpv_shim/menu.py:492
+#: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Size: {0}"
 msgstr "Размер на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:496
+#: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Position: {0}"
 msgstr "Позиция на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:500
+#: jellyfin_mpv_shim/menu.py:504
 msgid "Subtitle Color: {0}"
 msgstr "Цвят на субтитри: {0}"
 
-#: jellyfin_mpv_shim/menu.py:505
+#: jellyfin_mpv_shim/menu.py:509
 msgid "Transcode Hi10p to 8bit"
 msgstr "Транскодирай Hi10p до 8bit"
 
-#: jellyfin_mpv_shim/menu.py:506
+#: jellyfin_mpv_shim/menu.py:510
 msgid "Transcode HDR"
 msgstr "Транскодирай HDR"
 
-#: jellyfin_mpv_shim/menu.py:507
+#: jellyfin_mpv_shim/menu.py:511
 msgid "Direct Paths"
 msgstr "Директни пътища"
 
-#: jellyfin_mpv_shim/menu.py:508
+#: jellyfin_mpv_shim/menu.py:512
 msgid "Disable Direct Play"
 msgstr "Изключи директното възпроизвеждане"
 
-#: jellyfin_mpv_shim/menu.py:514
+#: jellyfin_mpv_shim/menu.py:518
 msgid "Video Profile Subtype: {0}"
 msgstr "Видео профил подвид: {0}"
 
-#: jellyfin_mpv_shim/menu.py:525
+#: jellyfin_mpv_shim/menu.py:529
 msgid "Video Profile Subtype"
 msgstr "Видео профил подвид"
 
-#: jellyfin_mpv_shim/menu.py:546
+#: jellyfin_mpv_shim/menu.py:550
 msgid "Auto Play"
 msgstr "Автоматично стартиране"
 
-#: jellyfin_mpv_shim/menu.py:547
+#: jellyfin_mpv_shim/menu.py:551
 msgid "Auto Fullscreen"
 msgstr "Автоматично на цял екран"
 
-#: jellyfin_mpv_shim/menu.py:548
+#: jellyfin_mpv_shim/menu.py:552
 msgid "Media Key Seek"
 msgstr "Използване на мултимедийни бутони"
 
-#: jellyfin_mpv_shim/menu.py:549
+#: jellyfin_mpv_shim/menu.py:553
 msgid "Use Web Seek Pref"
 msgstr "Предпочитай използване на Уеб търсене"
 
-#: jellyfin_mpv_shim/menu.py:550
+#: jellyfin_mpv_shim/menu.py:554
 msgid "Display Mirroring"
 msgstr "Дублиране на дисплея"
 
-#: jellyfin_mpv_shim/menu.py:551
+#: jellyfin_mpv_shim/menu.py:555
 msgid "Write Logs to File"
 msgstr "Запиши лога във файл"
 
-#: jellyfin_mpv_shim/menu.py:552
+#: jellyfin_mpv_shim/menu.py:556
 msgid "Check for Updates"
 msgstr "Провери за обновявания"
 
-#: jellyfin_mpv_shim/menu.py:554
+#: jellyfin_mpv_shim/menu.py:558
 msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
-#: jellyfin_mpv_shim/menu.py:556
+#: jellyfin_mpv_shim/menu.py:560
 msgid "Always Skip Intros"
 msgstr "Винаги пропускай въведенията"
 
-#: jellyfin_mpv_shim/menu.py:557
+#: jellyfin_mpv_shim/menu.py:561
 msgid "Ask to Skip Intros"
 msgstr "Питай за пропуск на въведенията"
 
-#: jellyfin_mpv_shim/menu.py:558
+#: jellyfin_mpv_shim/menu.py:563
 msgid "Always Skip Credits"
 msgstr "Винаги пропускай надписите"
 
-#: jellyfin_mpv_shim/menu.py:559
+#: jellyfin_mpv_shim/menu.py:566
 msgid "Ask to Skip Credits"
 msgstr "Питай за пропуск на надписите"
 
-#: jellyfin_mpv_shim/menu.py:561
+#: jellyfin_mpv_shim/menu.py:569
 msgid "Enable thumbnail previews"
 msgstr "Активиране преглед на миниатюрни визуализации"
 
-#: jellyfin_mpv_shim/player.py:487
+#: jellyfin_mpv_shim/player.py:362
+msgid "Please wait, loading..."
+msgstr ""
+
+#: jellyfin_mpv_shim/player.py:634
 msgid "Skipped Credits"
 msgstr "Пропуснати надписи"
 
-#: jellyfin_mpv_shim/player.py:487
+#: jellyfin_mpv_shim/player.py:636
 msgid "Skipped Intro"
 msgstr "Пропуснато въведение"
 
-#: jellyfin_mpv_shim/player.py:490
+#: jellyfin_mpv_shim/player.py:650
 msgid "Seek to Skip Credits"
 msgstr "Търсене за пропускане на надписите"
 
-#: jellyfin_mpv_shim/player.py:490
+#: jellyfin_mpv_shim/player.py:652
 msgid "Seek to Skip Intro"
 msgstr "Търсене за пропускане на въведението"
 
-#: jellyfin_mpv_shim/player.py:598
+#: jellyfin_mpv_shim/player.py:783
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -451,7 +1011,7 @@ msgstr ""
 "Натиснете c, за да коригирате настройките на потока, ако това не е "
 "необходимо."
 
-#: jellyfin_mpv_shim/player.py:965
+#: jellyfin_mpv_shim/player.py:1231
 msgid "Season {0} - Episode {1}"
 msgstr "Сезон {0} - Епизод {1}"
 
@@ -475,10 +1035,6 @@ msgstr "SVP не е активен"
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
 msgstr "Изключи"
-
-#: jellyfin_mpv_shim/svp_integration.py:174
-msgid "Retry"
-msgstr "Повтори"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
@@ -559,11 +1115,11 @@ msgstr ""
 "MPV Shim v{0} Налично е обновяване\n"
 "Отвори менюто (натисни \"с\") за детайли."
 
-#: jellyfin_mpv_shim/utils.py:307
+#: jellyfin_mpv_shim/utils.py:331
 msgid "Unkn"
 msgstr "Непознат"
 
-#: jellyfin_mpv_shim/utils.py:308
+#: jellyfin_mpv_shim/utils.py:332
 msgid " Forced"
 msgstr " Принудително"
 
@@ -602,6 +1158,18 @@ msgstr "Anime4K x2 Перцептивно+Изкл. на замъгляване 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
 msgstr "Избери профил за шейдъри"
+
+#~ msgid "Application Log"
+#~ msgstr "Лог на програмата"
+
+#~ msgid "Ok"
+#~ msgstr "Добре"
+
+#~ msgid "Close"
+#~ msgstr "Затвори"
+
+#~ msgid "Auto Set Audio/Subtitles (Entire Series)"
+#~ msgstr "Автоматично включване на Аудио/Субтитри (за целия сезон)"
 
 #~ msgid "Use JellyScrub thumbnails"
 #~ msgstr "Използване на JellyScrub миниатюри"

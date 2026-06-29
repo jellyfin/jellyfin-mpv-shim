@@ -120,6 +120,36 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 #    the event thread, which would cause deadlock if they run there.
 
 
+def _rank_stream(prev_source, prev_index, streams, stream_type):
+    """Find the stream in `streams` best matching the previously-selected one
+    (jellyfin-web heuristic): +2 language, +2 display title, +1 relative index,
+    +1 codec; a match needs >= 3. Returns the matching stream Index or None."""
+    prev_streams = [s for s in (prev_source.get("MediaStreams") or [])
+                    if s.get("Type") == stream_type]
+    prev_stream = next((s for s in prev_streams if s.get("Index") == prev_index),
+                       None)
+    if prev_stream is None:
+        return None
+    prev_rel = prev_streams.index(prev_stream)
+
+    best_score, best_index = 0, None
+    for rel, stream in enumerate(s for s in streams if s.get("Type") == stream_type):
+        score = 0
+        if prev_stream.get("Codec") and prev_stream.get("Codec") == stream.get("Codec"):
+            score += 1
+        if prev_rel == rel:
+            score += 1
+        title = prev_stream.get("DisplayTitle")
+        if title and title == stream.get("DisplayTitle"):
+            score += 2
+        lang = prev_stream.get("Language")
+        if lang and lang != "und" and lang == stream.get("Language"):
+            score += 2
+        if score > best_score and score >= 3:
+            best_score, best_index = score, stream.get("Index")
+    return best_index
+
+
 # noinspection PyUnresolvedReferences
 class PlayerManager(object):
     """
@@ -132,6 +162,9 @@ class PlayerManager(object):
         self._video = None
         self.timeline_trigger = None
         self.action_trigger = None
+        # (media_source, aid, sid) of the playing item, carried to the next
+        # episode in the queue (jellyfin-web-style track matching).
+        self._track_memory = None
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
         self.should_send_timeline = False
@@ -645,6 +678,7 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
+        apply_memory: bool = True,
     ):
         self.should_send_timeline = False
         self.start_time = time.time()
@@ -653,7 +687,8 @@ class PlayerManager(object):
             log.error("PlayerManager::play no URL found")
             return
 
-        self._play_media(video, url, offset, no_initial_timeline, is_initial_play)
+        self._play_media(video, url, offset, no_initial_timeline, is_initial_play,
+                         apply_memory)
 
     @synchronous("_lock")
     def _play_media(
@@ -663,6 +698,7 @@ class PlayerManager(object):
         offset: int = 0,
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
+        apply_memory: bool = True,
     ):
         if not self._mpv_alive:
             log.info("mpv is dead, reinitializing")
@@ -700,7 +736,12 @@ class PlayerManager(object):
         self.external_subtitles_rev = {}
 
         self.upd_player_hide()
+        if is_initial_play:
+            self._track_memory = None  # new queue; start fresh
+        elif apply_memory and self._track_memory is not None:
+            self._apply_remembered_tracks(video)
         self.configure_streams()
+        self._capture_track_memory(video)
         self.update_subtitle_visuals()
 
         if win_utils and settings.raise_mpv and is_initial_play:
@@ -781,6 +822,9 @@ class PlayerManager(object):
         self._video = None
         self._player.command("stop")
         local_video.terminate_transcode()
+        if local_video.client is None and hasattr(local_video,
+                                                  "record_offline_progress"):
+            local_video.record_offline_progress(options.get("PositionTicks"))
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
 
@@ -971,7 +1015,11 @@ class PlayerManager(object):
     @synchronous("_lock")
     def restart_playback(self):
         current_time = self._player.playback_time
-        self.play(self._video, current_time)
+        # Same item, same media source: the video already carries the user's
+        # exact aid/sid (e.g. a just-selected burn-in subtitle). Don't re-derive
+        # tracks from memory or we'd revert the very change that forced this
+        # restart.
+        self.play(self._video, current_time, apply_memory=False)
         return True
 
     @synchronous("_lock")
@@ -979,6 +1027,28 @@ class PlayerManager(object):
         if self._video:
             return self._video.get_video_attr(attr, default)
         return default
+
+    def _capture_track_memory(self, video):
+        self._track_memory = ((video.media_source or {}), video.aid, video.sid)
+
+    def _apply_remembered_tracks(self, video):
+        """Carry the previous episode's audio/subtitle choice into this one,
+        matching by language/title/codec/position (jellyfin-web heuristic)."""
+        prev_source, prev_aid, prev_sid = self._track_memory
+        streams = (video.media_source or {}).get("MediaStreams") or []
+
+        if settings.remember_audio_track and prev_aid is not None:
+            match = _rank_stream(prev_source, prev_aid, streams, "Audio")
+            if match is not None:
+                video.aid = match
+
+        if settings.remember_subtitle_track:
+            if prev_sid is None or prev_sid == -1:
+                video.sid = -1  # subtitles were off — keep them off
+            else:
+                match = _rank_stream(prev_source, prev_sid, streams, "Subtitle")
+                if match is not None:
+                    video.sid = match
 
     @synchronous("_lock")
     def configure_streams(self):
@@ -993,7 +1063,10 @@ class PlayerManager(object):
             log.info("PlayerManager::play selecting subtitle stream (none)")
             self._player.sub = "no"
         else:
-            log.info("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
+            log.info("PlayerManager::play selecting subtitle stream index=%s "
+                     "(embedded map=%s external=%s)" % (
+                         sub_uid, self._video.subtitle_seq,
+                         list(self._video.subtitle_url)))
             if sub_uid in self._video.subtitle_seq:
                 self._player.sub = self._video.subtitle_seq[sub_uid]
             elif sub_uid in self._video.subtitle_url:
@@ -1001,6 +1074,9 @@ class PlayerManager(object):
                     "PlayerManager::play selecting external subtitle id=%s" % sub_uid
                 )
                 self.load_external_sub(sub_uid)
+            else:
+                log.warning("PlayerManager::subtitle index %s not in embedded or "
+                            "external maps; leaving current selection.", sub_uid)
 
     @synchronous("_lock")
     def set_streams(self, audio_uid: int, sub_uid: int):
@@ -1010,6 +1086,8 @@ class PlayerManager(object):
             self.restart_playback()
         else:
             self.configure_streams()
+        # Remember the user's manual choice for subsequent episodes.
+        self._capture_track_memory(self._video)
         self.timeline_handle()
 
     @synchronous("_lock")
@@ -1176,6 +1254,7 @@ class PlayerManager(object):
             if (
                 self.should_send_timeline
                 and self._video
+                and self._video.client is not None
                 and not self._player.playback_abort
             ):
                 self._video.client.jellyfin.session_progress(
@@ -1192,6 +1271,8 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
+        if self._video.client is None:
+            return  # offline playback: no server session to open
         self._video.client.jellyfin.session_playing(self.get_timeline_options())
 
     @synchronous("_tl_lock")
@@ -1201,10 +1282,19 @@ class PlayerManager(object):
         if options is None:
             options = self.get_timeline_options(finished)
 
-        if client is None:
+        # Capture offline progress for the auto-advance / finish paths (stop()
+        # handles the explicit-stop case before clearing self._video).
+        if client is None and self._video is not None \
+                and self._video.client is None \
+                and hasattr(self._video, "record_offline_progress"):
+            self._video.record_offline_progress(
+                options.get("PositionTicks"), finished)
+
+        if client is None and self._video is not None:
             client = self._video.client
 
-        client.jellyfin.session_stop(options)
+        if client is not None:
+            client.jellyfin.session_stop(options)
 
         if self.get_webview() is not None and settings.display_mirroring:
             self.get_webview().show()
@@ -1246,6 +1336,8 @@ class PlayerManager(object):
 
     def get_seek_times(self):
         if self._jf_settings is None:
+            if self._video.client is None:
+                return -15.0, 30.0  # offline: server prefs unavailable, use defaults
             self._jf_settings = self._video.client.jellyfin.get_user_settings()
         custom_prefs = self._jf_settings.get("CustomPrefs") or {}
         seek_left = custom_prefs.get("skipBackLength") or 15000
