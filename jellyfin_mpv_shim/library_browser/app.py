@@ -619,6 +619,13 @@ class BrowserApp:
             self.root.withdraw()
         elif cmd == "servers":
             self._reload_servers(param)
+        elif cmd == "server_status":
+            # Status-only refresh (e.g. cast-session badge). Update the server
+            # metadata and re-render the settings panel if it's open; don't
+            # rebuild the live source.
+            if isinstance(param, list):
+                self.server_list = list(param)
+                self._dispatch_view("on_servers_changed", self.server_list)
         elif cmd == "server_result":
             self._dispatch_view("on_server_result", param or {})
         elif cmd == "quick_connect_code":

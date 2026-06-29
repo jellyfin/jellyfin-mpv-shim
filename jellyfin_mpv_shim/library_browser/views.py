@@ -901,8 +901,13 @@ class ServersPanel:
         for cred in self.app.server_list:
             row = tk.Frame(body, bg=ENTRY_BG)
             row.pack(fill="x", padx=16, pady=3)
-            status = _("Connected") if cred.get("connected") else _("Offline")
-            color = "#7bd88f" if cred.get("connected") else "#e57373"
+            if not cred.get("connected"):
+                status, color = _("Offline"), "#e57373"
+            elif cred.get("casting", True):
+                status, color = _("Connected"), "#7bd88f"
+            else:
+                # Browses fine, but isn't (yet) a usable cast/remote target.
+                status, color = _("Connected (casting unavailable)"), "#e5c07b"
             tk.Label(row, text=cred.get("name", "?"), bg=ENTRY_BG, fg=TEXT_FG,
                      font=("TkDefaultFont", 11, "bold")).pack(side="left", padx=8,
                                                               pady=6)

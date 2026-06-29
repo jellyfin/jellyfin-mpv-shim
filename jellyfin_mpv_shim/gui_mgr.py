@@ -206,6 +206,10 @@ class UserInterface(threading.Thread):
         # blocking on the network. The browser shows its own login screen when
         # no servers connect (the old blocking PreferencesWindow is gone).
         clientManager.load_credentials()
+        # Refresh the browser's servers list when a background status change
+        # lands (e.g. the cast-session verifier confirms or gives up). This is
+        # a status-only push — it must not rebuild the live browse source.
+        clientManager.on_servers_changed = self._push_server_status
         if not settings.work_offline:
             self._connecting = True
         self.start_browser()
@@ -277,6 +281,11 @@ class UserInterface(threading.Thread):
                 "all": self._collect_credentials(),
             }))
 
+    def _push_server_status(self):
+        """Status-only update (e.g. cast-session badge): refresh the servers
+        metadata without touching the live browse connections."""
+        self._send_browser(("server_status", self._collect_credentials()))
+
     def _collect_servers(self):
         """Connected servers with tokens — what the browser browses with."""
         name_by_uuid = {
@@ -309,6 +318,10 @@ class UserInterface(threading.Thread):
             "name": cred.get("Name") or cred.get("address"),
             "username": cred.get("username", ""),
             "connected": bool(cred.get("connected")),
+            # Unset (e.g. reconnects without a verifier) counts as ready; only
+            # an explicit False — a connect still verifying or one that failed
+            # to register a cast session — shows the degraded state.
+            "casting": cred.get("cast_ready", True),
         } for cred in list(clientManager.credentials)]
 
     def _browser_options(self, start_hidden):

@@ -124,6 +124,10 @@ class PeriodicHealthCheck(threading.Thread):
 class ClientManager(object):
     def __init__(self):
         self.callback = lambda client, event_name, data: None
+        # Fired when a server's status changes outside a direct user action —
+        # e.g. the background cast-session verifier confirms or gives up — so
+        # the UI can refresh the servers list. Set by the GUI.
+        self.on_servers_changed = lambda: None
         self.credentials = []
         self.clients = {}
         self.usernames = {}
@@ -579,6 +583,7 @@ class ClientManager(object):
         bounded retries, the same remedy the startup path used to run
         synchronously, now off the UI's critical path."""
         if self._is_session_live(client):
+            self._mark_cast_ready(server)
             return
 
         # Jellyfin client sometimes "connects" halfway but doesn't actually
@@ -596,7 +601,16 @@ class ClientManager(object):
             if not self.connect_client(server, False):
                 continue
             if self._is_session_live(self.clients.get(server["uuid"])):
+                self._mark_cast_ready(server)
                 return
+        # Gave up: the device browses fine but can't be a cast target. Leave
+        # cast_ready False and let the UI reflect the final (yellow) state.
+        self.on_servers_changed()
+
+    def _mark_cast_ready(self, server):
+        if not server.get("cast_ready"):
+            server["cast_ready"] = True
+            self.on_servers_changed()
 
     def _is_session_live(self, client):
         """True once this device shows in the server's session list. Probes
@@ -631,6 +645,11 @@ class ClientManager(object):
             # Register the client immediately; the cast/remote-control session
             # check (and its half-connect retries) runs in the background so the
             # UI isn't held up. See setup_client / _verify_connected.
+            if do_retries:
+                # Top-level connect: casting is unconfirmed until the verifier
+                # says so — surfaced as "Connected (casting unavailable)" until
+                # then. Reconnect paths without a verifier are left as-is.
+                server["cast_ready"] = False
             self.setup_client(client, server, do_retries)
             self.clients[server["uuid"]] = client
             if server.get("username"):
