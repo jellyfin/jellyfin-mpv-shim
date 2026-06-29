@@ -9,7 +9,7 @@ import logging
 
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
-from .clients import clientManager
+from .clients import clientManager, QuickConnectError
 from .conf import settings, Settings
 from .sync.manager import syncManager
 from .utils import get_resource
