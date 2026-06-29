@@ -62,6 +62,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="password for --server (NOTE: visible to other processes via ps)",
     )
     parser.add_argument(
+        "--quick-connect",
+        dest="quick_connect",
+        action="store_true",
+        help="log in via Jellyfin Quick Connect instead of a password "
+        "(useful for SSO users); prompts for/uses only the server URL",
+    )
+    parser.add_argument(
         "command",
         nargs="*",
         choices=("add", "clear"),

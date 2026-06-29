@@ -35,6 +35,13 @@ URL to your server, for example `http://server_ip:8096` or `https://secure_domai
 include the subdirectory and port number if applicable. You can then cast your media
 from another Jellyfin application.
 
+If your account has no password (for example, users who sign in through an SSO provider), use
+**Quick Connect** instead of typing a password. In the GUI, enter the server URL and click
+**Quick Connect**; on the CLI, pass `--quick-connect` (optionally with `--server URL`). A code is
+shown — open Jellyfin in a browser where you are already signed in, go to your user menu →
+*Quick Connect*, and enter the code. Quick Connect must be enabled by an administrator on the
+server.
+
 The application runs with a notification icon by default. You can use this to edit the server settings,
 view the application log, open the config folder, and open the application menu. Unlike Plex MPV Shim,
 authorization tokens for your server are stored on your device, but you are able to cast to the player
