@@ -523,6 +523,12 @@ class BrowserApp:
     def add_server(self, payload):
         self.r_queue.put(("add_server", payload))
 
+    def quick_connect(self, server):
+        self.r_queue.put(("quick_connect", {"server": server}))
+
+    def quick_connect_cancel(self):
+        self.r_queue.put(("quick_connect_cancel", None))
+
     def remove_server(self, uuid):
         if uuid:
             self.r_queue.put(("remove_server", uuid))
@@ -615,6 +621,8 @@ class BrowserApp:
             self._reload_servers(param)
         elif cmd == "server_result":
             self._dispatch_view("on_server_result", param or {})
+        elif cmd == "quick_connect_code":
+            self._dispatch_view("on_quick_connect_code", param or {})
         elif cmd == "navigate":
             if param:
                 self.navigate(param)

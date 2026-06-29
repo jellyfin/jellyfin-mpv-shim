@@ -144,6 +144,7 @@ class UserInterface(threading.Thread):
         self._connecting = False
         self._connect_thread = None
         self._shutting_down = False
+        self._quick_connect_cancel = None  # threading.Event for the active QC flow
 
         threading.Thread.__init__(self)
 
@@ -473,6 +474,55 @@ class UserInterface(threading.Thread):
                 self.refresh_servers()
 
         threading.Thread(target=work, daemon=True).start()
+
+    def on_quick_connect(self, payload):
+        """Start a Quick Connect login for SSO/passwordless users.
+
+        Initiate the request, push the user-facing code to the browser, then
+        poll until the user authorizes it from another Jellyfin session. The
+        final outcome reuses the same ``server_result`` channel as a password
+        login so the browser re-navigates to Home on success.
+        """
+        server = (payload or {}).get("server", "")
+        cancel = threading.Event()
+        self._quick_connect_cancel = cancel
+
+        def work():
+            try:
+                client, secret, code = clientManager.quick_connect_initiate(server)
+            except QuickConnectError as e:
+                self._send_browser(("server_result", {"ok": False, "error": str(e)}))
+                return
+            except Exception:
+                log.error("Error starting Quick Connect.", exc_info=True)
+                self._send_browser(("server_result", {
+                    "ok": False,
+                    "error": _("Could not start Quick Connect."),
+                }))
+                return
+
+            self._send_browser(("quick_connect_code", {"code": code}))
+            ok = False
+            try:
+                ok = clientManager.quick_connect_wait(
+                    client, secret, should_cancel=cancel.is_set)
+            except Exception:
+                log.error("Error during Quick Connect.", exc_info=True)
+            if cancel.is_set():
+                return  # user cancelled; the form already reset itself
+            self._send_browser(("server_result", {
+                "ok": ok,
+                "error": None if ok else _(
+                    "Quick Connect was not authorized in time. Please try again."),
+            }))
+            if ok:
+                self.refresh_servers()
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_quick_connect_cancel(self, _param):
+        if self._quick_connect_cancel is not None:
+            self._quick_connect_cancel.set()
 
     def on_remove_server(self, uuid):
         if not uuid:

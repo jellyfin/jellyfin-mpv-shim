@@ -746,6 +746,24 @@ class _ServerForm:
                                  style="Accent.TButton", command=self.submit)
         self.button.pack(pady=10)
 
+        # Quick Connect: an alternative for SSO/passwordless users. Only the
+        # server URL is needed; the code is entered in another Jellyfin session.
+        self.qc_button = ttk.Button(self.frame, text=_("Use Quick Connect"),
+                                    command=self.start_quick_connect)
+        self.qc_button.pack(pady=(0, 4))
+
+        # Code/status area, shown only while a Quick Connect flow is active.
+        self.qc_frame = tk.Frame(self.frame, bg=CARD_BG)
+        tk.Label(self.qc_frame, text=_("Enter this code in your Jellyfin app\n"
+                                       "(Settings → Quick Connect):"),
+                 bg=CARD_BG, fg=SUBTLE_FG, justify="center").pack()
+        self.qc_code = tk.Label(self.qc_frame, text=_("Starting…"), bg=CARD_BG,
+                                fg=TEXT_FG, font=("TkDefaultFont", 20, "bold"))
+        self.qc_code.pack(pady=6)
+        self.qc_cancel = ttk.Button(self.qc_frame, text=_("Cancel"),
+                                    command=self.cancel_quick_connect)
+        self.qc_cancel.pack()
+
     def widget(self):
         return self.frame
 
@@ -756,8 +774,37 @@ class _ServerForm:
             self.error.config(text=_("Server and username are required."))
             return
         self.error.config(text=_("Connecting…"))
-        self.button.config(state="disabled")
+        self._set_busy(True)
         self._on_submit({"server": server, "username": user, "password": self.pw.get()})
+
+    def start_quick_connect(self):
+        server = self.server.get().strip()
+        if not server:
+            self.error.config(text=_("Server URL is required for Quick Connect."))
+            return
+        self.error.config(text="")
+        self._set_busy(True)
+        self.qc_code.config(text=_("Starting…"))
+        self.qc_frame.pack(pady=(4, 0))
+        self.app.quick_connect(server)
+
+    def cancel_quick_connect(self):
+        self.app.quick_connect_cancel()
+        self._reset()
+
+    def on_quick_connect_code(self, result):
+        code = result.get("code")
+        if code:
+            self.qc_code.config(text=code)
+
+    def _set_busy(self, busy):
+        state = "disabled" if busy else "normal"
+        self.button.config(state=state)
+        self.qc_button.config(state=state)
+
+    def _reset(self):
+        self.qc_frame.pack_forget()
+        self._set_busy(False)
 
     def on_result(self, result):
         if result.get("ok"):
@@ -765,11 +812,10 @@ class _ServerForm:
             self.server.set("")
             self.user.set("")
             self.pw.set("")
-            self.button.config(state="normal")
         else:
             self.error.config(
                 text=result.get("error") or _("Could not connect. Check your details."))
-            self.button.config(state="normal")
+        self._reset()
 
 
 class ConnectingView(BaseView):
@@ -826,6 +872,9 @@ class LoginView(BaseView):
         # On success the incoming server list re-navigates to Home automatically.
         self.form.on_result(result)
 
+    def on_quick_connect_code(self, result):
+        self.form.on_quick_connect_code(result)
+
 
 class ServersPanel:
     """Saved-server management, embedded in the Settings notebook."""
@@ -873,6 +922,10 @@ class ServersPanel:
     def on_server_result(self, result):
         if self.form:
             self.form.on_result(result)
+
+    def on_quick_connect_code(self, result):
+        if self.form:
+            self.form.on_quick_connect_code(result)
 
 
 class LogsPanel:
@@ -1296,6 +1349,10 @@ class SettingsView(BaseView):
     def on_server_result(self, result):
         if self.servers_panel:
             self.servers_panel.on_server_result(result)
+
+    def on_quick_connect_code(self, result):
+        if self.servers_panel:
+            self.servers_panel.on_quick_connect_code(result)
 
     def on_servers_changed(self, _server_list):
         if self.servers_panel:
