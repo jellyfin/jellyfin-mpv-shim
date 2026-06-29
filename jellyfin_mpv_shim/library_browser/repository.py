@@ -11,7 +11,6 @@ same shapes work whether they came from the server or a local cache.
 import json
 import logging
 import os
-import urllib.parse
 
 from jellyfin_apiclient_python import JellyfinClient
 
@@ -188,7 +187,7 @@ class LibrarySource:
 
     def get_item(self, server_uuid, item_id):
         api = self._conn(server_uuid).api
-        return api.users("/Items/%s" % item_id, params={"Fields": DETAIL_FIELDS})
+        return api.get_item(item_id, fields=DETAIL_FIELDS)
 
     def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
         """Episodes for a series in aired order, ACROSS seasons, optionally
@@ -196,22 +195,15 @@ class LibrarySource:
         season boundaries (mirrors jellyfin-web's getEpisodes with startItemId
         and no SeasonId)."""
         api = self._conn(server_uuid).api
-        params = {"UserId": "{UserId}", "Limit": limit, "Fields": LIST_FIELDS}
-        if start_item_id:
-            params["StartItemId"] = start_item_id
-        result = api.shows("/%s/Episodes" % series_id, params) or {}
+        result = api.get_episodes(series_id, start_item_id=start_item_id,
+                                  fields=LIST_FIELDS, limit=limit) or {}
         return result.get("Items", [])
 
     def get_next_up(self, server_uuid, series_id):
         """The next episode to watch for a series (resume or next unwatched)."""
         api = self._conn(server_uuid).api
-        result = api.shows("/NextUp", {
-            "UserId": "{UserId}",
-            "SeriesId": series_id,
-            "Limit": 1,
-            "Fields": LIST_FIELDS,
-            "EnableImageTypes": "Primary,Thumb,Backdrop",
-        }) or {}
+        result = api.get_next(limit=1, series_id=series_id, fields=LIST_FIELDS,
+                              enable_image_types="Primary,Thumb,Backdrop") or {}
         items = result.get("Items", [])
         return items[0] if items else None
 
@@ -252,32 +244,26 @@ class LibrarySource:
         return None
 
     def image_url(self, server_uuid, item_id, image_type, tag, width,
-                  height=None, fill=False):
-        conn = self._conn(server_uuid)
-        params = {"quality": 90, "api_key": conn.token}
+                  height=None, fill=False, index=None):
+        api = self._conn(server_uuid).api
         if fill and height:
             # Crop to the exact tile aspect so wide library/banner art still
             # reads as a uniform poster instead of a letterboxed thumbnail.
-            params["fillWidth"] = int(width)
-            params["fillHeight"] = int(height)
-        else:
-            params["maxWidth"] = int(width)
-        if tag:
-            params["tag"] = tag
-        return "%s/Items/%s/Images/%s?%s" % (
-            conn.address, item_id, image_type, urllib.parse.urlencode(params)
-        )
+            return api.image_url(item_id, image_type, index=index, tag=tag,
+                                 fill_width=int(width), fill_height=int(height))
+        return api.image_url(item_id, image_type, index=index, tag=tag,
+                             max_width=int(width))
 
     def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
         tags = item.get("BackdropImageTags") or []
         if tags:
-            return self.image_url(server_uuid, item["Id"], "Backdrop/0", tags[0],
-                                  width, height=height, fill=fill)
+            return self.image_url(server_uuid, item["Id"], "Backdrop", tags[0],
+                                  width, height=height, fill=fill, index=0)
         parent_tags = item.get("ParentBackdropImageTags") or []
         if parent_tags and item.get("ParentBackdropItemId"):
             return self.image_url(
-                server_uuid, item["ParentBackdropItemId"], "Backdrop/0",
-                parent_tags[0], width, height=height, fill=fill)
+                server_uuid, item["ParentBackdropItemId"], "Backdrop",
+                parent_tags[0], width, height=height, fill=fill, index=0)
         return None
 
 
@@ -525,7 +511,7 @@ class OfflineLibrarySource:
         return None
 
     def image_url(self, server_uuid, item_id, image_type, tag, width,
-                  height=None, fill=False):
+                  height=None, fill=False, index=None):
         return self._art_path(item_id, image_type)
 
     def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):

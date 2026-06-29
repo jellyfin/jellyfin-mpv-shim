@@ -196,17 +196,15 @@ class SyncManager:
     def _expand(self, api, item_id, item_type):
         try:
             if item_type == "Series":
-                res = api.shows("/%s/Episodes" % item_id,
-                                {"UserId": "{UserId}", "Fields": "MediaSources"})
+                res = api.get_episodes(item_id, fields="MediaSources")
                 return (res or {}).get("Items", [])
             if item_type == "Season":
                 season = api.get_item(item_id) or {}
                 series_id = season.get("SeriesId")
                 if not series_id:
                     return []
-                res = api.shows("/%s/Episodes" % series_id,
-                                {"UserId": "{UserId}", "SeasonId": item_id,
-                                 "Fields": "MediaSources"})
+                res = api.get_episodes(series_id, season_id=item_id,
+                                       fields="MediaSources")
                 return (res or {}).get("Items", [])
             item = api.get_item(item_id)
             return [item] if item else []
@@ -431,8 +429,7 @@ class SyncManager:
         """Download trickplay (scrubbing preview) tiles for offline use."""
         api = client.jellyfin
         try:
-            full = api.users("/Items/%s" % item_id,
-                             params={"Fields": "Trickplay"}) or {}
+            full = api.get_item(item_id, fields="Trickplay") or {}
         except Exception:
             return
         manifest = (full.get("Trickplay") or {}).get(source.get("Id")) or {}
@@ -453,14 +450,11 @@ class SyncManager:
         except Exception:
             return
 
-        server = client.config.data.get("auth.server", "").rstrip("/")
-        token = urllib.parse.quote(client.config.data.get("auth.token", ""))
         verify = not settings.ignore_ssl_cert
         tp_dir = os.path.join(item_dir, "trickplay", str(width))
         os.makedirs(tp_dir, exist_ok=True)
         for i in range(tiles):
-            url = "%s/Videos/%s/Trickplay/%s/%s.jpg?MediaSourceId=%s&api_key=%s" % (
-                server, item_id, width, i, source.get("Id"), token)
+            url = api.trickplay_tile_url(item_id, width, i, source.get("Id"))
             try:
                 resp = requests.get(url, timeout=(10, 30), verify=verify)
                 resp.raise_for_status()
@@ -576,12 +570,12 @@ class SyncManager:
             fmt = _sub_format(stream.get("Codec"))
             delivery = stream.get("DeliveryUrl")
             if delivery:
-                url = delivery if stream.get("IsExternalUrl") else (server + delivery)
+                base = delivery if stream.get("IsExternalUrl") else (server + delivery)
+                sep = "&" if "?" in base else "?"
+                url = "%s%sapi_key=%s" % (base, sep, urllib.parse.quote(token))
             else:
-                url = "%s/Videos/%s/%s/Subtitles/%s/0/Stream.%s" % (
-                    server, item_id, media_source_id, index, fmt)
-            sep = "&" if "?" in url else "?"
-            url = "%s%sapi_key=%s" % (url, sep, urllib.parse.quote(token))
+                url = client.jellyfin.subtitle_url(
+                    item_id, media_source_id, index, fmt)
             try:
                 os.makedirs(subs_dir, exist_ok=True)
                 resp = requests.get(url, timeout=(10, 30), verify=verify)
