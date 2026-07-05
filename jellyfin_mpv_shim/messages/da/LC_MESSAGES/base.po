@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:53-0400\n"
-"PO-Revision-Date: 2025-11-23 00:01+0000\n"
-"Last-Translator: Centauri <lillelau4@gmail.com>\n"
+"PO-Revision-Date: 2026-07-06 01:00+0000\n"
+"Last-Translator: Ulrik <ulrik.johansen@me.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/da/>\n"
+"jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -48,7 +48,7 @@ msgstr "Indstiller nuværende..."
 
 #: jellyfin_mpv_shim/clients.py:75
 msgid "Server URL: "
-msgstr "Server adresse: "
+msgstr "Server-URL: "
 
 #: jellyfin_mpv_shim/clients.py:76
 msgid "Username: "
@@ -91,8 +91,8 @@ msgid ""
 "Could not add server.\n"
 "Please check your connection information."
 msgstr ""
-"Kunne ikke tilføje serveren.\n"
-"Venligst undersøg din internet forbindelse."
+"Det var ikke muligt at tilføje serveren.\n"
+"Kontroller venligst dine forbindelsesoplysninger."
 
 #: jellyfin_mpv_shim/gui_mgr.py:267
 msgid "Fail"
@@ -104,7 +104,7 @@ msgstr "Ok"
 
 #: jellyfin_mpv_shim/gui_mgr.py:280
 msgid "Server Configuration"
-msgstr "Server konfiguration"
+msgstr "Serverkonfiguration"
 
 #: jellyfin_mpv_shim/gui_mgr.py:303
 msgid "Server:"
@@ -128,7 +128,7 @@ msgstr "Luk"
 
 #: jellyfin_mpv_shim/gui_mgr.py:454
 msgid "Configure Servers"
-msgstr "Konfigurer servere"
+msgstr "Konfigurér servere"
 
 #: jellyfin_mpv_shim/gui_mgr.py:455
 msgid "Show Console"
@@ -136,11 +136,11 @@ msgstr "Vis konsol"
 
 #: jellyfin_mpv_shim/gui_mgr.py:456
 msgid "Application Menu"
-msgstr "Applikation menu"
+msgstr "Applikationsmenu"
 
 #: jellyfin_mpv_shim/gui_mgr.py:457
 msgid "Open Config Folder"
-msgstr "Åben konfigurationsmappe"
+msgstr "Åbn konfigurationsmappen"
 
 #: jellyfin_mpv_shim/gui_mgr.py:458
 msgid "Quit"
@@ -148,7 +148,7 @@ msgstr "Afslut"
 
 #: jellyfin_mpv_shim/media.py:139
 msgid " (Transcode)"
-msgstr " (Transcode)"
+msgstr " (Transkodning)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -236,11 +236,11 @@ msgstr "Skift videoafspilningsprofil"
 
 #: jellyfin_mpv_shim/menu.py:158
 msgid "Auto Set Audio/Subtitles (Entire Series)"
-msgstr "Indstil automatisk Lyd/Undertekster (Hele serien)"
+msgstr "Automatisk indstilling af lyd/undertekster (hele serien)"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "Quit and Mark Unwatched"
-msgstr "Afslut og markér som ikke set"
+msgstr "Afslut og markér som Ikke-set"
 
 #: jellyfin_mpv_shim/menu.py:166
 msgid "Screenshot"
@@ -252,15 +252,15 @@ msgstr "Videoafspilningsprofil"
 
 #: jellyfin_mpv_shim/menu.py:173
 msgid "SVP Settings"
-msgstr "SVP indstillinger"
+msgstr "SVP-indstillinger"
 
 #: jellyfin_mpv_shim/menu.py:177 jellyfin_mpv_shim/menu.py:521
 msgid "Video Preferences"
-msgstr "Videopræferencer"
+msgstr "Videoindstillinger"
 
 #: jellyfin_mpv_shim/menu.py:178 jellyfin_mpv_shim/menu.py:544
 msgid "Player Preferences"
-msgstr "Afspillerpræferencer"
+msgstr "Afspillerindstillinger"
 
 #: jellyfin_mpv_shim/menu.py:179
 msgid "Close Menu"
@@ -268,11 +268,11 @@ msgstr "Luk menu"
 
 #: jellyfin_mpv_shim/menu.py:261
 msgid "Select Audio Track"
-msgstr "Vælg lyd spor"
+msgstr "Vælg lydspor"
 
 #: jellyfin_mpv_shim/menu.py:298
 msgid "Select Subtitle Track"
-msgstr "Vælg undertekst spor"
+msgstr "Vælg undertekstspor"
 
 #: jellyfin_mpv_shim/menu.py:306
 msgid "None"
@@ -292,7 +292,7 @@ msgstr "Ingen omkodning"
 
 #: jellyfin_mpv_shim/menu.py:382
 msgid "Select Audio/Subtitle for Series"
-msgstr "Skift lyd/undertekster for serien"
+msgstr "Vælg lyd/undertekster til serien"
 
 #: jellyfin_mpv_shim/menu.py:384
 msgid "English Audio"
@@ -304,11 +304,11 @@ msgstr "Japansk lyd med engelske undertekster"
 
 #: jellyfin_mpv_shim/menu.py:391
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Manuelt efter spor indeks (Mindre pålidelig)"
+msgstr "Manuel søgning via sporindeks (mindre pålidelig)"
 
 #: jellyfin_mpv_shim/menu.py:421
 msgid "Select Default Transcode Profile"
-msgstr "Skift standard omkodningsprofil"
+msgstr "Vælg standardtranskodningsprofil"
 
 #: jellyfin_mpv_shim/menu.py:456
 msgid "Select Subtitle Color"
@@ -336,19 +336,19 @@ msgstr "Midten"
 
 #: jellyfin_mpv_shim/menu.py:486
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Fjernomkodningskvalitet: {0:0.1f} Mbps"
+msgstr "Kvalitet ved fjerntranskodning: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py:492
 msgid "Subtitle Size: {0}"
-msgstr "Undertekst størrelse: {0}"
+msgstr "Undertekststørrelse: {0}"
 
 #: jellyfin_mpv_shim/menu.py:496
 msgid "Subtitle Position: {0}"
-msgstr "Undertekst placering: {0}"
+msgstr "Undertekstplacering: {0}"
 
 #: jellyfin_mpv_shim/menu.py:500
 msgid "Subtitle Color: {0}"
-msgstr "Undertekst farve: {0}"
+msgstr "Farve på undertekster: {0}"
 
 #: jellyfin_mpv_shim/menu.py:505
 msgid "Transcode Hi10p to 8bit"
@@ -364,15 +364,15 @@ msgstr "Direkte stier"
 
 #: jellyfin_mpv_shim/menu.py:508
 msgid "Disable Direct Play"
-msgstr "Deaktiver direkte afspilning"
+msgstr "Deaktivér direkte afspilning"
 
 #: jellyfin_mpv_shim/menu.py:514
 msgid "Video Profile Subtype: {0}"
-msgstr "Videoprofil undertype: {0}"
+msgstr "Undertype for videoprofil: {0}"
 
 #: jellyfin_mpv_shim/menu.py:525
 msgid "Video Profile Subtype"
-msgstr "Videoprofil undertype"
+msgstr "Undertype for videoprofil"
 
 #: jellyfin_mpv_shim/menu.py:546
 msgid "Auto Play"
@@ -396,7 +396,7 @@ msgstr "Skærmspejling"
 
 #: jellyfin_mpv_shim/menu.py:551
 msgid "Write Logs to File"
-msgstr "Skriv logge til fil"
+msgstr "Skriv logfiler til fil"
 
 #: jellyfin_mpv_shim/menu.py:552
 msgid "Check for Updates"
@@ -424,7 +424,7 @@ msgstr "Spørg om at springe rulletekster over"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr "Aktiver forhåndsvisning af miniaturebilleder"
+msgstr "Aktivér forhåndsvisning af miniaturer"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
@@ -436,24 +436,24 @@ msgstr "Sprunget introer over"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Credits"
-msgstr "Søg til Spring over Rulletekster"
+msgstr "Spol til Spring over rulletekster"
 
 #: jellyfin_mpv_shim/player.py:490
 msgid "Seek to Skip Intro"
-msgstr "Søg til Spring over Intro"
+msgstr "Spol til Spring over intro"
 
 #: jellyfin_mpv_shim/player.py:598
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Din eksterne video omkodes!\n"
-"Tryk på c for at justere båndbredde indstillingerne hvis dette ikke er "
+"Din fjernvideo er ved at blive transkodet!\n"
+"Tryk på c for at justere båndbreddeindstillingerne, hvis dette ikke er "
 "nødvendigt."
 
 #: jellyfin_mpv_shim/player.py:965
 msgid "Season {0} - Episode {1}"
-msgstr "Sæson {0} - Afsnit {1}"
+msgstr "Sæson {0} - Episode {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:45
 #: jellyfin_mpv_shim/svp_integration.py:58
@@ -466,7 +466,7 @@ msgstr "Deaktiveret"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
-msgstr "Skift SVP profil"
+msgstr "Vælg SVP-profil"
 
 #: jellyfin_mpv_shim/svp_integration.py:171
 msgid "SVP is Not Active"
@@ -474,7 +474,7 @@ msgstr "SVP er ikke aktiv"
 
 #: jellyfin_mpv_shim/svp_integration.py:173
 msgid "Disable"
-msgstr "Deaktiver"
+msgstr "Deaktivér"
 
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
@@ -482,7 +482,7 @@ msgstr "Prøv igen"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "Enable SVP"
-msgstr "Aktiver SVP"
+msgstr "Aktivér SVP"
 
 #: jellyfin_mpv_shim/svp_integration.py:180
 msgid "SVP is Disabled"
@@ -530,19 +530,19 @@ msgstr "{0} er tilsluttet."
 
 #: jellyfin_mpv_shim/syncplay.py:315
 msgid "{0} has left."
-msgstr "{0} har forladt."
+msgstr "{0} er gået."
 
 #: jellyfin_mpv_shim/syncplay.py:317
 msgid "{0} is buffering."
-msgstr "{0} bufferlagrers."
+msgstr "{0} er i gang med at buffe."
 
 #: jellyfin_mpv_shim/syncplay.py:615
 msgid "{0}'s Group"
-msgstr "{0}'s gruppe"
+msgstr "{0}s gruppe"
 
 #: jellyfin_mpv_shim/syncplay.py:624 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
-msgstr "Ingen (Deaktiveret)"
+msgstr "Ingen (deaktiveret)"
 
 #: jellyfin_mpv_shim/syncplay.py:628
 msgid "New Group"
@@ -598,7 +598,7 @@ msgstr "Anime4K x2 Perceptual + anti-sløring (til HD)"
 
 #: jellyfin_mpv_shim/video_profile.py:204
 msgid "Select Shader Profile"
-msgstr "Vælg skygge profil"
+msgstr "Vælg shaderprofil"
 
 #~ msgid "Use JellyScrub thumbnails"
 #~ msgstr "Brug JellyScrub thumbnails"
