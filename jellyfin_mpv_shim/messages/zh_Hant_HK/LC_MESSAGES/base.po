@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-06-05 13:54-0400\n"
-"PO-Revision-Date: 2026-06-09 12:27+0000\n"
+"PO-Revision-Date: 2026-07-06 08:24+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -424,7 +424,7 @@ msgstr "跳過片尾前問我"
 
 #: jellyfin_mpv_shim/menu.py:561
 msgid "Enable thumbnail previews"
-msgstr "啟用縮圖預覽"
+msgstr "啟用預覽圖"
 
 #: jellyfin_mpv_shim/player.py:487
 msgid "Skipped Credits"
