@@ -178,12 +178,24 @@ class UserInterface(threading.Thread):
         if self.r_queue is not None:
             self.r_queue.put(("show", None))
 
-    def _die(self):
-        self._shutting_down = True
+    def _detach_browser(self):
+        """Stop forwarding logs / sync updates into the browser's command queue.
+
+        Called on any browser death. This matters for two reasons: (a) pushes
+        must not pile up forever in a queue nobody is draining after a crash;
+        and (b) these callbacks are set *after* the process forks, so a later
+        relaunch must find them cleared — otherwise the forked child inherits a
+        live log callback pointed at its own cmd queue and echoes its own logs
+        back into it. start_browser() re-establishes them per launch."""
         guiHandler.callback = None
-        # Stop pushing into queues we're about to tear down.
         syncManager.on_change = lambda: None
         syncManager.on_progress = lambda item_id, name, downloaded, total: None
+
+    def _die(self):
+        self._shutting_down = True
+        # Stop pushing into queues we're about to tear down (but keep the queue
+        # reference so we can still deliver the "die" message below).
+        self._detach_browser()
 
         if self.browser_process is not None:
             self._send_browser(("die", None))
@@ -410,6 +422,12 @@ class UserInterface(threading.Thread):
         if self.browser_process is not None:
             self.browser_process.join(timeout=0)
             self.browser_process = None
+        # Drop the dead child's queue and stop forwarding into it. Without this,
+        # log/sync pushes accumulate in an undrained queue, and a forked
+        # relaunch would inherit a live log callback aimed at the new queue and
+        # echo its own logs into it. start_browser() re-establishes both.
+        self._detach_browser()
+        self.browser_cmd_queue = None
         if not was_ready:
             # Never came up (e.g. no display / Tk init failure). Don't take the
             # whole app down — keep running as a cast target; the tray (if any)
