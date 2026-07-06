@@ -665,8 +665,15 @@ class BrowserApp:
             else:
                 self._dispatch_view("on_sync_state", ss)
         elif cmd == "download_estimate":
-            if self._download_dialog is not None:
-                self._download_dialog.on_estimate(param or {})
+            est = param or {}
+            dlg = self._download_dialog
+            # Only apply the estimate if it belongs to the dialog currently
+            # open: a slow estimate for a dismissed dialog must not overwrite
+            # the numbers of the one the user opened next.
+            if dlg is not None and (
+                est.get("item_id") is None or est.get("item_id") == dlg.item_id
+            ):
+                dlg.on_estimate(est)
         elif cmd == "download_progress":
             payload = param or {}
             total = payload.get("total", 0)

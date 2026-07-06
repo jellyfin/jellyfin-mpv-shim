@@ -287,6 +287,12 @@ class ScrollableGrid:
     def widget(self):
         return self.outer
 
+    def rearm_near_end(self):
+        """Re-enable the infinite-scroll trigger. _update_visible disarms it
+        before each on_near_end call and only append_items re-arms it, so a
+        failed page load would otherwise wedge loading permanently."""
+        self._near_end_armed = True
+
     def set_items(self, items, server_uuid, image_type="Primary", on_click=None,
                   subtitle_fn=None):
         for t in self.tiles:

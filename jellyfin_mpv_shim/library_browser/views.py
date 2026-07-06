@@ -89,6 +89,10 @@ class BaseView:
         self.app = app
         self.route = route
         self.frame = None
+        # Incremented to invalidate in-flight requests within this view (a
+        # sort change, a season switch). run_async captures the value at
+        # request time and drops results whose token no longer matches.
+        self._req_epoch = 0
 
     def build(self, parent):
         self.frame = self.app.tk.Frame(parent, bg=CARD_BG)
@@ -97,6 +101,31 @@ class BaseView:
 
     def _build(self):
         raise NotImplementedError
+
+    def new_request(self):
+        """Bump and return this view's request token. Call when starting work
+        that supersedes any earlier in-flight work for the same view."""
+        self._req_epoch += 1
+        return self._req_epoch
+
+    def run_async(self, work, done, on_error=None, epoch=None):
+        """Like app.run_async, but the done/on_error callbacks are dropped if
+        this view is no longer the current one (the user navigated away), or
+        if `epoch` is given and no longer matches this view's request token
+        (a newer request superseded this one). Fixes stale results landing in
+        a torn-down or moved-on view."""
+        def guard(cb):
+            def wrapped(*a, **k):
+                if self.app.current_view is not self:
+                    return
+                if epoch is not None and epoch != self._req_epoch:
+                    return
+                return cb(*a, **k)
+            return wrapped
+
+        self.app.run_async(
+            work, guard(done), guard(on_error) if on_error else None
+        )
 
     def _spinner(self, parent=None):
         parent = parent or self.frame
@@ -176,7 +205,7 @@ class HomeView(BaseView):
             elif not self.rendered:
                 self._error(self.frame, e)
 
-        self.app.run_async(work, done, fail)
+        self.run_async(work, done, fail)
 
     def _render_home(self, result):
         libraries, rows = result
@@ -263,6 +292,9 @@ class GridView(BaseView):
         self._reset_and_load()
 
     def _reset_and_load(self):
+        # Supersede any page fetch still in flight from the previous sort, so
+        # its result can't append to the freshly reset grid.
+        self.new_request()
         self.total = None
         self.loaded = 0
         self.loading = False
@@ -279,6 +311,7 @@ class GridView(BaseView):
         server = self.app.current_server
         _name, sort_by, order = SORTS[self.sort_idx]
         start = self.loaded
+        epoch = self._req_epoch
 
         def work():
             return self.app.source.get_library_items(
@@ -313,8 +346,11 @@ class GridView(BaseView):
             self.loading = False
             self.status.config(text=_("Failed to load."))
             log.warning("Grid load failed: %s", e)
+            # Re-arm infinite scroll so a transient failure doesn't wedge the
+            # grid permanently — scrolling to the end can retry.
+            self.grid.rearm_near_end()
 
-        self.app.run_async(work, done, fail)
+        self.run_async(work, done, fail, epoch=epoch)
 
 
 class SeriesView(BaseView):
@@ -381,7 +417,7 @@ class SeriesView(BaseView):
                 self.app.tk.Label(body, text=_("No seasons found."), bg=CARD_BG,
                                   fg=SUBTLE_FG).pack(pady=40)
 
-        self.app.run_async(work, done,
+        self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
 
     def _open_season(self, season):
@@ -452,7 +488,7 @@ class SeasonView(BaseView):
                 self.season_box.current(cur)
             self._load_episodes(self.route["season_id"])
 
-        self.app.run_async(work, done,
+        self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
 
     def _to_series(self):
@@ -471,6 +507,9 @@ class SeasonView(BaseView):
         server = self.app.current_server
         sid = self.route["series_id"]
         self._cur_season_id = season_id
+        # Supersede a previous season's fetch so a slow response can't land
+        # its episodes (and its watched state) over the season now selected.
+        epoch = self.new_request()
 
         def work():
             return self.app.source.get_episodes(server, sid, season_id)
@@ -490,7 +529,8 @@ class SeasonView(BaseView):
                     text=_("Mark unwatched") if self._season_watched
                     else _("Mark watched"))
 
-        self.app.run_async(work, done, lambda e: self._error(self.frame, e))
+        self.run_async(work, done, lambda e: self._error(self.frame, e),
+                       epoch=epoch)
 
     def _toggle_season_watched(self):
         if self._cur_season_id:
@@ -523,7 +563,7 @@ class SearchView(BaseView):
             grid.set_items(items, server, image_type="Primary",
                            on_click=self.app.open_item)
 
-        self.app.run_async(work, done,
+        self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
 
 
@@ -555,7 +595,7 @@ class DetailView(BaseView):
             self.item = item
             self._render(item)
 
-        self.app.run_async(work, done,
+        self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
 
     def _render(self, item):
