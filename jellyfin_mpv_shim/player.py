@@ -5,13 +5,14 @@ import time
 
 import platform
 
-from threading import RLock, Lock, Event
+from threading import RLock, Lock, Thread
 from queue import Queue
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
 from .utils import synchronous, Timer, none_fallback, get_resource
+from .mpv_events import wait_property
 from .conf import settings
 from .menu import OSDMenu
 from .constants import APP_NAME
@@ -54,10 +55,14 @@ if settings.mpv_ext or not python_mpv_available:
     is_using_ext_mpv = True
 
 # Collect backend-specific exceptions for MPV disconnection/shutdown.
-# libmpv raises ShutdownError; external mpv (jsonipc) raises BrokenPipeError.
+# libmpv raises ShutdownError; external mpv (jsonipc) raises BrokenPipeError
+# for a dead socket and TimeoutError for a wedged-but-alive mpv, which is
+# just as unusable — treat both as a disconnect.
 _mpv_errors = (BrokenPipeError,)
 if hasattr(mpv, "ShutdownError"):
     _mpv_errors = (BrokenPipeError, mpv.ShutdownError)
+else:
+    _mpv_errors = (BrokenPipeError, TimeoutError)
 
 SUBTITLE_POS = {
     "top": 0,
@@ -78,33 +83,6 @@ def mpv_log_handler(level: str, prefix: str, text: str):
         mpv_log_levels[level]("{0}: {1}".format(prefix, text))
     else:
         mpv_log.debug("{0}: {1}".format(prefix, text))
-
-
-def wait_property(
-    instance, name: str, cond=lambda x: True, timeout: Optional[int] = None
-):
-    success = True
-    event = Event()
-
-    def handler(_name, value):
-        if cond(value):
-            event.set()
-
-    if is_using_ext_mpv:
-        observer_id = instance.bind_property_observer(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
-        instance.unbind_property_observer(observer_id)
-    else:
-        instance.observe_property(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
-        instance.unobserve_property(name, handler)
-    return success
 
 
 win_utils = None
@@ -187,6 +165,17 @@ class PlayerManager(object):
         self.playback_time_before_seek = None
         self.trickplay = None
         self._mpv_alive = False
+        # Playback generation, bumped each time a new file becomes current.
+        # Queued finished-callbacks carry the epoch they were created under
+        # and no-op if playback moved on before they ran.
+        self._play_epoch = 0
+        # True only when mpv reported a genuine end-of-file (eof-reached).
+        # playback-abort fires on ANY abort — including decode/network failure —
+        # so this flag is what distinguishes "watched to the end" from "the
+        # stream died". Written by the mpv observer thread (handle_end), read by
+        # the action/timeline threads; a plain bool is safe here (atomic
+        # read/write in CPython, no compound state).
+        self._reached_eof = False
         # Last known playback position; used when MPV exits (e.g. OSC 'x'
         # button) before we get to send the final timeline update.
         self._last_playback_position = 0
@@ -442,18 +431,21 @@ class PlayerManager(object):
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
-            self.pause_ignore = True
+            # Only act on the True transition: the False transition means a
+            # new file just loaded, and arming the pause-swallow there leaves
+            # a stale "expect pause" that eats the user's first real pause
+            # under SyncPlay.
             if self._video and reached_end:
-                has_lock = self._finished_lock.acquire(False)
-                self.put_task(self.finished_callback, has_lock)
+                # Genuine end-of-file (as opposed to the playback-abort path,
+                # which also fires on decode/network failure).
+                self._reached_eof = True
+                self._queue_finished()
 
         # Fires at the end.
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
-            self.pause_ignore = True
             if self._video and value and not self._video.parent.has_next:
-                has_lock = self._finished_lock.acquire(False)
-                self.put_task(self.finished_callback, has_lock)
+                self._queue_finished()
 
         @self._player.property_observer("seeking")
         def handle_seeking(_name, value: bool):
@@ -497,7 +489,10 @@ class PlayerManager(object):
             if not self._player.playback_abort:
                 self.timeline_handle()
 
-            if value != self.pause_ignore:
+            # Forwarding a pause flip to SyncPlay is only meaningful while
+            # something is actually playing; an idle/torn-down player can
+            # still emit pause events (external mpv, scripts).
+            if value != self.pause_ignore and self._video:
                 if self.syncplay.is_enabled():
                     if value:
                         self.syncplay.pause_request()
@@ -509,35 +504,16 @@ class PlayerManager(object):
         @self._player.event_callback("shutdown")
         def handle_shutdown(event):
             log.info("mpv shutdown event received")
-            if self._video:
-                self.should_send_timeline = False
-                local_video = self._video
-                self._video = None
-                try:
-                    options = {
-                        "PositionTicks": int((self.last_seek or 0) * 10000000),
-                        "PlaybackStartTimeTicks": int(
-                            (self.start_time or 0) * 10000000
-                        ),
-                        "PlayMethod": (
-                            "Transcode" if local_video.is_transcode else "DirectPlay"
-                        ),
-                        "PlaySessionId": local_video.playback_info["PlaySessionId"],
-                        "ItemId": local_video.item_id,
-                    }
-                    local_video.client.jellyfin.session_stop(options)
-                except Exception:
-                    log.warning(
-                        "Could not report playback stop to server.", exc_info=True
-                    )
-                try:
-                    local_video.terminate_transcode()
-                except Exception:
-                    pass
-            self.exec_stop_cmd()
-            import threading
-
-            threading.Thread(target=self._terminate_mpv, daemon=True).start()
+            # Only flip the flag here; the real teardown does network I/O and
+            # swaps self._video, neither of which belongs on MPV's event
+            # thread (the swap races the timeline thread, and blocking this
+            # thread stalls every other observer). The queued task runs on
+            # the action thread under _lock, serialized against stop()/play().
+            self.should_send_timeline = False
+            self.put_task(self._handle_mpv_shutdown)
+            Thread(
+                target=self._terminate_mpv, args=(self._player,), daemon=True
+            ).start()
 
         @self._player.event_callback("client-message")
         def handle_client_message(event):
@@ -574,6 +550,15 @@ class PlayerManager(object):
 
         self._mpv_alive = True
 
+    # End-of-playback choreography shared by the eof and abort observers:
+    # arm the pause-swallow, take the dedup lock non-blockingly (whichever
+    # observer fires first wins), and stamp the task with the playback epoch
+    # so it no-ops if a new file starts before it runs.
+    def _queue_finished(self):
+        self.pause_ignore = True
+        has_lock = self._finished_lock.acquire(False)
+        self.put_task(self.finished_callback, has_lock, self._play_epoch)
+
     # Put a task to the event queue.
     # This ensures the task executes outside
     # of an event handler, which causes a crash.
@@ -589,7 +574,12 @@ class PlayerManager(object):
             self.timeline_trigger.set()
 
     def skip_intro(self):
-        _, intro = self._video.get_current_intro(self._player.playback_time)
+        video = self._video
+        if video is None:
+            return
+        _, intro = video.get_current_intro(self._player.playback_time)
+        if intro is None:
+            return
 
         if not self._player.playback_abort:
             self._player.command("seek", intro.end, "absolute")
@@ -601,6 +591,21 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def update(self):
+        # Drain queued tasks first, and never let one abort the drain: this
+        # loop is pumped by the action thread, and an exception escaping here
+        # would kill that thread for the rest of the session. Tasks must also
+        # run when MPV is already gone (e.g. the shutdown teardown task), so
+        # this happens before anything touches the player.
+        while not self.evt_queue.empty():
+            func, args = self.evt_queue.get()
+            try:
+                func(*args)
+            except _mpv_errors:
+                self._handle_mpv_disconnect()
+            except Exception:
+                log.exception(
+                    "Queued task %s failed.", getattr(func, "__name__", func)
+                )
         try:
             if (
                 (
@@ -662,9 +667,6 @@ class PlayerManager(object):
             self._handle_mpv_disconnect()
             return
 
-        while not self.evt_queue.empty():
-            func, args = self.evt_queue.get()
-            func(*args)
         try:
             if self._video and not self._player.playback_abort:
                 if not self.is_paused():
@@ -720,7 +722,11 @@ class PlayerManager(object):
 
         self._player.play(self.url)
         if not wait_property(
-            self._player, "duration", lambda x: x is not None, settings.playback_timeout
+            self._player,
+            "duration",
+            lambda x: x is not None,
+            settings.playback_timeout,
+            skip_initial=True,
         ):
             # Timeout playback attempt after 10 seconds
             log.error("Timeout when waiting for media duration. Stopping playback!")
@@ -731,6 +737,16 @@ class PlayerManager(object):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
+        # A new file is actually playing now; any prior end-of-file is stale,
+        # and so is the previous file's last known position (it would
+        # otherwise satisfy the near-end finish check for a same-length next
+        # episode that aborts before its first timeline tick).
+        self._reached_eof = False
+        self._last_playback_position = 0
+        # Invalidate finished-callbacks queued for the previous playback: a
+        # cast landing in the same instant as an EOF would otherwise let the
+        # stale callback mark the just-cast item played and skip past it.
+        self._play_epoch += 1
         self.is_in_intro = False
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
@@ -800,7 +816,8 @@ class PlayerManager(object):
         if self.menu.is_menu_shown:
             self.menu.hide_menu()
 
-        if not self._video or not self._mpv_alive:
+        local_video = self._video
+        if not local_video or not self._mpv_alive:
             self.exec_stop_cmd()
             return
 
@@ -813,12 +830,11 @@ class PlayerManager(object):
             self.exec_stop_cmd()
             return
 
-        log.info("PlayerManager::stop stopping playback of %s" % self._video)
+        log.info("PlayerManager::stop stopping playback of %s" % local_video)
 
         self.should_send_timeline = False
-        options = self.get_timeline_options()
+        options = self.get_timeline_options(video=local_video)
         self.set_paused(False)
-        local_video = self._video
         self._video = None
         self._player.command("stop")
         local_video.terminate_transcode()
@@ -930,20 +946,33 @@ class PlayerManager(object):
         return False
 
     @synchronous("_lock")
-    def finished_callback(self, has_lock: bool):
-        if not self._video:
+    def finished_callback(self, has_lock: bool, epoch: Optional[int] = None):
+        # Queued for an earlier playback? A new file has started since this
+        # task was enqueued; acting now would finish the wrong video. The
+        # _finished_lock needs no release here — _play_media already released
+        # it when it bumped the epoch.
+        if epoch is not None and epoch != self._play_epoch:
+            log.info("PlayerManager::finished_callback stale, skipping")
+            return
+
+        # Snapshot: an mpv disconnect on another thread can null self._video
+        # mid-callback even though we hold _lock.
+        video = self._video
+        if not video:
             self.pause_ignore = False
             return
 
-        if settings.force_set_played:
-            self._video.set_played()
-        if self._video.parent.has_next and settings.auto_play:
+        # Only mark played on a genuine end-of-file. An errored/aborted stream
+        # (playback-abort far from the end) must not be recorded as watched.
+        if settings.force_set_played and self._finished_at_eof(video):
+            video.set_played()
+        if video.parent.has_next and settings.auto_play:
             if has_lock:
                 log.info("PlayerManager::finished_callback starting next episode")
-                new_video = self._video.parent.get_next().video
+                new_video = video.parent.get_next().video
                 self.send_timeline_stopped(True)
                 if self.syncplay.is_enabled():
-                    self.syncplay.request_next(self._video.get_playlist_id())
+                    self.syncplay.request_next(video.get_playlist_id())
                 else:
                     self.play(new_video)
             else:
@@ -978,11 +1007,12 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def play_next(self):
-        if self._video.parent.has_next:
-            new_video = self._video.parent.get_next().video
+        video = self._video
+        if video and video.parent.has_next:
+            new_video = video.parent.get_next().video
             self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
-                self.syncplay.request_next(self._video.get_playlist_id())
+                self.syncplay.request_next(video.get_playlist_id())
             else:
                 self.play(new_video)
             return True
@@ -990,7 +1020,8 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def skip_to(self, key: str):
-        media = self._video.parent.get_from_key(key)
+        video = self._video
+        media = video.parent.get_from_key(key) if video else None
         if media:
             self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
@@ -1002,11 +1033,12 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def play_prev(self):
-        if self._video.parent.has_prev:
-            new_video = self._video.parent.get_prev().video
+        video = self._video
+        if video and video.parent.has_prev:
+            new_video = video.parent.get_prev().video
             self.send_timeline_stopped(True)
             if self.syncplay.is_enabled():
-                self.syncplay.request_prev(self._video.get_playlist_id())
+                self.syncplay.request_prev(video.get_playlist_id())
             else:
                 self.play(new_video)
             return True
@@ -1014,12 +1046,15 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def restart_playback(self):
+        video = self._video
+        if not video:
+            return False
         current_time = self._player.playback_time
         # Same item, same media source: the video already carries the user's
         # exact aid/sid (e.g. a just-selected burn-in subtitle). Don't re-derive
         # tracks from memory or we'd revert the very change that forced this
         # restart.
-        self.play(self._video, current_time, apply_memory=False)
+        self.play(video, current_time, apply_memory=False)
         return True
 
     @synchronous("_lock")
@@ -1052,12 +1087,15 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def configure_streams(self):
-        audio_uid = self._video.aid
-        sub_uid = self._video.sid
+        video = self._video
+        if not video:
+            return
+        audio_uid = video.aid
+        sub_uid = video.sid
 
-        if audio_uid is not None and not self._video.is_transcode:
+        if audio_uid is not None and not video.is_transcode:
             log.info("PlayerManager::play selecting audio stream index=%s" % audio_uid)
-            self._player.audio = self._video.audio_seq[audio_uid]
+            self._player.audio = video.audio_seq[audio_uid]
 
         if sub_uid is None or sub_uid == -1:
             log.info("PlayerManager::play selecting subtitle stream (none)")
@@ -1065,11 +1103,11 @@ class PlayerManager(object):
         else:
             log.info("PlayerManager::play selecting subtitle stream index=%s "
                      "(embedded map=%s external=%s)" % (
-                         sub_uid, self._video.subtitle_seq,
-                         list(self._video.subtitle_url)))
-            if sub_uid in self._video.subtitle_seq:
-                self._player.sub = self._video.subtitle_seq[sub_uid]
-            elif sub_uid in self._video.subtitle_url:
+                         sub_uid, video.subtitle_seq,
+                         list(video.subtitle_url)))
+            if sub_uid in video.subtitle_seq:
+                self._player.sub = video.subtitle_seq[sub_uid]
+            elif sub_uid in video.subtitle_url:
                 log.info(
                     "PlayerManager::play selecting external subtitle id=%s" % sub_uid
                 )
@@ -1080,7 +1118,10 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def set_streams(self, audio_uid: int, sub_uid: int):
-        need_restart = self._video.set_streams(audio_uid, sub_uid)
+        video = self._video
+        if not video:
+            return
+        need_restart = video.set_streams(audio_uid, sub_uid)
 
         if need_restart:
             self.restart_playback()
@@ -1152,9 +1193,16 @@ class PlayerManager(object):
         self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
 
-    def get_timeline_options(self, finished=False):
+    def get_timeline_options(self, finished=False, video=None):
         # PlaylistItemId is dynamically generated. A more stable Id will be used
         # if queue manipulation is added as a feature.
+        # self._video can be nulled at any moment by another thread (stop,
+        # mpv disconnect) — take one snapshot and use only the local from
+        # here on. Callers must handle a None return.
+        if video is None:
+            video = self._video
+        if video is None:
+            return None
         player = self._player
 
         # Cache player properties to reduce IPC calls (especially with external
@@ -1173,14 +1221,18 @@ class PlayerManager(object):
         if playback_time is not None:
             self._last_playback_position = playback_time
 
-        if finished:
-            # When MPV has already exited we don't actually know if the video
-            # finished — fall back to the last known position rather than
-            # marking it as fully watched.
+        if finished and self._finished_at_eof(video, playback_time):
+            # Genuine end-of-file: report the full duration so the item is
+            # recorded as fully watched.
+            safe_pos = video.get_duration() or 0
+        elif finished:
+            # "Finished" without a real EOF means an abort (decode/network
+            # failure, or mpv already exited). Don't pretend it was watched to
+            # the end — fall back to the last known position.
             if playback_time is None:
                 safe_pos = self._last_playback_position
             else:
-                safe_pos = self._video.get_duration() or 0
+                safe_pos = playback_time
         else:
             safe_pos = playback_time or 0
         self.last_seek = safe_pos
@@ -1193,16 +1245,16 @@ class PlayerManager(object):
             # "MaxStreamingBitrate": 140000000,
             "PositionTicks": int(safe_pos * 10000000),
             "PlaybackStartTimeTicks": int(self.start_time * 10000000),
-            "SubtitleStreamIndex": none_fallback(self._video.sid, -1),
-            "AudioStreamIndex": none_fallback(self._video.aid, -1),
+            "SubtitleStreamIndex": none_fallback(video.sid, -1),
+            "AudioStreamIndex": none_fallback(video.aid, -1),
             "BufferedRanges": [],
-            "PlayMethod": "Transcode" if self._video.is_transcode else "DirectPlay",
-            "PlaySessionId": self._video.playback_info["PlaySessionId"],
-            "PlaylistItemId": self._video.get_playlist_id(),
-            "MediaSourceId": self._video.media_source["Id"],
+            "PlayMethod": "Transcode" if video.is_transcode else "DirectPlay",
+            "PlaySessionId": video.playback_info["PlaySessionId"],
+            "PlaylistItemId": video.get_playlist_id(),
+            "MediaSourceId": video.media_source["Id"],
             "CanSeek": True,
-            "ItemId": self._video.item_id,
-            "NowPlayingQueue": self._video.parent.queue,
+            "ItemId": video.item_id,
+            "NowPlayingQueue": video.parent.queue,
         }
         if duration is not None:
             options["BufferedRanges"] = [
@@ -1223,18 +1275,18 @@ class PlayerManager(object):
         if discord_presence:
             try:
                 if (
-                    self._video.is_tv
-                    and self._video.item.get("IndexNumber") is not None
-                    and self._video.item.get("ParentIndexNumber") is not None
+                    video.is_tv
+                    and video.item.get("IndexNumber") is not None
+                    and video.item.get("ParentIndexNumber") is not None
                 ):
-                    title = self._video.item.get("SeriesName")
+                    title = video.item.get("SeriesName")
                     subtitle = _("Season {0} - Episode {1}").format(
-                        self._video.item.get("ParentIndexNumber"),
-                        self._video.item.get("IndexNumber"),
+                        video.item.get("ParentIndexNumber"),
+                        video.item.get("IndexNumber"),
                     )
                 else:
-                    title = self._video.item.get("Name")
-                    subtitle = str(self._video.item.get("ProductionYear", ""))
+                    title = video.item.get("Name")
+                    subtitle = str(video.item.get("ProductionYear", ""))
                 send_presence(
                     title,
                     subtitle,
@@ -1242,7 +1294,7 @@ class PlayerManager(object):
                     duration,
                     not pause,
                     self.syncplay.current_group,
-                    self._video.item.get("Type"),
+                    video.item.get("Type"),
                 )
             except Exception:
                 log.error("Could not send Discord Rich Presence.", exc_info=True)
@@ -1250,16 +1302,17 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline(self):
+        video = self._video
         try:
             if (
                 self.should_send_timeline
-                and self._video
-                and self._video.client is not None
+                and video
+                and video.client is not None
                 and not self._player.playback_abort
             ):
-                self._video.client.jellyfin.session_progress(
-                    self.get_timeline_options()
-                )
+                options = self.get_timeline_options(video=video)
+                if options is not None:
+                    video.client.jellyfin.session_progress(options)
                 try:
                     if self.syncplay.is_enabled():
                         self.syncplay.sync_playback_time()
@@ -1271,29 +1324,37 @@ class PlayerManager(object):
 
     @synchronous("_tl_lock")
     def send_timeline_initial(self):
-        if self._video.client is None:
-            return  # offline playback: no server session to open
-        self._video.client.jellyfin.session_playing(self.get_timeline_options())
+        video = self._video
+        if video is None or video.client is None:
+            return  # gone, or offline playback: no server session to open
+        options = self.get_timeline_options(video=video)
+        if options is not None:
+            video.client.jellyfin.session_playing(options)
 
     @synchronous("_tl_lock")
     def send_timeline_stopped(self, finished=False, options=None, client=None):
         self.should_send_timeline = False
 
+        video = self._video
         if options is None:
-            options = self.get_timeline_options(finished)
+            options = self.get_timeline_options(finished, video=video)
 
         # Capture offline progress for the auto-advance / finish paths (stop()
         # handles the explicit-stop case before clearing self._video).
-        if client is None and self._video is not None \
-                and self._video.client is None \
-                and hasattr(self._video, "record_offline_progress"):
-            self._video.record_offline_progress(
+        if client is None and video is not None and video.client is None \
+                and options is not None \
+                and hasattr(video, "record_offline_progress"):
+            video.record_offline_progress(
                 options.get("PositionTicks"), finished)
 
-        if client is None and self._video is not None:
-            client = self._video.client
+        if client is None:
+            client = video.client if video else None
 
-        if client is not None:
+        # If the video vanished under us (mpv shutdown/disconnect on another
+        # thread), the stop report has been or will be sent by whoever tore it
+        # down; a client of None means offline playback (no server session).
+        # Either way, still run the local cleanup below.
+        if options is not None and client is not None:
             client.jellyfin.session_stop(options)
 
         if self.get_webview() is not None and settings.display_mirroring:
@@ -1306,22 +1367,98 @@ class PlayerManager(object):
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
 
     def upd_player_hide(self):
-        if self._video:
-            self._player.keep_open = self._video.parent.has_next
+        video = self._video
+        if video:
+            self._player.keep_open = video.parent.has_next
+
+    def _finished_at_eof(self, video, playback_time=None):
+        """Whether the playback that just ended genuinely reached the end.
+
+        eof-reached only fires while keep_open holds the finished file, and
+        keep_open is only set when there is a next item — so the last item in
+        a queue ends via playback-abort alone. Accept a last known position
+        at/near the duration as a genuine finish too; a mid-file decode or
+        network abort stays far from the end and is not counted. The margin
+        (95% or within 10s) absorbs the timeline tick interval and metadata
+        duration drift."""
+        if self._reached_eof:
+            return True
+        duration = video.get_duration()
+        if not duration:
+            return False
+        position = max(playback_time or 0, self._last_playback_position)
+        return position >= duration * 0.95 or duration - position <= 10
 
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:
             return
         log.info("MPV connection lost, marking as dead for reconnect on next play.")
-        self.should_send_timeline = False
-        self._video = None
         self._mpv_alive = False
+        self.should_send_timeline = False
+        video = self._video
+        self._video = None
+        # If we spawned this (now unresponsive) mpv, make sure it's gone —
+        # otherwise the next play() starts a second instance on top of a
+        # possibly still-running one. Capture the instance: a quick re-init
+        # must not get terminated by a late-running thread.
+        Thread(
+            target=self._terminate_mpv, args=(self._player,), daemon=True
+        ).start()
+        if video:
+            # The server still thinks we're playing; report the stop with the
+            # last known position so the session and any transcode are freed.
+            Thread(
+                target=self._report_stopped_offline, args=(video,), daemon=True
+            ).start()
 
-    def _terminate_mpv(self):
+    # Queued from the mpv "shutdown" event; runs on the action thread under
+    # _lock so the _video swap can't race stop()/play(). The network report
+    # happens off-thread — holding _lock for an HTTP timeout would freeze
+    # casts and key handling.
+    def _handle_mpv_shutdown(self):
+        video = self._video
+        if video:
+            self._video = None
+            Thread(
+                target=self._report_stopped_offline, args=(video,), daemon=True
+            ).start()
+        self.exec_stop_cmd()
+
+    # Best-effort stop report for a video whose mpv is already gone; options
+    # are built from bookkeeping, not player properties. Routed through
+    # send_timeline_stopped so the webview and Discord presence cleanup run
+    # like any other stop.
+    def _report_stopped_offline(self, video):
+        options = {
+            "PositionTicks": int((self.last_seek or 0) * 10000000),
+            "PlaybackStartTimeTicks": int((self.start_time or 0) * 10000000),
+            "PlayMethod": "Transcode" if video.is_transcode else "DirectPlay",
+            "PlaySessionId": video.playback_info["PlaySessionId"],
+            "ItemId": video.item_id,
+        }
+        # Offline playback has no server session; keep the position locally so
+        # closing the mpv window doesn't lose it.
+        if video.client is None and hasattr(video, "record_offline_progress"):
+            try:
+                video.record_offline_progress(options.get("PositionTicks"), False)
+            except Exception:
+                log.warning("Could not record offline progress.", exc_info=True)
+        try:
+            self.send_timeline_stopped(options=options, client=video.client)
+        except Exception:
+            log.warning("Could not report playback stop to server.", exc_info=True)
+        try:
+            video.terminate_transcode()
+        except Exception:
+            pass
+
+    def _terminate_mpv(self, player=None):
         log.info("Terminating mpv instance")
         self._mpv_alive = False
+        if player is None:
+            player = self._player
         try:
-            self._player.terminate()
+            player.terminate()
         except Exception:
             log.debug("Error terminating mpv", exc_info=True)
         log.info("mpv instance terminated")

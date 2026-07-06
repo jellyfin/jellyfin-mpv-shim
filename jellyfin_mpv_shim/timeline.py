@@ -27,22 +27,32 @@ class TimelineManager(threading.Thread):
 
     def run(self):
         while not self.halt:
-            if playerManager.is_active():
-                self.send_timeline()
-                if not settings.idle_when_paused or not playerManager.is_paused():
-                    if self.is_idle and settings.idle_ended_cmd:
-                        os.system(settings.idle_ended_cmd)
-                    self.delay_idle()
-            if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
+            # This thread must survive anything — if it dies, progress
+            # reporting and the idle hooks are silently gone for the rest of
+            # the session. The wait stays outside the try so a persistent
+            # error can't turn into a busy loop.
+            try:
+                if playerManager.is_active():
+                    self.send_timeline()
+                    if not settings.idle_when_paused or not playerManager.is_paused():
+                        if self.is_idle and settings.idle_ended_cmd:
+                            os.system(settings.idle_ended_cmd)
+                        self.delay_idle()
                 if (
-                    settings.idle_when_paused
-                    and settings.stop_idle
-                    and playerManager.has_video()
+                    self.idleTimer.elapsed() > settings.idle_cmd_delay
+                    and not self.is_idle
                 ):
-                    playerManager.stop()
-                if settings.idle_cmd:
-                    os.system(settings.idle_cmd)
-                self.is_idle = True
+                    if (
+                        settings.idle_when_paused
+                        and settings.stop_idle
+                        and playerManager.has_video()
+                    ):
+                        playerManager.stop()
+                    if settings.idle_cmd:
+                        os.system(settings.idle_cmd)
+                    self.is_idle = True
+            except Exception:
+                log.exception("Error in timeline thread.")
             if self.trigger.wait(5):
                 self.trigger.clear()
 

@@ -123,16 +123,15 @@ class EventHandler(object):
                 srcid=arguments.get("MediaSourceId"),
                 sync_play_group=arguments.get("SyncPlayGroup"),
             )
-        elif play_command == "PlayLast":
-            playerManager.get_video().parent.insert_items(
-                arguments.get("ItemIds"), append=True
-            )
-            playerManager.upd_player_hide()
-        elif play_command == "PlayNext":
-            playerManager.get_video().parent.insert_items(
-                arguments.get("ItemIds"), append=False
-            )
-            playerManager.upd_player_hide()
+        elif play_command in ("PlayLast", "PlayNext"):
+            # Snapshot the video once: another thread can null it between a
+            # has_video() guard and get_video(), so re-reading would race.
+            video = playerManager.get_video()
+            if video is not None:
+                video.parent.insert_items(
+                    arguments.get("ItemIds"), append=play_command == "PlayLast"
+                )
+                playerManager.upd_player_hide()
 
     @bind("GeneralCommand")
     def general_command(

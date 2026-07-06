@@ -634,12 +634,19 @@ class Media(object):
             for id_num in items
         ]
         if append:
-            self.queue.extend(items)
+            new_queue = self.queue + items
         else:
-            self.queue = (
+            new_queue = (
                 self.queue[0 : self.seq + 1] + items + self.queue[self.seq + 1 :]
             )
-        self.has_next = self.seq < len(self.queue) - 1
+        # Ordering constraint for lock-free readers on other threads: the finished
+        # callback checks has_next *before* reading queue/seq (via get_next). So
+        # publish the fully-built queue first (assignment is atomic in CPython),
+        # then flip has_next -- any reader that observes has_next=True is then
+        # guaranteed to also see the just-queued item. Never mutate self.queue in
+        # place; a reader could otherwise observe a half-updated list.
+        self.queue = new_queue
+        self.has_next = self.seq < len(new_queue) - 1
 
     def replace_queue(self, sp_items, seq):
         """Update queue for SyncPlay.

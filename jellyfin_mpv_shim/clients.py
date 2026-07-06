@@ -91,6 +91,27 @@ class QuickConnectError(Exception):
 from typing import Optional
 
 
+# Keys written onto the server credential dicts at runtime to track live
+# connection state. They are only meaningful for the current session, so they
+# must be stripped before persisting to cred.json — a stale "connected: true"
+# from a previous run is misleading. Loading tolerates their presence.
+VOLATILE_CREDENTIAL_KEYS = frozenset({"connected"})
+
+
+def clean_credentials_for_save(credentials):
+    """Return a copy of the credentials list with volatile runtime keys removed.
+
+    Copies each server dict so the live dicts (which other threads read) are
+    left untouched.
+    """
+    cleaned = []
+    for server in credentials:
+        cleaned.append(
+            {k: v for k, v in server.items() if k not in VOLATILE_CREDENTIAL_KEYS}
+        )
+    return cleaned
+
+
 def expo(max_value: Optional[int] = None):
     n = 0
     while True:
@@ -118,7 +139,10 @@ class PeriodicHealthCheck(threading.Thread):
     def run(self):
         while not self.halt:
             if not self.trigger.wait(settings.health_check_interval):
-                self.callback()
+                try:
+                    self.callback()
+                except Exception:
+                    log.exception("Client health check failed.")
 
 
 class ClientManager(object):
@@ -131,7 +155,15 @@ class ClientManager(object):
         self.credentials = []
         self.clients = {}
         self.usernames = {}
-        self.is_stopping = False
+        # Guards registry state (clients dict, the _connecting reservations).
+        # Never held across network I/O — see connect_client.
+        self._client_lock = threading.RLock()
+        # Server uuids with a connect in flight, so concurrent connectors
+        # (health check vs websocket reconnect) don't build duplicates.
+        self._connecting = set()
+        # Set on stop(); lets reconnect/retry sleeps end immediately instead
+        # of holding shutdown hostage for up to their full backoff interval.
+        self._stop_event = threading.Event()
 
         self.health_check = None
         if settings.health_check_interval is not None:
@@ -347,7 +379,8 @@ class ClientManager(object):
                 )
             )
             for attempt in range(settings.connect_retry_mins * 2):
-                time.sleep(30)
+                if self._stop_event.wait(30):
+                    break
                 is_logged_in = self._connect_all()
                 if is_logged_in:
                     break
@@ -361,7 +394,7 @@ class ClientManager(object):
     def save_credentials(self):
         credentials_location = conffile.get(APP_NAME, "cred.json")
         with open(credentials_location, "w") as cf:
-            json.dump(self.credentials, cf)
+            json.dump(clean_credentials_for_save(self.credentials), cf)
 
     @staticmethod
     def _normalize_server(server: str) -> str:
@@ -486,7 +519,7 @@ class ClientManager(object):
             code_callback(code)
         return self.quick_connect_wait(client, secret, should_cancel=should_cancel)
 
-    def validate_client(self, client: "JellyfinClient", dry_run=False):
+    def validate_client(self, client: "JellyfinClient", dry_run=False, server=None):
         # Use the apiclient's lower-level _http to bound retries and timeout
         # for this specific call. The default 30s × 5 retries can wedge the
         # health-check thread for ~2.5 minutes if the server is unresponsive.
@@ -514,11 +547,21 @@ class ClientManager(object):
                 log.warning(
                     "Client is not actually connected. (It does not show in the client list.)"
                 )
-                # WebSocketDisconnect doesn't always happen here.
+                # Silence the client's own callbacks so stopping it can't fire
+                # the websocket reconnect loop on top of us, then drop it from
+                # the registry — check_all_clients' credential pass (or the
+                # next health-check tick) reconnects it cleanly.
                 client.callback = lambda *_: None
                 client.callback_ws = lambda *_: None
-                client.stop()
-                client.callback("WebSocketDisconnect", None)
+                removed = server is not None and self._disconnect_client(
+                    server=server, expected_client=client
+                )
+                if not removed:
+                    # Not (or no longer) the registered client for this
+                    # server — a reconnect may have replaced it while we were
+                    # probing. Stop our stale handle and leave the registry
+                    # alone.
+                    client.stop()
             return False
 
         return True
@@ -536,7 +579,11 @@ class ClientManager(object):
                             )
                         )
                         self._disconnect_client(server=server)
-                        time.sleep(timeout)
+                        # Interruptible: this runs on a non-daemon websocket
+                        # thread, and an uninterruptible sleep here used to
+                        # hold app exit hostage for up to the full backoff.
+                        if self._stop_event.wait(timeout):
+                            break
                         if self.connect_client(server, False):
                             break
             elif event_name == "WebSocketConnect":
@@ -582,7 +629,7 @@ class ClientManager(object):
         that never shows up in the server's session list — rebuild it with
         bounded retries, the same remedy the startup path used to run
         synchronously, now off the UI's critical path."""
-        if self._is_session_live(client):
+        if self._is_session_live(client, server):
             self._mark_cast_ready(server)
             return
 
@@ -596,11 +643,12 @@ class ClientManager(object):
                 f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}."
             )
             self._disconnect_client(server=server)
-            time.sleep(1)
+            if self._stop_event.wait(1):
+                return
             # do_retries=False: no nested verifier — we confirm it ourselves.
             if not self.connect_client(server, False):
                 continue
-            if self._is_session_live(self.clients.get(server["uuid"])):
+            if self._is_session_live(self.clients.get(server["uuid"]), server):
                 self._mark_cast_ready(server)
                 return
         # Gave up: the device browses fine but can't be a cast target. Leave
@@ -612,17 +660,20 @@ class ClientManager(object):
             server["cast_ready"] = True
             self.on_servers_changed()
 
-    def _is_session_live(self, client):
+    def _is_session_live(self, client, server=None):
         """True once this device shows in the server's session list. Probes
         once, then once more after a short delay (the session can take a moment
-        to register after the websocket connects)."""
+        to register after the websocket connects). The second probe is
+        non-dry-run: pass the server dict so a failed client is removed from
+        the registry (identity-checked), not just stopped in place."""
         if client is None:
             return False
         if self.validate_client(client, True):
             return True
         log.info("Not connected yet, waiting 3 seconds...")
-        time.sleep(3)
-        if self.validate_client(client):
+        if self._stop_event.wait(3):
+            return False
+        if self.validate_client(client, server=server):
             log.info("Actually connected now.")
             return True
         return False
@@ -635,41 +686,78 @@ class ClientManager(object):
         self._disconnect_client(uuid=uuid)
 
     def connect_client(self, server, do_retries=True):
-        if self.is_stopping:
-            return False
+        uuid = server["uuid"]
 
-        client = self.client_factory()
-        state = client.authenticate({"Servers": [server]}, discover=False)
-        server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
-        if server["connected"]:
+        # The lock only guards registry state; the network work below runs
+        # outside it. Holding the lock across authenticate (10s+ timeouts)
+        # would stall every reconnect loop and block shutdown for the full
+        # HTTP timeout stack. A per-uuid reservation keeps concurrent
+        # connectors (health check, websocket reconnect, the cast verifier)
+        # from building duplicate clients for the same server.
+        with self._client_lock:
+            if self.is_stopping:
+                return False
+            if uuid in self.clients:
+                return True
+            if uuid in self._connecting:
+                return False  # another thread is already on it
+            self._connecting.add(uuid)
+
+        try:
+            client = self.client_factory()
+            state = client.authenticate({"Servers": [server]}, discover=False)
+            server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
+            if not server["connected"]:
+                return False
+
             # Register the client immediately; the cast/remote-control session
-            # check (and its half-connect retries) runs in the background so the
-            # UI isn't held up. See setup_client / _verify_connected.
+            # check (and its half-connect retries) runs in the background so
+            # the UI isn't held up. See setup_client / _verify_connected.
             if do_retries:
                 # Top-level connect: casting is unconfirmed until the verifier
                 # says so — surfaced as "Connected (casting unavailable)" until
                 # then. Reconnect paths without a verifier are left as-is.
                 server["cast_ready"] = False
             self.setup_client(client, server, do_retries)
-            self.clients[server["uuid"]] = client
-            if server.get("username"):
-                self.usernames[server["uuid"]] = server["username"]
+            registered = False
+            with self._client_lock:
+                if not self.is_stopping:
+                    self.clients[uuid] = client
+                    if server.get("username"):
+                        self.usernames[uuid] = server["username"]
+                    registered = True
+            if not registered:
+                # stop() drained the registry while we were connecting;
+                # don't resurrect a client it can no longer see.
+                client.stop()
+                return False
+            return True
+        finally:
+            with self._client_lock:
+                self._connecting.discard(uuid)
 
-        return server["connected"]
+    def _disconnect_client(self, uuid: Optional[str] = None, server=None,
+                           expected_client=None):
+        """Remove and stop the registered client. With expected_client, only
+        act if that exact instance is still the registered one — a probe that
+        raced a reconnect must not tear down the healthy replacement. Returns
+        True if a client was removed."""
+        with self._client_lock:
+            if uuid is None and server is not None:
+                uuid = server["uuid"]
 
-    def _disconnect_client(self, uuid: Optional[str] = None, server=None):
-        if uuid is None and server is not None:
-            uuid = server["uuid"]
+            client = self.clients.get(uuid)
+            if client is None:
+                return False
+            if expected_client is not None and client is not expected_client:
+                return False
 
-        if uuid not in self.clients:
-            return
+            if server is not None:
+                server["connected"] = False
 
-        if server is not None:
-            server["connected"] = False
-
-        client = self.clients[uuid]
-        del self.clients[uuid]
+            del self.clients[uuid]
         client.stop()
+        return True
 
     def remove_all_clients(self):
         self.stop_all_clients()
@@ -677,18 +765,22 @@ class ClientManager(object):
         self.save_credentials()
 
     def stop_all_clients(self):
-        for key, client in list(self.clients.items()):
-            del self.clients[key]
+        with self._client_lock:
+            clients, self.clients = dict(self.clients), {}
+        for client in clients.values():
             client.stop()
 
     def check_all_clients(self):
         if settings.work_offline:
             return  # don't touch the network in offline mode
         log.info("Performing client health check...")
-        # list() because validate_client may mutate self.clients via the
-        # synthesized WebSocketDisconnect path.
-        for client in list(self.clients.values()):
-            self.validate_client(client)
+        # Iterate credentials so validate_client gets the server dict: on a
+        # failed check it disconnects the client, and the retry pass right
+        # below then reconnects it in the same tick.
+        for server in list(self.credentials):
+            client = self.clients.get(server["uuid"])
+            if client is not None:
+                self.validate_client(client, server=server)
         # Retry credentials that aren't currently connected. Without this, a
         # server that fails the initial connect (e.g. shim started before LAN
         # was up) is never tried again until the user restarts the app —
@@ -701,14 +793,21 @@ class ClientManager(object):
                 )
                 self.connect_client(server, do_retries=False)
 
+    @property
+    def is_stopping(self):
+        return self._stop_event.is_set()
+
     def stop(self):
+        # Flag first so no in-flight connect_client registers a new client
+        # after we've drained the registry; setting the event also wakes
+        # every sleeping reconnect/retry loop.
+        self._stop_event.set()
+
         if self.health_check:
             self.health_check.stop()
             self.health_check = None
 
-        self.is_stopping = True
-        for client in self.clients.values():
-            client.stop()
+        self.stop_all_clients()
 
     def get_username_from_client(self, client):
         # This is kind of convoluted. It may fail if a server

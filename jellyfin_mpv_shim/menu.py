@@ -264,13 +264,18 @@ class OSDMenu(object):
     def change_audio_menu(self):
         self.put_menu(_("Select Audio Track"))
 
-        selected_aid = self.playerManager.get_video().aid
+        # Snapshot: the video can be torn down (mpv death, stop) between menu
+        # keypresses on another thread.
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_aid = video.aid
         audio_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Audio"
         ]
-        for i, audio_track in enumerate(audio_streams):
+        for audio_track in audio_streams:
             aid = audio_track.get("Index")
             if (
                 settings.lang_filter_audio
@@ -288,8 +293,10 @@ class OSDMenu(object):
                     aid,
                 ]
             )
+            # Index into the (possibly filtered) menu_list, not the source stream
+            # list -- filtered-out entries would otherwise offset the highlight.
             if aid == selected_aid:
-                self.menu_selection = i
+                self.menu_selection = len(self.menu_list) - 1
 
     def change_subtitle_menu_handle(self):
         self.playerManager.put_task(
@@ -301,14 +308,17 @@ class OSDMenu(object):
     def change_subtitle_menu(self):
         self.put_menu(_("Select Subtitle Track"))
 
-        selected_sid = self.playerManager.get_video().sid
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_sid = video.sid
         subtitle_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Subtitle"
         ]
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])
-        for i, subtitle_track in enumerate(subtitle_streams):
+        for subtitle_track in subtitle_streams:
             sid = subtitle_track.get("Index")
             if (
                 settings.lang_filter_sub
@@ -327,8 +337,10 @@ class OSDMenu(object):
                     sid,
                 ]
             )
+            # Index into the (possibly filtered) menu_list, not the source stream
+            # list. len - 1 also accounts for the "None" entry added above.
             if sid == selected_sid:
-                self.menu_selection = i + 1
+                self.menu_selection = len(self.menu_list) - 1
 
     def change_transcode_quality_handle(self):
         bitrate = self.menu_list[self.menu_selection][2]
