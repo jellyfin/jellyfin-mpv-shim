@@ -27,6 +27,8 @@ log = logging.getLogger("sync.manager")
 
 CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
+PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
+STOP_JOIN_TIMEOUT = 10     # how long stop() waits for the worker to unwind (s)
 
 
 class _Stopped(Exception):
@@ -66,6 +68,13 @@ class SyncManager:
         self._active_lock = threading.Lock()
         self._active_item = None
         self._cancelled = set()
+        self._last_playstate = 0.0
+        # item_id -> (last downloaded size, consecutive no-progress short reads).
+        # A short read normally leaves the row pending to resume; but a server
+        # that cleanly truncates at the same offset every time would resume
+        # from the same size forever. In-memory (a restart is a fair fresh
+        # attempt), escalated to STATUS_ERROR after a few stalls.
+        self._short_read_stalls = {}
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -77,6 +86,11 @@ class SyncManager:
         # Recover rows interrupted mid-download on a previous run.
         for row in self.db.list(status=STATUS_DOWNLOADING):
             self.db.update(row["item_id"], status=STATUS_PENDING)
+        # Reconcile the catalog with what is actually on disk (best-effort).
+        try:
+            self._reconcile_disk()
+        except Exception:
+            log.debug("Startup disk reconcile failed.", exc_info=True)
         self._stop = False
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
@@ -84,6 +98,20 @@ class SyncManager:
     def stop(self):
         self._stop = True
         self._wake.set()
+        # Join the worker so it isn't killed mid-write, then close the catalog.
+        # The chunk loop polls self._stop every chunk and every wait() is woken,
+        # so this returns quickly.
+        worker = self._worker
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=STOP_JOIN_TIMEOUT)
+            if worker.is_alive():
+                log.warning("Download worker did not stop within %ds.",
+                            STOP_JOIN_TIMEOUT)
+        if self.db is not None:
+            try:
+                self.db.close()
+            except Exception:
+                log.debug("Closing catalog on stop failed.", exc_info=True)
 
     # -- queries (also used by the browser via IPC) ------------------------
 
@@ -255,6 +283,55 @@ class SyncManager:
             log.debug("Failed to remove files for %s", row.get("item_id"),
                       exc_info=True)
 
+    def _reconcile_disk(self):
+        """Best-effort startup sweep to keep the catalog and the file store in
+        agreement (S12):
+
+        * a row marked COMPLETE whose media file has vanished is re-queued
+          (PENDING) so it downloads again;
+        * an on-disk per-item directory with no catalog row is removed.
+
+        The shared ``series``/``season`` artwork caches are left alone — they
+        aren't per-item download dirs and may be referenced by rows in a state
+        this sweep doesn't touch.
+        """
+        rows = self.db.list()
+        known = {}  # server_dir -> set(item_id)
+        for row in rows:
+            server_dir = row.get("server_id") or "server"
+            known.setdefault(server_dir, set()).add(row["item_id"])
+            if row["status"] != STATUS_COMPLETE:
+                continue
+            file_path = row.get("file_path")
+            full = os.path.join(self.root, file_path) if file_path else None
+            if not full or not os.path.exists(full):
+                log.warning("Downloaded file missing for %s; re-queuing.",
+                            row.get("name") or row["item_id"])
+                self.db.update(row["item_id"], status=STATUS_PENDING,
+                               downloaded_bytes=0, file_path=None)
+
+        try:
+            server_dirs = os.listdir(self.root)
+        except OSError:
+            return
+        for server_dir in server_dirs:
+            base = os.path.join(self.root, server_dir)
+            if not os.path.isdir(base):
+                continue  # e.g. catalog.db and its WAL sidecars
+            item_ids = known.get(server_dir, set())
+            try:
+                children = os.listdir(base)
+            except OSError:
+                continue
+            for child in children:
+                if child in ("series", "season"):
+                    continue  # shared artwork caches, not item dirs
+                child_path = os.path.join(base, child)
+                if not os.path.isdir(child_path) or child in item_ids:
+                    continue
+                log.warning("Removing orphaned download dir: %s", child_path)
+                shutil.rmtree(child_path, ignore_errors=True)
+
     def _notify_change(self):
         try:
             self.on_change()
@@ -273,13 +350,18 @@ class SyncManager:
             # this loop at full speed.
             self._wake.clear()
             try:
+                # Replay offline playstate on its own cadence — not only when the
+                # queue is idle — so one pending download for an unreachable
+                # server can't starve watched-state sync for a reachable one.
+                now = time.monotonic()
+                if now - self._last_playstate >= PLAYSTATE_INTERVAL:
+                    self._last_playstate = now
+                    self._sync_playstate()
                 row = None
                 pending = self.db.list(status=STATUS_PENDING)
                 if pending:
                     row = pending[0]
                 if row is None:
-                    # Idle: replay any playstate captured while offline.
-                    self._sync_playstate()
                     self._wake.wait(5)
                     continue
                 self._download(row)
@@ -376,16 +458,55 @@ class SyncManager:
                                               item["SeasonId"])
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
+            tmp = media_path + ".part"
             url = client.jellyfin.download_url(item_id)
-            size = self._stream(url, media_path, item_id, row.get("name"),
-                                row.get("size_bytes") or 0)
+            expected = row.get("size_bytes") or 0
+            size, total = self._stream(url, media_path, item_id, row.get("name"),
+                                       expected)
 
+            # Never record a short/truncated response as complete: keep the
+            # .part and leave the row pending so a later pass resumes it. Don't
+            # clobber the known size_bytes with the short length. But if the
+            # response keeps ending short at the same offset (no forward
+            # progress), give up rather than retry forever.
+            if total and size < total:
+                last_size, stalls = self._short_read_stalls.get(item_id, (-1, 0))
+                stalls = stalls + 1 if size <= last_size else 0
+                if stalls >= 3:
+                    log.error("Download of %s repeatedly ended short at %d of "
+                              "%d bytes; marking failed.",
+                              row.get("name") or item_id, size, total)
+                    self._short_read_stalls.pop(item_id, None)
+                    self.db.update(item_id, status=STATUS_ERROR,
+                                   downloaded_bytes=size)
+                else:
+                    log.error("Download of %s ended short (%d of %d bytes); "
+                              "leaving pending to resume.",
+                              row.get("name") or item_id, size, total)
+                    self._short_read_stalls[item_id] = (size, stalls)
+                    self.db.update(item_id, status=STATUS_PENDING,
+                                   downloaded_bytes=size)
+                self._notify_change()
+                return
+            self._short_read_stalls.pop(item_id, None)
+
+            # Commit point: promote the .part and mark complete atomically with a
+            # final cancellation check under the active lock, so a delete that
+            # lands after the last chunk (S4) is honoured instead of being lost
+            # to a COMPLETE row. Clearing _active_item here means any delete that
+            # arrives after the commit takes the direct path against the now
+            # fully-downloaded item rather than the deferred-cancel path.
             rel = os.path.relpath(media_path, self.root)
-            self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
-                           downloaded_bytes=size,
-                           size_bytes=size or (row.get("size_bytes") or 0),
-                           media_source_id=source.get("Id") or row.get("media_source_id"),
-                           source_json=json.dumps(source))
+            with self._active_lock:
+                if item_id in self._cancelled:
+                    raise _Cancelled()
+                os.replace(tmp, media_path)
+                self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
+                               downloaded_bytes=size,
+                               size_bytes=size or expected,
+                               media_source_id=source.get("Id") or row.get("media_source_id"),
+                               source_json=json.dumps(source))
+                self._active_item = None
             log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
                      size / (1 << 20))
         except _Cancelled:
@@ -407,9 +528,42 @@ class SyncManager:
         self._notify_change()
 
     def _stream(self, url, dest, item_id, name, expected):
-        verify = not settings.ignore_ssl_cert
+        """Download `url` to `dest`.part, resuming a partial file where possible.
+
+        Returns ``(downloaded, total)``. The caller promotes the .part to `dest`
+        (see _download's commit point) — this only fills the .part so a final
+        cancellation check can still discard it. `total` is the best-known full
+        size (size_bytes or Content-Length) for the short-read guard, or 0.
+        """
         tmp = dest + ".part"
         resume = os.path.getsize(tmp) if os.path.exists(tmp) else 0
+        # A prior run may have died between the stream finishing and the
+        # promotion, leaving a full-size .part. Re-requesting with
+        # Range: bytes=<full>- makes the server answer 416; instead, promote
+        # what's already on disk (S6).
+        if expected and resume >= expected:
+            return expected, expected
+        try:
+            return self._stream_request(url, tmp, item_id, name, expected, resume)
+        except requests.HTTPError as exc:
+            resp = getattr(exc, "response", None)
+            if resp is None or resp.status_code != 416:
+                raise
+            # Range not satisfiable. If the .part already matches the expected
+            # size it really is complete; otherwise it's stale/over-long — drop
+            # it and restart the download from the beginning (S6).
+            if expected and resume == expected:
+                return expected, expected
+            log.info("Resume offset rejected (416); restarting %s from scratch.",
+                     name or item_id)
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            return self._stream_request(url, tmp, item_id, name, expected, 0)
+
+    def _stream_request(self, url, tmp, item_id, name, expected, resume):
+        verify = not settings.ignore_ssl_cert
         headers = {"Range": "bytes=%d-" % resume} if resume else {}
         with requests.get(url, stream=True, headers=headers, verify=verify,
                           timeout=(10, 60)) as resp:
@@ -437,8 +591,7 @@ class SyncManager:
                         except Exception:
                             pass
                         last_push = downloaded
-        os.replace(tmp, dest)
-        return downloaded
+        return downloaded, total
 
     def _download_trickplay(self, client, item_id, source, item_dir):
         """Download trickplay (scrubbing preview) tiles for offline use."""

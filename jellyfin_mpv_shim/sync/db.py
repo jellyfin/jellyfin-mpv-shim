@@ -5,6 +5,7 @@ opens the same file read-only). WAL mode lets a reader and the writer coexist
 across processes. Read-only handles tolerate a missing file (empty catalog).
 """
 
+import json
 import logging
 import os
 import pathlib
@@ -89,7 +90,16 @@ class SyncDB:
             self._conn.row_factory = sqlite3.Row
 
     def close(self):
-        if self._conn is not None:
+        with self._lock:
+            if self._conn is None:
+                return
+            if not self.read_only:
+                # Fold the WAL back into the main db file on a clean shutdown so
+                # a stale -wal/-shm pair can't linger for the next launch.
+                try:
+                    self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                except sqlite3.Error:
+                    log.debug("WAL checkpoint on close failed", exc_info=True)
             self._conn.close()
             self._conn = None
 
@@ -100,10 +110,16 @@ class SyncDB:
         placeholders = ",".join("?" for _ in COLUMNS)
         cols = ",".join(COLUMNS)
         with self._lock:
-            self._conn.execute(
-                "INSERT OR REPLACE INTO downloads (%s) VALUES (%s)" % (cols, placeholders),
-                values)
-            self._conn.commit()
+            try:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO downloads (%s) VALUES (%s)" % (cols, placeholders),
+                    values)
+                self._conn.commit()
+            except sqlite3.Error:
+                # Don't leave a half-open transaction holding a write lock on
+                # the shared connection; roll back before propagating.
+                self._conn.rollback()
+                raise
 
     def update(self, item_id, **fields):
         if not fields:
@@ -111,49 +127,100 @@ class SyncDB:
         assignments = ",".join("%s=?" % k for k in fields)
         params = list(fields.values()) + [item_id]
         with self._lock:
-            self._conn.execute(
-                "UPDATE downloads SET %s WHERE item_id=?" % assignments, params)
-            self._conn.commit()
+            try:
+                self._conn.execute(
+                    "UPDATE downloads SET %s WHERE item_id=?" % assignments, params)
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
 
     def delete(self, item_id):
         with self._lock:
-            self._conn.execute("DELETE FROM downloads WHERE item_id=?", (item_id,))
-            self._conn.commit()
+            try:
+                self._conn.execute("DELETE FROM downloads WHERE item_id=?", (item_id,))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
 
     def upsert_playstate(self, server_uuid, item_id, position_ticks=None,
                          played=None):
         """One pending row per item; position advances (max), played sticks True."""
         with self._lock:
-            existing = self._conn.execute(
-                "SELECT id, position_ticks, played FROM pending_playstate "
-                "WHERE server_uuid=? AND item_id=?",
-                (server_uuid, item_id)).fetchone()
-            if existing:
-                new_pos = existing["position_ticks"]
-                if position_ticks is not None:
-                    new_pos = max(new_pos or 0, position_ticks)
-                new_played = existing["played"]
-                if played:
-                    new_played = 1
-                self._conn.execute(
-                    "UPDATE pending_playstate SET position_ticks=?, played=? "
-                    "WHERE id=?", (new_pos, new_played, existing["id"]))
-            else:
-                self._conn.execute(
-                    "INSERT INTO pending_playstate "
-                    "(server_uuid, item_id, position_ticks, played, created_at) "
-                    "VALUES (?,?,?,?,?)",
-                    (server_uuid, item_id, position_ticks,
-                     1 if played else None, int(time.time())))
-            self._conn.commit()
+            try:
+                existing = self._conn.execute(
+                    "SELECT id, position_ticks, played FROM pending_playstate "
+                    "WHERE server_uuid=? AND item_id=?",
+                    (server_uuid, item_id)).fetchone()
+                if existing:
+                    new_pos = existing["position_ticks"]
+                    if position_ticks is not None:
+                        new_pos = max(new_pos or 0, position_ticks)
+                    new_played = existing["played"]
+                    if played:
+                        new_played = 1
+                    self._conn.execute(
+                        "UPDATE pending_playstate SET position_ticks=?, played=? "
+                        "WHERE id=?", (new_pos, new_played, existing["id"]))
+                else:
+                    self._conn.execute(
+                        "INSERT INTO pending_playstate "
+                        "(server_uuid, item_id, position_ticks, played, created_at) "
+                        "VALUES (?,?,?,?,?)",
+                        (server_uuid, item_id, position_ticks,
+                         1 if played else None, int(time.time())))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def update_userdata(self, item_id, played=None, position_ticks=None):
+        """Merge offline playback progress into the download row's stored
+        userdata_json. This is what "delete watched" reads, so keeping it in
+        sync with local playback is what makes watched-based delete correct
+        without a server round-trip. Advancing only: played sticks True, the
+        position only moves forward."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT userdata_json FROM downloads WHERE item_id=?",
+                (item_id,)).fetchone()
+            if row is None:
+                return
+            try:
+                userdata = json.loads(row["userdata_json"] or "{}")
+            except ValueError:
+                userdata = {}
+            changed = False
+            if played:
+                if not userdata.get("Played"):
+                    userdata["Played"] = True
+                    changed = True
+            if position_ticks is not None and \
+                    position_ticks > (userdata.get("PlaybackPositionTicks") or 0):
+                userdata["PlaybackPositionTicks"] = position_ticks
+                changed = True
+            if changed:
+                try:
+                    self._conn.execute(
+                        "UPDATE downloads SET userdata_json=? WHERE item_id=?",
+                        (json.dumps(userdata), item_id))
+                    self._conn.commit()
+                except sqlite3.Error:
+                    self._conn.rollback()
+                    raise
 
     def clear_playstate(self, ids):
         if not ids:
             return
         with self._lock:
-            self._conn.executemany(
-                "DELETE FROM pending_playstate WHERE id=?", [(i,) for i in ids])
-            self._conn.commit()
+            try:
+                self._conn.executemany(
+                    "DELETE FROM pending_playstate WHERE id=?", [(i,) for i in ids])
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
 
     # -- reads (either process) -------------------------------------------
 
@@ -166,7 +233,11 @@ class SyncDB:
             try:
                 return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
             except sqlite3.Error:
-                log.debug("Catalog query failed", exc_info=True)
+                # A locked/corrupt catalog must not masquerade as an empty one
+                # (that reads as "nothing downloaded" and can trigger silent
+                # re-downloads) — surface it loudly, but still return [] so
+                # callers don't crash.
+                log.warning("Catalog query failed: %s", sql, exc_info=True)
                 return []
 
     def get(self, item_id):
@@ -184,7 +255,15 @@ class SyncDB:
             params.append(series_id)
         if clauses:
             sql += " WHERE " + " AND ".join(clauses)
-        sql += " ORDER BY series_name, parent_index, index_number, name"
+        if status == STATUS_PENDING:
+            # The pending queue must be drained in enqueue order, not catalog
+            # order: catalog order (by series/index) can float an item whose
+            # client isn't resolvable yet to the front and wedge the whole
+            # queue behind it. added_at is the enqueue timestamp; rowid breaks
+            # ties (and covers rows written before added_at was populated).
+            sql += " ORDER BY added_at, rowid"
+        else:
+            sql += " ORDER BY series_name, parent_index, index_number, name"
         return self._query(sql, tuple(params))
 
     def downloaded_item_ids(self):
