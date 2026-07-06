@@ -67,6 +67,7 @@ class BrowserApp:
         self._ui_queue = queue.Queue()
         self.nav_stack = []
         self.current_view = None
+        self._switcher_servers = []  # index-aligned with the server combobox
         self.home_cache = {}  # server_uuid -> (libraries, rows); stale-while-revalidate
         self.server_list = list(self.options.get("server_list") or [])  # all creds
         self.log_lines = deque(maxlen=2000)
@@ -89,6 +90,10 @@ class BrowserApp:
         # set once an attempt settles with no reachable server.
         self._connecting = bool(self.options.get("connecting"))
         self._connect_failed = False
+        # Set when the user explicitly asks to go back online from the offline
+        # banner: on a successful reconnect we clear the work_offline setting so
+        # the next launch isn't silently offline again (see _on_banner_retry).
+        self._clear_offline_on_reconnect = False
         self.source = LibrarySource(
             servers, self.options.get("device_id", ""),
             self.options.get("player_name", "mpv-shim"), verify_ssl)
@@ -155,7 +160,7 @@ class BrowserApp:
                        {"kind": "settings", "tab": "servers"})).pack(
             side="right", padx=(4, 8), pady=2)
         ttk.Button(self.banner, text=_("Retry"),
-                   command=lambda: self.set_offline(False)).pack(
+                   command=self._on_banner_retry).pack(
             side="right", padx=4, pady=2)
 
         self.content = tk.Frame(self.root, bg=CARD_BG)
@@ -209,19 +214,45 @@ class BrowserApp:
 
     def set_offline(self, offline):
         if offline:
+            # Deliberately going offline supersedes any pending banner-retry
+            # clear, so a later reconnect doesn't wipe a freshly-set preference.
+            self._clear_offline_on_reconnect = False
             self._enter_offline()
             self.navigate({"kind": "home"}, reset=True)
             return
         # Going online.
         self._exit_offline()
         if self.current_server:
+            # We already have a live connection — this counts as a successful
+            # return to online, so honour any pending "clear offline setting".
+            self._maybe_clear_offline_setting()
             self.navigate({"kind": "home"}, reset=True)
         elif self.server_list:
             # We have accounts but no live connection yet — (re)connect and wait
-            # on the connecting screen instead of flashing the login form.
+            # on the connecting screen instead of flashing the login form. The
+            # pending clear is resolved in _on_connection_settled.
             self.retry_connect()
         else:
+            # No connection and nothing to reconnect to: not a success.
+            self._clear_offline_on_reconnect = False
             self.navigate({"kind": "login"}, reset=True)
+
+    def _on_banner_retry(self):
+        """Offline-banner Retry: the user is explicitly asking to go back
+        online. If offline was forced by the work_offline setting, clear it on a
+        successful reconnect so the next launch isn't silently offline again."""
+        self._clear_offline_on_reconnect = True
+        self.set_offline(False)
+
+    def _maybe_clear_offline_setting(self):
+        """After a successful, user-requested return to online, stop forcing
+        offline mode by persisting work_offline=False (only if it was set)."""
+        if not self._clear_offline_on_reconnect:
+            return
+        self._clear_offline_on_reconnect = False
+        if self.settings_values.get("work_offline"):
+            self.settings_values["work_offline"] = False
+            self.save_settings({"work_offline": False})
 
     def retry_connect(self):
         """Ask the main process to (re)attempt the connection and show the
@@ -247,11 +278,15 @@ class BrowserApp:
         self._refresh_server_switcher()
         kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
         if self.current_server:
+            # Reconnect succeeded — honour a pending "clear offline setting".
+            self._maybe_clear_offline_setting()
             if kind in (None, "connecting", "login"):
                 self.navigate({"kind": "home"}, reset=True)
         elif kind in (None, "connecting"):
+            self._clear_offline_on_reconnect = False  # reconnect failed
             self._show_disconnected()
         elif kind == "login":
+            self._clear_offline_on_reconnect = False  # reconnect failed
             self._render_top()  # refresh the retry / failed-connection UI
 
     def _rebuild_live_source(self, connected):
@@ -308,21 +343,25 @@ class BrowserApp:
             self.navigate({"kind": "login"}, reset=True)
 
     def _refresh_server_switcher(self):
+        # Key by combobox index, not display name: two servers can share a name
+        # and keying by name would collapse them into one entry.
         servers = self.source.servers()
-        self._server_by_name = {s["name"]: s["uuid"] for s in servers}
+        self._switcher_servers = servers  # index-aligned with the combobox values
         names = [s["name"] for s in servers]
         self.server_box.config(values=names)
         if len(servers) > 1:
-            current_name = next((s["name"] for s in servers
-                                 if s["uuid"] == self.current_server), names[0])
-            self.server_var.set(current_name)
+            cur_idx = next((i for i, s in enumerate(servers)
+                            if s["uuid"] == self.current_server), 0)
+            self.server_box.current(cur_idx)
             self.server_box.pack(side="left", padx=8, pady=6)
         else:
             self.server_box.pack_forget()
 
     def _on_server_change(self, _e):
-        name = self.server_var.get()
-        uuid = self._server_by_name.get(name)
+        idx = self.server_box.current()
+        if not (0 <= idx < len(self._switcher_servers)):
+            return
+        uuid = self._switcher_servers[idx]["uuid"]
         if uuid and uuid != self.current_server:
             self.current_server = uuid
             self._persist_server(uuid)
@@ -658,12 +697,10 @@ class BrowserApp:
             self.sync_downloading = ss.get("downloading")
             self._dl_percent = None  # new item / state change; await fresh progress
             self._update_statusbar()
-            # Refresh views whose download buttons/state changed.
-            kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
-            if kind in ("detail", "series"):
-                self._render_top()
-            else:
-                self._dispatch_view("on_sync_state", ss)
+            # Let the current view update its download affordance in place. A
+            # full _render_top() here would reset the Detail track pickers and
+            # scroll on every queue change during a season download.
+            self._dispatch_view("on_sync_state", ss)
         elif cmd == "download_estimate":
             est = param or {}
             dlg = self._download_dialog

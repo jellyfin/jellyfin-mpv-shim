@@ -27,14 +27,61 @@ from PIL import Image, ImageTk
 
 log = logging.getLogger("library_browser.thumbnails")
 
+# Default in-memory budget for decoded Tk images. Sized by bytes (not entry
+# count) so a mix of small posters and large backdrops can't balloon memory.
+DEFAULT_MEM_MB = 128
+
 
 def make_key(item_id, image_type, tag, width, height=None):
     raw = "%s:%s:%s:%s:%s" % (item_id, image_type, tag, width, height)
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
 
+class MemoryCache:
+    """Byte-bounded LRU of decoded images.
+
+    Sizing is approximate (``sizer(value)`` — for a ``PhotoImage`` that's
+    ``width*height*4`` bytes); the least-recently-used entries are evicted until
+    the total is back under budget. Kept free of any Tk dependency so the
+    eviction policy is unit-testable without a display.
+    """
+
+    def __init__(self, max_bytes, sizer):
+        self._max_bytes = max_bytes
+        self._sizer = sizer
+        self._items = OrderedDict()   # key -> (value, nbytes)
+        self._bytes = 0
+
+    def get(self, key):
+        item = self._items.get(key)
+        if item is None:
+            return None
+        self._items.move_to_end(key)
+        return item[0]
+
+    def put(self, key, value):
+        old = self._items.pop(key, None)
+        if old is not None:
+            self._bytes -= old[1]
+        nbytes = self._sizer(value)
+        self._items[key] = (value, nbytes)
+        self._bytes += nbytes
+        # Keep at least the just-inserted entry so a single oversized image
+        # isn't evicted the moment it lands (its caller still wants it).
+        while self._bytes > self._max_bytes and len(self._items) > 1:
+            _k, (_v, nb) = self._items.popitem(last=False)
+            self._bytes -= nb
+
+    def __len__(self):
+        return len(self._items)
+
+    @property
+    def nbytes(self):
+        return self._bytes
+
+
 class ThumbnailStore:
-    def __init__(self, cache_dir, verify_ssl=True, max_mem=600,
+    def __init__(self, cache_dir, verify_ssl=True, max_mem_mb=DEFAULT_MEM_MB,
                  max_disk_mb=256, workers=6):
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
@@ -46,8 +93,8 @@ class ThumbnailStore:
                                         thread_name_prefix="thumb")
         self._results = queue.Queue()
 
-        self._mem = OrderedDict()          # key -> ImageTk.PhotoImage (LRU)
-        self._max_mem = max_mem
+        # key -> ImageTk.PhotoImage, LRU-evicted by approximate byte size.
+        self._mem = MemoryCache(max_mem_mb * 1024 * 1024, self._photo_bytes)
         self._pending = {}                 # key -> [callback, ...] awaiting load
         self._lock = threading.Lock()
         self._closed = False
@@ -57,10 +104,7 @@ class ThumbnailStore:
     # -- public API (UI thread) -------------------------------------------
 
     def get_cached(self, key):
-        photo = self._mem.get(key)
-        if photo is not None:
-            self._mem.move_to_end(key)
-        return photo
+        return self._mem.get(key)
 
     def request(self, key, url, box, callback):
         """Fetch image for `key` from `url`, resized to fit `box` (w, h).
@@ -84,6 +128,28 @@ class ThumbnailStore:
             self._pending[key] = [callback]
 
         self._pool.submit(self._work, key, url, box)
+
+    def cancel(self, key, callback=None):
+        """Drop a pending fetch (or a single waiter of one).
+
+        Called from ``MediaTile.unload`` / grid teardown when a tile scrolls off
+        or its view goes away. A queued ``_work`` whose key is no longer pending
+        short-circuits before downloading, so a fast-scrolled backlog can't
+        delay the next view's artwork. If other tiles still await the same key,
+        only the given callback is removed and the fetch continues.
+        """
+        with self._lock:
+            waiters = self._pending.get(key)
+            if waiters is None:
+                return
+            if callback is not None:
+                try:
+                    waiters.remove(callback)
+                except ValueError:
+                    pass
+                if waiters:
+                    return
+            self._pending.pop(key, None)
 
     def pump(self):
         """Drain finished work, build Tk images, deliver. Call from the UI loop."""
@@ -121,6 +187,12 @@ class ThumbnailStore:
     # -- worker thread -----------------------------------------------------
 
     def _work(self, key, url, box):
+        # Skip work that was cancelled before this task got a worker (a tile
+        # scrolled off or its view was torn down). Clears the fast-scroll
+        # backlog without touching the network.
+        with self._lock:
+            if key not in self._pending:
+                return
         try:
             image = self._load_image(key, url, box)
         except Exception:
@@ -165,11 +237,16 @@ class ThumbnailStore:
 
     # -- internals ---------------------------------------------------------
 
+    @staticmethod
+    def _photo_bytes(photo):
+        # Approximate resident size of a Tk image: 4 bytes (RGBA) per pixel.
+        try:
+            return photo.width() * photo.height() * 4
+        except Exception:
+            return 0
+
     def _store_mem(self, key, photo):
-        self._mem[key] = photo
-        self._mem.move_to_end(key)
-        while len(self._mem) > self._max_mem:
-            self._mem.popitem(last=False)
+        self._mem.put(key, photo)
 
     def _prune_disk(self):
         try:

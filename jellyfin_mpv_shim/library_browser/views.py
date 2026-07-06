@@ -238,6 +238,43 @@ class HomeView(BaseView):
             self.app.tk.Label(body, text=_("This server has no video libraries."),
                               bg=CARD_BG, fg=SUBTLE_FG).pack(pady=40)
 
+    def on_sync_state(self, _ss):
+        # While browsing offline, a download that finishes should appear on the
+        # home screen without the user re-entering offline mode. Reload the
+        # catalog snapshot off the Tk thread and re-render only if it changed.
+        # (Online, live data already refreshes on navigation; nothing to do.)
+        if not self.app.is_offline:
+            return
+        source = self.app.source
+        reload_fn = getattr(source, "reload", None)
+        if reload_fn is None:
+            return
+        server = self.server
+        epoch = self.new_request()
+
+        def work():
+            try:
+                reload_fn()
+            except Exception:
+                log.debug("Offline source reload failed", exc_info=True)
+            return (source.get_libraries(server), source.get_home_rows(server))
+
+        def done(result):
+            self.app.home_cache[server] = result
+            new_sig = self._signature(result)
+            if self.rendered and new_sig == self.sig:
+                return
+            if self.spinner is not None:
+                self.spinner.destroy()
+                self.spinner = None
+            for child in self.frame.winfo_children():
+                child.destroy()
+            self._render_home(result)
+            self.sig = new_sig
+            self.rendered = True
+
+        self.run_async(work, done, lambda _e: None, epoch=epoch)
+
 
 SORTS = [
     (_("Name"), "SortName", "Ascending"),
@@ -356,6 +393,12 @@ class GridView(BaseView):
 class SeriesView(BaseView):
     """Series overview: backdrop, metadata, overview, and a row of seasons."""
 
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self._item = None
+        self._actions = None
+        self._download_btn = None
+
     def _build(self):
         server = self.app.current_server
         sid = self.route["series_id"]
@@ -386,17 +429,9 @@ class SeriesView(BaseView):
                     command=lambda: self.app.set_watched(
                         server, sid, not is_watched(item), refresh=True)
                     ).pack(side="left", padx=8)
-                if sid in self.app.sync_series:
-                    self.app.ttk.Button(
-                        actions, text=_("🗑 Remove downloads"),
-                        command=lambda: self.app.delete_download(series_id=sid)
-                        ).pack(side="left", padx=8)
-                else:
-                    self.app.ttk.Button(
-                        actions, text=_("⬇ Download Series"),
-                        command=lambda: self.app.open_download_dialog(
-                            self.app.current_server, sid, "Series",
-                            item.get("Name", "")) ).pack(side="left", padx=8)
+                self._item = item
+                self._actions = actions
+                self._download_btn = self._make_download_button(actions, sid, item)
                 meta = metadata_line(item)
                 if meta:
                     self.app.tk.Label(body, text=meta, bg=CARD_BG, fg=SUBTLE_FG,
@@ -419,6 +454,31 @@ class SeriesView(BaseView):
 
         self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _make_download_button(self, actions, sid, item):
+        ttk = self.app.ttk
+        if sid in self.app.sync_series:
+            btn = ttk.Button(actions, text=_("🗑 Remove downloads"),
+                             command=lambda: self.app.delete_download(series_id=sid))
+        else:
+            btn = ttk.Button(actions, text=_("⬇ Download Series"),
+                             command=lambda: self.app.open_download_dialog(
+                                 self.app.current_server, sid, "Series",
+                                 item.get("Name", "")))
+        btn.pack(side="left", padx=8)
+        return btn
+
+    def on_sync_state(self, _ss):
+        # Swap only the download button in place instead of rebuilding the whole
+        # series page (which would reset scroll on every queue change).
+        if self._item is None or self._actions is None:
+            return
+        try:
+            self._download_btn.destroy()
+        except Exception:
+            pass
+        self._download_btn = self._make_download_button(
+            self._actions, self.route["series_id"], self._item)
 
     def _open_season(self, season):
         self.app.navigate({
@@ -578,6 +638,8 @@ class DetailView(BaseView):
         self.sub_var = None
         self._audio_map = {}
         self._sub_map = {}
+        self._actions_row = None
+        self._download_btn = None
 
     def _build(self):
         server = self.app.current_server
@@ -721,15 +783,33 @@ class DetailView(BaseView):
                        self.app.current_server, item["Id"], not watched,
                        refresh=True)).pack(side="left", padx=8)
 
+        self._actions_row = row
+        self._download_btn = self._make_download_button(row, item)
+
+    def _make_download_button(self, row, item):
+        ttk = self.app.ttk
         if self.app.is_downloaded(item):
-            ttk.Button(row, text=_("🗑 Remove download"),
-                       command=lambda: self.app.delete_download(item_id=item["Id"])
-                       ).pack(side="right")
+            btn = ttk.Button(row, text=_("🗑 Remove download"),
+                             command=lambda: self.app.delete_download(
+                                 item_id=item["Id"]))
         else:
-            ttk.Button(row, text=_("⬇ Download"),
-                       command=lambda: self.app.open_download_dialog(
-                           self.app.current_server, item["Id"], item.get("Type"),
-                           item.get("Name", ""))).pack(side="right")
+            btn = ttk.Button(row, text=_("⬇ Download"),
+                             command=lambda: self.app.open_download_dialog(
+                                 self.app.current_server, item["Id"],
+                                 item.get("Type"), item.get("Name", "")))
+        btn.pack(side="right")
+        return btn
+
+    def on_sync_state(self, _ss):
+        # Swap only the download button in place — a full re-render would reset
+        # the track pickers and scroll on every queue change.
+        if self.item is None or self._actions_row is None:
+            return
+        try:
+            self._download_btn.destroy()
+        except Exception:
+            pass
+        self._download_btn = self._make_download_button(self._actions_row, self.item)
 
     def _to_series(self):
         self.app.navigate({"kind": "series", "series_id": self.item["SeriesId"],
@@ -976,6 +1056,10 @@ class ServersPanel:
 class LogsPanel:
     """Live application log viewer, embedded in the Settings notebook."""
 
+    # Cap the widget like the backing log_lines deque (2000) so a long-lived
+    # window doesn't grow the Text buffer without bound.
+    _MAX_LINES = 2000
+
     def __init__(self, app, parent):
         self.app = app
         tk, ttk = app.tk, app.ttk
@@ -1002,8 +1086,21 @@ class LogsPanel:
     def on_log_line(self, line):
         self.text.config(state="normal")
         self.text.insert("end", "\n" + line)
+        self._trim()
         self.text.config(state="disabled")
         self.text.see("end")
+
+    def _trim(self):
+        # Drop oldest lines so the Text buffer stays bounded. index("end-1c")
+        # reports the last character's "line.col"; its line number is the line
+        # count. To remove the first N lines, delete "1.0".."(N+1).0".
+        try:
+            line_count = int(self.text.index("end-1c").split(".")[0])
+            excess = line_count - self._MAX_LINES
+            if excess > 0:
+                self.text.delete("1.0", "%d.0" % (excess + 1))
+        except Exception:
+            pass
 
 
 class DownloadsPanel:
@@ -1014,6 +1111,7 @@ class DownloadsPanel:
         self.container = VScrollFrame(app, parent)
         self.container.widget().pack(fill="both", expand=True)
         self._rows = {}  # item_id -> status Label
+        self._epoch = 0  # supersedes an in-flight catalog read (see refresh)
         self.refresh()
 
     def _open_db(self):
@@ -1025,17 +1123,43 @@ class DownloadsPanel:
             return None
 
     def refresh(self):
+        # Reading the catalog can be slow on a large library, and on_sync_state
+        # fires this on every item during a batch download — do the SyncDB read
+        # off the Tk thread (via app.run_async) so the UI doesn't stutter.
         tk = self.app.tk
         body = self.container.body()
         for child in body.winfo_children():
             child.destroy()
         self._rows = {}
+        self._epoch += 1
+        epoch = self._epoch
+        loading = tk.Label(body, text=_("Loading…"), bg=CARD_BG, fg=SUBTLE_FG)
+        loading.pack(anchor="w", padx=16, pady=12)
 
-        db = self._open_db()
-        rows = db.list() if db else []
-        total = db.total_size() if db else self.app.sync_total
-        if db:
-            db.close()
+        def work():
+            db = self._open_db()
+            if db is None:
+                return [], self.app.sync_total
+            try:
+                return db.list(), db.total_size()
+            finally:
+                db.close()
+
+        def done(result):
+            # Drop the result if a newer refresh superseded this one, or the
+            # panel's widgets were torn down (user navigated away).
+            if epoch != self._epoch or not body.winfo_exists():
+                return
+            rows, total = result
+            self._render(body, rows, total)
+
+        self.app.run_async(work, done, lambda _e: None)
+
+    def _render(self, body, rows, total):
+        tk = self.app.tk
+        for child in body.winfo_children():
+            child.destroy()
+        self._rows = {}
 
         tk.Label(body, text=_("Downloads — %s used") % human_size(total),
                  bg=CARD_BG, fg=TEXT_FG, font=("TkDefaultFont", 16, "bold")).pack(

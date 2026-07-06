@@ -285,26 +285,43 @@ class OfflineLibrarySource:
     def reload(self):
         rows = []
         if self.catalog_path:
-            db = SyncDB(self.catalog_path, read_only=True)
-            rows = db.list(status=STATUS_COMPLETE)
-            db.close()
-        self._rows = {r["item_id"]: r for r in rows}
-        self._items = []
-        self._series_server = {}  # series_id -> server_id (for series artwork)
-        self._season_server = {}  # season_id -> server_id (for season artwork)
-        self._season_series = {}  # season_id -> series_id (artwork fallback)
+            # reload() runs from __init__ (BrowserApp._enter_offline): a corrupt
+            # or unreadable catalog must degrade to an empty offline library, not
+            # crash the browser window. SyncDB already tolerates a missing file.
+            try:
+                db = SyncDB(self.catalog_path, read_only=True)
+                try:
+                    rows = db.list(status=STATUS_COMPLETE)
+                finally:
+                    db.close()
+            except Exception:
+                log.warning("Failed to open offline catalog %s",
+                            self.catalog_path, exc_info=True)
+                rows = []
+        # Build into locals, then publish each attribute in one assignment.
+        # reload() can now run on a browser api-pool thread (a download finished
+        # while browsing offline), so a concurrent reader must never observe a
+        # half-populated list.
+        by_id = {r["item_id"]: r for r in rows}
+        items = []
+        series_server = {}  # series_id -> server_id (for series artwork)
+        season_server = {}  # season_id -> server_id (for season artwork)
+        season_series = {}  # season_id -> series_id (artwork fallback)
         for row in rows:
             try:
-                self._items.append(json.loads(row["item_json"]))
+                items.append(json.loads(row["item_json"]))
             except (TypeError, ValueError):
                 pass
             if row.get("type") == "Episode" and row.get("series_id"):
-                self._series_server.setdefault(row["series_id"], row.get("server_id"))
+                series_server.setdefault(row["series_id"], row.get("server_id"))
                 if row.get("season_id"):
-                    self._season_server.setdefault(row["season_id"],
-                                                   row.get("server_id"))
-                    self._season_series.setdefault(row["season_id"],
-                                                   row["series_id"])
+                    season_server.setdefault(row["season_id"], row.get("server_id"))
+                    season_series.setdefault(row["season_id"], row["series_id"])
+        self._rows = by_id
+        self._items = items
+        self._series_server = series_server
+        self._season_server = season_server
+        self._season_series = season_series
 
     def stop(self):
         pass

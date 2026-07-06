@@ -126,6 +126,7 @@ class MediaTile:
         self.image_type = image_type
         self._requested = False
         self._photo = None
+        self._key = None
 
         w, h = box
         self.frame = tk.Frame(parent, bg=CARD_BG, bd=0, highlightthickness=0)
@@ -214,6 +215,7 @@ class MediaTile:
         item_id, image_type, tag = spec
         w, h = self.box
         key = make_key(item_id, image_type, tag, w, h)
+        self._key = key
         url = self.app.source.image_url(self.server_uuid, item_id, image_type, tag,
                                         w, height=h, fill=True)
         self.app.thumbs.request(key, url, self.box, self._set_image)
@@ -238,6 +240,13 @@ class MediaTile:
         cache makes the reload on scroll-back cheap; load() re-requests it."""
         if not self._requested:
             return
+        # Cancel any still-pending fetch so a fast-scrolled backlog doesn't hold
+        # up the next view's artwork.
+        if self._key is not None:
+            try:
+                self.app.thumbs.cancel(self._key, self._set_image)
+            except Exception:
+                pass
         try:
             self.canvas.delete("img")
         except Exception:
@@ -296,6 +305,10 @@ class ScrollableGrid:
     def set_items(self, items, server_uuid, image_type="Primary", on_click=None,
                   subtitle_fn=None):
         for t in self.tiles:
+            try:
+                t.unload()  # cancel any in-flight fetch for the outgoing tiles
+            except Exception:
+                pass
             try:
                 self.canvas.delete(t._win)
             except Exception:
