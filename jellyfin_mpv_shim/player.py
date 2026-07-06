@@ -157,6 +157,9 @@ class PlayerManager(object):
         self.get_webview = lambda: None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
         self.do_not_handle_pause = False
+        # Throttle for periodic offline resume-position persistence on the
+        # timeline path (time.monotonic seconds); -inf so the first tick fires.
+        self._last_offline_record = float("-inf")
         self.last_seek = None
         self.warned_about_transcode = False
         self.fullscreen_disable = False
@@ -787,6 +790,8 @@ class PlayerManager(object):
             self.trickplay.fetch_thumbnails()
 
         self.should_send_timeline = True
+        # Fresh offline-record throttle window for each newly playing item.
+        self._last_offline_record = float("-inf")
         self.do_not_handle_pause = False
         if self._finished_lock.locked():
             self._finished_lock.release()
@@ -1317,17 +1322,30 @@ class PlayerManager(object):
             if (
                 self.should_send_timeline
                 and video
-                and video.client is not None
                 and not self._player.playback_abort
             ):
-                options = self.get_timeline_options(video=video)
-                if options is not None:
-                    video.client.jellyfin.session_progress(options)
-                try:
-                    if self.syncplay.is_enabled():
-                        self.syncplay.sync_playback_time()
-                except:
-                    log.error("Error syncing playback time.", exc_info=True)
+                if video.client is not None:
+                    options = self.get_timeline_options(video=video)
+                    if options is not None:
+                        video.client.jellyfin.session_progress(options)
+                    try:
+                        if self.syncplay.is_enabled():
+                            self.syncplay.sync_playback_time()
+                    except:
+                        log.error("Error syncing playback time.", exc_info=True)
+                elif hasattr(video, "record_offline_progress"):
+                    # Offline playback has no server session, so stop() is the
+                    # only other place the resume position is saved — an
+                    # unclean exit (crash/power-off) would lose it. Persist it
+                    # periodically here instead. Throttle so we don't hammer
+                    # SQLite every 5s tick.
+                    now = time.monotonic()
+                    if now - self._last_offline_record >= 30:
+                        options = self.get_timeline_options(video=video)
+                        if options is not None:
+                            self._last_offline_record = now
+                            video.record_offline_progress(
+                                options.get("PositionTicks"))
         except _mpv_errors:
             log.warning("MPV connection lost during timeline update.")
             self._handle_mpv_disconnect()

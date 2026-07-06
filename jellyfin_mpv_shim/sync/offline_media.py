@@ -20,15 +20,6 @@ from .manager import syncManager
 log = logging.getLogger("sync.offline_media")
 
 
-def should_play_local(item_id):
-    """Play from disk when the item is fully downloaded and either we're in
-    offline mode or the user prefers downloaded copies (watch-party case)."""
-    db = syncManager.db
-    if db is None or not db.is_complete(item_id):
-        return False
-    return bool(settings.work_offline or settings.prefer_downloaded)
-
-
 def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None,
                           explicit_tracks=False):
     db = syncManager.db
@@ -37,6 +28,19 @@ def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None,
     # Use local when there's no live client (fully offline), or by preference.
     if getattr(parent, "client", None) is None or settings.work_offline \
             or settings.prefer_downloaded:
+        # A COMPLETE row whose file was removed out-of-band still looks valid.
+        # Verify the file is on disk before handing back a local video.
+        row = db.get(item_id)
+        file_path = row.get("file_path") if row else None
+        if not (file_path and os.path.exists(
+                os.path.join(syncManager.root, file_path))):
+            log.warning("Download for %s is missing on disk (%s); "
+                        "falling back to server if available.",
+                        item_id, file_path)
+            # Return None so build_video falls through to remote when a client
+            # is available, or surfaces a clean "not downloaded" path (its own
+            # None-handling) when fully offline.
+            return None
         return OfflineVideo(item_id, parent, aid, sid, srcid,
                             explicit_tracks=explicit_tracks)
     return None
@@ -168,6 +172,10 @@ class OfflineVideo(Video):
             try:
                 syncManager.db.upsert_playstate(self._server_uuid, self.item_id,
                                                 played=True)
+                # Keep the stored userdata in sync so watched-based delete
+                # reflects offline playback (it reads userdata_json, not the
+                # pending queue).
+                syncManager.db.update_userdata(self.item_id, played=True)
             except Exception:
                 log.debug("Failed to queue offline playstate", exc_info=True)
 
@@ -180,6 +188,12 @@ class OfflineVideo(Video):
                 self._server_uuid, self.item_id,
                 position_ticks=position_ticks,
                 played=True if finished else None)
+            # Mirror into the stored userdata so resume position and (on
+            # finish) watched state survive without a server round-trip and
+            # feed watched-based delete correctly.
+            syncManager.db.update_userdata(
+                self.item_id, played=finished,
+                position_ticks=position_ticks)
         except Exception:
             log.debug("Failed to queue offline progress", exc_info=True)
 
