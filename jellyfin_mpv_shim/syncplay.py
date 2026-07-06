@@ -596,6 +596,12 @@ class SyncPlayManager:
         superseded (every clear_scheduled_command bumps the generation)."""
         return self.is_enabled() and self.sync_generation == generation
 
+    def _rearm_sync(self, generation):
+        """Deferred re-enable of drift correction after a scheduled play/skip,
+        unless the session was disabled or superseded meanwhile."""
+        if self._still_current(generation):
+            self.sync_enabled = True
+
     def clear_scheduled_command(self):
         # Supersede anything armed or mid-flight: TimeoutThread.stop() only
         # cancels a timer that hasn't fired, so a callback already past its
