@@ -162,9 +162,9 @@ class SyncPlayManager:
 
                 def callback():
                     # Only restore speed if SyncPlay is still enabled and the
-                    # playback session hasn't changed (disable/leave/rejoin)
+                    # command wasn't superseded (disable/leave/rejoin/clear)
                     # since this restore was scheduled.
-                    if not self.is_enabled() or self.sync_generation != generation:
+                    if not self._still_current(generation):
                         return
                     self.playerManager.set_speed(1)
                     self.sync_enabled = True
@@ -184,12 +184,8 @@ class SyncPlayManager:
                 log.info("SyncPlay Skip to Sync Activated")
                 self.player_message(_("SkipToSync (x{0})").format(self.attempts))
 
-                def callback():
-                    if not self.is_enabled():
-                        return
-                    self.sync_enabled = True
-
-                set_timeout(settings.sync_method_thresh / 2, callback)
+                set_timeout(settings.sync_method_thresh / 2,
+                            self._rearm_sync, self.sync_generation)
             else:
                 if self.attempts > 0:
                     log.info(
@@ -493,18 +489,14 @@ class SyncPlayManager:
             play_timeout = (local_play_time - current_time).total_seconds() * 1000
             self.local_seek(position / seconds_in_ticks)
 
+            generation = self.sync_generation
+
             def scheduled():
-                if not self.is_enabled():
+                if not self._still_current(generation):
                     return
                 self.local_play()
-
-                def sync_timeout():
-                    if not self.is_enabled():
-                        return
-                    self.sync_enabled = True
-
                 self.sync_timeout = set_timeout(
-                    settings.sync_method_thresh / 2, sync_timeout
+                    settings.sync_method_thresh / 2, self._rearm_sync, generation
                 )
 
             self.scheduled_command = set_timeout(play_timeout, scheduled)
@@ -518,13 +510,9 @@ class SyncPlayManager:
             self.local_play()
             self.local_seek(server_position_secs)
 
-            def sync_timeout():
-                if not self.is_enabled():
-                    return
-                self.sync_enabled = True
-
             self.sync_timeout = set_timeout(
-                settings.sync_method_thresh / 2, sync_timeout
+                settings.sync_method_thresh / 2, self._rearm_sync,
+                self.sync_generation
             )
 
     def schedule_pause(self, when: datetime, position: int, seek_only: bool = False):
@@ -532,8 +520,10 @@ class SyncPlayManager:
         current_time = datetime.utcnow()
         local_pause_time = self.timesync.server_date_to_local(when)
 
+        generation = self.sync_generation
+
         def callback():
-            if not self.is_enabled():
+            if not self._still_current(generation):
                 return
             if not seek_only:
                 self.local_pause()
@@ -600,13 +590,20 @@ class SyncPlayManager:
         # This replicates what the web client does.
         self.schedule_pause(when, position)
 
+    def _still_current(self, generation):
+        """Whether a callback armed under `generation` may still act. False
+        once the session was disabled OR the command it belongs to was
+        superseded (every clear_scheduled_command bumps the generation)."""
+        return self.is_enabled() and self.sync_generation == generation
+
     def clear_scheduled_command(self):
-        # Each of these holds the stop() of a TimeoutThread. Stopping cancels
-        # a timer that hasn't fired; one already mid-callback is handled by
-        # the callbacks' own is_enabled()/generation guards (they see the
-        # disabled state, which callers flip before clearing). Stop the
-        # deferred play/pause command first: it may itself (re)arm
-        # sync_timeout, and clearing sync_timeout afterwards catches that.
+        # Supersede anything armed or mid-flight: TimeoutThread.stop() only
+        # cancels a timer that hasn't fired, so a callback already past its
+        # halt check relies on this bump (checked via _still_current) to
+        # no-op instead of applying a stale command. Stop the deferred
+        # play/pause command first: it may itself (re)arm sync_timeout, and
+        # clearing sync_timeout afterwards catches that.
+        self.sync_generation += 1
         if self.scheduled_command is not None:
             self.scheduled_command()
             self.scheduled_command = None
