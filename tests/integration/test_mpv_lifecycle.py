@@ -111,6 +111,57 @@ class TeardownLeakTest(unittest.TestCase):
                         "leaked worker can't block process exit")
 
 
+class StaleQueueDrainTest(unittest.TestCase):
+    """REGRESSION LOCK for the real re-open wedge cause. As the outgoing mpv is
+    torn down its dying shutdown/eof observers ``put_task`` onto ``evt_queue``
+    (``_handle_mpv_shutdown``, stray ``finished_callback``s). If those survive
+    into the re-opened session the pump runs them against the NEW video —
+    ``_handle_mpv_shutdown`` nulls ``self._video``, after which the new player's
+    eof is ignored and auto-advance silently stops. ``_teardown_player`` must
+    drain ``evt_queue`` (after joining the terminate thread, so the old event
+    thread is dead and nothing re-queues) on every re-open. Backend-agnostic —
+    the defect and fix are pure queue handling."""
+
+    def test_teardown_drains_stale_queued_tasks(self):
+        pm = h.build_player(player_module)
+        ran = []
+        pm.put_task(pm._handle_mpv_shutdown)          # the stale teardown task
+        pm.put_task(lambda: ran.append("stray"))      # a stray finished_callback
+        self.assertFalse(pm.evt_queue.empty())
+
+        pm._teardown_player()
+
+        self.assertTrue(pm.evt_queue.empty(),
+                        "stale tasks from the outgoing mpv were not drained")
+        self.assertEqual(ran, [],
+                         "a stale task ran instead of being discarded")
+
+    def test_reopen_drops_stale_shutdown_so_new_eof_survives(self):
+        # Full re-open path: a stale _handle_mpv_shutdown is queued (as the
+        # outgoing instance would), then _ensure_mpv -> _init_mpv ->
+        # _teardown_player must drain it. The new session's _video must survive
+        # and the new player's eof must still queue finished_callback.
+        pm = h.build_player(player_module)
+        pm.put_task(pm._handle_mpv_shutdown)          # queued by the outgoing mpv
+
+        pm._mpv_alive = False
+        pm._ensure_mpv()                              # re-open: drain + new player
+        self.assertTrue(pm.evt_queue.empty(),
+                        "re-open did not drain the stale shutdown task")
+
+        # New session begins playing; nothing should have nulled _video.
+        pm._video = object()
+        pm._reached_eof = False
+        pm._player.fire_property("eof-reached", True)
+
+        self.assertIsNotNone(pm._video,
+                             "a surviving stale shutdown nulled the new _video")
+        queued = [item[0] for item in list(pm.evt_queue.queue)]
+        self.assertIn(pm.finished_callback, queued,
+                      "the re-opened player's eof did not queue finished_callback "
+                      "(auto-advance would be dead)")
+
+
 class _IdleMixin:
     def _idle_player(self, with_trickplay=False):
         """A player that is fully idle (mpv alive, no video / menu / syncplay /
@@ -134,22 +185,37 @@ class _IdleMixin:
         self.assertFalse(pm._idle_quit, "idle_quit set the intentional flag")
         self.assertFalse(player.terminated, "idle_quit terminated the player")
 
-    def _assert_managed_noop(self, pm):
-        # Force the managed-external backend gate open so the *specific* gate the
-        # sub-test set (video / menu / syncplay / webview) is what makes
-        # idle_quit no-op — not the backend gate.
-        with mock.patch.object(player_module, "is_using_ext_mpv", True), \
-                mock.patch.object(player_module.settings, "mpv_ext_start", True):
+    def _assert_gated_noop(self, pm):
+        # Force the user-launched-external backend gate open (mpv_ext_start True)
+        # so the *specific* gate the sub-test set (video / menu / syncplay /
+        # webview) is what makes idle_quit no-op — not the backend gate. Works on
+        # both fake legs (on jsonipc the harness sets mpv_ext_start False, which
+        # would otherwise block).
+        with mock.patch.object(player_module.settings, "mpv_ext_start", True):
             self._assert_noop(pm)
+
+    def _assert_fires(self, pm):
+        tp = pm.trickplay
+        player = pm._player
+        pm.idle_quit()
+        self.assertTrue(pm._idle_quit, "intentional-quit flag not set")
+        self.assertFalse(pm._mpv_alive, "mpv still marked alive after idle_quit")
+        if tp is not None:
+            self.assertEqual(
+                tp.stop_calls, [False],
+                "idle_quit did not stop the trickplay worker (join=False)")
+            self.assertIsNone(pm.trickplay)
+        self.assertTrue(_wait_true(lambda: player.terminated),
+                        "idle_quit never terminated the mpv process")
 
 
 class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
-    """idle_quit() is hard-gated: it fires only for a *managed external* mpv
-    (``is_using_ext_mpv and mpv_ext_start`` — re-open spawns a fresh process),
-    and never while a video, an open menu, an active SyncPlay group, a
-    display-mirror webview, an in-process libmpv, or a user-launched external
-    mpv is in play. The backend globals are patched so both fake legs exercise
-    both branches deterministically (no real spawn)."""
+    """idle_quit() is hard-gated: it fires on both libmpv and a *managed*
+    external mpv (the re-open re-creates the player and drains the outgoing
+    instance's stale tasks), but never while a video, an open menu, an active
+    SyncPlay group, a display-mirror webview, or a *user-launched* external mpv
+    (``mpv_ext_start`` False) is in play. Backend globals are patched so both
+    fake legs exercise both branches deterministically (no real spawn)."""
 
     def test_noop_when_mpv_not_alive(self):
         pm = self._idle_player()
@@ -160,30 +226,22 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
     def test_noop_when_video_playing(self):
         pm = self._idle_player()
         pm._video = object()
-        self._assert_managed_noop(pm)
+        self._assert_gated_noop(pm)
 
     def test_noop_when_menu_shown(self):
         pm = self._idle_player()
         pm.menu.is_menu_shown = True
-        self._assert_managed_noop(pm)
+        self._assert_gated_noop(pm)
 
     def test_noop_when_syncplay_enabled(self):
         pm = self._idle_player()
         pm.syncplay._enabled = True
-        self._assert_managed_noop(pm)
+        self._assert_gated_noop(pm)
 
     def test_noop_when_webview_present(self):
         pm = self._idle_player()
         pm.get_webview = lambda: object()
-        self._assert_managed_noop(pm)
-
-    def test_noop_for_in_process_libmpv(self):
-        # In-process libmpv (is_using_ext_mpv False) can't be re-created with a
-        # working eof-reached, so idle_quit must never fire — even fully idle.
-        pm = self._idle_player()
-        with mock.patch.object(player_module, "is_using_ext_mpv", False), \
-                mock.patch.object(player_module.settings, "mpv_ext_start", True):
-            self._assert_noop(pm)
+        self._assert_gated_noop(pm)
 
     def test_noop_for_user_launched_external_mpv(self):
         # External mpv the user started themselves (mpv_ext_start False) must
@@ -193,22 +251,22 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
                 mock.patch.object(player_module.settings, "mpv_ext_start", False):
             self._assert_noop(pm)
 
-    def test_quits_when_fully_idle_managed_external(self):
-        # The only firing case: a managed external mpv, fully idle.
+    def test_fires_on_in_process_libmpv(self):
+        # In-process libmpv re-creates fine (the reopen wedge was stale queued
+        # tasks, since fixed by draining evt_queue in _teardown_player), so
+        # idle_quit fires here when fully idle.
         pm = self._idle_player(with_trickplay=True)
-        tp = pm.trickplay
-        player = pm._player
+        with mock.patch.object(player_module, "is_using_ext_mpv", False), \
+                mock.patch.object(player_module.settings, "mpv_ext_start", True):
+            self._assert_fires(pm)
+
+    def test_fires_on_managed_external_mpv(self):
+        # A managed external mpv (mpv_ext_start True): idle_quit terminates it;
+        # the re-open spawns a fresh process.
+        pm = self._idle_player(with_trickplay=True)
         with mock.patch.object(player_module, "is_using_ext_mpv", True), \
                 mock.patch.object(player_module.settings, "mpv_ext_start", True):
-            pm.idle_quit()
-
-        self.assertTrue(pm._idle_quit, "intentional-quit flag not set")
-        self.assertFalse(pm._mpv_alive, "mpv still marked alive after idle_quit")
-        self.assertEqual(tp.stop_calls, [False],
-                         "idle_quit did not stop the trickplay worker (join=False)")
-        self.assertIsNone(pm.trickplay)
-        self.assertTrue(_wait_true(lambda: player.terminated),
-                        "idle_quit never terminated the mpv process")
+            self._assert_fires(pm)
 
 
 class ShutdownGuardTest(unittest.TestCase):

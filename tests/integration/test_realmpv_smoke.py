@@ -274,38 +274,54 @@ class RealMpvSmokeTest(unittest.TestCase):
             self.pm.stop()
 
     @unittest.skipUnless(h.BACKEND == "libmpv",
-                         "the in-process no-op gate is libmpv-specific")
-    def test_idle_quit_is_noop_on_in_process_libmpv(self):
-        # Batch B (commit 012961c): libmpv is in-process and cannot be
-        # re-created with a working eof-reached (see the KNOWN LIMITATION in the
-        # README). idle_quit() must therefore NO-OP here — the mpv stays alive —
-        # rather than tear down and wedge auto-advance on re-open.
+                         "in-process re-create path is libmpv-specific")
+    def test_idle_quit_fires_and_reopens_on_libmpv(self):
+        # Batch B (commit 012961c): libmpv re-creates in-process fine — the old
+        # re-open wedge was stale queued tasks (now drained in _teardown_player),
+        # not a libmpv limitation. idle_quit() therefore FIRES here too:
+        # terminate → next play re-opens → and crucially eof still auto-advances.
         import tempfile
-        tmp = tempfile.mkdtemp(prefix="jms-idle-noop-")
+        tmp = tempfile.mkdtemp(prefix="jms-idle-libmpv-")
         self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
-        clip = h.make_test_clip(os.path.join(tmp, "i.mp4"), duration=2)
+        clip1 = h.make_test_clip(os.path.join(tmp, "a.mp4"), duration=2)
+        clip2 = h.make_test_clip(os.path.join(tmp, "b.mp4"), duration=2)
         client = FakeClient()
 
         with mock.patch.object(self.player_module.settings, "mpv_idle_quit", True), \
                 mock.patch.object(self.player_module.settings,
-                                  "mpv_idle_quit_secs", 0):
-            video = RealVideo(clip, client, item_id="idle-noop")
-            self.pm.play(video, is_initial_play=True)
+                                  "mpv_idle_quit_secs", 0), \
+                mock.patch.object(self.player_module.settings, "auto_play", True):
+            warmup = RealVideo(clip1, client, item_id="idle-warm")
+            self.pm.play(warmup, is_initial_play=True)
             self.pm.stop()
             self.assertIsNone(self.pm._video)
 
+            # idle_quit fires on in-process libmpv now.
             self.pm.idle_quit()
-            self.assertFalse(self.pm._idle_quit,
-                             "idle_quit wrongly fired on in-process libmpv")
-            self.assertTrue(self.pm._mpv_alive,
-                            "idle_quit wrongly tore down in-process libmpv")
+            self.assertTrue(self.pm._idle_quit,
+                            "idle_quit did not fire on in-process libmpv")
+            self.assertFalse(self.pm._mpv_alive,
+                             "libmpv not marked down after idle_quit")
 
-            # The still-alive player must play normally afterwards.
-            again = RealVideo(clip, client, item_id="idle-noop-2")
-            self.pm.play(again, is_initial_play=True)
-            self.assertIs(self.pm._video, again)
+            # Re-open on the next play, and the re-opened libmpv must decode AND
+            # auto-advance on eof (proves the stale-queue drain fix).
+            second = RealVideo(clip2, client, item_id="idle-second")
+            first = RealVideo(clip1, client, item_id="idle-first",
+                              next_video=second)
+            self.pm.play(first, is_initial_play=True)
+            self.assertIs(self.pm._video, first)
+            self.assertFalse(self.pm._idle_quit,
+                             "_idle_quit not cleared on re-open")
+            self.assertTrue(self.pm._mpv_alive)
             self.assertTrue(self.pm._player.duration and
-                            self.pm._player.duration > 0)
+                            self.pm._player.duration > 0,
+                            "re-opened libmpv never reported a duration")
+
+            advanced = self._pump_until(lambda: self.pm._video is second,
+                                        timeout=30)
+            self.assertTrue(advanced,
+                            "re-opened libmpv did not auto-advance on eof "
+                            "(stale-queue drain regression)")
             self.pm.stop()
 
 
@@ -317,15 +333,13 @@ class IdleQuitReopenIsolatedTest(unittest.TestCase):
 
     The child runs: play → stop → idle_quit() → play (re-open) → stop → play a
     clip WITH a next item → pump for EOF auto-advance, and prints ADVANCED /
-    STALLED. Both backends must ADVANCE:
+    STALLED. Both backends must ADVANCE — idle_quit() fires on both (libmpv
+    in-process re-create, jsonipc fresh process), and _teardown_player drains
+    the outgoing instance's stale tasks so the re-opened session's eof fires
+    normally instead of being swallowed by a leftover _handle_mpv_shutdown.
 
-    * libmpv — idle_quit() no-ops (in-process can't be re-created), so nothing
-      is torn down and the later playback's eof fires normally.
-    * jsonipc — idle_quit() fires and re-opens a fresh mpv *process*, whose eof
-      fires normally.
-
-    (Was a pinned `@expectedFailure` for the pre-fix libmpv re-open wedge; the
-    fix scopes idle-quit to managed external mpv, so it now passes on both.)
+    (Was a pinned `@expectedFailure` for the pre-fix re-open wedge; the real fix
+    — draining evt_queue on re-open — makes it pass on both.)
     """
 
     def test_idle_quit_then_playback_advances(self):

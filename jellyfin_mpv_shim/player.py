@@ -6,7 +6,7 @@ import time
 import platform
 
 from threading import RLock, Lock, Thread
-from queue import Queue
+from queue import Queue, Empty as queue_empty
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
 
@@ -174,9 +174,10 @@ class PlayerManager(object):
         # when the process is re-created on the next play.
         self._idle_quit = False
         # The thread tearing down a previous mpv instance. A re-open joins it
-        # before creating the new one: on libmpv (in-process) building a new
-        # mpv while the old is still terminating corrupts the new instance
-        # (eof-reached stops firing), so terminate and re-init must serialize.
+        # before rebuilding: the old event thread must be dead before we drain
+        # its leftover queued tasks (so none re-queue after the drain — see
+        # _teardown_player), and for external mpv the new process must not grab
+        # the ipc socket while the old one still holds it.
         self._terminate_thread = None
         # Playback generation, bumped each time a new file becomes current.
         # Queued finished-callbacks carry the epoch they were created under
@@ -218,6 +219,19 @@ class PlayerManager(object):
             if term.is_alive():
                 log.warning("Previous mpv terminate did not finish in time.")
         self._terminate_thread = None
+
+        # Discard tasks the outgoing instance queued while tearing down. Its
+        # shutdown/eof observers put_task _handle_mpv_shutdown and stray
+        # finished_callbacks onto evt_queue; if they survive into the re-opened
+        # session the pump runs them against the NEW video — _handle_mpv_shutdown
+        # nulls self._video, after which the new player's eof is ignored and
+        # auto-advance silently stops. The terminate join above guarantees the
+        # old event thread is dead, so nothing re-queues after this drain.
+        while True:
+            try:
+                self.evt_queue.get_nowait()
+            except queue_empty:
+                break
 
         if self.trickplay is not None:
             try:
@@ -1489,12 +1503,8 @@ class PlayerManager(object):
             return
         if self.get_webview() is not None:
             return
-        if not (is_using_ext_mpv and settings.mpv_ext_start):
-            # Only quit when we manage a *separate* mpv process, so the re-open
-            # spawns a fresh one. libmpv is in-process and cannot be re-created
-            # cleanly (eof-reached stops firing on the new instance, silently
-            # breaking auto-advance), and a user-launched external mpv must not
-            # be killed.
+        if is_using_ext_mpv and not settings.mpv_ext_start:
+            # Never kill an mpv the user launched themselves.
             return
         log.info("Idle timeout reached; quitting mpv to save resources.")
         self._idle_quit = True
