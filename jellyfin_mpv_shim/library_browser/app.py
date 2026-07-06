@@ -222,9 +222,15 @@ class BrowserApp:
             return
         # Going online.
         self._exit_offline()
-        if self.current_server:
-            # We already have a live connection — this counts as a successful
-            # return to online, so honour any pending "clear offline setting".
+        if self._clear_offline_on_reconnect and self.server_list:
+            # We're about to persist work_offline=False, so we must confirm the
+            # server is actually reachable first. current_server here is derived
+            # from the possibly-stale _live_servers snapshot (not refreshed on
+            # entering offline), so trust the main process's fresh connection
+            # result via _on_connection_settled instead of clearing eagerly.
+            self.retry_connect()
+        elif self.current_server:
+            # A live connection and nothing to persist — go straight home.
             self._maybe_clear_offline_setting()
             self.navigate({"kind": "home"}, reset=True)
         elif self.server_list:

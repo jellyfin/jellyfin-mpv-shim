@@ -590,7 +590,11 @@ class Media(object):
 
         self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid,
                                  explicit_tracks=explicit_tracks)
-        self.is_tv = self.video.is_tv
+        # build_video returns None when fully offline and this item has no
+        # downloaded copy. Keep the Media constructible so callers can detect
+        # the unplayable item via .video is None (get_next().video, play())
+        # instead of crashing here on the action thread.
+        self.is_tv = self.video.is_tv if self.video is not None else False
         try:
             self.is_local = is_local_domain(client) if client is not None else True
         except Exception:

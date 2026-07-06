@@ -110,6 +110,8 @@ class SyncDB:
         placeholders = ",".join("?" for _ in COLUMNS)
         cols = ",".join(COLUMNS)
         with self._lock:
+            if self._conn is None:
+                return
             try:
                 self._conn.execute(
                     "INSERT OR REPLACE INTO downloads (%s) VALUES (%s)" % (cols, placeholders),
@@ -127,6 +129,8 @@ class SyncDB:
         assignments = ",".join("%s=?" % k for k in fields)
         params = list(fields.values()) + [item_id]
         with self._lock:
+            if self._conn is None:
+                return
             try:
                 self._conn.execute(
                     "UPDATE downloads SET %s WHERE item_id=?" % assignments, params)
@@ -137,6 +141,8 @@ class SyncDB:
 
     def delete(self, item_id):
         with self._lock:
+            if self._conn is None:
+                return
             try:
                 self._conn.execute("DELETE FROM downloads WHERE item_id=?", (item_id,))
                 self._conn.commit()
@@ -148,6 +154,8 @@ class SyncDB:
                          played=None):
         """One pending row per item; position advances (max), played sticks True."""
         with self._lock:
+            if self._conn is None:
+                return
             try:
                 existing = self._conn.execute(
                     "SELECT id, position_ticks, played FROM pending_playstate "
@@ -182,6 +190,8 @@ class SyncDB:
         without a server round-trip. Advancing only: played sticks True, the
         position only moves forward."""
         with self._lock:
+            if self._conn is None:
+                return
             row = self._conn.execute(
                 "SELECT userdata_json FROM downloads WHERE item_id=?",
                 (item_id,)).fetchone()
@@ -214,6 +224,8 @@ class SyncDB:
         if not ids:
             return
         with self._lock:
+            if self._conn is None:
+                return
             try:
                 self._conn.executemany(
                     "DELETE FROM pending_playstate WHERE id=?", [(i,) for i in ids])

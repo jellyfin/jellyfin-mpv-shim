@@ -181,6 +181,9 @@ class SyncManager:
         return False
 
     def delete_item(self, item_id):
+        # Drop any short-read stall bookkeeping so it can't linger for a
+        # deleted item (the worker's finally only clears _cancelled).
+        self._short_read_stalls.pop(item_id, None)
         if self._cancel_if_active(item_id):
             self._notify_change()
             return
@@ -518,6 +521,30 @@ class SyncManager:
             # launch (the .part file is kept), rather than poisoning it to error.
             log.info("Download interrupted by shutdown: %s", item_id)
             self.db.update(item_id, status=STATUS_PENDING)
+        except requests.HTTPError as exc:
+            # An HTTP status the server returned. 5xx/429 are transient (server
+            # busy) — keep the row PENDING to resume from the .part. 4xx means
+            # the item is gone or forbidden — permanent, mark ERROR.
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status is not None and (status >= 500 or status == 429):
+                log.warning("Download of %s got HTTP %s; will resume.",
+                            row.get("name") or item_id, status)
+                self.db.update(item_id, status=STATUS_PENDING)
+                self._notify_change()
+                raise
+            log.error("Download of %s failed with HTTP %s.",
+                      row.get("name") or item_id, status)
+            self.db.update(item_id, status=STATUS_ERROR)
+        except requests.RequestException as exc:
+            # Transient: a dropped connection or read timeout. Keep the row
+            # PENDING so the .part resumes (resume offset is read from the file
+            # on disk), and re-raise so _run's error backoff throttles the
+            # retry instead of hot-looping.
+            log.warning("Download of %s interrupted (%s); will resume.",
+                        row.get("name") or item_id, exc)
+            self.db.update(item_id, status=STATUS_PENDING)
+            self._notify_change()
+            raise
         except Exception:
             log.error("Download failed for %s", item_id, exc_info=True)
             self.db.update(item_id, status=STATUS_ERROR)
