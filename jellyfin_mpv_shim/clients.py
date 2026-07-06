@@ -138,12 +138,12 @@ class ClientManager(object):
         self.credentials = []
         self.clients = {}
         self.usernames = {}
-        self.is_stopping = False
-        # Serializes connect/disconnect across the threads that all reach for
-        # them (websocket reconnect loops, the health check, shutdown). An
-        # RLock because connect_client recurses through its partial-connect
-        # retry path.
+        # Guards registry state (clients dict, the _connecting reservations).
+        # Never held across network I/O — see connect_client.
         self._client_lock = threading.RLock()
+        # Server uuids with a connect in flight, so concurrent connectors
+        # (health check vs websocket reconnect) don't build duplicates.
+        self._connecting = set()
         # Set on stop(); lets reconnect/retry sleeps end immediately instead
         # of holding shutdown hostage for up to their full backoff interval.
         self._stop_event = threading.Event()
@@ -410,11 +410,10 @@ class ClientManager(object):
                 # next health-check tick) reconnects it cleanly.
                 client.callback = lambda *_: None
                 client.callback_ws = lambda *_: None
-                if server is not None and (
-                    self.clients.get(server["uuid"]) is client
-                ):
-                    self._disconnect_client(server=server)
-                else:
+                removed = server is not None and self._disconnect_client(
+                    server=server, expected_client=client
+                )
+                if not removed:
                     # Not (or no longer) the registered client for this
                     # server — a reconnect may have replaced it while we were
                     # probing. Stop our stale handle and leave the registry
@@ -466,7 +465,8 @@ class ClientManager(object):
 
         # Wait and check connection again before destroying/re-creating client
         log.info("Not connected yet, waiting 3 seconds...")
-        time.sleep(3)
+        if self._stop_event.wait(3):
+            return False
         is_connected = self.validate_client(client)
 
         if is_connected:
@@ -481,57 +481,86 @@ class ClientManager(object):
         self._disconnect_client(uuid=uuid)
 
     def connect_client(self, server, do_retries=True):
+        uuid = server["uuid"]
+
+        # The lock only guards registry state; the network work below runs
+        # outside it. Holding the lock across authenticate/validate (10s+
+        # timeouts, worse with retries) would stall every reconnect loop and
+        # block shutdown for the full HTTP timeout stack. A per-uuid
+        # reservation keeps concurrent connectors (health check vs websocket
+        # reconnect) from building duplicate clients for the same server.
         with self._client_lock:
             if self.is_stopping:
                 return False
-
-            # Another thread (health check, websocket reconnect loop) may
-            # have connected this server while we waited on the lock; don't
-            # create a duplicate client on top of it.
-            if server["uuid"] in self.clients:
+            if uuid in self.clients:
                 return True
+            if uuid in self._connecting:
+                return False  # another thread is already on it
+            self._connecting.add(uuid)
 
-            is_logged_in = False
-            client = self.client_factory()
-            state = client.authenticate({"Servers": [server]}, discover=False)
-            server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
-            if server["connected"]:
-                is_logged_in = self.setup_client(client, server)
-                if is_logged_in:
-                    self.clients[server["uuid"]] = client
-                    if server.get("username"):
-                        self.usernames[server["uuid"]] = server["username"]
-                elif do_retries:
-                    # Jellyfin client sometimes "connects" halfway but doesn't actually work.
-                    # Retry three times to reduce odds of this happening.
-                    partial_reconnect_attempts = 3
-                    for i in range(partial_reconnect_attempts):
-                        log.warning(
-                            f"Partially connected. Retrying {i+1}/{partial_reconnect_attempts}."
-                        )
-                        self._disconnect_client(server=server)
-                        if self._stop_event.wait(1):
-                            break
-                        if self.connect_client(server, False):
-                            is_logged_in = True
-                            break
+        try:
+            # First try, plus up to three rebuilds: the Jellyfin client
+            # sometimes "connects" halfway but doesn't actually work.
+            attempts = 4 if do_retries else 1
+            for attempt in range(attempts):
+                if self.is_stopping:
+                    return False
+                if attempt > 0:
+                    log.warning(
+                        f"Partially connected. Retrying {attempt}/{attempts - 1}."
+                    )
+                    if self._stop_event.wait(1):
+                        return False
 
-            return is_logged_in
+                client = self.client_factory()
+                state = client.authenticate({"Servers": [server]}, discover=False)
+                server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
+                if not server["connected"]:
+                    return False
 
-    def _disconnect_client(self, uuid: Optional[str] = None, server=None):
+                # setup_client stops the client itself on a failed validation.
+                if self.setup_client(client, server):
+                    registered = False
+                    with self._client_lock:
+                        if not self.is_stopping:
+                            self.clients[uuid] = client
+                            if server.get("username"):
+                                self.usernames[uuid] = server["username"]
+                            registered = True
+                    if not registered:
+                        # stop() drained the registry while we were connecting;
+                        # don't resurrect a client it can no longer see.
+                        client.stop()
+                        return False
+                    return True
+
+            return False
+        finally:
+            with self._client_lock:
+                self._connecting.discard(uuid)
+
+    def _disconnect_client(self, uuid: Optional[str] = None, server=None,
+                           expected_client=None):
+        """Remove and stop the registered client. With expected_client, only
+        act if that exact instance is still the registered one — a probe that
+        raced a reconnect must not tear down the healthy replacement. Returns
+        True if a client was removed."""
         with self._client_lock:
             if uuid is None and server is not None:
                 uuid = server["uuid"]
 
-            if uuid not in self.clients:
-                return
+            client = self.clients.get(uuid)
+            if client is None:
+                return False
+            if expected_client is not None and client is not expected_client:
+                return False
 
             if server is not None:
                 server["connected"] = False
 
-            client = self.clients[uuid]
             del self.clients[uuid]
         client.stop()
+        return True
 
     def remove_all_clients(self):
         self.stop_all_clients()
@@ -565,11 +594,14 @@ class ClientManager(object):
                 )
                 self.connect_client(server, do_retries=False)
 
+    @property
+    def is_stopping(self):
+        return self._stop_event.is_set()
+
     def stop(self):
         # Flag first so no in-flight connect_client registers a new client
-        # after we've drained the registry, then wake every sleeping
-        # reconnect/retry loop.
-        self.is_stopping = True
+        # after we've drained the registry; setting the event also wakes
+        # every sleeping reconnect/retry loop.
         self._stop_event.set()
 
         if self.health_check:
