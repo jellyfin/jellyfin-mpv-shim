@@ -5,13 +5,14 @@ import time
 
 import platform
 
-from threading import RLock, Lock, Event
+from threading import RLock, Lock
 from queue import Queue
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
 from .utils import synchronous, Timer, none_fallback, get_resource
+from .mpv_events import wait_property
 from .conf import settings
 from .menu import OSDMenu
 from .constants import APP_NAME
@@ -84,33 +85,6 @@ def mpv_log_handler(level: str, prefix: str, text: str):
         mpv_log.debug("{0}: {1}".format(prefix, text))
 
 
-def wait_property(
-    instance, name: str, cond=lambda x: True, timeout: Optional[int] = None
-):
-    success = True
-    event = Event()
-
-    def handler(_name, value):
-        if cond(value):
-            event.set()
-
-    if is_using_ext_mpv:
-        observer_id = instance.bind_property_observer(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
-        instance.unbind_property_observer(observer_id)
-    else:
-        instance.observe_property(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
-        instance.unobserve_property(name, handler)
-    return success
-
-
 win_utils = None
 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
     try:
@@ -158,6 +132,17 @@ class PlayerManager(object):
         self.playback_time_before_seek = None
         self.trickplay = None
         self._mpv_alive = False
+        # Playback generation, bumped each time a new file becomes current.
+        # Queued finished-callbacks carry the epoch they were created under
+        # and no-op if playback moved on before they ran.
+        self._play_epoch = 0
+        # True only when mpv reported a genuine end-of-file (eof-reached).
+        # playback-abort fires on ANY abort — including decode/network failure —
+        # so this flag is what distinguishes "watched to the end" from "the
+        # stream died". Written by the mpv observer thread (handle_end), read by
+        # the action/timeline threads; a plain bool is safe here (atomic
+        # read/write in CPython, no compound state).
+        self._reached_eof = False
         # Last known playback position; used when MPV exits (e.g. OSC 'x'
         # button) before we get to send the final timeline update.
         self._last_playback_position = 0
@@ -413,18 +398,25 @@ class PlayerManager(object):
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
         def handle_end(_name, reached_end: bool):
-            self.pause_ignore = True
+            # Only arm the pause-swallow on the True transition: the False
+            # transition means a new file just loaded, and arming it there
+            # leaves a stale "expect pause" that eats the user's first real
+            # pause under SyncPlay.
             if self._video and reached_end:
+                self.pause_ignore = True
+                # Genuine end-of-file (as opposed to the playback-abort path,
+                # which also fires on decode/network failure).
+                self._reached_eof = True
                 has_lock = self._finished_lock.acquire(False)
-                self.put_task(self.finished_callback, has_lock)
+                self.put_task(self.finished_callback, has_lock, self._play_epoch)
 
         # Fires at the end.
         @self._player.property_observer("playback-abort")
         def handle_end_idle(_name, value: bool):
-            self.pause_ignore = True
             if self._video and value and not self._video.parent.has_next:
+                self.pause_ignore = True
                 has_lock = self._finished_lock.acquire(False)
-                self.put_task(self.finished_callback, has_lock)
+                self.put_task(self.finished_callback, has_lock, self._play_epoch)
 
         @self._player.property_observer("seeking")
         def handle_seeking(_name, value: bool):
@@ -686,7 +678,11 @@ class PlayerManager(object):
 
         self._player.play(self.url)
         if not wait_property(
-            self._player, "duration", lambda x: x is not None, settings.playback_timeout
+            self._player,
+            "duration",
+            lambda x: x is not None,
+            settings.playback_timeout,
+            skip_initial=True,
         ):
             # Timeout playback attempt after 10 seconds
             log.error("Timeout when waiting for media duration. Stopping playback!")
@@ -697,6 +693,12 @@ class PlayerManager(object):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video = video
+        # A new file is actually playing now; any prior end-of-file is stale.
+        self._reached_eof = False
+        # Invalidate finished-callbacks queued for the previous playback: a
+        # cast landing in the same instant as an EOF would otherwise let the
+        # stale callback mark the just-cast item played and skip past it.
+        self._play_epoch += 1
         self.is_in_intro = False
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
@@ -892,7 +894,15 @@ class PlayerManager(object):
         return False
 
     @synchronous("_lock")
-    def finished_callback(self, has_lock: bool):
+    def finished_callback(self, has_lock: bool, epoch: Optional[int] = None):
+        # Queued for an earlier playback? A new file has started since this
+        # task was enqueued; acting now would finish the wrong video. The
+        # _finished_lock needs no release here — _play_media already released
+        # it when it bumped the epoch.
+        if epoch is not None and epoch != self._play_epoch:
+            log.info("PlayerManager::finished_callback stale, skipping")
+            return
+
         # Snapshot: an mpv disconnect on another thread can null self._video
         # mid-callback even though we hold _lock.
         video = self._video
@@ -900,7 +910,9 @@ class PlayerManager(object):
             self.pause_ignore = False
             return
 
-        if settings.force_set_played:
+        # Only mark played on a genuine end-of-file. An errored/aborted stream
+        # (playback-abort without eof-reached) must not be recorded as watched.
+        if settings.force_set_played and self._reached_eof:
             video.set_played()
         if video.parent.has_next and settings.auto_play:
             if has_lock:
@@ -1111,14 +1123,18 @@ class PlayerManager(object):
         if playback_time is not None:
             self._last_playback_position = playback_time
 
-        if finished:
-            # When MPV has already exited we don't actually know if the video
-            # finished — fall back to the last known position rather than
-            # marking it as fully watched.
+        if finished and self._reached_eof:
+            # Genuine end-of-file: report the full duration so the item is
+            # recorded as fully watched.
+            safe_pos = video.get_duration() or 0
+        elif finished:
+            # "Finished" without a real EOF means an abort (decode/network
+            # failure, or mpv already exited). Don't pretend it was watched to
+            # the end — fall back to the last known position.
             if playback_time is None:
                 safe_pos = self._last_playback_position
             else:
-                safe_pos = video.get_duration() or 0
+                safe_pos = playback_time
         else:
             safe_pos = playback_time or 0
         self.last_seek = safe_pos
