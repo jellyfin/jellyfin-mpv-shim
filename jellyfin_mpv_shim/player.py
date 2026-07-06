@@ -173,6 +173,11 @@ class PlayerManager(object):
         # shutdown path stay silent — there's no session to report. Cleared
         # when the process is re-created on the next play.
         self._idle_quit = False
+        # The thread tearing down a previous mpv instance. A re-open joins it
+        # before creating the new one: on libmpv (in-process) building a new
+        # mpv while the old is still terminating corrupts the new instance
+        # (eof-reached stops firing), so terminate and re-init must serialize.
+        self._terminate_thread = None
         # Playback generation, bumped each time a new file becomes current.
         # Queued finished-callbacks carry the epoch they were created under
         # and no-op if playback moved on before they ran.
@@ -204,6 +209,16 @@ class PlayerManager(object):
         leaked on every re-open (and block process exit); stopping it here is
         the fix. The mpv process itself is terminated by the disconnect path or
         the idle-quit path, not here."""
+        # Wait for a previous instance's terminate to finish before a re-open
+        # builds a new one — see _terminate_thread. Joining (not polling) also
+        # avoids the libmpv segfault from touching a handle mid-teardown.
+        term = self._terminate_thread
+        if term is not None and term.is_alive():
+            term.join(timeout=10)
+            if term.is_alive():
+                log.warning("Previous mpv terminate did not finish in time.")
+        self._terminate_thread = None
+
         if self.trickplay is not None:
             try:
                 # join=False: _teardown_player runs under _lock and the
@@ -547,9 +562,13 @@ class PlayerManager(object):
             # the action thread under _lock, serialized against stop()/play().
             self.should_send_timeline = False
             self.put_task(self._handle_mpv_shutdown)
-            Thread(
+            # The next re-open joins this (see _teardown_player), so a cast
+            # landing right after a user-close can't build the new instance
+            # while this one is still tearing down.
+            self._terminate_thread = Thread(
                 target=self._terminate_mpv, args=(self._player,), daemon=True
-            ).start()
+            )
+            self._terminate_thread.start()
 
         @self._player.event_callback("client-message")
         def handle_client_message(event):
@@ -1470,8 +1489,12 @@ class PlayerManager(object):
             return
         if self.get_webview() is not None:
             return
-        if is_using_ext_mpv and not settings.mpv_ext_start:
-            # Never kill an mpv the user launched themselves.
+        if not (is_using_ext_mpv and settings.mpv_ext_start):
+            # Only quit when we manage a *separate* mpv process, so the re-open
+            # spawns a fresh one. libmpv is in-process and cannot be re-created
+            # cleanly (eof-reached stops firing on the new instance, silently
+            # breaking auto-advance), and a user-launched external mpv must not
+            # be killed.
             return
         log.info("Idle timeout reached; quitting mpv to save resources.")
         self._idle_quit = True
@@ -1479,7 +1502,10 @@ class PlayerManager(object):
         player = self._player
         self._teardown_player()
         self._mpv_alive = False
-        Thread(target=self._terminate_mpv, args=(player,), daemon=True).start()
+        self._terminate_thread = Thread(
+            target=self._terminate_mpv, args=(player,), daemon=True
+        )
+        self._terminate_thread.start()
 
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:
@@ -1491,11 +1517,12 @@ class PlayerManager(object):
         self._video = None
         # If we spawned this (now unresponsive) mpv, make sure it's gone —
         # otherwise the next play() starts a second instance on top of a
-        # possibly still-running one. Capture the instance: a quick re-init
-        # must not get terminated by a late-running thread.
-        Thread(
+        # possibly still-running one. The next re-open joins this thread (see
+        # _teardown_player) so the new instance isn't built concurrently.
+        self._terminate_thread = Thread(
             target=self._terminate_mpv, args=(self._player,), daemon=True
-        ).start()
+        )
+        self._terminate_thread.start()
         if video:
             # The server still thinks we're playing; report the stop with the
             # last known position so the session and any transcode are freed.
@@ -1546,9 +1573,13 @@ class PlayerManager(object):
 
     def _terminate_mpv(self, player=None):
         log.info("Terminating mpv instance")
-        self._mpv_alive = False
         if player is None:
             player = self._player
+        # Only mark dead if this is still the current instance. A terminate of
+        # a superseded player that finishes after a re-open must not flip the
+        # freshly-created player to dead.
+        if player is self._player:
+            self._mpv_alive = False
         try:
             player.terminate()
         except Exception:
