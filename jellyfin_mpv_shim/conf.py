@@ -42,6 +42,10 @@ class Settings(SettingsBase):
     idle_ended_cmd: Optional[str] = None
     play_cmd: Optional[str] = None
     idle_cmd_delay: int = 60
+    # Quit mpv after this many idle seconds to free the window / GPU / memory;
+    # it is re-created on the next play. Opt-in and off by default.
+    mpv_idle_quit: bool = False
+    mpv_idle_quit_secs: int = 300
     direct_paths: bool = False
     remote_direct_paths: bool = False
     path_substitutions: list = []

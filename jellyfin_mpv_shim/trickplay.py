@@ -26,13 +26,21 @@ class TrickPlay(threading.Thread):
         self.player = player
 
         threading.Thread.__init__(self)
+        # Daemon so a stop that can't join (see below) never blocks process
+        # exit, and a lingering worker from a re-open can't either.
+        self.daemon = True
 
-    def stop(self):
+    def stop(self, join=True):
+        # join=False is required when stopping from a context that holds the
+        # player lock: this worker's run loop calls player.script_message
+        # (which takes that same lock), so joining under it would deadlock.
+        # The worker still exits promptly on its next loop turn via `halt`.
         self.halt = True
         self.trigger.set()
         if os.path.isfile(img_file):
             os.remove(img_file)
-        self.join()
+        if join:
+            self.join()
 
     def fetch_thumbnails(self):
         self.trigger.set()

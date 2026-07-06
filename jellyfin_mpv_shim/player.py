@@ -168,6 +168,11 @@ class PlayerManager(object):
         self.playback_time_before_seek = None
         self.trickplay = None
         self._mpv_alive = False
+        # True when mpv was terminated intentionally to save resources while
+        # idle (mpv_idle_quit), as opposed to a crash / user-close. Lets the
+        # shutdown path stay silent — there's no session to report. Cleared
+        # when the process is re-created on the next play.
+        self._idle_quit = False
         # Playback generation, bumped each time a new file becomes current.
         # Queued finished-callbacks carry the epoch they were created under
         # and no-op if playback moved on before they ran.
@@ -190,7 +195,30 @@ class PlayerManager(object):
 
         self._init_mpv()
 
+    def _teardown_player(self):
+        """Release process-scoped resources of the current mpv instance before
+        a re-open (crash recovery / idle-quit). Safe to call before the first
+        init — everything is None then.
+
+        The trickplay worker is a *non-daemon* thread that would otherwise be
+        leaked on every re-open (and block process exit); stopping it here is
+        the fix. The mpv process itself is terminated by the disconnect path or
+        the idle-quit path, not here."""
+        if self.trickplay is not None:
+            try:
+                # join=False: _teardown_player runs under _lock and the
+                # trickplay worker takes that lock in script_message, so
+                # joining here would deadlock. It exits on its next loop turn.
+                self.trickplay.stop(join=False)
+            except Exception:
+                log.debug("Stopping previous trickplay failed", exc_info=True)
+            self.trickplay = None
+
     def _init_mpv(self):
+        # Re-open reuses this method; drop the previous instance's trickplay
+        # thread first so recovery/idle cycles don't leak it.
+        self._teardown_player()
+
         mpv_location = settings.mpv_ext_path
         if (
             mpv_location is None
@@ -506,6 +534,11 @@ class PlayerManager(object):
 
         @self._player.event_callback("shutdown")
         def handle_shutdown(event):
+            # We quit mpv ourselves to save resources — idle_quit already tore
+            # down and there is no session to report. Don't run the stop hook
+            # or re-terminate.
+            if self._idle_quit:
+                return
             log.info("mpv shutdown event received")
             # Only flip the flag here; the real teardown does network I/O and
             # swaps self._video, neither of which belongs on MPV's event
@@ -710,9 +743,7 @@ class PlayerManager(object):
         is_initial_play: bool = False,
         apply_memory: bool = True,
     ):
-        if not self._mpv_alive:
-            log.info("mpv is dead, reinitializing")
-            self._init_mpv()
+        self._ensure_mpv()
 
         self.pause_ignore = True
         self.do_not_handle_pause = True
@@ -1416,6 +1447,39 @@ class PlayerManager(object):
             return False
         position = max(playback_time or 0, self._last_playback_position)
         return position >= duration * 0.95 or duration - position <= 10
+
+    def _ensure_mpv(self):
+        """Re-create the mpv process if it is not running — closed by the user,
+        crashed, or quit while idle (mpv_idle_quit). Called by the play path so
+        a cast/remote Play transparently re-opens a fresh window. There is no
+        local input while the window is gone, so play() is the only re-open
+        trigger."""
+        if not self._mpv_alive:
+            log.info("mpv is not running; reinitializing.")
+            self._idle_quit = False
+            self._init_mpv()
+
+    @synchronous("_lock")
+    def idle_quit(self):
+        """Quit mpv while idle to free the window / GPU context / memory
+        (opt-in via mpv_idle_quit). Re-created on the next play. Gated hard so
+        it never fires while anything still needs the window."""
+        if not self._mpv_alive or self._video is not None:
+            return
+        if self.menu.is_menu_shown or self.syncplay.is_enabled():
+            return
+        if self.get_webview() is not None:
+            return
+        if is_using_ext_mpv and not settings.mpv_ext_start:
+            # Never kill an mpv the user launched themselves.
+            return
+        log.info("Idle timeout reached; quitting mpv to save resources.")
+        self._idle_quit = True
+        self.should_send_timeline = False
+        player = self._player
+        self._teardown_player()
+        self._mpv_alive = False
+        Thread(target=self._terminate_mpv, args=(player,), daemon=True).start()
 
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:

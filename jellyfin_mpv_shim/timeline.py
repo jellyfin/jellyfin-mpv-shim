@@ -51,6 +51,14 @@ class TimelineManager(threading.Thread):
                     if settings.idle_cmd:
                         os.system(settings.idle_cmd)
                     self.is_idle = True
+                # Quit mpv after a longer idle period to free the window/GPU;
+                # idle_quit() is self-gated and re-opens on the next play.
+                if (
+                    settings.mpv_idle_quit
+                    and not playerManager.is_active()
+                    and self.idleTimer.elapsed() > settings.mpv_idle_quit_secs
+                ):
+                    playerManager.idle_quit()
             except Exception:
                 log.exception("Error in timeline thread.")
             if self.trigger.wait(5):
