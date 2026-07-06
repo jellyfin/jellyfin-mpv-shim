@@ -265,10 +265,15 @@ class OSDMenu(object):
     def change_audio_menu(self):
         self.put_menu(_("Select Audio Track"))
 
-        selected_aid = self.playerManager.get_video().aid
+        # Snapshot: the video can be torn down (mpv death, stop) between menu
+        # keypresses on another thread.
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_aid = video.aid
         audio_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Audio"
         ]
         for audio_track in audio_streams:
@@ -304,10 +309,13 @@ class OSDMenu(object):
     def change_subtitle_menu(self):
         self.put_menu(_("Select Subtitle Track"))
 
-        selected_sid = self.playerManager.get_video().sid
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_sid = video.sid
         subtitle_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Subtitle"
         ]
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])

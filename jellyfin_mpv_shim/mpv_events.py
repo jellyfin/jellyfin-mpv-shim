@@ -31,21 +31,23 @@ def wait_property(
     file loads before the observer is processed.
 
     Residual race: if the NEW file finishes loading before we sample, the
-    sample is already the fresh value and looks stale, so we wait for a further
-    change that never arrives. Fresh and stale are indistinguishable here (both
-    satisfy ``cond``), so we prefer correctness for the common (stale) case and
-    let the caller's ``timeout`` bound that rare case -- it then degrades
-    exactly like any other property-wait timeout.
+    sample is already the fresh value. The first notification is only dropped
+    when it re-delivers the exact sampled value, so a fresh value that differs
+    from the stale one is accepted; only a new value *equal* to the stale one
+    (same-duration reload) is indistinguishable, and the caller's ``timeout``
+    bounds that case -- it then degrades exactly like any other property-wait
+    timeout.
     """
-    success = True
     event = Event()
 
     # Sample before registering the observer so the handler (which may fire on
     # the mpv event thread the moment we register) never races this write.
     skip = False
+    stale_value = None
     if skip_initial:
         try:
-            skip = cond(getattr(instance, name))
+            stale_value = getattr(instance, name)
+            skip = cond(stale_value)
         except Exception:
             skip = False
 
@@ -53,7 +55,10 @@ def wait_property(
         nonlocal skip
         if skip:
             skip = False
-            return
+            # Only drop a re-delivery of the sampled stale value; a value
+            # that already differs is fresh and must count.
+            if value == stale_value:
+                return
         if cond(value):
             event.set()
 
@@ -64,16 +69,15 @@ def wait_property(
 
     if use_ext_mpv:
         observer_id = instance.bind_property_observer(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
-        instance.unbind_property_observer(observer_id)
     else:
         instance.observe_property(name, handler)
-        if timeout:
-            success = event.wait(timeout=timeout)
-        else:
-            event.wait()
+
+    # Event.wait(None) blocks indefinitely and returns True, so one wait
+    # covers both the bounded and unbounded cases.
+    success = event.wait(timeout=timeout)
+
+    if use_ext_mpv:
+        instance.unbind_property_observer(observer_id)
+    else:
         instance.unobserve_property(name, handler)
     return success

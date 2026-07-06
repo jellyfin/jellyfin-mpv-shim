@@ -36,5 +36,13 @@ class ActionThread(threading.Thread):
                 force_next = True
                 self.trigger.clear()
 
+        # Final drain: tasks queued during shutdown (e.g. the mpv teardown
+        # that reports the stop to the server) must still run — exiting on
+        # halt alone would silently drop them.
+        try:
+            playerManager.update()
+        except Exception:
+            log.exception("Error in final action thread drain.")
+
 
 actionThread = ActionThread()

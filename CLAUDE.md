@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `--get-pyinstaller` / `--gen-fingerprint` are CI helpers for the Windows build cache.
 - Regenerate translation template and merge into existing `.po` files: `./regen_pot.sh`
 - Windows build (after `gen_pkg.sh --skip-build`): `build-win.bat` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for debug). Installer is built with Inno Setup from `Jellyfin MPV Shim.iss`.
-- There is no test suite and no linter config — code style is `black` (per the README badge), but `black` is not wired into the repo.
+- Run the test suite (stdlib unittest, no extra deps): `python3 -m unittest discover tests`. It covers pure-logic pieces (credential cleaning, SyncPlay teardown, wait_property, queue inserts, menu indexing); playback/server behavior still needs hand testing against a real server.
+- There is no linter config — code style is `black` (per the README badge), but `black` is not wired into the repo.
 
 The Python build uses PEP 517 / pyproject.toml with `setuptools` as the backend. The full build path requires the `build` package (`pip install build`); `pip install .[all]` and `pip install -e .` both work without it.
 

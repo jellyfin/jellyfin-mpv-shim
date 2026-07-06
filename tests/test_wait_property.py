@@ -90,6 +90,17 @@ class WaitPropertyTest(unittest.TestCase):
             )
         )
 
+    def test_fresh_differing_initial_value_accepted(self):
+        # The new file loaded between the sample and the observer firing: the
+        # first notification carries a value that differs from the sampled
+        # stale one, so it is fresh and must be accepted, not skipped.
+        inst = FakeLibmpv(sample=100, notifications=[200])
+        self.assertTrue(
+            wait_property(
+                inst, "duration", not_none, timeout=SHORT_TIMEOUT, skip_initial=True
+            )
+        )
+
     def test_timeout_when_no_notification(self):
         inst = FakeLibmpv(sample=None, notifications=[])
         self.assertFalse(
