@@ -78,6 +78,27 @@ path_regex = re.compile(r"^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$
 from typing import Optional
 
 
+# Keys written onto the server credential dicts at runtime to track live
+# connection state. They are only meaningful for the current session, so they
+# must be stripped before persisting to cred.json — a stale "connected: true"
+# from a previous run is misleading. Loading tolerates their presence.
+VOLATILE_CREDENTIAL_KEYS = frozenset({"connected"})
+
+
+def clean_credentials_for_save(credentials):
+    """Return a copy of the credentials list with volatile runtime keys removed.
+
+    Copies each server dict so the live dicts (which other threads read) are
+    left untouched.
+    """
+    cleaned = []
+    for server in credentials:
+        cleaned.append(
+            {k: v for k, v in server.items() if k not in VOLATILE_CREDENTIAL_KEYS}
+        )
+    return cleaned
+
+
 def expo(max_value: Optional[int] = None):
     n = 0
     while True:
@@ -313,7 +334,7 @@ class ClientManager(object):
     def save_credentials(self):
         credentials_location = conffile.get(APP_NAME, "cred.json")
         with open(credentials_location, "w") as cf:
-            json.dump(self.credentials, cf)
+            json.dump(clean_credentials_for_save(self.credentials), cf)
 
     def login(
         self, server: str, username: str, password: str, force_unique: bool = False
