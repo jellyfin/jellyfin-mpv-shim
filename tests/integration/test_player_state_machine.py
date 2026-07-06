@@ -13,6 +13,7 @@ callback is allowed to advance the queue.
 
 import sys
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -66,6 +67,43 @@ class FakeVideo:
 
     def terminate_transcode(self):
         self.terminated = True
+
+
+class RecordingClient:
+    """Jellyfin client stand-in that records the stop payload, so tests can
+    assert *what position* an item was reported stopped at (mid-file vs. full
+    duration)."""
+
+    def __init__(self):
+        self.jellyfin = self
+        self.stops = []
+
+    def session_stop(self, options):
+        self.stops.append(options)
+
+    def session_progress(self, options):
+        pass
+
+    def session_playing(self, options):
+        pass
+
+
+class RaisingMPV(h.FakeMPV):
+    """FakeMPV that raises a chosen 'mpv is gone' error when a named property is
+    *read*. The base FakeMPV can only raise from command(); this models an mpv
+    that died under a property access (the #458/#503 close-crash path), which is
+    what send_timeline / the observers actually hit."""
+
+    def __init__(self, raise_prop=None, raise_exc=None, **kw):
+        object.__setattr__(self, "_raise_prop", raise_prop)
+        object.__setattr__(self, "_raise_exc", raise_exc)
+        super().__init__(**kw)
+
+    def __getattribute__(self, name):
+        d = object.__getattribute__(self, "__dict__")
+        if d.get("_raise_prop") == name:
+            raise d.get("_raise_exc")
+        return object.__getattribute__(self, name)
 
 
 def _stub_advance(pm):
@@ -295,6 +333,204 @@ class BackendMatrixTest(unittest.TestCase):
         self.assertEqual(handled, [True],
                          "%s not caught by _mpv_errors on backend %s"
                          % (err.__name__, h.BACKEND))
+
+
+class CloseCrashHangTest(unittest.TestCase):
+    """Issue #458: closing mpv mid-playback crashed / hung the worker. A
+    disconnect (ShutdownError on libmpv, BrokenPipeError on both) firing during
+    the action-thread ``update()`` drain *or* during a timeline send must be
+    caught, the worker must survive and keep draining, teardown must run, and
+    the item torn down mid-file must NOT be reported at full duration or marked
+    watched."""
+
+    def _wait_for(self, predicate, timeout=1.0):
+        # Bounded, deterministic wait: _handle_mpv_disconnect reports the stop
+        # on a daemon thread. Poll rather than sleep-a-fixed-amount, so this
+        # returns the instant the report lands (and fails fast if it never does).
+        tick = threading.Event()
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            if predicate():
+                return True
+            tick.wait(0.005)
+        return predicate()
+
+    def _mid_file_video(self):
+        client = RecordingClient()
+        video = FakeVideo(item_id="v", duration=100, client=client)
+        return video, client
+
+    def test_close_mid_update_survives_and_reports_mid_file(self):
+        # A queued task hits a dead mpv (BrokenPipeError) mid-drain. update()
+        # must route it to the real _handle_mpv_disconnect (not crash), keep
+        # draining later tasks, null the video, and report the stop at the last
+        # known position — never at full duration, never marked watched.
+        video, client = self._mid_file_video()
+        pm = h.build_player(player_module, video=video)
+        pm.last_seek = 12.0        # mid-file
+        pm.start_time = 1.0
+        ran_after = []
+
+        def dead():
+            raise BrokenPipeError()
+
+        pm.put_task(dead)
+        pm.put_task(lambda: ran_after.append(True))  # proves the drain continued
+        pm.update()
+
+        self.assertEqual(ran_after, [True], "drain aborted after the disconnect")
+        self.assertIsNone(pm._video, "video not cleared on disconnect")
+        self.assertFalse(pm._mpv_alive)
+        self.assertTrue(self._wait_for(lambda: bool(client.stops)),
+                        "stop was never reported after mid-file close")
+        reported = client.stops[-1]["PositionTicks"]
+        self.assertEqual(reported, int(12.0 * 10000000),
+                         "mid-file close reported at the wrong position")
+        self.assertNotEqual(reported, int(100 * 10000000),
+                            "mid-file close wrongly reported at full duration")
+        self.assertEqual(video.played, [], "mid-file close wrongly marked watched")
+
+    def test_close_mid_update_backend_divergent_error_survives(self):
+        # The same, but with the backend's *divergent* disconnect member
+        # (ShutdownError on libmpv, TimeoutError on jsonipc) — the #458 crash
+        # class was backend-specific, so both must be caught mid-drain.
+        video, client = self._mid_file_video()
+        pm = h.build_player(player_module, video=video)
+        pm.last_seek = 5.0
+        pm.start_time = 1.0
+        err = h.backend_disconnect_error(player_module)
+        ran_after = []
+
+        def dead():
+            raise err()
+
+        pm.put_task(dead)
+        pm.put_task(lambda: ran_after.append(True))
+        pm.update()
+
+        self.assertEqual(ran_after, [True],
+                         "%s aborted the drain on backend %s"
+                         % (err.__name__, h.BACKEND))
+        self.assertIsNone(pm._video)
+        self.assertTrue(self._wait_for(lambda: bool(client.stops)))
+        self.assertEqual(video.played, [])
+
+    def test_close_mid_send_timeline_survives_and_not_watched(self):
+        # A property read dies mid send_timeline() (the timeline-thread path).
+        # _mpv_errors must catch it, the worker survives, the video is torn
+        # down, and it is reported at its mid-file position, not marked watched.
+        video, client = self._mid_file_video()
+        pm = h.build_player(player_module, video=video)
+        pm._player = RaisingMPV(raise_prop="playback_abort",
+                                raise_exc=BrokenPipeError())
+        pm.should_send_timeline = True
+        pm.last_seek = 33.0
+        pm.start_time = 1.0
+
+        # run in a worker so run_concurrently re-raises anything that escapes —
+        # a clean return proves send_timeline swallowed the disconnect itself.
+        h.run_concurrently(pm.send_timeline, 1)
+
+        self.assertIsNone(pm._video)
+        self.assertFalse(pm._mpv_alive)
+        self.assertTrue(self._wait_for(lambda: bool(client.stops)))
+        self.assertEqual(client.stops[-1]["PositionTicks"], int(33.0 * 10000000))
+        self.assertEqual(video.played, [])
+
+
+@unittest.skipUnless(h.BACKEND == "jsonipc",
+                     "#503 is the external-mpv broken-pipe path")
+class ExternalBrokenPipeTest(unittest.TestCase):
+    """Issue #503: external mpv drops its IPC pipe (BrokenPipeError) on a
+    property read during send_timeline. _mpv_errors must catch it and the
+    timeline worker must keep running rather than dying on the escape."""
+
+    def test_broken_pipe_in_send_timeline_keeps_worker_running(self):
+        client = RecordingClient()
+        video = FakeVideo(item_id="v", duration=100, client=client)
+        pm = h.build_player(player_module, video=video)
+        pm._player = RaisingMPV(raise_prop="playback_abort",
+                                raise_exc=BrokenPipeError())
+        pm.should_send_timeline = True
+        pm.last_seek = 7.0
+        pm.start_time = 1.0
+
+        # First send hits the broken pipe; must not raise out of the worker.
+        h.run_concurrently(pm.send_timeline, 1)
+        self.assertFalse(pm._mpv_alive)
+
+        # The worker is still alive: a subsequent tick runs cleanly (video is
+        # gone / should_send_timeline cleared, so it early-returns) rather than
+        # throwing a second time.
+        h.run_concurrently(pm.send_timeline, 1)
+
+
+class ResumeAtEofTest(unittest.TestCase):
+    """Issues #157 / #323: mpv resuming a file at (or past) its end must not be
+    mistaken for a genuine finish (which produced endless episode skipping,
+    especially with auto shader profiles reloading the file). #323 was
+    external-only, so running this on both backends is the parity check."""
+
+    def _player(self, **video_kw):
+        pm = h.build_player(player_module)
+        pm._video = FakeVideo(**video_kw)
+        return pm
+
+    def test_builtin_resume_playback_disabled(self):
+        # a5731db (#323): mpv's own watch-later resume is turned off at init so
+        # it can't seek a fresh file to a saved end position under us.
+        self.assertIs(player_module.playerManager._player.resume_playback, False)
+
+    def test_resume_at_end_not_marked_watched(self):
+        # The live player sits at the very end (a resume position), but no
+        # genuine eof was observed and no timeline tick recorded a position.
+        # _finished_at_eof keys off _reached_eof / _last_playback_position, not
+        # the live player time, so this is NOT counted as watched.
+        pm = self._player(has_next=False, duration=100)
+        pm._reached_eof = False
+        pm._last_playback_position = 0
+        pm._player.playback_time = 100      # resume-at-EOF
+        pm._player.duration = 100
+        calls = _stub_advance(pm)
+
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+
+        self.assertEqual(pm._video.played, [],
+                         "resume-at-end wrongly marked the item watched")
+        self.assertEqual(calls["play"], [],
+                         "resume-at-end wrongly auto-advanced")
+
+    def test_stale_finished_from_reload_discarded_by_epoch(self):
+        # An auto-profile / shader reload re-loads the same file: the eof from
+        # the prior load queued a finished callback under the old epoch, then
+        # the reload bumps the epoch and resets _reached_eof (as _play_media
+        # does). The stale callback must be discarded — not advance, not mark
+        # watched — even though the reloaded file may momentarily read at end.
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt, duration=100)
+        pm._reached_eof = True
+        calls = _stub_advance(pm)
+
+        with mock.patch.object(player_module.settings, "auto_play", True), \
+                mock.patch.object(player_module.settings, "force_set_played", True):
+            pm._queue_finished()  # queued under epoch 0 (the pre-reload eof)
+
+            # The reload makes the same file current again: epoch bump + eof
+            # reset + lock release, exactly as _play_media does.
+            pm._play_epoch += 1
+            pm._reached_eof = False
+            pm._last_playback_position = 0
+            if pm._finished_lock.locked():
+                pm._finished_lock.release()
+
+            pm.update()  # drain the now-stale callback
+
+        self.assertEqual(calls["play"], [],
+                         "stale post-reload callback auto-advanced")
+        self.assertEqual(pm._video.played, [],
+                         "stale post-reload callback marked the item watched")
 
 
 if __name__ == "__main__":

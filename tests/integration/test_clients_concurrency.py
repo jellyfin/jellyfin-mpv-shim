@@ -231,6 +231,112 @@ class DisconnectIdentityRaceTest(unittest.TestCase):
         self.assertFalse(current.stopped)
 
 
+class _DynamicJellyfin:
+    """Jellyfin stub whose session list follows a shared mutable flag, so a
+    single client's health check can be flipped from failing to passing between
+    ticks (models a server dropping off the LAN and coming back)."""
+
+    def __init__(self, sessions_fn):
+        self._sessions_fn = sessions_fn
+
+    def _http(self, method, path, opts):
+        return self._sessions_fn()
+
+    def post_capabilities(self, caps):
+        pass
+
+
+class _DynamicClient:
+    """FakeClient whose auth result and session visibility both track a shared
+    ``up`` flag: signed-in and present in the session list while up, unavailable
+    and absent while down."""
+
+    _counter = 0
+
+    def __init__(self, up, sessions_fn):
+        _DynamicClient._counter += 1
+        self.id = _DynamicClient._counter
+        self._up = up
+        self.jellyfin = _DynamicJellyfin(sessions_fn)
+        self.config = FakeConfig()
+        self.started = False
+        self.stopped = False
+        self.callback = None
+        self.callback_ws = None
+
+    def authenticate(self, creds, discover=False):
+        state = "SignedIn" if self._up["val"] else "Unavailable"
+        return {"State": CONNECTION_STATE[state]}
+
+    def start(self, websocket=True):
+        self.started = True
+
+    def stop(self):
+        self.stopped = True
+
+
+class HealthCheckReconnectTest(unittest.TestCase):
+    """Issue #295 / #344: a failed health check must reconnect *in the same
+    process* — no app restart. Guards the dead-code-reconnect fix (077a42d),
+    where validate_client's force-reconnect path called client.callback two
+    lines after nulling it, so a dropped server lost remote control until the
+    user restarted the shim."""
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+
+    def test_failed_health_check_reconnects_without_restart(self):
+        up = {"val": True}
+
+        def sessions():
+            return [{"DeviceId": DEVICE_ID}] if up["val"] else []
+
+        built = []
+
+        def factory():
+            c = _DynamicClient(up, sessions)
+            built.append(c)
+            return c
+
+        cm = make_manager(factory)
+        srv = server()
+        cm.credentials = [srv]
+
+        with mock.patch.object(clients_module.settings, "work_offline", False):
+            # Initial connect while the server is reachable.
+            self.assertTrue(cm.connect_client(srv))
+            first = cm.clients[srv["uuid"]]
+            self.assertTrue(cm.validate_client(first, server=srv))
+
+            # Server drops off: the device no longer shows in its session list
+            # and re-auth fails. One health-check tick must retire the stale
+            # client (drop + stop) and, finding the server unreachable, leave it
+            # disconnected — no zombie, no duplicate.
+            up["val"] = False
+            cm.check_all_clients()
+            self.assertNotIn(srv["uuid"], cm.clients,
+                             "stale client not dropped on failed health check")
+            self.assertTrue(first.stopped, "stale client handle never stopped")
+
+            # Server returns: the very next tick's credential-retry pass
+            # reconnects it — WITHOUT any restart. This is the flagship
+            # regression: pre-fix, this reconnect was dead code.
+            up["val"] = True
+            cm.check_all_clients()
+
+        self.assertIn(srv["uuid"], cm.clients,
+                      "server never reconnected after coming back (needs restart?)")
+        reconnected = cm.clients[srv["uuid"]]
+        self.assertIsNot(reconnected, first,
+                         "reconnect reused the dead client instead of rebuilding")
+        self.assertTrue(cm.validate_client(reconnected, server=srv),
+                        "reconnected client does not pass validation")
+        self.assertEqual(cm._connecting, set(), "_connecting reservation leaked")
+
+
 class ConnectDisconnectStressTest(unittest.TestCase):
     def setUp(self):
         self._p = mock.patch.object(clients_module.settings, "client_uuid",

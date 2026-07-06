@@ -54,6 +54,7 @@ PER_BACKEND_FAKE = [
     "tests.integration.test_player_state_machine",
     "tests.integration.test_keyboard_controls",
     "tests.integration.test_lifecycle",
+    "tests.integration.test_mpv_lifecycle",
 ]
 
 # Real mpv / real display legs -> run per backend, wrapped in xvfb when headless.

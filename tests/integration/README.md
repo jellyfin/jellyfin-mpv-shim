@@ -160,26 +160,31 @@ passes — exactly the visibility the maintainer asked for.
 
 | File | Leg | Covers | Known gaps |
 | --- | --- | --- | --- |
-| `test_clients_concurrency` | agnostic | connect/disconnect registry races (see above) | — |
+| `test_clients_concurrency` | agnostic | connect/disconnect registry races (see above); **#295/#344** failed-health-check reconnect *without a restart* (dead-code fix `077a42d`) | — |
 | `test_sync_manager_races` | agnostic | download worker / delete / stop races | — |
 | `test_syncplay_generation` | agnostic | `sync_generation`-guarded callbacks | — |
-| `test_single_instance_multiproc` | agnostic | multi-process primary election | — |
-| `test_player_state_machine` | per-backend fake | EOF/abort/shutdown epoch + `_finished_lock` races, backend `_mpv_errors` matrix | — |
+| `test_single_instance_multiproc` | agnostic | multi-process primary election; **#505** no orphaned child/forkserver survives acquire→release→exit (process-group scan) | — |
+| `test_player_state_machine` | per-backend fake | EOF/abort/shutdown epoch + `_finished_lock` races, backend `_mpv_errors` matrix; **#458** close-crash mid-`update()`/`send_timeline()` survives + torn-down item not reported at full duration/watched; **#503** external broken-pipe in `send_timeline` (jsonipc only); **#157/#323** resume-at-EOF not watched/advanced (both backends, incl. `resume_playback=False`) | — |
+| `test_mpv_lifecycle` | per-backend fake | commit `012961c` lifecycle: leak-free re-open (`_teardown_player` stops old trickplay `join=False`, `TrickPlay` daemon); `idle_quit()` hard-gating (video/menu/syncplay/webview + fires only for managed external mpv, no-ops in-process libmpv / user-launched ext) with backend globals patched to drive both branches on both fake legs; intentional-quit `handle_shutdown` guard stays silent (vs. teardown control); `_ensure_mpv` re-open clears `_idle_quit` | real clip re-play is covered by `test_realmpv_smoke` |
 | `test_keyboard_controls` | per-backend fake | key-binding **routing** on the real singleton: stop/next/prev/watched/unwatched queue the right task; media keys honour `media_key_seek` (seek vs. next, intro-skip); pause toggles vs. confirms menu; menu open/close and the loading guard; nav keys route to `menu.menu_action` when shown else seek (right/up skip intro); `ok` always → `menu_action("ok")`; `esc` back vs. leave-fullscreen; fullscreen toggle; a full-sweep mis-wiring/crash guard | `kb_debug` (~) never pressed — its handler calls `pdb.set_trace()` and would hang; `kb_kill_shader`'s `settings.save()` is mocked (no config path under the fake harness). Handlers are asserted at the routing layer (queued task / stubbed collaborator), not by running full playback. |
 | `test_lifecycle` | per-backend fake | `ActionThread` / `TimelineManager` tick → survive a collaborator exception → `stop()` joins promptly + dead; action-thread final drain; `PlayerManager.terminate()` → stop + trickplay stop + (jsonipc only) player terminate; `ClientManager.stop()` prompt with an in-flight reconnect sleep + idempotent; `gui_mgr.on_browser_died` detaches log/sync callbacks and nulls the browser cmd queue | `on_browser_died` is driven with the child **process mocked** (a real fork under the test runner is flaky) — the detach/leak path is what's pinned, not a live child crash. |
 | `test_browser_ui` | display, once (xvfb) | a real `BrowserApp` + `run_async`→`_ui_queue`→pump against a fake in-memory `LibrarySource`: navigate/open_item/go_back; stale result dropped after navigating away (current-view guard) and superseded by a newer epoch (epoch guard); `sync_state` swaps the Detail download button in place (no rebuild); `DownloadsPanel` coalesces a `sync_state` burst to one refresh while `on_download_progress` still lands; server switcher keyed by uuid (two same-named servers stay distinct); offline-banner Retry keeps `work_offline` until a **confirmed** reconnect | Artwork is disabled (`image_spec` → None), so the thumbnail store / decode pipeline isn't exercised here. Grid infinite-scroll, search, login/quick-connect and the settings form are constructed but only lightly driven. |
-| `test_realmpv_smoke` | per-backend real (xvfb) | real decode → progress → EOF auto-advance → stop | benign `ResourceWarning` on jsonipc teardown |
+| `test_realmpv_smoke` | per-backend real (xvfb) | real decode → progress → EOF auto-advance → stop; **#541** seek-to-end fires EOF/auto-advance; **012961c** idle-quit lifecycle: fires + re-opens a fresh mpv on jsonipc (managed external), no-ops on in-process libmpv; `IdleQuitReopenIsolatedTest` runs the full idle-quit→re-open→auto-advance in a subprocess (ADVANCEs on both backends) | benign `ResourceWarning` on jsonipc teardown; libmpv in-process re-create can't restore `eof-reached` (KNOWN LIMITATION — idle-quit no-ops there; crash-recovery re-open on libmpv is affected too, out of scope) |
 
 ## Roadmap — implemented vs. remaining
 
 **Implemented (all green; libmpv + jsonipc):**
 
-* Tier 1: `test_clients_concurrency` (7), `test_player_state_machine` (12,
-  incl. backend matrix), `test_syncplay_generation` (6), `test_sync_manager_races`
-  (7), `test_single_instance_multiproc` (5), `test_keyboard_controls` (17),
-  `test_lifecycle` (9).
-* Tier 2: `test_realmpv_smoke` (2) — real play → timeline post → EOF
-  auto-advance → stop, per backend under xvfb.
+* Tier 1: `test_clients_concurrency` (8), `test_player_state_machine` (19,
+  incl. backend matrix + issue regressions #458/#503/#157/#323),
+  `test_syncplay_generation` (6), `test_sync_manager_races` (7),
+  `test_single_instance_multiproc` (6), `test_keyboard_controls` (17),
+  `test_lifecycle` (9), `test_mpv_lifecycle` (15) — commit `012961c` mpv
+  process-lifecycle.
+* Tier 2: `test_realmpv_smoke` (6) — real play → timeline post → EOF
+  auto-advance → stop, seek-to-end EOF (#541), and the `012961c` idle-quit
+  lifecycle (managed-external fires + re-opens on jsonipc, no-ops on libmpv,
+  plus a subprocess end-to-end auto-advance check), per backend under xvfb.
 * Tier 3: `test_browser_ui` (7) — live `BrowserApp` + `_ui_queue` pump under
   xvfb against a fake `LibrarySource`.
 * The runner + backend matrix orchestration.
@@ -194,7 +199,7 @@ passes — exactly the visibility the maintainer asked for.
 ## Bugs found while building this harness
 
 Writing the harness surfaced two real defects (reported to the maintainer, not
-fixed here):
+fixed here) plus one that led to a product fix:
 
 1. **`SyncPlayManager._rearm_sync` is undefined.** It is referenced 3× in
    `syncplay.py` (introduced by commit `fccd69a`) but defined nowhere, so every
@@ -207,3 +212,26 @@ fixed here):
    processes starting at once both see the config dir missing and both call
    `os.makedirs`, so one gets `FileExistsError`. Surfaced by the multi-process
    single-instance test (worked around there by pre-creating the dir).
+3. **libmpv cannot be re-created in-process with a working `eof-reached`
+   (commit `012961c`, FIXED).** The first cut of idle-quit tore mpv down and
+   re-opened it on the next `play()`. On libmpv the re-opened instance never
+   delivered `eof-reached` again, so auto-advance silently stalled for the rest
+   of the process — and this held **even after** the old instance was fully
+   terminated first (it is not a terminate/re-init ordering race; libmpv simply
+   can't be cleanly re-created in-process). The child harness
+   (`_idle_reopen_child.py`) reproduced it deterministically on libmpv; jsonipc
+   was unaffected (each mpv is its own OS process). **Fix landed:** `idle_quit()`
+   now fires only for a *managed external* mpv (`is_using_ext_mpv and
+   mpv_ext_start`), where re-open spawns a fresh process; it no-ops on libmpv
+   and on a user-launched external mpv. The terminate thread is also tracked and
+   joined before a re-open (so the external ipc socket is free), and
+   `_terminate_mpv` only clears `_mpv_alive` when the player is still current.
+   Validated by `test_realmpv_smoke.IdleQuitReopenIsolatedTest` (child ADVANCEs
+   on both backends) plus the in-process/managed split in `RealMpvSmokeTest` and
+   `test_mpv_lifecycle.IdleQuitGatingTest`.
+
+   **KNOWN LIMITATION (out of scope — do not try to fix):** the same libmpv
+   in-process constraint means the pre-existing **crash-recovery** re-open path
+   (`_ensure_mpv` after `_handle_mpv_disconnect`) may likewise not restore
+   `eof-reached` on libmpv. That path predates this work and is not exercised
+   here.
