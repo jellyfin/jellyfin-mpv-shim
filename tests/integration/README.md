@@ -39,6 +39,9 @@ JMS_TEST_BACKEND=jsonipc python3 -m unittest tests.integration.test_player_state
 
 # Real-mpv smoke on a headless box:
 JMS_TEST_BACKEND=libmpv xvfb-run -a python3 -m unittest tests.integration.test_realmpv_smoke
+
+# Tk browser UI on a headless box (self-skips if no display and no xvfb):
+xvfb-run -a python3 -m unittest tests.integration.test_browser_ui
 ```
 
 The runner prints a per-leg / per-backend PASS/FAIL summary so an
@@ -153,25 +156,36 @@ passes — exactly the visibility the maintainer asked for.
   race, a wedged listener still blocking a duplicate, different config dirs both
   winning, lock release allowing a new primary.
 
+## Coverage map — what each file covers
+
+| File | Leg | Covers | Known gaps |
+| --- | --- | --- | --- |
+| `test_clients_concurrency` | agnostic | connect/disconnect registry races (see above) | — |
+| `test_sync_manager_races` | agnostic | download worker / delete / stop races | — |
+| `test_syncplay_generation` | agnostic | `sync_generation`-guarded callbacks | — |
+| `test_single_instance_multiproc` | agnostic | multi-process primary election | — |
+| `test_player_state_machine` | per-backend fake | EOF/abort/shutdown epoch + `_finished_lock` races, backend `_mpv_errors` matrix | — |
+| `test_keyboard_controls` | per-backend fake | key-binding **routing** on the real singleton: stop/next/prev/watched/unwatched queue the right task; media keys honour `media_key_seek` (seek vs. next, intro-skip); pause toggles vs. confirms menu; menu open/close and the loading guard; nav keys route to `menu.menu_action` when shown else seek (right/up skip intro); `ok` always → `menu_action("ok")`; `esc` back vs. leave-fullscreen; fullscreen toggle; a full-sweep mis-wiring/crash guard | `kb_debug` (~) never pressed — its handler calls `pdb.set_trace()` and would hang; `kb_kill_shader`'s `settings.save()` is mocked (no config path under the fake harness). Handlers are asserted at the routing layer (queued task / stubbed collaborator), not by running full playback. |
+| `test_lifecycle` | per-backend fake | `ActionThread` / `TimelineManager` tick → survive a collaborator exception → `stop()` joins promptly + dead; action-thread final drain; `PlayerManager.terminate()` → stop + trickplay stop + (jsonipc only) player terminate; `ClientManager.stop()` prompt with an in-flight reconnect sleep + idempotent; `gui_mgr.on_browser_died` detaches log/sync callbacks and nulls the browser cmd queue | `on_browser_died` is driven with the child **process mocked** (a real fork under the test runner is flaky) — the detach/leak path is what's pinned, not a live child crash. |
+| `test_browser_ui` | display, once (xvfb) | a real `BrowserApp` + `run_async`→`_ui_queue`→pump against a fake in-memory `LibrarySource`: navigate/open_item/go_back; stale result dropped after navigating away (current-view guard) and superseded by a newer epoch (epoch guard); `sync_state` swaps the Detail download button in place (no rebuild); `DownloadsPanel` coalesces a `sync_state` burst to one refresh while `on_download_progress` still lands; server switcher keyed by uuid (two same-named servers stay distinct); offline-banner Retry keeps `work_offline` until a **confirmed** reconnect | Artwork is disabled (`image_spec` → None), so the thumbnail store / decode pipeline isn't exercised here. Grid infinite-scroll, search, login/quick-connect and the settings form are constructed but only lightly driven. |
+| `test_realmpv_smoke` | per-backend real (xvfb) | real decode → progress → EOF auto-advance → stop | benign `ResourceWarning` on jsonipc teardown |
+
 ## Roadmap — implemented vs. remaining
 
 **Implemented (all green; libmpv + jsonipc):**
 
 * Tier 1: `test_clients_concurrency` (7), `test_player_state_machine` (12,
   incl. backend matrix), `test_syncplay_generation` (6), `test_sync_manager_races`
-  (7), `test_single_instance_multiproc` (5).
+  (7), `test_single_instance_multiproc` (5), `test_keyboard_controls` (17),
+  `test_lifecycle` (9).
 * Tier 2: `test_realmpv_smoke` (2) — real play → timeline post → EOF
   auto-advance → stop, per backend under xvfb.
+* Tier 3: `test_browser_ui` (7) — live `BrowserApp` + `_ui_queue` pump under
+  xvfb against a fake `LibrarySource`.
 * The runner + backend matrix orchestration.
 
 **Remaining / future work:**
 
-* **Tier 3 (Tk browser smoke).** Not implemented. `BaseView.run_async`'s epoch
-  guard is already unit-tested (`tests/test_view_epoch.py`); a live
-  `BrowserApp` + `_ui_queue` pump smoke under xvfb would add value but risks
-  flakiness and was deprioritised behind the Tier 1 race work.
-* **timeline/action thread lifecycle** under a real singleton wiring (start/stop
-  ordering, final-drain) — currently exercised indirectly via `update()`.
 * **A real-HTTP fake server leg** if end-to-end coverage of the apiclient wire
   format is ever wanted (deliberately skipped for determinism today).
 * **jsonipc real-mpv teardown** emits a benign `ResourceWarning` (the spawned

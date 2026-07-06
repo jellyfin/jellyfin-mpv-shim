@@ -45,14 +45,28 @@ AGNOSTIC = [
     "tests.integration.test_single_instance_multiproc",
 ]
 
-# Fake-mpv player state machine -> run per backend, no display needed.
+# Fake-mpv legs -> import player.py, so run per backend (a fresh interpreter with
+# the matching fake backend). Keyboard + lifecycle are backend-agnostic in intent
+# but import player.py (bindings live on the real singleton; action_thread /
+# timeline import playerManager), so they belong here rather than in AGNOSTIC;
+# running them under both backends is a free extra check that passes identically.
 PER_BACKEND_FAKE = [
     "tests.integration.test_player_state_machine",
+    "tests.integration.test_keyboard_controls",
+    "tests.integration.test_lifecycle",
 ]
 
-# Real mpv under a display -> run per backend, wrapped in xvfb when headless.
+# Real mpv / real display legs -> run per backend, wrapped in xvfb when headless.
+# The browser UI leg needs a display (Tk) but not a specific mpv backend; it is
+# run once under xvfb (see main()).
 PER_BACKEND_REAL = [
     "tests.integration.test_realmpv_smoke",
+]
+
+# Tk browser UI under a display -> backend-agnostic (never imports player.py),
+# run once, wrapped in xvfb when headless.
+DISPLAY_ONCE = [
+    "tests.integration.test_browser_ui",
 ]
 
 BACKENDS = ("libmpv", "jsonipc")
@@ -100,6 +114,9 @@ def main():
         print("Agnostic (once):")
         for m in AGNOSTIC:
             print("  ", m)
+        print("Display, once (xvfb when headless):")
+        for m in DISPLAY_ONCE:
+            print("  ", m)
         for b in backends:
             print("Backend %s:" % b)
             for m in PER_BACKEND_FAKE + ([] if args.no_real else PER_BACKEND_REAL):
@@ -107,14 +124,17 @@ def main():
         return 0
 
     results = []
+    headless = not _have_display()
 
     # 1) Backend-agnostic concurrency tests, once.
     results.append(_run(AGNOSTIC))
 
-    # 2) Per-backend legs.
-    headless = not _have_display()
+    # 2) Backend-agnostic Tk browser UI, once (needs a display; xvfb when headless).
+    results.append(_run(DISPLAY_ONCE, use_xvfb=headless))
+
+    # 3) Per-backend legs.
     for backend in backends:
-        # Fake-mpv state machine (no display).
+        # Fake-mpv state machine / keyboard / lifecycle (no display).
         results.append(_run(PER_BACKEND_FAKE, backend=backend))
         # Real-mpv smoke (needs a display; xvfb when headless).
         if not args.no_real:
