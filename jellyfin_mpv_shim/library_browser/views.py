@@ -175,6 +175,10 @@ class HomeView(BaseView):
 
     def _refresh(self):
         server = self.server
+        # Capture a request token so a later on_sync_state reload (which bumps
+        # it) supersedes this initial fetch instead of racing it — otherwise a
+        # slow initial result could land over fresher offline data.
+        epoch = self.new_request()
 
         def work():
             return (self.app.source.get_libraries(server),
@@ -205,7 +209,7 @@ class HomeView(BaseView):
             elif not self.rendered:
                 self._error(self.frame, e)
 
-        self.run_async(work, done, fail)
+        self.run_async(work, done, fail, epoch=epoch)
 
     def _render_home(self, result):
         libraries, rows = result
@@ -1106,12 +1110,19 @@ class LogsPanel:
 class DownloadsPanel:
     """Offline downloads management: disk usage, status/progress, remove."""
 
+    # Coalesce a burst of sync_state pushes (a batch download fires one per
+    # item) into at most one refresh per this interval, so the panel updates
+    # steadily instead of thrashing.
+    _REFRESH_COALESCE_MS = 300
+
     def __init__(self, app, parent):
         self.app = app
         self.container = VScrollFrame(app, parent)
         self.container.widget().pack(fill="both", expand=True)
         self._rows = {}  # item_id -> status Label
         self._epoch = 0  # supersedes an in-flight catalog read (see refresh)
+        self._rendered = False
+        self._refresh_after = None
         self.refresh()
 
     def _open_db(self):
@@ -1128,13 +1139,18 @@ class DownloadsPanel:
         # off the Tk thread (via app.run_async) so the UI doesn't stutter.
         tk = self.app.tk
         body = self.container.body()
-        for child in body.winfo_children():
-            child.destroy()
-        self._rows = {}
         self._epoch += 1
         epoch = self._epoch
-        loading = tk.Label(body, text=_("Loading…"), bg=CARD_BG, fg=SUBTLE_FG)
-        loading.pack(anchor="w", padx=16, pady=12)
+        # Only show the placeholder on the first load. On a refresh, keep the
+        # current rows (and self._rows, so on_download_progress keeps landing)
+        # on screen until the fresh data arrives, then swap — no flicker, no
+        # lost progress updates in the read window.
+        if not self._rendered:
+            for child in body.winfo_children():
+                child.destroy()
+            self._rows = {}
+            tk.Label(body, text=_("Loading…"), bg=CARD_BG, fg=SUBTLE_FG).pack(
+                anchor="w", padx=16, pady=12)
 
         def work():
             db = self._open_db()
@@ -1152,6 +1168,7 @@ class DownloadsPanel:
                 return
             rows, total = result
             self._render(body, rows, total)
+            self._rendered = True
 
         self.app.run_async(work, done, lambda _e: None)
 
@@ -1303,6 +1320,18 @@ class DownloadsPanel:
                 pass
 
     def on_sync_state(self, _ss):
+        # Leading-throttle: a batch download fires sync_state per item; schedule
+        # one refresh and ignore further pushes until it runs.
+        if self._refresh_after is not None:
+            return
+        self._refresh_after = self.app.root.after(
+            self._REFRESH_COALESCE_MS, self._run_scheduled_refresh)
+
+    def _run_scheduled_refresh(self):
+        self._refresh_after = None
+        # The panel may have been torn down while the refresh was scheduled.
+        if not self.container.widget().winfo_exists():
+            return
         self.refresh()
 
 
