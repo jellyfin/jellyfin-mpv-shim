@@ -40,6 +40,15 @@ def build_video(item_id, parent, aid=None, sid=None, srcid=None,
         except Exception:
             log.warning("Offline video factory failed for %s", item_id,
                         exc_info=True)
+    # Fully offline with no downloaded copy: the remote fallback would just
+    # crash on client=None (killing the caller — historically the action
+    # thread, mid auto-advance). Callers must handle a None video.
+    if parent.client is None:
+        log.warning(
+            "Item %s is not downloaded and there is no server connection.",
+            item_id,
+        )
+        return None
     return Video(item_id, parent, aid, sid, srcid,
                  explicit_tracks=explicit_tracks)
 

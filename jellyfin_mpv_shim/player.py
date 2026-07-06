@@ -682,6 +682,11 @@ class PlayerManager(object):
         is_initial_play: bool = False,
         apply_memory: bool = True,
     ):
+        if video is None:
+            # build_video returns None when fully offline with no downloaded
+            # copy; never let that propagate into a crash here.
+            log.error("PlayerManager::play called without a video")
+            return
         self.should_send_timeline = False
         self.start_time = time.time()
         url = video.get_playback_url()
@@ -971,7 +976,12 @@ class PlayerManager(object):
                 log.info("PlayerManager::finished_callback starting next episode")
                 new_video = video.parent.get_next().video
                 self.send_timeline_stopped(True)
-                if self.syncplay.is_enabled():
+                if new_video is None:
+                    # Offline and the next episode isn't downloaded: end the
+                    # session gracefully instead of crashing auto-advance.
+                    log.warning("Next item is not available offline; stopping.")
+                    self.show_text(_("Next episode is not downloaded."), 5000, 1)
+                elif self.syncplay.is_enabled():
                     self.syncplay.request_next(video.get_playlist_id())
                 else:
                     self.play(new_video)

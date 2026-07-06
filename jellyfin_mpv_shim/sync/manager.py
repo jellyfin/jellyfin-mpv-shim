@@ -264,18 +264,33 @@ class SyncManager:
     # -- worker ------------------------------------------------------------
 
     def _run(self):
+        error_streak = 0
         while not self._stop:
-            row = None
-            pending = self.db.list(status=STATUS_PENDING)
-            if pending:
-                row = pending[0]
-            if row is None:
-                # Idle: replay any playstate captured while offline.
-                self._sync_playstate()
-                self._wake.wait(5)
-                self._wake.clear()
-                continue
-            self._download(row)
+            # Consume the wake signal up front. It used to be cleared only in
+            # the idle branch, which is unreachable while a pending row
+            # exists — so _download's no-client wait() returned instantly and
+            # one queued download against an unreachable server busy-spun
+            # this loop at full speed.
+            self._wake.clear()
+            try:
+                row = None
+                pending = self.db.list(status=STATUS_PENDING)
+                if pending:
+                    row = pending[0]
+                if row is None:
+                    # Idle: replay any playstate captured while offline.
+                    self._sync_playstate()
+                    self._wake.wait(5)
+                    continue
+                self._download(row)
+                error_streak = 0
+            except Exception:
+                # The worker must survive anything (disk full, DB errors —
+                # note the error path's own db.update can raise again on a
+                # full disk); back off so a persistent failure can't spin.
+                error_streak += 1
+                log.exception("Download worker iteration failed.")
+                self._wake.wait(min(60, 5 * error_streak))
 
     def _sync_playstate(self):
         """Replay offline playstate once a server is reachable — advancing only:
