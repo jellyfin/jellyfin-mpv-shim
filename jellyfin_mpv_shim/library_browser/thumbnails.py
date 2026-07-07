@@ -239,9 +239,12 @@ class ThumbnailStore:
 
     @staticmethod
     def _photo_bytes(photo):
-        # Approximate resident size of a Tk image: 4 bytes (RGBA) per pixel.
+        # Approximate resident size of a Tk image: 8 bytes per pixel. Tk keeps
+        # a 4-byte-RGBA master AND a display-instance copy per image, so
+        # counting only 4 made the budget admit roughly twice its configured
+        # size in real RSS (measured ~1.7-2x).
         try:
-            return photo.width() * photo.height() * 4
+            return photo.width() * photo.height() * 8
         except Exception:
             return 0
 

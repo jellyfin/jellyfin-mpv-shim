@@ -60,9 +60,17 @@ class BrowserApp:
 
         verify_ssl = self.options.get("verify_ssl", True)
         cache_dir = os.path.join(confdir(APP_NAME), "image_cache")
+        # library_image_cache_mb bounds BOTH tiers: the on-disk encoded cache
+        # and the in-memory decoded Tk images. It previously only reached the
+        # disk tier, leaving RAM at the hardcoded default no matter what the
+        # user configured. The RAM tier is capped: someone raising the knob
+        # to keep gigabytes of offline artwork on disk shouldn't silently
+        # authorize a multi-GB decoded-image cache.
+        image_cache_mb = self.options.get("image_cache_mb", 256)
         self.thumbs = ThumbnailStore(
             cache_dir, verify_ssl=verify_ssl,
-            max_disk_mb=self.options.get("image_cache_mb", 256))
+            max_mem_mb=min(image_cache_mb, 512),
+            max_disk_mb=image_cache_mb)
         self._api_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="lib-api")
         self._ui_queue = queue.Queue()
         self.nav_stack = []

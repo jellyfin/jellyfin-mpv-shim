@@ -73,5 +73,39 @@ class MemoryCacheTest(unittest.TestCase):
         self.assertEqual(c.get("small"), 5)
 
 
+class StoreMemoryBoundWiringTest(unittest.TestCase):
+    """Regression: library_image_cache_mb was only applied to the DISK cache;
+    the in-memory decoded-image budget silently stayed at the hardcoded
+    default, so a long browse session ballooned RAM no matter what the user
+    configured. The store must honour max_mem_mb, and the sizer must count
+    Tk's real ~8-bytes-per-pixel resident cost (4B master + display copy)."""
+
+    def _store(self, **kw):
+        import tempfile
+        from jellyfin_mpv_shim.library_browser.thumbnails import ThumbnailStore
+
+        tmp = tempfile.mkdtemp(prefix="jms-thumbtest-")
+        self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
+        store = ThumbnailStore(tmp, **kw)
+        self.addCleanup(store.shutdown)
+        return store
+
+    def test_max_mem_mb_reaches_the_memory_cache(self):
+        store = self._store(max_mem_mb=7)
+        self.assertEqual(store._mem._max_bytes, 7 * 1024 * 1024)
+
+    def test_photo_bytes_counts_eight_bytes_per_pixel(self):
+        from jellyfin_mpv_shim.library_browser.thumbnails import ThumbnailStore
+
+        class FakePhoto:
+            def width(self):
+                return 10
+
+            def height(self):
+                return 20
+
+        self.assertEqual(ThumbnailStore._photo_bytes(FakePhoto()), 10 * 20 * 8)
+
+
 if __name__ == "__main__":
     unittest.main()
