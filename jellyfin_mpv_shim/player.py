@@ -164,6 +164,7 @@ class PlayerManager(object):
         self.warned_about_transcode = False
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
+        self.menu = None
         self.is_in_intro = False
         self.playback_time_before_seek = None
         self.trickplay = None
@@ -322,7 +323,15 @@ class PlayerManager(object):
             **mpv_options,
         )
 
-        self.menu = OSDMenu(self, self._player)
+        # The menu object must survive mpv re-creation (crash recovery,
+        # idle-quit): its is_menu_shown state gates idle_quit, and external
+        # holders (the systray "Application Menu" entry) call into it. A fresh
+        # OSDMenu here used to reset is_menu_shown to False mid-show, letting
+        # idle_quit kill the window while the user was looking at the menu.
+        if self.menu is None:
+            self.menu = OSDMenu(self, self._player)
+        else:
+            self.menu.update_player(self._player)
         self.syncplay = SyncPlayManager(self)
 
         if discord_presence:
@@ -743,6 +752,48 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
+        # Poll rescue for a LOST end-of-file notification: the eof/abort
+        # observers ride the same external-mpv IPC event pipeline whose
+        # delivery loss forced wait_property to become poll-assisted; if the
+        # eof event never arrives, auto-advance silently dies and the session
+        # shows "playing" forever. This runs ~1/s while a video is loaded.
+        # Dedup with the observer path needs no new state: _queue_finished's
+        # non-blocking _finished_lock + the playback epoch already discard
+        # duplicates, play() drops should_send_timeline before advancing, and
+        # the start_time guard keeps a stale read just after an advance from
+        # re-finishing the new file.
+        try:
+            video = self._video
+            if (
+                video is not None
+                and self.should_send_timeline
+                and time.time() - (self.start_time or 0) > 5
+            ):
+                try:
+                    eof = self._player.eof_reached
+                except _mpv_errors:
+                    self._handle_mpv_disconnect()
+                    return
+                except Exception:
+                    eof = None  # property unavailable / backend quirk
+                if eof is True:
+                    self._reached_eof = True
+                    self._queue_finished()
+                elif not video.parent.has_next:
+                    # Last item: keep_open is off, so mpv idles at the end and
+                    # eof-reached reads unavailable — mirror the abort observer.
+                    try:
+                        abort = self._player.playback_abort
+                    except _mpv_errors:
+                        self._handle_mpv_disconnect()
+                        return
+                    except Exception:
+                        abort = False
+                    if abort:
+                        self._queue_finished()
+        except Exception:
+            log.exception("End-of-file poll rescue failed.")
+
     def play(
         self,
         video: "Video_type",
@@ -800,7 +851,7 @@ class PlayerManager(object):
             settings.playback_timeout,
             skip_initial=True,
         ):
-            # Timeout playback attempt after 10 seconds
+            # Playback attempt timed out (settings.playback_timeout seconds).
             log.error("Timeout when waiting for media duration. Stopping playback!")
             self.stop()
             return
@@ -1072,8 +1123,18 @@ class PlayerManager(object):
         if not self._video:
             return
 
-        self._video.set_played()
-        self.play_next()
+        # Advance (which sends the final stop report at the current position)
+        # BEFORE marking played: the other order let the stop report land
+        # after set_played and overwrite the fully-watched state with
+        # mid-episode progress. unwatched_quit uses the same stop-then-mark
+        # order for the same reason. finally: the user's explicit mark must
+        # not be lost just because the advance failed (e.g. the next item's
+        # playback-info errored).
+        video = self._video
+        try:
+            self.play_next()
+        finally:
+            video.set_played()
 
     @synchronous("_lock")
     def unwatched_quit(self):

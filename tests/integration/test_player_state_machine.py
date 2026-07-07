@@ -533,5 +533,136 @@ class ResumeAtEofTest(unittest.TestCase):
                          "stale post-reload callback marked the item watched")
 
 
+class WatchedSkipOrderTest(unittest.TestCase):
+    """Regression: the 'mark watched' keybind marked the item played and THEN
+    advanced — so the advance's final stop report (mid-episode position)
+    landed after set_played and left partial progress on a watched item. The
+    stop report must be sent before the played mark."""
+
+    def test_stop_report_lands_before_set_played(self):
+        nxt = FakeVideo(item_id="next")
+        pm = h.build_player(player_module)
+        video = FakeVideo(has_next=True, next_video=nxt)
+        pm._video = video
+
+        order = []
+        pm.play = lambda v, *a, **k: order.append("play")
+        pm.send_timeline_stopped = lambda *a, **k: order.append("stop_report")
+        video.set_played = lambda value=True: order.append("set_played")
+
+        pm.watched_skip()
+
+        self.assertIn("set_played", order, "item never marked watched")
+        self.assertIn("stop_report", order, "no final stop report sent")
+        self.assertLess(order.index("stop_report"), order.index("set_played"),
+                        "stop report after set_played overwrites watched "
+                        "state with partial progress")
+        self.assertIn("play", order, "did not advance to the next episode")
+
+    def test_no_next_episode_still_marks_watched(self):
+        pm = h.build_player(player_module)
+        video = FakeVideo(has_next=False)
+        pm._video = video
+        pm.play = lambda *a, **k: None
+        pm.send_timeline_stopped = lambda *a, **k: None
+
+        pm.watched_skip()
+
+        self.assertEqual(video.played, [True])
+
+    def test_failed_advance_still_marks_watched(self):
+        # The user's explicit mark must survive an advance failure (e.g. the
+        # next item's playback-info request raising): set_played runs in a
+        # finally, after whatever part of the stop report got out.
+        pm = h.build_player(player_module)
+        video = FakeVideo(has_next=True, next_video=FakeVideo(item_id="next"))
+        pm._video = video
+
+        def boom():
+            raise RuntimeError("playback info failed")
+
+        pm.play_next = boom
+
+        with self.assertRaises(RuntimeError):
+            pm.watched_skip()
+        self.assertEqual(video.played, [True],
+                         "advance failure dropped the explicit watched mark")
+
+
+class EofPollRescueTest(unittest.TestCase):
+    """Regression guard for LOST end-of-file notifications: the eof/abort
+    observers ride the external-mpv IPC event pipeline that can drop
+    property-change delivery (the field failure that made wait_property
+    poll-assisted). update() must notice a parked-at-eof player and queue the
+    finish itself."""
+
+    def _player(self, **video_kw):
+        import time as _time
+        pm = h.build_player(player_module)
+        pm._video = FakeVideo(**video_kw)
+        pm.should_send_timeline = True
+        pm.start_time = _time.time() - 30  # long past the just-advanced guard
+        return pm
+
+    def test_lost_eof_event_still_advances(self):
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt)
+        calls = _stub_advance(pm)
+        # mpv reached eof but the property-change event never arrived: the
+        # attribute is set WITHOUT firing observers.
+        pm._player.eof_reached = True
+
+        with mock.patch.object(player_module.settings, "auto_play", True):
+            pm.update()   # poll notices eof, queues finished_callback
+            pm.update()   # drain runs it
+
+        self.assertEqual(calls["play"], [nxt],
+                         "lost eof event was not rescued; queue wedged")
+        self.assertTrue(pm._reached_eof)
+
+    def test_lost_abort_on_last_item_still_stops(self):
+        pm = self._player(has_next=False)
+        calls = _stub_advance(pm)
+        # Last item: keep_open off, mpv idles; eof-reached is unavailable
+        # (FakeMPV has no such attribute) and playback-abort's event was lost.
+        pm._player.playback_abort = True
+
+        pm.update()
+        pm.update()
+
+        self.assertTrue(calls["stopped"],
+                        "lost playback-abort on the last item never reported "
+                        "the finish")
+
+    def test_no_rescue_right_after_an_advance(self):
+        # A stale eof read in the first seconds after play() started the next
+        # item must NOT re-finish it (start_time guard).
+        import time as _time
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt)
+        pm.start_time = _time.time()  # advance just began
+        calls = _stub_advance(pm)
+        pm._player.eof_reached = True
+
+        pm.update()
+        pm.update()
+
+        self.assertEqual(calls["play"], [],
+                         "poll rescue fired inside the just-advanced window")
+
+    def test_no_rescue_while_timeline_stopped(self):
+        # After a stop (or during an advance) should_send_timeline is False;
+        # the poll must stay quiet.
+        pm = self._player(has_next=False)
+        pm.should_send_timeline = False
+        calls = _stub_advance(pm)
+        pm._player.playback_abort = True
+
+        pm.update()
+        pm.update()
+
+        self.assertEqual(calls["stopped"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

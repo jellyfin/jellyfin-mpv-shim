@@ -88,6 +88,27 @@ class OSDMenu(object):
         except Exception:
             log.error("Could not load SVP integration.", exc_info=True)
 
+    def update_player(self, player):
+        """Point at a re-created mpv instance. The menu itself only talks to
+        mpv through playerManager wrappers, but the sub-managers apply
+        per-instance side effects at construction that the new mpv needs
+        again: VideoProfileManager re-applies the remembered shader profile
+        (and re-captures property defaults), SVPManager re-registers the SVP
+        input-ipc-server socket. Rebuild them like a fresh init would."""
+        if self.profile_manager is not None:
+            try:
+                self.profile_manager = VideoProfileManager(
+                    self, self.playerManager, player
+                )
+                self.profile_menu = self.profile_manager.menu_action
+            except Exception:
+                log.error("Could not reload profile manager.", exc_info=True)
+        if self.svp_menu is not None:
+            try:
+                self.svp_menu = SVPManager(self, self.playerManager)
+            except Exception:
+                log.error("Could not reload SVP integration.", exc_info=True)
+
     # The menu is a bit of a hack...
     # It works using multiline OSD.
     # We also have to force the window to open.

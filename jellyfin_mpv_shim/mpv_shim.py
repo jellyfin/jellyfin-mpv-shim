@@ -118,7 +118,10 @@ def main():
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
     playerManager.get_webview = get_webview
-    user_interface.open_player_menu = playerManager.menu.show_menu
+    # Resolve the menu at call time: even though the OSDMenu now survives mpv
+    # re-creation, binding through playerManager keeps this correct if that
+    # ever changes.
+    user_interface.open_player_menu = lambda: playerManager.menu.show_menu()
     eventHandler.mirror = mirror
     syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
     user_interface.start()

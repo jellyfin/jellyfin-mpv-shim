@@ -327,5 +327,57 @@ class ReopenAfterIdleQuitTest(unittest.TestCase):
         self.assertIsNot(pm._player, old_player, "mpv process was not re-created")
 
 
+class MenuSurvivesReopenTest(unittest.TestCase):
+    """Regression: _init_mpv used to build a FRESH OSDMenu on every re-open,
+    resetting is_menu_shown to False. The systray "Application Menu" opened the
+    menu (possibly re-creating a dead mpv mid-show), the state landed on the
+    discarded object, and idle_quit — gated on menu.is_menu_shown — killed the
+    window while the user was looking at the menu."""
+
+    def test_menu_object_and_state_survive_reopen(self):
+        pm = h.build_player(player_module)
+        menu = pm.menu
+        menu.is_menu_shown = True     # menu is on screen
+        pm._mpv_alive = False
+
+        pm._ensure_mpv()              # crash-recovery / idle-quit re-open
+
+        self.assertIs(pm.menu, menu, "re-open replaced the menu object")
+        self.assertTrue(pm.menu.is_menu_shown,
+                        "re-open reset is_menu_shown — idle_quit would now "
+                        "kill mpv under an open menu")
+        self.assertIs(getattr(menu, "player", None), pm._player,
+                      "menu was not pointed at the re-created player")
+
+    def test_idle_quit_blocked_by_menu_shown_after_reopen(self):
+        pm = h.build_player(player_module)
+        pm.menu.is_menu_shown = True
+        pm._mpv_alive = False
+        pm._ensure_mpv()
+
+        with mock.patch.object(player_module.settings, "mpv_idle_quit", True):
+            pm.idle_quit()
+
+        self.assertTrue(pm._mpv_alive,
+                        "idle_quit killed mpv while the menu (opened via the "
+                        "systray) was still on screen")
+
+    def test_real_osdmenu_created_once_then_reused(self):
+        # With menu=None (first init), a real OSDMenu is built; a second
+        # re-init must reuse it, not construct a new one.
+        from jellyfin_mpv_shim.menu import OSDMenu
+
+        pm = h.build_player(player_module)
+        pm.menu = None
+        pm._mpv_alive = False
+        pm._ensure_mpv()
+        first = pm.menu
+        self.assertIsInstance(first, OSDMenu)
+
+        pm._mpv_alive = False
+        pm._ensure_mpv()
+        self.assertIs(pm.menu, first, "re-init rebuilt the OSDMenu")
+
+
 if __name__ == "__main__":
     unittest.main()

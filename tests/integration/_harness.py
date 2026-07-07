@@ -407,6 +407,11 @@ class _FakeMenu:
     def hide_menu(self):
         self.is_menu_shown = False
 
+    def update_player(self, player):
+        # Mirrors OSDMenu.update_player: the menu survives mpv re-creation and
+        # is pointed at the new player handle.
+        self.player = player
+
 
 class _FakeSyncplay:
     def __init__(self):
