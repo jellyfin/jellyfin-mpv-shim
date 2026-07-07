@@ -1,5 +1,10 @@
-from threading import Event
+from threading import Event, Thread
 from typing import Optional
+
+# How often the observer wait re-reads the property directly. Property-change
+# events are the fast path; the poll is a safety net for delivery loss (seen in
+# the field on the external-mpv JSON IPC transport), so it can be leisurely.
+POLL_INTERVAL_SECS = 0.5
 
 
 def wait_property(
@@ -37,6 +42,21 @@ def wait_property(
     (same-duration reload) is indistinguishable, and the caller's ``timeout``
     bounds that case -- it then degrades exactly like any other property-wait
     timeout.
+
+    The wait is poll-assisted: besides the observer, the property is re-read
+    every POLL_INTERVAL_SECS and a qualifying value accepted directly (unless
+    it equals the sampled stale value, which is indistinguishable from the
+    pre-change state). Observer events are the fast path; the poll rescues the
+    wait when property-change delivery is lost — the external-mpv IPC pipeline
+    (socket reader -> event queue -> handler) has been seen in the field to
+    drop notifications, which previously turned an otherwise-fine playback
+    start into a hard "no duration" timeout that killed the session.
+
+    The poll runs on its own daemon thread: on the external backend a property
+    read is a synchronous IPC command with a long internal timeout (120s in
+    python-mpv-jsonipc), so polling on the waiting thread would let a wedged
+    mpv stretch the caller's deadline by minutes. This way ``timeout`` stays a
+    hard bound; a poller blocked on a wedged read just exits late, alone.
     """
     event = Event()
 
@@ -72,9 +92,31 @@ def wait_property(
     else:
         instance.observe_property(name, handler)
 
+    # Poll fallback on a separate thread (see docstring); the main wait below
+    # keeps the caller's timeout as a hard bound.
+    stop_poll = Event()
+
+    def poller():
+        while not stop_poll.wait(POLL_INTERVAL_SECS):
+            try:
+                value = getattr(instance, name)
+            except Exception:
+                continue  # property unavailable / player busy; keep polling
+            # A polled value equal to the stale sample may simply be the old
+            # state still in place, so only the observer (which sees the
+            # actual change sequence) may accept it.
+            if cond(value) and not (skip_initial and value == stale_value):
+                event.set()
+                return
+
+    poll_thread = Thread(target=poller, daemon=True,
+                         name="wait-property-poll")
+    poll_thread.start()
+
     # Event.wait(None) blocks indefinitely and returns True, so one wait
     # covers both the bounded and unbounded cases.
     success = event.wait(timeout=timeout)
+    stop_poll.set()
 
     if use_ext_mpv:
         instance.unbind_property_observer(observer_id)

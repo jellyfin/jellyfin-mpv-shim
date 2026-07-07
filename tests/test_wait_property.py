@@ -1,7 +1,9 @@
 import unittest
+from unittest import mock
 
 # mpv_events has no side effects (no PlayerManager singleton, no mpv launch),
 # so it is safe to import directly.
+import jellyfin_mpv_shim.mpv_events as mpv_events
 from jellyfin_mpv_shim.mpv_events import wait_property
 
 
@@ -127,6 +129,79 @@ class WaitPropertyTest(unittest.TestCase):
             )
         )
         self.assertTrue(inst.unbound)
+
+
+class PollingFakeExtMpv:
+    """jsonipc-style backend that never delivers property-change events —
+    the pipeline-loss case seen in the field on external mpv. Successive
+    ``duration`` reads consume ``reads`` (last value repeats)."""
+
+    def __init__(self, reads):
+        self._reads = list(reads)
+        self.unbound = False
+
+    @property
+    def duration(self):
+        if len(self._reads) > 1:
+            return self._reads.pop(0)
+        return self._reads[0]
+
+    def bind_property_observer(self, name, handler):
+        return 1
+
+    def unbind_property_observer(self, observer_id):
+        self.unbound = True
+
+
+class WaitPropertyPollFallbackTest(unittest.TestCase):
+    """Regression: external-mpv auto-advance died with 'Timeout when waiting
+    for media duration' because property-change events were lost and the wait
+    relied solely on the observer. The poll fallback must rescue the wait."""
+
+    def setUp(self):
+        patcher = mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_poll_rescues_lost_events(self):
+        # Sample sees the old file's duration; no events ever arrive; a later
+        # poll sees the new file's duration and must accept it.
+        inst = PollingFakeExtMpv(reads=[100, 200])
+        self.assertTrue(
+            wait_property(
+                inst, "duration", not_none, timeout=1, skip_initial=True
+            )
+        )
+        self.assertTrue(inst.unbound)
+
+    def test_poll_rejects_value_equal_to_stale_sample(self):
+        # The polled value equals the stale sample — indistinguishable from
+        # the pre-change state, so only the observer may accept it. The wait
+        # must still time out rather than act on the old file.
+        inst = PollingFakeExtMpv(reads=[100, 100])
+        self.assertFalse(
+            wait_property(
+                inst, "duration", not_none, timeout=0.1, skip_initial=True
+            )
+        )
+
+    def test_poll_accepts_without_skip_initial(self):
+        # Without skip_initial there is no stale sample to guard against; the
+        # poll may accept any qualifying value.
+        inst = PollingFakeExtMpv(reads=[100])
+        self.assertTrue(
+            wait_property(inst, "duration", not_none, timeout=1)
+        )
+
+    def test_poll_rescues_from_none_sample(self):
+        # Between files the sample reads None (nothing stale); events are
+        # lost; the poll must accept the loaded duration.
+        inst = PollingFakeExtMpv(reads=[None, None, 250])
+        self.assertTrue(
+            wait_property(
+                inst, "duration", not_none, timeout=1, skip_initial=True
+            )
+        )
 
 
 if __name__ == "__main__":
