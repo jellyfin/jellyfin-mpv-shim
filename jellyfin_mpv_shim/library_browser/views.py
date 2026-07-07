@@ -1526,7 +1526,14 @@ SETTINGS_SECTIONS = [
                                  "skip_credits_enable", "skip_credits_always"]),
     (_("Library Browser"), ["library_page_size", "library_image_width",
                             "library_image_cache_mb"]),
+    (_("Downloads"), ["sync_path", "prefer_downloaded"]),
 ]
+
+# Friendlier labels than the auto-generated title-cased key.
+SETTINGS_LABEL_OVERRIDES = {
+    "sync_path": _("Download Folder"),
+    "prefer_downloaded": _("Prefer Downloaded Copy"),
+}
 
 SETTINGS_ENUMS = {
     "subtitle_position": ["top", "bottom"],
@@ -1553,6 +1560,8 @@ _ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC", "mpv": "MPV
 
 
 def _label_for(key):
+    if key in SETTINGS_LABEL_OVERRIDES:
+        return SETTINGS_LABEL_OVERRIDES[key]
     return " ".join(_ACRONYMS.get(w, w.capitalize()) for w in key.split("_"))
 
 
@@ -1638,11 +1647,30 @@ class SettingsPanel:
                 ttk.Combobox(grid, textvariable=var, state="readonly", width=28,
                              values=SETTINGS_ENUMS[key]).grid(row=row, column=1,
                                                               sticky="w", pady=3)
+            elif key == "sync_path":
+                var = tk.StringVar(value="" if value is None else str(value))
+                cell = tk.Frame(grid, bg=CARD_BG)
+                cell.grid(row=row, column=1, sticky="ew", pady=3)
+                cell.columnconfigure(0, weight=1)
+                ttk.Entry(cell, textvariable=var).grid(row=0, column=0,
+                                                       sticky="ew", padx=(0, 6))
+                ttk.Button(cell, text=_("Browse…"), width=10,
+                           command=lambda v=var: self._pick_folder(v)).grid(
+                    row=0, column=1)
             else:
                 var = tk.StringVar(value="" if value is None else str(value))
                 ttk.Entry(grid, textvariable=var, width=34).grid(
                     row=row, column=1, sticky="w", pady=3)
             self.vars[key] = (var, vtype)
+
+    def _pick_folder(self, var):
+        from tkinter import filedialog
+        current = var.get().strip() or None
+        chosen = filedialog.askdirectory(
+            parent=self.app.root, mustexist=False, initialdir=current,
+            title=_("Choose download folder"))
+        if chosen:
+            var.set(chosen)
 
     def _save(self):
         changes = {}
@@ -1656,7 +1684,19 @@ class SettingsPanel:
             else:
                 changes[key] = var.get().strip()  # main coerces; "" -> None/blank
         self.app.save_settings(changes)
-        self.status.config(text=_("Saved."))
+        # A download-folder change moves files in the main process and reports
+        # back asynchronously via on_status; don't claim "Saved." prematurely.
+        stored = self.app.settings_values.get("sync_path") or ""
+        if "sync_path" in changes and changes["sync_path"] != stored:
+            self.status.config(text=_("Updating download folder…"), fg=SUBTLE_FG)
+        else:
+            self.status.config(text=_("Saved."), fg=SUBTLE_FG)
+
+    def on_status(self, status):
+        if not isinstance(status, dict):
+            return
+        self.status.config(text=status.get("text", ""),
+                           fg=SUBTLE_FG if status.get("ok") else "#e06c6c")
 
     def on_data(self, values):
         # Refresh the displayed values after a save round-trip (coercion may have
@@ -1736,6 +1776,10 @@ class SettingsView(BaseView):
     def on_settings_data(self, values):
         if self.settings_panel:
             self.settings_panel.on_data(values)
+
+    def on_settings_status(self, status):
+        if self.settings_panel:
+            self.settings_panel.on_status(status)
 
     def on_download_progress(self, payload):
         if self.downloads_panel:

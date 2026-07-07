@@ -293,6 +293,78 @@ class ReconcileDiskTest(TmpTest):
         self.assertTrue(os.path.exists(os.path.join(self.tmp, "catalog.db")))
 
 
+class RelocateTest(TmpTest):
+    def _seed_download(self, m):
+        """A COMPLETE row with its media file on disk, so a move+reconcile keeps
+        it (an orphan dir with no catalog row would be swept)."""
+        rel = os.path.join("srv", "keep", "media.mkv")
+        os.makedirs(os.path.join(m.root, "srv", "keep"))
+        with open(os.path.join(m.root, rel), "wb") as fh:
+            fh.write(b"x" * 100)
+        add_row(m, "keep", status=STATUS_COMPLETE, file_path=rel)
+
+    def test_move_to_new_folder(self):
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        self._seed_download(m)
+        new = os.path.join(self.tmp, "drive2", "offline")
+
+        ok, msg = m.relocate(new)
+        self.assertTrue(ok, msg)
+        self.assertEqual(os.path.abspath(m.root), os.path.abspath(new))
+        self.assertTrue(os.path.exists(os.path.join(new, "catalog.db")))
+        self.assertTrue(os.path.exists(
+            os.path.join(new, "srv", "keep", "media.mkv")))
+        self.assertFalse(os.path.exists(old))
+        # Catalog reopened at the new root and the row survived reconcile.
+        self.assertEqual(m.db.path, os.path.join(new, "catalog.db"))
+        self.assertEqual(m.db.get("keep")["status"], STATUS_COMPLETE)
+
+    def test_noop_when_path_unchanged(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        ok, msg = m.relocate(self.tmp)
+        self.assertTrue(ok)
+        self.assertEqual(msg, "")
+
+    def test_refuse_while_download_active(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._active_item = "busy"
+        ok, msg = m.relocate(os.path.join(self.tmp, "elsewhere"))
+        self.assertFalse(ok)
+        self.assertIn("in progress", msg)
+        self.assertEqual(m.root, self.tmp)  # unchanged
+
+    def test_refuse_target_with_existing_catalog(self):
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self._seed_download(m)
+        target = os.path.join(self.tmp, "taken")
+        os.makedirs(target)
+        open(os.path.join(target, "catalog.db"), "w").close()
+        ok, msg = m.relocate(target)
+        self.assertFalse(ok)
+        self.assertIn("already contains", msg)
+        self.assertEqual(m.root, old)
+
+    def test_move_failure_leaves_downloads_in_place(self):
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        self._seed_download(m)
+        m._move_tree = lambda *a, **k: (_ for _ in ()).throw(OSError("disk full"))
+        ok, msg = m.relocate(os.path.join(self.tmp, "drive2"))
+        self.assertFalse(ok)
+        self.assertEqual(m.root, old)  # rolled back
+        # Downloads still readable at the old location.
+        self.assertEqual(m.db.get("keep")["status"], STATUS_COMPLETE)
+        self.assertTrue(os.path.exists(
+            os.path.join(old, "srv", "keep", "media.mkv")))
+
+
 class StopTest(TmpTest):
     def test_stop_joins_worker_and_closes_db(self):
         m = make_manager(self.tmp, self.addCleanup)

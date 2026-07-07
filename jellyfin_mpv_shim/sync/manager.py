@@ -19,6 +19,7 @@ import requests
 from ..conf import settings
 from ..conffile import confdir
 from ..constants import APP_NAME
+from ..i18n import _
 from ..utils import get_profile
 from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
                  STATUS_ERROR)
@@ -81,6 +82,14 @@ class SyncManager:
     def start(self, get_client):
         self.get_client = get_client
         self.root = settings.sync_path or os.path.join(confdir(APP_NAME), "offline")
+        self._open_and_run()
+
+    def _open_and_run(self):
+        """Open the catalog at self.root and (re)start the download worker.
+
+        Shared by start() and relocate() so re-pointing at a new folder goes
+        through exactly the same recover/reconcile path as a fresh launch.
+        """
         os.makedirs(self.root, exist_ok=True)
         self.db = SyncDB(os.path.join(self.root, "catalog.db"))
         # Recover rows interrupted mid-download on a previous run.
@@ -94,6 +103,70 @@ class SyncManager:
         self._stop = False
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
+
+    def relocate(self, new_path):
+        """Move the download tree to new_path and re-point the manager at it.
+
+        Returns (ok, message): message is a user-facing string to surface when
+        ok is False (or empty on success). Refuses while a download is actively
+        transferring, so nothing is moved out from under an open write. On any
+        move failure the downloads are left untouched at the old location and
+        the manager resumes there.
+        """
+        old_root = self.root
+        if new_path:
+            new_root = os.path.abspath(os.path.expanduser(new_path))
+        else:
+            new_root = os.path.join(confdir(APP_NAME), "offline")
+        if old_root and os.path.abspath(old_root) == new_root:
+            return True, ""
+        with self._active_lock:
+            if self._active_item is not None:
+                return False, _("Can't change the download folder while a "
+                                "download is in progress. Wait for it to finish, "
+                                "then try again.")
+        have_downloads = os.path.isdir(old_root) and bool(os.listdir(old_root))
+        if have_downloads and os.path.exists(os.path.join(new_root, "catalog.db")):
+            return False, _("That folder already contains downloads. Choose an "
+                            "empty folder.")
+        try:
+            os.makedirs(new_root, exist_ok=True)
+        except OSError:
+            return False, _("Can't create that folder. Check the path and its "
+                            "permissions.")
+        # Stop the worker and close the catalog so nothing is open mid-move.
+        self.stop()
+        try:
+            self._move_tree(old_root, new_root)
+        except Exception:
+            log.error("Failed to move download folder from %r to %r",
+                      old_root, new_root, exc_info=True)
+            self.root = old_root
+            self._open_and_run()  # resume where the downloads still are
+            return False, _("Moving the downloads failed. They were left in "
+                            "place; the download folder was not changed.")
+        self.root = new_root
+        self._open_and_run()
+        return True, ""
+
+    def _move_tree(self, old_root, new_root):
+        """Move every entry from old_root into new_root (created by the caller).
+
+        Per-entry shutil.move so it works across drives (copy+delete). Skips any
+        name that already exists in the destination rather than clobber it.
+        """
+        if not os.path.isdir(old_root):
+            return
+        for name in os.listdir(old_root):
+            dest = os.path.join(new_root, name)
+            if os.path.exists(dest):
+                continue
+            shutil.move(os.path.join(old_root, name), dest)
+        # Drop the now-empty old folder (best-effort; harmless if it lingers).
+        try:
+            os.rmdir(old_root)
+        except OSError:
+            pass
 
     def stop(self):
         self._stop = True

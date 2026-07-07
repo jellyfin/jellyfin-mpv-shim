@@ -705,6 +705,15 @@ class BrowserApp:
                 if now_offline != was_offline:
                     self.set_offline(now_offline)
             self._dispatch_view("on_settings_data", param)
+        elif cmd == "catalog_path":
+            # The download folder moved (main process re-pointed the catalog).
+            # Point future offline reads at the new location; reopen now if we
+            # are currently showing offline content.
+            self.catalog_path = param
+            if self.is_offline:
+                self._enter_offline()
+        elif cmd == "settings_status":
+            self._dispatch_view("on_settings_status", param or {})
         elif cmd == "sync_state":
             ss = param or {}
             self.sync_items = set(ss.get("items") or [])

@@ -574,6 +574,7 @@ class UserInterface(threading.Thread):
 
     def on_save_settings(self, changes):
         if isinstance(changes, dict):
+            changes = self._apply_sync_path_change(changes)
             try:
                 data = settings.dict()
                 data.update(changes)
@@ -588,6 +589,27 @@ class UserInterface(threading.Thread):
             except Exception:
                 log.error("Failed to save settings", exc_info=True)
         self._send_browser(("settings_data", settings.dict()))
+
+    def _apply_sync_path_change(self, changes):
+        """If the download folder changed, move existing downloads and re-point
+        the sync manager before the new path is persisted. Reports the outcome
+        to the browser and drops sync_path from the change set on failure so the
+        stale path is never written."""
+        if "sync_path" not in changes:
+            return changes
+        new_path = changes.get("sync_path") or None
+        if (new_path or "") == (settings.sync_path or ""):
+            return changes
+        ok, message = syncManager.relocate(new_path)
+        if ok:
+            self._send_browser(("catalog_path",
+                                syncManager.db.path if syncManager.db else None))
+            self._send_browser(("settings_status",
+                                {"ok": True, "text": _("Download folder updated.")}))
+            return changes
+        # Keep the old path: strip sync_path so the failed value isn't saved.
+        self._send_browser(("settings_status", {"ok": False, "text": message}))
+        return {k: v for k, v in changes.items() if k != "sync_path"}
 
     @staticmethod
     def _materialize_language_preset(changes):
