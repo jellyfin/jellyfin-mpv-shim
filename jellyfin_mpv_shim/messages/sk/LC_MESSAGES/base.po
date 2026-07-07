@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-07 17:37-0400\n"
+"POT-Creation-Date: 2026-07-07 17:46-0400\n"
 "PO-Revision-Date: 2024-06-11 08:41+0000\n"
 "Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
@@ -115,7 +115,7 @@ msgstr ""
 msgid "Quick Connect is not enabled on this server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:490 jellyfin_mpv_shim/gui_mgr.py:536
+#: jellyfin_mpv_shim/clients.py:490 jellyfin_mpv_shim/gui_mgr.py:537
 msgid "Could not start Quick Connect."
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr "Pripravené k prenosu"
 msgid "Select your media in Jellyfin and play it here."
 msgstr "Vyberte médium v Jellyfine a pustite ho"
 
-#: jellyfin_mpv_shim/gui_mgr.py:506
+#: jellyfin_mpv_shim/gui_mgr.py:507
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -139,36 +139,44 @@ msgstr ""
 "Nebolo možné pridať server.\n"
 "Skontrolujte prosím informácie o pripojení."
 
-#: jellyfin_mpv_shim/gui_mgr.py:551
+#: jellyfin_mpv_shim/gui_mgr.py:552
 msgid "Quick Connect was not authorized in time. Please try again."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:608
+#: jellyfin_mpv_shim/gui_mgr.py:612
+msgid "A download-folder change is already running."
+msgstr ""
+
+#: jellyfin_mpv_shim/gui_mgr.py:635
 msgid "Download folder updated."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:789
+#: jellyfin_mpv_shim/gui_mgr.py:642
+msgid "Moving the downloads failed."
+msgstr ""
+
+#: jellyfin_mpv_shim/gui_mgr.py:823
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:790
+#: jellyfin_mpv_shim/gui_mgr.py:824
 #: jellyfin_mpv_shim/library_browser/app.py:166
 msgid "Configure Servers"
 msgstr "Konfigurovať servery"
 
-#: jellyfin_mpv_shim/gui_mgr.py:791
+#: jellyfin_mpv_shim/gui_mgr.py:825
 msgid "Show Console"
 msgstr "Zobraziť konzolu"
 
-#: jellyfin_mpv_shim/gui_mgr.py:792
+#: jellyfin_mpv_shim/gui_mgr.py:826
 msgid "Application Menu"
 msgstr "Menu aplikácie"
 
-#: jellyfin_mpv_shim/gui_mgr.py:793
+#: jellyfin_mpv_shim/gui_mgr.py:827
 msgid "Open Config Folder"
 msgstr "Otvoriť konfiguračný priečinok"
 
-#: jellyfin_mpv_shim/gui_mgr.py:794
+#: jellyfin_mpv_shim/gui_mgr.py:828
 msgid "Quit"
 msgstr "Ukončiť"
 
@@ -507,7 +515,7 @@ msgid "Starting…"
 msgstr "Nastavenia SVP"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1018
-#: jellyfin_mpv_shim/library_browser/views.py:1830
+#: jellyfin_mpv_shim/library_browser/views.py:1860
 msgid "Cancel"
 msgstr ""
 
@@ -552,7 +560,7 @@ msgid "Connect"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1150
-#: jellyfin_mpv_shim/library_browser/views.py:1739
+#: jellyfin_mpv_shim/library_browser/views.py:1765
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers"
@@ -677,7 +685,7 @@ msgid "Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1529
-#: jellyfin_mpv_shim/library_browser/views.py:1738
+#: jellyfin_mpv_shim/library_browser/views.py:1764
 msgid "Downloads"
 msgstr ""
 
@@ -727,63 +735,73 @@ msgstr ""
 msgid "Save Settings"
 msgstr "Nastavenia SVP"
 
-#: jellyfin_mpv_shim/library_browser/views.py:1608
+#: jellyfin_mpv_shim/library_browser/views.py:1612
 msgid "Some changes take effect after restarting."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1657
+#: jellyfin_mpv_shim/library_browser/views.py:1661
 msgid "Browse…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1671
+#: jellyfin_mpv_shim/library_browser/views.py:1675
 msgid "Choose download folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1691
+#: jellyfin_mpv_shim/library_browser/views.py:1695
 msgid "Updating download folder…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1693
+#: jellyfin_mpv_shim/library_browser/views.py:1697
 msgid "Saved."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1737
+#: jellyfin_mpv_shim/library_browser/views.py:1715
+msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1720
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Moving downloads…"
+msgstr "Odstrániť server"
+
+#: jellyfin_mpv_shim/library_browser/views.py:1763
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Settings"
 msgstr "Nastavenia SVP"
 
-#: jellyfin_mpv_shim/library_browser/views.py:1740
+#: jellyfin_mpv_shim/library_browser/views.py:1766
 msgid "Logs"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1806
-#: jellyfin_mpv_shim/library_browser/views.py:1812
-#: jellyfin_mpv_shim/library_browser/views.py:1831
+#: jellyfin_mpv_shim/library_browser/views.py:1836
+#: jellyfin_mpv_shim/library_browser/views.py:1842
+#: jellyfin_mpv_shim/library_browser/views.py:1861
 msgid "Download"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1815
+#: jellyfin_mpv_shim/library_browser/views.py:1845
 msgid "Estimating download size…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1821
+#: jellyfin_mpv_shim/library_browser/views.py:1851
 msgid "Include watched items"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1822
+#: jellyfin_mpv_shim/library_browser/views.py:1852
 msgid "Include watched episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1842
+#: jellyfin_mpv_shim/library_browser/views.py:1872
 msgid "%(n)d item(s), about %(size)s"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1845
+#: jellyfin_mpv_shim/library_browser/views.py:1875
 msgid "%d watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1847
+#: jellyfin_mpv_shim/library_browser/views.py:1877
 msgid "%d already downloaded"
 msgstr ""
 
@@ -1124,21 +1142,21 @@ msgstr "Povoliť SVP"
 msgid "SVP is Disabled"
 msgstr "SVP je zakázané"
 
-#: jellyfin_mpv_shim/sync/manager.py:125
+#: jellyfin_mpv_shim/sync/manager.py:133
 msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
 
-#: jellyfin_mpv_shim/sync/manager.py:130
+#: jellyfin_mpv_shim/sync/manager.py:138
 msgid "That folder already contains downloads. Choose an empty folder."
 msgstr ""
 
-#: jellyfin_mpv_shim/sync/manager.py:135
+#: jellyfin_mpv_shim/sync/manager.py:143
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
 
-#: jellyfin_mpv_shim/sync/manager.py:146
+#: jellyfin_mpv_shim/sync/manager.py:157
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
