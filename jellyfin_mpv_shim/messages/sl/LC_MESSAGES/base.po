@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-07 17:46-0400\n"
+"POT-Creation-Date: 2026-07-07 18:04-0400\n"
 "PO-Revision-Date: 2026-06-20 12:46+0000\n"
 "Last-Translator: Žiga Ules <ziga.ules@gmail.com>\n"
 "Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -148,36 +148,37 @@ msgstr ""
 msgid "A download-folder change is already running."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:635
-msgid "Download folder updated."
+#: jellyfin_mpv_shim/gui_mgr.py:641
+msgid ""
+"Download folder moved. Restart the app to finish switching to the new folder."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:642
+#: jellyfin_mpv_shim/gui_mgr.py:649
 msgid "Moving the downloads failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:823
+#: jellyfin_mpv_shim/gui_mgr.py:830
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:824
+#: jellyfin_mpv_shim/gui_mgr.py:831
 #: jellyfin_mpv_shim/library_browser/app.py:166
 msgid "Configure Servers"
 msgstr "Nastavi strežnike"
 
-#: jellyfin_mpv_shim/gui_mgr.py:825
+#: jellyfin_mpv_shim/gui_mgr.py:832
 msgid "Show Console"
 msgstr "Pokaži konzolo"
 
-#: jellyfin_mpv_shim/gui_mgr.py:826
+#: jellyfin_mpv_shim/gui_mgr.py:833
 msgid "Application Menu"
 msgstr "Meni aplikacije"
 
-#: jellyfin_mpv_shim/gui_mgr.py:827
+#: jellyfin_mpv_shim/gui_mgr.py:834
 msgid "Open Config Folder"
 msgstr "Odpri mapo z nastavitvami"
 
-#: jellyfin_mpv_shim/gui_mgr.py:828
+#: jellyfin_mpv_shim/gui_mgr.py:835
 msgid "Quit"
 msgstr "Izhod"
 
@@ -516,7 +517,7 @@ msgid "Starting…"
 msgstr "Nastavitve SVP"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1018
-#: jellyfin_mpv_shim/library_browser/views.py:1860
+#: jellyfin_mpv_shim/library_browser/views.py:1882
 msgid "Cancel"
 msgstr ""
 
@@ -561,7 +562,7 @@ msgid "Connect"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1150
-#: jellyfin_mpv_shim/library_browser/views.py:1765
+#: jellyfin_mpv_shim/library_browser/views.py:1787
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers"
@@ -686,7 +687,7 @@ msgid "Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1529
-#: jellyfin_mpv_shim/library_browser/views.py:1764
+#: jellyfin_mpv_shim/library_browser/views.py:1786
 msgid "Downloads"
 msgstr ""
 
@@ -722,87 +723,91 @@ msgstr ""
 msgid "Custom (set in config)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1592
+#: jellyfin_mpv_shim/library_browser/views.py:1596
 msgid "Show advanced settings"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1600
+#: jellyfin_mpv_shim/library_browser/views.py:1604
 msgid "Advanced"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1606
+#: jellyfin_mpv_shim/library_browser/views.py:1610
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Save Settings"
 msgstr "Nastavitve SVP"
 
-#: jellyfin_mpv_shim/library_browser/views.py:1612
+#: jellyfin_mpv_shim/library_browser/views.py:1616
 msgid "Some changes take effect after restarting."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1661
+#: jellyfin_mpv_shim/library_browser/views.py:1665
 msgid "Browse…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1675
+#: jellyfin_mpv_shim/library_browser/views.py:1679
 msgid "Choose download folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1695
+#: jellyfin_mpv_shim/library_browser/views.py:1700
 msgid "Updating download folder…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1697
+#: jellyfin_mpv_shim/library_browser/views.py:1702
 msgid "Saved."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1715
+#: jellyfin_mpv_shim/library_browser/views.py:1721
+msgid "Restart required"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/views.py:1735
 msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1720
+#: jellyfin_mpv_shim/library_browser/views.py:1740
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads…"
 msgstr "Odstrani strežnik"
 
-#: jellyfin_mpv_shim/library_browser/views.py:1763
+#: jellyfin_mpv_shim/library_browser/views.py:1785
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Settings"
 msgstr "Nastavitve SVP"
 
-#: jellyfin_mpv_shim/library_browser/views.py:1766
+#: jellyfin_mpv_shim/library_browser/views.py:1788
 msgid "Logs"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1836
-#: jellyfin_mpv_shim/library_browser/views.py:1842
-#: jellyfin_mpv_shim/library_browser/views.py:1861
+#: jellyfin_mpv_shim/library_browser/views.py:1858
+#: jellyfin_mpv_shim/library_browser/views.py:1864
+#: jellyfin_mpv_shim/library_browser/views.py:1883
 msgid "Download"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1845
+#: jellyfin_mpv_shim/library_browser/views.py:1867
 msgid "Estimating download size…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1851
+#: jellyfin_mpv_shim/library_browser/views.py:1873
 msgid "Include watched items"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1852
+#: jellyfin_mpv_shim/library_browser/views.py:1874
 msgid "Include watched episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1872
+#: jellyfin_mpv_shim/library_browser/views.py:1894
 msgid "%(n)d item(s), about %(size)s"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1875
+#: jellyfin_mpv_shim/library_browser/views.py:1897
 msgid "%d watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:1877
+#: jellyfin_mpv_shim/library_browser/views.py:1899
 msgid "%d already downloaded"
 msgstr ""
 
