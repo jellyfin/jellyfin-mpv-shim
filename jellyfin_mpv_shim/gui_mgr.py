@@ -631,8 +631,15 @@ class UserInterface(threading.Thread):
                     self._send_browser(("catalog_path",
                         syncManager.db.path if syncManager.db else None))
                     self._send_browser(("settings_data", settings.dict()))
+                    # Refresh the browser's download counts against the moved
+                    # catalog so indicators/status aren't stale.
+                    self._push_sync_state()
+                    # The browser subprocess still holds the old catalog wiring
+                    # for live download progress; a restart re-reads everything.
                     self._send_browser(("settings_status", {"ok": True,
-                        "text": _("Download folder updated.")}))
+                        "restart": True,
+                        "text": _("Download folder moved. Restart the app to "
+                                  "finish switching to the new folder.")}))
                 else:
                     self._send_browser(("settings_status",
                                         {"ok": False, "text": message}))

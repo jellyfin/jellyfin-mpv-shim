@@ -1712,8 +1712,16 @@ class SettingsPanel:
             var, _t = self.vars["sync_path"]
             val = self.app.settings_values.get("sync_path")
             var.set("" if val is None else str(val))
-        self.status.config(text=status.get("text", ""),
+        text = status.get("text", "")
+        self.status.config(text=text,
                            fg=SUBTLE_FG if status.get("ok") else "#e06c6c")
+        if status.get("restart") and text:
+            try:
+                from tkinter import messagebox
+                messagebox.showinfo(_("Restart required"), text,
+                                    parent=self.app.root)
+            except Exception:
+                log.debug("Restart prompt failed", exc_info=True)
 
     def on_folder_progress(self, payload):
         copied = payload.get("copied", 0) or 0

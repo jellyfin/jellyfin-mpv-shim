@@ -100,12 +100,13 @@ backends**.
 - [X] Queue against a down server → doesn't busy-spin CPU; other server's playstate still syncs.
 
 ### 6b. Change the download folder (Settings → Downloads → Browse…) — new this branch
-- [ ] Change the folder with **no downloads yet** → takes effect, new downloads land in the new folder.
-- [ ] Change with **existing downloads to another drive** → progress bar advances, Save disabled during the move, UI/tray stay responsive (no "not responding"), files + `catalog.db` end up at the new path, old folder gone, downloads still play.
-- [ ] Change to a folder that **already has a `catalog.db`** → refused with a message, nothing moved.
-- [ ] Try to change **while a download is actively transferring** → refused; existing queue untouched.
-- [ ] Clear the folder (blank) → resets to the default `<config>/offline`, moving any downloads back.
-- [ ] Restart after a move → downloads still present at the new folder (path persisted).
+- [X] Change the folder with **no downloads yet** → takes effect, new downloads land in the new folder.
+- [X] Change with **existing downloads to another drive** → progress bar advances, Save disabled during the move, UI/tray stay responsive (no "not responding"), files + `catalog.db` end up at the new path, old folder gone, downloads still play.
+- [X] Change to a folder that **already has a `catalog.db`** → refused with a message, nothing moved.
+- [X] Try to change **while a download is actively transferring** → refused; existing queue untouched.
+- [X] Clear the folder (blank) → resets to the default `<config>/offline`, moving any downloads back.
+- [X] Restart after a move → downloads still present at the new folder (path persisted).
+- [ ] After a successful move → a **"Restart required"** prompt appears (the browser keeps the old catalog wiring for live progress until restart). Downloading before restarting shows no progress bar — known, hence the prompt.
 
 ### 7. Offline playback
 - [X] Fully offline / `work_offline`: play a downloaded item to the end.
