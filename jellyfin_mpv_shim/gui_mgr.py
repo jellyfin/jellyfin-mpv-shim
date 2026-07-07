@@ -222,6 +222,11 @@ class UserInterface(threading.Thread):
         # lands (e.g. the cast-session verifier confirms or gives up). This is
         # a status-only push — it must not rebuild the live browse source.
         clientManager.on_servers_changed = self._push_server_status
+        # A server that (re)connects in the background (health-check retry,
+        # websocket reconnect) must become browsable, not just get a status
+        # badge: push the full servers payload. The browser keeps the current
+        # selection/screen and just gains the server in the switcher.
+        clientManager.on_server_connected = self.refresh_servers
         if not settings.work_offline:
             self._connecting = True
         self.start_browser()
@@ -672,6 +677,11 @@ class UserInterface(threading.Thread):
                 try:
                     syncManager.db.upsert_playstate(server_uuid, item_id,
                                                     played=True)
+                    # Mirror into the stored userdata like offline playback
+                    # does: the browser overlay and watched-based delete read
+                    # userdata_json, not the pending queue — without this the
+                    # mark is invisible until the server syncs.
+                    syncManager.db.update_userdata(item_id, played=True)
                     ok = True
                 except Exception:
                     log.error("Failed to queue offline watched mark for %s",

@@ -95,7 +95,7 @@ from typing import Optional
 # connection state. They are only meaningful for the current session, so they
 # must be stripped before persisting to cred.json — a stale "connected: true"
 # from a previous run is misleading. Loading tolerates their presence.
-VOLATILE_CREDENTIAL_KEYS = frozenset({"connected"})
+VOLATILE_CREDENTIAL_KEYS = frozenset({"connected", "cast_ready"})
 
 
 def clean_credentials_for_save(credentials):
@@ -152,6 +152,12 @@ class ClientManager(object):
         # e.g. the background cast-session verifier confirms or gives up — so
         # the UI can refresh the servers list. Set by the GUI.
         self.on_servers_changed = lambda: None
+        # Fired when a server actually (re)connects in the background (health
+        # check, websocket reconnect). Distinct from on_servers_changed: this
+        # one means a server became BROWSABLE, so the GUI must push the full
+        # servers payload (rebuild the browse source / switcher), not just a
+        # status badge. Set by the GUI.
+        self.on_server_connected = lambda: None
         self.credentials = []
         self.clients = {}
         self.usernames = {}
@@ -161,6 +167,11 @@ class ClientManager(object):
         # Server uuids with a connect in flight, so concurrent connectors
         # (health check vs websocket reconnect) don't build duplicates.
         self._connecting = set()
+        # Server uuids the user removed. A health-check tick that captured the
+        # credentials list before the removal could otherwise re-register the
+        # deleted server (a zombie session that outlives its credential).
+        # Cleared on an explicit re-login with the same uuid (force_unique).
+        self._removed_uuids = set()
         # Set on stop(); lets reconnect/retry sleeps end immediately instead
         # of holding shutdown hostage for up to their full backoff interval.
         self._stop_event = threading.Event()
@@ -433,6 +444,10 @@ class ClientManager(object):
         server["username"] = username
         if force_unique and server["Id"] in self.clients:
             return True
+        # An explicit login supersedes any earlier removal of this uuid
+        # (force_unique reuses the server Id as uuid across add/remove cycles).
+        with self._client_lock:
+            self._removed_uuids.discard(server["uuid"])
         self.connect_client(server)
         self.credentials.append(server)
         self.save_credentials()
@@ -567,10 +582,33 @@ class ClientManager(object):
         return True
 
     def setup_client(self, client: "JellyfinClient", server, do_retries=True):
+        # The apiclient's WSClient redials in a tight loop with NO delay while
+        # the server is unreachable — a refused connect returns instantly, so
+        # a down server gets hammered with tens of thousands of attempts. Its
+        # on_error callback runs on that same redial thread, so blocking here
+        # (interruptibly) is the backoff. Reset ONLY on WebSocketConnect: it
+        # runs on the same WS thread (no cross-thread write to the cell), and
+        # HTTP-layer failure events ("ServerUnreachable") arrive through this
+        # same closure from other threads mid-outage — resetting on those
+        # would both race the generator and keep restarting the backoff at 1s.
+        ws_error_backoff = [None]
+
         def event(event_name, data):
+            if event_name == "WebSocketError":
+                gen = ws_error_backoff[0]
+                if gen is None:
+                    gen = ws_error_backoff[0] = expo(60)
+                self._stop_event.wait(next(gen))
+                self.callback(client, event_name, data)
+                return
+
             if event_name == "WebSocketDisconnect":
                 timeout_gen = expo(100)
-                if server["uuid"] in self.clients:
+                # Identity check, not membership: a stale WSClient thread
+                # (e.g. parked in the error backoff above while its client was
+                # replaced) fires a final WebSocketDisconnect on exit; acting
+                # on it would tear down the healthy replacement.
+                if self.clients.get(server["uuid"]) is client:
                     while not self.is_stopping and not settings.work_offline:
                         timeout = next(timeout_gen)
                         log.info(
@@ -578,15 +616,18 @@ class ClientManager(object):
                                 timeout
                             )
                         )
-                        self._disconnect_client(server=server)
+                        self._disconnect_client(server=server,
+                                                expected_client=client)
                         # Interruptible: this runs on a non-daemon websocket
                         # thread, and an uninterruptible sleep here used to
                         # hold app exit hostage for up to the full backoff.
                         if self._stop_event.wait(timeout):
                             break
                         if self.connect_client(server, False):
+                            self.on_server_connected()
                             break
             elif event_name == "WebSocketConnect":
+                ws_error_backoff[0] = None  # same WS thread as the errors
                 log.info("WebSocket connected, posting capabilities")
                 # API might not be ready yet. retry a few times.
                 for i in range(6):
@@ -679,6 +720,8 @@ class ClientManager(object):
         return False
 
     def remove_client(self, uuid: str):
+        with self._client_lock:
+            self._removed_uuids.add(uuid)
         self.credentials = [
             server for server in self.credentials if server["uuid"] != uuid
         ]
@@ -721,14 +764,15 @@ class ClientManager(object):
             self.setup_client(client, server, do_retries)
             registered = False
             with self._client_lock:
-                if not self.is_stopping:
+                if not self.is_stopping and uuid not in self._removed_uuids:
                     self.clients[uuid] = client
                     if server.get("username"):
                         self.usernames[uuid] = server["username"]
                     registered = True
             if not registered:
-                # stop() drained the registry while we were connecting;
-                # don't resurrect a client it can no longer see.
+                # stop() drained the registry while we were connecting, or
+                # the user removed this server mid-connect; don't resurrect a
+                # client nothing can see or that was just deleted.
                 client.stop()
                 return False
             return True
@@ -756,6 +800,12 @@ class ClientManager(object):
                 server["connected"] = False
 
             del self.clients[uuid]
+        # Silence before stopping: the WSClient thread fires one final
+        # WebSocketDisconnect when its loop exits, even on an intentional
+        # stop; letting it reach the reconnect handler would tear down or
+        # rebuild a server we just deliberately disconnected.
+        client.callback = lambda *_: None
+        client.callback_ws = lambda *_: None
         client.stop()
         return True
 
@@ -785,13 +835,24 @@ class ClientManager(object):
         # server that fails the initial connect (e.g. shim started before LAN
         # was up) is never tried again until the user restarts the app —
         # the long-standing reliability hole behind issues #344 / #410.
-        for server in self.credentials:
+        # No pre-probe is needed: authenticate() resolves through the
+        # apiclient's connect_to_server, whose first step is a single
+        # get_public_info with a 5-second timeout and no retries, so a dead
+        # (even SYN-blackholed) server costs this loop ~5s per tick.
+        reconnected = False
+        for server in list(self.credentials):
             if server["uuid"] not in self.clients and not self.is_stopping:
                 log.info(
                     "Health check: retrying disconnected server %s",
                     server.get("address"),
                 )
-                self.connect_client(server, do_retries=False)
+                if self.connect_client(server, do_retries=False):
+                    reconnected = True
+        if reconnected:
+            # The server is browsable again; without this the UI never learns
+            # (a server that was offline at startup stayed missing from the
+            # browser until an app restart).
+            self.on_server_connected()
 
     @property
     def is_stopping(self):

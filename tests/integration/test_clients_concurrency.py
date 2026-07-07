@@ -336,6 +336,33 @@ class HealthCheckReconnectTest(unittest.TestCase):
                         "reconnected client does not pass validation")
         self.assertEqual(cm._connecting, set(), "_connecting reservation leaked")
 
+    def test_background_reconnect_notifies_ui(self):
+        # Regression: a server offline at startup reconnected fine in the
+        # registry, but the browser was never told — it kept browsing the
+        # other server until an app restart. A successful health-check
+        # reconnect must fire on_server_connected (full servers push); ticks
+        # that reconnect nothing must stay quiet.
+        up = {"val": False}
+
+        def factory():
+            return _DynamicClient(up, lambda: [{"DeviceId": DEVICE_ID}])
+
+        cm = make_manager(factory)
+        srv = server()
+        cm.credentials = [srv]
+        notified = []
+        cm.on_server_connected = lambda: notified.append(True)
+
+        with mock.patch.object(clients_module.settings, "work_offline", False):
+            cm.check_all_clients()   # server still down
+            self.assertEqual(notified, [],
+                             "notified the UI without a reconnect")
+            up["val"] = True
+            cm.check_all_clients()   # server back: reconnect + notify
+        self.assertIn(srv["uuid"], cm.clients)
+        self.assertEqual(notified, [True],
+                         "UI was not told about the background reconnect")
+
 
 class ConnectDisconnectStressTest(unittest.TestCase):
     def setUp(self):
@@ -407,6 +434,150 @@ class ConnectDisconnectStressTest(unittest.TestCase):
         self.assertEqual(len(cm.clients), 1)
         self.assertEqual(len(built), 1, "health checks built duplicate clients")
         self.assertEqual(cm._connecting, set())
+
+
+class RemovedServerTombstoneTest(unittest.TestCase):
+    """A health-check tick that captured the credentials list before the user
+    removed a server must not re-register the deleted server afterwards (a
+    zombie session that outlives its credential and is never validated)."""
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+
+    def test_connect_after_remove_is_refused(self):
+        built = []
+
+        def factory():
+            c = FakeClient(sessions=[{"DeviceId": DEVICE_ID}])
+            built.append(c)
+            return c
+
+        cm = make_manager(factory)
+        cm.save_credentials = lambda: None  # keep the real cred.json untouched
+        srv = server()
+        cm.credentials = [srv]
+        cm.remove_client(srv["uuid"])
+
+        # The stale iteration (old list snapshot) reaches the removed entry.
+        self.assertFalse(cm.connect_client(srv))
+        self.assertNotIn(srv["uuid"], cm.clients,
+                         "removed server was resurrected by a stale reconnect")
+        # The client built mid-connect must have been stopped, not leaked.
+        self.assertTrue(all(c.stopped for c in built))
+
+
+class StaleDisconnectEventTest(unittest.TestCase):
+    """A stale WSClient thread (its client already replaced in the registry)
+    fires one final WebSocketDisconnect on exit; the reconnect handler must
+    ignore it instead of tearing down the healthy replacement."""
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+
+    def test_stale_disconnect_leaves_replacement_alone(self):
+        cm = make_manager(lambda: FakeClient())
+        srv = server()
+        stale = FakeClient()
+        with mock.patch.object(clients_module.settings, "work_offline", False):
+            cm.setup_client = ClientManager.setup_client.__get__(cm)
+            cm.setup_client(stale, srv, do_retries=False)
+
+        replacement = FakeClient()
+        cm.clients[srv["uuid"]] = replacement
+
+        # The stale thread's final event: identity check must reject it.
+        stale.callback("WebSocketDisconnect", None)
+
+        self.assertIs(cm.clients.get(srv["uuid"]), replacement,
+                      "stale disconnect tore down the healthy replacement")
+        self.assertFalse(replacement.stopped)
+
+    def test_intentional_disconnect_silences_final_event(self):
+        cm = make_manager(lambda: FakeClient())
+        srv = server()
+        victim = FakeClient()
+        with mock.patch.object(clients_module.settings, "work_offline", False):
+            cm.setup_client = ClientManager.setup_client.__get__(cm)
+            cm.setup_client(victim, srv, do_retries=False)
+        cm.clients[srv["uuid"]] = victim
+
+        self.assertTrue(cm._disconnect_client(server=srv))
+        # The WSClient thread will still fire its final callback on exit; it
+        # must be a no-op now, not the reconnect handler.
+        victim.callback("WebSocketDisconnect", None)
+        self.assertNotIn(srv["uuid"], cm.clients)
+
+
+class WebSocketErrorBackoffTest(unittest.TestCase):
+    """Regression: the apiclient's WSClient redials in a tight loop with no
+    delay while the server is unreachable — the shim spammed a down server
+    with tens of thousands of connection attempts. The WebSocketError handler
+    (which runs on that redial thread) must block with growing backoff, reset
+    once traffic flows again, and stay interruptible for shutdown."""
+
+    class RecordingEvent:
+        """Stands in for cm._stop_event: records wait() durations, never set."""
+
+        def __init__(self):
+            self.waits = []
+
+        def wait(self, timeout=None):
+            self.waits.append(timeout)
+            return False
+
+        def is_set(self):
+            return False
+
+    def _wired_event_handler(self):
+        cm = make_manager(lambda: FakeClient())
+        recorder = self.RecordingEvent()
+        cm._stop_event = recorder
+        client = FakeClient()
+        # The real setup_client wires client.callback to its internal event fn.
+        with mock.patch.object(clients_module.settings, "work_offline", False):
+            cm.setup_client = ClientManager.setup_client.__get__(cm)
+            cm.setup_client(client, server(), do_retries=False)
+        return cm, client, recorder
+
+    def test_repeated_errors_back_off_exponentially(self):
+        cm, client, recorder = self._wired_event_handler()
+        for _ in range(4):
+            client.callback("WebSocketError", "connection refused")
+        self.assertEqual(recorder.waits, [1, 2, 4, 8])
+
+    def test_backoff_resets_on_reconnect(self):
+        cm, client, recorder = self._wired_event_handler()
+        client.callback("WebSocketError", "refused")
+        client.callback("WebSocketError", "refused")
+        client.callback("WebSocketConnect", None)  # actually reconnected
+        client.callback("WebSocketError", "refused")
+        self.assertEqual(recorder.waits, [1, 2, 1])
+
+    def test_http_layer_failure_events_do_not_reset_backoff(self):
+        # The HTTP layer routes "ServerUnreachable" (and other events) through
+        # the same client.callback from OTHER threads while the server is
+        # still down; resetting on those would restart the backoff at 1s for
+        # the whole outage (and race the generator cell cross-thread). Only a
+        # real reconnect (WebSocketConnect, same WS thread) may reset.
+        cm, client, recorder = self._wired_event_handler()
+        client.callback("WebSocketError", "refused")
+        client.callback("WebSocketError", "refused")
+        client.callback("ServerUnreachable", {"ServerId": "x"})
+        client.callback("WebSocketError", "refused")
+        self.assertEqual(recorder.waits, [1, 2, 4],
+                         "an HTTP-layer failure event reset the ws backoff")
+
+    def test_backoff_is_capped(self):
+        cm, client, recorder = self._wired_event_handler()
+        for _ in range(10):
+            client.callback("WebSocketError", "refused")
+        self.assertEqual(max(recorder.waits), 60)
 
 
 if __name__ == "__main__":
