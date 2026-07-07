@@ -106,7 +106,7 @@ backends**.
 - [X] Try to change **while a download is actively transferring** → refused; existing queue untouched.
 - [X] Clear the folder (blank) → resets to the default `<config>/offline`, moving any downloads back.
 - [X] Restart after a move → downloads still present at the new folder (path persisted).
-- [ ] After a successful move → a **"Restart required"** prompt appears (the browser keeps the old catalog wiring for live progress until restart). Downloading before restarting shows no progress bar — known, hence the prompt.
+- [X] After a successful move → a **"Restart required"** prompt appears (the browser keeps the old catalog wiring for live progress until restart). Downloading before restarting shows no progress bar — known, hence the prompt.
 
 ### 7. Offline playback
 - [X] Fully offline / `work_offline`: play a downloaded item to the end.
