@@ -349,6 +349,78 @@ class RelocateTest(TmpTest):
         self.assertIn("already contains", msg)
         self.assertEqual(m.root, old)
 
+    def test_progress_reported_and_monotonic(self):
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        self._seed_download(m)  # 100-byte media file + a catalog.db
+        calls = []
+        m.relocate(os.path.join(self.tmp, "new"), progress=lambda c, t: calls.append((c, t)))
+        self.assertTrue(calls)
+        totals = {t for _c, t in calls}
+        self.assertEqual(len(totals), 1)  # total is stable across the move
+        total = totals.pop()
+        self.assertGreaterEqual(total, 100)  # at least the media file's bytes
+        copied = [c for c, _t in calls]
+        self.assertEqual(copied, sorted(copied))  # monotonic
+        self.assertEqual(calls[-1], (total, total))  # ends at 100%
+
+    def test_cross_drive_copy_fallback_moves_and_reports_interim(self):
+        # Force os.rename to fail with EXDEV so _move_tree takes the copy path a
+        # real cross-drive move would. A file larger than PROGRESS_STEP must emit
+        # at least one interim (0 < copied < total) progress tick.
+        import errno
+        from unittest import mock
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(os.path.join(old, "srv", "big"))
+        rel = os.path.join("srv", "big", "media.mkv")
+        size = manager_module.PROGRESS_STEP * 2 + 1234
+        with open(os.path.join(old, rel), "wb") as fh:
+            fh.write(b"z" * size)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        add_row(m, "big", server_id="srv", status=STATUS_COMPLETE, file_path=rel)
+        new = os.path.join(self.tmp, "new")
+        calls = []
+
+        def boom(src, dst):
+            raise OSError(errno.EXDEV, "cross-device link")
+
+        with mock.patch("jellyfin_mpv_shim.sync.manager.os.rename", side_effect=boom):
+            ok, msg = m.relocate(new, progress=lambda c, t: calls.append((c, t)))
+        self.assertTrue(ok, msg)
+        self.assertEqual(os.path.getsize(os.path.join(new, rel)), size)
+        self.assertFalse(os.path.exists(old))
+        interim = [c for c, t in calls if 0 < c < t]
+        self.assertTrue(interim, "expected at least one interim progress tick")
+
+    def test_copy_tree_copies_bytes_and_advances_state(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        src = os.path.join(self.tmp, "src")
+        os.makedirs(os.path.join(src, "sub"))
+        with open(os.path.join(src, "a.bin"), "wb") as fh:
+            fh.write(b"a" * 1500)
+        with open(os.path.join(src, "sub", "b.bin"), "wb") as fh:
+            fh.write(b"b" * 500)
+        dst = os.path.join(self.tmp, "dst")
+        state = [0, 2000, 0]
+        seen = []
+        m._copy_tree(src, dst, state, lambda c, t: seen.append((c, t)))
+        self.assertEqual(state[0], 2000)  # all bytes accounted for
+        with open(os.path.join(dst, "a.bin"), "rb") as fh:
+            self.assertEqual(fh.read(), b"a" * 1500)
+        with open(os.path.join(dst, "sub", "b.bin"), "rb") as fh:
+            self.assertEqual(fh.read(), b"b" * 500)
+
+    def test_relocating_flag_blocks_enqueue_and_delete(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", status=STATUS_COMPLETE, file_path="srv/a/media.mkv")
+        m._relocating = True
+        self.assertEqual(m.enqueue("uuid", "x", "Movie"), 0)
+        m.delete(item_id="a")  # must be a no-op, not touch the row
+        self.assertIsNotNone(m.db.get("a"))
+
     def test_move_failure_leaves_downloads_in_place(self):
         old = os.path.join(self.tmp, "old")
         os.makedirs(old)

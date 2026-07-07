@@ -69,6 +69,10 @@ class SyncManager:
         self._active_lock = threading.Lock()
         self._active_item = None
         self._cancelled = set()
+        # Set while relocate() is moving the store (worker stopped, catalog
+        # closed). enqueue/delete short-circuit so nothing writes to a catalog
+        # that is mid-move.
+        self._relocating = False
         self._last_playstate = 0.0
         # item_id -> (last downloaded size, consecutive no-progress short reads).
         # A short read normally leaves the row pending to resume; but a server
@@ -104,8 +108,12 @@ class SyncManager:
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
 
-    def relocate(self, new_path):
+    def relocate(self, new_path, progress=None):
         """Move the download tree to new_path and re-point the manager at it.
+
+        progress, if given, is called as progress(copied_bytes, total_bytes)
+        during the move (throttled) so a slow cross-drive copy can show a bar
+        instead of freezing the UI. Run this off any UI/event-loop thread.
 
         Returns (ok, message): message is a user-facing string to surface when
         ok is False (or empty on success). Refuses while a download is actively
@@ -135,9 +143,12 @@ class SyncManager:
             return False, _("Can't create that folder. Check the path and its "
                             "permissions.")
         # Stop the worker and close the catalog so nothing is open mid-move.
+        # _relocating keeps enqueue/delete off the (closed) catalog until we
+        # reopen at the destination.
+        self._relocating = True
         self.stop()
         try:
-            self._move_tree(old_root, new_root)
+            self._move_tree(old_root, new_root, progress)
         except Exception:
             log.error("Failed to move download folder from %r to %r",
                       old_root, new_root, exc_info=True)
@@ -145,28 +156,99 @@ class SyncManager:
             self._open_and_run()  # resume where the downloads still are
             return False, _("Moving the downloads failed. They were left in "
                             "place; the download folder was not changed.")
+        finally:
+            self._relocating = False
         self.root = new_root
         self._open_and_run()
         return True, ""
 
-    def _move_tree(self, old_root, new_root):
+    def _move_tree(self, old_root, new_root, progress=None):
         """Move every entry from old_root into new_root (created by the caller).
 
-        Per-entry shutil.move so it works across drives (copy+delete). Skips any
-        name that already exists in the destination rather than clobber it.
+        Same-filesystem entries are renamed (instant); entries on a different
+        drive are copied with byte progress and then removed. Skips any name
+        that already exists in the destination rather than clobber it.
         """
         if not os.path.isdir(old_root):
+            if progress:
+                progress(0, 0)
             return
-        for name in os.listdir(old_root):
+        names = [n for n in os.listdir(old_root)
+                 if not os.path.exists(os.path.join(new_root, n))]
+        sizes = {n: self._tree_size(os.path.join(old_root, n)) for n in names}
+        # [copied so far, total, bytes at last emit] — mutated as we go.
+        state = [0, sum(sizes.values()), 0]
+        if progress:
+            progress(0, state[1])
+        for name in names:
+            src = os.path.join(old_root, name)
             dest = os.path.join(new_root, name)
-            if os.path.exists(dest):
-                continue
-            shutil.move(os.path.join(old_root, name), dest)
+            try:
+                os.rename(src, dest)  # instant on the same filesystem
+                state[0] += sizes[name]
+                self._emit_progress(state, progress, force=True)
+            except OSError:
+                # Different drive (EXDEV): copy across, then drop the original.
+                self._copy_tree(src, dest, state, progress)
+                if os.path.isdir(src):
+                    shutil.rmtree(src, ignore_errors=True)
+                else:
+                    try:
+                        os.remove(src)
+                    except OSError:
+                        pass
         # Drop the now-empty old folder (best-effort; harmless if it lingers).
         try:
             os.rmdir(old_root)
         except OSError:
             pass
+        if progress:
+            progress(state[1], state[1])
+
+    @staticmethod
+    def _tree_size(path):
+        if os.path.isfile(path):
+            try:
+                return os.path.getsize(path)
+            except OSError:
+                return 0
+        total = 0
+        for dirpath, _dirs, files in os.walk(path):
+            for name in files:
+                try:
+                    total += os.path.getsize(os.path.join(dirpath, name))
+                except OSError:
+                    pass
+        return total
+
+    def _copy_tree(self, src, dst, state, progress):
+        """Recursively copy src->dst, chunking files so `state`/progress advance
+        smoothly on a large media file."""
+        if os.path.isdir(src):
+            os.makedirs(dst, exist_ok=True)
+            for name in os.listdir(src):
+                self._copy_tree(os.path.join(src, name),
+                                os.path.join(dst, name), state, progress)
+            return
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(src, "rb") as fin, open(dst, "wb") as fout:
+            while True:
+                chunk = fin.read(CHUNK)
+                if not chunk:
+                    break
+                fout.write(chunk)
+                state[0] += len(chunk)
+                self._emit_progress(state, progress)
+        shutil.copystat(src, dst)
+
+    @staticmethod
+    def _emit_progress(state, progress, force=False):
+        copied, total, last = state
+        if not progress:
+            return
+        if force or copied - last >= PROGRESS_STEP:
+            state[2] = copied
+            progress(min(copied, total), total)
 
     def stop(self):
         self._stop = True
@@ -225,6 +307,8 @@ class SyncManager:
                 "watched_count": watched, "already_count": already}
 
     def enqueue(self, server_uuid, item_id, item_type, include_watched=False):
+        if self._relocating:
+            return 0  # catalog is mid-move; caller can retry after
         client = self.get_client(server_uuid)
         if not client:
             return 0
@@ -314,6 +398,8 @@ class SyncManager:
                watched_only=False, playlist_id=None):
         """Flexible delete: a single item, a season, a whole series, a
         playlist's downloads, and/or only watched items within that scope."""
+        if self._relocating:
+            return  # catalog is mid-move; caller can retry after
         if item_id:
             self.delete_item(item_id)
             return

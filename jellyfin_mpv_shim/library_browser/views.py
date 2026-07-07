@@ -1572,6 +1572,10 @@ class SettingsPanel:
         self.app = app
         tk = app.tk
         self.vars = {}  # key -> (tk var, type)
+        # The path the user asked to move to, held while the async move runs so
+        # a mid-move settings_data (still carrying the old path) can't revert the
+        # field under the user. Cleared when the move reports its outcome.
+        self._pending_sync_path = None
         self.show_advanced = tk.BooleanVar(value=False)
         self.container = VScrollFrame(app, parent)
         self.container.widget().pack(fill="both", expand=True)
@@ -1603,8 +1607,12 @@ class SettingsPanel:
         self.save_row.pack(fill="x", padx=16, pady=14)
         self.status = tk.Label(self.save_row, text="", bg=CARD_BG, fg=SUBTLE_FG)
         self.status.pack(side="right", padx=8)
-        ttk.Button(self.save_row, text=_("Save Settings"), style="Accent.TButton",
-                   command=self._save).pack(side="left")
+        self.save_btn = ttk.Button(self.save_row, text=_("Save Settings"),
+                                   style="Accent.TButton", command=self._save)
+        self.save_btn.pack(side="left")
+        # Shown (packed) only while a download-folder move is running.
+        self.move_progress = ttk.Progressbar(self.save_row, mode="determinate",
+                                             length=180, maximum=100)
         tk.Label(body, text=_("Some changes take effect after restarting."),
                  bg=CARD_BG, fg=SUBTLE_FG).pack(anchor="w", padx=16, pady=(0, 16))
 
@@ -1688,6 +1696,7 @@ class SettingsPanel:
         # back asynchronously via on_status; don't claim "Saved." prematurely.
         stored = self.app.settings_values.get("sync_path") or ""
         if "sync_path" in changes and changes["sync_path"] != stored:
+            self._pending_sync_path = changes["sync_path"]
             self.status.config(text=_("Updating download folder…"), fg=SUBTLE_FG)
         else:
             self.status.config(text=_("Saved."), fg=SUBTLE_FG)
@@ -1695,8 +1704,37 @@ class SettingsPanel:
     def on_status(self, status):
         if not isinstance(status, dict):
             return
+        self._end_folder_move()
+        # Move finished — stop pinning the field and show the now-persisted path
+        # (the resolved absolute path on success, the unchanged old one on fail).
+        self._pending_sync_path = None
+        if "sync_path" in self.vars and "sync_path" in self.app.settings_values:
+            var, _t = self.vars["sync_path"]
+            val = self.app.settings_values.get("sync_path")
+            var.set("" if val is None else str(val))
         self.status.config(text=status.get("text", ""),
                            fg=SUBTLE_FG if status.get("ok") else "#e06c6c")
+
+    def on_folder_progress(self, payload):
+        copied = payload.get("copied", 0) or 0
+        total = payload.get("total", 0) or 0
+        if not self.move_progress.winfo_ismapped():
+            self.move_progress.pack(side="left", padx=8)
+            self.save_btn.state(["disabled"])
+        pct = 100 if total <= 0 else min(100, int(copied * 100 / total))
+        self.move_progress["value"] = pct
+        if total > 0:
+            self.status.config(text=_("Moving downloads… %(pct)d%% "
+                                      "(%(done)s / %(total)s)") % {
+                "pct": pct, "done": human_size(copied),
+                "total": human_size(total)}, fg=SUBTLE_FG)
+        else:
+            self.status.config(text=_("Moving downloads…"), fg=SUBTLE_FG)
+
+    def _end_folder_move(self):
+        if self.move_progress.winfo_ismapped():
+            self.move_progress.pack_forget()
+        self.save_btn.state(["!disabled"])
 
     def on_data(self, values):
         # Refresh the displayed values after a save round-trip (coercion may have
@@ -1705,6 +1743,8 @@ class SettingsPanel:
         for key, (var, vtype) in self.vars.items():
             if key not in values:
                 continue
+            if key == "sync_path" and self._pending_sync_path is not None:
+                continue  # a move is running — keep the user's chosen path shown
             if vtype == "bool":
                 var.set(values[key])
             elif vtype == "labeled":
@@ -1780,6 +1820,10 @@ class SettingsView(BaseView):
     def on_settings_status(self, status):
         if self.settings_panel:
             self.settings_panel.on_status(status)
+
+    def on_folder_progress(self, payload):
+        if self.settings_panel:
+            self.settings_panel.on_folder_progress(payload)
 
     def on_download_progress(self, payload):
         if self.downloads_panel:

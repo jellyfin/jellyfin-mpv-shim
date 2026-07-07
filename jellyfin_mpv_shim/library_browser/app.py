@@ -714,6 +714,8 @@ class BrowserApp:
                 self._enter_offline()
         elif cmd == "settings_status":
             self._dispatch_view("on_settings_status", param or {})
+        elif cmd == "download_folder_progress":
+            self._dispatch_view("on_folder_progress", param or {})
         elif cmd == "sync_state":
             ss = param or {}
             self.sync_items = set(ss.get("items") or [])

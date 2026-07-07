@@ -145,6 +145,7 @@ class UserInterface(threading.Thread):
         self._connect_thread = None
         self._shutting_down = False
         self._quick_connect_cancel = None  # threading.Event for the active QC flow
+        self._folder_move_active = False   # a download-folder move is in flight
 
         threading.Thread.__init__(self)
 
@@ -573,8 +574,18 @@ class UserInterface(threading.Thread):
         self._send_browser(("log_init", list(log_cache)))
 
     def on_save_settings(self, changes):
+        move_target = None
+        move_requested = False
         if isinstance(changes, dict):
-            changes = self._apply_sync_path_change(changes)
+            # A download-folder change moves files (possibly across drives) and
+            # is handled asynchronously below — peel it off so it isn't written
+            # until the move actually succeeds.
+            if "sync_path" in changes:
+                new_path = changes.get("sync_path") or None
+                if (new_path or "") != (settings.sync_path or ""):
+                    move_requested = True
+                    move_target = new_path
+                    changes = {k: v for k, v in changes.items() if k != "sync_path"}
             try:
                 data = settings.dict()
                 data.update(changes)
@@ -589,27 +600,50 @@ class UserInterface(threading.Thread):
             except Exception:
                 log.error("Failed to save settings", exc_info=True)
         self._send_browser(("settings_data", settings.dict()))
+        if move_requested:
+            self._start_folder_move(move_target)
 
-    def _apply_sync_path_change(self, changes):
-        """If the download folder changed, move existing downloads and re-point
-        the sync manager before the new path is persisted. Reports the outcome
-        to the browser and drops sync_path from the change set on failure so the
-        stale path is never written."""
-        if "sync_path" not in changes:
-            return changes
-        new_path = changes.get("sync_path") or None
-        if (new_path or "") == (settings.sync_path or ""):
-            return changes
-        ok, message = syncManager.relocate(new_path)
-        if ok:
-            self._send_browser(("catalog_path",
-                                syncManager.db.path if syncManager.db else None))
-            self._send_browser(("settings_status",
-                                {"ok": True, "text": _("Download folder updated.")}))
-            return changes
-        # Keep the old path: strip sync_path so the failed value isn't saved.
-        self._send_browser(("settings_status", {"ok": False, "text": message}))
-        return {k: v for k, v in changes.items() if k != "sync_path"}
+    def _start_folder_move(self, new_path):
+        """Move the download store on a background thread (never on the UI action
+        loop — a large cross-drive copy would freeze it and Windows would kill
+        the process), streaming byte progress to the browser."""
+        if self._folder_move_active:
+            self._send_browser(("settings_status", {"ok": False,
+                "text": _("A download-folder change is already running.")}))
+            return
+        self._folder_move_active = True
+
+        def work():
+            try:
+                def progress(copied, total):
+                    self._send_browser(("download_folder_progress",
+                                        {"copied": copied, "total": total}))
+                ok, message = syncManager.relocate(new_path, progress=progress)
+                if ok:
+                    # Persist the resolved destination so start() and relocate
+                    # agree on where the store lives (relocate expands ~ and
+                    # makes the path absolute).
+                    settings.sync_path = syncManager.root if new_path else None
+                    try:
+                        settings.save()
+                    except Exception:
+                        log.error("Failed to persist sync_path", exc_info=True)
+                    self._send_browser(("catalog_path",
+                        syncManager.db.path if syncManager.db else None))
+                    self._send_browser(("settings_data", settings.dict()))
+                    self._send_browser(("settings_status", {"ok": True,
+                        "text": _("Download folder updated.")}))
+                else:
+                    self._send_browser(("settings_status",
+                                        {"ok": False, "text": message}))
+            except Exception:
+                log.error("Download folder move failed", exc_info=True)
+                self._send_browser(("settings_status", {"ok": False,
+                    "text": _("Moving the downloads failed.")}))
+            finally:
+                self._folder_move_active = False
+
+        threading.Thread(target=work, daemon=True).start()
 
     @staticmethod
     def _materialize_language_preset(changes):
