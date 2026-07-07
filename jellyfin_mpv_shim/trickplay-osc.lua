@@ -23,6 +23,24 @@ mp.register_script_message("thumbfast-info", function(json)
         thumbfast = data
     end
 end)
+
+-- Whether a thumb request may be showing (i.e. a "clear" would do anything).
+-- The render loop runs on every mouse move; sending "clear" unconditionally
+-- spammed the thumbfast script with redundant requests whenever the cursor
+-- was away from the seekbar.
+local thumb_requested = false
+
+local function thumbfast_request(...)
+    thumb_requested = true
+    mp.commandv("script-message-to", "thumbfast", "thumb", ...)
+end
+
+local function thumbfast_clear()
+    if thumb_requested then
+        thumb_requested = false
+        mp.commandv("script-message-to", "thumbfast", "clear")
+    end
+end
 -- END patch add thumbnails
 
 --
@@ -864,7 +882,7 @@ function render_elements(master_ass)
                         should_render_preview = true
                         local sx, sy = get_virt_scale_factor()
                         local mX, mY = get_virt_mouse_pos()
-                        mp.commandv("script-message-to", "thumbfast", "thumb",
+                        thumbfast_request(
                             duration * (sliderpos / 100),
                             math.floor(mX / sx - thumbfast.width / 2),
                             math.floor((element.hitbox.y1 - 24) / sy - thumbfast.height)
@@ -876,7 +894,7 @@ function render_elements(master_ass)
 
             -- BEGIN patch add thumbnails
             if thumbfast.available and not should_render_preview then
-                mp.commandv("script-message-to", "thumbfast", "clear")
+                thumbfast_clear()
             end
             -- END patch add thumbnails
 
@@ -2513,7 +2531,7 @@ function render()
     else
         -- BEGIN patch add thumbnails
         if thumbfast.available then
-            mp.commandv("script-message-to", "thumbfast", "clear")
+            thumbfast_clear()
         end
         -- END patch add thumbnails
     end
