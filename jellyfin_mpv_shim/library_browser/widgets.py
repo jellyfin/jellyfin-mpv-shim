@@ -515,7 +515,7 @@ class HScrollRow:
         self.inner = tk.Frame(self.canvas, bg=CARD_BG)
         self._win = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
         self.inner.bind("<Configure>", lambda _e: self._on_configure())
-        self.canvas.bind("<Configure>", lambda _e: self._update_arrows())
+        self.canvas.bind("<Configure>", lambda _e: self._on_canvas_configure())
 
         # Square nav buttons overlaid on the row edges (created after the canvas
         # so they stack above it).
@@ -578,6 +578,13 @@ class HScrollRow:
         self.canvas.xview_scroll(units, "units")
         self.app.root.after_idle(self._update_visible)
         self.app.root.after_idle(self._update_arrows)
+
+    def _on_canvas_configure(self):
+        # A canvas resize (e.g. window resize) can widen the viewport and reveal
+        # tiles that were previously off-screen; load their artwork too, not just
+        # refresh the arrows.
+        self._update_arrows()
+        self._update_visible()
 
     def _update_arrows(self):
         try:
