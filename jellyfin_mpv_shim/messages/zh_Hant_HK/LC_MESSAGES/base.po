@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-07 18:04-0400\n"
-"PO-Revision-Date: 2026-06-09 12:27+0000\n"
+"POT-Creation-Date: 2026-07-07 18:06-0400\n"
+"PO-Revision-Date: 2026-07-06 08:24+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -102,14 +102,8 @@ msgid "Add another server?"
 msgstr "仲要唔要加多個伺服器？"
 
 #: jellyfin_mpv_shim/clients.py:481
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
 msgstr ""
-"加唔到伺服器。\n"
-"唔該check吓你輸入嘅連線資料。"
 
 #: jellyfin_mpv_shim/clients.py:486
 msgid "Quick Connect is not enabled on this server."
@@ -510,10 +504,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1015
 #: jellyfin_mpv_shim/library_browser/views.py:1042
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Starting…"
-msgstr "SVP 設定"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1018
 #: jellyfin_mpv_shim/library_browser/views.py:1882
@@ -619,10 +611,8 @@ msgid "Playlist: %s  ·  %d · %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1373
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove downloads"
-msgstr "剷走伺服器"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1411
 msgid "Remove show"
@@ -765,10 +755,8 @@ msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1740
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Moving downloads…"
-msgstr "剷走伺服器"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1785
 #, fuzzy
@@ -1080,7 +1068,7 @@ msgstr "跳過片尾前問我"
 
 #: jellyfin_mpv_shim/menu.py:602
 msgid "Enable thumbnail previews"
-msgstr "啟用縮圖預覽"
+msgstr "啟用預覽圖"
 
 #: jellyfin_mpv_shim/player.py:420
 msgid "Please wait, loading..."

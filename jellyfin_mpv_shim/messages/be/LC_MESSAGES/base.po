@@ -5,9 +5,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-07 18:04-0400\n"
-"PO-Revision-Date: 2026-01-05 13:51+0000\n"
-"Last-Translator: Dzmitry Zubialevich <dzmitry.zubialevich@gmail.com>\n"
+"POT-Creation-Date: 2026-07-07 18:06-0400\n"
+"PO-Revision-Date: 2026-06-29 09:08+0000\n"
+"Last-Translator: Pavel Miniutka <pavel.miniutka@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
 "Language: be\n"
@@ -103,14 +103,8 @@ msgid "Add another server?"
 msgstr "Дадаць яшчэ адзін сервер?"
 
 #: jellyfin_mpv_shim/clients.py:481
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
 msgstr ""
-"Немагчыма дадаць сервер.\n"
-"Праверце інфармацыю аб падлучэнні."
 
 #: jellyfin_mpv_shim/clients.py:486
 msgid "Quick Connect is not enabled on this server."
@@ -511,10 +505,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1015
 #: jellyfin_mpv_shim/library_browser/views.py:1042
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Starting…"
-msgstr "Налады SVP"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1018
 #: jellyfin_mpv_shim/library_browser/views.py:1882
@@ -620,10 +612,8 @@ msgid "Playlist: %s  ·  %d · %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1373
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove downloads"
-msgstr "Выдаліць сервер"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1411
 msgid "Remove show"
@@ -680,7 +670,7 @@ msgstr " (Перакадзіраваць)"
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Паспрабаваць прапусціць тытры"
+msgstr "Прапусціць цітры"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1527
 msgid "Library Browser"
@@ -766,10 +756,8 @@ msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1740
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Moving downloads…"
-msgstr "Выдаліць сервер"
+msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1785
 #, fuzzy
@@ -1073,11 +1061,11 @@ msgstr "Спытаць каб прапусціць уступы"
 
 #: jellyfin_mpv_shim/menu.py:596
 msgid "Always Skip Credits"
-msgstr "Заўсёды прапускаць тытры"
+msgstr "Заўсёды прапускаць цітры"
 
 #: jellyfin_mpv_shim/menu.py:599
 msgid "Ask to Skip Credits"
-msgstr "Спытаць каб прапусціць тытры"
+msgstr "Патыцца, ці прапускаць цітры"
 
 #: jellyfin_mpv_shim/menu.py:602
 msgid "Enable thumbnail previews"
@@ -1089,7 +1077,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:717
 msgid "Skipped Credits"
-msgstr "Прапушчаныя тытры"
+msgstr "Прапушчаныя цітры"
 
 #: jellyfin_mpv_shim/player.py:719
 msgid "Skipped Intro"
@@ -1097,7 +1085,7 @@ msgstr "Прапушчаны ўступ"
 
 #: jellyfin_mpv_shim/player.py:733
 msgid "Seek to Skip Credits"
-msgstr "Паспрабаваць прапусціць тытры"
+msgstr "Прапусціць цітры"
 
 #: jellyfin_mpv_shim/player.py:735
 msgid "Seek to Skip Intro"

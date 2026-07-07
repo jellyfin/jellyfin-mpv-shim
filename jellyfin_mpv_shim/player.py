@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+import json
 
 import platform
 
@@ -843,6 +844,7 @@ class PlayerManager(object):
             # noinspection PyUnresolvedReferences
             self.get_webview().hide()
 
+        self._player.command("set_property", "user-data/media-source/Path", video.media_source["Path"])
         self._player.play(self.url)
         if not wait_property(
             self._player,
