@@ -33,8 +33,12 @@ DETAIL_FIELDS = (
     "PrimaryImageAspectRatio,DateCreated"
 )
 
-# CollectionTypes we do not surface (video-only browser, phase 1).
-EXCLUDED_COLLECTION_TYPES = {"music", "musicvideos", "books", "playlists", "livetv"}
+# CollectionTypes we do not surface (video-only browser, phase 1). Playlists
+# ARE surfaced (as a normal library tile): Jellyfin lets a playlist's declared
+# type and its contents diverge, so we can't classify a playlist as music/video
+# up front — instead we show every playlist and filter its *contents* to
+# supported types when opened (see PLAYLIST_SUPPORTED_TYPES).
+EXCLUDED_COLLECTION_TYPES = {"music", "musicvideos", "books", "livetv"}
 
 # Item types that open the detail/play view rather than drilling deeper.
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
@@ -42,6 +46,9 @@ PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
 SERIES_TYPES = {"Series"}
 # Item types that drill into another grid (by ParentId).
 FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
+# Item types shown inside a playlist. A playlist can mix in music/other entries;
+# only these are surfaced (and downloaded) by this video-only browser.
+PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video"}
 
 
 class ServerConn:
@@ -175,6 +182,17 @@ class LibrarySource:
         }) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
+    def get_playlist_items(self, server_uuid, playlist_id):
+        """A playlist's items in playlist order (not sorted).
+
+        Returns the raw contents; the view filters to supported media types so
+        it can tell an empty playlist from one that only holds unsupported
+        (e.g. music) entries.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_playlist_items(playlist_id, fields=LIST_FIELDS) or {}
+        return result.get("Items", [])
+
     def get_seasons(self, server_uuid, series_id):
         api = self._conn(server_uuid).api
         result = api.get_seasons(series_id) or {}
@@ -284,6 +302,8 @@ class OfflineLibrarySource:
 
     def reload(self):
         rows = []
+        playlists = []
+        playlist_rows = {}  # playlist_id -> ordered list of download rows
         if self.catalog_path:
             # reload() runs from __init__ (BrowserApp._enter_offline): a corrupt
             # or unreadable catalog must degrade to an empty offline library, not
@@ -292,12 +312,16 @@ class OfflineLibrarySource:
                 db = SyncDB(self.catalog_path, read_only=True)
                 try:
                     rows = db.list(status=STATUS_COMPLETE)
+                    playlists = db.list_playlists()
+                    for pl in playlists:
+                        playlist_rows[pl["playlist_id"]] = db.playlist_item_rows(
+                            pl["playlist_id"])
                 finally:
                     db.close()
             except Exception:
                 log.warning("Failed to open offline catalog %s",
                             self.catalog_path, exc_info=True)
-                rows = []
+                rows, playlists, playlist_rows = [], [], {}
         # Build into locals, then publish each attribute in one assignment.
         # reload() can now run on a browser api-pool thread (a download finished
         # while browsing offline), so a concurrent reader must never observe a
@@ -316,11 +340,27 @@ class OfflineLibrarySource:
                 if row.get("season_id"):
                     season_server.setdefault(row["season_id"], row.get("server_id"))
                     season_series.setdefault(row["season_id"], row["series_id"])
+        # Playlist DTOs + their ordered downloaded items (drop empties defensively;
+        # list_playlists already requires ≥1 complete item).
+        playlist_dtos, playlist_items, playlist_first = [], {}, {}
+        for pl in playlists:
+            pid = pl["playlist_id"]
+            pl_items = [self._item_from_row(r) for r in playlist_rows.get(pid, [])]
+            pl_items = [i for i in pl_items if i is not None]
+            if not pl_items:
+                continue
+            playlist_dtos.append({"Id": pid, "Name": pl.get("name") or _("Playlist"),
+                                  "Type": "Playlist", "ImageTags": {}})
+            playlist_items[pid] = pl_items
+            playlist_first[pid] = pl_items[0].get("Id")
         self._rows = by_id
         self._items = items
         self._series_server = series_server
         self._season_server = season_server
         self._season_series = season_series
+        self._playlists = playlist_dtos
+        self._playlist_items = playlist_items
+        self._playlist_first = playlist_first
 
     def stop(self):
         pass
@@ -332,13 +372,22 @@ class OfflineLibrarySource:
 
     def get_libraries(self, server_uuid):
         libs = []
-        if any(i.get("Type") in ("Movie", "Video") for i in self._items):
+        if any(i.get("Type") == "Movie" for i in self._items):
             libs.append({"Id": "offline:movies", "Name": _("Movies"),
                          "Type": "CollectionFolder", "CollectionType": "movies",
+                         "ImageTags": {}})
+        # Home videos (Type=Video) are their own section, not lumped in Movies.
+        if any(i.get("Type") == "Video" for i in self._items):
+            libs.append({"Id": "offline:videos", "Name": _("Videos"),
+                         "Type": "CollectionFolder", "CollectionType": "homevideos",
                          "ImageTags": {}})
         if any(i.get("Type") == "Episode" for i in self._items):
             libs.append({"Id": "offline:tv", "Name": _("TV Shows"),
                          "Type": "CollectionFolder", "CollectionType": "tvshows",
+                         "ImageTags": {}})
+        if self._playlists:
+            libs.append({"Id": "offline:playlists", "Name": _("Playlists"),
+                         "Type": "CollectionFolder", "CollectionType": "playlists",
                          "ImageTags": {}})
         return libs
 
@@ -357,9 +406,12 @@ class OfflineLibrarySource:
 
     def get_home_rows(self, server_uuid):
         rows = []
-        movies = [i for i in self._items if i.get("Type") in ("Movie", "Video")]
+        movies = [i for i in self._items if i.get("Type") == "Movie"]
         if movies:
             rows.append({"title": _("Downloaded Movies"), "items": movies})
+        videos = [i for i in self._items if i.get("Type") == "Video"]
+        if videos:
+            rows.append({"title": _("Downloaded Videos"), "items": videos})
         series = self._series_list()
         if series:
             rows.append({"title": _("Downloaded Shows"), "items": series})
@@ -368,13 +420,25 @@ class OfflineLibrarySource:
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100):
         if parent_id == "offline:movies":
-            items = [i for i in self._items if i.get("Type") in ("Movie", "Video")]
+            items = [i for i in self._items if i.get("Type") == "Movie"]
+        elif parent_id == "offline:videos":
+            items = [i for i in self._items if i.get("Type") == "Video"]
         elif parent_id == "offline:tv":
             items = self._series_list()
+        elif parent_id == "offline:playlists":
+            # Playlist tiles, name-sorted; contents keep playlist order via
+            # get_playlist_items and must NOT be re-sorted here.
+            items = sorted(self._playlists,
+                           key=lambda i: (i.get("Name") or "").lower())
+            return items[start_index:start_index + limit], len(items)
         else:
             items = []
         items = sorted(items, key=lambda i: (i.get("Name") or "").lower())
         return items[start_index:start_index + limit], len(items)
+
+    def get_playlist_items(self, server_uuid, playlist_id):
+        """Downloaded items of a playlist, in playlist order."""
+        return list(self._playlist_items.get(playlist_id, []))
 
     def get_seasons(self, server_uuid, series_id):
         seen, order = {}, []
@@ -536,15 +600,26 @@ class OfflineLibrarySource:
             if series_id:
                 return self._art_path(series_id, image_type)
             return None
+        # Playlist tile artwork borrows its first downloaded item's poster.
+        if item_id in self._playlist_first:
+            return self._art_path(self._playlist_first[item_id], image_type)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
-            return self._representative(("Movie", "Video"))
+            return self._representative(("Movie",))
+        if item_id == "offline:videos":
+            return self._representative(("Video",))
         if item_id == "offline:tv":
             for series_id in self._series_server:
                 path = self._art_path(series_id, "Primary")
                 if path:
                     return path
             return self._representative(("Episode",))
+        if item_id == "offline:playlists":
+            for pid in self._playlist_first:
+                path = self._art_path(pid, image_type)
+                if path:
+                    return path
+            return None
         return None
 
     def _representative(self, types):

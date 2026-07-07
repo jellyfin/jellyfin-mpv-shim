@@ -14,6 +14,7 @@ from ..utils import get_sub_display_title, get_resource
 from ..language_config import apply as apply_language_config, parse_language_config
 from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
                        STATUS_PENDING, STATUS_ERROR)
+from .repository import PLAYLIST_SUPPORTED_TYPES
 from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
@@ -602,6 +603,136 @@ class SeasonView(BaseView):
                                  not self._season_watched, refresh=True)
 
 
+class PlaylistView(BaseView):
+    """A playlist's items in playlist order: play-from-here, Play All, and a
+    bulk Download Playlist action for offline trips."""
+
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self.items = []
+        self.grid = None
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        server = self.app.current_server
+        pid = self.route["playlist_id"]
+
+        # Title shows immediately; the Play/Download actions are added in done()
+        # only once we know the playlist has supported media to act on.
+        self.bar = tk.Frame(self.frame, bg=CARD_BG)
+        self.bar.pack(fill="x", padx=8, pady=4)
+        self._title = tk.Label(self.bar, text=self.route.get("title", ""),
+                               bg=CARD_BG, fg=TEXT_FG,
+                               font=("TkDefaultFont", 14, "bold"))
+        self._title.pack(side="left", padx=4)
+
+        spinner = self._spinner(self.frame)
+
+        def work():
+            return self.app.source.get_playlist_items(server, pid)
+
+        def done(raw_items):
+            spinner.destroy()
+            # A playlist can mix in music/other entries (Jellyfin doesn't
+            # constrain contents to the playlist's declared type). Show only
+            # supported media, and distinguish an empty playlist from one that
+            # holds only unsupported entries.
+            items = [it for it in raw_items
+                     if it.get("Type") in PLAYLIST_SUPPORTED_TYPES]
+            self.items = items
+            if not raw_items:
+                tk.Label(self.frame, text=_("This playlist is empty."),
+                         bg=CARD_BG, fg=SUBTLE_FG).pack(pady=40)
+                return
+            if not items:
+                tk.Label(self.frame,
+                         text=_("Playlist does not contain any supported "
+                                "media types."),
+                         bg=CARD_BG, fg=SUBTLE_FG, wraplength=420).pack(pady=40)
+                return
+
+            # Now that there's playable content, offer Play All plus a
+            # download/delete action, packed left of the title (like the season
+            # view). Offline you can't download — offer to remove the downloads.
+            ttk.Button(self.bar, text=_("▶ Play All"), style="Accent.TButton",
+                       command=lambda: self._play_from(0)).pack(
+                           side="left", before=self._title)
+            if self.app.is_offline:
+                ttk.Button(self.bar, text=_("🗑 Delete Downloads"),
+                           command=self._delete_downloads).pack(
+                               side="left", padx=12, before=self._title)
+            else:
+                ttk.Button(self.bar, text=_("⬇ Download Playlist"),
+                           command=lambda: self.app.open_download_dialog(
+                               server, pid, "Playlist",
+                               self.route.get("title", ""))).pack(
+                                   side="left", padx=12, before=self._title)
+
+            # Episode-heavy playlists read better as landscape stills; movie
+            # playlists as posters (mirrors the home rows' heuristic).
+            if any(it.get("Type") == "Episode" for it in items):
+                box, image_type = thumb_box(int(self.app.image_width * 1.4)), "Thumb"
+            else:
+                box, image_type = poster_box(self.app.image_width), "Primary"
+
+            def subtitle(item):
+                pos = self._index_of(item) + 1
+                name = item.get("Name", "")
+                series = item.get("SeriesName")
+                if series:
+                    return "%d. %s – %s" % (pos, series, name)
+                return "%d. %s" % (pos, name)
+
+            self.grid = ScrollableGrid(self.app, self.frame, box)
+            self.grid.widget().pack(fill="both", expand=True)
+            self.grid.set_items(items, server, image_type=image_type,
+                                on_click=self._on_click, subtitle_fn=subtitle)
+
+        self.run_async(work, done,
+                       lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _index_of(self, item):
+        iid = item.get("Id")
+        return next((i for i, it in enumerate(self.items)
+                     if it.get("Id") == iid), 0)
+
+    def _delete_downloads(self):
+        # Removes only the items this playlist pulled down (owned); anything
+        # downloaded another way is left alone. Then step back to the list.
+        self.app.delete_download(playlist_id=self.route["playlist_id"])
+        self.app.go_back()
+
+    def _on_click(self, item):
+        self._play_from(self._index_of(item))
+
+    def _play_from(self, start_index):
+        """Play the whole playlist as a queue, starting at ``start_index`` so
+        the player advances through the playlist (not, e.g., the series an
+        episode belongs to)."""
+        ids = [it.get("Id") for it in self.items if it.get("Id")]
+        if not ids:
+            return
+        start_index = max(0, min(start_index, len(self.items) - 1))
+        start_item = self.items[start_index]
+        # Re-derive the start position within the filtered id list so an item
+        # missing an Id can't shift the queue out from under the chosen entry.
+        try:
+            pos = ids.index(start_item.get("Id"))
+        except ValueError:
+            pos = 0
+        offset = (start_item.get("UserData") or {}).get(
+            "PlaybackPositionTicks") or None
+        self.app.play({
+            "server_uuid": self.app.current_server,
+            "item_ids": ids,
+            "start_index": pos,
+            "offset_ticks": offset,
+            "media_source_id": None,
+            "audio_index": None,
+            "subtitle_index": None,
+        })
+
+
 class SearchView(BaseView):
     def _build(self):
         server = self.app.current_server
@@ -1155,9 +1286,10 @@ class DownloadsPanel:
         def work():
             db = self._open_db()
             if db is None:
-                return [], self.app.sync_total
+                return [], self.app.sync_total, [], {}
             try:
-                return db.list(), db.total_size()
+                return (db.list(), db.total_size(),
+                        db.list_playlists(), db.playlist_ownership())
             finally:
                 db.close()
 
@@ -1166,13 +1298,13 @@ class DownloadsPanel:
             # panel's widgets were torn down (user navigated away).
             if epoch != self._epoch or not body.winfo_exists():
                 return
-            rows, total = result
-            self._render(body, rows, total)
+            rows, total, playlists, ownership = result
+            self._render(body, rows, total, playlists, ownership)
             self._rendered = True
 
         self.app.run_async(work, done, lambda _e: None)
 
-    def _render(self, body, rows, total):
+    def _render(self, body, rows, total, playlists=(), ownership=None):
         tk = self.app.tk
         for child in body.winfo_children():
             child.destroy()
@@ -1186,9 +1318,29 @@ class DownloadsPanel:
                      fg=SUBTLE_FG).pack(anchor="w", padx=16)
             return
 
-        movies = [r for r in rows if not r.get("series_id")]
-        series_order, series_map = [], {}
+        # Items a playlist download owns are grouped under that playlist; items
+        # downloaded another way (owned=0 / no playlist) keep their normal
+        # Movies/Series grouping.
+        ownership = ownership or {}
+        pl_name = {p["playlist_id"]: p.get("name") or _("Playlist")
+                   for p in playlists}
+        pl_order, pl_groups, rest = [], {}, []
         for r in rows:
+            pid = ownership.get(r["item_id"])
+            if pid and pid in pl_name:
+                if pid not in pl_groups:
+                    pl_groups[pid] = []
+                    pl_order.append(pid)
+                pl_groups[pid].append(r)
+            else:
+                rest.append(r)
+
+        for pid in pl_order:
+            self._playlist_block(body, pid, pl_name[pid], pl_groups[pid])
+
+        movies = [r for r in rest if not r.get("series_id")]
+        series_order, series_map = [], {}
+        for r in rest:
             sid = r.get("series_id")
             if not sid:
                 continue
@@ -1206,6 +1358,23 @@ class DownloadsPanel:
 
         for sid in series_order:
             self._series_block(body, sid, series_map[sid])
+
+    def _playlist_block(self, body, playlist_id, name, rows):
+        tk, ttk = self.app.tk, self.app.ttk
+        size = sum(r.get("downloaded_bytes") or r.get("size_bytes") or 0
+                   for r in rows)
+        header = tk.Frame(body, bg=PANEL_BG)
+        header.pack(fill="x", padx=12, pady=(10, 2))
+        tk.Label(header,
+                 text=_("Playlist: %s  ·  %d · %s") % (
+                     name, len(rows), human_size(size)),
+                 bg=PANEL_BG, fg=TEXT_FG, font=("TkDefaultFont", 12, "bold")).pack(
+            side="left", padx=8, pady=4)
+        ttk.Button(header, text=_("Remove downloads"),
+                   command=lambda p=playlist_id: self.app.delete_download(
+                       playlist_id=p)).pack(side="right", padx=4, pady=2)
+        for row in rows:
+            self._item_row(body, row, indent=24)
 
     @staticmethod
     def _season_title(row):
@@ -1585,7 +1754,7 @@ class DownloadDialog:
         self.server_uuid = server_uuid
         self.item_id = item_id
         self.item_type = item_type
-        self._is_collection = item_type in ("Series", "Season")
+        self._is_collection = item_type in ("Series", "Season", "Playlist")
         tk, ttk = app.tk, app.ttk
 
         win = tk.Toplevel(app.root)
@@ -1605,8 +1774,10 @@ class DownloadDialog:
 
         self.include_watched = tk.BooleanVar(value=False)
         if self._is_collection:
+            watched_label = (_("Include watched items") if item_type == "Playlist"
+                             else _("Include watched episodes"))
             self.watched_chk = ttk.Checkbutton(
-                win, text=_("Include watched episodes"),
+                win, text=watched_label,
                 variable=self.include_watched, state="disabled")
             self.watched_chk.pack(anchor="w", padx=16, pady=6)
 
@@ -1653,6 +1824,7 @@ VIEW_TYPES = {
     "grid": GridView,
     "series": SeriesView,
     "season": SeasonView,
+    "playlist": PlaylistView,
     "detail": DetailView,
     "search": SearchView,
     "login": LoginView,

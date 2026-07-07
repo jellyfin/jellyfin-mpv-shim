@@ -157,19 +157,62 @@ class SyncManager:
             return 0
         server_id = client.config.data.get("auth.server-id")
         items = self._expand(client.jellyfin, item_id, item_type)
+        # For a playlist, capture which items already existed before this
+        # download so ownership (what a later "delete playlist" may remove) goes
+        # only to items this playlist actually pulls down — see _record_playlist.
+        pre_existing = ({i.get("Id") for i in items if self.db.get(i.get("Id"))}
+                        if item_type == "Playlist" else set())
         added = 0
+        members = []  # item ids that will be present offline, in playlist order
         for item in items:
+            iid = item.get("Id")
+            if self.db.is_complete(iid):
+                members.append(iid)  # already downloaded → still a member
+                continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):
                 continue
-            if self.db.is_complete(item.get("Id")):
-                continue
             self._add_row(server_uuid, server_id, item)
+            members.append(iid)
             added += 1
+        if item_type == "Playlist":
+            self._record_playlist(server_uuid, server_id, client.jellyfin,
+                                  item_id, members, pre_existing)
         if added:
             log.info("Queued %d item(s) for offline download.", added)
             self._notify_change()
             self._wake.set()
         return added
+
+    def _record_playlist(self, server_uuid, server_id, api, playlist_id,
+                         member_ids, pre_existing):
+        """Persist a downloaded playlist and its membership. An item is `owned`
+        by this playlist if this download is what pulls it in (it wasn't already
+        in the catalog), or it was already owned by this playlist on a prior
+        download. Items that pre-existed from another route stay unowned so a
+        later playlist delete leaves them (and their original grouping) intact."""
+        if not member_ids:
+            # Nothing supported/available offline — drop any stale record so an
+            # emptied playlist doesn't linger in the offline UI.
+            self.db.delete_playlist(playlist_id)
+            return
+        try:
+            name = (api.get_item(playlist_id) or {}).get("Name") or "Playlist"
+        except Exception:
+            log.debug("Failed to fetch playlist name for %s", playlist_id,
+                      exc_info=True)
+            name = "Playlist"
+        already_owned = self.db.playlist_owned_ids(playlist_id)
+        # A playlist may list the same item twice; membership is keyed by
+        # item_id, so keep the first position and drop later duplicates.
+        entries, seen = [], set()
+        for iid in member_ids:
+            if iid in seen:
+                continue
+            seen.add(iid)
+            owned = iid in already_owned or iid not in pre_existing
+            entries.append((iid, len(entries), owned))
+        self.db.upsert_playlist(playlist_id, server_id, server_uuid, name)
+        self.db.replace_playlist_items(playlist_id, entries)
 
     def _cancel_if_active(self, item_id):
         """If the worker is downloading `item_id`, flag it for cancellation and
@@ -195,11 +238,14 @@ class SyncManager:
         self._notify_change()
 
     def delete(self, item_id=None, series_id=None, season_id=None,
-               watched_only=False):
-        """Flexible delete: a single item, a season, a whole series, and/or only
-        watched items within that scope."""
+               watched_only=False, playlist_id=None):
+        """Flexible delete: a single item, a season, a whole series, a
+        playlist's downloads, and/or only watched items within that scope."""
         if item_id:
             self.delete_item(item_id)
+            return
+        if playlist_id:
+            self._delete_playlist(playlist_id, watched_only=watched_only)
             return
         rows = self.db.list(series_id=series_id) if series_id else self.db.list()
         removed = 0
@@ -222,6 +268,26 @@ class SyncManager:
         if removed:
             self._notify_change()
 
+    def _delete_playlist(self, playlist_id, watched_only=False):
+        """Delete a downloaded playlist. Only the items this playlist *owns*
+        (pulled down itself) are removed from disk; items that were already
+        downloaded another way stay put. The playlist record is then dropped."""
+        owned = self.db.playlist_owned_ids(playlist_id)
+        for item_id in owned:
+            if watched_only:
+                row = self.db.get(item_id)
+                try:
+                    played = bool(json.loads(
+                        (row or {}).get("userdata_json") or "{}").get("Played"))
+                except ValueError:
+                    played = False
+                if not played:
+                    continue
+            self.delete_item(item_id)  # removes files + row, cleans membership
+        if not watched_only:
+            self.db.delete_playlist(playlist_id)
+        self._notify_change()
+
     # -- expansion / helpers ----------------------------------------------
 
     def _expand(self, api, item_id, item_type):
@@ -237,6 +303,13 @@ class SyncManager:
                 res = api.get_episodes(series_id, season_id=item_id,
                                        fields="MediaSources")
                 return (res or {}).get("Items", [])
+            if item_type == "Playlist":
+                res = api.get_playlist_items(item_id, fields="MediaSources")
+                items = (res or {}).get("Items", [])
+                # Playlists can mix in music/other entries; only download the
+                # types the browser surfaces (mirrors PLAYLIST_SUPPORTED_TYPES).
+                supported = {"Movie", "Episode", "Video"}
+                return [i for i in items if i.get("Type") in supported]
             item = api.get_item(item_id)
             return [item] if item else []
         except Exception:

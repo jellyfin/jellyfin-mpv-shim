@@ -59,6 +59,25 @@ CREATE TABLE IF NOT EXISTS pending_playstate (
     played INTEGER,
     created_at INTEGER
 );
+CREATE TABLE IF NOT EXISTS playlists (
+    playlist_id TEXT PRIMARY KEY,
+    server_id TEXT,
+    server_uuid TEXT,
+    name TEXT,
+    added_at INTEGER
+);
+-- Membership of a downloaded playlist. `owned` marks the items this playlist
+-- download is responsible for pulling down: deleting the playlist removes only
+-- those, so an item that was already downloaded another way (owned=0) keeps its
+-- original grouping and survives.
+CREATE TABLE IF NOT EXISTS playlist_items (
+    playlist_id TEXT,
+    item_id TEXT,
+    sort_index INTEGER,
+    owned INTEGER DEFAULT 0,
+    PRIMARY KEY (playlist_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_playlist_items_item ON playlist_items(item_id);
 """
 
 STATUS_PENDING = "pending"
@@ -145,10 +164,97 @@ class SyncDB:
                 return
             try:
                 self._conn.execute("DELETE FROM downloads WHERE item_id=?", (item_id,))
+                # Drop the item from any playlist it belonged to so a deleted
+                # file can't leave a dangling membership row behind.
+                self._conn.execute("DELETE FROM playlist_items WHERE item_id=?",
+                                   (item_id,))
                 self._conn.commit()
             except sqlite3.Error:
                 self._conn.rollback()
                 raise
+
+    # -- playlists ---------------------------------------------------------
+
+    def upsert_playlist(self, playlist_id, server_id, server_uuid, name):
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO playlists "
+                    "(playlist_id, server_id, server_uuid, name, added_at) "
+                    "VALUES (?,?,?,?,?)",
+                    (playlist_id, server_id, server_uuid, name, int(time.time())))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def replace_playlist_items(self, playlist_id, entries):
+        """Set a playlist's membership to ``entries`` (list of
+        ``(item_id, sort_index, owned)``), replacing any prior membership so a
+        re-download reflects the current order and removals."""
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
+                self._conn.executemany(
+                    "INSERT INTO playlist_items "
+                    "(playlist_id, item_id, sort_index, owned) VALUES (?,?,?,?)",
+                    [(playlist_id, iid, idx, 1 if owned else 0)
+                     for iid, idx, owned in entries])
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def delete_playlist(self, playlist_id):
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute("DELETE FROM playlists WHERE playlist_id=?",
+                                   (playlist_id,))
+                self._conn.execute(
+                    "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def playlist_owned_ids(self, playlist_id):
+        """Item ids this playlist download is responsible for (owned=1)."""
+        return {r["item_id"] for r in self._query(
+            "SELECT item_id FROM playlist_items WHERE playlist_id=? AND owned=1",
+            (playlist_id,))}
+
+    def list_playlists(self):
+        """Playlists that still have at least one completely-downloaded item,
+        each as a dict with ``playlist_id``/``name``/``server_id``/``server_uuid``."""
+        return self._query(
+            "SELECT p.playlist_id, p.name, p.server_id, p.server_uuid "
+            "FROM playlists p "
+            "WHERE EXISTS (SELECT 1 FROM playlist_items pi "
+            "              JOIN downloads d ON d.item_id = pi.item_id "
+            "              WHERE pi.playlist_id = p.playlist_id AND d.status=?) "
+            "ORDER BY p.name", (STATUS_COMPLETE,))
+
+    def playlist_item_rows(self, playlist_id):
+        """A playlist's completely-downloaded items as full download rows, in
+        playlist order."""
+        return self._query(
+            "SELECT d.* FROM playlist_items pi "
+            "JOIN downloads d ON d.item_id = pi.item_id "
+            "WHERE pi.playlist_id=? AND d.status=? "
+            "ORDER BY pi.sort_index", (playlist_id, STATUS_COMPLETE))
+
+    def playlist_ownership(self):
+        """Map of item_id -> playlist_id for owned items (for grouping the
+        Downloads screen). Only one owner per item."""
+        return {r["item_id"]: r["playlist_id"] for r in self._query(
+            "SELECT item_id, playlist_id FROM playlist_items WHERE owned=1")}
 
     def upsert_playstate(self, server_uuid, item_id, position_ticks=None,
                          played=None):

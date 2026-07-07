@@ -472,7 +472,10 @@ class BrowserApp:
     def open_item(self, item):
         itype = item.get("Type")
         title = item.get("Name", "")
-        if itype in SERIES_TYPES:
+        if itype == "Playlist":
+            self.navigate({"kind": "playlist", "playlist_id": item["Id"],
+                           "title": title})
+        elif itype in SERIES_TYPES:
             self.navigate({"kind": "series", "series_id": item["Id"], "title": title})
         elif itype in FOLDER_TYPES:
             self.navigate({"kind": "grid", "parent_id": item["Id"], "title": title})
@@ -619,10 +622,10 @@ class BrowserApp:
             "item_type": item_type, "include_watched": include_watched}))
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
-                        watched_only=False):
+                        watched_only=False, playlist_id=None):
         self.r_queue.put(("delete_download", {
             "item_id": item_id, "series_id": series_id, "season_id": season_id,
-            "watched_only": watched_only}))
+            "playlist_id": playlist_id, "watched_only": watched_only}))
 
     # -- IPC pump ----------------------------------------------------------
 

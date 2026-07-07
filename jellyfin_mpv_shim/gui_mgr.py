@@ -644,6 +644,7 @@ class UserInterface(threading.Thread):
                     item_id=payload.get("item_id"),
                     series_id=payload.get("series_id"),
                     season_id=payload.get("season_id"),
+                    playlist_id=payload.get("playlist_id"),
                     watched_only=payload.get("watched_only", False))
             except Exception:
                 log.error("Delete download failed", exc_info=True)
