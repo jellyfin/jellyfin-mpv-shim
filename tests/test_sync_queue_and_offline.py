@@ -74,6 +74,145 @@ class QueryErrorSurfacingTest(unittest.TestCase):
         self.assertTrue(any("Catalog query failed" in m for m in cm.output))
 
 
+class OfflineResumePositionTest(unittest.TestCase):
+    """Regression: the periodic offline position record was written to
+    downloads.userdata_json but the browser built items from the item_json
+    snapshot frozen at download time — so a relaunch always started playback
+    from the beginning. The live userdata must overlay the snapshot."""
+
+    RUNTIME = 600 * 10_000_000  # 10 minutes in ticks
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.catalog = os.path.join(self.tmp.name, "catalog.db")
+        db = SyncDB(self.catalog)
+        db.upsert(make_row(
+            "ep1", type="Movie", name="Movie", status=STATUS_COMPLETE,
+            file_path="ep1/file.mkv", runtime_ticks=self.RUNTIME,
+            item_json=json.dumps({
+                "Id": "ep1", "Name": "Movie", "Type": "Movie",
+                "RunTimeTicks": self.RUNTIME,
+                "UserData": {"Played": False, "PlaybackPositionTicks": 0},
+            })))
+        # The 30s periodic record during offline playback.
+        db.update_userdata("ep1", position_ticks=self.RUNTIME // 2)
+        db.close()
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_reload_overlays_live_userdata(self):
+        source = OfflineLibrarySource(self.catalog)
+        (item,) = source._items
+        self.assertEqual(item["UserData"]["PlaybackPositionTicks"],
+                         self.RUNTIME // 2)
+        # Derived for the tile progress bar (offline writes never set it).
+        self.assertAlmostEqual(item["UserData"]["PlayedPercentage"], 50.0)
+
+    def test_get_item_overlays_live_userdata(self):
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep1")
+        self.assertEqual(item["UserData"]["PlaybackPositionTicks"],
+                         self.RUNTIME // 2)
+
+    def test_finish_clears_resume_point(self):
+        # Watching to the end (or marking watched) must clear the resume
+        # point like the server does, not leave "resume from the very end".
+        db = SyncDB(self.catalog)
+        db.update_userdata("ep1", played=True,
+                           position_ticks=self.RUNTIME)
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep1")
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertEqual(item["UserData"]["PlaybackPositionTicks"], 0)
+
+    def test_post_finish_stop_report_does_not_resurrect_resume(self):
+        # Close-after-finish: the mpv shutdown path re-reports the last known
+        # position (~the full duration) with finished=False AFTER the finish
+        # cleared the resume point. The near-end guard must not let it
+        # re-create "Resume from <the very end>" on the watched item.
+        db = SyncDB(self.catalog)
+        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME)
+        db.update_userdata("ep1", position_ticks=self.RUNTIME)  # stop report
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep1")
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertEqual(item["UserData"]["PlaybackPositionTicks"], 0)
+
+    def test_rewatch_of_watched_item_still_records_resume(self):
+        # The near-end guard must not block a genuine mid-file rewatch resume
+        # point on an already-watched item (server semantics allow both).
+        db = SyncDB(self.catalog)
+        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME)
+        db.update_userdata("ep1", position_ticks=self.RUNTIME // 4)
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep1")
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertEqual(item["UserData"]["PlaybackPositionTicks"],
+                         self.RUNTIME // 4)
+
+    def test_seeded_played_percentage_is_recomputed(self):
+        # Download-time seeding copies the server's full UserData (including
+        # a stale PlayedPercentage) into userdata_json; the browser must
+        # derive the percentage from the live position, not the seed.
+        db = SyncDB(self.catalog)
+        db.upsert(make_row(
+            "ep3", type="Movie", name="Seeded", status=STATUS_COMPLETE,
+            file_path="ep3/file.mkv", runtime_ticks=self.RUNTIME,
+            item_json=json.dumps({
+                "Id": "ep3", "Name": "Seeded", "Type": "Movie",
+                "RunTimeTicks": self.RUNTIME,
+                "UserData": {"PlayedPercentage": 20.0,
+                             "PlaybackPositionTicks": self.RUNTIME // 5},
+            }),
+            userdata_json=json.dumps({
+                "PlayedPercentage": 20.0,
+                "PlaybackPositionTicks": self.RUNTIME // 5,
+            })))
+        db.update_userdata("ep3", position_ticks=self.RUNTIME // 2)
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep3")
+        self.assertAlmostEqual(item["UserData"]["PlayedPercentage"], 50.0)
+
+    def test_watched_item_has_no_partial_progress_bar(self):
+        # A finished item (position cleared) must not keep a stale percentage
+        # from the snapshot or the seed — watched shows a badge, not a bar.
+        db = SyncDB(self.catalog)
+        db.upsert(make_row(
+            "ep4", type="Movie", name="Watched", status=STATUS_COMPLETE,
+            file_path="ep4/file.mkv", runtime_ticks=self.RUNTIME,
+            item_json=json.dumps({
+                "Id": "ep4", "Name": "Watched", "Type": "Movie",
+                "RunTimeTicks": self.RUNTIME,
+                "UserData": {"PlayedPercentage": 42.0},
+            }),
+            userdata_json=json.dumps({"PlayedPercentage": 42.0})))
+        db.update_userdata("ep4", played=True,
+                           position_ticks=self.RUNTIME)
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep4")
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertNotIn("PlayedPercentage", item["UserData"])
+
+    def test_snapshot_alone_still_works(self):
+        # Rows with no live userdata (never played offline) keep the snapshot.
+        db = SyncDB(self.catalog)
+        db.upsert(make_row(
+            "ep2", type="Movie", name="Other", status=STATUS_COMPLETE,
+            file_path="ep2/file.mkv",
+            item_json=json.dumps({
+                "Id": "ep2", "Name": "Other", "Type": "Movie",
+                "UserData": {"Played": True},
+            })))
+        db.close()
+        source = OfflineLibrarySource(self.catalog)
+        item = source.get_item("offline", "ep2")
+        self.assertTrue(item["UserData"]["Played"])
+
+
 class OfflineReloadTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

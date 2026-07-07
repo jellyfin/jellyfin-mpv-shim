@@ -188,12 +188,14 @@ class SyncDB:
         userdata_json. This is what "delete watched" reads, so keeping it in
         sync with local playback is what makes watched-based delete correct
         without a server round-trip. Advancing only: played sticks True, the
-        position only moves forward."""
+        position only moves forward — except that a finish clears the resume
+        point (server-matching semantics)."""
         with self._lock:
             if self._conn is None:
                 return
             row = self._conn.execute(
-                "SELECT userdata_json FROM downloads WHERE item_id=?",
+                "SELECT userdata_json, runtime_ticks FROM downloads "
+                "WHERE item_id=?",
                 (item_id,)).fetchone()
             if row is None:
                 return
@@ -206,11 +208,34 @@ class SyncDB:
                 if not userdata.get("Played"):
                     userdata["Played"] = True
                     changed = True
-            if position_ticks is not None and \
-                    position_ticks > (userdata.get("PlaybackPositionTicks") or 0):
-                userdata["PlaybackPositionTicks"] = position_ticks
-                changed = True
+                # Mirror the server: completing (or marking) an item watched
+                # clears its resume point, so the browser doesn't offer
+                # "Resume from <the very end>" of a finished item.
+                if userdata.get("PlaybackPositionTicks"):
+                    userdata["PlaybackPositionTicks"] = 0
+                    changed = True
+            elif position_ticks is not None:
+                # A near-end position on an already-Played item is the trailing
+                # stop report of the finish that just cleared the resume point
+                # (close-after-finish re-reports ~the full duration); storing it
+                # would resurrect "Resume from <the very end>". The margin
+                # mirrors player._finished_at_eof.
+                runtime = row["runtime_ticks"] or 0
+                near_end = runtime and (
+                    position_ticks >= runtime * 0.95
+                    or runtime - position_ticks <= 10 * 10_000_000
+                )
+                if userdata.get("Played") and near_end:
+                    pass
+                elif position_ticks > (
+                        userdata.get("PlaybackPositionTicks") or 0):
+                    userdata["PlaybackPositionTicks"] = position_ticks
+                    changed = True
             if changed:
+                # PlayedPercentage is derived; a stale server-seeded value
+                # must not shadow the fresh position (the browser recomputes
+                # it from position/runtime when rendering).
+                userdata.pop("PlayedPercentage", None)
                 try:
                     self._conn.execute(
                         "UPDATE downloads SET userdata_json=? WHERE item_id=?",

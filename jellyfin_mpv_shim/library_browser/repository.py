@@ -308,10 +308,9 @@ class OfflineLibrarySource:
         season_server = {}  # season_id -> server_id (for season artwork)
         season_series = {}  # season_id -> series_id (artwork fallback)
         for row in rows:
-            try:
-                items.append(json.loads(row["item_json"]))
-            except (TypeError, ValueError):
-                pass
+            item = self._item_from_row(row)
+            if item is not None:
+                items.append(item)
             if row.get("type") == "Episode" and row.get("series_id"):
                 series_server.setdefault(row["series_id"], row.get("server_id"))
                 if row.get("season_id"):
@@ -422,10 +421,45 @@ class OfflineLibrarySource:
                                 i.get("IndexNumber") or 0))
         return eps
 
+    @staticmethod
+    def _item_from_row(row):
+        """Build an item DTO from a catalog row, overlaying the LIVE UserData
+        (downloads.userdata_json — updated by offline playback's periodic
+        position record and watched marks) onto the item_json snapshot frozen
+        at download time. Without the overlay, offline resume positions and
+        watched state were written but never read back — playback always
+        restarted from the beginning after a relaunch."""
+        try:
+            item = json.loads(row["item_json"])
+        except (TypeError, ValueError):
+            return None
+        try:
+            userdata = json.loads(row.get("userdata_json") or "{}")
+        except (TypeError, ValueError):
+            userdata = {}
+        if userdata:
+            merged = dict(item.get("UserData") or {})
+            merged.update(userdata)
+            # PlayedPercentage is derived; the live position is the truth.
+            # Recompute it (a percentage seeded from the server at download
+            # time or left in the snapshot would otherwise freeze the tile
+            # progress bar), and drop it entirely when there is no resume
+            # point (watched items show the badge, not a partial bar).
+            pos = merged.get("PlaybackPositionTicks")
+            runtime = row.get("runtime_ticks") or item.get("RunTimeTicks")
+            if pos and runtime:
+                merged["PlayedPercentage"] = min(pos / runtime * 100, 100.0)
+            else:
+                merged.pop("PlayedPercentage", None)
+            item["UserData"] = merged
+        return item
+
     def get_item(self, server_uuid, item_id):
         row = self._rows.get(item_id)
         if row and row.get("item_json"):
-            return json.loads(row["item_json"])
+            item = self._item_from_row(row)
+            if item is not None:
+                return item
         # Synthesize a Series DTO so the series overview page renders offline.
         if item_id in self._series_server:
             name = next((i.get("SeriesName") for i in self._items
