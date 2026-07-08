@@ -78,6 +78,27 @@ class BrowserApp:
         self._switcher_servers = []  # index-aligned with the server combobox
         self.home_cache = {}  # server_uuid -> (libraries, rows); stale-while-revalidate
         self.server_list = list(self.options.get("server_list") or [])  # all creds
+
+        # Local users ("fast user switching"). users: [{id,name,locked,default}].
+        users_state = self.options.get("users") or {}
+        self.users = list(users_state.get("users") or [])
+        self.active_user_id = users_state.get("active")
+        self._startup_locked = bool(users_state.get("startup_locked"))
+        # Whether showing/re-showing the window should re-lock behind the PIN.
+        # Same condition as the startup gate (active user locked AND opted into
+        # a startup PIN), so closing to tray and reopening re-prompts — but a
+        # locked user without the startup option is not gated on reopen.
+        self._lock_on_show = self._startup_locked
+        # True while the locked gate is actively gating content. IPC "navigate"
+        # commands (e.g. the tray's Configure Servers / Show Console) are
+        # swallowed while set, so they can't reveal content behind the lock.
+        self._locked_active = False
+        # Server addresses already used by any user, offered as one-click fill /
+        # Quick Connect targets so a new user isn't retyped from scratch.
+        self.known_servers = list(users_state.get("known_servers") or [])
+        self._switcher_users = []  # index-aligned with the user combobox
+        self._pin_dialog = None    # open PIN dialog awaiting a switch_result
+        self._pending_switch = None  # user dict of an in-flight switch
         self.log_lines = deque(maxlen=2000)
         self.settings_values = dict(self.options.get("settings") or {})
         self.settings_schema = dict(self.options.get("settings_schema") or {})
@@ -90,6 +111,7 @@ class BrowserApp:
         self._dl_percent = None
         self.catalog_path = self.options.get("catalog_path")
         self._download_dialog = None
+        self._close_dialog = None  # first-close preference prompt, if open
 
         self._live_servers = servers
         self._verify_ssl = verify_ssl
@@ -110,6 +132,7 @@ class BrowserApp:
         self._build_chrome()
         if self.settings_values.get("work_offline"):
             self._enter_offline()
+        self._refresh_user_switcher()
         self._refresh_server_switcher()
         self._show_initial()
         self._update_statusbar()
@@ -137,9 +160,19 @@ class BrowserApp:
                    command=lambda: self.navigate({"kind": "settings"})).pack(
             side="left", padx=2, pady=6)
 
-        # Server switcher (hidden when only one server).
+        # User + server switchers share a frame so the user selector always sits
+        # to the left of the server selector. Each is hidden when there's only
+        # one option (one user / one server).
+        self.switch_frame = tk.Frame(bar, bg=WINDOW_BG)
+        self.switch_frame.pack(side="left")
+
+        self.user_var = tk.StringVar()
+        self.user_box = ttk.Combobox(self.switch_frame, textvariable=self.user_var,
+                                     state="readonly", width=16)
+        self.user_box.bind("<<ComboboxSelected>>", self._on_user_change)
+
         self.server_var = tk.StringVar()
-        self.server_box = ttk.Combobox(bar, textvariable=self.server_var,
+        self.server_box = ttk.Combobox(self.switch_frame, textvariable=self.server_var,
                                        state="readonly", width=22)
         self.server_box.bind("<<ComboboxSelected>>", self._on_server_change)
 
@@ -208,6 +241,7 @@ class BrowserApp:
         self.current_server = "offline"
         self.home_cache = {}
         self._refresh_server_switcher()
+        self._refresh_user_switcher()
         self._show_banner(message or _("Offline — showing downloaded content."))
 
     def _exit_offline(self):
@@ -218,6 +252,7 @@ class BrowserApp:
         self.current_server = self._initial_server()
         self.home_cache = {}
         self._refresh_server_switcher()
+        self._refresh_user_switcher()
         self._hide_banner()
 
     def set_offline(self, offline):
@@ -281,6 +316,8 @@ class BrowserApp:
         the right screen (home / downloads / login)."""
         self.server_list = list(payload.get("all") or [])
         connected = payload.get("connected") or []
+        if payload.get("device_id"):
+            self.options["device_id"] = payload["device_id"]
         self._live_servers = connected
         self._connecting = False
         self._connect_failed = bool(self.server_list) and not connected
@@ -290,6 +327,7 @@ class BrowserApp:
             return
         self._rebuild_live_source(connected)
         self._refresh_server_switcher()
+        self._refresh_user_switcher()
         kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
         if self.current_server:
             # Reconnect succeeded — honour a pending "clear offline setting".
@@ -339,6 +377,11 @@ class BrowserApp:
             self.statusbar.pack_forget()
 
     def _show_initial(self):
+        if self._startup_locked and not self.is_offline:
+            # The active user opted into a startup PIN — gate everything behind
+            # it until unlocked (or another, unlocked user is chosen).
+            self._show_locked_gate()
+            return
         if self.is_offline or self.current_server:
             self.navigate({"kind": "home"}, reset=True)
         elif self._connecting:
@@ -380,6 +423,157 @@ class BrowserApp:
             self.current_server = uuid
             self._persist_server(uuid)
             self.navigate({"kind": "home"}, reset=True)
+
+    # -- user switching ----------------------------------------------------
+
+    def _refresh_user_switcher(self):
+        users = self.users
+        self._switcher_users = users
+        def label(u):
+            return ("\U0001F512 " if u.get("locked") else "") + u.get("name", "?")
+        self.user_box.config(values=[label(u) for u in users])
+        # Only meaningful with more than one user and while we're online (a
+        # switch reconnects servers).
+        if len(users) > 1 and not self.is_offline:
+            cur_idx = next((i for i, u in enumerate(users)
+                            if u["id"] == self.active_user_id), 0)
+            self.user_box.current(cur_idx)
+            try:
+                self.user_box.selection_clear()
+            except Exception:
+                pass
+            if not self.user_box.winfo_ismapped():
+                if self.server_box.winfo_ismapped():
+                    self.user_box.pack(side="left", padx=8, pady=6,
+                                       before=self.server_box)
+                else:
+                    self.user_box.pack(side="left", padx=8, pady=6)
+        else:
+            self.user_box.pack_forget()
+
+    def _select_active_user_in_box(self):
+        idx = next((i for i, u in enumerate(self._switcher_users)
+                    if u["id"] == self.active_user_id), None)
+        if idx is not None:
+            self.user_box.current(idx)
+
+    def _on_user_change(self, _e):
+        idx = self.user_box.current()
+        if not (0 <= idx < len(self._switcher_users)):
+            return
+        user = self._switcher_users[idx]
+        if user["id"] == self.active_user_id:
+            return
+        # Don't leave the dropdown showing the target until the switch is
+        # actually confirmed — a wrong PIN or failed connect must revert it.
+        self._select_active_user_in_box()
+        self.request_switch_user(user)
+
+    def request_switch_user(self, user):
+        """Kick off a switch to ``user`` (a {id,name,locked,...} dict). A locked
+        user is gated behind a PIN dialog first."""
+        if user["id"] == self.active_user_id:
+            return
+        if user.get("locked"):
+            self._prompt_pin(
+                _("Enter PIN"),
+                _("Enter the PIN for %s.") % user.get("name", ""),
+                lambda pin: self._send_switch(user, pin))
+        else:
+            self._send_switch(user, None)
+
+    def _send_switch(self, user, pin):
+        self._pending_switch = user
+        payload = {"user_id": user["id"]}
+        if pin is not None:
+            payload["pin"] = pin
+        self.r_queue.put(("switch_user", payload))
+        if pin is None:
+            # No dialog to hold the UI; show the connecting screen right away.
+            self._enter_switching()
+
+    def _enter_switching(self):
+        # A switch/unlock is proceeding — the lock no longer gates content.
+        self._locked_active = False
+        self._connecting = True
+        self._connect_failed = False
+        self.navigate({"kind": "connecting"}, reset=True)
+
+    def _prompt_pin(self, title, prompt, on_pin):
+        from .views import PinDialog
+        if self._pin_dialog is not None:
+            return
+        self._pin_dialog = PinDialog(self, title, prompt, on_pin)
+
+    def _close_pin_dialog(self):
+        if self._pin_dialog is not None:
+            self._pin_dialog.close()
+            self._pin_dialog = None
+
+    def on_switch_result(self, result):
+        result = result or {}
+        if result.get("ok"):
+            self._close_pin_dialog()
+            self._enter_switching()
+            return
+        error = result.get("error") or _("Could not switch user.")
+        self._pending_switch = None
+        if self._pin_dialog is not None:
+            self._pin_dialog.set_error(error)
+            return
+        # Let a view (e.g. the startup locked gate) show the error inline;
+        # otherwise fall back to a message box.
+        view = self.current_view
+        if view is not None and hasattr(view, "on_switch_result"):
+            view.on_switch_result(result)
+        else:
+            self._message(error)
+
+    def _show_locked_gate(self):
+        self._locked_active = True
+        self.navigate({"kind": "locked"}, reset=True)
+
+    def _maybe_relock(self):
+        """Re-show the locked gate if the active user must re-enter their PIN on
+        reopen. No-op if not applicable or already on the gate."""
+        if not self._lock_on_show:
+            return
+        if self.nav_stack and self.nav_stack[-1].get("kind") == "locked":
+            self._locked_active = True
+            return
+        self._show_locked_gate()
+
+    def _on_users(self, param):
+        if not isinstance(param, dict):
+            return
+        self.users = list(param.get("users") or [])
+        self.active_user_id = param.get("active")
+        self.known_servers = list(param.get("known_servers") or [])
+        self._lock_on_show = bool(param.get("startup_locked"))
+        self._refresh_user_switcher()
+        self._dispatch_view("on_users_changed", self.users)
+
+    def _message(self, text, title=None):
+        try:
+            from tkinter import messagebox
+            messagebox.showinfo(title or USER_APP_NAME, text, parent=self.root)
+        except Exception:
+            log.info("%s", text)
+
+    # user-management passthroughs used by the Servers panel
+    def add_user(self, name):
+        self.r_queue.put(("add_user", {"name": name}))
+
+    def rename_user(self, user_id, name):
+        self.r_queue.put(("rename_user", {"user_id": user_id, "name": name}))
+
+    def delete_user(self, user_id):
+        self.r_queue.put(("delete_user", {"user_id": user_id}))
+
+    def set_user_pin(self, user_id, pin, require_startup, current_pin=None):
+        self.r_queue.put(("set_user_pin", {
+            "user_id": user_id, "pin": pin,
+            "require_startup": require_startup, "current_pin": current_pin}))
 
     def _initial_server(self):
         server_list = self.source.servers()
@@ -444,9 +638,9 @@ class BrowserApp:
 
     def _render_top(self):
         route = self.nav_stack[-1]
-        # The login screen is full-window chrome-free; everything else shows the
-        # top bar.
-        if route["kind"] == "login":
+        # The login and locked screens are full-window chrome-free; everything
+        # else shows the top bar.
+        if route["kind"] in ("login", "locked"):
             self.topbar.pack_forget()
         elif not self.topbar.winfo_ismapped():
             self.topbar.pack(fill="x", side="top", before=self.content)
@@ -665,6 +859,9 @@ class BrowserApp:
 
     def _handle_cmd(self, cmd, param):
         if cmd == "show":
+            # Re-lock a locked user on reopen (if they require the startup PIN)
+            # before revealing anything.
+            self._maybe_relock()
             self.root.deiconify()
             self.root.lift()
             try:
@@ -672,6 +869,9 @@ class BrowserApp:
             except Exception:
                 pass
         elif cmd == "hide":
+            # Gate the content now, while hidden, so it isn't briefly visible
+            # when the window is reopened.
+            self._maybe_relock()
             self.root.withdraw()
         elif cmd == "servers":
             self._reload_servers(param)
@@ -687,7 +887,9 @@ class BrowserApp:
         elif cmd == "quick_connect_code":
             self._dispatch_view("on_quick_connect_code", param or {})
         elif cmd == "navigate":
-            if param:
+            # Don't let an external navigation (e.g. the tray's Configure
+            # Servers / Show Console) reveal content behind the locked gate.
+            if param and not self._locked_active:
                 self.navigate(param)
         elif cmd == "log_init":
             self.log_lines.clear()
@@ -750,6 +952,13 @@ class BrowserApp:
             self._dispatch_view("on_download_progress", payload)
         elif cmd == "connection_settled":
             self._on_connection_settled(param or {})
+        elif cmd == "users":
+            self._on_users(param)
+        elif cmd == "switch_result":
+            self.on_switch_result(param or {})
+        elif cmd == "user_action_error":
+            self._message((param or {}).get("error")
+                          or _("The action could not be completed."))
         elif cmd == "watched_changed":
             # A bulk watched/unwatched mark was applied server-side; re-fetch the
             # current view so cascaded child state shows correctly.
@@ -770,6 +979,8 @@ class BrowserApp:
         if isinstance(payload, dict):
             connected = payload.get("connected") or []
             self.server_list = list(payload.get("all") or [])
+            if payload.get("device_id"):
+                self.options["device_id"] = payload["device_id"]
         else:  # backwards-compatible: a bare connected list
             connected = payload or []
         self._live_servers = connected
@@ -781,6 +992,7 @@ class BrowserApp:
             return
         self._rebuild_live_source(connected)
         self._refresh_server_switcher()
+        self._refresh_user_switcher()
 
         if kind == "settings":
             self._dispatch_view("on_servers_changed", self.server_list)
@@ -794,9 +1006,30 @@ class BrowserApp:
     # -- lifecycle ---------------------------------------------------------
 
     def _on_close(self):
-        # Don't decide hide-vs-quit here: the main process owns that policy
-        # (it knows whether the system tray is available).
+        # First time (and only if a tray exists to minimize to), ask whether
+        # closing should minimize to tray or exit, then remember the answer.
+        if (not self.settings_values.get("close_prompt_shown")
+                and self.options.get("tray_available")):
+            self._prompt_close_preference()
+            return
+        # Otherwise the main process owns hide-vs-quit (it knows the tray state
+        # and the persisted close_to_tray preference).
         self.r_queue.put(("window_closed", None))
+
+    def _prompt_close_preference(self):
+        from .views import ClosePreferenceDialog
+        if getattr(self, "_close_dialog", None) is not None:
+            return
+        self._close_dialog = ClosePreferenceDialog(self, self._resolve_close)
+
+    def _resolve_close(self, minimize):
+        """Called with the user's first-close choice: persist it and act."""
+        self._close_dialog = None
+        self.settings_values["close_to_tray"] = bool(minimize)
+        self.settings_values["close_prompt_shown"] = True
+        self.save_settings({"close_to_tray": bool(minimize),
+                            "close_prompt_shown": True})
+        self.r_queue.put(("window_closed", {"minimize": bool(minimize)}))
 
     def _shutdown(self):
         if self._closing:

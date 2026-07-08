@@ -55,6 +55,11 @@ def apply_dark_theme(root, ttk):
     style.map("TCombobox",
               fieldbackground=[("readonly", ENTRY_BG)],
               foreground=[("readonly", TEXT_FG)],
+              # A readonly combobox otherwise shows its current item as
+              # "selected" (the theme's blue text highlight) whenever it holds
+              # focus; pin the selection colors to the field so it blends in.
+              selectbackground=[("readonly", ENTRY_BG)],
+              selectforeground=[("readonly", TEXT_FG)],
               background=[("active", BUTTON_ACTIVE)])
 
     style.configure("TEntry", fieldbackground=ENTRY_BG, foreground=TEXT_FG,

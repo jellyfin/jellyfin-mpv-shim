@@ -66,6 +66,12 @@ class Settings(SettingsBase):
     fullscreen: bool = True
     enable_gui: bool = True
     start_minimized: bool = False
+    # When True, closing the library-browser window hides it to the system tray
+    # (keeping the app alive as a cast target) rather than exiting. Defaults to
+    # the historical behaviour; the user is prompted once on first close.
+    close_to_tray: bool = True
+    # Set once the first-close prompt has been answered, so it isn't shown again.
+    close_prompt_shown: bool = False
     library_page_size: int = 100
     library_image_width: int = 280
     library_image_cache_mb: int = 256

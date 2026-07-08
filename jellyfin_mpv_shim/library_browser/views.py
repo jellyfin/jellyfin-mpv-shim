@@ -982,6 +982,30 @@ class _ServerForm:
         self.pw = tk.StringVar()
 
         self.frame = tk.Frame(parent, bg=CARD_BG)
+
+        # One-click provisioning: servers already used by any user can fill the
+        # URL (or jump straight into Quick Connect) so they aren't retyped.
+        known = list(getattr(app, "known_servers", None) or [])
+        if known:
+            picker = tk.Frame(self.frame, bg=CARD_BG)
+            picker.pack(fill="x", pady=(0, 10))
+            tk.Label(picker, text=_("Previously added servers:"), bg=CARD_BG,
+                     fg=SUBTLE_FG).pack(anchor="w")
+            for ks in known:
+                addr = ks.get("address")
+                if not addr:
+                    continue
+                krow = tk.Frame(picker, bg=ENTRY_BG)
+                krow.pack(fill="x", pady=2)
+                tk.Label(krow, text=ks.get("name") or addr, bg=ENTRY_BG,
+                         fg=TEXT_FG).pack(side="left", padx=8, pady=4)
+                ttk.Button(krow, text=_("Quick Connect"),
+                           command=lambda a=addr: self._use_known(a, quick=True)
+                           ).pack(side="right", padx=4)
+                ttk.Button(krow, text=_("Use"),
+                           command=lambda a=addr: self._use_known(a)
+                           ).pack(side="right", padx=4)
+
         rows = [(_("Server URL"), self.server, None),
                 (_("Username"), self.user, None),
                 (_("Password"), self.pw, "*")]
@@ -1021,6 +1045,11 @@ class _ServerForm:
 
     def widget(self):
         return self.frame
+
+    def _use_known(self, address, quick=False):
+        self.server.set(address)
+        if quick:
+            self.start_quick_connect()
 
     def submit(self):
         server = self.server.get().strip()
@@ -1073,6 +1102,224 @@ class _ServerForm:
         self._reset()
 
 
+class PinDialog:
+    """Small modal that collects a PIN and hands it to a callback. Stays open
+    until told to close, so the caller can report a wrong-PIN error inline."""
+
+    def __init__(self, app, title, prompt, on_submit):
+        self.app = app
+        self.on_submit = on_submit
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(title)
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.resizable(False, False)
+
+        tk.Label(win, text=prompt, bg=CARD_BG, fg=TEXT_FG, wraplength=300,
+                 justify="left").pack(anchor="w", padx=16, pady=(16, 8))
+        self.pin = tk.StringVar()
+        entry = ttk.Entry(win, textvariable=self.pin, show="*", width=20)
+        entry.pack(padx=16, anchor="w")
+        entry.bind("<Return>", lambda _e: self.submit())
+        self.error = tk.Label(win, text="", bg=CARD_BG, fg="#e57373",
+                              wraplength=300, justify="left")
+        self.error.pack(anchor="w", padx=16, pady=(6, 0))
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(fill="x", padx=16, pady=14)
+        ttk.Button(btns, text=_("Cancel"), command=self.cancel).pack(side="right")
+        ttk.Button(btns, text=_("OK"), style="Accent.TButton",
+                   command=self.submit).pack(side="right", padx=8)
+        win.protocol("WM_DELETE_WINDOW", self.cancel)
+        try:
+            entry.focus_set()
+            win.grab_set()
+        except Exception:
+            pass
+
+    def submit(self):
+        pin = self.pin.get()
+        if not pin:
+            self.set_error(_("Enter a PIN."))
+            return
+        self.on_submit(pin)
+
+    def set_error(self, text):
+        try:
+            self.error.config(text=text)
+        except Exception:
+            pass
+
+    def cancel(self):
+        if getattr(self.app, "_pin_dialog", None) is self:
+            self.app._pin_dialog = None
+        self.close()
+
+    def close(self):
+        try:
+            self.win.grab_release()
+        except Exception:
+            pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
+
+
+class PinSetupDialog:
+    """Set, change, or clear a user's parental-control PIN. Changing or clearing
+    an existing PIN requires entering the current one."""
+
+    def __init__(self, app, user, on_submit):
+        # on_submit(new_pin, require_startup, current_pin)
+        self.app = app
+        self.user = user
+        self.on_submit = on_submit
+        self._locked = bool(user.get("locked"))
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(_("Change PIN") if self._locked else _("Set PIN"))
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.resizable(False, False)
+
+        tk.Label(win, text=_("PIN for %s") % user.get("name", ""), bg=CARD_BG,
+                 fg=TEXT_FG, font=("TkDefaultFont", 13, "bold")).pack(
+            anchor="w", padx=16, pady=(14, 8))
+
+        self.current = tk.StringVar()
+        self.new = tk.StringVar()
+        self.confirm = tk.StringVar()
+        rows = []
+        if self._locked:
+            rows.append((_("Current PIN"), self.current))
+        rows.append((_("New PIN"), self.new))
+        rows.append((_("Confirm PIN"), self.confirm))
+        for label, var in rows:
+            row = tk.Frame(win, bg=CARD_BG)
+            row.pack(fill="x", padx=16, pady=3)
+            tk.Label(row, text=label, bg=CARD_BG, fg=SUBTLE_FG, width=12,
+                     anchor="w").pack(side="left")
+            ttk.Entry(row, textvariable=var, show="*", width=18).pack(side="left")
+
+        self.require_startup = tk.BooleanVar(value=bool(user.get("require_startup")))
+        ttk.Checkbutton(win, text=_("Require this PIN at startup and when "
+                                    "reopening the window"),
+                        variable=self.require_startup).pack(anchor="w", padx=16,
+                                                            pady=(8, 0))
+
+        self.error = tk.Label(win, text="", bg=CARD_BG, fg="#e57373",
+                              wraplength=320, justify="left")
+        self.error.pack(anchor="w", padx=16, pady=(6, 0))
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(fill="x", padx=16, pady=14)
+        ttk.Button(btns, text=_("Cancel"), command=self.close).pack(side="right")
+        ttk.Button(btns, text=_("Save"), style="Accent.TButton",
+                   command=self._save).pack(side="right", padx=8)
+        if self._locked:
+            ttk.Button(btns, text=_("Remove PIN"),
+                       command=self._remove).pack(side="left")
+        win.protocol("WM_DELETE_WINDOW", self.close)
+        try:
+            win.grab_set()
+        except Exception:
+            pass
+
+    def _save(self):
+        new = self.new.get()
+        if not new:
+            self.error.config(text=_("Enter a new PIN."))
+            return
+        if new != self.confirm.get():
+            self.error.config(text=_("PINs do not match."))
+            return
+        self.on_submit(new, self.require_startup.get(),
+                       self.current.get() if self._locked else None)
+        self.close()
+
+    def _remove(self):
+        # Clearing the PIN routes through set_pin with an empty PIN; the main
+        # process still verifies the current PIN before removing it.
+        self.on_submit("", False, self.current.get())
+        self.close()
+
+    def close(self):
+        try:
+            self.win.grab_release()
+        except Exception:
+            pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
+
+
+class ClosePreferenceDialog:
+    """First-close prompt: minimize to tray (historical behaviour) or exit. The
+    choice is persisted so it isn't asked again."""
+
+    def __init__(self, app, on_choice):
+        self.app = app
+        self.on_choice = on_choice
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(_("Close Window"))
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.resizable(False, False)
+
+        tk.Label(win, text=_("When you close the window, what should happen?"),
+                 bg=CARD_BG, fg=TEXT_FG, font=("TkDefaultFont", 13, "bold"),
+                 wraplength=380, justify="left").pack(anchor="w", padx=16,
+                                                      pady=(16, 6))
+        tk.Label(win, text=_("Minimizing keeps the app running in the system "
+                             "tray so it stays available as a cast target. You "
+                             "can change this later in Settings → Interface."),
+                 bg=CARD_BG, fg=SUBTLE_FG, wraplength=380,
+                 justify="left").pack(anchor="w", padx=16)
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(fill="x", padx=16, pady=16)
+        ttk.Button(btns, text=_("Exit"),
+                   command=lambda: self._choose(False)).pack(side="right")
+        ttk.Button(btns, text=_("Minimize to Tray"), style="Accent.TButton",
+                   command=lambda: self._choose(True)).pack(side="right", padx=8)
+        # Dismissing the prompt aborts the close and asks again next time.
+        win.protocol("WM_DELETE_WINDOW", self._cancel)
+        try:
+            win.grab_set()
+        except Exception:
+            pass
+
+    def _choose(self, minimize):
+        cb = self.on_choice
+        self._close()
+        cb(minimize)
+
+    def _cancel(self):
+        if getattr(self.app, "_close_dialog", None) is self:
+            self.app._close_dialog = None
+        self._close()
+
+    def _close(self):
+        try:
+            self.win.grab_release()
+        except Exception:
+            pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
+
+
 class ConnectingView(BaseView):
     """Shown while the main process is connecting, so the window appears
     immediately instead of waiting on the network."""
@@ -1118,6 +1365,23 @@ class LoginView(BaseView):
             self.app.ttk.Button(wrap, text=_("Retry connection"),
                                 command=self.app.retry_connect).pack(pady=(0, 12))
 
+        # The top bar (and its user switcher) is hidden on this chrome-free
+        # screen, so offer a way to switch users here too — otherwise a user
+        # with no servers yet would be stranded on the login form.
+        others = [u for u in self.app.users
+                  if u["id"] != self.app.active_user_id]
+        if others:
+            switch_row = tk.Frame(wrap, bg=CARD_BG)
+            switch_row.pack(pady=(0, 12))
+            tk.Label(switch_row, text=_("Switch user:"), bg=CARD_BG,
+                     fg=SUBTLE_FG).pack(side="left", padx=(0, 6))
+            for u in others:
+                label = ("\U0001F512 " if u.get("locked") else "") + u["name"]
+                self.app.ttk.Button(
+                    switch_row, text=label,
+                    command=lambda usr=u: self.app.request_switch_user(usr)
+                    ).pack(side="left", padx=2)
+
         tk.Label(wrap, text=_("Sign in to your Jellyfin server"), bg=CARD_BG,
                  fg=SUBTLE_FG).pack(pady=(0, 10))
         self.form = _ServerForm(self.app, wrap, self.app.add_server, _("Connect"))
@@ -1129,6 +1393,62 @@ class LoginView(BaseView):
 
     def on_quick_connect_code(self, result):
         self.form.on_quick_connect_code(result)
+
+
+class LockedView(BaseView):
+    """Startup gate for a PIN-locked active user: unlock with the PIN, or switch
+    to a different (possibly unlocked) user instead."""
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        wrap = tk.Frame(self.frame, bg=CARD_BG)
+        wrap.place(relx=0.5, rely=0.5, anchor="center")
+
+        active = next((u for u in self.app.users
+                       if u["id"] == self.app.active_user_id), None)
+        name = active["name"] if active else ""
+
+        tk.Label(wrap, text="\U0001F512", bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 40)).pack()
+        tk.Label(wrap, text=_("%s is locked") % name, bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 16, "bold")).pack(pady=(4, 10))
+
+        self.pin = tk.StringVar()
+        entry = ttk.Entry(wrap, textvariable=self.pin, show="*", width=20)
+        entry.pack()
+        entry.bind("<Return>", lambda _e: self._unlock())
+        self.error = tk.Label(wrap, text="", bg=CARD_BG, fg="#e57373",
+                              wraplength=320, justify="center")
+        self.error.pack(pady=(6, 0))
+        ttk.Button(wrap, text=_("Unlock"), style="Accent.TButton",
+                   command=self._unlock).pack(pady=10)
+
+        others = [u for u in self.app.users if u["id"] != self.app.active_user_id]
+        if others:
+            tk.Label(wrap, text=_("or switch to another user:"), bg=CARD_BG,
+                     fg=SUBTLE_FG).pack(pady=(12, 4))
+            for u in others:
+                label = ("\U0001F512 " if u.get("locked") else "") + u["name"]
+                ttk.Button(wrap, text=label,
+                           command=lambda usr=u: self.app.request_switch_user(usr)
+                           ).pack(pady=2)
+        try:
+            entry.focus_set()
+        except Exception:
+            pass
+
+    def _unlock(self):
+        pin = self.pin.get()
+        if not pin:
+            self.error.config(text=_("Enter a PIN."))
+            return
+        self.app._send_switch(
+            {"id": self.app.active_user_id, "name": "", "locked": True}, pin)
+
+    def on_switch_result(self, result):
+        if not (result or {}).get("ok"):
+            self.error.config(
+                text=(result or {}).get("error") or _("Incorrect PIN."))
 
 
 class ServersPanel:
@@ -1147,9 +1467,17 @@ class ServersPanel:
         for child in body.winfo_children():
             child.destroy()
 
-        tk.Label(body, text=_("Servers"), bg=CARD_BG, fg=TEXT_FG,
+        self._render_users(body, tk, ttk)
+
+        # The servers list is scoped to the active user (switching users swaps
+        # which servers are connected), so name the section after them.
+        active_name = next((u["name"] for u in self.app.users
+                            if u["id"] == self.app.active_user_id), None)
+        servers_title = (_("Servers for %s") % active_name if active_name
+                         else _("Servers"))
+        tk.Label(body, text=servers_title, bg=CARD_BG, fg=TEXT_FG,
                  font=("TkDefaultFont", 16, "bold")).pack(anchor="w", padx=16,
-                                                          pady=(12, 8))
+                                                          pady=(18, 8))
         if not self.app.server_list:
             tk.Label(body, text=_("No servers configured yet."), bg=CARD_BG,
                      fg=SUBTLE_FG).pack(anchor="w", padx=16)
@@ -1178,6 +1506,74 @@ class ServersPanel:
                                                           pady=(18, 4))
         self.form = _ServerForm(self.app, body, self.app.add_server, _("Add Server"))
         self.form.widget().pack(anchor="w", padx=16, pady=(0, 16))
+
+    def _render_users(self, body, tk, ttk):
+        users = self.app.users
+        tk.Label(body, text=_("Users"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 16, "bold")).pack(anchor="w", padx=16,
+                                                          pady=(12, 4))
+        tk.Label(body, text=_("Switch between local users. Each user has its "
+                              "own servers and a separate device identity; a "
+                              "locked user needs a PIN to switch to."),
+                 bg=CARD_BG, fg=SUBTLE_FG, wraplength=560,
+                 justify="left").pack(anchor="w", padx=16, pady=(0, 6))
+
+        can_delete = len(users) > 1
+        for u in users:
+            is_active = u["id"] == self.app.active_user_id
+            row = tk.Frame(body, bg=ENTRY_BG)
+            row.pack(fill="x", padx=16, pady=3)
+            label = ("\U0001F512 " if u.get("locked") else "") + u.get("name", "?")
+            tk.Label(row, text=label, bg=ENTRY_BG, fg=TEXT_FG,
+                     font=("TkDefaultFont", 11, "bold")).pack(side="left", padx=8,
+                                                              pady=6)
+            if is_active:
+                tk.Label(row, text=_("active"), bg=ENTRY_BG,
+                         fg="#7bd88f").pack(side="left", padx=8)
+            if can_delete and not is_active:
+                ttk.Button(row, text=_("Delete"),
+                           command=lambda uid=u["id"]: self.app.delete_user(uid)
+                           ).pack(side="right", padx=4)
+            ttk.Button(row, text=(_("Change PIN") if u.get("locked")
+                                  else _("Set PIN")),
+                       command=lambda usr=u: self._set_pin(usr)
+                       ).pack(side="right", padx=4)
+            ttk.Button(row, text=_("Rename"),
+                       command=lambda usr=u: self._rename(usr)
+                       ).pack(side="right", padx=4)
+            if not is_active:
+                ttk.Button(row, text=_("Switch"),
+                           command=lambda usr=u: self.app.request_switch_user(usr)
+                           ).pack(side="right", padx=4)
+
+        add_row = tk.Frame(body, bg=CARD_BG)
+        add_row.pack(fill="x", padx=16, pady=(6, 4))
+        self.new_user_var = tk.StringVar()
+        entry = ttk.Entry(add_row, textvariable=self.new_user_var, width=24)
+        entry.pack(side="left")
+        entry.bind("<Return>", lambda _e: self._add_user())
+        ttk.Button(add_row, text=_("Add User"),
+                   command=self._add_user).pack(side="left", padx=6)
+
+    def _add_user(self):
+        name = self.new_user_var.get().strip()
+        if name:
+            self.app.add_user(name)
+            self.new_user_var.set("")
+
+    def _rename(self, user):
+        from tkinter import simpledialog
+        name = simpledialog.askstring(
+            _("Rename User"), _("New name:"), parent=self.app.root,
+            initialvalue=user.get("name", ""))
+        if name and name.strip():
+            self.app.rename_user(user["id"], name.strip())
+
+    def _set_pin(self, user):
+        PinSetupDialog(
+            self.app, user,
+            lambda pin, startup, current: self.app.set_user_pin(
+                user["id"], pin, startup, current))
 
     def on_server_result(self, result):
         if self.form:
@@ -1507,9 +1903,10 @@ class DownloadsPanel:
 # Friendly, grouped settings (in-player-menu + README-documented keys). Anything
 # not listed here shows under the auto-generated "Advanced" toggle.
 SETTINGS_SECTIONS = [
-    (_("Interface"), ["player_name", "enable_gui", "start_minimized", "fullscreen",
+    (_("Interface"), ["player_name", "enable_gui", "start_minimized",
+                      "close_to_tray", "fullscreen",
                       "enable_osc", "raise_mpv", "check_updates", "notify_updates"]),
-    (_("Playback"), ["audio_output", "auto_play", "always_transcode", "local_kbps",
+    (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
                      "playback_timeout"]),
     (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
@@ -1529,10 +1926,16 @@ SETTINGS_SECTIONS = [
     (_("Downloads"), ["sync_path", "prefer_downloaded"]),
 ]
 
+# Settings that exist in the config but are intentionally not shown in the UI
+# (e.g. audio_output is a legacy no-op that confuses users; close_prompt_shown
+# is internal bookkeeping for the first-close prompt).
+SETTINGS_HIDDEN = {"audio_output", "close_prompt_shown"}
+
 # Friendlier labels than the auto-generated title-cased key.
 SETTINGS_LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "close_to_tray": _("Close to Tray (keep running)"),
 }
 
 SETTINGS_ENUMS = {
@@ -1600,7 +2003,8 @@ class SettingsPanel:
 
         self.adv_frame = tk.Frame(body, bg=CARD_BG)
         advanced = sorted(k for k, t in schema.items()
-                          if t != "skip" and k not in curated)
+                          if t != "skip" and k not in curated
+                          and k not in SETTINGS_HIDDEN)
         self._section(self.adv_frame, _("Advanced"), advanced)
 
         self.save_row = tk.Frame(body, bg=CARD_BG)
@@ -1813,6 +2217,10 @@ class SettingsView(BaseView):
         if self.servers_panel:
             self.servers_panel.refresh()
 
+    def on_users_changed(self, _users):
+        if self.servers_panel:
+            self.servers_panel.refresh()
+
     def on_log_init(self, lines):
         if self.logs_panel:
             self.logs_panel.on_log_init(lines)
@@ -1924,6 +2332,7 @@ VIEW_TYPES = {
     "detail": DetailView,
     "search": SearchView,
     "login": LoginView,
+    "locked": LockedView,
     "connecting": ConnectingView,
     "settings": SettingsView,
 }

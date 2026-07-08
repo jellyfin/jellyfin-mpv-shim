@@ -54,7 +54,9 @@ bare IP addresses and not specifying the port by default. If you want to connect
 ## Limitations
 
 - Music playback and Live TV are not supported.
-- The client can’t be shared seamlessly between multiple users on the same server. ([Link to issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
+- A single active session still reports as one device to a given server. For sharing the player between
+  people, see [Fast User Switching](#fast-user-switching), which keeps each local user on its own device
+  identity. ([Related issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
 
 ### Known Issues
 
@@ -97,6 +99,41 @@ The menu enables you to:
 
 On your computer, use the mouse or arrow keys, enter, and escape to navigate.
 On your phone, use the arrow buttons, ok, back, and home to navigate.
+
+### Fast User Switching
+
+The local library browser can hold several **users**, letting more than one person share the same
+player without their servers, sessions, and remote-control state colliding. Jellyfin (and jellyfin-web)
+has no built-in fast user switching; because this client owns its own UI, it can.
+
+A *user* is a local grouping of one or more server logins that connect together. Only one user is active
+at a time. Switching disconnects the active user's servers and connects the selected user's, then updates
+the server selector.
+
+- **Managing users** — open **Settings → Servers**. The existing server(s) are kept as a `(default)` user
+  (which you can rename). Use **Add User** to create more, then **Switch** to a user and add its servers
+  with the normal *Add a server* form (each user's servers are managed while that user is active). Any
+  server address already used by another user is offered under *Previously added servers* with **Use** and
+  **Quick Connect** shortcuts, so you don't retype URLs when provisioning a new account.
+- **Switching** — a user drop-down appears to the left of the server selector in the top bar once you have
+  more than one user. Pick a user to switch to it.
+- **Separate device identity** — each non-default user gets its own Jellyfin device id (and a device name
+  like `hostname (Kids)`), so two users logged into the *same* server don't fight over one server-side
+  session. The `(default)` user keeps the original device id, so its existing sessions and tokens are
+  untouched.
+- **PIN protection (parental controls)** — a user can be given a PIN (**Set PIN**). Switching *into* a
+  locked user always requires the PIN. You can additionally tick *Require this PIN at startup and when
+  reopening the window*, which re-locks the browser whenever the app starts or the window is reopened from
+  the tray, so a locked profile can't be resumed without the PIN. This is a parental-control convenience,
+  **not** a security boundary — the PIN is only salted-hashed in the config, and the media itself is not
+  encrypted.
+
+The first time you close the browser window, you're asked whether closing should **Minimize to Tray**
+(keep the app running as a cast target) or **Exit**. Your choice is remembered and can be changed later
+via **Close to Tray (keep running)** in *Settings → Interface*.
+
+Users are stored in `users.json` in the config folder (next to `cred.json`). On first run with this
+feature, your existing `cred.json` is migrated into the `(default)` user automatically.
 
 ### Shader Packs
 
@@ -219,6 +256,7 @@ You can use the config file to enable and disable features.
 
 - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+- `close_to_tray` - When enabled, closing the library-browser window hides it to the system tray (keeping the app running as a cast target); when disabled, closing exits. The first time you close the window you're asked which you prefer, and the answer is stored here. Default: `true`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
@@ -506,9 +544,10 @@ via the mpv IPC server.
 
 ### Authorization
 
-The `cred.json` file contains the authorization information. If you are having problems with the client,
-such as the Now Playing not appearing or want to delete a server, you can delete this file and add the
-servers again.
+The `users.json` file contains your local users and, within each, the server authorization information
+(migrated once from the older `cred.json`, which is left in place but no longer updated). If you are
+having problems with the client, such as the Now Playing not appearing or want to start over, you can
+delete `users.json` (and `cred.json`) and add the servers again.
 
 ## Tips and Tricks
 

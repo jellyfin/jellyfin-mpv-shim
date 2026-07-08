@@ -10,6 +10,7 @@ import logging
 from .constants import USER_APP_NAME, APP_NAME
 from .conffile import confdir
 from .clients import clientManager, QuickConnectError
+from .users import userManager
 from .conf import settings, Settings
 from .sync.manager import syncManager
 from .utils import get_resource
@@ -146,6 +147,8 @@ class UserInterface(threading.Thread):
         self._shutting_down = False
         self._quick_connect_cancel = None  # threading.Event for the active QC flow
         self._folder_move_active = False   # a download-folder move is in flight
+        self._startup_locked = False       # active user needs a startup PIN
+        self._switching = False            # a user switch is in flight
 
         threading.Thread.__init__(self)
 
@@ -228,10 +231,14 @@ class UserInterface(threading.Thread):
         # badge: push the full servers payload. The browser keeps the current
         # selection/screen and just gains the server in the switcher.
         clientManager.on_server_connected = self.refresh_servers
-        if not settings.work_offline:
+        # A locked user that opted into a startup PIN must not connect until the
+        # PIN is entered: the browser opens on a locked gate and drives the
+        # unlock through on_switch_user. Everything else connects immediately.
+        self._startup_locked = userManager.startup_needs_unlock()
+        if not settings.work_offline and not self._startup_locked:
             self._connecting = True
         self.start_browser()
-        if not settings.work_offline:
+        if not settings.work_offline and not self._startup_locked:
             self._begin_connect()
 
     def _begin_connect(self):
@@ -256,7 +263,11 @@ class UserInterface(threading.Thread):
         self._send_browser(("connection_settled", {
             "connected": self._collect_servers(),
             "all": self._collect_credentials(),
+            "device_id": clientManager.device_id,
         }))
+
+    def _push_users(self):
+        self._send_browser(("users", userManager.public_state()))
 
     def on_retry_connect(self, _param):
         self._begin_connect()
@@ -297,6 +308,7 @@ class UserInterface(threading.Thread):
             self._send_browser(("servers", {
                 "connected": self._collect_servers(),
                 "all": self._collect_credentials(),
+                "device_id": clientManager.device_id,
             }))
 
     def _push_server_status(self):
@@ -347,10 +359,14 @@ class UserInterface(threading.Thread):
             "page_size": settings.library_page_size,
             "image_width": settings.library_image_width,
             "image_cache_mb": settings.library_image_cache_mb,
-            "device_id": settings.client_uuid,
+            # The active user's device id — the browse-only clients must present
+            # the same device as the control clients so they share a session.
+            "device_id": clientManager.device_id,
+            "users": userManager.public_state(),
             "player_name": settings.player_name,
             "verify_ssl": not settings.ignore_ssl_cert,
             "start_hidden": start_hidden,
+            "tray_available": self.tray_alive,
             "connecting": self._connecting,
             "last_server": settings.library_last_server,
             "server_list": self._collect_credentials(),
@@ -409,14 +425,20 @@ class UserInterface(threading.Thread):
         else:
             self._send_browser(("show", None))
 
-    def on_window_closed(self, _param):
-        # New paradigm: closing the window minimizes to the tray. With no tray
-        # there is nowhere to minimize to, so we exit instead of stranding an
-        # invisible process.
-        if self.tray_alive:
+    def on_window_closed(self, param):
+        # The browser may send an explicit choice from the first-close prompt;
+        # otherwise fall back to the persisted close_to_tray preference. Either
+        # way, minimizing needs a tray — without one we exit.
+        param = param or {}
+        minimize = param.get("minimize")
+        if minimize is None:
+            minimize = settings.close_to_tray
+        if minimize and self.tray_alive:
             self._send_browser(("hide", None))
         else:
-            log.info("Window closed and no system tray available; exiting.")
+            if minimize and not self.tray_alive:
+                log.info("Minimize-to-tray requested but no system tray is "
+                         "available; exiting instead.")
             self.r_queue.put(("quit", None))
 
     def on_browser_died(self, _param):
@@ -569,6 +591,84 @@ class UserInterface(threading.Thread):
         except Exception:
             log.error("Error while removing server.", exc_info=True)
         self.refresh_servers()
+
+    # -- user switching ----------------------------------------------------
+
+    def on_switch_user(self, payload):
+        """Switch the active local user (parental-control PIN gated).
+
+        A locked user requires a matching PIN before the switch proceeds — this
+        gates both an in-session switch and the startup unlock gate. The connect
+        runs on a worker thread (it can block on retries) so the action loop
+        keeps flowing; the browser shows the connecting screen meanwhile."""
+        payload = payload or {}
+        user_id = payload.get("user_id")
+        pin = payload.get("pin")
+
+        target = userManager.get(user_id)
+        if target is None:
+            self._send_browser(("switch_result",
+                                {"ok": False, "error": _("User not found.")}))
+            return
+        if userManager.is_locked(user_id) and not userManager.verify_pin(user_id, pin):
+            self._send_browser(("switch_result",
+                                {"ok": False, "error": _("Incorrect PIN.")}))
+            return
+        if self._switching:
+            return  # a switch is already running; ignore the double-tap
+
+        # Accepted: tell the browser to drop any PIN dialog and show connecting,
+        # then do the real work off the loop.
+        self._switching = True
+        self._startup_locked = False
+        self._send_browser(("switch_result", {"ok": True}))
+
+        def work():
+            try:
+                clientManager.switch_user(user_id)
+            except Exception:
+                log.error("Error switching user.", exc_info=True)
+            finally:
+                self._switching = False
+            self._push_users()
+            self._push_connection_settled()
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_add_user(self, payload):
+        name = (payload or {}).get("name", "")
+        userManager.add_user(name)
+        self._push_users()
+
+    def on_rename_user(self, payload):
+        payload = payload or {}
+        userManager.rename_user(payload.get("user_id"), payload.get("name", ""))
+        self._push_users()
+
+    def on_delete_user(self, payload):
+        payload = payload or {}
+        ok, error = userManager.delete_user(payload.get("user_id"))
+        if not ok:
+            self._send_browser(("user_action_error", {"error": error}))
+        self._push_users()
+
+    def on_set_user_pin(self, payload):
+        """Set / change / clear a user's PIN. Changing or clearing an existing
+        PIN requires the current PIN (so a child can't just remove the lock)."""
+        payload = payload or {}
+        user_id = payload.get("user_id")
+        new_pin = payload.get("pin") or ""
+        require_startup = bool(payload.get("require_startup"))
+        current_pin = payload.get("current_pin")
+
+        if userManager.is_locked(user_id) and not userManager.verify_pin(
+            user_id, current_pin
+        ):
+            self._send_browser(("user_action_error",
+                                {"error": _("Incorrect PIN.")}))
+            return
+        userManager.set_pin(user_id, new_pin, require_startup)
+        self._push_users()
 
     def on_request_logs(self, _param):
         self._send_browser(("log_init", list(log_cache)))

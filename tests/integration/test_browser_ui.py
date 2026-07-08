@@ -196,7 +196,7 @@ def deliver(app, expect=1, timeout=4):
 @require_tk
 class BrowserUITest(unittest.TestCase):
     def _build_app(self, servers=ONE_SERVER, *, work_offline=False,
-                   catalog_path=None, settled_home=True):
+                   catalog_path=None, settled_home=True, users=None):
         import jellyfin_mpv_shim.library_browser.app as app_mod
         from unittest import mock
 
@@ -222,6 +222,8 @@ class BrowserUITest(unittest.TestCase):
             "settings_schema": {}, "sync_state": {},
             "catalog_path": catalog_path,
         }
+        if users is not None:
+            options["users"] = users
         app = app_mod.BrowserApp(cmd_q, r_q, list(servers), options)
         self.app = app
         self.cmd_q, self.r_q = cmd_q, r_q
@@ -398,6 +400,204 @@ class BrowserUITest(unittest.TestCase):
         app.server_box.current(0)
         app._on_server_change(None)
         self.assertEqual(app.current_server, app._switcher_servers[0]["uuid"])
+
+    # -- user switcher -----------------------------------------------------
+
+    _TWO_USERS = {
+        "active": "u-default",
+        "startup_locked": False,
+        "users": [
+            {"id": "u-default", "name": "(default)", "locked": False,
+             "default": True},
+            {"id": "u-kids", "name": "Kids", "locked": False, "default": False},
+        ],
+    }
+
+    def _drain_r_queue(self, app):
+        out = []
+        while True:
+            try:
+                out.append(app.r_queue.get_nowait())
+            except queue.Empty:
+                break
+        return out
+
+    def test_user_switcher_hidden_with_one_user(self):
+        app = self._build_app()  # no users option -> single implicit user
+        self.assertFalse(app.user_box.winfo_ismapped())
+
+    def test_user_switcher_shown_with_two_users(self):
+        app = self._build_app(users=self._TWO_USERS)
+        self.assertTrue(app.user_box.winfo_ismapped())
+        self.assertEqual(len(app._switcher_users), 2)
+
+    def test_switch_to_unlocked_user_sends_request(self):
+        app = self._build_app(users=self._TWO_USERS)
+        # Select "Kids" (index 1) and fire the change handler.
+        app.user_box.current(1)
+        app._on_user_change(None)
+        msgs = self._drain_r_queue(app)
+        self.assertIn(("switch_user", {"user_id": "u-kids"}), msgs)
+        # The visible selection reverts to the active user until confirmed.
+        self.assertEqual(app.user_box.current(), 0)
+        # No PIN is required for an unlocked user, so we go straight to connecting.
+        self.assertEqual(app.nav_stack[-1]["kind"], "connecting")
+
+    def test_switch_to_locked_user_prompts_for_pin(self):
+        users = {
+            "active": "u-default", "startup_locked": False,
+            "users": [
+                {"id": "u-default", "name": "(default)", "locked": False,
+                 "default": True},
+                {"id": "u-parent", "name": "Parent", "locked": True,
+                 "default": False},
+            ],
+        }
+        app = self._build_app(users=users)
+        self._drain_r_queue(app)  # clear the startup ("ready_browser", ...)
+        app.user_box.current(1)
+        app._on_user_change(None)
+        # A PIN dialog is open; no switch request was sent yet.
+        self.assertIsNotNone(app._pin_dialog)
+        sent = self._drain_r_queue(app)
+        self.assertFalse([m for m in sent if m[0] == "switch_user"])
+        # Entering a PIN sends the switch request carrying it.
+        app._pin_dialog.pin.set("1234")
+        app._pin_dialog.submit()
+        msgs = self._drain_r_queue(app)
+        self.assertIn(
+            ("switch_user", {"user_id": "u-parent", "pin": "1234"}), msgs)
+        # A wrong-PIN result keeps the dialog open with an error.
+        app.on_switch_result({"ok": False, "error": "Incorrect PIN."})
+        self.assertIsNotNone(app._pin_dialog)
+        # A correct-PIN result closes the dialog and shows connecting.
+        app.on_switch_result({"ok": True})
+        self.assertIsNone(app._pin_dialog)
+        self.assertEqual(app.nav_stack[-1]["kind"], "connecting")
+
+    def test_users_push_updates_switcher_and_active(self):
+        app = self._build_app(users=self._TWO_USERS)
+        app._handle_cmd("users", {
+            "active": "u-kids",
+            "users": self._TWO_USERS["users"],
+        })
+        self.assertEqual(app.active_user_id, "u-kids")
+        self.assertEqual(app.user_box.current(), 1)
+
+    def test_login_form_builds_with_known_servers(self):
+        users = {
+            "active": "u-kids", "startup_locked": False,
+            "users": [
+                {"id": "u-kids", "name": "Kids", "locked": False,
+                 "default": False},
+            ],
+            "known_servers": [{"address": "http://home:8096", "name": "Home"}],
+        }
+        # No servers for this user -> lands on the login form, which should
+        # render the known-server picker without error.
+        app = self._build_app(servers=[], settled_home=False, users=users)
+        self.assertEqual(app.nav_stack[-1]["kind"], "login")
+        self.assertEqual(app.known_servers,
+                         [{"address": "http://home:8096", "name": "Home"}])
+
+    def test_relock_on_hide_and_show_when_required(self):
+        app = self._build_app(users=self._TWO_USERS)
+        self.assertEqual(app.nav_stack[-1]["kind"], "home")
+        # Simulate the active user requiring a PIN on reopen.
+        app._lock_on_show = True
+        app._handle_cmd("hide", None)
+        self.assertEqual(app.nav_stack[-1]["kind"], "locked")
+        # Reopening keeps the gate (and re-gates if we somehow navigated away).
+        app.navigate({"kind": "home"}, reset=True)
+        app._handle_cmd("show", None)
+        self.assertEqual(app.nav_stack[-1]["kind"], "locked")
+
+    def test_no_relock_when_not_required(self):
+        app = self._build_app(users=self._TWO_USERS)
+        self.assertFalse(app._lock_on_show)
+        app._handle_cmd("hide", None)
+        self.assertEqual(app.nav_stack[-1]["kind"], "home")
+        app._handle_cmd("show", None)
+        self.assertEqual(app.nav_stack[-1]["kind"], "home")
+
+    def test_locked_gate_swallows_external_navigation(self):
+        app = self._build_app(users=self._TWO_USERS)
+        app._lock_on_show = True
+        app._handle_cmd("hide", None)
+        self.assertEqual(app.nav_stack[-1]["kind"], "locked")
+        self.assertTrue(app._locked_active)
+        # The tray's Configure Servers / Show Console must not reveal content.
+        app._handle_cmd("navigate", {"kind": "settings", "tab": "servers"})
+        self.assertEqual(app.nav_stack[-1]["kind"], "locked")
+        # Once unlocking proceeds, navigation works again.
+        app._enter_switching()
+        self.assertFalse(app._locked_active)
+        app._handle_cmd("navigate", {"kind": "settings"})
+        self.assertEqual(app.nav_stack[-1]["kind"], "settings")
+
+    def test_users_push_updates_lock_on_show(self):
+        app = self._build_app(users=self._TWO_USERS)
+        self.assertFalse(app._lock_on_show)
+        app._handle_cmd("users", {**self._TWO_USERS, "startup_locked": True})
+        self.assertTrue(app._lock_on_show)
+
+    def test_startup_locked_shows_locked_gate(self):
+        users = {
+            "active": "u-parent", "startup_locked": True,
+            "users": [
+                {"id": "u-parent", "name": "Parent", "locked": True,
+                 "default": True},
+                {"id": "u-kids", "name": "Kids", "locked": False,
+                 "default": False},
+            ],
+        }
+        app = self._build_app(users=users, settled_home=False)
+        self.assertEqual(app.nav_stack[-1]["kind"], "locked")
+
+    # -- first-close prompt ------------------------------------------------
+
+    def test_first_close_prompts_when_tray_available(self):
+        app = self._build_app()
+        app.options["tray_available"] = True
+        app.settings_values["close_prompt_shown"] = False
+        self._drain_r_queue(app)
+        app._on_close()
+        # A prompt opens; nothing is closed yet.
+        self.assertIsNotNone(app._close_dialog)
+        self.assertFalse([m for m in self._drain_r_queue(app)
+                          if m[0] == "window_closed"])
+
+    def test_close_prompt_choice_persists_and_acts(self):
+        app = self._build_app()
+        app.options["tray_available"] = True
+        app.settings_values["close_prompt_shown"] = False
+        self._drain_r_queue(app)
+        app._on_close()
+        app._close_dialog._choose(True)  # "Minimize to Tray"
+        msgs = self._drain_r_queue(app)
+        self.assertIn(("window_closed", {"minimize": True}), msgs)
+        self.assertIn(("save_settings",
+                       {"close_to_tray": True, "close_prompt_shown": True}), msgs)
+        self.assertTrue(app.settings_values["close_prompt_shown"])
+        self.assertIsNone(app._close_dialog)
+
+    def test_no_prompt_once_answered(self):
+        app = self._build_app()
+        app.options["tray_available"] = True
+        app.settings_values["close_prompt_shown"] = True
+        self._drain_r_queue(app)
+        app._on_close()
+        self.assertIsNone(app._close_dialog)
+        self.assertIn(("window_closed", None), self._drain_r_queue(app))
+
+    def test_no_prompt_without_tray(self):
+        app = self._build_app()
+        app.options["tray_available"] = False
+        app.settings_values["close_prompt_shown"] = False
+        self._drain_r_queue(app)
+        app._on_close()
+        self.assertIsNone(app._close_dialog)
+        self.assertIn(("window_closed", None), self._drain_r_queue(app))
 
     # -- offline banner Retry does not clear work_offline prematurely ------
 

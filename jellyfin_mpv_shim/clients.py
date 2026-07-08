@@ -2,6 +2,7 @@ from jellyfin_apiclient_python import JellyfinClient
 from jellyfin_apiclient_python.connection_manager import CONNECTION_STATE
 from .conf import settings
 from . import conffile
+from .users import userManager
 from getpass import getpass
 from .constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
 from .i18n import _
@@ -175,6 +176,19 @@ class ClientManager(object):
         # Set on stop(); lets reconnect/retry sleeps end immediately instead
         # of holding shutdown hostage for up to their full backoff interval.
         self._stop_event = threading.Event()
+        # The active user's Jellyfin device id / device name. Populated for real
+        # from userManager in load_credentials; these placeholders only matter
+        # if a connect somehow runs before load. Switching users swaps them so
+        # each user presents a distinct device to the servers.
+        self.device_id = settings.client_uuid
+        self.device_name = settings.player_name
+        # Set for the duration of a user switch. The health-check thread and the
+        # websocket reconnect loops must stand down while we tear down one
+        # user's clients and swap in another's, or a stale tick could resurrect
+        # a just-disconnected server under the wrong device id.
+        self._switching = threading.Event()
+        # Serializes concurrent switch_user calls (e.g. impatient double-click).
+        self._switch_lock = threading.Lock()
 
         self.health_check = None
         if settings.health_check_interval is not None:
@@ -303,12 +317,11 @@ class ClientManager(object):
             else:
                 log.warning(_("Adding server failed."))
 
-    @staticmethod
-    def client_factory():
+    def client_factory(self):
         client = JellyfinClient(allow_multiple_clients=True)
         client.config.data["app.default"] = True
         client.config.app(
-            USER_APP_NAME, CLIENT_VERSION, settings.player_name, settings.client_uuid
+            USER_APP_NAME, CLIENT_VERSION, self.device_name, self.device_id
         )
         client.config.data["http.user_agent"] = USER_AGENT
         client.config.data["auth.ssl"] = not settings.ignore_ssl_cert
@@ -364,20 +377,20 @@ class ClientManager(object):
         return is_logged_in
 
     def load_credentials(self):
-        """Read saved credentials from disk. Fast (no network) — call this
-        before connecting so callers know which servers exist up front."""
-        credentials_location = conffile.get(APP_NAME, "cred.json")
-        if os.path.exists(credentials_location):
-            with open(credentials_location) as cf:
-                self.credentials = json.load(cf)
+        """Load the active user's saved credentials. Fast (no network) — call
+        this before connecting so callers know which servers exist up front.
 
-        if "Servers" in self.credentials:
-            credentials_old = self.credentials
-            self.credentials = []
-            for server in credentials_old["Servers"]:
-                server["uuid"] = str(uuid.uuid4())
-                server["username"] = ""
-                self.credentials.append(server)
+        userManager owns persistence now (users.json); on first run it migrates
+        the legacy cred.json into a "(default)" user. We adopt that user's
+        device id / name so its servers see the right device."""
+        userManager.load()
+        self._adopt_active_user()
+
+    def _adopt_active_user(self):
+        """Point our live credential list + device identity at the active user."""
+        self.credentials = userManager.credentials_for_active()
+        self.device_id = userManager.active_device_id
+        self.device_name = userManager.active_device_name
 
     def connect_all(self):
         """Connect to all loaded credentials (call load_credentials first),
@@ -403,9 +416,11 @@ class ClientManager(object):
         return self.connect_all()
 
     def save_credentials(self):
-        credentials_location = conffile.get(APP_NAME, "cred.json")
-        with open(credentials_location, "w") as cf:
-            json.dump(clean_credentials_for_save(self.credentials), cf)
+        # Persist into the active user's record in users.json. Strip volatile
+        # runtime keys first (a stale "connected: true" is misleading on reload).
+        userManager.set_active_credentials(
+            clean_credentials_for_save(self.credentials)
+        )
 
     @staticmethod
     def _normalize_server(server: str) -> str:
@@ -555,7 +570,7 @@ class ClientManager(object):
             return True
 
         for f_client in client_list:
-            if f_client.get("DeviceId") == settings.client_uuid:
+            if f_client.get("DeviceId") == self.device_id:
                 break
         else:
             if not dry_run:
@@ -809,6 +824,45 @@ class ClientManager(object):
         client.stop()
         return True
 
+    def switch_user(self, user_id):
+        """Disconnect the active user's servers and connect ``user_id``'s.
+
+        The heavy connect_all() runs after the swap with the switch flag
+        cleared, so the health check can help it along and shutdown stays
+        responsive. Returns True on a successful (attempted) switch, False if
+        the target user doesn't exist. A target with no servers is still a
+        successful switch — it simply lands on the login screen."""
+        # Serialize switches; the flag makes the health check / reconnect loops
+        # stand down while we drain and swap the registry.
+        with self._switch_lock:
+            if self.is_stopping:
+                return False
+            target = userManager.get(user_id)
+            if target is None:
+                return False
+            if user_id == userManager.active_id and self.clients:
+                return True  # already here and connected; nothing to do
+
+            self._switching.set()
+            try:
+                # Persist whatever the active user currently has, then tear its
+                # live clients down.
+                self.save_credentials()
+                self.stop_all_clients()
+                # Swap identity + credentials to the target user.
+                userManager.set_active(user_id)
+                self._adopt_active_user()
+                # A fresh user starts with a clean removal ledger; stale uuids
+                # from the previous user must not suppress its (possibly
+                # uuid-colliding) reconnects.
+                with self._client_lock:
+                    self._removed_uuids.clear()
+            finally:
+                self._switching.clear()
+
+        self.connect_all()
+        return True
+
     def remove_all_clients(self):
         self.stop_all_clients()
         self.credentials = []
@@ -823,6 +877,11 @@ class ClientManager(object):
     def check_all_clients(self):
         if settings.work_offline:
             return  # don't touch the network in offline mode
+        if self._switching.is_set():
+            # A user switch is tearing down/standing up clients; a health tick
+            # that captured the old credential list mid-swap could otherwise
+            # reconnect a just-disconnected server. Skip this tick.
+            return
         log.info("Performing client health check...")
         # Iterate credentials so validate_client gets the server dict: on a
         # failed check it disconnects the client, and the retry pass right
