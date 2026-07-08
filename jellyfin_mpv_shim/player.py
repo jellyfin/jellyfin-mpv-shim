@@ -844,7 +844,16 @@ class PlayerManager(object):
             # noinspection PyUnresolvedReferences
             self.get_webview().hide()
 
-        self._player.command("set_property", "user-data/media-source/Path", video.media_source["Path"])
+        # Expose the source path so external-mpv profiles can auto-apply (see 986ceae).
+        # Use the real `set` input command, not `set_property`: the latter is a
+        # JSON-IPC-only verb and crashes libmpv ("Command 'set_property' not found",
+        # ValueError -4). Best-effort only; never let it break playback.
+        try:
+            self._player.command(
+                "set", "user-data/media-source/Path", video.media_source.get("Path")
+            )
+        except Exception:
+            log.debug("Could not set user-data/media-source/Path", exc_info=True)
         self._player.play(self.url)
         if not wait_property(
             self._player,
