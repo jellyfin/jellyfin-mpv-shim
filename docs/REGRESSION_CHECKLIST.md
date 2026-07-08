@@ -26,11 +26,6 @@ real flows (esp. auto-advance, close/recast, idle-quit) on each.
 [X] Test pass
 [*] Test had issues (subnote explains)
 
-# Other Bugs
-
-- MPV spams thumbfast clear requests when thumbfast is already cleared. This happens every time I move the mouse.
-- mpv_ext_ipc, mpv_ext_path, and several other config values need to read "" as None if nullable, otherwise it can result in an exception on launch, also config UI should use null for nullables when an empty string is saved
-
 # REGULAR MPV
 
 ## Highest risk × frequency
