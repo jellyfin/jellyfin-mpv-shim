@@ -207,3 +207,31 @@ by `tests/test_ui_review_fixes.py`, these need a live session.
   the online backdrop replaces the offline one (no stale header art).
 - [ ] **Browser crash race**: kill -9 the browser process, immediately click
   the tray's Show → exactly one working window; no orphaned unreachable one.
+
+### 7. jellyfin-web parity batch (2026-07) — hand-test items
+Filters/favorites/latest rows/shuffle (batch A), detail-page upgrades (batch
+B), grouped search + A–Z (batch C), and browser-side SyncPlay join. Pure
+logic is covered by `tests/test_browser_features.py`.
+- [ ] **Filters**: in a library grid, Unplayed / Favorites / Genre combine
+  correctly with every sort and with infinite scroll; totals match; offline
+  the same filters work against downloads.
+- [ ] **A–Z strip**: jumping to a letter filters (`#` = non-alphabetic);
+  clicking the active letter clears it.
+- [ ] **Favorites**: right-click add/remove on tiles + the detail/series
+  button stick server-side (check in jellyfin-web); Favorites filter then
+  shows them.
+- [ ] **Home**: per-library "Latest in X" rows appear (replacing the two
+  global Recently Added rows) and match jellyfin-web's home.
+- [ ] **Shuffle**: library-grid Shuffle plays a random queue spanning the
+  whole library (not just loaded pages); series Shuffle shuffles episodes;
+  offline shuffle plays only downloads.
+- [ ] **Detail page**: cast row renders with photos and clicking a person
+  opens their filmography; multi-version items show the Version picker and
+  the track pickers re-source on change; media-info line + "Ends at" look
+  right; Scenes row plays from the chapter offset (thumbnails online,
+  text-only offline).
+- [ ] **Search**: results grouped Movies / Shows / Episodes / Videos.
+- [ ] **SyncPlay**: with nothing playing, top-bar SyncPlay → groups list →
+  Join starts playback of the group's queue in mpv and stays in sync; Leave
+  works; joining a group on server B while in a group on server A leaves A
+  first; the button politely refuses offline.

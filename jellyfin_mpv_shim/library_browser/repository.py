@@ -11,6 +11,7 @@ same shapes work whether they came from the server or a local cache.
 import json
 import logging
 import os
+import random
 
 from jellyfin_apiclient_python import JellyfinClient
 
@@ -125,11 +126,13 @@ class LibrarySource:
             out.append(item)
         return out
 
-    def get_home_rows(self, server_uuid):
+    def get_home_rows(self, server_uuid, libraries=None):
         """Return the ordered rows shown on the home screen.
 
         Each row is ``{"title": str, "items": [DTO, ...]}``; empty rows are
-        dropped so the home screen only shows what exists.
+        dropped so the home screen only shows what exists. ``libraries`` (the
+        get_libraries result) drives the per-library "Latest" rows; passing it
+        in avoids a second views fetch when the caller already has it.
         """
         api = self._conn(server_uuid).api
         rows = []
@@ -155,23 +158,78 @@ class LibrarySource:
         except Exception:
             log.warning("Failed to load next-up items", exc_info=True)
 
-        for title, media in ((_("Recently Added Movies"), "Movie"),
-                             (_("Recently Added Episodes"), "Episode")):
+        # Per-library "Latest in X" rows, like jellyfin-web's home screen
+        # (replaces the old global Recently Added Movies/Episodes pair).
+        if libraries is None:
             try:
-                latest = api.get_recently_added(media=media, limit=20) or []
+                libraries = self.get_libraries(server_uuid)
+            except Exception:
+                log.warning("Failed to list libraries for latest rows",
+                            exc_info=True)
+                libraries = []
+        for lib in libraries:
+            if lib.get("CollectionType") == "playlists":
+                continue
+            try:
+                latest = api.get_recently_added(parent_id=lib.get("Id"),
+                                                limit=16) or []
                 # get_recently_added returns a bare list, not an Items dict.
                 items = latest.get("Items", []) if isinstance(latest, dict) else latest
-                rows.append((title, items))
+                rows.append((_("Latest %s") % lib.get("Name", ""), items))
             except Exception:
-                log.warning("Failed to load recently added (%s)", media, exc_info=True)
+                log.warning("Failed to load latest for %s", lib.get("Name"),
+                            exc_info=True)
 
         return [{"title": t, "items": i} for t, i in rows if i]
 
+    @staticmethod
+    def _filter_params(filters):
+        """Translate the UI's filter dict into Jellyfin query params."""
+        params = {}
+        if not filters:
+            return params
+        active = []
+        if filters.get("unplayed"):
+            active.append("IsUnplayed")
+        if active:
+            params["Filters"] = ",".join(active)
+        if filters.get("favorite"):
+            params["IsFavorite"] = "true"
+        if filters.get("genre"):
+            params["Genres"] = filters["genre"]
+        letter = filters.get("letter")
+        if letter == "#":
+            params["NameLessThan"] = "A"
+        elif letter:
+            params["NameStartsWith"] = letter
+        return params
+
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
-                          sort_order="Ascending", start_index=0, limit=100):
+                          sort_order="Ascending", start_index=0, limit=100,
+                          filters=None):
+        api = self._conn(server_uuid).api
+        params = {
+            "ParentId": parent_id,
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+            "StartIndex": start_index,
+            "Limit": limit,
+            "Fields": LIST_FIELDS,
+            "ImageTypeLimit": 1,
+            "EnableImageTypes": "Primary,Thumb,Backdrop",
+        }
+        params.update(self._filter_params(filters))
+        result = api.user_items(params=params) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_person_items(self, server_uuid, person_id, start_index=0, limit=100,
+                         sort_by="SortName", sort_order="Ascending"):
+        """A person's filmography (movies + series they appear in)."""
         api = self._conn(server_uuid).api
         result = api.user_items(params={
-            "ParentId": parent_id,
+            "PersonIds": person_id,
+            "Recursive": True,
+            "IncludeItemTypes": "Movie,Series",
             "SortBy": sort_by,
             "SortOrder": sort_order,
             "StartIndex": start_index,
@@ -181,6 +239,27 @@ class LibrarySource:
             "EnableImageTypes": "Primary,Thumb,Backdrop",
         }) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_genres(self, server_uuid, parent_id=None):
+        """Genre names available under a library (for the filter picker)."""
+        api = self._conn(server_uuid).api
+        result = api.get_genres(parent_id) or {}
+        return [g.get("Name") for g in result.get("Items", []) if g.get("Name")]
+
+    def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
+        """Random playable item ids under a library, for shuffle play. The
+        server does the shuffling (SortBy=Random) so the sample spans the whole
+        library, not just the loaded pages."""
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "ParentId": parent_id,
+            "Recursive": True,
+            "IncludeItemTypes": "Movie,Episode,Video",
+            "SortBy": "Random",
+            "Limit": limit,
+            "EnableImages": False,
+        }) or {}
+        return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_playlist_items(self, server_uuid, playlist_id):
         """A playlist's items in playlist order (not sorted).
@@ -250,6 +329,10 @@ class LibrarySource:
             if "Primary" in tags:
                 return item["Id"], "Primary", tags["Primary"]
 
+        if item.get("PrimaryImageTag"):
+            # People entries carry a bare PrimaryImageTag instead of ImageTags.
+            return item["Id"], "Primary", item["PrimaryImageTag"]
+
         if item.get("SeriesId") and item.get("SeriesPrimaryImageTag"):
             return item["SeriesId"], "Primary", item["SeriesPrimaryImageTag"]
 
@@ -277,6 +360,15 @@ class LibrarySource:
                                  fill_width=int(width), fill_height=int(height))
         return api.image_url(item_id, image_type, index=index, tag=tag,
                              max_width=int(width))
+
+    def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
+                          width=320):
+        """URL for a chapter thumbnail, or None when the chapter has none."""
+        tag = (chapter or {}).get("ImageTag")
+        if not tag:
+            return None
+        return self.image_url(server_uuid, item_id, "Chapter", tag, width,
+                              index=chapter_index)
 
     @staticmethod
     def backdrop_spec(item):
@@ -458,7 +550,7 @@ class OfflineLibrarySource:
                  "UserData": self._aggregate_userdata(episodes_by_series[sid])}
                 for sid in order]
 
-    def get_home_rows(self, server_uuid):
+    def get_home_rows(self, server_uuid, libraries=None):
         snap = self._snap
         rows = []
         movies = [i for i in snap.items if i.get("Type") == "Movie"]
@@ -472,8 +564,37 @@ class OfflineLibrarySource:
             rows.append({"title": _("Downloaded Shows"), "items": series})
         return rows
 
+    @staticmethod
+    def _apply_filters(items, filters):
+        """Offline mirror of the server-side filter params. Genres live in the
+        item_json snapshot (DETAIL_FIELDS includes them); synthesized series
+        DTOs have none and simply drop out of a genre-filtered view."""
+        if not filters:
+            return items
+        out = []
+        for i in items:
+            data = i.get("UserData") or {}
+            if filters.get("unplayed") and data.get("Played"):
+                continue
+            if filters.get("favorite") and not data.get("IsFavorite"):
+                continue
+            if filters.get("genre") and filters["genre"] not in (
+                    i.get("Genres") or []):
+                continue
+            letter = filters.get("letter")
+            if letter:
+                first = ((i.get("Name") or "?")[:1]).upper()
+                if letter == "#":
+                    if first.isalpha():
+                        continue
+                elif first != letter:
+                    continue
+            out.append(i)
+        return out
+
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
-                          sort_order="Ascending", start_index=0, limit=100):
+                          sort_order="Ascending", start_index=0, limit=100,
+                          filters=None):
         snap = self._snap
         if parent_id == "offline:movies":
             items = [i for i in snap.items if i.get("Type") == "Movie"]
@@ -489,8 +610,38 @@ class OfflineLibrarySource:
             return items[start_index:start_index + limit], len(items)
         else:
             items = []
+        items = self._apply_filters(items, filters)
         items = sorted(items, key=lambda i: (i.get("Name") or "").lower())
         return items[start_index:start_index + limit], len(items)
+
+    def get_person_items(self, server_uuid, person_id, start_index=0, limit=100,
+                         sort_by="SortName", sort_order="Ascending"):
+        # People aren't cached offline; the person page simply comes up empty.
+        return [], 0
+
+    def get_genres(self, server_uuid, parent_id=None):
+        genres = set()
+        for i in self._snap.items:
+            genres.update(i.get("Genres") or [])
+        return sorted(genres)
+
+    def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
+        snap = self._snap
+        if parent_id == "offline:tv":
+            pool = [i for i in snap.items if i.get("Type") == "Episode"]
+        elif parent_id == "offline:movies":
+            pool = [i for i in snap.items if i.get("Type") == "Movie"]
+        elif parent_id == "offline:videos":
+            pool = [i for i in snap.items if i.get("Type") == "Video"]
+        else:
+            pool = []
+        ids = [i["Id"] for i in pool if i.get("Id")]
+        random.shuffle(ids)
+        return ids[:limit]
+
+    def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
+                          width=320):
+        return None  # chapter thumbnails aren't downloaded
 
     def get_playlist_items(self, server_uuid, playlist_id):
         """Downloaded items of a playlist, in playlist order."""

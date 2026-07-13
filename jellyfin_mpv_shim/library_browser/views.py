@@ -7,6 +7,7 @@ network.
 
 import json
 import logging
+from datetime import datetime, timedelta
 
 from ..i18n import _
 from ..constants import USER_APP_NAME
@@ -15,7 +16,8 @@ from ..language_config import apply as apply_language_config, parse_language_con
 from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
                        STATUS_PENDING, STATUS_ERROR)
 from .repository import PLAYLIST_SUPPORTED_TYPES
-from .theme import CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG
+from .theme import (CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG,
+                    ACCENT)
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
     is_watched,
@@ -186,8 +188,9 @@ class HomeView(BaseView):
         epoch = self.new_request()
 
         def work():
-            return (self.app.source.get_libraries(server),
-                    self.app.source.get_home_rows(server))
+            libraries = self.app.source.get_libraries(server)
+            return (libraries,
+                    self.app.source.get_home_rows(server, libraries=libraries))
 
         def done(result):
             self.app.home_cache[server] = result
@@ -290,12 +293,23 @@ SORTS = [
     (_("Date Added"), "DateCreated", "Descending"),
     (_("Release Date"), "PremiereDate", "Descending"),
     (_("Community Rating"), "CommunityRating", "Descending"),
+    (_("Critic Rating"), "CriticRating", "Descending"),
+    (_("Date Played"), "DatePlayed", "Descending"),
+    (_("Play Count"), "PlayCount", "Descending"),
+    (_("Runtime"), "Runtime", "Ascending"),
+    (_("Parental Rating"), "OfficialRating", "Ascending"),
     (_("Random"), "Random", "Ascending"),
 ]
 
+# The A–Z jump strip: '#' = names not starting with a letter.
+ALPHA_LETTERS = ["#"] + [chr(c) for c in range(ord("A"), ord("Z") + 1)]
+
 
 class GridView(BaseView):
-    """Infinite-scrolling grid of the children of a library/folder."""
+    """Infinite-scrolling grid of the children of a library/folder, or a
+    person's filmography (route key ``person_id`` instead of ``parent_id``).
+    Library grids get a filter bar (unplayed/favorites/genre), an A–Z jump
+    strip, and shuffle play."""
 
     def __init__(self, app, route):
         super().__init__(app, route)
@@ -306,6 +320,10 @@ class GridView(BaseView):
         self.loaded = 0
         self.loading = False
         self._first = True
+        self.filters = {"unplayed": False, "favorite": False,
+                        "genre": None, "letter": None}
+        self._letter_labels = {}
+        self._genre_box = None
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -321,6 +339,9 @@ class GridView(BaseView):
         sort_box.bind("<<ComboboxSelected>>", self._on_sort)
         tk.Label(bar, text=_("Sort:"), bg=CARD_BG, fg=SUBTLE_FG).pack(
             side="right", padx=(0, 4))
+
+        if self.route.get("parent_id"):
+            self._build_filter_bar()
 
         self.grid = ScrollableGrid(self.app, self.frame,
                                    poster_box(self.app.image_width))
@@ -341,6 +362,86 @@ class GridView(BaseView):
         self._retry_armed = False
         self.status.config(cursor="")
         self._load_more()
+
+    def _build_filter_bar(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        fbar = tk.Frame(self.frame, bg=CARD_BG)
+        fbar.pack(fill="x", padx=8, pady=(0, 2))
+        self.unplayed_var = tk.BooleanVar(value=False)
+        self.favorite_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(fbar, text=_("Unplayed"), variable=self.unplayed_var,
+                        command=self._on_filter_change).pack(side="left")
+        ttk.Checkbutton(fbar, text=_("Favorites"), variable=self.favorite_var,
+                        command=self._on_filter_change).pack(side="left",
+                                                             padx=(10, 0))
+        tk.Label(fbar, text=_("Genre:"), bg=CARD_BG, fg=SUBTLE_FG).pack(
+            side="left", padx=(16, 4))
+        self._all_genres_label = _("All genres")
+        self.genre_var = tk.StringVar(value=self._all_genres_label)
+        self._genre_box = ttk.Combobox(fbar, textvariable=self.genre_var,
+                                       state="readonly", width=18,
+                                       values=[self._all_genres_label])
+        self._genre_box.pack(side="left")
+        self._genre_box.bind("<<ComboboxSelected>>",
+                             lambda _e: self._on_filter_change())
+        ttk.Button(fbar, text=_("🔀 Shuffle"),
+                   command=self._shuffle).pack(side="right")
+
+        abar = tk.Frame(self.frame, bg=CARD_BG)
+        abar.pack(fill="x", padx=8, pady=(0, 2))
+        for letter in ALPHA_LETTERS:
+            lbl = tk.Label(abar, text=letter, bg=CARD_BG, fg=SUBTLE_FG,
+                           font=("TkDefaultFont", 8), cursor="hand2")
+            lbl.pack(side="left", padx=2)
+            lbl.bind("<Button-1>", lambda _e, l=letter: self._on_letter(l))
+            self._letter_labels[letter] = lbl
+
+        # Fill the genre picker in the background; the grid doesn't wait on it.
+        server = self.app.current_server
+        parent = self.route.get("parent_id")
+
+        def work():
+            return self.app.source.get_genres(server, parent)
+
+        def done(genres):
+            if genres:
+                self._genre_box.config(
+                    values=[self._all_genres_label] + list(genres))
+
+        self.run_async(work, done, lambda _e: None)
+
+    def _on_filter_change(self):
+        genre = self.genre_var.get()
+        self.filters["unplayed"] = bool(self.unplayed_var.get())
+        self.filters["favorite"] = bool(self.favorite_var.get())
+        self.filters["genre"] = (None if genre == self._all_genres_label
+                                 else genre)
+        self._reset_and_load()
+
+    def _on_letter(self, letter):
+        # Clicking the active letter clears the jump filter.
+        self.filters["letter"] = (None if self.filters.get("letter") == letter
+                                  else letter)
+        active = self.filters["letter"]
+        for l, lbl in self._letter_labels.items():
+            lbl.config(fg=ACCENT if l == active else SUBTLE_FG,
+                       font=("TkDefaultFont", 8,
+                             "bold" if l == active else "normal"))
+        self._reset_and_load()
+
+    def _shuffle(self):
+        server = self.app.current_server
+        parent = self.route.get("parent_id")
+
+        def work():
+            return self.app.source.get_shuffle_ids(server, parent)
+
+        def done(ids):
+            if ids:
+                self.app.play({"server_uuid": server, "item_ids": ids,
+                               "start_index": 0})
+
+        self.run_async(work, done, lambda _e: None)
 
     def _on_sort(self, _e):
         self.sort_idx = [s[0] for s in SORTS].index(self.sort_var.get())
@@ -367,11 +468,18 @@ class GridView(BaseView):
         _name, sort_by, order = SORTS[self.sort_idx]
         start = self.loaded
         epoch = self._req_epoch
+        person = self.route.get("person_id")
+        filters = dict(self.filters)  # snapshot: the UI can change mid-fetch
 
         def work():
+            if person:
+                return self.app.source.get_person_items(
+                    server, person, start_index=start,
+                    limit=self.app.page_size, sort_by=sort_by, sort_order=order)
             return self.app.source.get_library_items(
                 server, self.route["parent_id"], sort_by=sort_by,
-                sort_order=order, start_index=start, limit=self.app.page_size)
+                sort_order=order, start_index=start, limit=self.app.page_size,
+                filters=filters)
 
         def done(result):
             items, total = result
@@ -446,6 +554,10 @@ class SeriesView(BaseView):
                 self.app.ttk.Button(
                     actions, text=_("▶ Play Next Up"), style="Accent.TButton",
                     command=lambda: self.app.play_next_up(sid)).pack(side="left")
+                self.app.ttk.Button(
+                    actions, text=_("🔀 Shuffle"),
+                    command=lambda: self._shuffle(sid)).pack(side="left",
+                                                             padx=8)
                 wlabel = (_("Mark unwatched") if is_watched(item)
                           else _("Mark watched"))
                 self.app.ttk.Button(
@@ -453,6 +565,12 @@ class SeriesView(BaseView):
                     command=lambda: self.app.set_watched(
                         server, sid, not is_watched(item), refresh=True)
                     ).pack(side="left", padx=8)
+                self._fav_state = bool(
+                    (item.get("UserData") or {}).get("IsFavorite"))
+                self._fav_btn = self.app.ttk.Button(
+                    actions, text=self._fav_label(),
+                    command=lambda: self._toggle_favorite(sid))
+                self._fav_btn.pack(side="left")
                 self._item = item
                 self._actions = actions
                 self._download_btn = self._make_download_button(actions, sid, item)
@@ -478,6 +596,34 @@ class SeriesView(BaseView):
 
         self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _shuffle(self, sid):
+        server = self.app.current_server
+
+        def work():
+            import random
+            eps = self.app.source.get_series_queue(server, sid, limit=200)
+            ids = [e.get("Id") for e in eps if e.get("Id")]
+            random.shuffle(ids)
+            return ids
+
+        def done(ids):
+            if ids:
+                self.app.play({"server_uuid": server, "item_ids": ids,
+                               "start_index": 0})
+
+        self.run_async(work, done, lambda _e: None)
+
+    def _fav_label(self):
+        return (_("♥ Unfavorite") if getattr(self, "_fav_state", False)
+                else _("♡ Favorite"))
+
+    def _toggle_favorite(self, sid):
+        self._fav_state = not self._fav_state
+        self.app.set_favorite(self.app.current_server, sid, self._fav_state)
+        if self._item is not None:
+            self._item.setdefault("UserData", {})["IsFavorite"] = self._fav_state
+        self._fav_btn.config(text=self._fav_label())
 
     def _make_download_button(self, actions, sid, item):
         ttk = self.app.ttk
@@ -753,6 +899,10 @@ class PlaylistView(BaseView):
 
 
 class SearchView(BaseView):
+    # Result sections in display order, like jellyfin-web's grouped search.
+    GROUPS = [("Movie", _("Movies")), ("Series", _("Shows")),
+              ("Episode", _("Episodes")), ("Video", _("Videos"))]
+
     def _build(self):
         server = self.app.current_server
         term = self.route.get("term", "")
@@ -761,9 +911,10 @@ class SearchView(BaseView):
                  fg=TEXT_FG, font=("TkDefaultFont", 14, "bold")).pack(
             anchor="w", padx=8, pady=4)
 
-        grid = ScrollableGrid(self.app, self.frame, poster_box(self.app.image_width))
-        grid.widget().pack(fill="both", expand=True)
-        spinner = self._spinner(self.frame)
+        container = VScrollFrame(self.app, self.frame)
+        container.widget().pack(fill="both", expand=True)
+        body = container.body()
+        spinner = self._spinner(body)
 
         def work():
             return self.app.source.search(server, term)
@@ -771,11 +922,35 @@ class SearchView(BaseView):
         def done(items):
             spinner.destroy()
             if not items:
-                tk.Label(self.frame, text=_("No results."), bg=CARD_BG,
+                tk.Label(body, text=_("No results."), bg=CARD_BG,
                          fg=SUBTLE_FG).pack(pady=40)
                 return
-            grid.set_items(items, server, image_type="Primary",
-                           on_click=self.app.open_item)
+            by_type = {}
+            for i in items:
+                by_type.setdefault(i.get("Type"), []).append(i)
+            shown = set()
+            for type_key, title in self.GROUPS:
+                group = by_type.get(type_key)
+                if not group:
+                    continue
+                shown.add(type_key)
+                if type_key == "Episode":
+                    box = thumb_box(int(self.app.image_width * 1.4))
+                    image_type = "Thumb"
+                else:
+                    box = poster_box(self.app.image_width)
+                    image_type = "Primary"
+                row = HScrollRow(self.app, body, title, box)
+                row.widget().pack(fill="x")
+                row.set_items(group, server, image_type=image_type,
+                              on_click=self.app.open_item)
+            other = [i for i in items if i.get("Type") not in shown]
+            if other:
+                row = HScrollRow(self.app, body, _("Other"),
+                                 poster_box(self.app.image_width))
+                row.widget().pack(fill="x")
+                row.set_items(other, server, image_type="Primary",
+                              on_click=self.app.open_item)
 
         self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
@@ -823,10 +998,13 @@ class DetailView(BaseView):
             if s is not None and e is not None:
                 title = "%s — S%dE%d · %s" % (
                     item.get("SeriesName", ""), s, e, title)
-        build_media_header(self.app, self.frame, item, title_text=title)
+        container = VScrollFrame(self.app, self.frame)
+        container.widget().pack(fill="both", expand=True)
+        outer = container.body()
+        build_media_header(self.app, outer, item, title_text=title)
 
-        body = tk.Frame(self.frame, bg=CARD_BG)
-        body.pack(fill="both", expand=True, padx=16, pady=8)
+        body = tk.Frame(outer, bg=CARD_BG)
+        body.pack(fill="x", padx=16, pady=8)
 
         meta = metadata_line(item)
         if meta:
@@ -840,16 +1018,167 @@ class DetailView(BaseView):
 
         self.media_source = self._pick_source(item)
         try:
-            self._build_track_pickers(body)
+            self._build_version_picker(body, item)
+        except Exception:
+            log.warning("Version picker build failed", exc_info=True)
+        self._media_info = tk.Label(body, text="", bg=CARD_BG, fg=SUBTLE_FG,
+                                    anchor="w")
+        self._media_info.pack(fill="x", pady=(0, 2))
+        self._update_media_info()
+        self._pickers_frame = tk.Frame(body, bg=CARD_BG)
+        self._pickers_frame.pack(fill="x")
+        try:
+            self._build_track_pickers(self._pickers_frame)
         except Exception:
             # Never let a track-picker failure strand the page without a Play
             # button — fall back to default tracks.
             log.warning("Track picker build failed", exc_info=True)
         self._build_actions(body, item)
+        self._build_people_row(outer, item)
+        self._build_chapters_row(outer, item)
 
     def _pick_source(self, item):
         sources = item.get("MediaSources") or []
         return sources[0] if sources else None
+
+    def _build_version_picker(self, parent, item):
+        """Multiple MediaSources (4K vs 1080p, cuts) get an explicit picker;
+        the play payload already carries media_source_id, it was just always
+        MediaSources[0] before."""
+        tk, ttk = self.app.tk, self.app.ttk
+        sources = item.get("MediaSources") or []
+        if len(sources) < 2:
+            return
+        row = tk.Frame(parent, bg=CARD_BG)
+        row.pack(fill="x", pady=(0, 4))
+        tk.Label(row, text=_("Version:"), bg=CARD_BG, fg=SUBTLE_FG).pack(
+            side="left")
+        self._source_map = {}
+        labels = []
+        for i, s in enumerate(sources):
+            label = s.get("Name") or _("Version %d") % (i + 1)
+            if label in self._source_map:
+                label = "%s (%d)" % (label, i + 1)
+            labels.append(label)
+            self._source_map[label] = s
+        self.version_var = tk.StringVar()
+        box = ttk.Combobox(row, textvariable=self.version_var, state="readonly",
+                           width=40, values=labels)
+        box.set(labels[0])
+        box.pack(side="left", padx=4)
+        box.bind("<<ComboboxSelected>>", self._on_version_change)
+
+    def _on_version_change(self, _e):
+        src = getattr(self, "_source_map", {}).get(self.version_var.get())
+        if src is None or src is self.media_source:
+            return
+        self.media_source = src
+        # Track pickers list the chosen version's streams.
+        self._audio_map, self._sub_map = {}, {}
+        self.audio_var = self.sub_var = None
+        for child in self._pickers_frame.winfo_children():
+            child.destroy()
+        try:
+            self._build_track_pickers(self._pickers_frame)
+        except Exception:
+            log.warning("Track picker rebuild failed", exc_info=True)
+        self._update_media_info()
+
+    def _update_media_info(self):
+        try:
+            self._media_info.config(text=self._media_info_text())
+        except Exception:
+            log.debug("Media info render failed", exc_info=True)
+
+    def _media_info_text(self):
+        """Codec/resolution/size line plus 'Ends at', like jellyfin-web —
+        useful for judging direct-play before hitting Play."""
+        src = self.media_source or {}
+        streams = src.get("MediaStreams") or []
+        parts = []
+        video = next((s for s in streams if s.get("Type") == "Video"), None)
+        if video:
+            bits = [(video.get("Codec") or "").upper()]
+            if video.get("Width") and video.get("Height"):
+                bits.append("%dx%d" % (video["Width"], video["Height"]))
+            vrange = video.get("VideoRangeType") or video.get("VideoRange")
+            if vrange and vrange != "SDR":
+                bits.append(vrange)
+            parts.append(" ".join(b for b in bits if b))
+        audio = next((s for s in streams if s.get("Type") == "Audio"), None)
+        if audio:
+            parts.append(" ".join(b for b in (
+                (audio.get("Codec") or "").upper(),
+                audio.get("ChannelLayout") or "") if b))
+        if src.get("Container"):
+            parts.append(src["Container"])
+        if src.get("Size"):
+            parts.append(human_size(src["Size"]))
+        if src.get("Bitrate"):
+            parts.append("%.1f Mbps" % (src["Bitrate"] / 1_000_000))
+        runtime = (self.item or {}).get("RunTimeTicks")
+        if runtime:
+            pos = ((self.item.get("UserData") or {})
+                   .get("PlaybackPositionTicks") or 0)
+            remaining = max(runtime - pos, 0) // 10_000_000
+            ends = datetime.now() + timedelta(seconds=remaining)
+            parts.append(_("Ends at %s") % ends.strftime("%H:%M"))
+        return "  ·  ".join(p for p in parts if p)
+
+    def _build_people_row(self, parent, item):
+        people = (item.get("People") or [])[:24]
+        if not people:
+            return
+        row = HScrollRow(self.app, parent, _("Cast & Crew"),
+                         poster_box(int(self.app.image_width * 0.7)))
+        row.widget().pack(fill="x")
+        tiles = []
+        for p in people:
+            entry = dict(p)
+            # People entries use Type for the job (Actor/Director); retag so
+            # tiles don't treat them as playable/watchable items.
+            entry["_role"] = p.get("Role") or p.get("Type") or ""
+            entry["Type"] = "Person"
+            tiles.append(entry)
+        row.set_items(tiles, self.app.current_server, image_type="Primary",
+                      on_click=self._open_person,
+                      subtitle_fn=lambda p: p.get("_role", ""))
+
+    def _open_person(self, person):
+        if self.app.is_offline:
+            return  # people aren't cached offline
+        self.app.navigate({"kind": "grid", "person_id": person["Id"],
+                           "title": person.get("Name", "")})
+
+    def _build_chapters_row(self, parent, item):
+        chapters = item.get("Chapters") or []
+        if len(chapters) < 2:
+            return
+        box = thumb_box(int(self.app.image_width * 1.1))
+        row = HScrollRow(self.app, parent, _("Scenes"), box)
+        row.widget().pack(fill="x")
+        tiles = []
+        for i, ch in enumerate(chapters):
+            url = self.app.source.chapter_image_url(
+                self.app.current_server, item["Id"], i, ch, width=box[0])
+            tiles.append({
+                "Id": "%s#ch%d" % (item["Id"], i),
+                "Name": ch.get("Name") or _("Chapter %d") % (i + 1),
+                "Type": "Chapter",
+                "_start_ticks": ch.get("StartPositionTicks") or 0,
+                # Chapter art isn't addressable via image_spec; hand the tile
+                # a ready-made spec+url (None url -> placeholder, e.g. offline).
+                "_image_spec": ((item["Id"], "Chapter%d" % i,
+                                 ch.get("ImageTag") or "none")
+                                if url else None),
+                "_image_url": url,
+            })
+        row.set_items(tiles, self.app.current_server,
+                      on_click=self._play_chapter,
+                      subtitle_fn=lambda c: format_ticks(c["_start_ticks"]))
+
+    def _play_chapter(self, chapter):
+        self._play(chapter.get("_start_ticks") or 0)
 
     def _default_track_indices(self):
         """Defaults shown in the pickers, matching what playback will actually do:
@@ -937,8 +1266,23 @@ class DetailView(BaseView):
                        self.app.current_server, item["Id"], not watched,
                        refresh=True)).pack(side="left", padx=8)
 
+        self._fav_state = bool((item.get("UserData") or {}).get("IsFavorite"))
+        self._fav_btn = ttk.Button(row, text=self._fav_label(),
+                                   command=self._toggle_favorite)
+        self._fav_btn.pack(side="left", padx=8)
+
         self._actions_row = row
         self._download_btn = self._make_download_button(row, item)
+
+    def _fav_label(self):
+        return _("♥ Unfavorite") if self._fav_state else _("♡ Favorite")
+
+    def _toggle_favorite(self):
+        self._fav_state = not self._fav_state
+        self.app.set_favorite(self.app.current_server, self.item["Id"],
+                              self._fav_state)
+        self.item.setdefault("UserData", {})["IsFavorite"] = self._fav_state
+        self._fav_btn.config(text=self._fav_label())
 
     def _make_download_button(self, row, item):
         ttk = self.app.ttk
@@ -1333,6 +1677,102 @@ class ClosePreferenceDialog:
             self.win.grab_release()
         except Exception:
             pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
+
+
+class SyncPlayDialog:
+    """Join/leave SyncPlay groups without having to start a video first (the
+    in-player menu remains for group creation and in-session control).
+
+    Joining is fire-and-forget: the server answers over the websocket
+    (GroupJoined → queue update), and the main process starts playback from
+    that exactly as it does for an in-player join."""
+
+    def __init__(self, app):
+        self.app = app
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(_("SyncPlay"))
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.minsize(380, 200)
+
+        self.body = tk.Frame(win, bg=CARD_BG)
+        self.body.pack(fill="both", expand=True, padx=16, pady=(16, 8))
+        self.status = tk.Label(self.body, text=_("Loading groups…"),
+                               bg=CARD_BG, fg=SUBTLE_FG)
+        self.status.pack(pady=20)
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(fill="x", padx=16, pady=12)
+        ttk.Button(btns, text=_("Close"), command=self.close).pack(side="right")
+        ttk.Button(btns, text=_("Refresh"), command=self.refresh).pack(
+            side="right", padx=8)
+        win.protocol("WM_DELETE_WINDOW", self.close)
+        self.refresh()
+
+    def refresh(self):
+        self.app.request_syncplay_groups()
+
+    def on_groups(self, payload):
+        payload = payload or {}
+        groups = payload.get("groups") or []
+        current = payload.get("current")
+        tk, ttk = self.app.tk, self.app.ttk
+        try:
+            for child in self.body.winfo_children():
+                child.destroy()
+        except Exception:
+            return  # dialog already closed
+        if current:
+            row = tk.Frame(self.body, bg=CARD_BG)
+            row.pack(fill="x", pady=(0, 10))
+            tk.Label(row, text=_("In a SyncPlay group."), bg=CARD_BG,
+                     fg=TEXT_FG).pack(side="left")
+            ttk.Button(row, text=_("Leave group"),
+                       command=self._leave).pack(side="right")
+        if not groups:
+            tk.Label(self.body,
+                     text=_("No SyncPlay groups are active right now.\n"
+                            "Create one from another Jellyfin client, or from "
+                            "the in-player menu."),
+                     bg=CARD_BG, fg=SUBTLE_FG, justify="left").pack(pady=14)
+            return
+        for g in groups:
+            row = tk.Frame(self.body, bg=CARD_BG)
+            row.pack(fill="x", pady=3)
+            name = g.get("name") or _("Group")
+            if g.get("server_name"):
+                name = "%s — %s" % (name, g["server_name"])
+            tk.Label(row, text=name, bg=CARD_BG, fg=TEXT_FG,
+                     anchor="w").pack(side="left")
+            participants = ", ".join(g.get("participants") or [])
+            if participants:
+                tk.Label(row, text=participants, bg=CARD_BG, fg=SUBTLE_FG,
+                         anchor="w").pack(side="left", padx=8)
+            if g.get("group_id") == current:
+                tk.Label(row, text=_("Joined"), bg=CARD_BG,
+                         fg=ACCENT).pack(side="right")
+            else:
+                ttk.Button(row, text=_("Join"), style="Accent.TButton",
+                           command=lambda g=g: self._join(g)).pack(side="right")
+
+    def _join(self, group):
+        self.app.syncplay_join(group.get("server_uuid"), group.get("group_id"))
+        self.close()
+
+    def _leave(self):
+        self.app.syncplay_leave()
+        self.close()
+
+    def close(self):
+        if getattr(self.app, "_syncplay_dialog", None) is self:
+            self.app._syncplay_dialog = None
         try:
             self.win.destroy()
         except Exception:

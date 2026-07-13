@@ -900,6 +900,100 @@ class UserInterface(threading.Thread):
 
         threading.Thread(target=work, daemon=True).start()
 
+    def on_set_favorite(self, payload):
+        payload = payload or {}
+        item_id = payload.get("item_id")
+        if not item_id:
+            return
+        favorite = bool(payload.get("favorite"))
+        client = clientManager.clients.get(payload.get("server_uuid"))
+        if client is None:
+            log.warning("Cannot change favorite state for %s while offline.",
+                        item_id)
+            return
+
+        def work():
+            try:
+                client.jellyfin.favorite(item_id, favorite)
+            except Exception:
+                log.error("Failed to set favorite=%s for %s", favorite,
+                          item_id, exc_info=True)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    # -- SyncPlay (browse-side join; in-player menu keeps group creation) ---
+
+    @staticmethod
+    def _syncplay_manager():
+        from .player import playerManager
+        return playerManager.syncplay
+
+    def on_syncplay_groups(self, _param):
+        def work():
+            current = None
+            try:
+                sp = self._syncplay_manager()
+                if sp.is_enabled():
+                    current = sp.current_group
+            except Exception:
+                log.debug("SyncPlay state unavailable", exc_info=True)
+            name_by_uuid = {c.get("uuid"): c.get("Name") or c.get("address")
+                            for c in list(clientManager.credentials)}
+            groups = []
+            for uuid, client in list(clientManager.clients.items()):
+                try:
+                    for g in client.jellyfin.get_sync_play() or []:
+                        groups.append({
+                            "server_uuid": uuid,
+                            "server_name": (name_by_uuid.get(uuid)
+                                            if len(clientManager.clients) > 1
+                                            else None),
+                            "group_id": g.get("GroupId"),
+                            "name": g.get("GroupName"),
+                            "participants": g.get("Participants") or [],
+                        })
+                except Exception:
+                    log.warning("Failed to list SyncPlay groups for %s", uuid,
+                                exc_info=True)
+            self._send_browser(("syncplay_groups",
+                                {"groups": groups, "current": current}))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_syncplay_join(self, payload):
+        payload = payload or {}
+        client = clientManager.clients.get(payload.get("server_uuid"))
+        group_id = payload.get("group_id")
+        if client is None or not group_id:
+            return
+
+        def work():
+            try:
+                # One group at a time: leave the current one first (matching
+                # what the server would force anyway on the same connection).
+                sp = self._syncplay_manager()
+                if sp.is_enabled() and sp.client is not None \
+                        and sp.client is not client:
+                    sp.client.jellyfin.leave_sync_play()
+                client.jellyfin.join_sync_play(group_id)
+                # The server replies over the websocket (GroupJoined + queue);
+                # playback starts from that push, same as an in-player join.
+            except Exception:
+                log.error("Failed to join SyncPlay group", exc_info=True)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_syncplay_leave(self, _param):
+        def work():
+            try:
+                sp = self._syncplay_manager()
+                if sp.client is not None:
+                    sp.client.jellyfin.leave_sync_play()
+            except Exception:
+                log.error("Failed to leave SyncPlay group", exc_info=True)
+
+        threading.Thread(target=work, daemon=True).start()
+
     @staticmethod
     def _offline_watch_targets(item_id, server_uuid):
         """Resolve an offline watched-mark to the downloaded items it covers:

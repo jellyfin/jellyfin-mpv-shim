@@ -109,13 +109,14 @@ class FakeSource:
         self._tick("get_libraries")
         return [{"Id": "lib1", "Name": "Movies", "Type": "CollectionFolder"}]
 
-    def get_home_rows(self, _server):
+    def get_home_rows(self, _server, libraries=None):
         self._tick("get_home_rows")
         return [{"title": "Recently Added",
                  "items": [{"Id": "m1", "Name": "Movie One", "Type": "Movie"}]}]
 
     def get_library_items(self, _server, _parent, sort_by="SortName",
-                          sort_order="Ascending", start_index=0, limit=100):
+                          sort_order="Ascending", start_index=0, limit=100,
+                          filters=None):
         self._tick("get_library_items")
         self.gate_grid.wait(5)
         items = [{"Id": "m1", "Name": "Movie One", "Type": "Movie"},
@@ -124,6 +125,21 @@ class FakeSource:
         if start_index:
             return [], 3
         return items, 3
+
+    def get_person_items(self, _server, _person_id, start_index=0, limit=100,
+                         sort_by="SortName", sort_order="Ascending"):
+        return [], 0
+
+    def get_genres(self, _server, _parent=None):
+        self._tick("get_genres")
+        return ["Comedy", "Drama"]
+
+    def get_shuffle_ids(self, _server, _parent, limit=200):
+        self._tick("get_shuffle_ids")
+        return ["m1", "m2", "m3"]
+
+    def chapter_image_url(self, *_a, **_k):
+        return None
 
     def get_seasons(self, _server, _series_id):
         self._tick("get_seasons")
@@ -315,7 +331,8 @@ class BrowserUITest(unittest.TestCase):
         grid._reset_and_load()
 
         app.source.gate_grid.set()    # release both parked fetches
-        deliver(app, expect=2)        # both done callbacks posted
+        # 3 callbacks: the ungated genre-picker fetch + both page fetches.
+        deliver(app, expect=3)
 
         # Exactly one page (3 items) applied; the superseded fetch was dropped.
         self.assertEqual(grid.loaded, 3,

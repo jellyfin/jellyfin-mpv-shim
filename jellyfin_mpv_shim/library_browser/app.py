@@ -112,6 +112,7 @@ class BrowserApp:
         self.catalog_path = self.options.get("catalog_path")
         self._download_dialog = None
         self._close_dialog = None  # first-close preference prompt, if open
+        self._syncplay_dialog = None  # SyncPlay join dialog, if open
 
         self._live_servers = servers
         self._verify_ssl = verify_ssl
@@ -159,6 +160,8 @@ class BrowserApp:
         ttk.Button(bar, text=_("⚙ Settings"), width=10,
                    command=lambda: self.navigate({"kind": "settings"})).pack(
             side="left", padx=2, pady=6)
+        ttk.Button(bar, text=_("SyncPlay"), width=9,
+                   command=self.open_syncplay).pack(side="left", padx=2, pady=6)
 
         # User + server switchers share a frame so the user selector always sits
         # to the left of the server selector. Each is hidden when there's only
@@ -772,6 +775,38 @@ class BrowserApp:
 
         self.run_async(work, done, lambda _e: None)
 
+    def set_favorite(self, server_uuid, item_id, favorite):
+        """Toggle an item's favorite heart (server-side; views update
+        optimistically like the watched toggle)."""
+        self.r_queue.put(("set_favorite", {
+            "server_uuid": server_uuid, "item_id": item_id,
+            "favorite": bool(favorite)}))
+
+    # -- syncplay ------------------------------------------------------------
+
+    def open_syncplay(self):
+        from .views import SyncPlayDialog
+        if self.is_offline:
+            self._message(_("SyncPlay needs a server connection."))
+            return
+        if self._syncplay_dialog is not None:
+            try:
+                self._syncplay_dialog.win.lift()
+                return
+            except Exception:
+                self._syncplay_dialog = None
+        self._syncplay_dialog = SyncPlayDialog(self)
+
+    def request_syncplay_groups(self):
+        self.r_queue.put(("syncplay_groups", None))
+
+    def syncplay_join(self, server_uuid, group_id):
+        self.r_queue.put(("syncplay_join", {
+            "server_uuid": server_uuid, "group_id": group_id}))
+
+    def syncplay_leave(self):
+        self.r_queue.put(("syncplay_leave", None))
+
     def set_watched(self, server_uuid, item_id, watched, refresh=False):
         """Mark an item (movie/episode, or a whole series/season) played or
         unplayed. ``refresh`` asks the main process to confirm so the current
@@ -970,6 +1005,9 @@ class BrowserApp:
         elif cmd == "user_action_error":
             self._message((param or {}).get("error")
                           or _("The action could not be completed."))
+        elif cmd == "syncplay_groups":
+            if self._syncplay_dialog is not None:
+                self._syncplay_dialog.on_groups(param or {})
         elif cmd == "watched_changed":
             # A bulk watched/unwatched mark was applied server-side; re-fetch the
             # current view so cascaded child state shows correctly.

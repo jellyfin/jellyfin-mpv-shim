@@ -184,13 +184,17 @@ class MediaTile:
 
     def _show_context_menu(self, event):
         itype = self.item.get("Type")
-        if itype not in ("Movie", "Episode", "Series", "Season"):
+        if itype not in ("Movie", "Episode", "Series", "Season", "Video"):
             return
         watched = is_watched(self.item)
         menu = self.app.tk.Menu(self.frame, tearoff=0)
         label = _("Mark unwatched") if watched else _("Mark watched")
         menu.add_command(label=label,
                          command=lambda: self._toggle_watched(not watched))
+        fav = bool((self.item.get("UserData") or {}).get("IsFavorite"))
+        menu.add_command(
+            label=_("Remove from favorites") if fav else _("Add to favorites"),
+            command=lambda: self._toggle_favorite(not fav))
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
@@ -210,19 +214,33 @@ class MediaTile:
             data["UnplayedItemCount"] = 0 if watched else 1
         self._draw_watched_badge()
 
+    def _toggle_favorite(self, favorite):
+        item_id = self.item.get("Id")
+        if not item_id:
+            return
+        self.app.set_favorite(self.server_uuid, item_id, favorite)
+        # Optimistic, like the watched toggle.
+        self.item.setdefault("UserData", {})["IsFavorite"] = favorite
+
     def load(self):
         if self._requested:
             return
         self._requested = True
-        spec = self.app.source.image_spec(self.item, self.image_type, self.box[0])
+        # Synthetic items (e.g. chapter markers) carry their own image spec +
+        # url because their artwork isn't addressable through image_spec.
+        spec = self.item.get("_image_spec") or self.app.source.image_spec(
+            self.item, self.image_type, self.box[0])
         if not spec:
             return
         item_id, image_type, tag = spec
         w, h = self.box
         key = make_key(item_id, image_type, tag, w, h)
         self._key = key
-        url = self.app.source.image_url(self.server_uuid, item_id, image_type, tag,
-                                        w, height=h, fill=True)
+        if "_image_url" in self.item:
+            url = self.item["_image_url"]
+        else:
+            url = self.app.source.image_url(self.server_uuid, item_id, image_type,
+                                            tag, w, height=h, fill=True)
         if not url:
             # The server vanished from a rebuilt source (or offline art moved);
             # keep the placeholder.
