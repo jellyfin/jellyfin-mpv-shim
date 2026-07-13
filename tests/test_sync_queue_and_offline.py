@@ -101,7 +101,7 @@ class OfflineResumePositionTest(unittest.TestCase):
 
     def test_reload_overlays_live_userdata(self):
         source = OfflineLibrarySource(self.catalog)
-        (item,) = source._items
+        (item,) = source._snap.items
         self.assertEqual(item["UserData"]["PlaybackPositionTicks"],
                          self.RUNTIME // 2)
         # Derived for the tile progress bar (offline writes never set it).
@@ -232,26 +232,26 @@ class OfflineReloadTest(unittest.TestCase):
         writer = SyncDB(self.catalog)
         self._add_complete(writer, "m1", "First")
         source = OfflineLibrarySource(self.catalog)
-        self.assertEqual({i["Id"] for i in source._items}, {"m1"})
+        self.assertEqual({i["Id"] for i in source._snap.items}, {"m1"})
 
         # A download finishes while the offline source is live.
         self._add_complete(writer, "m2", "Second")
         writer.close()
         source.reload()
-        self.assertEqual({i["Id"] for i in source._items}, {"m1", "m2"})
+        self.assertEqual({i["Id"] for i in source._snap.items}, {"m1", "m2"})
         titles = {r["title"] for r in source.get_home_rows("offline")}
         self.assertIn("Downloaded Movies", titles)
 
     def test_missing_catalog_is_empty_not_crash(self):
         source = OfflineLibrarySource(os.path.join(self.root, "nope.db"))
-        self.assertEqual(source._items, [])
+        self.assertEqual(source._snap.items, [])
 
     def test_corrupt_catalog_degrades_to_empty(self):
         with open(self.catalog, "wb") as fh:
             fh.write(b"this is not a sqlite database")
         # Construction (which calls reload) must not raise on a bad catalog.
         source = OfflineLibrarySource(self.catalog)
-        self.assertEqual(source._items, [])
+        self.assertEqual(source._snap.items, [])
 
 
 if __name__ == "__main__":

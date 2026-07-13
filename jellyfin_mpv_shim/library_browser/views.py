@@ -48,7 +48,11 @@ def build_media_header(app, parent, item, title_text=None):
     url = app.source.backdrop_url(app.current_server, item, width=HEADER_W,
                                   height=HEADER_H, fill=True)
     if url:
-        key = make_key(item.get("Id"), "Backdrop", "hdr", HEADER_W, HEADER_H)
+        # Key on the REAL backdrop owner/tag (not a constant): a constant key
+        # served whichever bitmap landed first forever — across offline/online
+        # switches and across server-side backdrop changes.
+        owner_id, tag = app.source.backdrop_spec(item) or (item.get("Id"), "hdr")
+        key = make_key(owner_id, "Backdrop", tag, HEADER_W, HEADER_H)
 
         def on_img(photo):
             try:
@@ -326,8 +330,17 @@ class GridView(BaseView):
         self.status = tk.Label(self.frame, text="", bg=CARD_BG, fg=SUBTLE_FG,
                                anchor="w")
         self.status.pack(fill="x", padx=8, pady=2)
+        self.status.bind("<Button-1>", self._on_status_click)
+        self._retry_armed = False
 
         self._reset_and_load()
+
+    def _on_status_click(self, _e):
+        if not self._retry_armed:
+            return
+        self._retry_armed = False
+        self.status.config(cursor="")
+        self._load_more()
 
     def _on_sort(self, _e):
         self.sort_idx = [s[0] for s in SORTS].index(self.sort_var.get())
@@ -379,18 +392,24 @@ class GridView(BaseView):
             else:
                 self.grid.append_items(items)
             self.loading = False
+            self._retry_armed = False
             if total:
-                self.status.config(text=_("%d of %d") % (self.loaded, total))
+                self.status.config(text=_("%d of %d") % (self.loaded, total),
+                                   cursor="")
             else:
-                self.status.config(text=_("Nothing here."))
+                self.status.config(text=_("Nothing here."), cursor="")
 
         def fail(e):
             self.loading = False
-            self.status.config(text=_("Failed to load."))
             log.warning("Grid load failed: %s", e)
-            # Re-arm infinite scroll so a transient failure doesn't wedge the
-            # grid permanently — scrolling to the end can retry.
+            # Re-arm infinite scroll so a mid-list failure can retry on
+            # scroll... but with zero tiles the near-end trigger can never
+            # fire (nothing is scrollable), so also make the status line an
+            # explicit retry affordance.
             self.grid.rearm_near_end()
+            self._retry_armed = True
+            self.status.config(text=_("Failed to load — click here to retry."),
+                               cursor="hand2")
 
         self.run_async(work, done, fail, epoch=epoch)
 

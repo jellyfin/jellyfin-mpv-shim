@@ -164,9 +164,16 @@ class UserManager:
     def save(self):
         with self._lock:
             payload = {"active": self.active_id, "users": self.users}
+            path = self._path()
+            # Write-temp-then-rename: users.json holds every user's server
+            # tokens, and save() is reachable from several threads (the UI
+            # action loop, the switch worker, a finishing login). A truncate-
+            # in-place write interrupted or interleaved would lose all of them.
+            tmp = path + ".tmp"
             try:
-                with open(self._path(), "w") as f:
+                with open(tmp, "w") as f:
                     json.dump(payload, f, indent=4)
+                os.replace(tmp, path)
             except Exception:
                 log.error("Failed to save users.json", exc_info=True)
 
@@ -259,6 +266,20 @@ class UserManager:
                 return
             u["credentials"] = [dict(c) for c in credentials]
         self.save()
+
+    def append_credentials_for(self, user_id, credential):
+        """Append one (cleaned) credential to a specific user's stored list.
+
+        Used when a login finishes after the initiating user was switched
+        away: the server must land under the user who added it, not whoever
+        is active by then. Returns whether the user still exists."""
+        with self._lock:
+            u = self.get(user_id)
+            if u is None:
+                return False
+            u["credentials"].append(dict(credential))
+        self.save()
+        return True
 
     # -- mutations ---------------------------------------------------------
 

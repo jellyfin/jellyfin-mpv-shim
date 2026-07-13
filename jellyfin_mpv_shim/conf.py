@@ -6,6 +6,7 @@ import json
 import os.path
 import sys
 import getpass
+import threading
 from typing import List, Optional
 from .settings_base import SettingsBase, object_types
 from .language_config import LanguageRule, parse_language_config
@@ -17,6 +18,12 @@ object_types[Optional[List[LanguageRule]]] = parse_language_config
 
 log = logging.getLogger("conf")
 config_path = None
+
+# Serializes writers of the config file. save() is reachable from the UI
+# action loop and from background workers (e.g. the download-folder move);
+# unsynchronized truncate+rewrite writers can interleave into invalid JSON,
+# which load() swallows — silently resetting every setting on next launch.
+_save_lock = threading.Lock()
 
 
 def get_default_sdir():
@@ -233,16 +240,19 @@ class Settings(SettingsBase):
         if config_path is None:
             raise FileNotFoundError("Config path not set.")
 
-        # noinspection PyTypeChecker
-        fh, created = self.__get_file(config_path, "w", True)
-
-        try:
-            json.dump(self.dict(), fh, indent=4, sort_keys=True)
-            fh.flush()
-            fh.close()
-        except Exception as e:
-            log.error("Error saving settings to json: %s" % e)
-            return False
+        # Write-temp-then-rename under a lock: concurrent savers can't
+        # interleave, and a crash mid-write leaves the old file intact
+        # instead of a truncated one.
+        with _save_lock:
+            tmp = config_path + ".tmp"
+            try:
+                with open(tmp, "w") as fh:
+                    json.dump(self.dict(), fh, indent=4, sort_keys=True)
+                    fh.flush()
+                os.replace(tmp, config_path)
+            except Exception as e:
+                log.error("Error saving settings to json: %s" % e)
+                return False
 
         return True
 

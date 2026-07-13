@@ -202,7 +202,12 @@ class MediaTile:
             return
         self.app.set_watched(self.server_uuid, item_id, watched)
         # Optimistic: reflect it immediately without a full re-render.
-        self.item.setdefault("UserData", {})["Played"] = watched
+        data = self.item.setdefault("UserData", {})
+        data["Played"] = watched
+        if self.item.get("Type") in ("Series", "Season"):
+            # is_watched falls back to UnplayedItemCount for these types; a
+            # stale 0 would redraw the badge as still-watched after unmarking.
+            data["UnplayedItemCount"] = 0 if watched else 1
         self._draw_watched_badge()
 
     def load(self):
@@ -218,6 +223,10 @@ class MediaTile:
         self._key = key
         url = self.app.source.image_url(self.server_uuid, item_id, image_type, tag,
                                         w, height=h, fill=True)
+        if not url:
+            # The server vanished from a rebuilt source (or offline art moved);
+            # keep the placeholder.
+            return
         self.app.thumbs.request(key, url, self.box, self._set_image)
 
     def _set_image(self, photo):
@@ -415,7 +424,12 @@ class ScrollableGrid:
             y = pad + (i // self._cols) * self.row_h
             if y + self.row_h >= top - READAHEAD_MARGIN_PX and \
                     y <= bottom + READAHEAD_MARGIN_PX:
-                tile.load()
+                # One tile failing to resolve artwork must not abort the pass
+                # for every tile after it (that wedges lazy-load + near-end).
+                try:
+                    tile.load()
+                except Exception:
+                    log.debug("Tile artwork load failed", exc_info=True)
             elif y + self.row_h < top - unload_margin or \
                     y > bottom + unload_margin:
                 tile.unload()
@@ -612,4 +626,7 @@ class HScrollRow:
         for tile in self.tiles:
             x = tile.frame.winfo_x()
             if x + tile.frame.winfo_width() >= left and x <= right:
-                tile.load()
+                try:
+                    tile.load()
+                except Exception:
+                    log.debug("Tile artwork load failed", exc_info=True)

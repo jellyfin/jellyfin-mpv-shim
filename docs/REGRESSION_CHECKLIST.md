@@ -177,3 +177,33 @@ backends**.
   a **user-launched** external one (`mpv_ext_start: false`).
 - [X] Repeated close→reopen cycles → no leaked trickplay threads / no growth,
   process still exits cleanly on quit.
+
+### 6. UI-review fixes (2026-07) — hand-test items
+Multi-angle review of the browser/gui layer; the pure-logic pieces are covered
+by `tests/test_ui_review_fixes.py`, these need a live session.
+- [ ] **Switch spam**: start a switch to user A (slow server helps), then pick
+  locked user B from the switcher and enter the PIN → the dialog shows
+  "Another user switch is already in progress." and closes cleanly; the window
+  never wedges behind the modal.
+- [ ] **Failed switch recovery**: delete a user from another window right
+  before switching to them → error message, and the UI lands back on
+  home/login instead of an eternal "Connecting…" spinner.
+- [ ] **Add Server during a switch**: kick off Add Server against a slow
+  server, switch users while it authenticates → the new server appears under
+  the ORIGINAL user (check users.json), not the one you switched to.
+- [ ] **Quick Connect twice**: start QC on one server, then start QC on
+  another → the first flow is cancelled (its late authorization does not yank
+  the UI to Home); Cancel always kills the visible flow.
+- [ ] **Server drop while browsing**: with two servers, kill one while
+  scrolled into its library grid → artwork/lazy-load keep working (tiles show
+  placeholders; no wedged scroll), no traceback storm in the log.
+- [ ] **First-page load failure**: open a library while the network blips →
+  status line reads "Failed to load — click here to retry." and clicking it
+  reloads.
+- [ ] **Offline watched state**: offline, a fully-watched downloaded series
+  shows the ✓ badge and "Mark unwatched"; marking a series watched offline
+  marks its downloaded episodes and syncs to the server on reconnect.
+- [ ] **Backdrop cache**: open an item's detail offline, reconnect, reopen →
+  the online backdrop replaces the offline one (no stale header art).
+- [ ] **Browser crash race**: kill -9 the browser process, immediately click
+  the tray's Show → exactly one working window; no orphaned unreachable one.

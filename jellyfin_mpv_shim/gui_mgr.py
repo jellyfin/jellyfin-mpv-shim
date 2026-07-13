@@ -142,6 +142,9 @@ class UserInterface(threading.Thread):
         self.browser_process = None
         self.browser_cmd_queue = None
         self.browser_ready = False
+        # Incremented per launch; browser_died notices carry it back so a
+        # stale death notice can't tear down a relaunched browser.
+        self._browser_epoch = 0
         self._connecting = False
         self._connect_thread = None
         self._shutting_down = False
@@ -289,6 +292,7 @@ class UserInterface(threading.Thread):
             )
 
         self.browser_ready = False
+        self._browser_epoch += 1
         self.browser_cmd_queue = Queue()
         self.browser_process = BrowserProcess(
             self.browser_cmd_queue,
@@ -374,6 +378,8 @@ class UserInterface(threading.Thread):
             "settings_schema": _settings_schema(),
             "sync_state": syncManager.state(),
             "catalog_path": syncManager.db.path if syncManager.db else None,
+            # Echoed back in browser_died so stale death notices are ignorable.
+            "epoch": self._browser_epoch,
         }
 
     def _send_browser(self, message):
@@ -441,8 +447,18 @@ class UserInterface(threading.Thread):
                          "available; exiting instead.")
             self.r_queue.put(("quit", None))
 
-    def on_browser_died(self, _param):
+    def on_browser_died(self, param):
         if self._shutting_down:
+            return
+        # The tray's "show" and the dying browser's death notice come from
+        # different producer processes on the same queue, so a relaunch can be
+        # processed before the death notice of the process it replaced. Acting
+        # on that stale notice would null the NEW browser's queue/callbacks and
+        # orphan its live window — match the launch epoch and ignore strays.
+        epoch = (param or {}).get("epoch")
+        if epoch is not None and epoch != self._browser_epoch:
+            log.debug("Ignoring stale browser death notice (epoch %s != %s).",
+                      epoch, self._browser_epoch)
             return
         was_ready = self.browser_ready
         self.browser_ready = False
@@ -544,22 +560,33 @@ class UserInterface(threading.Thread):
         """
         server = (payload or {}).get("server", "")
         cancel = threading.Event()
-        self._quick_connect_cancel = cancel
+        prev, self._quick_connect_cancel = self._quick_connect_cancel, cancel
+        if prev is not None:
+            # Supersede any still-polling flow. Without this the old worker
+            # keeps polling (uncancellably) for up to 5 minutes and then posts
+            # its stale server_result, yanking the UI to Home and/or adding a
+            # server the user had abandoned.
+            prev.set()
 
         def work():
             try:
                 client, secret, code = clientManager.quick_connect_initiate(server)
             except QuickConnectError as e:
-                self._send_browser(("server_result", {"ok": False, "error": str(e)}))
+                if not cancel.is_set():
+                    self._send_browser(("server_result",
+                                        {"ok": False, "error": str(e)}))
                 return
             except Exception:
                 log.error("Error starting Quick Connect.", exc_info=True)
-                self._send_browser(("server_result", {
-                    "ok": False,
-                    "error": _("Could not start Quick Connect."),
-                }))
+                if not cancel.is_set():
+                    self._send_browser(("server_result", {
+                        "ok": False,
+                        "error": _("Could not start Quick Connect."),
+                    }))
                 return
 
+            if cancel.is_set():
+                return  # superseded/cancelled while initiating
             self._send_browser(("quick_connect_code", {"code": code}))
             ok = False
             try:
@@ -615,7 +642,15 @@ class UserInterface(threading.Thread):
                                 {"ok": False, "error": _("Incorrect PIN.")}))
             return
         if self._switching:
-            return  # a switch is already running; ignore the double-tap
+            # Reply, don't drop: a locked-user PIN dialog waits on this
+            # switch_result and would hang open forever on silence. "busy"
+            # tells the browser a switch is still running (so it should stay
+            # on the connecting screen rather than bailing out).
+            self._send_browser(("switch_result", {
+                "ok": False, "busy": True,
+                "error": _("Another user switch is already in progress."),
+            }))
+            return
 
         # Accepted: tell the browser to drop any PIN dialog and show connecting,
         # then do the real work off the loop.
@@ -835,21 +870,28 @@ class UserInterface(threading.Thread):
                 except Exception:
                     log.error("Failed to set watched=%s for %s", watched, item_id,
                               exc_info=True)
-            elif watched and syncManager.db and syncManager.db.is_complete(item_id):
+            elif watched and syncManager.db:
                 # Fully offline: queue the watched mark (advance-only sync).
                 # Marking unwatched offline isn't representable, so it's skipped.
-                try:
-                    syncManager.db.upsert_playstate(server_uuid, item_id,
-                                                    played=True)
-                    # Mirror into the stored userdata like offline playback
-                    # does: the browser overlay and watched-based delete read
-                    # userdata_json, not the pending queue — without this the
-                    # mark is invisible until the server syncs.
-                    syncManager.db.update_userdata(item_id, played=True)
-                    ok = True
-                except Exception:
-                    log.error("Failed to queue offline watched mark for %s",
-                              item_id, exc_info=True)
+                # A series/season id isn't itself a download — fan the mark out
+                # to its downloaded episodes, mirroring the server's cascade.
+                targets = self._offline_watch_targets(item_id, server_uuid)
+                for target_id, target_server in targets:
+                    try:
+                        syncManager.db.upsert_playstate(target_server, target_id,
+                                                        played=True)
+                        # Mirror into the stored userdata like offline playback
+                        # does: the browser overlay and watched-based delete read
+                        # userdata_json, not the pending queue — without this the
+                        # mark is invisible until the server syncs.
+                        syncManager.db.update_userdata(target_id, played=True)
+                        ok = True
+                    except Exception:
+                        log.error("Failed to queue offline watched mark for %s",
+                                  target_id, exc_info=True)
+                if not targets:
+                    log.warning("Cannot change watched state for %s while "
+                                "offline.", item_id)
             else:
                 log.warning("Cannot change watched state for %s while offline.",
                             item_id)
@@ -857,6 +899,23 @@ class UserInterface(threading.Thread):
                 self._send_browser(("watched_changed", None))
 
         threading.Thread(target=work, daemon=True).start()
+
+    @staticmethod
+    def _offline_watch_targets(item_id, server_uuid):
+        """Resolve an offline watched-mark to the downloaded items it covers:
+        the item itself if it's a completed download, otherwise every completed
+        episode of the series/season ``item_id`` names. Returns a list of
+        (item_id, server_uuid) pairs; empty when nothing downloaded matches."""
+        from .sync.db import STATUS_COMPLETE
+        db = syncManager.db
+        if db.is_complete(item_id):
+            return [(item_id, server_uuid)]
+        targets = []
+        for row in db.list(status=STATUS_COMPLETE):
+            if row["series_id"] == item_id or row["season_id"] == item_id:
+                targets.append((row["item_id"],
+                                row["server_uuid"] or server_uuid))
+        return targets
 
     def on_show_preferences(self, _param):
         # Tray "Configure Servers" → open the browser on the Servers tab.

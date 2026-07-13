@@ -528,6 +528,17 @@ class BrowserApp:
             view.on_switch_result(result)
         else:
             self._message(error)
+        # A failure after _enter_switching leaves the connecting spinner up
+        # with no connection_settled on the way (main started no connect
+        # worker) — land back on a real screen. "busy" means another switch
+        # IS still running and will push connection_settled; stay put then.
+        kind = self.nav_stack[-1]["kind"] if self.nav_stack else None
+        if kind == "connecting" and not result.get("busy"):
+            self._connecting = False
+            if self.current_server:
+                self.navigate({"kind": "home"}, reset=True)
+            else:
+                self._show_disconnected()
 
     def _show_locked_gate(self):
         self._locked_active = True
@@ -1065,6 +1076,10 @@ def run_browser(cmd_queue, r_queue, servers, options):
     finally:
         if app is None or not app.clean_exit:
             try:
-                r_queue.put(("browser_died", None))
+                # Echo the launch epoch so the main process can tell this
+                # death notice apart from one belonging to a replacement
+                # browser it already started.
+                r_queue.put(("browser_died",
+                             {"epoch": (options or {}).get("epoch")}))
             except Exception:
                 pass

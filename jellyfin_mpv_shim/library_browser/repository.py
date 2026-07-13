@@ -263,7 +263,13 @@ class LibrarySource:
 
     def image_url(self, server_uuid, item_id, image_type, tag, width,
                   height=None, fill=False, index=None):
-        api = self._conn(server_uuid).api
+        # .get, not a bare index: image_url runs on the Tk thread from tile
+        # lazy-loading, and a rebuilt source can have dropped this server while
+        # a view still shows tiles keyed to it. Art just stops resolving.
+        conn = self._conns.get(server_uuid)
+        if conn is None:
+            return None
+        api = conn.api
         if fill and height:
             # Crop to the exact tile aspect so wide library/banner art still
             # reads as a uniform poster instead of a letterboxed thumbnail.
@@ -272,17 +278,51 @@ class LibrarySource:
         return api.image_url(item_id, image_type, index=index, tag=tag,
                              max_width=int(width))
 
-    def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
+    @staticmethod
+    def backdrop_spec(item):
+        """(owner_item_id, tag) identifying which backdrop image backdrop_url
+        would serve — the cache key must carry the real tag, or the same item
+        cached from another source/an older backdrop is served forever."""
         tags = item.get("BackdropImageTags") or []
         if tags:
-            return self.image_url(server_uuid, item["Id"], "Backdrop", tags[0],
-                                  width, height=height, fill=fill, index=0)
+            return item["Id"], tags[0]
         parent_tags = item.get("ParentBackdropImageTags") or []
         if parent_tags and item.get("ParentBackdropItemId"):
-            return self.image_url(
-                server_uuid, item["ParentBackdropItemId"], "Backdrop",
-                parent_tags[0], width, height=height, fill=fill, index=0)
+            return item["ParentBackdropItemId"], parent_tags[0]
         return None
+
+    def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
+        spec = self.backdrop_spec(item)
+        if spec is None:
+            return None
+        owner_id, tag = spec
+        return self.image_url(server_uuid, owner_id, "Backdrop", tag,
+                              width, height=height, fill=fill, index=0)
+
+
+class _OfflineSnapshot:
+    """One immutable, internally-consistent view of the offline catalog.
+
+    reload() builds a complete snapshot and publishes it with a single
+    attribute assignment, so a reader that grabbed ``self._snap`` never sees
+    a torn mix of new and old state (reload runs on an api-pool thread while
+    the Tk thread reads for artwork). Nothing mutates a snapshot's dicts
+    after publish — except ``art_cache``, a memo of resolved artwork paths
+    (safe: values are deterministic for the snapshot, so a racing double
+    compute is idempotent)."""
+
+    def __init__(self, rows=None, items=None, series_server=None,
+                 season_server=None, season_series=None, playlists=None,
+                 playlist_items=None, playlist_first=None):
+        self.rows = rows or {}
+        self.items = items or []
+        self.series_server = series_server or {}
+        self.season_server = season_server or {}
+        self.season_series = season_series or {}
+        self.playlists = playlists or []
+        self.playlist_items = playlist_items or {}
+        self.playlist_first = playlist_first or {}
+        self.art_cache = {}
 
 
 class OfflineLibrarySource:
@@ -296,8 +336,7 @@ class OfflineLibrarySource:
     def __init__(self, catalog_path):
         self.catalog_path = catalog_path
         self.root = os.path.dirname(catalog_path) if catalog_path else None
-        self._rows = {}
-        self._items = []
+        self._snap = _OfflineSnapshot()
         self.reload()
 
     def reload(self):
@@ -322,10 +361,10 @@ class OfflineLibrarySource:
                 log.warning("Failed to open offline catalog %s",
                             self.catalog_path, exc_info=True)
                 rows, playlists, playlist_rows = [], [], {}
-        # Build into locals, then publish each attribute in one assignment.
-        # reload() can now run on a browser api-pool thread (a download finished
-        # while browsing offline), so a concurrent reader must never observe a
-        # half-populated list.
+        # Build into locals, then publish ONE snapshot object in a single
+        # assignment. reload() can run on a browser api-pool thread (a download
+        # finished while browsing offline), so a concurrent reader must never
+        # observe a half-populated list or a torn mix of attributes.
         by_id = {r["item_id"]: r for r in rows}
         items = []
         series_server = {}  # series_id -> server_id (for series artwork)
@@ -353,14 +392,11 @@ class OfflineLibrarySource:
                                   "Type": "Playlist", "ImageTags": {}})
             playlist_items[pid] = pl_items
             playlist_first[pid] = pl_items[0].get("Id")
-        self._rows = by_id
-        self._items = items
-        self._series_server = series_server
-        self._season_server = season_server
-        self._season_series = season_series
-        self._playlists = playlist_dtos
-        self._playlist_items = playlist_items
-        self._playlist_first = playlist_first
+        self._snap = _OfflineSnapshot(
+            rows=by_id, items=items, series_server=series_server,
+            season_server=season_server, season_series=season_series,
+            playlists=playlist_dtos, playlist_items=playlist_items,
+            playlist_first=playlist_first)
 
     def stop(self):
         pass
@@ -370,65 +406,85 @@ class OfflineLibrarySource:
 
     # -- browsing ----------------------------------------------------------
 
+    @staticmethod
+    def _aggregate_userdata(episodes):
+        """UserData for a synthesized Series/Season DTO, derived from its
+        downloaded episodes. Without it the watched badge/label lies offline:
+        ``is_watched`` falls back to UnplayedItemCount for these types, and a
+        missing UserData reads as never-watched. Counts only what's downloaded
+        — offline that IS the visible library."""
+        unplayed = sum(1 for e in episodes
+                       if not (e.get("UserData") or {}).get("Played"))
+        return {"Played": unplayed == 0, "UnplayedItemCount": unplayed}
+
     def get_libraries(self, server_uuid):
+        snap = self._snap
         libs = []
-        if any(i.get("Type") == "Movie" for i in self._items):
+        if any(i.get("Type") == "Movie" for i in snap.items):
             libs.append({"Id": "offline:movies", "Name": _("Movies"),
                          "Type": "CollectionFolder", "CollectionType": "movies",
                          "ImageTags": {}})
         # Home videos (Type=Video) are their own section, not lumped in Movies.
-        if any(i.get("Type") == "Video" for i in self._items):
+        if any(i.get("Type") == "Video" for i in snap.items):
             libs.append({"Id": "offline:videos", "Name": _("Videos"),
                          "Type": "CollectionFolder", "CollectionType": "homevideos",
                          "ImageTags": {}})
-        if any(i.get("Type") == "Episode" for i in self._items):
+        if any(i.get("Type") == "Episode" for i in snap.items):
             libs.append({"Id": "offline:tv", "Name": _("TV Shows"),
                          "Type": "CollectionFolder", "CollectionType": "tvshows",
                          "ImageTags": {}})
-        if self._playlists:
+        if snap.playlists:
             libs.append({"Id": "offline:playlists", "Name": _("Playlists"),
                          "Type": "CollectionFolder", "CollectionType": "playlists",
                          "ImageTags": {}})
         return libs
 
-    def _series_list(self):
-        seen, order = {}, []
-        for item in self._items:
+    def _series_list(self, snap=None):
+        snap = snap or self._snap
+        episodes_by_series, names, order = {}, {}, []
+        for item in snap.items:
             if item.get("Type") != "Episode":
                 continue
             sid = item.get("SeriesId")
-            if not sid or sid in seen:
+            if not sid:
                 continue
-            seen[sid] = {"Id": sid, "Name": item.get("SeriesName") or _("Series"),
-                         "Type": "Series", "ImageTags": {}}
-            order.append(sid)
-        return [seen[s] for s in order]
+            if sid not in episodes_by_series:
+                episodes_by_series[sid] = []
+                names[sid] = item.get("SeriesName") or _("Series")
+                order.append(sid)
+            episodes_by_series[sid].append(item)
+        return [{"Id": sid, "Name": names[sid], "Type": "Series",
+                 "ImageTags": {},
+                 "UserData": self._aggregate_userdata(episodes_by_series[sid])}
+                for sid in order]
 
     def get_home_rows(self, server_uuid):
+        snap = self._snap
         rows = []
-        movies = [i for i in self._items if i.get("Type") == "Movie"]
+        movies = [i for i in snap.items if i.get("Type") == "Movie"]
         if movies:
             rows.append({"title": _("Downloaded Movies"), "items": movies})
-        videos = [i for i in self._items if i.get("Type") == "Video"]
+        videos = [i for i in snap.items if i.get("Type") == "Video"]
         if videos:
             rows.append({"title": _("Downloaded Videos"), "items": videos})
-        series = self._series_list()
+        series = self._series_list(snap)
         if series:
             rows.append({"title": _("Downloaded Shows"), "items": series})
         return rows
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100):
+        snap = self._snap
         if parent_id == "offline:movies":
-            items = [i for i in self._items if i.get("Type") == "Movie"]
+            items = [i for i in snap.items if i.get("Type") == "Movie"]
         elif parent_id == "offline:videos":
-            items = [i for i in self._items if i.get("Type") == "Video"]
+            items = [i for i in snap.items if i.get("Type") == "Video"]
         elif parent_id == "offline:tv":
-            items = self._series_list()
+            items = self._series_list(snap)
         elif parent_id == "offline:playlists":
             # Playlist tiles, name-sorted; contents keep playlist order via
             # get_playlist_items and must NOT be re-sorted here.
-            items = sorted(self._playlists,
+            items = sorted(snap.playlists,
                            key=lambda i: (i.get("Name") or "").lower())
             return items[start_index:start_index + limit], len(items)
         else:
@@ -438,28 +494,33 @@ class OfflineLibrarySource:
 
     def get_playlist_items(self, server_uuid, playlist_id):
         """Downloaded items of a playlist, in playlist order."""
-        return list(self._playlist_items.get(playlist_id, []))
+        return list(self._snap.playlist_items.get(playlist_id, []))
 
     def get_seasons(self, server_uuid, series_id):
-        seen, order = {}, []
-        for item in self._items:
+        snap = self._snap
+        seen, episodes_by_key, order = {}, {}, []
+        for item in snap.items:
             if item.get("Type") != "Episode" or item.get("SeriesId") != series_id:
                 continue
             key = item.get("SeasonId") or ("p%s" % item.get("ParentIndexNumber"))
-            if key in seen:
-                continue
-            pidx = item.get("ParentIndexNumber")
-            if item.get("SeasonName"):
-                name = item["SeasonName"]
-            elif pidx == 0:
-                name = _("Specials")
-            elif pidx is not None:
-                name = _("Season %d") % pidx
-            else:
-                name = _("Episodes")
-            seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
-                         "Type": "Season", "ImageTags": {}, "IndexNumber": pidx}
-            order.append(key)
+            if key not in seen:
+                pidx = item.get("ParentIndexNumber")
+                if item.get("SeasonName"):
+                    name = item["SeasonName"]
+                elif pidx == 0:
+                    name = _("Specials")
+                elif pidx is not None:
+                    name = _("Season %d") % pidx
+                else:
+                    name = _("Episodes")
+                seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
+                             "Type": "Season", "ImageTags": {},
+                             "IndexNumber": pidx}
+                episodes_by_key[key] = []
+                order.append(key)
+            episodes_by_key[key].append(item)
+        for key in order:
+            seen[key]["UserData"] = self._aggregate_userdata(episodes_by_key[key])
         # Match Jellyfin's online order: by season number ascending (Specials =
         # 0 first), with any unnumbered seasons last.
         return sorted((seen[k] for k in order),
@@ -472,7 +533,7 @@ class OfflineLibrarySource:
         # SeasonId is a hex GUID and never starts with "p").
         synthetic = isinstance(season_id, str) and season_id.startswith("p")
         eps = []
-        for i in self._items:
+        for i in self._snap.items:
             if i.get("Type") != "Episode" or i.get("SeriesId") != series_id:
                 continue
             if synthetic:
@@ -519,20 +580,24 @@ class OfflineLibrarySource:
         return item
 
     def get_item(self, server_uuid, item_id):
-        row = self._rows.get(item_id)
+        snap = self._snap
+        row = snap.rows.get(item_id)
         if row and row.get("item_json"):
             item = self._item_from_row(row)
             if item is not None:
                 return item
         # Synthesize a Series DTO so the series overview page renders offline.
-        if item_id in self._series_server:
-            name = next((i.get("SeriesName") for i in self._items
-                         if i.get("SeriesId") == item_id), _("Series"))
-            return {"Id": item_id, "Name": name, "Type": "Series", "ImageTags": {}}
+        if item_id in snap.series_server:
+            eps = [i for i in snap.items if i.get("SeriesId") == item_id
+                   and i.get("Type") == "Episode"]
+            name = next((i.get("SeriesName") for i in eps), _("Series"))
+            return {"Id": item_id, "Name": name, "Type": "Series",
+                    "ImageTags": {},
+                    "UserData": self._aggregate_userdata(eps)}
         return None
 
     def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
-        eps = [i for i in self._items
+        eps = [i for i in self._snap.items
                if i.get("Type") == "Episode" and i.get("SeriesId") == series_id]
         eps.sort(key=lambda i: (i.get("ParentIndexNumber") or 0,
                                 i.get("IndexNumber") or 0))
@@ -551,7 +616,7 @@ class OfflineLibrarySource:
 
     def search(self, server_uuid, term, limit=60):
         needle = term.lower()
-        return [i for i in self._items
+        return [i for i in self._snap.items
                 if needle in (i.get("Name") or "").lower()][:limit]
 
     # -- images (local files) ---------------------------------------------
@@ -572,58 +637,75 @@ class OfflineLibrarySource:
         fallback = os.path.join(item_dir, "poster.jpg")
         return fallback if os.path.exists(fallback) else None
 
-    def _art_path(self, item_id, image_type):
+    def _art_path(self, item_id, image_type, snap=None):
+        """Resolve an item's local artwork file. Memoized per snapshot: this
+        runs on the Tk thread from tile lazy-loading, and each uncached call
+        costs several os.path.exists probes (a real stutter source when the
+        download folder lives on a network share). The memo dies with its
+        snapshot, so a reload invalidates it automatically."""
+        snap = snap or self._snap
+        cache_key = (item_id, image_type)
+        try:
+            return snap.art_cache[cache_key]
+        except KeyError:
+            pass
+        path = self._art_path_uncached(item_id, image_type, snap)
+        snap.art_cache[cache_key] = path
+        return path
+
+    def _art_path_uncached(self, item_id, image_type, snap):
         if not self.root or not item_id:
             return None
         name = self._name_for(image_type)
         # Downloaded item (movie/episode).
-        row = self._rows.get(item_id)
+        row = snap.rows.get(item_id)
         if row and row.get("file_path"):
             return self._in_dir(os.path.join(self.root,
                                              os.path.dirname(row["file_path"])), name)
         # Series artwork (cached separately from its episodes).
-        if item_id in self._series_server:
+        if item_id in snap.series_server:
             series_dir = os.path.join(self.root,
-                                      self._series_server[item_id] or "server",
+                                      snap.series_server[item_id] or "server",
                                       "series", item_id)
             return self._in_dir(series_dir, name)
         # Season artwork, falling back to the series image when the season has
         # no specific artwork.
-        if item_id in self._season_server:
+        if item_id in snap.season_server:
             season_dir = os.path.join(self.root,
-                                      self._season_server[item_id] or "server",
+                                      snap.season_server[item_id] or "server",
                                       "season", item_id)
             found = self._in_dir(season_dir, name)
             if found:
                 return found
-            series_id = self._season_series.get(item_id)
+            series_id = snap.season_series.get(item_id)
             if series_id:
-                return self._art_path(series_id, image_type)
+                return self._art_path(series_id, image_type, snap)
             return None
         # Playlist tile artwork borrows its first downloaded item's poster.
-        if item_id in self._playlist_first:
-            return self._art_path(self._playlist_first[item_id], image_type)
+        first = snap.playlist_first.get(item_id)
+        if first is not None:
+            return self._art_path(first, image_type, snap)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
-            return self._representative(("Movie",))
+            return self._representative(("Movie",), snap)
         if item_id == "offline:videos":
-            return self._representative(("Video",))
+            return self._representative(("Video",), snap)
         if item_id == "offline:tv":
-            for series_id in self._series_server:
-                path = self._art_path(series_id, "Primary")
+            for series_id in snap.series_server:
+                path = self._art_path(series_id, "Primary", snap)
                 if path:
                     return path
-            return self._representative(("Episode",))
+            return self._representative(("Episode",), snap)
         if item_id == "offline:playlists":
-            for pid in self._playlist_first:
-                path = self._art_path(pid, image_type)
+            for pid in snap.playlist_first:
+                path = self._art_path(pid, image_type, snap)
                 if path:
                     return path
             return None
         return None
 
-    def _representative(self, types):
-        for row in self._rows.values():
+    def _representative(self, types, snap):
+        for row in snap.rows.values():
             if row.get("type") in types and row.get("file_path"):
                 path = self._in_dir(os.path.join(
                     self.root, os.path.dirname(row["file_path"])), "poster.jpg")
@@ -639,6 +721,13 @@ class OfflineLibrarySource:
     def image_url(self, server_uuid, item_id, image_type, tag, width,
                   height=None, fill=False, index=None):
         return self._art_path(item_id, image_type)
+
+    @staticmethod
+    def backdrop_spec(item):
+        """Cache-key spec matching LibrarySource.backdrop_spec. The "offline"
+        sentinel keeps offline header art keyed apart from the online tags, so
+        source switches can't serve each other's cached bitmaps."""
+        return item.get("Id"), "offline"
 
     def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
         return self._art_path(item.get("Id"), "Backdrop")

@@ -81,6 +81,11 @@ path_regex = re.compile(r"^(https?://)?(?:(\[[^/]+\])|([^/:]+))(:[0-9]+)?(/.*)?$
 QUICK_CONNECT_POLL_SECS = 3
 QUICK_CONNECT_TIMEOUT_SECS = 300
 
+# After the cast-session verifier's fast retries give up, keep retrying the
+# dropped server with exponential backoff for this long before surrendering
+# to the periodic health check (which may be disabled entirely).
+VERIFY_RETRY_WINDOW_SECS = 600
+
 
 class QuickConnectError(Exception):
     """Raised when a Quick Connect login cannot be completed.
@@ -187,8 +192,14 @@ class ClientManager(object):
         # user's clients and swap in another's, or a stale tick could resurrect
         # a just-disconnected server under the wrong device id.
         self._switching = threading.Event()
-        # Serializes concurrent switch_user calls (e.g. impatient double-click).
-        self._switch_lock = threading.Lock()
+        # Serializes concurrent switch_user calls (e.g. impatient double-click)
+        # AND every mutation of self.credentials + its save. The credential
+        # list is touched from several worker threads (a finishing login, a
+        # switch, remove/update); an unlocked rebind racing an append loses
+        # the appended server, and a login finishing mid-switch would file its
+        # credential under the wrong user. RLock: switch_user holds it while
+        # calling helpers that also take it. Never held across network I/O.
+        self._switch_lock = threading.RLock()
 
         self.health_check = None
         if settings.health_check_interval is not None:
@@ -222,11 +233,14 @@ class ClientManager(object):
 
         # Disconnect the old client
         self._disconnect_client(uuid=existing["uuid"])
-        # Remove the old credential
-        self.credentials = [
-            c for c in self.credentials if c["uuid"] != existing["uuid"]
-        ]
-        self.save_credentials()
+        # Remove the old credential. Rebuild-and-rebind under the switch lock:
+        # an unlocked filter racing another thread's append would drop the
+        # appended server from the rebound list.
+        with self._switch_lock:
+            self.credentials = [
+                c for c in self.credentials if c["uuid"] != existing["uuid"]
+            ]
+            self.save_credentials()
 
         # Re-login with updated credentials
         return self.login(server, username, password)
@@ -443,12 +457,16 @@ class ClientManager(object):
         return "".join(filter(bool, (protocol, ipv6_host, ipv4_host, port, path)))
 
     def _finalize_login(
-        self, client: "JellyfinClient", username: str, force_unique: bool = False
+        self, client: "JellyfinClient", username: str, force_unique: bool = False,
+        owner_id=None,
     ):
         """Stash a freshly-authenticated client into our credential store.
 
         The client must already hold a valid AccessToken for its first server
         (either from a password login or a Quick Connect exchange).
+        ``owner_id`` is the local user who initiated the login; if the active
+        user changed while the (slow) login ran, the credential is filed under
+        that user instead of leaking into whoever is active now.
         """
         credentials = client.auth.credentials.get_credentials()
         server = credentials["Servers"][0]
@@ -459,25 +477,49 @@ class ClientManager(object):
         server["username"] = username
         if force_unique and server["Id"] in self.clients:
             return True
-        # An explicit login supersedes any earlier removal of this uuid
-        # (force_unique reuses the server Id as uuid across add/remove cycles).
-        with self._client_lock:
-            self._removed_uuids.discard(server["uuid"])
+        with self._switch_lock:
+            if owner_id is not None and owner_id != userManager.active_id:
+                # The user switched while we were logging in. Persist the
+                # credential to the initiating user (it connects next time
+                # they're active) and don't register a live client under the
+                # wrong user's session.
+                log.warning(
+                    "Login finished after a user switch; filing the server "
+                    "under the original user."
+                )
+                return userManager.append_credentials_for(
+                    owner_id, clean_credentials_for_save([server])[0]
+                )
+            # An explicit login supersedes any earlier removal of this uuid
+            # (force_unique reuses the server Id as uuid across add/remove
+            # cycles).
+            with self._client_lock:
+                self._removed_uuids.discard(server["uuid"])
+            self.credentials.append(server)
+            self.save_credentials()
         self.connect_client(server)
-        self.credentials.append(server)
-        self.save_credentials()
+        if owner_id is not None:
+            with self._switch_lock:
+                if owner_id != userManager.active_id:
+                    # A switch slipped in between the save and the connect: the
+                    # credential is already safely filed (it was saved while
+                    # the owner was still active), but the live client we just
+                    # registered belongs to the old user — tear it down.
+                    self._disconnect_client(server=server)
         return True
 
     def login(
         self, server: str, username: str, password: str, force_unique: bool = False
     ):
         server = self._normalize_server(server)
+        owner_id = userManager.active_id
 
         client = self.client_factory()
         client.auth.connect_to_address(server)
         result = client.auth.login(server, username, password)
         if "AccessToken" in result:
-            return self._finalize_login(client, username, force_unique)
+            return self._finalize_login(client, username, force_unique,
+                                        owner_id=owner_id)
         return False
 
     def quick_connect_initiate(self, server: str):
@@ -514,6 +556,9 @@ class ClientManager(object):
         """
         address = client.auth.credentials.get_credentials()["Servers"][0]["address"]
         session = client.auth.session
+        # The poll below can run for minutes; remember who started it so the
+        # credential lands under them even if the active user changes meanwhile.
+        owner_id = userManager.active_id
 
         deadline = time.time() + QUICK_CONNECT_TIMEOUT_SECS
         authorized = False
@@ -535,7 +580,8 @@ class ClientManager(object):
             log.warning("Quick Connect authentication failed.")
             return False
 
-        return self._finalize_login(client, result["User"]["Name"])
+        return self._finalize_login(client, result["User"]["Name"],
+                                    owner_id=owner_id)
 
     def login_with_quick_connect(self, server: str, code_callback=None, should_cancel=None):
         """High-level Quick Connect login.
@@ -707,8 +753,36 @@ class ClientManager(object):
             if self._is_session_live(self.clients.get(server["uuid"]), server):
                 self._mark_cast_ready(server)
                 return
-        # Gave up: the device browses fine but can't be a cast target. Leave
-        # cast_ready False and let the UI reflect the final (yellow) state.
+        # Gave up on the fast retries: reflect the degraded state now, then
+        # keep trying with bounded backoff. A flaky server (e.g. one that
+        # blackholes rather than refuses) routinely needs longer than the
+        # three quick attempts, and without this the server stays dropped
+        # until the next health-check tick — or forever if health checks are
+        # disabled.
+        self.on_servers_changed()
+        backoff = expo(60)
+        deadline = time.time() + VERIFY_RETRY_WINDOW_SECS
+        while time.time() < deadline:
+            if self._stop_event.wait(next(backoff)):
+                return
+            if settings.work_offline or self._switching.is_set():
+                return
+            with self._client_lock:
+                if server["uuid"] in self._removed_uuids:
+                    return  # the user removed this server; stop retrying it
+            if server["uuid"] in self.clients:
+                return  # a health tick or ws redial reconnected it already
+            if self.connect_client(server, False):
+                # Browsable again (the token works). Confirm the cast session
+                # with a single dry probe; if it still isn't registered, keep
+                # the connection rather than churning through more rebuilds.
+                client = self.clients.get(server["uuid"])
+                if client is not None and self.validate_client(client, dry_run=True):
+                    self._mark_cast_ready(server)
+                else:
+                    self.on_servers_changed()
+                self.on_server_connected()
+                return
         self.on_servers_changed()
 
     def _mark_cast_ready(self, server):
@@ -737,10 +811,11 @@ class ClientManager(object):
     def remove_client(self, uuid: str):
         with self._client_lock:
             self._removed_uuids.add(uuid)
-        self.credentials = [
-            server for server in self.credentials if server["uuid"] != uuid
-        ]
-        self.save_credentials()
+        with self._switch_lock:
+            self.credentials = [
+                server for server in self.credentials if server["uuid"] != uuid
+            ]
+            self.save_credentials()
         self._disconnect_client(uuid=uuid)
 
     def connect_client(self, server, do_retries=True):
@@ -865,8 +940,9 @@ class ClientManager(object):
 
     def remove_all_clients(self):
         self.stop_all_clients()
-        self.credentials = []
-        self.save_credentials()
+        with self._switch_lock:
+            self.credentials = []
+            self.save_credentials()
 
     def stop_all_clients(self):
         with self._client_lock:
