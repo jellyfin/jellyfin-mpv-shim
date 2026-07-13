@@ -41,6 +41,20 @@ def _settings_schema():
     return {key: _classify_setting(ann)
             for key, ann in Settings.__annotations__.items()}
 
+
+def _edit_apis_available():
+    """Whether the installed jellyfin-apiclient-python has the playlist /
+    collection editing calls (>= 1.15). The browser hides its edit
+    affordances when they're absent — graceful degradation, per policy."""
+    try:
+        from jellyfin_apiclient_python.api import API
+    except Exception:
+        return False
+    return all(hasattr(API, m) for m in (
+        "new_playlist", "add_playlist_items", "remove_playlist_items",
+        "move_playlist_item", "new_collection", "add_collection_items",
+        "remove_collection_items"))
+
 # From https://stackoverflow.com/questions/6631299/
 # This is for opening the config directory.
 
@@ -380,6 +394,7 @@ class UserInterface(threading.Thread):
             "catalog_path": syncManager.db.path if syncManager.db else None,
             # Echoed back in browser_died so stale death notices are ignorable.
             "epoch": self._browser_epoch,
+            "edit_apis": _edit_apis_available(),
         }
 
     def _send_browser(self, message):
@@ -920,6 +935,90 @@ class UserInterface(threading.Thread):
                           item_id, exc_info=True)
 
         threading.Thread(target=work, daemon=True).start()
+
+    # -- playlist / collection editing --------------------------------------
+
+    def _run_edit(self, kind, op, work_fn):
+        """Run an edit call off the action loop and report the outcome back
+        to the browser as one edit_result message."""
+        def work():
+            ok, error = False, None
+            try:
+                work_fn()
+                ok = True
+            except AttributeError:
+                # Old apiclient without the editing calls; normally the UI is
+                # hidden (edit_apis flag), but a stale browser could still ask.
+                log.warning("%s edit needs a newer jellyfin-apiclient-python",
+                            kind, exc_info=True)
+                error = _("This needs a newer jellyfin-apiclient-python.")
+            except Exception:
+                log.error("%s %s failed", kind, op, exc_info=True)
+                error = _("The change could not be applied.")
+            self._send_browser(("edit_result", {
+                "ok": ok, "error": error, "kind": kind, "op": op}))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_playlist_edit(self, payload):
+        payload = payload or {}
+        op = payload.get("op")
+        client = clientManager.clients.get(payload.get("server_uuid"))
+        if client is None:
+            self._send_browser(("edit_result", {
+                "ok": False, "kind": "playlist", "op": op,
+                "error": _("Editing needs a server connection.")}))
+            return
+        pid = payload.get("playlist_id")
+
+        def apply():
+            if op == "add":
+                client.jellyfin.add_playlist_items(
+                    pid, payload.get("item_ids") or [])
+            elif op == "remove":
+                client.jellyfin.remove_playlist_items(
+                    pid, payload.get("entry_ids") or [])
+            elif op == "move":
+                # Moves are (entry_id, absolute index), pre-ordered by the
+                # browser so sequential application lands the final order.
+                for entry_id, new_index in payload.get("moves") or []:
+                    client.jellyfin.move_playlist_item(pid, entry_id,
+                                                       new_index)
+            elif op == "create":
+                client.jellyfin.new_playlist(
+                    payload.get("name") or _("New Playlist"),
+                    payload.get("item_ids") or [])
+            else:
+                raise ValueError("unknown playlist op %r" % op)
+
+        self._run_edit("playlist", op, apply)
+
+    def on_collection_edit(self, payload):
+        payload = payload or {}
+        op = payload.get("op")
+        client = clientManager.clients.get(payload.get("server_uuid"))
+        if client is None:
+            self._send_browser(("edit_result", {
+                "ok": False, "kind": "collection", "op": op,
+                "error": _("Editing needs a server connection.")}))
+            return
+        cid = payload.get("collection_id")
+
+        def apply():
+            if op == "add":
+                client.jellyfin.add_collection_items(
+                    cid, payload.get("item_ids") or [])
+            elif op == "remove":
+                client.jellyfin.remove_collection_items(
+                    cid, payload.get("item_ids") or [])
+            elif op == "create":
+                client.jellyfin.new_collection(
+                    payload.get("name") or _("New Collection"),
+                    payload.get("item_ids") or [])
+            else:
+                raise ValueError("unknown collection op %r" % op)
+
+        self._run_edit("collection", op, apply)
 
     # -- SyncPlay (browse-side join; in-player menu keeps group creation) ---
 

@@ -290,6 +290,28 @@ class LibrarySource:
         result = api.get_persons(search_term=term, limit=limit) or {}
         return result.get("Items", [])
 
+    def get_playlists(self, server_uuid, limit=300):
+        """All video playlists, for the add-to-playlist picker."""
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "IncludeItemTypes": "Playlist",
+            "Recursive": True,
+            "SortBy": "SortName",
+            "Limit": limit,
+        }) or {}
+        return result.get("Items", [])
+
+    def get_collections(self, server_uuid, limit=300):
+        """All user collections (BoxSets), for the add-to-collection picker."""
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "IncludeItemTypes": "BoxSet",
+            "Recursive": True,
+            "SortBy": "SortName",
+            "Limit": limit,
+        }) or {}
+        return result.get("Items", [])
+
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         """Random playable item ids under a library, for shuffle play. The
         server does the shuffling (SortBy=Random) so the sample spans the whole
@@ -685,6 +707,12 @@ class OfflineLibrarySource:
 
     def search_people(self, server_uuid, term, limit=20):
         return []  # people aren't cached offline
+
+    def get_playlists(self, server_uuid, limit=300):
+        return list(self._snap.playlists)
+
+    def get_collections(self, server_uuid, limit=300):
+        return []  # collections aren't cached offline (editing is online-only)
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         snap = self._snap

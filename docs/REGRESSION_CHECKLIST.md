@@ -235,3 +235,27 @@ logic is covered by `tests/test_browser_features.py`.
   Join starts playback of the group's queue in mpv and stays in sync; Leave
   works; joining a group on server B while in a group on server A leaves A
   first; the button politely refuses offline.
+
+### 8. Playlist & collection editing (branch local-ui-playlist-edit) — hand-test items
+Needs jellyfin-apiclient-python >= 1.15 (branch add-browse-edit-apis);
+with an older apiclient every edit affordance must be hidden.
+- [ ] **Bulk remove**: playlist → ✏ Edit → shift-click a whole show's worth
+  of episodes → Remove selected → ONE call, all gone server-side (verify in
+  jf-web). The 48-clicks problem this exists to fix.
+- [ ] **Block moves**: select contiguous and non-contiguous sets; Top / Up /
+  Down / Bottom land in the same order in jf-web after a refresh (the
+  sequential-replay invariant is unit-tested; verify a real server agrees).
+- [ ] **Unsupported entries**: a playlist with music entries shows them in
+  the editor (type column) and they can be removed.
+- [ ] **Quick remove**: right-click an item inside a playlist → Remove from
+  playlist (single entry, no editor).
+- [ ] **Add to playlist**: right-click any tile → Add to playlist… → picker
+  lists playlists; adding a SERIES expands to its episodes server-side;
+  Create new seeds a playlist with the item.
+- [ ] **Collections**: Add to collection… on movie/series tiles; inside a
+  collection grid, right-click → Remove from collection refreshes the grid;
+  Create new makes the collection (may need a library scan to appear as a
+  tile — that's a Jellyfin quirk, not a bug here).
+- [ ] **Failure paths**: pull the network mid-edit → error message and the
+  editor reloads the server's real order; offline mode shows no edit
+  affordances at all.

@@ -113,6 +113,10 @@ class BrowserApp:
         self._download_dialog = None
         self._close_dialog = None  # first-close preference prompt, if open
         self._syncplay_dialog = None  # SyncPlay join dialog, if open
+        self._add_to_dialog = None    # add-to-playlist/collection picker
+        # Playlist/collection editing needs apiclient >= 1.15; the edit
+        # affordances hide entirely when it's older.
+        self.edit_apis = bool(self.options.get("edit_apis"))
 
         self._live_servers = servers
         self._verify_ssl = verify_ssl
@@ -686,7 +690,8 @@ class BrowserApp:
         elif itype in SERIES_TYPES:
             self.navigate({"kind": "series", "series_id": item["Id"], "title": title})
         elif itype in FOLDER_TYPES:
-            self.navigate({"kind": "grid", "parent_id": item["Id"], "title": title})
+            self.navigate({"kind": "grid", "parent_id": item["Id"],
+                           "title": title, "parent_type": itype})
         elif itype in PLAYABLE_TYPES:
             self.navigate({"kind": "detail", "item_id": item["Id"], "title": title})
         else:
@@ -806,6 +811,25 @@ class BrowserApp:
 
     def syncplay_leave(self):
         self.r_queue.put(("syncplay_leave", None))
+
+    # -- playlist / collection editing --------------------------------------
+
+    def playlist_edit(self, payload):
+        self.r_queue.put(("playlist_edit", payload))
+
+    def collection_edit(self, payload):
+        self.r_queue.put(("collection_edit", payload))
+
+    def open_add_to_dialog(self, item, kind):
+        """Open the add-to-playlist / add-to-collection picker for an item."""
+        from .views import AddToDialog
+        if self._add_to_dialog is not None:
+            try:
+                self._add_to_dialog.win.lift()
+                return
+            except Exception:
+                self._add_to_dialog = None
+        self._add_to_dialog = AddToDialog(self, item, kind)
 
     def set_watched(self, server_uuid, item_id, watched, refresh=False):
         """Mark an item (movie/episode, or a whole series/season) played or
@@ -1008,6 +1032,11 @@ class BrowserApp:
         elif cmd == "syncplay_groups":
             if self._syncplay_dialog is not None:
                 self._syncplay_dialog.on_groups(param or {})
+        elif cmd == "edit_result":
+            res = param or {}
+            if not res.get("ok") and res.get("error"):
+                self._message(res["error"])
+            self._dispatch_view("on_edit_result", res)
         elif cmd == "watched_changed":
             # A bulk watched/unwatched mark was applied server-side; re-fetch the
             # current view so cascaded child state shows correctly.

@@ -469,6 +469,25 @@ class GridView(BaseView):
         self.sort_idx = [s[0] for s in SORTS].index(self.sort_var.get())
         self._reset_and_load()
 
+    def tile_context_actions(self, item):
+        # Inside a collection (BoxSet) grid, tiles offer removal in place.
+        if (self.route.get("parent_type") == "BoxSet"
+                and not self.app.is_offline
+                and getattr(self.app, "edit_apis", False)):
+            return [(_("Remove from collection"),
+                     lambda: self._remove_from_collection(item))]
+        return []
+
+    def _remove_from_collection(self, item):
+        self.app.collection_edit({
+            "op": "remove", "server_uuid": self.app.current_server,
+            "collection_id": self.route["parent_id"],
+            "item_ids": [item["Id"]]})
+
+    def on_edit_result(self, result):
+        if (result or {}).get("kind") == "collection" and result.get("ok"):
+            self._reset_and_load()
+
     def _reset_and_load(self):
         # Supersede any page fetch still in flight from the previous sort, so
         # its result can't append to the freshly reset grid.
@@ -854,6 +873,13 @@ class PlaylistView(BaseView):
                                server, pid, "Playlist",
                                self.route.get("title", ""))).pack(
                                    side="left", padx=12, before=self._title)
+            if not self.app.is_offline and getattr(self.app, "edit_apis",
+                                                   False):
+                ttk.Button(self.bar, text=_("✏ Edit"),
+                           command=lambda: self.app.navigate(
+                               {"kind": "playlist_edit", "playlist_id": pid,
+                                "title": self.route.get("title", "")})).pack(
+                                    side="right", padx=8)
 
             # Episode-heavy playlists read better as landscape stills; movie
             # playlists as posters (mirrors the home rows' heuristic).
@@ -882,6 +908,24 @@ class PlaylistView(BaseView):
         iid = item.get("Id")
         return next((i for i, it in enumerate(self.items)
                      if it.get("Id") == iid), 0)
+
+    def tile_context_actions(self, item):
+        # Quick single-entry removal without entering the editor.
+        if self.app.is_offline or not getattr(self.app, "edit_apis", False):
+            return []
+        entry_id = item.get("PlaylistItemId")
+        if not entry_id:
+            return []
+        return [(_("Remove from playlist"),
+                 lambda: self.app.playlist_edit({
+                     "op": "remove",
+                     "server_uuid": self.app.current_server,
+                     "playlist_id": self.route["playlist_id"],
+                     "entry_ids": [entry_id]}))]
+
+    def on_edit_result(self, result):
+        if (result or {}).get("kind") == "playlist" and result.get("ok"):
+            self.app._render_top()  # re-fetch the playlist contents
 
     def _delete_downloads(self):
         # Removes only the items this playlist pulled down (owned); anything
@@ -918,6 +962,200 @@ class PlaylistView(BaseView):
             "audio_index": None,
             "subtitle_index": None,
         })
+
+
+class PlaylistEditView(BaseView):
+    """Bulk playlist editor. jellyfin-web only offers one-at-a-time
+    right-click removal (removing an accidentally-added show means 48
+    separate clicks); here the entries live in a multi-select list
+    (shift/ctrl-click) with block move and bulk remove.
+
+    The local list is the working model: operations update it immediately
+    and stream to the server as one message each (one DELETE for any number
+    of entries; moves as an ordered batch whose sequential application
+    reproduces the local order). A failed change reloads from the server."""
+
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self.entries = []   # raw playlist entries, ALL types, server order
+        self.tree = None
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+
+        bar = tk.Frame(self.frame, bg=CARD_BG)
+        bar.pack(fill="x", padx=8, pady=4)
+        tk.Label(bar, text=_("Edit: %s") % self.route.get("title", ""),
+                 bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
+        ttk.Button(bar, text=_("Done"), style="Accent.TButton",
+                   command=self.app.go_back).pack(side="right")
+
+        tools = tk.Frame(self.frame, bg=CARD_BG)
+        tools.pack(fill="x", padx=8, pady=(0, 4))
+        for label, cmd in ((_("⏫ Top"), self._move_top),
+                           (_("🔼 Up"), self._move_up),
+                           (_("🔽 Down"), self._move_down),
+                           (_("⏬ Bottom"), self._move_bottom)):
+            ttk.Button(tools, text=label, command=cmd).pack(side="left",
+                                                            padx=(0, 4))
+        ttk.Button(tools, text=_("🗑 Remove selected"),
+                   command=self._remove_selected).pack(side="left", padx=12)
+        tk.Label(tools, text=_("Shift/Ctrl-click to select multiple"),
+                 bg=CARD_BG, fg=SUBTLE_FG).pack(side="right")
+
+        holder = tk.Frame(self.frame, bg=CARD_BG)
+        holder.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self.tree = ttk.Treeview(holder, columns=("num", "title", "type",
+                                                  "runtime"),
+                                 show="headings", selectmode="extended")
+        self.tree.heading("num", text="#")
+        self.tree.heading("title", text=_("Title"))
+        self.tree.heading("type", text=_("Type"))
+        self.tree.heading("runtime", text=_("Runtime"))
+        self.tree.column("num", width=50, stretch=False, anchor="e")
+        self.tree.column("title", width=520)
+        self.tree.column("type", width=90, stretch=False)
+        self.tree.column("runtime", width=80, stretch=False, anchor="e")
+        scroll = ttk.Scrollbar(holder, orient="vertical",
+                               command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True)
+        # Route the app-wide wheel handler into the list.
+        self.tree._wheel_scroll = lambda units: self.tree.yview_scroll(
+            units, "units")
+
+        self._load()
+
+    def _load(self):
+        server = self.app.current_server
+        pid = self.route["playlist_id"]
+        epoch = self.new_request()
+
+        def work():
+            return self.app.source.get_playlist_items(server, pid)
+
+        def done(raw):
+            # Every entry is editable — including unsupported (e.g. music)
+            # ones, so stray entries can be cleaned out and move indices
+            # always match the server's view of the playlist.
+            self.entries = list(raw)
+            self._rebuild()
+
+        self.run_async(work, done, lambda _e: None, epoch=epoch)
+
+    @staticmethod
+    def _entry_title(item):
+        name = item.get("Name", "")
+        series = item.get("SeriesName")
+        if series:
+            s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
+            if s is not None and e is not None:
+                return "%s — S%02dE%02d · %s" % (series, s, e, name)
+            return "%s — %s" % (series, name)
+        return name
+
+    def _rebuild(self):
+        tree = self.tree
+        try:
+            keep = set(tree.selection())
+            offset = tree.yview()[0]
+            tree.delete(*tree.get_children())
+        except Exception:
+            return  # view torn down
+        for i, entry in enumerate(self.entries):
+            tree.insert("", "end", iid=entry.get("PlaylistItemId") or str(i),
+                        values=(i + 1, self._entry_title(entry),
+                                entry.get("Type", ""),
+                                format_ticks(entry.get("RunTimeTicks"))))
+        still = [iid for iid in keep if tree.exists(iid)]
+        if still:
+            tree.selection_set(still)
+        tree.yview_moveto(offset)
+
+    def _selected_positions(self):
+        sel = set(self.tree.selection())
+        return [i for i, e in enumerate(self.entries)
+                if (e.get("PlaylistItemId") or str(i)) in sel]
+
+    def _send(self, payload):
+        payload.update({"server_uuid": self.app.current_server,
+                        "playlist_id": self.route["playlist_id"]})
+        self.app.playlist_edit(payload)
+
+    def _apply_moves(self, moves):
+        self._rebuild()
+        if moves:
+            self._send({"op": "move", "moves": moves})
+
+    def _move_up(self):
+        moves, floor = [], -1
+        for idx in self._selected_positions():
+            if idx - 1 > floor:
+                entry = self.entries.pop(idx)
+                self.entries.insert(idx - 1, entry)
+                moves.append((entry["PlaylistItemId"], idx - 1))
+                floor = idx - 1
+            else:
+                floor = idx  # block already packed against the top
+        self._apply_moves(moves)
+
+    def _move_down(self):
+        moves, ceil = [], len(self.entries)
+        for idx in reversed(self._selected_positions()):
+            if idx + 1 < ceil:
+                entry = self.entries.pop(idx)
+                self.entries.insert(idx + 1, entry)
+                moves.append((entry["PlaylistItemId"], idx + 1))
+                ceil = idx + 1
+            else:
+                ceil = idx
+        self._apply_moves(moves)
+
+    def _move_top(self):
+        sel = self._selected_positions()
+        if not sel:
+            return
+        picked = set(sel)
+        block = [self.entries[i] for i in sel]
+        rest = [e for i, e in enumerate(self.entries) if i not in picked]
+        self.entries = block + rest
+        # Applied in order, each move lands right after the previous one.
+        self._apply_moves([(e["PlaylistItemId"], i)
+                           for i, e in enumerate(block)])
+
+    def _move_bottom(self):
+        sel = self._selected_positions()
+        if not sel:
+            return
+        picked = set(sel)
+        block = [self.entries[i] for i in sel]
+        rest = [e for i, e in enumerate(self.entries) if i not in picked]
+        self.entries = rest + block
+        last = len(self.entries) - 1
+        self._apply_moves([(e["PlaylistItemId"], last) for e in block])
+
+    def _remove_selected(self):
+        sel = self._selected_positions()
+        if not sel:
+            return
+        picked = set(sel)
+        entry_ids = [self.entries[i].get("PlaylistItemId") for i in sel]
+        entry_ids = [e for e in entry_ids if e]
+        self.entries = [e for i, e in enumerate(self.entries)
+                        if i not in picked]
+        self._rebuild()
+        if entry_ids:
+            # One DELETE for the whole selection.
+            self._send({"op": "remove", "entry_ids": entry_ids})
+
+    def on_edit_result(self, result):
+        result = result or {}
+        if result.get("kind") == "playlist" and not result.get("ok"):
+            # The server refused (or the connection blipped): our local model
+            # is no longer trustworthy — reload the real order.
+            self._load()
 
 
 class SearchView(BaseView):
@@ -1776,6 +2014,120 @@ class ClosePreferenceDialog:
             self.win.grab_release()
         except Exception:
             pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
+
+
+class AddToDialog:
+    """Pick (or create) a playlist/collection to add an item to. Adding a
+    Series/Season id is fine — the server expands it to its children for
+    playlists, and collections hold the series itself."""
+
+    def __init__(self, app, item, kind):
+        self.app = app
+        self.item = item
+        self.kind = kind  # "playlist" | "collection"
+        self.choices = []
+        tk, ttk = app.tk, app.ttk
+
+        win = tk.Toplevel(app.root)
+        self.win = win
+        win.title(_("Add to playlist") if kind == "playlist"
+                  else _("Add to collection"))
+        win.configure(bg=CARD_BG)
+        win.transient(app.root)
+        win.minsize(380, 340)
+
+        tk.Label(win, text=_('Add "%s" to:') % item.get("Name", ""),
+                 bg=CARD_BG, fg=TEXT_FG, wraplength=340,
+                 justify="left").pack(anchor="w", padx=16, pady=(14, 6))
+
+        holder = tk.Frame(win, bg=CARD_BG)
+        holder.pack(fill="both", expand=True, padx=16)
+        self.listbox = tk.Listbox(holder, bg=ENTRY_BG, fg=TEXT_FG,
+                                  selectbackground=ACCENT, activestyle="none",
+                                  highlightthickness=0)
+        scroll = ttk.Scrollbar(holder, orient="vertical",
+                               command=self.listbox.yview)
+        self.listbox.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.listbox.pack(side="left", fill="both", expand=True)
+        self.listbox.insert("end", _("Loading…"))
+        self.listbox.bind("<Double-Button-1>", lambda _e: self._add())
+
+        new_row = tk.Frame(win, bg=CARD_BG)
+        new_row.pack(fill="x", padx=16, pady=(8, 0))
+        self.new_var = tk.StringVar()
+        entry = ttk.Entry(new_row, textvariable=self.new_var, width=24)
+        entry.pack(side="left", fill="x", expand=True)
+        entry.bind("<Return>", lambda _e: self._create())
+        ttk.Button(new_row, text=_("Create new"),
+                   command=self._create).pack(side="left", padx=(6, 0))
+
+        btns = tk.Frame(win, bg=CARD_BG)
+        btns.pack(fill="x", padx=16, pady=12)
+        ttk.Button(btns, text=_("Cancel"), command=self.close).pack(
+            side="right")
+        ttk.Button(btns, text=_("Add"), style="Accent.TButton",
+                   command=self._add).pack(side="right", padx=8)
+        win.protocol("WM_DELETE_WINDOW", self.close)
+
+        server = app.current_server
+
+        def work():
+            if kind == "playlist":
+                return app.source.get_playlists(server)
+            return app.source.get_collections(server)
+
+        def done(items):
+            self.choices = items or []
+            try:
+                self.listbox.delete(0, "end")
+                for c in self.choices:
+                    self.listbox.insert("end", c.get("Name", "?"))
+                if not self.choices:
+                    self.listbox.insert(
+                        "end", _("(none yet — create one below)"))
+            except Exception:
+                pass  # dialog closed while loading
+
+        app.run_async(work, done, lambda _e: done([]))
+
+    def _payload(self):
+        return {"op": "add", "item_ids": [self.item["Id"]],
+                "server_uuid": self.app.current_server}
+
+    def _add(self):
+        sel = self.listbox.curselection()
+        if not sel or sel[0] >= len(self.choices):
+            return
+        choice = self.choices[sel[0]]
+        payload = self._payload()
+        if self.kind == "playlist":
+            payload["playlist_id"] = choice["Id"]
+            self.app.playlist_edit(payload)
+        else:
+            payload["collection_id"] = choice["Id"]
+            self.app.collection_edit(payload)
+        self.close()
+
+    def _create(self):
+        name = self.new_var.get().strip()
+        if not name:
+            return
+        payload = self._payload()
+        payload.update({"op": "create", "name": name})
+        if self.kind == "playlist":
+            self.app.playlist_edit(payload)
+        else:
+            self.app.collection_edit(payload)
+        self.close()
+
+    def close(self):
+        if getattr(self.app, "_add_to_dialog", None) is self:
+            self.app._add_to_dialog = None
         try:
             self.win.destroy()
         except Exception:
@@ -2887,6 +3239,7 @@ VIEW_TYPES = {
     "series": SeriesView,
     "season": SeasonView,
     "playlist": PlaylistView,
+    "playlist_edit": PlaylistEditView,
     "detail": DetailView,
     "search": SearchView,
     "login": LoginView,

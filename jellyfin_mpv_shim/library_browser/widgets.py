@@ -195,6 +195,29 @@ class MediaTile:
         menu.add_command(
             label=_("Remove from favorites") if fav else _("Add to favorites"),
             command=lambda: self._toggle_favorite(not fav))
+        if (not self.app.is_offline
+                and getattr(self.app, "edit_apis", False)):
+            menu.add_separator()
+            menu.add_command(
+                label=_("Add to playlist…"),
+                command=lambda: self.app.open_add_to_dialog(self.item,
+                                                            "playlist"))
+            menu.add_command(
+                label=_("Add to collection…"),
+                command=lambda: self.app.open_add_to_dialog(self.item,
+                                                            "collection"))
+        # Views can contribute context-specific actions (e.g. "Remove from
+        # playlist" inside a playlist, "Remove from collection" in a BoxSet).
+        extra = getattr(self.app.current_view, "tile_context_actions", None)
+        if callable(extra):
+            try:
+                actions = extra(self.item) or []
+            except Exception:
+                actions = []
+            if actions:
+                menu.add_separator()
+            for label, cb in actions:
+                menu.add_command(label=label, command=cb)
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
