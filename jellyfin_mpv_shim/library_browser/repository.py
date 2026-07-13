@@ -197,6 +197,8 @@ class LibrarySource:
             params["IsFavorite"] = "true"
         if filters.get("genre"):
             params["Genres"] = filters["genre"]
+        if filters.get("year"):
+            params["Years"] = str(filters["year"])
         letter = filters.get("letter")
         if letter == "#":
             params["NameLessThan"] = "A"
@@ -245,6 +247,48 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_genres(parent_id) or {}
         return [g.get("Name") for g in result.get("Items", []) if g.get("Name")]
+
+    def get_filter_values(self, server_uuid, parent_id=None):
+        """Filter-picker values: {"genres": [...], "years": [...]}. Years need
+        apiclient >= 1.15 (get_filters); on older versions the year picker is
+        simply empty and the genre fallback path is used."""
+        api = self._conn(server_uuid).api
+        if hasattr(api, "get_filters"):
+            try:
+                result = api.get_filters(parent_id) or {}
+                return {"genres": result.get("Genres") or [],
+                        "years": result.get("Years") or []}
+            except Exception:
+                log.warning("Items/Filters failed; falling back to genres",
+                            exc_info=True)
+        return {"genres": self.get_genres(server_uuid, parent_id), "years": []}
+
+    def get_similar(self, server_uuid, item_id, limit=12):
+        """"More Like This" items (apiclient >= 1.15; empty list before)."""
+        api = self._conn(server_uuid).api
+        if not hasattr(api, "get_similar"):
+            return []
+        result = api.get_similar(item_id, limit=limit, fields=LIST_FIELDS) or {}
+        return result.get("Items", [])
+
+    def get_trailers(self, server_uuid, item_id):
+        """Local trailer items for an item (playable like any other item)."""
+        api = self._conn(server_uuid).api
+        try:
+            result = api.get_local_trailers(item_id) or []
+        except Exception:
+            log.debug("Local trailers unavailable for %s", item_id,
+                      exc_info=True)
+            return []
+        return result.get("Items", []) if isinstance(result, dict) else result
+
+    def search_people(self, server_uuid, term, limit=20):
+        """People matching a search term (apiclient >= 1.15; empty before)."""
+        api = self._conn(server_uuid).api
+        if not hasattr(api, "get_persons"):
+            return []
+        result = api.get_persons(search_term=term, limit=limit) or {}
+        return result.get("Items", [])
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         """Random playable item ids under a library, for shuffle play. The
@@ -581,6 +625,8 @@ class OfflineLibrarySource:
             if filters.get("genre") and filters["genre"] not in (
                     i.get("Genres") or []):
                 continue
+            if filters.get("year") and i.get("ProductionYear") != filters["year"]:
+                continue
             letter = filters.get("letter")
             if letter:
                 first = ((i.get("Name") or "?")[:1]).upper()
@@ -624,6 +670,21 @@ class OfflineLibrarySource:
         for i in self._snap.items:
             genres.update(i.get("Genres") or [])
         return sorted(genres)
+
+    def get_filter_values(self, server_uuid, parent_id=None):
+        years = {i.get("ProductionYear") for i in self._snap.items
+                 if i.get("ProductionYear")}
+        return {"genres": self.get_genres(server_uuid, parent_id),
+                "years": sorted(years, reverse=True)}
+
+    def get_similar(self, server_uuid, item_id, limit=12):
+        return []  # no similarity data in the offline catalog
+
+    def get_trailers(self, server_uuid, item_id):
+        return []  # trailers aren't downloaded
+
+    def search_people(self, server_uuid, term, limit=20):
+        return []  # people aren't cached offline
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         snap = self._snap

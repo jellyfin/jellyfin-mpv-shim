@@ -321,7 +321,7 @@ class GridView(BaseView):
         self.loading = False
         self._first = True
         self.filters = {"unplayed": False, "favorite": False,
-                        "genre": None, "letter": None}
+                        "genre": None, "year": None, "letter": None}
         self._letter_labels = {}
         self._genre_box = None
 
@@ -384,6 +384,16 @@ class GridView(BaseView):
         self._genre_box.pack(side="left")
         self._genre_box.bind("<<ComboboxSelected>>",
                              lambda _e: self._on_filter_change())
+        tk.Label(fbar, text=_("Year:"), bg=CARD_BG, fg=SUBTLE_FG).pack(
+            side="left", padx=(12, 4))
+        self._all_years_label = _("All years")
+        self.year_var = tk.StringVar(value=self._all_years_label)
+        self._year_box = ttk.Combobox(fbar, textvariable=self.year_var,
+                                      state="readonly", width=10,
+                                      values=[self._all_years_label])
+        self._year_box.pack(side="left")
+        self._year_box.bind("<<ComboboxSelected>>",
+                            lambda _e: self._on_filter_change())
         ttk.Button(fbar, text=_("🔀 Shuffle"),
                    command=self._shuffle).pack(side="right")
 
@@ -396,26 +406,38 @@ class GridView(BaseView):
             lbl.bind("<Button-1>", lambda _e, l=letter: self._on_letter(l))
             self._letter_labels[letter] = lbl
 
-        # Fill the genre picker in the background; the grid doesn't wait on it.
+        # Fill the genre/year pickers in the background; the grid doesn't
+        # wait on them.
         server = self.app.current_server
         parent = self.route.get("parent_id")
 
         def work():
-            return self.app.source.get_genres(server, parent)
+            return self.app.source.get_filter_values(server, parent)
 
-        def done(genres):
+        def done(values):
+            genres = values.get("genres") or []
             if genres:
                 self._genre_box.config(
                     values=[self._all_genres_label] + list(genres))
+            years = values.get("years") or []
+            if years:
+                self._year_box.config(
+                    values=[self._all_years_label] + [str(y) for y in years])
 
         self.run_async(work, done, lambda _e: None)
 
     def _on_filter_change(self):
         genre = self.genre_var.get()
+        year = self.year_var.get()
         self.filters["unplayed"] = bool(self.unplayed_var.get())
         self.filters["favorite"] = bool(self.favorite_var.get())
         self.filters["genre"] = (None if genre == self._all_genres_label
                                  else genre)
+        try:
+            self.filters["year"] = (None if year == self._all_years_label
+                                    else int(year))
+        except ValueError:
+            self.filters["year"] = None
         self._reset_and_load()
 
     def _on_letter(self, letter):
@@ -917,11 +939,18 @@ class SearchView(BaseView):
         spinner = self._spinner(body)
 
         def work():
-            return self.app.source.search(server, term)
+            items = self.app.source.search(server, term)
+            try:
+                people = self.app.source.search_people(server, term)
+            except Exception:
+                log.debug("People search failed", exc_info=True)
+                people = []
+            return items, people
 
-        def done(items):
+        def done(result):
+            items, people = result
             spinner.destroy()
-            if not items:
+            if not items and not people:
                 tk.Label(body, text=_("No results."), bg=CARD_BG,
                          fg=SUBTLE_FG).pack(pady=40)
                 return
@@ -951,9 +980,28 @@ class SearchView(BaseView):
                 row.widget().pack(fill="x")
                 row.set_items(other, server, image_type="Primary",
                               on_click=self.app.open_item)
+            self._render_people(body, people)
 
         self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _render_people(self, body, people):
+        if not people:
+            return
+        row = HScrollRow(self.app, body, _("People"),
+                         poster_box(int(self.app.image_width * 0.7)))
+        row.widget().pack(fill="x")
+        tiles = []
+        for p in people:
+            entry = dict(p)
+            entry["Type"] = "Person"  # /Persons items already carry ImageTags
+            tiles.append(entry)
+        row.set_items(tiles, self.app.current_server, image_type="Primary",
+                      on_click=self._open_person, subtitle_fn=lambda _p: "")
+
+    def _open_person(self, person):
+        self.app.navigate({"kind": "grid", "person_id": person["Id"],
+                           "title": person.get("Name", "")})
 
 
 class DetailView(BaseView):
@@ -1036,6 +1084,8 @@ class DetailView(BaseView):
         self._build_actions(body, item)
         self._build_people_row(outer, item)
         self._build_chapters_row(outer, item)
+        self._load_similar_row(outer, item)
+        self._load_trailer_button(item)
 
     def _pick_source(self, item):
         sources = item.get("MediaSources") or []
@@ -1179,6 +1229,55 @@ class DetailView(BaseView):
 
     def _play_chapter(self, chapter):
         self._play(chapter.get("_start_ticks") or 0)
+
+    def _load_similar_row(self, parent, item):
+        """"More Like This", fetched after the page renders so it never holds
+        the detail view hostage. Empty (older apiclient, offline) = no row."""
+        server = self.app.current_server
+
+        def work():
+            return self.app.source.get_similar(server, item["Id"])
+
+        def done(items):
+            if not items:
+                return
+            row = HScrollRow(self.app, parent, _("More Like This"),
+                             poster_box(self.app.image_width))
+            row.widget().pack(fill="x")
+            row.set_items(items, server, image_type="Primary",
+                          on_click=self.app.open_item)
+
+        self.run_async(work, done, lambda _e: None)
+
+    def _load_trailer_button(self, item):
+        if item.get("Type") not in ("Movie", "Series"):
+            return
+        server = self.app.current_server
+
+        def work():
+            return self.app.source.get_trailers(server, item["Id"])
+
+        def done(trailers):
+            if not trailers or self._actions_row is None:
+                return
+            self._trailers = trailers
+
+            def play_trailer():
+                self.app.play({
+                    "server_uuid": server,
+                    "item_ids": [t["Id"] for t in self._trailers
+                                 if t.get("Id")],
+                    "start_index": 0,
+                })
+
+            try:
+                self.app.ttk.Button(self._actions_row, text=_("🎬 Trailer"),
+                                    command=play_trailer).pack(side="left",
+                                                               padx=8)
+            except Exception:
+                pass  # actions row already torn down
+
+        self.run_async(work, done, lambda _e: None)
 
     def _default_track_indices(self):
         """Defaults shown in the pickers, matching what playback will actually do:

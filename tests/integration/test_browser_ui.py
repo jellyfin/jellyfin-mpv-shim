@@ -134,6 +134,19 @@ class FakeSource:
         self._tick("get_genres")
         return ["Comedy", "Drama"]
 
+    def get_filter_values(self, _server, _parent=None):
+        self._tick("get_filter_values")
+        return {"genres": ["Comedy", "Drama"], "years": [2020]}
+
+    def get_similar(self, *_a, **_k):
+        return []
+
+    def get_trailers(self, *_a, **_k):
+        return []
+
+    def search_people(self, *_a, **_k):
+        return []
+
     def get_shuffle_ids(self, _server, _parent, limit=200):
         self._tick("get_shuffle_ids")
         return ["m1", "m2", "m3"]

@@ -48,6 +48,10 @@ class FilterParamsTest(unittest.TestCase):
         self.assertEqual(LibrarySource._filter_params({"letter": "#"}),
                          {"NameLessThan": "A"})
 
+    def test_year(self):
+        self.assertEqual(LibrarySource._filter_params({"year": 1999}),
+                         {"Years": "1999"})
+
 
 class OfflineFiltersTest(unittest.TestCase):
     def setUp(self):
@@ -82,6 +86,56 @@ class OfflineFiltersTest(unittest.TestCase):
         _items, total = self.src.get_library_items(
             "offline", "offline:movies", filters={"unplayed": True})
         self.assertEqual(total, 2)
+
+    def test_year_filter(self):
+        src = _offline_source([
+            dict(_item("Old"), ProductionYear=1999),
+            dict(_item("New"), ProductionYear=2024),
+        ])
+        items, _t = src.get_library_items("offline", "offline:movies",
+                                          filters={"year": 1999})
+        self.assertEqual([i["Name"] for i in items], ["Old"])
+
+
+class ApiVersionGatingTest(unittest.TestCase):
+    """The new endpoints degrade to empty results on an apiclient that
+    predates them (hasattr gates)."""
+
+    def _src_with_api(self, api):
+        src = LibrarySource.__new__(LibrarySource)
+        conn = mock.Mock(spec=["api"])
+        conn.api = api
+        src._conns = {"srv": conn}
+        return src
+
+    def test_similar_and_people_empty_on_old_apiclient(self):
+        old_api = mock.Mock(spec=["get_genres"])  # no get_similar/get_persons
+        src = self._src_with_api(old_api)
+        self.assertEqual(src.get_similar("srv", "i1"), [])
+        self.assertEqual(src.search_people("srv", "x"), [])
+
+    def test_filter_values_fall_back_to_genres(self):
+        old_api = mock.Mock(spec=["get_genres"])
+        old_api.get_genres.return_value = {"Items": [{"Name": "Drama"}]}
+        src = self._src_with_api(old_api)
+        self.assertEqual(src.get_filter_values("srv"),
+                         {"genres": ["Drama"], "years": []})
+
+    def test_filter_values_use_items_filters_when_available(self):
+        api = mock.Mock(spec=["get_filters"])
+        api.get_filters.return_value = {"Genres": ["Drama"],
+                                        "Years": [2001, 1999]}
+        src = self._src_with_api(api)
+        self.assertEqual(src.get_filter_values("srv"),
+                         {"genres": ["Drama"], "years": [2001, 1999]})
+
+    def test_offline_filter_values_derive_years(self):
+        src = _offline_source([
+            dict(_item("A"), ProductionYear=1999, Genres=["Drama"]),
+            dict(_item("B"), ProductionYear=2024),
+        ])
+        values = src.get_filter_values("offline")
+        self.assertEqual(values["years"], [2024, 1999])
 
 
 class OfflineGenresAndShuffleTest(unittest.TestCase):
