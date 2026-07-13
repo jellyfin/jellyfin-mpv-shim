@@ -654,6 +654,16 @@ class BrowserApp:
             self.nav_stack.pop()
             self._render_top()
 
+    def after_playlist_deleted(self, playlist_id):
+        """The playlist is gone server-side: drop its detail + editor routes
+        from the stack (both carry ``playlist_id``) and re-render whatever's
+        underneath — the playlist list, which re-fetches without it."""
+        root = self.nav_stack[0] if self.nav_stack else {"kind": "home"}
+        kept = [r for r in self.nav_stack
+                if r.get("playlist_id") != playlist_id]
+        self.nav_stack = kept or [root]
+        self._render_top()
+
     def _render_top(self):
         route = self.nav_stack[-1]
         # The login and locked screens are full-window chrome-free; everything
@@ -691,7 +701,10 @@ class BrowserApp:
             self.navigate({"kind": "series", "series_id": item["Id"], "title": title})
         elif itype in FOLDER_TYPES:
             self.navigate({"kind": "grid", "parent_id": item["Id"],
-                           "title": title, "parent_type": itype})
+                           "title": title, "parent_type": itype,
+                           # Lets the grid offer the Collections toggle on Movie
+                           # libraries (only libraries carry a CollectionType).
+                           "collection_type": item.get("CollectionType")})
         elif itype in PLAYABLE_TYPES:
             self.navigate({"kind": "detail", "item_id": item["Id"], "title": title})
         else:

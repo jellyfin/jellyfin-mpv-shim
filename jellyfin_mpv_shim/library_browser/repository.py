@@ -39,6 +39,11 @@ DETAIL_FIELDS = (
 # type and its contents diverge, so we can't classify a playlist as music/video
 # up front — instead we show every playlist and filter its *contents* to
 # supported types when opened (see PLAYLIST_SUPPORTED_TYPES).
+# Collections (CollectionType "boxsets") are intentionally NOT excluded here:
+# the server decides whether collections appear in the main browse / whether
+# movies are grouped into collections for a library request. We render whatever
+# it returns and only request collections explicitly via the Movies-library
+# "Collections" toggle (get_movie_collections) — no client-side exclusion.
 EXCLUDED_COLLECTION_TYPES = {"music", "musicvideos", "books", "livetv"}
 
 # Item types that open the detail/play view rather than drilling deeper.
@@ -148,13 +153,14 @@ class LibrarySource:
                 "Fields": LIST_FIELDS,
                 "EnableImageTypes": "Primary,Thumb,Backdrop",
             }) or {}
-            rows.append((_("Continue Watching"), resume.get("Items", [])))
+            # No CollectionType: these mixed rows keep the item-type heuristic.
+            rows.append((_("Continue Watching"), resume.get("Items", []), None))
         except Exception:
             log.warning("Failed to load resume items", exc_info=True)
 
         try:
             nextup = api.get_next(limit=20) or {}
-            rows.append((_("Next Up"), nextup.get("Items", [])))
+            rows.append((_("Next Up"), nextup.get("Items", []), None))
         except Exception:
             log.warning("Failed to load next-up items", exc_info=True)
 
@@ -175,12 +181,17 @@ class LibrarySource:
                                                 limit=16) or []
                 # get_recently_added returns a bare list, not an Items dict.
                 items = latest.get("Items", []) if isinstance(latest, dict) else latest
-                rows.append((_("Latest %s") % lib.get("Name", ""), items))
+                rows.append((_("Latest %s") % lib.get("Name", ""), items,
+                             lib.get("CollectionType")))
             except Exception:
                 log.warning("Failed to load latest for %s", lib.get("Name"),
                             exc_info=True)
 
-        return [{"title": t, "items": i} for t, i in rows if i]
+        # Carry each row's CollectionType so the home view can pick poster vs
+        # landscape by library kind — a TV "Latest" row mixes Series and stray
+        # Episodes, so scanning item types alone mis-classifies it.
+        return [{"title": t, "items": i, "collection_type": c}
+                for t, i, c in rows if i]
 
     @staticmethod
     def _filter_params(filters):
@@ -212,6 +223,29 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         params = {
             "ParentId": parent_id,
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+            "StartIndex": start_index,
+            "Limit": limit,
+            "Fields": LIST_FIELDS,
+            "ImageTypeLimit": 1,
+            "EnableImageTypes": "Primary,Thumb,Backdrop",
+        }
+        params.update(self._filter_params(filters))
+        result = api.user_items(params=params) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_movie_collections(self, server_uuid, sort_by="SortName",
+                              sort_order="Ascending", start_index=0, limit=100,
+                              filters=None):
+        """Collections (BoxSets) as a paged grid, for the Movies-library
+        Collections toggle. Server-wide and recursive (a BoxSet can gather
+        items from several libraries), mirroring jellyfin-web's Collections
+        view. Returns ``(items, total)`` like ``get_library_items``."""
+        api = self._conn(server_uuid).api
+        params = {
+            "IncludeItemTypes": "BoxSet",
+            "Recursive": True,
             "SortBy": sort_by,
             "SortOrder": sort_order,
             "StartIndex": start_index,
@@ -337,6 +371,19 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_playlist_items(playlist_id, fields=LIST_FIELDS) or {}
         return result.get("Items", [])
+
+    def get_playlist(self, server_uuid, playlist_id):
+        """A playlist's metadata (``OpenAccess`` visibility + shares), for the
+        editor's Public/Private control. Returns {} if the server or apiclient
+        is too old to expose it."""
+        api = self._conn(server_uuid).api
+        get = getattr(api, "get_playlist", None)
+        if get is None:
+            return {}
+        try:
+            return get(playlist_id) or {}
+        except Exception:
+            return {}
 
     def get_seasons(self, server_uuid, series_id):
         api = self._conn(server_uuid).api
@@ -621,13 +668,16 @@ class OfflineLibrarySource:
         rows = []
         movies = [i for i in snap.items if i.get("Type") == "Movie"]
         if movies:
-            rows.append({"title": _("Downloaded Movies"), "items": movies})
+            rows.append({"title": _("Downloaded Movies"), "items": movies,
+                         "collection_type": "movies"})
         videos = [i for i in snap.items if i.get("Type") == "Video"]
         if videos:
-            rows.append({"title": _("Downloaded Videos"), "items": videos})
+            rows.append({"title": _("Downloaded Videos"), "items": videos,
+                         "collection_type": "homevideos"})
         series = self._series_list(snap)
         if series:
-            rows.append({"title": _("Downloaded Shows"), "items": series})
+            rows.append({"title": _("Downloaded Shows"), "items": series,
+                         "collection_type": "tvshows"})
         return rows
 
     @staticmethod

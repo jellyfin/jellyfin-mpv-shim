@@ -82,6 +82,20 @@ def apply_dark_theme(root, ttk):
     style.map("TCheckbutton", background=[("active", CARD_BG)],
               indicatorcolor=[("selected", ACCENT)])
 
+    # Treeview (multi-select list). clam's default is a white field with grey
+    # text; pin the whole widget to the dark palette and give the selection the
+    # accent color.
+    style.configure("Treeview", background=ENTRY_BG, fieldbackground=ENTRY_BG,
+                    foreground=TEXT_FG, bordercolor=BORDER, relief="flat",
+                    rowheight=24)
+    style.map("Treeview",
+              background=[("selected", ACCENT)],
+              foreground=[("selected", "#ffffff")])
+    style.configure("Treeview.Heading", background=BUTTON_BG,
+                    foreground=SUBTLE_FG, relief="flat", padding=(6, 4))
+    style.map("Treeview.Heading",
+              background=[("active", BUTTON_ACTIVE)])
+
     # The Combobox dropdown is a classic Tk Listbox; style it via the option DB.
     root.option_add("*TCombobox*Listbox.background", ENTRY_BG)
     root.option_add("*TCombobox*Listbox.foreground", TEXT_FG)

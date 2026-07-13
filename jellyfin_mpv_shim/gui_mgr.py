@@ -987,7 +987,18 @@ class UserInterface(threading.Thread):
             elif op == "create":
                 client.jellyfin.new_playlist(
                     payload.get("name") or _("New Playlist"),
-                    payload.get("item_ids") or [])
+                    payload.get("item_ids") or [],
+                    is_public=payload.get("is_public"))
+            elif op == "update":
+                # Rename and/or visibility change; only the provided fields are
+                # touched (None leaves the server's value alone).
+                client.jellyfin.update_playlist(
+                    pid, name=payload.get("name"),
+                    is_public=payload.get("is_public"))
+            elif op == "delete":
+                # A playlist is a normal item; deleting it removes it for every
+                # user (the underlying videos are untouched).
+                client.jellyfin.delete_item(pid)
             else:
                 raise ValueError("unknown playlist op %r" % op)
 

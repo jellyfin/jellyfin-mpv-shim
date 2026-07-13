@@ -235,7 +235,23 @@ class HomeView(BaseView):
                               on_click=self.app.open_item, subtitle_fn=lambda i: "")
 
         for row in rows:
-            if any(i.get("Type") == "Episode" for i in row["items"]):
+            has_episode = any(i.get("Type") == "Episode" for i in row["items"])
+            # Per-library rows carry a CollectionType and are classified by it,
+            # not by item types: a TV "Latest" row mixes grouped Series with
+            # stray recently-added Episodes, so a type scan would flip the whole
+            # row landscape on one episode. Rows without a CollectionType
+            # (Continue Watching, Next Up) keep the item-type heuristic.
+            ctype = row.get("collection_type")
+            if ctype in ("movies", "tvshows", "boxsets"):
+                box = poster_box(self.app.image_width)
+                image_type = "Primary"
+            elif ctype:
+                # Home-video / music-video / misc libraries: landscape
+                # frame-grabs with no poster. Episodes carry a dedicated Thumb;
+                # other items only have a (landscape) Primary.
+                box = thumb_box(int(self.app.image_width * 1.4))
+                image_type = "Thumb" if has_episode else "Primary"
+            elif has_episode:
                 box = thumb_box(int(self.app.image_width * 1.4))
                 image_type = "Thumb"
             else:
@@ -324,6 +340,9 @@ class GridView(BaseView):
                         "genre": None, "year": None, "letter": None}
         self._letter_labels = {}
         self._genre_box = None
+        # When on, the grid lists this Movie library's Collections (BoxSets)
+        # instead of its movies.
+        self._collections_mode = False
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
@@ -374,6 +393,16 @@ class GridView(BaseView):
         ttk.Checkbutton(fbar, text=_("Favorites"), variable=self.favorite_var,
                         command=self._on_filter_change).pack(side="left",
                                                              padx=(10, 0))
+        # Collections (BoxSets) are movie-specific and, like jellyfin-web, not a
+        # browse tile — offer them here as a toggle on Movie libraries only.
+        # Offline has no collections, so it's online-only.
+        self.collections_var = tk.BooleanVar(value=False)
+        if (self.route.get("collection_type") == "movies"
+                and not self.app.is_offline):
+            ttk.Checkbutton(fbar, text=_("Collections"),
+                            variable=self.collections_var,
+                            command=self._on_collections_toggle).pack(
+                                side="left", padx=(10, 0))
         tk.Label(fbar, text=_("Genre:"), bg=CARD_BG, fg=SUBTLE_FG).pack(
             side="left", padx=(16, 4))
         self._all_genres_label = _("All genres")
@@ -438,6 +467,10 @@ class GridView(BaseView):
                                     else int(year))
         except ValueError:
             self.filters["year"] = None
+        self._reset_and_load()
+
+    def _on_collections_toggle(self):
+        self._collections_mode = bool(self.collections_var.get())
         self._reset_and_load()
 
     def _on_letter(self, letter):
@@ -510,9 +543,15 @@ class GridView(BaseView):
         start = self.loaded
         epoch = self._req_epoch
         person = self.route.get("person_id")
+        collections = self._collections_mode
         filters = dict(self.filters)  # snapshot: the UI can change mid-fetch
 
         def work():
+            if collections:
+                return self.app.source.get_movie_collections(
+                    server, sort_by=sort_by, sort_order=order,
+                    start_index=start, limit=self.app.page_size,
+                    filters=filters)
             if person:
                 return self.app.source.get_person_items(
                     server, person, start_index=start,
@@ -563,7 +602,59 @@ class GridView(BaseView):
         self.run_async(work, done, fail, epoch=epoch)
 
 
-class SeriesView(BaseView):
+class _DetailRowsMixin:
+    """Shared 'Cast & Crew' and 'More Like This' rows for the detail-style
+    pages (movies/episodes in DetailView, shows in SeriesView). Both take a
+    fetched ``item`` (People come from DETAIL_FIELDS) and a scrollable
+    ``parent``; the similar row loads after render so it never blocks the page.
+    """
+
+    def _build_people_row(self, parent, item):
+        people = (item.get("People") or [])[:24]
+        if not people:
+            return
+        row = HScrollRow(self.app, parent, _("Cast & Crew"),
+                         poster_box(int(self.app.image_width * 0.7)))
+        row.widget().pack(fill="x")
+        tiles = []
+        for p in people:
+            entry = dict(p)
+            # People entries use Type for the job (Actor/Director); retag so
+            # tiles don't treat them as playable/watchable items.
+            entry["_role"] = p.get("Role") or p.get("Type") or ""
+            entry["Type"] = "Person"
+            tiles.append(entry)
+        row.set_items(tiles, self.app.current_server, image_type="Primary",
+                      on_click=self._open_person,
+                      subtitle_fn=lambda p: p.get("_role", ""))
+
+    def _open_person(self, person):
+        if self.app.is_offline:
+            return  # people aren't cached offline
+        self.app.navigate({"kind": "grid", "person_id": person["Id"],
+                           "title": person.get("Name", "")})
+
+    def _load_similar_row(self, parent, item):
+        """"More Like This", fetched after the page renders so it never holds
+        the detail view hostage. Empty (older apiclient, offline) = no row."""
+        server = self.app.current_server
+
+        def work():
+            return self.app.source.get_similar(server, item["Id"])
+
+        def done(items):
+            if not items:
+                return
+            row = HScrollRow(self.app, parent, _("More Like This"),
+                             poster_box(self.app.image_width))
+            row.widget().pack(fill="x")
+            row.set_items(items, server, image_type="Primary",
+                          on_click=self.app.open_item)
+
+        self.run_async(work, done, lambda _e: None)
+
+
+class SeriesView(_DetailRowsMixin, BaseView):
     """Series overview: backdrop, metadata, overview, and a row of seasons."""
 
     def __init__(self, app, route):
@@ -634,6 +725,11 @@ class SeriesView(BaseView):
             else:
                 self.app.tk.Label(body, text=_("No seasons found."), bg=CARD_BG,
                                   fg=SUBTLE_FG).pack(pady=40)
+
+            # Cast & Crew and More Like This, same as the movie/episode page.
+            if item:
+                self._build_people_row(body, item)
+                self._load_similar_row(body, item)
 
         self.run_async(work, done,
                            lambda e: (spinner.destroy(), self._error(self.frame, e)))
@@ -855,6 +951,10 @@ class PlaylistView(BaseView):
                          text=_("Playlist does not contain any supported "
                                 "media types."),
                          bg=CARD_BG, fg=SUBTLE_FG, wraplength=420).pack(pady=40)
+                # The editor operates on every entry regardless of type, so
+                # still offer it here — it's the only way to clean stray
+                # unsupported entries out of the playlist.
+                self._add_edit_button(pid)
                 return
 
             # Now that there's playable content, offer Play All plus a
@@ -863,6 +963,9 @@ class PlaylistView(BaseView):
             ttk.Button(self.bar, text=_("▶ Play All"), style="Accent.TButton",
                        command=lambda: self._play_from(0)).pack(
                            side="left", before=self._title)
+            ttk.Button(self.bar, text=_("🔀 Shuffle"),
+                       command=self._shuffle).pack(
+                           side="left", padx=(4, 0), before=self._title)
             if self.app.is_offline:
                 ttk.Button(self.bar, text=_("🗑 Delete Downloads"),
                            command=self._delete_downloads).pack(
@@ -873,13 +976,7 @@ class PlaylistView(BaseView):
                                server, pid, "Playlist",
                                self.route.get("title", ""))).pack(
                                    side="left", padx=12, before=self._title)
-            if not self.app.is_offline and getattr(self.app, "edit_apis",
-                                                   False):
-                ttk.Button(self.bar, text=_("✏ Edit"),
-                           command=lambda: self.app.navigate(
-                               {"kind": "playlist_edit", "playlist_id": pid,
-                                "title": self.route.get("title", "")})).pack(
-                                    side="right", padx=8)
+            self._add_edit_button(pid)
 
             # Episode-heavy playlists read better as landscape stills; movie
             # playlists as posters (mirrors the home rows' heuristic).
@@ -936,6 +1033,38 @@ class PlaylistView(BaseView):
     def _on_click(self, item):
         self._play_from(self._index_of(item))
 
+    def _add_edit_button(self, pid):
+        """Add the ✏ Edit action to the bar, when the server exposes the
+        playlist-edit APIs and we're online. Editing works on all entries
+        regardless of type, so it's offered even when nothing is playable."""
+        if self.app.is_offline or not getattr(self.app, "edit_apis", False):
+            return
+        self.app.ttk.Button(
+            self.bar, text=_("✏ Edit"),
+            command=lambda: self.app.navigate(
+                {"kind": "playlist_edit", "playlist_id": pid,
+                 "title": self.route.get("title", "")})).pack(
+                     side="right", padx=8)
+
+    def _shuffle(self):
+        """Play the playlist's supported items in a random order. The items are
+        already in memory, so shuffle a copy of the id list locally rather than
+        asking the server."""
+        import random
+        ids = [it.get("Id") for it in self.items if it.get("Id")]
+        if not ids:
+            return
+        random.shuffle(ids)
+        self.app.play({
+            "server_uuid": self.app.current_server,
+            "item_ids": ids,
+            "start_index": 0,
+            "offset_ticks": None,
+            "media_source_id": None,
+            "audio_index": None,
+            "subtitle_index": None,
+        })
+
     def _play_from(self, start_index):
         """Play the whole playlist as a queue, starting at ``start_index`` so
         the player advances through the playlist (not, e.g., the series an
@@ -979,17 +1108,37 @@ class PlaylistEditView(BaseView):
         super().__init__(app, route)
         self.entries = []   # raw playlist entries, ALL types, server order
         self.tree = None
+        self._title_lbl = None
+        self._public_var = None
+        self._public_chk = None
+        # Guards the visibility checkbox's command against firing when we set
+        # the box programmatically to reflect the server's current value.
+        self._suppress_vis = False
 
     def _build(self):
         tk, ttk = self.app.tk, self.app.ttk
 
         bar = tk.Frame(self.frame, bg=CARD_BG)
         bar.pack(fill="x", padx=8, pady=4)
-        tk.Label(bar, text=_("Edit: %s") % self.route.get("title", ""),
-                 bg=CARD_BG, fg=TEXT_FG,
-                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
+        self._title_lbl = tk.Label(
+            bar, text=_("Edit: %s") % self.route.get("title", ""),
+            bg=CARD_BG, fg=TEXT_FG, font=("TkDefaultFont", 14, "bold"))
+        self._title_lbl.pack(side="left", padx=4)
         ttk.Button(bar, text=_("Done"), style="Accent.TButton",
                    command=self.app.go_back).pack(side="right")
+        ttk.Button(bar, text=_("✎ Rename"),
+                   command=self._rename).pack(side="right", padx=(0, 6))
+        # Visibility mirrors the playlist's OpenAccess. Start disabled and only
+        # enable once the real value has loaded, so a toggle can never send a
+        # change derived from the default rather than the server's state.
+        self._public_var = tk.BooleanVar(value=False)
+        self._public_chk = ttk.Checkbutton(
+            bar, text=_("Public (all users)"), variable=self._public_var,
+            command=self._toggle_public)
+        self._public_chk.state(["disabled"])
+        self._public_chk.pack(side="right", padx=(0, 12))
+        ttk.Button(bar, text=_("🗑 Delete playlist"),
+                   command=self._delete).pack(side="right", padx=(0, 12))
 
         tools = tk.Frame(self.frame, bg=CARD_BG)
         tools.pack(fill="x", padx=8, pady=(0, 4))
@@ -1027,6 +1176,7 @@ class PlaylistEditView(BaseView):
             units, "units")
 
         self._load()
+        self._load_visibility()
 
     def _load(self):
         server = self.app.current_server
@@ -1044,6 +1194,69 @@ class PlaylistEditView(BaseView):
             self._rebuild()
 
         self.run_async(work, done, lambda _e: None, epoch=epoch)
+
+    def _load_visibility(self):
+        """Fetch the playlist's current OpenAccess and reflect it in the
+        Public checkbox, enabling the box once we have a real value. Servers
+        (or apiclients) too old to report visibility leave the box disabled."""
+        server = self.app.current_server
+        pid = self.route["playlist_id"]
+
+        def work():
+            return self.app.source.get_playlist(server, pid)
+
+        def done(meta):
+            if self._public_chk is None:
+                return
+            try:
+                if not meta or "OpenAccess" not in meta:
+                    return  # can't read it → can't safely set it; stay disabled
+                self._suppress_vis = True
+                self._public_var.set(bool(meta["OpenAccess"]))
+                self._suppress_vis = False
+                self._public_chk.state(["!disabled"])
+            except Exception:
+                pass  # view torn down mid-load
+
+        self.run_async(work, done, lambda _e: None)
+
+    def _rename(self):
+        from tkinter import simpledialog
+        current = self.route.get("title", "")
+        name = simpledialog.askstring(
+            _("Rename Playlist"), _("New name:"), parent=self.app.root,
+            initialvalue=current)
+        if name is None:
+            return
+        name = name.strip()
+        if not name or name == current:
+            return
+        # Optimistic: update the local title now, stream the rename, and let a
+        # failed edit_result surface the error (the title reverts on reload).
+        self.route["title"] = name
+        if self._title_lbl is not None:
+            self._title_lbl.config(text=_("Edit: %s") % name)
+        self._send({"op": "update", "name": name})
+
+    def _toggle_public(self):
+        # Fired only by user interaction; skip the programmatic sync in _load.
+        if self._suppress_vis:
+            return
+        self._send({"op": "update",
+                    "is_public": bool(self._public_var.get())})
+
+    def _delete(self):
+        from tkinter import messagebox
+        title = self.route.get("title", "")
+        if not messagebox.askyesno(
+                _("Delete Playlist"),
+                _('Delete the playlist "%s"? It is removed for all users; the '
+                  'videos in it are not deleted.') % title,
+                parent=self.app.root, icon="warning", default="no"):
+            return
+        # On success on_edit_result unwinds to the playlist list; on failure it
+        # reloads (the playlist is still there).
+        self._send({"op": "delete"})
 
     @staticmethod
     def _entry_title(item):
@@ -1152,10 +1365,21 @@ class PlaylistEditView(BaseView):
 
     def on_edit_result(self, result):
         result = result or {}
-        if result.get("kind") == "playlist" and not result.get("ok"):
-            # The server refused (or the connection blipped): our local model
-            # is no longer trustworthy — reload the real order.
-            self._load()
+        if result.get("kind") != "playlist":
+            return
+        op = result.get("op")
+        if result.get("ok"):
+            if op == "delete":
+                # The playlist no longer exists — leave the editor and its
+                # detail view behind and drop back to the list.
+                self.app.after_playlist_deleted(self.route["playlist_id"])
+            return
+        # The server refused (or the connection blipped): our local model is no
+        # longer trustworthy — reload the real order, and for a rename/
+        # visibility change re-sync the real value too.
+        self._load()
+        if op == "update":
+            self._load_visibility()
 
 
 class SearchView(BaseView):
@@ -1242,7 +1466,7 @@ class SearchView(BaseView):
                            "title": person.get("Name", "")})
 
 
-class DetailView(BaseView):
+class DetailView(_DetailRowsMixin, BaseView):
     """Item detail with backdrop, metadata, resume/play, track pickers."""
 
     def __init__(self, app, route):
@@ -1413,31 +1637,6 @@ class DetailView(BaseView):
             parts.append(_("Ends at %s") % ends.strftime("%H:%M"))
         return "  ·  ".join(p for p in parts if p)
 
-    def _build_people_row(self, parent, item):
-        people = (item.get("People") or [])[:24]
-        if not people:
-            return
-        row = HScrollRow(self.app, parent, _("Cast & Crew"),
-                         poster_box(int(self.app.image_width * 0.7)))
-        row.widget().pack(fill="x")
-        tiles = []
-        for p in people:
-            entry = dict(p)
-            # People entries use Type for the job (Actor/Director); retag so
-            # tiles don't treat them as playable/watchable items.
-            entry["_role"] = p.get("Role") or p.get("Type") or ""
-            entry["Type"] = "Person"
-            tiles.append(entry)
-        row.set_items(tiles, self.app.current_server, image_type="Primary",
-                      on_click=self._open_person,
-                      subtitle_fn=lambda p: p.get("_role", ""))
-
-    def _open_person(self, person):
-        if self.app.is_offline:
-            return  # people aren't cached offline
-        self.app.navigate({"kind": "grid", "person_id": person["Id"],
-                           "title": person.get("Name", "")})
-
     def _build_chapters_row(self, parent, item):
         chapters = item.get("Chapters") or []
         if len(chapters) < 2:
@@ -1467,25 +1666,6 @@ class DetailView(BaseView):
 
     def _play_chapter(self, chapter):
         self._play(chapter.get("_start_ticks") or 0)
-
-    def _load_similar_row(self, parent, item):
-        """"More Like This", fetched after the page renders so it never holds
-        the detail view hostage. Empty (older apiclient, offline) = no row."""
-        server = self.app.current_server
-
-        def work():
-            return self.app.source.get_similar(server, item["Id"])
-
-        def done(items):
-            if not items:
-                return
-            row = HScrollRow(self.app, parent, _("More Like This"),
-                             poster_box(self.app.image_width))
-            row.widget().pack(fill="x")
-            row.set_items(items, server, image_type="Primary",
-                          on_click=self.app.open_item)
-
-        self.run_async(work, done, lambda _e: None)
 
     def _load_trailer_button(self, item):
         if item.get("Type") not in ("Movie", "Series"):
@@ -2059,19 +2239,39 @@ class AddToDialog:
 
         new_row = tk.Frame(win, bg=CARD_BG)
         new_row.pack(fill="x", padx=16, pady=(8, 0))
+        tk.Label(new_row, text=_("or type a name to create a new one:"),
+                 bg=CARD_BG, fg=SUBTLE_FG).pack(anchor="w", pady=(0, 4))
         self.new_var = tk.StringVar()
-        entry = ttk.Entry(new_row, textvariable=self.new_var, width=24)
-        entry.pack(side="left", fill="x", expand=True)
-        entry.bind("<Return>", lambda _e: self._create())
-        ttk.Button(new_row, text=_("Create new"),
-                   command=self._create).pack(side="left", padx=(6, 0))
+        entry = ttk.Entry(new_row, textvariable=self.new_var)
+        entry.pack(fill="x")
+        entry.bind("<Return>", lambda _e: self._submit())
 
-        btns = tk.Frame(win, bg=CARD_BG)
-        btns.pack(fill="x", padx=16, pady=12)
-        ttk.Button(btns, text=_("Cancel"), command=self.close).pack(
+        # New playlists default to private (the Jellyfin API otherwise creates
+        # them public/visible to every user). Collections have no such toggle.
+        # The checkbox is shown only while a name is being typed, so it can't
+        # be read as applying to "add to an existing playlist".
+        self.private_var = tk.BooleanVar(value=True)
+        self.private_chk = None
+        if kind == "playlist":
+            self.private_chk = ttk.Checkbutton(
+                win, text=_("Private (only me) — uncheck to share with all "
+                            "users"),
+                variable=self.private_var)
+
+        self.btns = tk.Frame(win, bg=CARD_BG)
+        self.btns.pack(fill="x", padx=16, pady=12)
+        ttk.Button(self.btns, text=_("Cancel"), command=self.close).pack(
             side="right")
-        ttk.Button(btns, text=_("Add"), style="Accent.TButton",
-                   command=self._add).pack(side="right", padx=8)
+        # One primary button whose label/action follows the text box: empty →
+        # "Add" (to the selected playlist), non-empty → "Create new". This
+        # avoids the dead "Add" click when nothing is selected but a name was
+        # typed.
+        self.action_btn = ttk.Button(self.btns, text=_("Add"),
+                                      style="Accent.TButton",
+                                      command=self._submit)
+        self.action_btn.pack(side="right", padx=8)
+        self.new_var.trace_add("write", self._sync_mode)
+        self._sync_mode()
         win.protocol("WM_DELETE_WINDOW", self.close)
 
         server = app.current_server
@@ -2094,6 +2294,27 @@ class AddToDialog:
                 pass  # dialog closed while loading
 
         app.run_async(work, done, lambda _e: done([]))
+
+    def _sync_mode(self, *_trace):
+        """Follow the name box: with text, the primary button creates a new
+        playlist/collection and (for playlists) the Private toggle is shown;
+        empty, it adds to the highlighted existing one."""
+        creating = bool(self.new_var.get().strip())
+        self.action_btn.config(
+            text=_("Create new") if creating else _("Add"))
+        if self.private_chk is not None:
+            if creating:
+                self.private_chk.pack(anchor="w", padx=16, pady=(6, 0),
+                                      before=self.btns)
+            else:
+                self.private_chk.pack_forget()
+
+    def _submit(self):
+        # A typed name means "create"; otherwise add to the selection.
+        if self.new_var.get().strip():
+            self._create()
+        else:
+            self._add()
 
     def _payload(self):
         return {"op": "add", "item_ids": [self.item["Id"]],
@@ -2120,6 +2341,7 @@ class AddToDialog:
         payload = self._payload()
         payload.update({"op": "create", "name": name})
         if self.kind == "playlist":
+            payload["is_public"] = not self.private_var.get()
             self.app.playlist_edit(payload)
         else:
             self.app.collection_edit(payload)

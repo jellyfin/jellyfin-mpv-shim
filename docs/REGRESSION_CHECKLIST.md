@@ -1,6 +1,7 @@
 # local-ui regression checklist
 
 Tested on: 2026-07-07
+Additional items tested on: 2026-07-13
 
 Hand-testing pass for the `local-ui` branch (audit fixes + offline sync +
 library browser + mpv-lifecycle). Ordered by risk × how often the path runs.
@@ -208,30 +209,40 @@ by `tests/test_ui_review_fixes.py`, these need a live session.
 - [ ] **Browser crash race**: kill -9 the browser process, immediately click
   the tray's Show → exactly one working window; no orphaned unreachable one.
 
+Note: This batch deferred until better offline detection while browsing logic is implemented.
+
 ### 7. jellyfin-web parity batch (2026-07) — hand-test items
 Filters/favorites/latest rows/shuffle (batch A), detail-page upgrades (batch
 B), grouped search + A–Z (batch C), and browser-side SyncPlay join. Pure
 logic is covered by `tests/test_browser_features.py`.
-- [ ] **Filters**: in a library grid, Unplayed / Favorites / Genre combine
+- [X] **Filters**: in a library grid, Unplayed / Favorites / Genre combine
   correctly with every sort and with infinite scroll; totals match; offline
   the same filters work against downloads.
-- [ ] **A–Z strip**: jumping to a letter filters (`#` = non-alphabetic);
+- [X] **A–Z strip**: jumping to a letter filters (`#` = non-alphabetic);
   clicking the active letter clears it.
-- [ ] **Favorites**: right-click add/remove on tiles + the detail/series
+- [X] **Favorites**: right-click add/remove on tiles + the detail/series
   button stick server-side (check in jellyfin-web); Favorites filter then
   shows them.
-- [ ] **Home**: per-library "Latest in X" rows appear (replacing the two
-  global Recently Added rows) and match jellyfin-web's home.
-- [ ] **Shuffle**: library-grid Shuffle plays a random queue spanning the
+- [X] **Home**: per-library "Latest in X" rows appear (replacing the two
+  global Recently Added rows) and match jellyfin-web's home. Row orientation is
+  by **library CollectionType**, not item type: Movies / TV Shows / boxsets →
+  **posters** (a TV row that mixes grouped Series with stray recently-added
+  Episodes stays poster — the bug was one Episode flipping the whole row
+  landscape); home-video / misc (Type=Video/MusicVideo) libraries → **landscape**
+  cards.
+- [X] **Shuffle**: library-grid Shuffle plays a random queue spanning the
   whole library (not just loaded pages); series Shuffle shuffles episodes;
   offline shuffle plays only downloads.
-- [ ] **Detail page**: cast row renders with photos and clicking a person
+- [X] **Detail page**: cast row renders with photos and clicking a person
   opens their filmography; multi-version items show the Version picker and
   the track pickers re-source on change; media-info line + "Ends at" look
   right; Scenes row plays from the chapter offset (thumbnails online,
   text-only offline).
-- [ ] **Search**: results grouped Movies / Shows / Episodes / Videos.
-- [ ] **SyncPlay**: with nothing playing, top-bar SyncPlay → groups list →
+- [X] **Series page cast + similar**: the show overview page (SeriesView) now
+  shows the **Cast & Crew** and **More Like This** rows too (previously
+  movies-only); person tiles open the filmography, similar tiles open the show.
+- [X] **Search**: results grouped Movies / Shows / Episodes / Videos.
+- [X] **SyncPlay**: with nothing playing, top-bar SyncPlay → groups list →
   Join starts playback of the group's queue in mpv and stays in sync; Leave
   works; joining a group on server B while in a group on server A leaves A
   first; the button politely refuses offline.
@@ -239,23 +250,49 @@ logic is covered by `tests/test_browser_features.py`.
 ### 8. Playlist & collection editing (branch local-ui-playlist-edit) — hand-test items
 Needs jellyfin-apiclient-python >= 1.15 (branch add-browse-edit-apis);
 with an older apiclient every edit affordance must be hidden.
-- [ ] **Bulk remove**: playlist → ✏ Edit → shift-click a whole show's worth
+- [X] **Bulk remove**: playlist → ✏ Edit → shift-click a whole show's worth
   of episodes → Remove selected → ONE call, all gone server-side (verify in
   jf-web). The 48-clicks problem this exists to fix.
-- [ ] **Block moves**: select contiguous and non-contiguous sets; Top / Up /
+- [X] **Block moves**: select contiguous and non-contiguous sets; Top / Up /
   Down / Bottom land in the same order in jf-web after a refresh (the
   sequential-replay invariant is unit-tested; verify a real server agrees).
-- [ ] **Unsupported entries**: a playlist with music entries shows them in
-  the editor (type column) and they can be removed.
-- [ ] **Quick remove**: right-click an item inside a playlist → Remove from
+- [X] **Unsupported entries**: a playlist with music entries shows them in
+  the editor (type column) and they can be removed. The ✏ Edit button is
+  still offered when a playlist holds ONLY unsupported entries (no Play All),
+  so the strays can be cleaned out.
+- [X] **Shuffle playlist**: playlist → 🔀 Shuffle plays the supported items
+  in a random order (Play All keeps playlist order).
+- [X] **Rename**: ✏ Edit → ✎ Rename → new name applies (verify in jf-web and
+  that the tile/title updates); empty or unchanged name is a no-op.
+- [X] **Public/Private**: ✏ Edit → the Public checkbox reflects the server's
+  current visibility (loads before it's enabled); toggling it makes the
+  playlist visible to all users / owner-only (verify with a second user).
+- [X] **Delete playlist**: ✏ Edit → 🗑 Delete playlist → confirm → the
+  playlist is gone in jf-web (videos untouched), and the browser drops back to
+  the playlist list (not a dead editor/detail view). Cancel does nothing; a
+  server refusal shows an error and keeps the editor.
+- [X] **Add-dialog modes**: Add to playlist… → with the name box empty the
+  primary button says **Add** (adds to the highlighted playlist) and no
+  Private box shows; typing a name flips it to **Create new** and reveals the
+  Private box (default checked). Empty box + nothing selected → Add is a safe
+  no-op. Unchecking Private creates a public playlist.
+- [X] **Quick remove**: right-click an item inside a playlist → Remove from
   playlist (single entry, no editor).
-- [ ] **Add to playlist**: right-click any tile → Add to playlist… → picker
+- [X] **Add to playlist**: right-click any tile → Add to playlist… → picker
   lists playlists; adding a SERIES expands to its episodes server-side;
   Create new seeds a playlist with the item.
-- [ ] **Collections**: Add to collection… on movie/series tiles; inside a
+- [X] **Collections toggle**: a **Collections** checkbox appears next to
+  Favorites on **Movie** libraries only (not TV/other, not offline). Checking
+  it switches the grid to list the server's Collections (BoxSets, explicit
+  IncludeItemTypes=BoxSet request); clicking one opens the collection; sort/A–Z
+  apply. Unchecking returns to the movie list. No client-side exclusion — the
+  main movie request renders whatever the server groups.
+- [X] **Collections**: Add to collection… on movie/series tiles; inside a
   collection grid, right-click → Remove from collection refreshes the grid;
   Create new makes the collection (may need a library scan to appear as a
   tile — that's a Jellyfin quirk, not a bug here).
-- [ ] **Failure paths**: pull the network mid-edit → error message and the
+- [-] **Failure paths**: pull the network mid-edit → error message and the
   editor reloads the server's real order; offline mode shows no edit
   affordances at all.
+  - Offline detection mode switching currently needs more work, current
+    assumption is users will restart on offline if not detected.
