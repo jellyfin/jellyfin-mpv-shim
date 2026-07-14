@@ -5,7 +5,8 @@
 [![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
 [![Code Stype](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Jellyfin MPV Shim is a cross-platform cast client for Jellyfin.
+Jellyfin MPV Shim is a cross-platform client for Jellyfin. It can run in the background as a cast target or act as a fully-featured desktop client with offline sync support.
+
 It has support for all your advanced media files without transcoding, as well as tons of
 features which set it apart from other multimedia clients:
 
@@ -13,7 +14,7 @@ features which set it apart from other multimedia clients:
 - Watch videos with friends using SyncPlay.
 - Offers a shim mode which runs in the background.
 - The Jellyfin mobile apps can fully control the client.
-- Reconfigure subtitles for an entire season at once.
+- Prevents having to regularly change subtitles/audio settings for each episode.
 - Supports all of the [MPV keyboard shortcuts](https://github.com/jellyfin/jellyfin-mpv-shim#keyboard-shortcuts).
 - Enhance your video with [Shader Packs](https://github.com/jellyfin/jellyfin-mpv-shim#shader-packs) and [SVP Integration](https://github.com/jellyfin/jellyfin-mpv-shim#svp-integration).
 - Optionally share your media activity with friends using Discord Rich Presence.
@@ -53,7 +54,7 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 ## Limitations
 
-- Music playback and Live TV are not supported.
+- Live TV is not supported.
 - A single active session still reports as one device to a given server. For sharing the player between
   people, see [Fast User Switching](#fast-user-switching), which keeps each local user on its own device
   identity. ([Related issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
@@ -71,8 +72,7 @@ Please note the following issues with controlling SyncPlay:
 - If you would like to create a group or join a group for currently playing media, [use menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
 - SyncPlay as of 10.7.0 is new and kind of fragile. You may need to rejoin or even restart the client. Please report any issues you find.
 
-Music playback sort-of works, but repeat, shuffle, and gapless playback have not been implemented and
-would require major changes to the application to properly support, as it was built for video.
+Music playback works, but gapless playback is not planned at this time.
 
 The shader packs feature is sensitive to graphics hardware. It may simply just not work on your computer.
 You may be able to use the log files to get some more diagnostic information. If you're really unlucky,

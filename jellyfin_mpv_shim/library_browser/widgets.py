@@ -92,12 +92,37 @@ class NavButton:
         tk = app.tk
         self._s = size
         self._glyph = glyph
+        self._command = command
+        self._repeat_after = None
         self.c = tk.Canvas(parent, width=size, height=size, highlightthickness=0,
                            bd=0, cursor="hand2")
         self._draw(BUTTON_BG)
-        self.c.bind("<Button-1>", lambda _e: command())
+        # Press pages once; holding it auto-repeats after a short delay so you
+        # can scan a long carousel by holding the arrow.
+        self.c.bind("<ButtonPress-1>", self._on_press)
+        self.c.bind("<ButtonRelease-1>", lambda _e: self._cancel_repeat())
         self.c.bind("<Enter>", lambda _e: self._draw(ACCENT))
-        self.c.bind("<Leave>", lambda _e: self._draw(BUTTON_BG))
+        self.c.bind("<Leave>", self._on_leave)
+
+    def _on_press(self, _e=None):
+        self._command()
+        self._repeat_after = self.c.after(600, self._repeat)
+
+    def _repeat(self):
+        self._command()
+        self._repeat_after = self.c.after(200, self._repeat)
+
+    def _on_leave(self, _e=None):
+        self._draw(BUTTON_BG)
+        self._cancel_repeat()  # sliding off the button stops the repeat
+
+    def _cancel_repeat(self):
+        if self._repeat_after is not None:
+            try:
+                self.c.after_cancel(self._repeat_after)
+            except Exception:
+                pass
+            self._repeat_after = None
 
     def _draw(self, fill):
         s = self._s
@@ -198,18 +223,32 @@ class MediaTile:
 
     def _show_context_menu(self, event):
         itype = self.item.get("Type")
-        if itype not in ("Movie", "Episode", "Series", "Season", "Video",
-                         "Audio"):
+        video_types = ("Movie", "Episode", "Series", "Season", "Video", "Audio")
+        music_containers = ("MusicAlbum", "MusicArtist", "MusicGenre")
+        if itype not in video_types and itype not in music_containers:
             return
-        watched = is_watched(self.item)
         menu = self.app.tk.Menu(self.frame, tearoff=0)
-        label = _("Mark unwatched") if watched else _("Mark watched")
-        menu.add_command(label=label,
-                         command=lambda: self._toggle_watched(not watched))
-        fav = bool((self.item.get("UserData") or {}).get("IsFavorite"))
-        menu.add_command(
-            label=_("Remove from favorites") if fav else _("Add to favorites"),
-            command=lambda: self._toggle_favorite(not fav))
+        # Play / Add to queue for anything directly playable or a music
+        # container (Play replaces the queue; Add to queue appends to it).
+        playable = ("Movie", "Episode", "Video", "Audio", "MusicAlbum",
+                    "MusicArtist", "MusicGenre")
+        if itype in playable:
+            menu.add_command(label=_("Play"),
+                             command=lambda: self.app.play_item(self.item))
+            menu.add_command(label=_("Add to queue"),
+                             command=lambda: self.app.queue_item(self.item))
+            menu.add_separator()
+        if itype in video_types:
+            watched = is_watched(self.item)
+            menu.add_command(
+                label=_("Mark unwatched") if watched else _("Mark watched"),
+                command=lambda: self._toggle_watched(not watched))
+        if itype != "MusicGenre":  # genres aren't a favoritable item
+            fav = bool((self.item.get("UserData") or {}).get("IsFavorite"))
+            menu.add_command(
+                label=_("Remove from favorites") if fav
+                else _("Add to favorites"),
+                command=lambda: self._toggle_favorite(not fav))
         if (not self.app.is_offline
                 and getattr(self.app, "edit_apis", False)):
             menu.add_separator()
@@ -217,10 +256,11 @@ class MediaTile:
                 label=_("Add to playlist…"),
                 command=lambda: self.app.open_add_to_dialog(self.item,
                                                             "playlist"))
-            menu.add_command(
-                label=_("Add to collection…"),
-                command=lambda: self.app.open_add_to_dialog(self.item,
-                                                            "collection"))
+            if itype in video_types:
+                menu.add_command(
+                    label=_("Add to collection…"),
+                    command=lambda: self.app.open_add_to_dialog(self.item,
+                                                                "collection"))
         # Views can contribute context-specific actions (e.g. "Remove from
         # playlist" inside a playlist, "Remove from collection" in a BoxSet).
         extra = getattr(self.app.current_view, "tile_context_actions", None)
@@ -233,10 +273,12 @@ class MediaTile:
                 menu.add_separator()
             for label, cb in actions:
                 menu.add_command(label=label, command=cb)
-        try:
-            menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            menu.grab_release()
+        # NB: no grab_release() here. Releasing the grab immediately after
+        # tk_popup breaks click-away dismissal on X11 (the menu would stay up
+        # until you selected an item or navigated); tk_popup manages and drops
+        # its own grab when the menu is unposted (selection / Escape / click
+        # elsewhere).
+        menu.tk_popup(event.x_root, event.y_root)
 
     def _toggle_watched(self, watched):
         item_id = self.item.get("Id")

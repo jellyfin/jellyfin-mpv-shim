@@ -1252,6 +1252,76 @@ class PlayerManager(object):
         return False
 
     @synchronous("_lock")
+    def get_queue_ids(self):
+        """The currently-playing queue's item ids (for 'add queue to playlist')."""
+        video = self._video
+        if video is None:
+            return []
+        return [q.get("Id") for q in video.parent.queue if q.get("Id")]
+
+    @synchronous("_lock")
+    def get_queue(self):
+        """The full queue for the browser's queue display: each entry's item id
+        + PlaylistItemId, plus which one is playing."""
+        video = self._video
+        if video is None:
+            return {"items": [], "current_id": None}
+        return {
+            "items": [{"id": q.get("Id"),
+                       "playlist_item_id": q.get("PlaylistItemId")}
+                      for q in video.parent.queue if q.get("Id")],
+            "current_id": video.item_id,
+        }
+
+    def _publish_queue(self, m, new_queue, current_pid):
+        """Publish a rebuilt queue and re-point seq/has_next/has_prev at the
+        still-playing track. Never mutate the queue in place — the finished
+        callback reads queue/seq/has_next lock-free on other threads."""
+        m.queue = new_queue  # atomic publish first
+        m.seq = next((i for i, q in enumerate(new_queue)
+                      if q.get("PlaylistItemId") == current_pid), 0)
+        m.has_next = m.seq < len(new_queue) - 1
+        m.has_prev = m.seq > 0
+
+    @synchronous("_lock")
+    def queue_remove_many(self, playlist_item_ids):
+        """Drop the given queue entries (never the currently-playing one)."""
+        video = self._video
+        if video is None:
+            return False
+        m = video.parent
+        current_pid = m.queue[m.seq].get("PlaylistItemId")
+        drop = set(playlist_item_ids) - {current_pid}
+        if not drop:
+            return False
+        new_queue = [q for q in m.queue
+                     if q.get("PlaylistItemId") not in drop]
+        self._publish_queue(m, new_queue, current_pid)
+        return True
+
+    @synchronous("_lock")
+    def queue_reorder(self, ordered_playlist_item_ids):
+        """Rebuild the queue to match the given PlaylistItemId order (the
+        browser computes it for block Top/Up/Down/Bottom moves), keeping seq on
+        the still-playing track. Any entry the browser didn't list is appended
+        so the queue can never lose tracks."""
+        video = self._video
+        if video is None:
+            return False
+        m = video.parent
+        by_pid = {q.get("PlaylistItemId"): q for q in m.queue}
+        listed = set(ordered_playlist_item_ids)
+        new_queue = [by_pid[p] for p in ordered_playlist_item_ids
+                     if p in by_pid]
+        new_queue += [q for q in m.queue
+                      if q.get("PlaylistItemId") not in listed]
+        if not new_queue:
+            return False
+        current_pid = m.queue[m.seq].get("PlaylistItemId")
+        self._publish_queue(m, new_queue, current_pid)
+        return True
+
+    @synchronous("_lock")
     def try_skip_within_queue(self, item_ids, start_index):
         """Fast path for clicking another track in the CURRENTLY-PLAYING queue:
         seek within the existing queue instead of rebuilding it (and re-opening

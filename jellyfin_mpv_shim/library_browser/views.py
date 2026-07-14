@@ -250,6 +250,9 @@ class HomeView(BaseView):
             if ctype in ("movies", "tvshows", "boxsets"):
                 box = poster_box(self.app.image_width)
                 image_type = "Primary"
+            elif ctype == "music":
+                box = square_box(self.app.image_width)
+                image_type = "Primary"
             elif ctype:
                 # Home-video / music-video / misc libraries: landscape
                 # frame-grabs with no poster. Episodes carry a dedicated Thumb;
@@ -1400,7 +1403,11 @@ class PlaylistEditView(BaseView):
 class SearchView(BaseView):
     # Result sections in display order, like jellyfin-web's grouped search.
     GROUPS = [("Movie", _("Movies")), ("Series", _("Shows")),
-              ("Episode", _("Episodes")), ("Video", _("Videos"))]
+              ("Episode", _("Episodes")), ("Video", _("Videos")),
+              ("MusicArtist", _("Artists")), ("MusicAlbum", _("Albums")),
+              ("Audio", _("Songs"))]
+    # Music result rows use square (album) art.
+    _SQUARE_TYPES = ("MusicArtist", "MusicAlbum", "Audio")
 
     def _build(self):
         server = self.app.current_server
@@ -1443,13 +1450,18 @@ class SearchView(BaseView):
                 if type_key == "Episode":
                     box = thumb_box(int(self.app.image_width * 1.4))
                     image_type = "Thumb"
+                elif type_key in self._SQUARE_TYPES:
+                    box = square_box(self.app.image_width)
+                    image_type = "Primary"
                 else:
                     box = poster_box(self.app.image_width)
                     image_type = "Primary"
+                sub = ((lambda i: ", ".join(i.get("Artists") or []))
+                       if type_key in ("MusicAlbum", "Audio") else None)
                 row = HScrollRow(self.app, body, title, box)
                 row.widget().pack(fill="x")
                 row.set_items(group, server, image_type=image_type,
-                              on_click=self.app.open_item)
+                              on_click=self.app.open_item, subtitle_fn=sub)
             other = [i for i in items if i.get("Type") not in shown]
             if other:
                 row = HScrollRow(self.app, body, _("Other"),
@@ -2220,10 +2232,13 @@ class AddToDialog:
     Series/Season id is fine — the server expands it to its children for
     playlists, and collections hold the series itself."""
 
-    def __init__(self, app, item, kind):
+    def __init__(self, app, item, kind, item_ids=None):
         self.app = app
         self.item = item
         self.kind = kind  # "playlist" | "collection"
+        # Explicit item ids to add (e.g. a music album/artist/genre resolved to
+        # its tracks); defaults to the single item.
+        self._item_ids = item_ids
         self.choices = []
         tk, ttk = app.tk, app.ttk
 
@@ -2332,7 +2347,8 @@ class AddToDialog:
             self._add()
 
     def _payload(self):
-        return {"op": "add", "item_ids": [self.item["Id"]],
+        ids = self._item_ids if self._item_ids is not None else [self.item["Id"]]
+        return {"op": "add", "item_ids": ids,
                 "server_uuid": self.app.current_server}
 
     def _add(self):
@@ -3562,14 +3578,531 @@ class DownloadDialog:
             pass
 
 
+class _MusicGrid:
+    """One music-library tab: a ScrollableGrid with an infinite-scroll loader
+    over a repository music query. Loads its first page lazily (on tab select)."""
+
+    def __init__(self, app, parent, box, loader, on_click, image_type="Primary",
+                 subtitle_fn=None, list_mode=False, tile_cls=None):
+        self.app = app
+        self.loader = loader          # (start_index, limit) -> (items, total)
+        self.on_click = on_click
+        self.image_type = image_type
+        self.subtitle_fn = subtitle_fn
+        self.grid = ScrollableGrid(app, parent, box, tile_cls=tile_cls,
+                                   list_mode=list_mode)
+        self.grid.on_near_end = self._load_more
+        self.total = None
+        self.loaded = 0
+        self.loading = False
+        self._first = True
+        self._started = False
+
+    def widget(self):
+        return self.grid.widget()
+
+    def items(self):
+        return [t.item for t in self.grid.tiles]
+
+    def ensure_loaded(self):
+        if not self._started:
+            self._started = True
+            self._load_more()
+
+    def _load_more(self):
+        if self.loading or (self.total is not None and self.loaded >= self.total):
+            return
+        self.loading = True
+        start = self.loaded
+
+        def work():
+            return self.loader(start, self.app.page_size)
+
+        def done(result):
+            items, total = result
+            self.total = total
+            self.loaded += len(items)
+            if not items and (total is None or self.loaded < total):
+                self.total = self.loaded
+            if self._first:
+                self.grid.set_items(items, self.app.current_server,
+                                    image_type=self.image_type,
+                                    on_click=self.on_click,
+                                    subtitle_fn=self.subtitle_fn)
+                self._first = False
+            else:
+                self.grid.append_items(items)
+            self.loading = False
+
+        def fail(e):
+            self.loading = False
+            log.warning("Music grid load failed: %s", e)
+
+        self.app.run_async(work, done, fail)
+
+
+def _artist_sub(item):
+    # Album/song counts under an artist tile, when present.
+    n = item.get("AlbumCount") or item.get("ChildCount")
+    return _("%d albums") % n if n else ""
+
+
+class MusicLibraryView(BaseView):
+    """A music library's browse tabs: Albums, Album Artists, Artists, Songs,
+    Genres. Each tab lazily pages its own query; art is square."""
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        server = self.app.current_server
+        pid = self.route["parent_id"]
+        src = self.app.source
+        tk.Label(self.frame, text=self.route.get("title", _("Music")),
+                 bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 14, "bold")).pack(anchor="w", padx=8,
+                                                          pady=4)
+        nb = ttk.Notebook(self.frame)
+        nb.pack(fill="both", expand=True)
+        self._nb = nb
+        self._grids = []
+        sq = square_box(self.app.image_width)
+
+        def add(title, make):
+            frame = tk.Frame(nb, bg=CARD_BG)
+            grid = make(frame)
+            grid.widget().pack(fill="both", expand=True)
+            nb.add(frame, text=title)
+            self._grids.append(grid)
+            return grid
+
+        add(_("Albums"), lambda f: _MusicGrid(
+            self.app, f, sq,
+            loader=lambda s, l: src.get_music_albums(server, pid,
+                                                     start_index=s, limit=l),
+            on_click=self.app.open_item,
+            subtitle_fn=lambda i: ", ".join(i.get("Artists") or [])))
+        add(_("Album Artists"), lambda f: _MusicGrid(
+            self.app, f, sq,
+            loader=lambda s, l: src.get_album_artists(server, pid,
+                                                      start_index=s, limit=l),
+            on_click=self.app.open_item, subtitle_fn=_artist_sub))
+        add(_("Artists"), lambda f: _MusicGrid(
+            self.app, f, sq,
+            loader=lambda s, l: src.get_artists(server, pid,
+                                                start_index=s, limit=l),
+            on_click=self.app.open_item, subtitle_fn=_artist_sub))
+        self._songs = add(_("Songs"), lambda f: _MusicGrid(
+            self.app, f, square_box(46),
+            loader=lambda s, l: src.get_songs(server, pid,
+                                              start_index=s, limit=l),
+            on_click=self._play_song, list_mode=True, tile_cls=TrackRow))
+        add(_("Genres"), lambda f: _MusicGrid(
+            self.app, f, thumb_box(int(self.app.image_width * 1.2)),
+            loader=lambda s, l: ((src.get_music_genres(server, pid), 0)
+                                 if s == 0 else ([], 0)),
+            on_click=self._open_genre))
+
+        nb.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+        if self._grids:
+            self._grids[0].ensure_loaded()
+
+    def _on_tab_changed(self, _e=None):
+        try:
+            idx = self._nb.index(self._nb.select())
+        except Exception:
+            return
+        if 0 <= idx < len(self._grids):
+            self._grids[idx].ensure_loaded()
+
+    def _play_song(self, item):
+        songs = self._songs.items()
+        _play_track_list(self.app, songs, item.get("Id"))
+
+    def _open_genre(self, genre):
+        self.app.navigate({"kind": "music_genre",
+                           "parent_id": self.route["parent_id"],
+                           "genre_id": genre.get("Id"),
+                           "title": genre.get("Name", _("Genre"))})
+
+
+def _play_track_list(app, items, start_id):
+    """Play a list of tracks as a queue, starting at start_id."""
+    ids = [i.get("Id") for i in items if i.get("Id")]
+    if not ids:
+        return
+    try:
+        start = ids.index(start_id)
+    except ValueError:
+        start = 0
+    app.play({"server_uuid": app.current_server, "item_ids": ids,
+              "start_index": start})
+
+
+class _MusicActionsMixin:
+    """Play / Shuffle / Instant Mix buttons for album/artist/genre pages. The
+    view supplies ``_collect_track_ids(callback)`` — albums pass their loaded
+    track list; artists/genres resolve their songs off-thread first (you cannot
+    play a MusicAlbum/MusicArtist id directly — only Audio tracks)."""
+
+    def _music_actions(self, parent, seed_id):
+        tk, ttk = self.app.tk, self.app.ttk
+        bar = tk.Frame(parent, bg=CARD_BG)
+        bar.pack(fill="x", padx=16, pady=(10, 2))
+        ttk.Button(bar, text=_("▶ Play"), style="Accent.TButton",
+                   command=lambda: self._play_tracks()).pack(side="left")
+        ttk.Button(bar, text=_("🔀 Shuffle"),
+                   command=lambda: self._play_tracks(shuffle=True)).pack(
+                       side="left", padx=8)
+        ttk.Button(bar, text=_("➕ Add to Queue"),
+                   command=self._queue_tracks).pack(side="left", padx=(0, 8))
+        ttk.Button(bar, text=_("📻 Instant Mix"),
+                   command=lambda: self._instant_mix(seed_id)).pack(side="left")
+        return bar
+
+    def _play_tracks(self, shuffle=False):
+        self._collect_track_ids(lambda ids: self._play_ids(ids, shuffle))
+
+    def _queue_tracks(self):
+        self._collect_track_ids(lambda ids: ids and self.app.r_queue.put(
+            ("queue_items", {"item_ids": ids,
+                             "server_uuid": self.app.current_server})))
+
+    def _play_ids(self, ids, shuffle=False):
+        ids = [i for i in (ids or []) if i]
+        if not ids:
+            return
+        if shuffle:
+            import random
+            ids = list(ids)
+            random.shuffle(ids)
+        self.app.play({"server_uuid": self.app.current_server,
+                       "item_ids": ids, "start_index": 0})
+
+    def _instant_mix(self, item_id):
+        server = self.app.current_server
+
+        def work():
+            return self.app.source.get_instant_mix(server, item_id)
+
+        def done(items):
+            self._play_ids([i.get("Id") for i in items])
+
+        self.run_async(work, done, lambda _e: None)
+
+
+class AlbumDetailView(_MusicActionsMixin, BaseView):
+    """One album: header, Play/Shuffle/Instant Mix, and a tabular track list."""
+
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self._tracks = []
+
+    def _build(self):
+        server = self.app.current_server
+        album_id = self.route["album_id"]
+        spinner = self._spinner()
+
+        def work():
+            return (self.app.source.get_item(server, album_id),
+                    self.app.source.get_album_tracks(server, album_id))
+
+        def done(result):
+            spinner.destroy()
+            item, tracks = result
+            self._tracks = tracks
+            tk = self.app.tk
+            top = tk.Frame(self.frame, bg=CARD_BG)
+            top.pack(fill="x")
+            if item:
+                build_media_header(self.app, top, item)
+                self._music_actions(top, album_id)
+                meta = metadata_line(item)
+                if meta:
+                    tk.Label(top, text=meta, bg=CARD_BG, fg=SUBTLE_FG,
+                             anchor="w").pack(fill="x", padx=16, pady=(6, 2))
+            grid = ScrollableGrid(self.app, self.frame, square_box(46),
+                                  tile_cls=TrackRow, list_mode=True)
+            grid.widget().pack(fill="both", expand=True)
+            grid.set_items(
+                tracks, server, image_type="Primary",
+                on_click=self._play_from,
+                subtitle_fn=lambda t: str(t.get("IndexNumber") or ""))
+
+        self.run_async(work, done,
+                       lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _play_from(self, item):
+        _play_track_list(self.app, self._tracks, item.get("Id"))
+
+    def _collect_track_ids(self, cb):
+        cb([t.get("Id") for t in self._tracks])
+
+
+class ArtistDetailView(_MusicActionsMixin, _DetailRowsMixin, BaseView):
+    """One artist: header, actions, their albums, and More Like This."""
+
+    def _build(self):
+        server = self.app.current_server
+        artist_id = self.route["artist_id"]
+        spinner = self._spinner()
+
+        def work():
+            return (self.app.source.get_item(server, artist_id),
+                    self.app.source.get_artist_albums(server, artist_id))
+
+        def done(result):
+            spinner.destroy()
+            item, albums = result
+            tk = self.app.tk
+            container = VScrollFrame(self.app, self.frame)
+            container.widget().pack(fill="both", expand=True)
+            body = container.body()
+            if item:
+                build_media_header(self.app, body, item)
+                self._music_actions(body, artist_id)
+                if item.get("Overview"):
+                    tk.Label(body, text=item["Overview"], bg=CARD_BG, fg=TEXT_FG,
+                             justify="left", anchor="w", wraplength=820).pack(
+                        fill="x", padx=16, pady=(6, 6))
+            if albums:
+                row = HScrollRow(self.app, body, _("Albums"),
+                                 square_box(self.app.image_width))
+                row.widget().pack(fill="x")
+                row.set_items(albums, server, image_type="Primary",
+                              on_click=self.app.open_item,
+                              subtitle_fn=lambda a: str(a.get("ProductionYear")
+                                                        or ""))
+            if item:
+                self._load_similar_row(body, item)
+
+        self.run_async(work, done,
+                       lambda e: (spinner.destroy(), self._error(self.frame, e)))
+
+    def _collect_track_ids(self, cb):
+        # An artist's tracks span many albums — resolve them off-thread.
+        server = self.app.current_server
+        artist_id = self.route["artist_id"]
+
+        def work():
+            return self.app.source.get_artist_songs(server, artist_id)
+
+        def done(songs):
+            cb([s.get("Id") for s in songs])
+
+        self.run_async(work, done, lambda _e: None)
+
+
+class MusicGenreView(_MusicActionsMixin, BaseView):
+    """Albums within a genre, with Play/Shuffle/Instant Mix over its tracks."""
+
+    def _build(self):
+        tk = self.app.tk
+        server = self.app.current_server
+        pid = self.route["parent_id"]
+        gid = self.route["genre_id"]
+        src = self.app.source
+        tk.Label(self.frame, text=self.route.get("title", _("Genre")),
+                 bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 14, "bold")).pack(anchor="w", padx=8,
+                                                          pady=4)
+        self._music_actions(self.frame, gid)
+        grid = _MusicGrid(
+            self.app, self.frame, square_box(self.app.image_width),
+            loader=lambda s, l: src.get_genre_albums(server, pid, gid,
+                                                     start_index=s, limit=l),
+            on_click=self.app.open_item,
+            subtitle_fn=lambda i: ", ".join(i.get("Artists") or []))
+        grid.widget().pack(fill="both", expand=True)
+        grid.ensure_loaded()
+
+    def _collect_track_ids(self, cb):
+        server = self.app.current_server
+
+        def work():
+            return self.app.source.get_genre_songs(
+                server, self.route["parent_id"], self.route["genre_id"])
+
+        def done(songs):
+            cb([s.get("Id") for s in songs])
+
+        self.run_async(work, done, lambda _e: None)
+
+
+class QueueView(BaseView):
+    """The live play queue: double-click to jump, remove, reorder. Operates on
+    the player's queue (not a server playlist); edits round-trip to the player
+    and the refreshed queue comes back over ("queue_data", …)."""
+
+    def __init__(self, app, route):
+        super().__init__(app, route)
+        self.entries = []       # [{id, playlist_item_id}]
+        self.current_id = None
+        self.server = None
+        self.tree = None
+
+    def _build(self):
+        tk, ttk = self.app.tk, self.app.ttk
+        bar = tk.Frame(self.frame, bg=CARD_BG)
+        bar.pack(fill="x", padx=8, pady=4)
+        tk.Label(bar, text=_("Play Queue"), bg=CARD_BG, fg=TEXT_FG,
+                 font=("TkDefaultFont", 14, "bold")).pack(side="left", padx=4)
+        ttk.Button(bar, text=_("Done"), style="Accent.TButton",
+                   command=self.app.go_back).pack(side="right")
+
+        tools = tk.Frame(self.frame, bg=CARD_BG)
+        tools.pack(fill="x", padx=8, pady=(0, 4))
+        for label, cmd in ((_("⏫ Top"), self._move_top),
+                           (_("🔼 Up"), self._move_up),
+                           (_("🔽 Down"), self._move_down),
+                           (_("⏬ Bottom"), self._move_bottom)):
+            ttk.Button(tools, text=label, command=cmd).pack(side="left",
+                                                            padx=(0, 4))
+        ttk.Button(tools, text=_("🗑 Remove"), command=self._remove).pack(
+            side="left", padx=12)
+        tk.Label(tools, text=_("Shift/Ctrl-click to select multiple · "
+                               "double-click to jump"),
+                 bg=CARD_BG, fg=SUBTLE_FG).pack(side="right")
+
+        holder = tk.Frame(self.frame, bg=CARD_BG)
+        holder.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self.tree = ttk.Treeview(holder, columns=("num", "title", "artist",
+                                                  "runtime"),
+                                 show="headings", selectmode="extended")
+        self.tree.heading("num", text="#")
+        self.tree.heading("title", text=_("Title"))
+        self.tree.heading("artist", text=_("Artist"))
+        self.tree.heading("runtime", text=_("Runtime"))
+        self.tree.column("num", width=44, stretch=False, anchor="e")
+        self.tree.column("title", width=360)
+        self.tree.column("artist", width=220)
+        self.tree.column("runtime", width=70, stretch=False, anchor="e")
+        scroll = ttk.Scrollbar(holder, orient="vertical",
+                               command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True)
+        self.tree.tag_configure("current", foreground=ACCENT)
+        self.tree.bind("<Double-Button-1>", self._on_double)
+        self.tree._wheel_scroll = lambda units: self.tree.yview_scroll(
+            units, "units")
+
+        self.app.r_queue.put(("request_queue", None))
+
+    def on_queue_data(self, data):
+        data = data or {}
+        self.entries = data.get("items") or []
+        self.current_id = data.get("current_id")
+        self.server = data.get("server_uuid") or self.app.current_server
+        ids = [e["id"] for e in self.entries]
+
+        def work():
+            return self.app.source.get_items_by_ids(self.server, ids)
+
+        def done(dtos):
+            self._by_id = {d.get("Id"): d for d in dtos}
+            self._render()
+
+        self.run_async(work, done, lambda _e: self._render())
+
+    def _render(self):
+        tree = self.tree
+        by_id = getattr(self, "_by_id", {})
+        try:
+            keep = set(tree.selection())
+            offset = tree.yview()[0]
+            tree.delete(*tree.get_children())
+        except Exception:
+            return  # torn down
+        for i, e in enumerate(self.entries):
+            dto = by_id.get(e["id"], {})
+            tags = ("current",) if e["id"] == self.current_id else ()
+            tree.insert("", "end", iid=e["playlist_item_id"], tags=tags,
+                        values=(i + 1, dto.get("Name", ""),
+                                ", ".join(dto.get("Artists") or []),
+                                format_ticks(dto.get("RunTimeTicks"))))
+        still = [p for p in keep if tree.exists(p)]
+        if still:
+            tree.selection_set(still)
+        tree.yview_moveto(offset)
+
+    def _selected_positions(self):
+        sel = set(self.tree.selection())
+        return [i for i, e in enumerate(self.entries)
+                if e["playlist_item_id"] in sel]
+
+    def _send_order(self):
+        # Optimistically re-render the reordered list, then hand the new order
+        # to the player; its confirmed queue comes back over ("queue_data", …).
+        self._render()
+        self.app.r_queue.put(("queue_reorder", {
+            "order": [e["playlist_item_id"] for e in self.entries]}))
+
+    def _on_double(self, _e):
+        sel = self.tree.selection()
+        e = next((x for x in self.entries
+                  if x["playlist_item_id"] == sel[0]), None) if sel else None
+        if e:
+            self.app.r_queue.put(("skip_to", {"id": e["id"]}))
+
+    def _remove(self):
+        pids = list(self.tree.selection())
+        if pids:
+            self.app.r_queue.put(("queue_remove",
+                                  {"playlist_item_ids": pids}))
+
+    def _move_up(self):
+        floor = -1
+        for idx in self._selected_positions():
+            if idx - 1 > floor:
+                self.entries.insert(idx - 1, self.entries.pop(idx))
+                floor = idx - 1
+            else:
+                floor = idx  # block already packed against the top
+        self._send_order()
+
+    def _move_down(self):
+        ceil = len(self.entries)
+        for idx in reversed(self._selected_positions()):
+            if idx + 1 < ceil:
+                self.entries.insert(idx + 1, self.entries.pop(idx))
+                ceil = idx + 1
+            else:
+                ceil = idx
+        self._send_order()
+
+    def _move_top(self):
+        sel = self._selected_positions()
+        if not sel:
+            return
+        picked = set(sel)
+        block = [self.entries[i] for i in sel]
+        self.entries = block + [e for i, e in enumerate(self.entries)
+                                if i not in picked]
+        self._send_order()
+
+    def _move_bottom(self):
+        sel = self._selected_positions()
+        if not sel:
+            return
+        picked = set(sel)
+        block = [self.entries[i] for i in sel]
+        self.entries = [e for i, e in enumerate(self.entries)
+                        if i not in picked] + block
+        self._send_order()
+
+
 VIEW_TYPES = {
     "home": HomeView,
+    "queue": QueueView,
     "grid": GridView,
     "series": SeriesView,
     "season": SeasonView,
     "playlist": PlaylistView,
     "playlist_edit": PlaylistEditView,
     "detail": DetailView,
+    "music": MusicLibraryView,
+    "album": AlbumDetailView,
+    "artist": ArtistDetailView,
+    "music_genre": MusicGenreView,
     "search": SearchView,
     "login": LoginView,
     "locked": LockedView,

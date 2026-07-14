@@ -572,6 +572,9 @@ class UserInterface(threading.Thread):
     def on_playpause(self, _param):
         self._player_action(lambda pm: pm.toggle_pause())
 
+    def on_stop_playback(self, _param):
+        self._player_action(lambda pm: pm.stop_and_close())
+
     def on_play_next(self, _param):
         self._player_action(lambda pm: pm.play_next())
 
@@ -589,6 +592,65 @@ class UserInterface(threading.Thread):
 
     def on_toggle_favorite(self, _param):
         self._player_action(lambda pm: pm.toggle_current_favorite())
+
+    def on_request_queue(self, _param):
+        from .player import playerManager
+        data = {"items": [], "current_id": None, "server_uuid": None}
+        try:
+            data = playerManager.get_queue()
+            video = playerManager.get_video()
+            if video is not None:
+                data["server_uuid"] = next(
+                    (u for u, c in clientManager.clients.items()
+                     if c is video.client), None)
+        except Exception:
+            log.error("get_queue failed", exc_info=True)
+        self._send_browser(("queue_data", data))
+
+    def on_skip_to(self, payload):
+        self._player_action(lambda pm: pm.skip_to((payload or {}).get("id")))
+
+    def on_queue_remove(self, payload):
+        self._player_action(
+            lambda pm: pm.queue_remove_many(
+                (payload or {}).get("playlist_item_ids") or []))
+        self.on_request_queue(None)
+
+    def on_queue_reorder(self, payload):
+        self._player_action(
+            lambda pm: pm.queue_reorder((payload or {}).get("order") or []))
+        self.on_request_queue(None)
+
+    def on_queue_to_playlist(self, _param):
+        # Resolve the playing queue's ids here (the player lives in this
+        # process), then hand them back to the browser to open its picker.
+        ids = []
+        try:
+            from .player import playerManager
+            ids = playerManager.get_queue_ids()
+        except Exception:
+            log.error("get_queue_ids failed", exc_info=True)
+        self._send_browser(("open_queue_playlist", {"item_ids": ids}))
+
+    def on_queue_items(self, payload):
+        # Append items to the playing queue (like the remote's PlayLast); if
+        # nothing is playing, just start them as a new queue.
+        payload = payload or {}
+        item_ids = payload.get("item_ids") or []
+        if not item_ids:
+            return
+        from .player import playerManager
+        try:
+            if not playerManager.has_video():
+                self.on_play(payload)
+                return
+            video = playerManager.get_video()
+            if video is not None:
+                video.parent.insert_items(item_ids, append=True)
+                playerManager.upd_player_hide()
+        except Exception:
+            log.error("Failed to queue items from library browser",
+                      exc_info=True)
 
     def on_set_last_server(self, uuid):
         if settings.library_last_server != uuid:

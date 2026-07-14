@@ -339,3 +339,21 @@ browse yet — that's Phase B). Needs a live server.
 - [X] **Repeat is music-only**: set repeat one/all during music, then play a
   VIDEO — the video must NOT loop and the queue must NOT wrap (repeat only
   applies while audio plays).
+
+### 10. Music — Phase B (library browse) — hand-test items
+The music library now shows as a browse tile → a tabbed view. Needs a live
+server with a Music library.
+- [X] **Library tabs**: opening a Music library shows tabs Albums (default) /
+  Album Artists / Artists / Songs / Genres; art is square; tabs load lazily on
+  select; infinite-scroll pages a large library.
+- [X] **Album detail**: clicking an album → header + tabular track list;
+  ▶ Play / 🔀 Shuffle / 📻 Instant Mix work; clicking a track plays the album
+  from that track.
+- [X] **Artist detail**: clicking an artist → header + their Albums row + More
+  Like This; Play/Shuffle/Instant Mix play the artist's tracks.
+- [X] **Genres**: a genre opens its albums grid.
+- [X] **Songs tab / lone song**: the Songs tab plays the clicked track with the
+  rest as a queue; a single Audio elsewhere plays on its own.
+- [X] **Home Latest**: a Music library's "Latest" row renders square album art.
+- [X] **Instant Mix**: seeds a radio-style queue from the album/artist (needs
+  the newer apiclient with get_instant_mix; degrades to nothing if absent).

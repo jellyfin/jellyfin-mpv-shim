@@ -257,6 +257,10 @@ class BrowserApp:
                               style="Playbar.TButton",
                               command=lambda: self._send_r("play_next"))
         next_btn.pack(side="left", padx=2)
+        stop_btn = ttk.Button(transport, text="⏹", width=3,
+                              style="Playbar.TButton",
+                              command=lambda: self._send_r("stop_playback"))
+        stop_btn.pack(side="left", padx=2)
 
         # Right-side controls (packed right-to-left).
         self._pb_repeat = ttk.Button(bar, text="🔁", width=3,
@@ -267,6 +271,12 @@ class BrowserApp:
                                   style="Playbar.TButton",
                                   command=lambda: self._send_r("toggle_favorite"))
         self._pb_fav.pack(side="right", padx=2)
+        addq_btn = ttk.Button(bar, text="➕", width=3, style="Playbar.TButton",
+                              command=lambda: self._send_r("queue_to_playlist"))
+        addq_btn.pack(side="right", padx=2)
+        queue_btn = ttk.Button(bar, text="☰", width=3, style="Playbar.TButton",
+                               command=lambda: self.navigate({"kind": "queue"}))
+        queue_btn.pack(side="right", padx=2)
         self._pb_vol = ttk.Scale(bar, from_=0, to=100, length=90,
                                  orient="horizontal")
         self._pb_vol.pack(side="right", padx=(2, 2))
@@ -300,7 +310,10 @@ class BrowserApp:
         for widget, tip in ((prev_btn, _("Previous")),
                             (self._pb_playpause, _("Play / Pause")),
                             (next_btn, _("Next")),
+                            (stop_btn, _("Stop")),
                             (self._pb_vol, _("Volume")),
+                            (queue_btn, _("Show queue")),
+                            (addq_btn, _("Add queue to playlist")),
                             (self._pb_fav, _("Favorite")),
                             (self._pb_repeat, _("Repeat"))):
             self._attach_tooltip(widget, tip)
@@ -942,6 +955,21 @@ class BrowserApp:
         if itype == "Playlist":
             self.navigate({"kind": "playlist", "playlist_id": item["Id"],
                            "title": title})
+        elif itype == "MusicAlbum":
+            self.navigate({"kind": "album", "album_id": item["Id"],
+                           "title": title})
+        elif itype in ("MusicArtist", "AlbumArtist"):
+            self.navigate({"kind": "artist", "artist_id": item["Id"],
+                           "title": title})
+        elif itype == "Audio":
+            # A lone song plays on its own (contexts that want a queue call
+            # play() directly with the surrounding track list).
+            self.play({"server_uuid": self.current_server,
+                       "item_ids": [item["Id"]], "start_index": 0})
+        elif itype in FOLDER_TYPES and item.get("CollectionType") == "music":
+            # A music library gets the tabbed music browser, not a plain grid.
+            self.navigate({"kind": "music", "parent_id": item["Id"],
+                           "title": title})
         elif itype in SERIES_TYPES:
             self.navigate({"kind": "series", "series_id": item["Id"], "title": title})
         elif itype in FOLDER_TYPES:
@@ -1078,8 +1106,54 @@ class BrowserApp:
     def collection_edit(self, payload):
         self.r_queue.put(("collection_edit", payload))
 
+    # Item types whose "id" isn't directly playable — resolve to their tracks.
+    _MUSIC_CONTAINERS = ("MusicAlbum", "MusicArtist", "MusicGenre")
+
+    def _resolve_media_ids(self, item, cb):
+        """Resolve an item to the list of playable ids: a music album/artist/
+        genre expands to its tracks (off-thread); anything else is itself."""
+        itype = item.get("Type")
+        server = self.current_server
+        iid = item.get("Id")
+        if itype not in self._MUSIC_CONTAINERS:
+            cb([iid] if iid else [])
+            return
+
+        def work():
+            if itype == "MusicAlbum":
+                songs = self.source.get_album_tracks(server, iid)
+            elif itype == "MusicArtist":
+                songs = self.source.get_artist_songs(server, iid)
+            else:
+                songs = self.source.get_genre_songs(server, None, iid)
+            return [s.get("Id") for s in songs if s.get("Id")]
+
+        self.run_async(work, cb, lambda _e: cb([]))
+
+    def play_item(self, item):
+        """Context-menu Play: replace the queue with this item's tracks."""
+        self._resolve_media_ids(item, lambda ids: ids and self.play(
+            {"server_uuid": self.current_server, "item_ids": ids,
+             "start_index": 0}))
+
+    def queue_item(self, item):
+        """Context-menu Add to queue: append this item's tracks to the queue
+        (or start them if nothing is playing)."""
+        self._resolve_media_ids(item, lambda ids: ids and self.r_queue.put(
+            ("queue_items", {"item_ids": ids,
+                             "server_uuid": self.current_server})))
+
     def open_add_to_dialog(self, item, kind):
         """Open the add-to-playlist / add-to-collection picker for an item."""
+        # Music containers aren't playlist items themselves — resolve to tracks.
+        if kind == "playlist" and item.get("Type") in self._MUSIC_CONTAINERS:
+            self._resolve_media_ids(
+                item, lambda ids: ids and self._open_add_to_dialog(
+                    item, kind, ids))
+            return
+        self._open_add_to_dialog(item, kind, None)
+
+    def _open_add_to_dialog(self, item, kind, item_ids):
         from .views import AddToDialog
         if self._add_to_dialog is not None:
             try:
@@ -1087,7 +1161,14 @@ class BrowserApp:
                 return
             except Exception:
                 self._add_to_dialog = None
-        self._add_to_dialog = AddToDialog(self, item, kind)
+        self._add_to_dialog = AddToDialog(self, item, kind, item_ids=item_ids)
+
+    def _open_queue_playlist(self, param):
+        ids = param.get("item_ids") or []
+        if not ids:
+            self._message(_("Nothing is playing to add."))
+            return
+        self._open_add_to_dialog({"Name": _("current queue")}, "playlist", ids)
 
     def set_watched(self, server_uuid, item_id, watched, refresh=False):
         """Mark an item (movie/episode, or a whole series/season) played or
@@ -1280,6 +1361,10 @@ class BrowserApp:
             self._dispatch_view("on_download_progress", payload)
         elif cmd == "playstate":
             self._on_playstate(param or {})
+        elif cmd == "open_queue_playlist":
+            self._open_queue_playlist(param or {})
+        elif cmd == "queue_data":
+            self._dispatch_view("on_queue_data", param or {})
         elif cmd == "connection_settled":
             self._on_connection_settled(param or {})
         elif cmd == "users":

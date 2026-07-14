@@ -25,6 +25,11 @@ log = logging.getLogger("library_browser.repository")
 # music tiles (e.g. tracks in a playlist) can show the performer.
 LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear,Artists"
 
+# Fields for music browse (albums/artists/tracks): artist/album labels, track
+# runtime for the tabular list, and counts for artist tiles.
+MUSIC_FIELDS = ("PrimaryImageAspectRatio,Artists,Album,AlbumId,RunTimeTicks,"
+                "ItemCounts,ProductionYear")
+
 # Fields requested for the detail view. Intentionally a superset (MediaSources,
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
 # offline-sync feature.
@@ -45,7 +50,7 @@ DETAIL_FIELDS = (
 # movies are grouped into collections for a library request. We render whatever
 # it returns and only request collections explicitly via the Movies-library
 # "Collections" toggle (get_movie_collections) — no client-side exclusion.
-EXCLUDED_COLLECTION_TYPES = {"music", "musicvideos", "books", "livetv"}
+EXCLUDED_COLLECTION_TYPES = {"musicvideos", "books", "livetv"}
 
 # Item types that open the detail/play view rather than drilling deeper.
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
@@ -278,6 +283,181 @@ class LibrarySource:
         }) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
+    # -- music browse ------------------------------------------------------
+
+    def _music_items(self, server_uuid, include, parent_id, sort_by,
+                     sort_order, start_index, limit, filters=None,
+                     extra=None):
+        api = self._conn(server_uuid).api
+        params = {
+            "ParentId": parent_id,
+            "IncludeItemTypes": include,
+            "Recursive": True,
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+            "StartIndex": start_index,
+            "Limit": limit,
+            "Fields": MUSIC_FIELDS,
+            "ImageTypeLimit": 1,
+            "EnableImageTypes": "Primary",
+        }
+        if extra:
+            params.update(extra)
+        params.update(self._filter_params(filters))
+        result = api.user_items(params=params) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_music_albums(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", start_index=0, limit=100,
+                         filters=None):
+        return self._music_items(server_uuid, "MusicAlbum", parent_id, sort_by,
+                                 sort_order, start_index, limit, filters)
+
+    def get_songs(self, server_uuid, parent_id, sort_by="SortName",
+                  sort_order="Ascending", start_index=0, limit=100,
+                  filters=None):
+        return self._music_items(server_uuid, "Audio", parent_id, sort_by,
+                                 sort_order, start_index, limit, filters)
+
+    def get_genre_albums(self, server_uuid, parent_id, genre_id,
+                         sort_by="SortName", sort_order="Ascending",
+                         start_index=0, limit=100, filters=None):
+        return self._music_items(server_uuid, "MusicAlbum", parent_id, sort_by,
+                                 sort_order, start_index, limit, filters,
+                                 extra={"GenreIds": genre_id})
+
+    def _artist_list(self, server_uuid, method_name, parent_id, sort_by,
+                     sort_order, start_index, limit):
+        api = self._conn(server_uuid).api
+        method = getattr(api, method_name, None)
+        if method is None:
+            return [], 0
+        result = method(params={
+            "ParentId": parent_id,
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+            "StartIndex": start_index,
+            "Limit": limit,
+            "Fields": MUSIC_FIELDS,
+            "ImageTypeLimit": 1,
+            "EnableImageTypes": "Primary",
+        }) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_album_artists(self, server_uuid, parent_id, sort_by="SortName",
+                          sort_order="Ascending", start_index=0, limit=100):
+        return self._artist_list(server_uuid, "get_album_artists", parent_id,
+                                 sort_by, sort_order, start_index, limit)
+
+    def get_artists(self, server_uuid, parent_id, sort_by="SortName",
+                    sort_order="Ascending", start_index=0, limit=100):
+        return self._artist_list(server_uuid, "get_artists", parent_id,
+                                 sort_by, sort_order, start_index, limit)
+
+    def get_music_genres(self, server_uuid, parent_id):
+        api = self._conn(server_uuid).api
+        try:
+            result = api.get_genres(parent_id,
+                                    include_item_types="MusicAlbum") or {}
+        except TypeError:
+            result = api.get_genres(parent_id) or {}  # older apiclient
+        return result.get("Items", [])
+
+    def get_album_tracks(self, server_uuid, album_id):
+        """An album's tracks in disc/track order (children of the album)."""
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "ParentId": album_id,
+            "SortBy": "ParentIndexNumber,IndexNumber,SortName",
+            "SortOrder": "Ascending",
+            "Fields": MUSIC_FIELDS,
+        }) or {}
+        return result.get("Items", [])
+
+    def get_artist_albums(self, server_uuid, artist_id):
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "AlbumArtistIds": artist_id,
+            "IncludeItemTypes": "MusicAlbum",
+            "Recursive": True,
+            "SortBy": "PremiereDate,ProductionYear,SortName",
+            "SortOrder": "Descending",
+            "Fields": MUSIC_FIELDS,
+            "ImageTypeLimit": 1,
+            "EnableImageTypes": "Primary",
+        }) or {}
+        return result.get("Items", [])
+
+    def get_items_by_ids(self, server_uuid, ids):
+        """Fetch DTOs for a list of ids, returned in the requested order (the
+        server's Ids query does not preserve order). For the queue display.
+
+        Batched: a big queue's ids as one ``Ids=`` param overflows the server's
+        request-URI limit (HTTP 414). A partial (failed) batch just leaves those
+        rows without metadata rather than losing the whole list.
+        """
+        ids = [i for i in ids if i]
+        if not ids:
+            return []
+        api = self._conn(server_uuid).api
+        unique = list(dict.fromkeys(ids))  # de-dup, preserve order
+        by_id = {}
+        CHUNK = 100  # ~100 GUIDs stays well under the URI length limit
+        for start in range(0, len(unique), CHUNK):
+            chunk = unique[start:start + CHUNK]
+            try:
+                result = api.user_items(params={
+                    "Ids": ",".join(chunk), "Fields": MUSIC_FIELDS,
+                }) or {}
+            except Exception:
+                log.warning("Failed to fetch a metadata batch of %d items",
+                            len(chunk), exc_info=True)
+                continue
+            for i in result.get("Items", []):
+                by_id[i.get("Id")] = i
+        # De-dup-safe: a queue can hold the same id twice; map each slot.
+        return [by_id[i] for i in ids if i in by_id]
+
+    def get_artist_songs(self, server_uuid, artist_id, limit=500):
+        """All audio tracks by an artist (for Play/Shuffle/Add-to-playlist)."""
+        api = self._conn(server_uuid).api
+        result = api.user_items(params={
+            "ArtistIds": artist_id,
+            "IncludeItemTypes": "Audio",
+            "Recursive": True,
+            "SortBy": "AlbumArtist,Album,ParentIndexNumber,IndexNumber,SortName",
+            "Limit": limit,
+            "Fields": MUSIC_FIELDS,
+        }) or {}
+        return result.get("Items", [])
+
+    def get_genre_songs(self, server_uuid, parent_id, genre_id, limit=500):
+        """All audio tracks in a genre. parent_id may be None (server-wide)."""
+        api = self._conn(server_uuid).api
+        params = {
+            "GenreIds": genre_id,
+            "IncludeItemTypes": "Audio",
+            "Recursive": True,
+            "SortBy": "AlbumArtist,Album,ParentIndexNumber,IndexNumber,SortName",
+            "Limit": limit,
+            "Fields": MUSIC_FIELDS,
+        }
+        if parent_id:
+            params["ParentId"] = parent_id
+        result = api.user_items(params=params) or {}
+        return result.get("Items", [])
+
+    def get_instant_mix(self, server_uuid, item_id, limit=200):
+        api = self._conn(server_uuid).api
+        get = getattr(api, "get_instant_mix", None)
+        if get is None:
+            return []
+        try:
+            result = get(item_id, limit=limit) or {}
+        except Exception:
+            return []
+        return result.get("Items", [])
+
     def get_genres(self, server_uuid, parent_id=None):
         """Genre names available under a library (for the filter picker)."""
         api = self._conn(server_uuid).api
@@ -422,7 +602,9 @@ class LibrarySource:
     def search(self, server_uuid, term, limit=60):
         api = self._conn(server_uuid).api
         result = api.search_media_items(
-            term=term, media="Movie,Series,Episode,Video", limit=limit
+            term=term,
+            media="Movie,Series,Episode,Video,MusicArtist,MusicAlbum,Audio",
+            limit=limit,
         ) or {}
         return result.get("Items", [])
 
