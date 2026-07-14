@@ -296,3 +296,46 @@ with an older apiclient every edit affordance must be hidden.
   affordances at all.
   - Offline detection mode switching currently needs more work, current
     assumption is users will restart on offline if not detected.
+
+### 9. Music — Phase A (playlists + now-playing bar) — hand-test items
+Phase A plays/queues/downloads music **via playlists only** (no album/artist
+browse yet — that's Phase B). Needs a live server.
+- [X] **Music playlist plays**: a playlist with Audio no longer shows "no
+  supported media"; tiles appear, clicking a track plays the whole playlist as
+  a queue from that track; Play All / Shuffle work.
+- [X] **No album-art window**: audio playback does NOT pop an mpv window
+  showing embedded cover art (audio-display=no). Video/music-videos unaffected.
+- [X] **Now-playing bar**: a bottom bar appears while AUDIO plays (and only
+  audio — hidden for video): shows title — artist; ⏮ ⏯ ⏭, seek slider that
+  moves smoothly and scrubs on release, volume slider, ♥ favorite (persists to
+  server), 🔁 repeat. Bar hides on stop / end of queue.
+- [X] **Repeat**: none → all (queue wraps at end) → one (current track loops
+  via mpv) → none. Heart/repeat glyphs reflect state; RepeatMode shows in the
+  Jellyfin dashboard.
+- [X] **Transport**: prev/next move within the queue; play/pause toggles and
+  the glyph flips; the bar updates within ~5s even for changes made elsewhere
+  (remote/keys).
+- [X] **Download a music playlist**: ⬇ Download Playlist grabs the Audio
+  tracks as ONE unit (one "Playlist: X" block in Downloads, not N songs);
+  offline, the playlist plays its downloaded tracks. **(probe: offline audio
+  container/playback — flagged risk.)**
+- [X] **Music playlist = tabular track list**: a playlist containing ANY Audio
+  renders a tabular list (row per track: small album art, position, title,
+  artist, duration), NOT tiles; clicking a row plays the playlist from that
+  track. Non-music playlists still use tiles.
+- [X] **Per-type volume persists**: set music volume via the bar, restart →
+  it's remembered; video volume is tracked separately (change video volume via
+  mpv keys, restart → video remembers its own level, music unaffected). Volume
+  slider click-to-set works like seek.
+- [X] **Downloads scale**: downloading a music playlist shows ONE "Playlist: X
+  · N of M · size" line (no per-song rows, no flicker); with 100+ separate
+  downloads, completing one only rebuilds its section, not the whole list.
+- [X] **Art placeholders**: tiles with no server art (the Collections tile,
+  most music) show a placeholder — a ♪ for audio, else the item's initial —
+  instead of a blank rectangle; real art replaces it when present.
+- [X] **Bar polish**: hovering a bar button shows a tooltip; clicking anywhere
+  on the seek track jumps to that spot (not a few-second nudge); the slider no
+  longer flashes white on hover.
+- [X] **Repeat is music-only**: set repeat one/all during music, then play a
+  VIDEO — the video must NOT loop and the queue must NOT wrap (repeat only
+  applies while audio plays).

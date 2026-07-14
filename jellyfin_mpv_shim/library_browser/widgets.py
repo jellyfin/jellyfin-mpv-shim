@@ -134,6 +134,20 @@ class MediaTile:
                                 highlightthickness=0, bd=0)
         self.canvas.pack()
 
+        # Placeholder shown until art loads — and left in place for items the
+        # server has no art for (a fresh Collection tile, most music). A muted
+        # music note for audio, otherwise the item's initial, so a blank tile
+        # never looks broken. Removed in _set_image once real art arrives.
+        itype = item.get("Type")
+        if itype in ("Audio", "MusicAlbum", "MusicArtist"):
+            glyph = "♪"  # ♪
+        else:
+            name = (item.get("Name") or "").strip()
+            glyph = name[0].upper() if name else "?"
+        self.canvas.create_text(
+            w // 2, h // 2, text=glyph, fill=SUBTLE_FG,
+            font=("TkDefaultFont", max(16, h // 4)), tags=("placeholder",))
+
         pct = played_percent(item)
         if pct:
             bar_w = int(w * pct / 100.0)
@@ -184,7 +198,8 @@ class MediaTile:
 
     def _show_context_menu(self, event):
         itype = self.item.get("Type")
-        if itype not in ("Movie", "Episode", "Series", "Season", "Video"):
+        if itype not in ("Movie", "Episode", "Series", "Season", "Video",
+                         "Audio"):
             return
         watched = is_watched(self.item)
         menu = self.app.tk.Menu(self.frame, tearoff=0)
@@ -278,6 +293,7 @@ class MediaTile:
                 log.debug("[tile] image LARGER than box: img=%dx%d box=%dx%d item=%r",
                           photo.width(), photo.height(), w, h, self.item.get("Name"))
             self.canvas.delete("img")
+            self.canvas.delete("placeholder")  # real art replaces the glyph
             self.canvas.create_image(w // 2, h // 2, image=photo, tags="img")
             self.canvas.tag_raise("overlay")  # keep resume bar / badge above art
             self._photo = photo  # keep a reference
@@ -305,6 +321,58 @@ class MediaTile:
         self._requested = False
 
 
+class TrackRow(MediaTile):
+    """A horizontal 'tabular' row for a music track — small album art, position,
+    title/artist, duration — clickable to play. Subclasses MediaTile purely to
+    reuse its lazy artwork load/unload; only the layout differs. Used by
+    ScrollableGrid in list_mode."""
+
+    def __init__(self, parent, app, item, server_uuid, box, image_type,
+                 on_click, subtitle=None):
+        tk = app.tk
+        self.app = app
+        self.item = item
+        self.server_uuid = server_uuid
+        self.box = box
+        self.image_type = image_type
+        self._requested = False
+        self._photo = None
+        self._key = None
+
+        self.frame = tk.Frame(parent, bg=CARD_BG, bd=0, highlightthickness=0)
+        w, h = box
+        self.canvas = tk.Canvas(self.frame, width=w, height=h, bg=PLACEHOLDER_BG,
+                                highlightthickness=0, bd=0)
+        self.canvas.pack(side="left", padx=(8, 10), pady=3)
+        self.canvas.create_text(w // 2, h // 2, text="♪", fill=SUBTLE_FG,
+                                font=("TkDefaultFont", max(10, h // 3)),
+                                tags=("placeholder",))
+        if subtitle:  # playlist position, right-aligned like a track number
+            tk.Label(self.frame, text=subtitle, bg=CARD_BG, fg=SUBTLE_FG,
+                     width=3, anchor="e").pack(side="left", padx=(0, 8))
+        dur = format_ticks(item.get("RunTimeTicks"))
+        if dur:
+            tk.Label(self.frame, text=dur, bg=CARD_BG, fg=SUBTLE_FG,
+                     anchor="e").pack(side="right", padx=12)
+        mid = tk.Frame(self.frame, bg=CARD_BG)
+        mid.pack(side="left", fill="x", expand=True)
+        tk.Label(mid, text=item.get("Name", ""), bg=CARD_BG, fg=TEXT_FG,
+                 anchor="w").pack(fill="x")
+        artists = ", ".join(item.get("Artists") or [])
+        if artists:
+            tk.Label(mid, text=artists, bg=CARD_BG, fg=SUBTLE_FG, anchor="w",
+                     font=("TkDefaultFont", 8)).pack(fill="x")
+        # Bind the whole row — every label/frame/canvas — so a click anywhere on
+        # it plays (child labels would otherwise swallow the click).
+        def _bind_all(w):
+            w.bind("<Button-1>", lambda _e: on_click(item))
+            w.bind("<Button-3>", self._show_context_menu)
+            w.bind("<Button-2>", self._show_context_menu)
+            for child in w.winfo_children():
+                _bind_all(child)
+        _bind_all(self.frame)
+
+
 class ScrollableGrid:
     """Vertically scrolling responsive grid of MediaTiles with lazy artwork.
 
@@ -317,13 +385,19 @@ class ScrollableGrid:
     Infinite scroll: set ``on_near_end`` and call ``append_items`` to add pages.
     """
 
-    def __init__(self, app, parent, tile_box, gutter=16):
+    def __init__(self, app, parent, tile_box, gutter=16, tile_cls=None,
+                 list_mode=False):
         self.app = app
         tk, ttk = app.tk, app.ttk
         self.tile_box = tile_box
         self.gutter = gutter
         self.cell_w = tile_box[0] + gutter
         self.row_h = tile_box[1] + gutter + 56  # provisional; remeasured on layout
+        # list_mode lays tiles out one-per-row full width (a tabular track
+        # list); tile_cls swaps the tile widget (e.g. TrackRow). Both reuse the
+        # same lazy artwork + scroll machinery.
+        self._tile_cls = tile_cls or MediaTile
+        self._list_mode = list_mode
         self.tiles = []
         self._cols = 0
         self.on_near_end = None
@@ -377,8 +451,9 @@ class ScrollableGrid:
     def append_items(self, items):
         for item in items:
             sub = self._subtitle_fn(item) if self._subtitle_fn else None
-            tile = MediaTile(self.canvas, self.app, item, self._server, self.tile_box,
-                             self._image_type, self._on_click, subtitle=sub)
+            tile = self._tile_cls(self.canvas, self.app, item, self._server,
+                                  self.tile_box, self._image_type,
+                                  self._on_click, subtitle=sub)
             tile._win = self.canvas.create_window(0, 0, window=tile.frame,
                                                   anchor="nw")
             self.tiles.append(tile)
@@ -411,11 +486,15 @@ class ScrollableGrid:
         # positions are deterministic and never overlap.
         self.row_h = max((t.frame.winfo_reqheight() for t in self.tiles),
                          default=self.tile_box[1]) + self.gutter
-        self._cols = max(1, width // self.cell_w)
         pad = self.gutter // 2
+        self._cols = 1 if self._list_mode else max(1, width // self.cell_w)
         for i, tile in enumerate(self.tiles):
             r, c = divmod(i, self._cols)
             self.canvas.coords(tile._win, pad + c * self.cell_w, pad + r * self.row_h)
+            if self._list_mode:
+                # Stretch each row to the full viewport width so its columns
+                # (title expands, duration right-aligns) lay out correctly.
+                self.canvas.itemconfigure(tile._win, width=width - 2 * pad)
         self._update_scrollregion()
         self.app.root.after_idle(self._update_visible)
 

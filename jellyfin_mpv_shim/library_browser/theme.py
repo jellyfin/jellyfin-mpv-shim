@@ -48,6 +48,18 @@ def apply_dark_theme(root, ttk):
                           ("disabled", "#212327")],
               foreground=[("disabled", "#5d6168")])
 
+    # Compact transport buttons for the now-playing music bar. "On" is the
+    # active-toggle variant (repeat all/one) with an accent glyph.
+    style.configure("Playbar.TButton", background=PANEL_BG, foreground=TEXT_FG,
+                    relief="flat", padding=(4, 2), focuscolor=PANEL_BG)
+    style.map("Playbar.TButton",
+              background=[("pressed", BUTTON_ACTIVE), ("active", BUTTON_BG)])
+    style.configure("PlaybarOn.TButton", background=PANEL_BG, foreground=ACCENT,
+                    relief="flat", padding=(4, 2), focuscolor=PANEL_BG)
+    style.map("PlaybarOn.TButton",
+              background=[("pressed", BUTTON_ACTIVE), ("active", BUTTON_BG)],
+              foreground=[("active", ACCENT)])
+
     style.configure("TCombobox", fieldbackground=ENTRY_BG, background=BUTTON_BG,
                     foreground=TEXT_FG, arrowcolor=TEXT_FG, bordercolor=BORDER,
                     selectbackground=ENTRY_BG, selectforeground=TEXT_FG,
@@ -69,6 +81,13 @@ def apply_dark_theme(root, ttk):
         style.configure(orient, background=BUTTON_BG, troughcolor=WINDOW_BG,
                         bordercolor=WINDOW_BG, arrowcolor=TEXT_FG, relief="flat")
         style.map(orient, background=[("active", BUTTON_ACTIVE)])
+
+    # Sliders (music bar seek/volume). clam otherwise flashes the grip white on
+    # hover; pin it to the accent instead so it matches the rest of the theme.
+    style.configure("TScale", troughcolor=ENTRY_BG, background=BUTTON_BG,
+                    bordercolor=BORDER, lightcolor=BUTTON_BG, darkcolor=BUTTON_BG,
+                    relief="flat")
+    style.map("TScale", background=[("active", ACCENT), ("pressed", ACCENT)])
 
     style.configure("TNotebook", background=CARD_BG, borderwidth=0)
     style.configure("TNotebook.Tab", background=PANEL_BG, foreground=SUBTLE_FG,

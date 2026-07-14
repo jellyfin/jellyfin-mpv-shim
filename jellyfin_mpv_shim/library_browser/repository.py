@@ -21,8 +21,9 @@ from ..sync.db import SyncDB, STATUS_COMPLETE
 
 log = logging.getLogger("library_browser.repository")
 
-# Fields requested for grids/rows. Kept lean for speed.
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear"
+# Fields requested for grids/rows. Kept lean for speed. Artists is included so
+# music tiles (e.g. tracks in a playlist) can show the performer.
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear,Artists"
 
 # Fields requested for the detail view. Intentionally a superset (MediaSources,
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
@@ -53,8 +54,9 @@ SERIES_TYPES = {"Series"}
 # Item types that drill into another grid (by ParentId).
 FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
-# only these are surfaced (and downloaded) by this video-only browser.
-PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video"}
+# only these are surfaced (and downloaded). Audio is included so music
+# playlists play, queue, and download (the now-playing bar drives them).
+PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
 
 
 class ServerConn:

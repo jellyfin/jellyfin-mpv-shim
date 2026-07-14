@@ -122,9 +122,22 @@ class PlaylistOwnershipTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"})
         m.db.close()
 
-    def test_empty_supported_playlist_records_nothing(self):
-        # A playlist of only unsupported (audio) items expands to nothing.
+    def test_audio_playlist_is_recorded(self):
+        # Music playlists download as a unit: Audio is a supported playlist
+        # type, so its tracks are recorded as playlist members.
         jf = FakeJellyfin([{"Id": "s1", "Type": "Audio", "MediaType": "Audio",
+                            "MediaSources": [{"Id": "ms", "Container": "flac",
+                                              "Size": 1}],
+                            "UserData": {}}])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"s1"})
+        m.db.close()
+
+    def test_unsupported_playlist_records_nothing(self):
+        # A playlist of only unsupported types (e.g. MusicVideo, not in
+        # PLAYLIST_SUPPORTED_TYPES) expands to nothing, so no playlist is made.
+        jf = FakeJellyfin([{"Id": "s1", "Type": "MusicVideo",
                             "MediaSources": [{"Id": "ms", "Size": 1}],
                             "UserData": {}}])
         m = make_manager(self.tmp, jf)

@@ -19,7 +19,7 @@ from .repository import (LibrarySource, OfflineLibrarySource, PLAYABLE_TYPES,
 from .thumbnails import ThumbnailStore
 from .views import VIEW_TYPES
 from .theme import (apply_dark_theme, WINDOW_BG, CARD_BG, PANEL_BG, SUBTLE_FG,
-                    TEXT_FG)
+                    TEXT_FG, ACCENT)
 
 log = logging.getLogger("library_browser.app")
 
@@ -223,6 +223,251 @@ class BrowserApp:
                    command=lambda: self.navigate(
                        {"kind": "settings", "tab": "downloads"})).pack(
             side="right", padx=8, pady=4)
+
+        self._build_playbar()
+
+    # -- now-playing music bar --------------------------------------------
+
+    def _build_playbar(self):
+        """A persistent bottom bar shown while AUDIO is playing (mirrors the
+        download statusbar's show/hide). State arrives via the ("playstate", …)
+        push from the main process; controls go back over r_queue."""
+        tk, ttk = self.tk, self.ttk
+        self._pb_state = None
+        self._pb_pos = 0.0
+        self._pb_dur = 0.0
+        self._pb_playing = False
+        self._pb_dragging = False   # user is scrubbing the seek slider
+        self._pb_sync = False       # we're setting a slider programmatically
+
+        bar = tk.Frame(self.root, bg=PANEL_BG)
+        self.playbar = bar
+
+        transport = tk.Frame(bar, bg=PANEL_BG)
+        transport.pack(side="left", padx=(10, 6), pady=4)
+        prev_btn = ttk.Button(transport, text="⏮", width=3,
+                              style="Playbar.TButton",
+                              command=lambda: self._send_r("play_prev"))
+        prev_btn.pack(side="left", padx=2)
+        self._pb_playpause = ttk.Button(
+            transport, text="⏸", width=3, style="Playbar.TButton",
+            command=lambda: self._send_r("playpause"))
+        self._pb_playpause.pack(side="left", padx=2)
+        next_btn = ttk.Button(transport, text="⏭", width=3,
+                              style="Playbar.TButton",
+                              command=lambda: self._send_r("play_next"))
+        next_btn.pack(side="left", padx=2)
+
+        # Right-side controls (packed right-to-left).
+        self._pb_repeat = ttk.Button(bar, text="🔁", width=3,
+                                     style="Playbar.TButton",
+                                     command=self._cycle_repeat)
+        self._pb_repeat.pack(side="right", padx=(2, 10))
+        self._pb_fav = ttk.Button(bar, text="♡", width=3,
+                                  style="Playbar.TButton",
+                                  command=lambda: self._send_r("toggle_favorite"))
+        self._pb_fav.pack(side="right", padx=2)
+        self._pb_vol = ttk.Scale(bar, from_=0, to=100, length=90,
+                                 orient="horizontal")
+        self._pb_vol.pack(side="right", padx=(2, 2))
+        # Click anywhere on the volume track jumps to that level (like seek);
+        # dragging previews, and only the release commits — so a drag doesn't
+        # flood the main process with a set_volume per pixel.
+        self._pb_vol.bind("<Button-1>", self._on_vol_scrub)
+        self._pb_vol.bind("<B1-Motion>", self._on_vol_scrub)
+        self._pb_vol.bind("<ButtonRelease-1>", self._on_volume_release)
+        tk.Label(bar, text="🔊", bg=PANEL_BG, fg=SUBTLE_FG).pack(
+            side="right", padx=(8, 0))
+
+        # Center: title + scrubber + times fill the remaining width.
+        self._pb_title = tk.Label(bar, text="", bg=PANEL_BG, fg=TEXT_FG,
+                                  anchor="w")
+        self._pb_title.pack(side="left", padx=(4, 8))
+        self._pb_dur_lbl = tk.Label(bar, text="0:00", bg=PANEL_BG, fg=SUBTLE_FG,
+                                    width=5)
+        self._pb_dur_lbl.pack(side="right", padx=(2, 8))
+        self._pb_seek = ttk.Scale(bar, from_=0, to=1000, orient="horizontal")
+        self._pb_seek.pack(side="left", fill="x", expand=True, padx=4)
+        # Click anywhere on the track jumps there (default trough-click only
+        # pages a few seconds); drag scrubs; release commits the seek.
+        self._pb_seek.bind("<Button-1>", self._on_seek_press)
+        self._pb_seek.bind("<B1-Motion>", self._on_seek_drag)
+        self._pb_seek.bind("<ButtonRelease-1>", self._on_seek_release)
+        self._pb_pos_lbl = tk.Label(bar, text="0:00", bg=PANEL_BG, fg=SUBTLE_FG,
+                                    width=5)
+        self._pb_pos_lbl.pack(side="left")
+
+        for widget, tip in ((prev_btn, _("Previous")),
+                            (self._pb_playpause, _("Play / Pause")),
+                            (next_btn, _("Next")),
+                            (self._pb_vol, _("Volume")),
+                            (self._pb_fav, _("Favorite")),
+                            (self._pb_repeat, _("Repeat"))):
+            self._attach_tooltip(widget, tip)
+
+        self.root.after(1000, self._tick_playbar)
+
+    def _attach_tooltip(self, widget, text):
+        """A minimal hover tooltip (no external deps). Shows a small label just
+        above the widget on <Enter>, hides on <Leave>/click."""
+        state = {"win": None}
+
+        def show(_e=None):
+            if state["win"] is not None or not text:
+                return
+            win = self.tk.Toplevel(widget)
+            win.wm_overrideredirect(True)
+            self.tk.Label(win, text=text, bg="#0b0c0e", fg=TEXT_FG,
+                          padx=6, pady=2, font=("TkDefaultFont", 8)).pack()
+            win.update_idletasks()
+            x = widget.winfo_rootx() + (widget.winfo_width()
+                                        - win.winfo_width()) // 2
+            y = widget.winfo_rooty() - win.winfo_height() - 3
+            win.wm_geometry("+%d+%d" % (max(0, x), max(0, y)))
+            state["win"] = win
+
+        def hide(_e=None):
+            if state["win"] is not None:
+                try:
+                    state["win"].destroy()
+                except Exception:
+                    pass
+                state["win"] = None
+
+        widget.bind("<Enter>", show, add="+")
+        widget.bind("<Leave>", hide, add="+")
+        widget.bind("<ButtonPress>", hide, add="+")
+
+    @staticmethod
+    def _scale_value_from_x(scale, x):
+        w = scale.winfo_width()
+        if w <= 1:
+            return None
+        frac = min(max(x / w, 0.0), 1.0)
+        return frac * float(scale.cget("to"))
+
+    def _seek_value_from_x(self, x):
+        return self._scale_value_from_x(self._pb_seek, x)
+
+    def _on_vol_scrub(self, e):
+        # Move the grip to the click/drag position; don't send yet.
+        val = self._scale_value_from_x(self._pb_vol, e.x)
+        if val is None:
+            return "break"
+        self._pb_sync = True
+        try:
+            self._pb_vol.set(val)
+        finally:
+            self._pb_sync = False
+        return "break"
+
+    @staticmethod
+    def _fmt_time(seconds):
+        seconds = int(max(0, seconds or 0))
+        return "%d:%02d" % (seconds // 60, seconds % 60)
+
+    def _send_r(self, action, param=None):
+        try:
+            self.r_queue.put((action, param))
+        except Exception:
+            log.debug("Failed to send %s to main process", action, exc_info=True)
+
+    def _on_playstate(self, state):
+        state = state or {}
+        # Bar is music-only: hide for video and when nothing is playing.
+        if state.get("stopped") or not state.get("is_audio"):
+            if self.playbar.winfo_ismapped():
+                self.playbar.pack_forget()
+            self._pb_state = None
+            self._pb_playing = False
+            return
+        self._pb_state = state
+        self._pb_pos = float(state.get("position") or 0.0)
+        self._pb_dur = float(state.get("duration") or 0.0)
+        self._pb_playing = not state.get("paused")
+        if not self.playbar.winfo_ismapped():
+            self.playbar.pack(side="bottom", fill="x")
+        self._render_playbar()
+
+    def _render_playbar(self):
+        st = self._pb_state
+        if not st:
+            return
+        title, artist = st.get("title", ""), st.get("artist", "")
+        self._pb_title.config(text=("%s — %s" % (title, artist)) if artist
+                              else title)
+        self._pb_playpause.config(text="▶" if st.get("paused") else "⏸")
+        self._pb_fav.config(text="♥" if st.get("favorite") else "♡")
+        self._pb_repeat.config(
+            text="🔂" if st.get("repeat") == "one" else "🔁",
+            style=("PlaybarOn.TButton" if st.get("repeat") in ("all", "one")
+                   else "Playbar.TButton"))
+        self._pb_dur_lbl.config(text=self._fmt_time(self._pb_dur))
+        self._pb_sync = True
+        try:
+            self._pb_vol.set(st.get("volume") or 0)
+            self._pb_seek.configure(to=max(1.0, self._pb_dur))
+            if not self._pb_dragging:
+                self._pb_seek.set(self._pb_pos)
+                self._pb_pos_lbl.config(text=self._fmt_time(self._pb_pos))
+        finally:
+            self._pb_sync = False
+
+    def _tick_playbar(self):
+        # Interpolate the scrubber between the 5s state pushes so it moves
+        # smoothly while playing.
+        try:
+            if (self._pb_state and self._pb_playing and not self._pb_dragging
+                    and self.playbar.winfo_ismapped()):
+                self._pb_pos = min(self._pb_pos + 1.0, self._pb_dur or self._pb_pos + 1.0)
+                self._pb_sync = True
+                try:
+                    self._pb_seek.set(self._pb_pos)
+                    self._pb_pos_lbl.config(text=self._fmt_time(self._pb_pos))
+                finally:
+                    self._pb_sync = False
+        finally:
+            self.root.after(1000, self._tick_playbar)
+
+    def _on_seek_press(self, e):
+        self._pb_dragging = True
+        self._seek_scrub_to(e.x)
+        return "break"  # replace the default trough paging with jump-to-click
+
+    def _on_seek_drag(self, e):
+        self._seek_scrub_to(e.x)
+        return "break"
+
+    def _seek_scrub_to(self, x):
+        val = self._seek_value_from_x(x)
+        if val is None:
+            return
+        self._pb_sync = True
+        try:
+            self._pb_seek.set(val)
+            self._pb_pos_lbl.config(text=self._fmt_time(val))
+        finally:
+            self._pb_sync = False
+
+    def _on_seek_release(self, _e):
+        if not self._pb_dragging:
+            return
+        self._pb_dragging = False
+        if self._pb_state:
+            pos = float(self._pb_seek.get())
+            self._pb_pos = pos
+            self._pb_pos_lbl.config(text=self._fmt_time(pos))
+            self._send_r("seek_to", pos)
+
+    def _on_volume_release(self, _e):
+        if not self._pb_sync:
+            self._send_r("set_volume", float(self._pb_vol.get()))
+
+    def _cycle_repeat(self):
+        order = ("none", "all", "one")
+        cur = (self._pb_state or {}).get("repeat", "none")
+        nxt = order[(order.index(cur) + 1) % 3] if cur in order else "all"
+        self._send_r("set_repeat", nxt)
 
     # -- offline mode ------------------------------------------------------
 
@@ -1033,6 +1278,8 @@ class BrowserApp:
                 self.sync_downloading = payload["name"]
             self._update_statusbar()
             self._dispatch_view("on_download_progress", payload)
+        elif cmd == "playstate":
+            self._on_playstate(param or {})
         elif cmd == "connection_settled":
             self._on_connection_settled(param or {})
         elif cmd == "users":

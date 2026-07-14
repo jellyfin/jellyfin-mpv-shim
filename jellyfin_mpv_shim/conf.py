@@ -45,6 +45,11 @@ class Settings(SettingsBase):
     pre_media_cmd: Optional[str] = None
     stop_cmd: Optional[str] = None
     auto_play: bool = True
+    # Persisted playback volume (0-100), kept separately for music and video —
+    # the loudness gap between the two means users want different levels.
+    # Applied when a track starts and reconciled back on the timeline tick.
+    music_volume: int = 100
+    video_volume: int = 100
     idle_cmd: Optional[str] = None
     idle_ended_cmd: Optional[str] = None
     play_cmd: Optional[str] = None

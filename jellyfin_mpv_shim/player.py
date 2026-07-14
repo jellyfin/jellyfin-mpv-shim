@@ -6,7 +6,7 @@ import json
 
 import platform
 
-from threading import RLock, Lock, Thread
+from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
@@ -201,6 +201,17 @@ class PlayerManager(object):
         # position lands inside an outro segment (common on short videos).
         self._last_intro_msg_time = 0.0
 
+        # Optional callback (set by gui_mgr) fed a compact now-playing dict on
+        # every playback state change, for the browser's music bar. Kept as a
+        # plain attribute so the player has no hard dependency on the GUI.
+        self.on_playstate = None
+        # Repeat mode for the music bar: "none" | "all" | "one".
+        self.repeat_mode = "none"
+        # Set once the async session_playing has opened the server session;
+        # send_timeline waits on it so progress can't precede the session open.
+        self._session_ready = Event()
+        self._session_ready.set()
+
         self._init_mpv()
 
     def _teardown_player(self):
@@ -314,6 +325,12 @@ class PlayerManager(object):
 
             if settings.tls_server_ca:
                 mpv_options["tls_ca_file"] = settings.tls_server_ca
+
+        # Audio-only files (music) are controlled from the browser's now-playing
+        # bar, not an mpv window: don't decode embedded cover art into a video
+        # track (which would otherwise pop a window showing the album art).
+        # Only affects audio-only files — video and music videos are untouched.
+        mpv_options["audio_display"] = "no"
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -854,6 +871,17 @@ class PlayerManager(object):
             )
         except Exception:
             log.debug("Could not set user-data/media-source/Path", exc_info=True)
+        # Apply the persisted per-type volume BEFORE playback starts, so the
+        # track never briefly blares at the default while mpv probes/loads
+        # (duration isn't known yet, so use the item we're about to play).
+        try:
+            v_item = getattr(video, "item", None) or {}
+            v_audio = (v_item.get("MediaType") == "Audio"
+                       or v_item.get("Type") == "Audio")
+            self._player.volume = (settings.music_volume if v_audio
+                                   else settings.video_volume)
+        except _mpv_errors:
+            pass
         self._player.play(self.url)
         if not wait_property(
             self._player,
@@ -912,13 +940,25 @@ class PlayerManager(object):
         else:
             self.set_paused(False, False)
 
-        if self.trickplay:
+        # Trickplay (scrubbing thumbnails) is video-only — skip the fetch for
+        # audio so switching songs isn't slowed by a pointless request.
+        if self.trickplay and not v_audio:
             self.trickplay.fetch_thumbnails()
 
         self.should_send_timeline = True
         # Fresh offline-record throttle window for each newly playing item.
         self._last_offline_record = float("-inf")
         self.do_not_handle_pause = False
+        # Repeat-one loops the current file, but only for audio — re-apply per
+        # track so a video started while repeat="one" is held over never loops.
+        # (Volume was already applied before play(); set_paused above already
+        # pushed the now-playing state to the music bar.)
+        try:
+            self._player.loop_file = (
+                "inf" if self.repeat_mode == "one" and self._current_is_audio()
+                else "no")
+        except _mpv_errors:
+            pass
         if self._finished_lock.locked():
             self._finished_lock.release()
 
@@ -979,6 +1019,8 @@ class PlayerManager(object):
             local_video.record_offline_progress(options.get("PositionTicks"))
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
+        # Hide the browser's music bar now that nothing is playing.
+        self.push_playstate(stopped=True)
 
         if self.trickplay:
             self.trickplay.clear()
@@ -1055,12 +1097,14 @@ class PlayerManager(object):
                     else:
                         self._player.command("seek", offset)
         self.timeline_handle()
+        self.push_playstate()
 
     @synchronous("_lock")
     def set_volume(self, pct: float):
         if not self._player.playback_abort:
             self._player.volume = pct
         self.timeline_handle()
+        self.push_playstate()
 
     @synchronous("_lock")
     def get_state(self):
@@ -1102,10 +1146,22 @@ class PlayerManager(object):
         # (playback-abort far from the end) must not be recorded as watched.
         if settings.force_set_played and self._finished_at_eof(video):
             video.set_played()
-        if video.parent.has_next and settings.auto_play:
+        # Repeat-all wraps back to the first track when the queue runs out
+        # (repeat-one loops in mpv and never reaches here). SyncPlay drives its
+        # own advance, so wrap only applies to normal local playback.
+        wrap = (self.repeat_mode == "all" and self._current_is_audio()
+                and not video.parent.has_next
+                and not self.syncplay.is_enabled()
+                and len(video.parent.queue) > 0)
+        if (video.parent.has_next or wrap) and settings.auto_play:
             if has_lock:
                 log.info("PlayerManager::finished_callback starting next episode")
-                new_video = video.parent.get_next().video
+                if wrap:
+                    first = video.parent.get_from_key(
+                        video.parent.queue[0]["Id"])
+                    new_video = first.video if first else None
+                else:
+                    new_video = video.parent.get_next().video
                 self.send_timeline_stopped(True)
                 if new_video is None:
                     # Offline and the next episode isn't downloaded: end the
@@ -1194,6 +1250,66 @@ class PlayerManager(object):
                 self.play(new_video)
             return True
         return False
+
+    @synchronous("_lock")
+    def try_skip_within_queue(self, item_ids, start_index):
+        """Fast path for clicking another track in the CURRENTLY-PLAYING queue:
+        seek within the existing queue instead of rebuilding it (and re-opening
+        a whole new play session for the same list). Returns True if handled,
+        False to fall back to a normal start_playback."""
+        video = self._video
+        if video is None:
+            return False
+        try:
+            if self._player.playback_abort:
+                return False
+        except _mpv_errors:
+            return False
+        queue = video.parent.queue
+        if [q.get("Id") for q in queue] != list(item_ids):
+            return False
+        if not 0 <= start_index < len(queue):
+            return False
+        target_id = queue[start_index].get("Id")
+        if target_id == video.item_id:
+            return True  # already playing that track — nothing to do
+        return bool(self.skip_to(target_id))
+
+    @synchronous("_lock")
+    def set_repeat(self, mode):
+        """Repeat mode for the music bar: 'none' | 'all' | 'one'. 'one' loops
+        the current file in mpv; 'all' wraps the queue at the end (handled in
+        finished_callback); 'none' is the default. Repeat is a MUSIC feature:
+        loop-file is applied only while audio plays (and re-applied per track in
+        _play_media) so it never makes a video loop."""
+        if mode not in ("none", "all", "one"):
+            return
+        self.repeat_mode = mode
+        try:
+            self._player.loop_file = (
+                "inf" if mode == "one" and self._current_is_audio() else "no")
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        self.push_playstate()
+
+    @synchronous("_lock")
+    def toggle_current_favorite(self):
+        """Flip the now-playing item's favorite state (music bar heart)."""
+        video = self._video
+        if video is None or video.client is None:
+            return
+        item = getattr(video, "item", None)
+        if item is None:
+            return
+        ud = item.setdefault("UserData", {})
+        new_state = not ud.get("IsFavorite")
+        try:
+            video.client.jellyfin.favorite(video.item_id, new_state)
+            ud["IsFavorite"] = new_state
+        except Exception:
+            log.error("Failed to toggle favorite for %s", video.item_id,
+                      exc_info=True)
+        self.push_playstate()
 
     @synchronous("_lock")
     def restart_playback(self):
@@ -1325,6 +1441,7 @@ class PlayerManager(object):
         else:
             self.pause_ignore = value
             self._player.pause = value
+        self.push_playstate()
 
     @synchronous("_lock")
     def script_message(self, command, *args):
@@ -1343,6 +1460,75 @@ class PlayerManager(object):
         self._player.sub_scale = settings.subtitle_size / 100
         self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
+
+    def _current_is_audio(self):
+        video = self._video
+        if video is None:
+            return False
+        item = getattr(video, "item", None) or {}
+        return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+
+    def _maybe_save_volume(self):
+        """Persist the current volume into its per-type bucket if it changed.
+        Called from the timeline tick (off mpv's event thread), so a volume
+        change made via the music bar OR mpv keys survives a restart without
+        hammering the settings file."""
+        if self._video is None:
+            return
+        try:
+            vol = int(self._player.volume)
+        except (_mpv_errors, TypeError):
+            return
+        key = "music_volume" if self._current_is_audio() else "video_volume"
+        if getattr(settings, key) != vol:
+            setattr(settings, key, vol)
+            settings.save()
+
+    def push_playstate(self, stopped=False):
+        """Feed the browser's now-playing bar a compact snapshot on each
+        playback state change. Never raises and never re-enters MPV's lock — a
+        bar refresh must never disturb playback. A ``stopped`` payload tells the
+        bar to hide."""
+        cb = self.on_playstate
+        if cb is None:
+            return
+        try:
+            video = self._video
+            try:
+                aborted = self._player.playback_abort
+            except _mpv_errors:
+                aborted = True
+            if stopped or video is None or aborted:
+                cb({"stopped": True})
+                return
+            item = getattr(video, "item", None) or {}
+            try:
+                pos = self._player.playback_time
+                duration = self._player.duration
+                paused = self._player.pause
+                volume = self._player.volume
+                muted = self._player.mute
+            except _mpv_errors:
+                cb({"stopped": True})
+                return
+            cb({
+                "stopped": False,
+                "is_audio": (item.get("MediaType") == "Audio"
+                             or item.get("Type") == "Audio"),
+                "title": item.get("Name") or "",
+                "artist": ", ".join(item.get("Artists") or []),
+                "album": item.get("Album") or "",
+                "position": float(pos) if pos is not None else 0.0,
+                "duration": (float(duration) if duration is not None
+                             else float(video.get_duration() or 0.0)),
+                "paused": bool(paused),
+                "volume": int(volume) if volume is not None else 100,
+                "muted": bool(muted),
+                "favorite": bool((item.get("UserData") or {}).get("IsFavorite")),
+                "repeat": self.repeat_mode,
+            })
+        except Exception:
+            log.debug("push_playstate failed", exc_info=True)
 
     def get_timeline_options(self, finished=False, video=None):
         # PlaylistItemId is dynamically generated. A more stable Id will be used
@@ -1392,7 +1578,8 @@ class PlayerManager(object):
             "VolumeLevel": int(none_fallback(volume, 100)),
             "IsMuted": mute,
             "IsPaused": pause,
-            "RepeatMode": "RepeatNone",
+            "RepeatMode": {"all": "RepeatAll", "one": "RepeatOne"}.get(
+                self.repeat_mode, "RepeatNone"),
             # "MaxStreamingBitrate": 140000000,
             "PositionTicks": int(safe_pos * 10000000),
             "PlaybackStartTimeTicks": int(self.start_time * 10000000),
@@ -1461,6 +1648,10 @@ class PlayerManager(object):
                 and not self._player.playback_abort
             ):
                 if video.client is not None:
+                    # Hold progress until the (async) session_playing has opened
+                    # the session, so a session_progress can't arrive first.
+                    if not self._session_ready.is_set():
+                        return
                     options = self.get_timeline_options(video=video)
                     if options is not None:
                         video.client.jellyfin.session_progress(options)
@@ -1487,13 +1678,31 @@ class PlayerManager(object):
             self._handle_mpv_disconnect()
 
     @synchronous("_tl_lock")
+    def _session_playing_safe(self, client, options):
+        try:
+            client.jellyfin.session_playing(options)
+        except Exception:
+            log.debug("session_playing failed", exc_info=True)
+        finally:
+            # Progress reports are gated on this — never leave it clear, even on
+            # error, or timeline updates would stall for the whole session.
+            self._session_ready.set()
+
     def send_timeline_initial(self):
         video = self._video
         if video is None or video.client is None:
+            self._session_ready.set()
             return  # gone, or offline playback: no server session to open
         options = self.get_timeline_options(video=video)
-        if options is not None:
-            video.client.jellyfin.session_playing(options)
+        if options is None:
+            self._session_ready.set()
+            return
+        # Open the session off the play path (a remote round-trip that would
+        # otherwise delay switching tracks), but gate progress reports until it
+        # completes so a session_progress can't race ahead of session_playing.
+        self._session_ready.clear()
+        Thread(target=self._session_playing_safe,
+               args=(video.client, options), daemon=True).start()
 
     @synchronous("_tl_lock")
     def send_timeline_stopped(self, finished=False, options=None, client=None):

@@ -20,7 +20,7 @@ from .theme import (CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG,
                     ACCENT)
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
-    is_watched,
+    is_watched, TrackRow,
 )
 
 log = logging.getLogger("library_browser.views")
@@ -35,6 +35,11 @@ def poster_box(width):
 
 def thumb_box(width):
     return (width, int(width * 9 / 16))
+
+
+def square_box(width):
+    # Album/artist artwork is 1:1.
+    return (width, width)
 
 
 def build_media_header(app, parent, item, title_text=None):
@@ -978,22 +983,32 @@ class PlaylistView(BaseView):
                                    side="left", padx=12, before=self._title)
             self._add_edit_button(pid)
 
+            # A playlist that contains ANY music renders as a music playlist —
+            # a tabular track list (small album art per track), regardless of
+            # the playlist's declared type (Jellyfin lets the two diverge).
             # Episode-heavy playlists read better as landscape stills; movie
-            # playlists as posters (mirrors the home rows' heuristic).
-            if any(it.get("Type") == "Episode" for it in items):
+            # playlists as posters.
+            is_music = any(it.get("Type") == "Audio" for it in items)
+            if is_music:
+                box, image_type = square_box(46), "Primary"
+            elif any(it.get("Type") == "Episode" for it in items):
                 box, image_type = thumb_box(int(self.app.image_width * 1.4)), "Thumb"
             else:
                 box, image_type = poster_box(self.app.image_width), "Primary"
 
             def subtitle(item):
                 pos = self._index_of(item) + 1
+                if is_music:
+                    return str(pos)  # TrackRow renders title/artist/duration
                 name = item.get("Name", "")
                 series = item.get("SeriesName")
                 if series:
                     return "%d. %s – %s" % (pos, series, name)
                 return "%d. %s" % (pos, name)
 
-            self.grid = ScrollableGrid(self.app, self.frame, box)
+            self.grid = ScrollableGrid(
+                self.app, self.frame, box,
+                tile_cls=TrackRow if is_music else None, list_mode=is_music)
             self.grid.widget().pack(fill="both", expand=True)
             self.grid.set_items(items, server, image_type=image_type,
                                 on_click=self._on_click, subtitle_fn=subtitle)
@@ -2782,6 +2797,13 @@ class DownloadsPanel:
         self._epoch = 0  # supersedes an in-flight catalog read (see refresh)
         self._rendered = False
         self._refresh_after = None
+        # Persistent render scaffolding (created on first _render): a title
+        # line + three section frames, each rebuilt only when its own contents
+        # change — so a refresh never destroys/recreates the whole list.
+        self._title_lbl = None
+        self._sec_playlists = self._sec_movies = self._sec_series = None
+        self._sec_sig = {}
+        self._empty_lbl = None
         self.refresh()
 
     def _open_db(self):
@@ -2832,23 +2854,60 @@ class DownloadsPanel:
 
         self.app.run_async(work, done, lambda _e: None)
 
-    def _render(self, body, rows, total, playlists=(), ownership=None):
+    def _ensure_scaffold(self, body):
+        """Create the persistent title + section frames once (in fixed order),
+        so refreshes patch sections instead of rebuilding the whole list."""
+        if self._title_lbl is not None and self._title_lbl.winfo_exists():
+            return
         tk = self.app.tk
         for child in body.winfo_children():
             child.destroy()
         self._rows = {}
+        self._sec_sig = {}
+        self._empty_lbl = None
+        self._title_lbl = tk.Label(body, bg=CARD_BG, fg=TEXT_FG, anchor="w",
+                                   font=("TkDefaultFont", 16, "bold"))
+        self._title_lbl.pack(anchor="w", padx=16, pady=(12, 8))
+        self._sec_playlists = tk.Frame(body, bg=CARD_BG)
+        self._sec_playlists.pack(fill="x")
+        self._sec_movies = tk.Frame(body, bg=CARD_BG)
+        self._sec_movies.pack(fill="x")
+        self._sec_series = tk.Frame(body, bg=CARD_BG)
+        self._sec_series.pack(fill="x")
 
-        tk.Label(body, text=_("Downloads — %s used") % human_size(total),
-                 bg=CARD_BG, fg=TEXT_FG, font=("TkDefaultFont", 16, "bold")).pack(
-            anchor="w", padx=16, pady=(12, 8))
-        if not rows:
-            tk.Label(body, text=_("Nothing downloaded yet."), bg=CARD_BG,
-                     fg=SUBTLE_FG).pack(anchor="w", padx=16)
+    def _rebuild_section(self, frame, key, sig, builder):
+        """Rebuild a section's children only if its signature changed."""
+        if self._sec_sig.get(key) == sig:
             return
+        self._sec_sig[key] = sig
+        for child in frame.winfo_children():
+            child.destroy()
+        builder(frame)
 
-        # Items a playlist download owns are grouped under that playlist; items
-        # downloaded another way (owned=0 / no playlist) keep their normal
-        # Movies/Series grouping.
+    def _render(self, body, rows, total, playlists=(), ownership=None):
+        tk = self.app.tk
+        self._ensure_scaffold(body)
+        self._title_lbl.config(
+            text=_("Downloads — %s used") % human_size(total))
+
+        # Empty state.
+        if not rows:
+            for key, frame in (("pl", self._sec_playlists),
+                               ("mv", self._sec_movies),
+                               ("se", self._sec_series)):
+                self._rebuild_section(frame, key, (), lambda f: None)
+            if self._empty_lbl is None or not self._empty_lbl.winfo_exists():
+                self._empty_lbl = tk.Label(
+                    self._sec_movies, text=_("Nothing downloaded yet."),
+                    bg=CARD_BG, fg=SUBTLE_FG)
+                self._empty_lbl.pack(anchor="w", padx=16)
+            return
+        if self._empty_lbl is not None and self._empty_lbl.winfo_exists():
+            self._empty_lbl.destroy()
+            self._empty_lbl = None
+
+        # Playlist-owned items group under their playlist; the rest keep the
+        # normal Movies / Series grouping.
         ownership = ownership or {}
         pl_name = {p["playlist_id"]: p.get("name") or _("Playlist")
                    for p in playlists}
@@ -2862,10 +2921,6 @@ class DownloadsPanel:
                 pl_groups[pid].append(r)
             else:
                 rest.append(r)
-
-        for pid in pl_order:
-            self._playlist_block(body, pid, pl_name[pid], pl_groups[pid])
-
         movies = [r for r in rest if not r.get("series_id")]
         series_order, series_map = [], {}
         for r in rest:
@@ -2877,15 +2932,41 @@ class DownloadsPanel:
                 series_order.append(sid)
             series_map[sid].append(r)
 
-        if movies:
-            tk.Label(body, text=_("Movies & Videos"), bg=CARD_BG, fg=TEXT_FG,
+        # Each section rebuilds only when its own signature changes (item ids +
+        # status + size), so an unrelated section is never torn down.
+        pl_sig = tuple(
+            (pid, pl_name[pid],
+             tuple((r["item_id"], r.get("status"), self._is_watched(r),
+                    r.get("size_bytes") or 0) for r in pl_groups[pid]))
+            for pid in pl_order)
+
+        def build_pl(frame):
+            for pid in pl_order:
+                self._playlist_block(frame, pid, pl_name[pid], pl_groups[pid])
+        self._rebuild_section(self._sec_playlists, "pl", pl_sig, build_pl)
+
+        mv_sig = tuple((r["item_id"], r.get("status"), r.get("size_bytes") or 0,
+                        self._is_watched(r)) for r in movies)
+
+        def build_mv(frame):
+            if not movies:
+                return
+            tk.Label(frame, text=_("Movies & Videos"), bg=CARD_BG, fg=TEXT_FG,
                      font=("TkDefaultFont", 13, "bold")).pack(
                 anchor="w", padx=16, pady=(10, 2))
             for row in movies:
-                self._item_row(body, row, indent=24)
+                self._item_row(frame, row, indent=24)
+        self._rebuild_section(self._sec_movies, "mv", mv_sig, build_mv)
 
-        for sid in series_order:
-            self._series_block(body, sid, series_map[sid])
+        se_sig = tuple((sid, tuple((r["item_id"], r.get("status"),
+                                    self._is_watched(r))
+                                   for r in series_map[sid]))
+                       for sid in series_order)
+
+        def build_se(frame):
+            for sid in series_order:
+                self._series_block(frame, sid, series_map[sid])
+        self._rebuild_section(self._sec_series, "se", se_sig, build_se)
 
     def _playlist_block(self, body, playlist_id, name, rows):
         tk, ttk = self.app.tk, self.app.ttk
@@ -2893,16 +2974,38 @@ class DownloadsPanel:
                    for r in rows)
         header = tk.Frame(body, bg=PANEL_BG)
         header.pack(fill="x", padx=12, pady=(10, 2))
-        tk.Label(header,
-                 text=_("Playlist: %s  ·  %d · %s") % (
-                     name, len(rows), human_size(size)),
-                 bg=PANEL_BG, fg=TEXT_FG, font=("TkDefaultFont", 12, "bold")).pack(
-            side="left", padx=8, pady=4)
         ttk.Button(header, text=_("Remove downloads"),
                    command=lambda p=playlist_id: self.app.delete_download(
                        playlist_id=p)).pack(side="right", padx=4, pady=2)
-        for row in rows:
-            self._item_row(body, row, indent=24)
+
+        # A music playlist collapses to one summary line (the download unit) —
+        # a 500-song playlist must not spill 500 rows. A playlist with video in
+        # it behaves like a series: individual items + a Remove-watched button
+        # (you skip through watched videos, but not songs).
+        has_video = any((r.get("type") or "") != "Audio" for r in rows)
+        if has_video:
+            tk.Label(header, text="%s  ·  %d · %s" % (
+                name, len(rows), human_size(size)),
+                bg=PANEL_BG, fg=TEXT_FG,
+                font=("TkDefaultFont", 12, "bold")).pack(side="left", padx=8,
+                                                         pady=4)
+            if any(self._is_watched(r) for r in rows):
+                ttk.Button(header, text=_("Remove watched"),
+                           command=lambda p=playlist_id: self.app.delete_download(
+                               playlist_id=p, watched_only=True)).pack(
+                                   side="right", padx=4, pady=2)
+            for row in rows:
+                self._item_row(body, row, indent=24)
+        else:
+            done = sum(1 for r in rows if r.get("status") == STATUS_COMPLETE)
+            count = (_("%d of %d") % (done, len(rows)) if done != len(rows)
+                     else str(len(rows)))
+            tk.Label(header,
+                     text=_("Playlist: %s  ·  %s · %s") % (
+                         name, count, human_size(size)),
+                     bg=PANEL_BG, fg=TEXT_FG,
+                     font=("TkDefaultFont", 12, "bold")).pack(side="left",
+                                                              padx=8, pady=4)
 
     @staticmethod
     def _season_title(row):
@@ -3439,6 +3542,10 @@ class DownloadDialog:
             lines.append(_("%d already downloaded") % already)
         self.info.config(text="\n".join(lines))
         if self._is_collection and watched:
+            # Music: "played" doesn't mean "done with it" — default to including
+            # played songs so the whole playlist downloads.
+            if est.get("audio_only"):
+                self.include_watched.set(True)
             self.watched_chk.config(state="normal")
         self.dl_btn.config(state="normal" if count else "disabled")
 

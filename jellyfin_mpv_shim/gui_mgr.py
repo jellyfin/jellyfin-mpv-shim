@@ -211,6 +211,10 @@ class UserInterface(threading.Thread):
         guiHandler.callback = None
         syncManager.on_change = lambda: None
         syncManager.on_progress = lambda item_id, name, downloaded, total: None
+        # Only if a browser was ever launched (which imported .player); avoids
+        # importing player at teardown time.
+        if getattr(self, "_player_mgr", None) is not None:
+            self._player_mgr.on_playstate = None
 
     def _die(self):
         self._shutting_down = True
@@ -320,6 +324,12 @@ class UserInterface(threading.Thread):
         # Push download catalog changes / progress to the browser.
         syncManager.on_change = self._push_sync_state
         syncManager.on_progress = self._push_download_progress
+        # Push playback state to the browser's now-playing music bar. Stash the
+        # manager so _detach_browser can clear the callback without importing
+        # .player at teardown time (that import triggers arg parsing).
+        from .player import playerManager
+        self._player_mgr = playerManager
+        playerManager.on_playstate = self._push_playstate
 
     def refresh_servers(self):
         if self.browser_process is not None and self.browser_process.is_alive():
@@ -421,6 +431,11 @@ class UserInterface(threading.Thread):
             "item_id": item_id, "name": name,
             "downloaded": downloaded, "total": total}))
 
+    def _push_playstate(self, state):
+        # Called from player/timeline threads; just forwards the compact
+        # now-playing snapshot to the browser's music bar.
+        self._send_browser(("playstate", state))
+
     # -- action handlers (on_<action>) ------------------------------------
 
     def on_ready(self, _param):
@@ -505,9 +520,18 @@ class UserInterface(threading.Thread):
 
     def on_play(self, payload):
         from .event_handler import start_playback
+        from .player import playerManager
 
         payload = payload or {}
         item_ids = payload.get("item_ids") or []
+        # Fast path: clicking another track in the queue that's already playing
+        # just seeks within it — no rebuild, no new play session, no reload of
+        # the whole list. Skipped when a resume offset is requested (let the
+        # normal path honor it).
+        if (not payload.get("offset_ticks") and item_ids
+                and playerManager.try_skip_within_queue(
+                    item_ids, payload.get("start_index", 0))):
+            return
         client = clientManager.clients.get(payload.get("server_uuid"))
         if client is None:
             # Offline: play locally if the first item is downloaded.
@@ -532,6 +556,39 @@ class UserInterface(threading.Thread):
         except Exception:
             log.error("Failed to start playback from library browser",
                       exc_info=True)
+
+    # -- now-playing music bar controls (from the browser) ----------------
+
+    @staticmethod
+    def _player_action(fn):
+        """Run a player control off the browser, swallowing errors so a bad
+        message can't take down the UI thread."""
+        try:
+            from .player import playerManager
+            fn(playerManager)
+        except Exception:
+            log.error("Music-bar control failed", exc_info=True)
+
+    def on_playpause(self, _param):
+        self._player_action(lambda pm: pm.toggle_pause())
+
+    def on_play_next(self, _param):
+        self._player_action(lambda pm: pm.play_next())
+
+    def on_play_prev(self, _param):
+        self._player_action(lambda pm: pm.play_prev())
+
+    def on_seek_to(self, pos):
+        self._player_action(lambda pm: pm.seek(float(pos), absolute=True))
+
+    def on_set_volume(self, pct):
+        self._player_action(lambda pm: pm.set_volume(float(pct)))
+
+    def on_set_repeat(self, mode):
+        self._player_action(lambda pm: pm.set_repeat(mode))
+
+    def on_toggle_favorite(self, _param):
+        self._player_action(lambda pm: pm.toggle_current_favorite())
 
     def on_set_last_server(self, uuid):
         if settings.library_last_server != uuid:

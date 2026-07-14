@@ -303,8 +303,12 @@ class SyncManager:
         total = sum(self._source_size(i) for i in items)
         watched = sum(1 for i in items if (i.get("UserData") or {}).get("Played"))
         already = sum(1 for i in items if self.db.is_complete(i.get("Id")))
+        # Flag a music (audio-only) collection so the dialog can default to
+        # including "watched" (played) items — you don't skip played songs.
+        audio_only = bool(items) and all(i.get("Type") == "Audio" for i in items)
         return {"count": len(items), "total_bytes": total,
-                "watched_count": watched, "already_count": already}
+                "watched_count": watched, "already_count": already,
+                "audio_only": audio_only}
 
     def enqueue(self, server_uuid, item_id, item_type, include_watched=False):
         if self._relocating:
@@ -465,9 +469,10 @@ class SyncManager:
             if item_type == "Playlist":
                 res = api.get_playlist_items(item_id, fields="MediaSources")
                 items = (res or {}).get("Items", [])
-                # Playlists can mix in music/other entries; only download the
-                # types the browser surfaces (mirrors PLAYLIST_SUPPORTED_TYPES).
-                supported = {"Movie", "Episode", "Video"}
+                # Playlists can mix in other entries; only download the types
+                # the browser surfaces (mirrors PLAYLIST_SUPPORTED_TYPES).
+                # Audio is included so music playlists download as one unit.
+                supported = {"Movie", "Episode", "Video", "Audio"}
                 return [i for i in items if i.get("Type") in supported]
             item = api.get_item(item_id)
             return [item] if item else []

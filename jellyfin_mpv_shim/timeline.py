@@ -17,6 +17,10 @@ class TimelineManager(threading.Thread):
         self.halt = False
         self.trigger = threading.Event()
         self.is_idle = True
+        # Tracks whether we've already told the browser's music bar that
+        # playback stopped, so we push "stopped" once on the active→inactive
+        # edge (e.g. end of a queue) rather than every idle tick.
+        self._pushed_stopped = False
 
         threading.Thread.__init__(self)
 
@@ -34,10 +38,22 @@ class TimelineManager(threading.Thread):
             try:
                 if playerManager.is_active():
                     self.send_timeline()
+                    # Keep the browser's music bar position in sync between the
+                    # discrete state-change pushes (the bar interpolates locally
+                    # while playing).
+                    playerManager.push_playstate()
+                    # Persist volume changes (music bar or mpv keys) per type.
+                    playerManager._maybe_save_volume()
+                    self._pushed_stopped = False
                     if not settings.idle_when_paused or not playerManager.is_paused():
                         if self.is_idle and settings.idle_ended_cmd:
                             os.system(settings.idle_ended_cmd)
                         self.delay_idle()
+                if not playerManager.is_active() and not self._pushed_stopped:
+                    # Active→inactive edge (stop, or a queue that ran out):
+                    # hide the browser's music bar exactly once.
+                    playerManager.push_playstate(stopped=True)
+                    self._pushed_stopped = True
                 if (
                     self.idleTimer.elapsed() > settings.idle_cmd_delay
                     and not self.is_idle
