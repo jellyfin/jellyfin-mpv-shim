@@ -42,6 +42,12 @@ def _import_real_player():
     settings.discord_presence = False
     settings.check_updates = False
     settings.enable_osc = False
+    # Keep the OSC lua out of the in-process libmpv: these tests target the
+    # player state machine, and a loaded lua script makes libmpv's teardown
+    # at interpreter exit racy (rare SIGABRT/SIGSEGV after all tests pass).
+    # The OSC scripts get their own leg (test_jf_osc_script) that drives the
+    # external mpv binary instead.
+    settings.osc_style = "default"
     settings.fullscreen = False
     settings.mpv_ext = (h.BACKEND == "jsonipc")
     # import_player_with_fake_mpv sets this False on the SHARED settings
@@ -113,7 +119,11 @@ class RealVideo:
         self.audio_seq = {}
         self.subtitle_seq = {}
         self.subtitle_url = {}
+        self.subtitle_enc = set()
         self.played = []
+
+    def get_transcode_bitrate(self):
+        return "none"
 
     def get_current_intro(self, playback_time):
         return False, None               # no intro/credits segments

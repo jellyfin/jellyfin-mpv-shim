@@ -323,6 +323,7 @@ def import_player_with_fake_mpv():
     settings.svp_enable = False
     settings.discord_presence = False
     settings.enable_osc = False
+    settings.osc_style = "default"  # keep the OSC lua out of these legs
     settings.check_updates = False
 
     # Flip the import-time backend selector: player.py imports libmpv when
@@ -395,9 +396,14 @@ def build_player(player_module, video=None):
     pm._last_playback_position = 0
     pm._last_intro_msg_time = 0.0
 
+    pm.repeat_mode = "none"
+    pm._osc_script_loaded = False
+
     pm.menu = _FakeMenu()
     pm.syncplay = _FakeSyncplay()
     pm.update_check = _FakeUpdateCheck()
+    from jellyfin_mpv_shim.osc_bridge import OscBridge
+    pm.osc_bridge = OscBridge(pm)
     return pm
 
 
