@@ -2263,7 +2263,13 @@ end
 
 function shutdown()
     reset_margins()
-    mp.set_property("user-data/osc-margins", nil)
+    -- BEGIN patch (set_property(nil) errors on newer mpv)
+    if mp.del_property then
+        mp.del_property("user-data/osc-margins")
+    else
+        mp.set_property("user-data/osc-margins", "")
+    end
+    -- END patch
 end
 
 --
