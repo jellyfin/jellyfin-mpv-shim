@@ -1770,7 +1770,11 @@ class DetailView(_DetailRowsMixin, BaseView):
             self.sub_var = tk.StringVar()
             none_label = _("None")
             labels = [none_label]
-            self._sub_map[none_label] = None
+            # -1 = explicitly "no subtitles" (matches video.sid convention).
+            # None is reserved for "no picker shown" so gui_mgr can tell a
+            # deliberate choice apart from queue/playlist playback, where
+            # server defaults must still apply.
+            self._sub_map[none_label] = -1
             default_idx = default_sid
             default_label = none_label
             for s in subs:

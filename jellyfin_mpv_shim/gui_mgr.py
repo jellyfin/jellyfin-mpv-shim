@@ -549,9 +549,15 @@ class UserInterface(threading.Thread):
                 aid=payload.get("audio_index"),
                 sid=payload.get("subtitle_index"),
                 srcid=payload.get("media_source_id"),
-                # The browser's pickers already reflect language_config; the
-                # user's pick is final and must not be re-derived downstream.
-                explicit_tracks=True,
+                # The browser's pickers already reflect language_config, so a
+                # carried pick is final and must not be re-derived downstream.
+                # Playback started without pickers (playlists, shuffle, queue)
+                # sends both indexes as None — those items still need the
+                # language-config / server-default track selection, so they
+                # must NOT be marked explicit ("no subtitles" from a picker
+                # arrives as -1, not None).
+                explicit_tracks=(payload.get("audio_index") is not None
+                                 or payload.get("subtitle_index") is not None),
             )
         except Exception:
             log.error("Failed to start playback from library browser",
