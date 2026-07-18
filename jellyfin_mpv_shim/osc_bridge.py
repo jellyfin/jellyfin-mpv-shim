@@ -301,6 +301,13 @@ class OscBridge:
                 pm.put_task(pm.play_prev)
             elif verb == "skip-segment":
                 pm.put_task(pm.skip_intro)
+            elif verb == "set-fullscreen":
+                # The OSC already toggled mpv's fullscreen locally; this
+                # only records the user's intent so auto-fullscreen
+                # (fullscreen_disable) doesn't re-fullscreen the next
+                # episode. No state/timeline push is needed.
+                pm.put_task(pm.set_fullscreen, arg == "yes")
+                return
             elif verb == "screenshot":
                 pm.put_task(pm.screenshot)
             elif verb == "unwatched-quit":

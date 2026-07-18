@@ -151,6 +151,19 @@ local function jf_action(...)
     mp.commandv("script-message", "shim-jf-osc-action", ...)
 end
 
+-- Toggle fullscreen locally (so it still works without the shim, e.g.
+-- the osc-test harness) and tell the shim the new state. Without the
+-- notice the shim keeps thinking auto-fullscreen is still wanted and
+-- re-fullscreens on every episode change after the user has left it.
+-- (Read the property directly rather than state.fullscreen: this
+-- helper is defined before the `state` table, and the pre-toggle value
+-- is what determines the new state anyway.)
+local function jf_toggle_fullscreen()
+    local was_fs = mp.get_property_native("fullscreen")
+    mp.commandv("cycle", "fullscreen")
+    jf_action("set-fullscreen", was_fs and "no" or "yes")
+end
+
 -- Tell the Python side a seek is coming from the OSC's own controls
 -- (seekbar scrub, rewind/forward, chapter buttons): such seeks are
 -- exempt from seek-to-skip-intro. Throttled; the shim keeps the
@@ -1646,7 +1659,7 @@ function window_controls(topbar)
     ne.eventresponder["mbtn_left_up"] =
         function ()
             if state.fullscreen then
-                mp.commandv("cycle", "fullscreen")
+                jf_toggle_fullscreen()
             else
                 mp.commandv("cycle", "window-maximized")
             end
@@ -3239,8 +3252,7 @@ function osc_init()
             return ("\238\132\136")
         end
     end
-    ne.eventresponder["mbtn_left_up"] =
-        function () mp.commandv("cycle", "fullscreen") end
+    ne.eventresponder["mbtn_left_up"] = jf_toggle_fullscreen
 
     --seekbar
     ne = new_element("seekbar", "slider")
