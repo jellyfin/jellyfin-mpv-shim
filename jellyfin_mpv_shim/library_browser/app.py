@@ -851,9 +851,10 @@ class BrowserApp:
     def _refresh_user_switcher(self):
         users = self.users
         self._switcher_users = users
-        def label(u):
-            return ("\U0001F512 " if u.get("locked") else "") + u.get("name", "?")
-        self.user_box.config(values=[label(u) for u in users])
+        # A readonly ttk.Combobox holds plain strings -- no per-item images --
+        # so the lock icon used elsewhere can't ride along here. The name alone
+        # is fine: selecting a locked user still drops into the PIN prompt.
+        self.user_box.config(values=[u.get("name", "?") for u in users])
         # Only meaningful with more than one user and while we're online (a
         # switch reconnects servers).
         if len(users) > 1 and not self.is_offline:

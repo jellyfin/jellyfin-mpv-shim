@@ -2573,11 +2573,13 @@ class LoginView(BaseView):
             tk.Label(switch_row, text=_("Switch user:"), bg=CARD_BG,
                      fg=SUBTLE_FG).pack(side="left", padx=(0, 6))
             for u in others:
-                label = ("\U0001F512 " if u.get("locked") else "") + u["name"]
-                self.app.ttk.Button(
-                    switch_row, text=label,
-                    command=lambda usr=u: self.app.request_switch_user(usr)
-                    ).pack(side="left", padx=2)
+                btn = self.app.ttk.Button(
+                    switch_row, text=u["name"],
+                    command=lambda usr=u: self.app.request_switch_user(usr))
+                if u.get("locked"):
+                    btn.config(image=icons.get_photo("lock", 13, TEXT_FG),
+                               compound="left")
+                btn.pack(side="left", padx=2)
 
         tk.Label(wrap, text=_("Sign in to your Jellyfin server"), bg=CARD_BG,
                  fg=SUBTLE_FG).pack(pady=(0, 10))
@@ -2605,8 +2607,8 @@ class LockedView(BaseView):
                        if u["id"] == self.app.active_user_id), None)
         name = active["name"] if active else ""
 
-        tk.Label(wrap, text="\U0001F512", bg=CARD_BG, fg=TEXT_FG,
-                 font=("TkDefaultFont", 40)).pack()
+        tk.Label(wrap, image=icons.get_photo("lock", 48, TEXT_FG),
+                 bg=CARD_BG).pack()
         tk.Label(wrap, text=_("%s is locked") % name, bg=CARD_BG, fg=TEXT_FG,
                  font=("TkDefaultFont", 16, "bold")).pack(pady=(4, 10))
 
@@ -2625,10 +2627,13 @@ class LockedView(BaseView):
             tk.Label(wrap, text=_("or switch to another user:"), bg=CARD_BG,
                      fg=SUBTLE_FG).pack(pady=(12, 4))
             for u in others:
-                label = ("\U0001F512 " if u.get("locked") else "") + u["name"]
-                ttk.Button(wrap, text=label,
-                           command=lambda usr=u: self.app.request_switch_user(usr)
-                           ).pack(pady=2)
+                btn = ttk.Button(
+                    wrap, text=u["name"],
+                    command=lambda usr=u: self.app.request_switch_user(usr))
+                if u.get("locked"):
+                    btn.config(image=icons.get_photo("lock", 13, TEXT_FG),
+                               compound="left")
+                btn.pack(pady=2)
         try:
             entry.focus_set()
         except Exception:
@@ -2720,10 +2725,12 @@ class ServersPanel:
             is_active = u["id"] == self.app.active_user_id
             row = tk.Frame(body, bg=ENTRY_BG)
             row.pack(fill="x", padx=16, pady=3)
-            label = ("\U0001F512 " if u.get("locked") else "") + u.get("name", "?")
-            tk.Label(row, text=label, bg=ENTRY_BG, fg=TEXT_FG,
-                     font=("TkDefaultFont", 11, "bold")).pack(side="left", padx=8,
-                                                              pady=6)
+            name_lbl = tk.Label(row, text=u.get("name", "?"), bg=ENTRY_BG,
+                                fg=TEXT_FG, font=("TkDefaultFont", 11, "bold"))
+            if u.get("locked"):
+                name_lbl.config(image=icons.get_photo("lock", 14, TEXT_FG),
+                                compound="left")
+            name_lbl.pack(side="left", padx=8, pady=6)
             if is_active:
                 tk.Label(row, text=_("active"), bg=ENTRY_BG,
                          fg="#7bd88f").pack(side="left", padx=8)

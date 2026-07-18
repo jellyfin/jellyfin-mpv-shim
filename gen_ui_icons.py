@@ -70,6 +70,8 @@ ICON_NAMES = [
     "check",
     "music_note",
     "star",
+    # user state
+    "lock",
 ]
 
 SVG_URL = (
