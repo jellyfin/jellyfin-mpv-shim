@@ -63,13 +63,26 @@ class UpdateChecker:
             if not self.has_notified and settings.notify_updates:
                 self.has_notified = True
                 log.info("Update Available: {0}".format(self.new_version))
-                self.playerManager.show_text(
-                    _(
-                        "MPV Shim v{0} Update Available\nOpen menu (press c) for details."
-                    ).format(self.new_version),
-                    5000,
-                    1,
-                )
+                self.notify()
+
+    def notify(self):
+        """Surface the available update. When a UI is running (gui_mgr sets
+        ``notify_update``) the notice goes to the browser window; otherwise it
+        falls back to an MPV OSD toast for CLI/headless users."""
+        notify_ui = getattr(self.playerManager, "notify_update", None)
+        if notify_ui is not None:
+            try:
+                notify_ui(self.new_version, release_url + "latest")
+                return
+            except Exception:
+                log.error("Could not send update notice to the UI.", exc_info=True)
+        self.playerManager.show_text(
+            _(
+                "MPV Shim v{0} Update Available\nOpen menu (press c) for details."
+            ).format(self.new_version),
+            5000,
+            1,
+        )
 
     def open(self):
         self.playerManager.set_fullscreen(False)

@@ -234,6 +234,21 @@ class BrowserApp:
                    command=self._on_banner_retry).pack(
             side="right", padx=4, pady=2)
 
+        # Update-available banner. Shown only for GUI users — the main process
+        # routes the update notice here (via gui_mgr) instead of the MPV OSD;
+        # CLI/headless users still get the OSD toast.
+        self._update_url = None
+        self.update_banner = tk.Frame(self.root, bg="#123a2a")
+        self.update_banner_label = tk.Label(self.update_banner, text="",
+                                            bg="#123a2a", fg="#7fe0b0", anchor="w")
+        self.update_banner_label.pack(side="left", padx=12, pady=4)
+        ttk.Button(self.update_banner, text=_("Dismiss"),
+                   command=self._dismiss_update_banner).pack(
+            side="right", padx=(4, 8), pady=2)
+        ttk.Button(self.update_banner, text=_("View Release"),
+                   style="Accent.TButton",
+                   command=self._open_update_url).pack(side="right", padx=4, pady=2)
+
         self.content = tk.Frame(self.root, bg=CARD_BG)
         self.content.pack(fill="both", expand=True)
 
@@ -610,6 +625,28 @@ class BrowserApp:
     def _hide_banner(self):
         if self.banner.winfo_ismapped():
             self.banner.pack_forget()
+
+    def _show_update_banner(self, param):
+        version = param.get("version")
+        if not version:
+            return
+        self._update_url = param.get("url")
+        self.update_banner_label.config(
+            text=_("Update available: jellyfin-mpv-shim v%s") % version)
+        if not self.update_banner.winfo_ismapped():
+            self.update_banner.pack(fill="x", side="top", before=self.content)
+
+    def _dismiss_update_banner(self):
+        if self.update_banner.winfo_ismapped():
+            self.update_banner.pack_forget()
+
+    def _open_update_url(self):
+        import webbrowser
+        if self._update_url:
+            try:
+                webbrowser.open(self._update_url)
+            except Exception:
+                log.debug("Could not open update URL", exc_info=True)
 
     def _enter_offline(self, message=None):
         if self.catalog_path is None:
@@ -1483,6 +1520,8 @@ class BrowserApp:
             self._dispatch_view("on_download_progress", payload)
         elif cmd == "playstate":
             self._on_playstate(param or {})
+        elif cmd == "update_available":
+            self._show_update_banner(param or {})
         elif cmd == "open_queue_playlist":
             self._open_queue_playlist(param or {})
         elif cmd == "queue_data":

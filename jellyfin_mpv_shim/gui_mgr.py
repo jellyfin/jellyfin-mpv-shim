@@ -166,6 +166,9 @@ class UserInterface(threading.Thread):
         self._folder_move_active = False   # a download-folder move is in flight
         self._startup_locked = False       # active user needs a startup PIN
         self._switching = False            # a user switch is in flight
+        # Latest available-update notice (version, url), if any. Stashed so a
+        # browser launched (or relaunched) after the check still shows it.
+        self._pending_update = None
 
         threading.Thread.__init__(self)
 
@@ -330,6 +333,20 @@ class UserInterface(threading.Thread):
         from .player import playerManager
         self._player_mgr = playerManager
         playerManager.on_playstate = self._push_playstate
+        # Route update notices to the browser window instead of the MPV OSD.
+        playerManager.notify_update = self._on_update_available
+        # A check may have fired before this browser existed; re-show it now.
+        if self._pending_update is not None:
+            self._send_browser(("update_available", {
+                "version": self._pending_update[0],
+                "url": self._pending_update[1],
+            }))
+
+    def _on_update_available(self, version, url):
+        """Called by the update checker (main process) when a newer release is
+        found; forwards the notice to the browser's update banner."""
+        self._pending_update = (version, url)
+        self._send_browser(("update_available", {"version": version, "url": url}))
 
     def refresh_servers(self):
         if self.browser_process is not None and self.browser_process.is_alive():

@@ -452,6 +452,19 @@ class BrowserUITest(unittest.TestCase):
                 break
         return out
 
+    def test_update_banner_shows_and_dismisses(self):
+        app = self._build_app()
+        self.assertFalse(app.update_banner.winfo_ismapped())
+        app._handle_cmd("update_available",
+                        {"version": "2.9.0", "url": "https://example/latest"})
+        app.root.update_idletasks()
+        self.assertTrue(app.update_banner.winfo_ismapped())
+        self.assertIn("2.9.0", app.update_banner_label.cget("text"))
+        self.assertEqual(app._update_url, "https://example/latest")
+        app._dismiss_update_banner()
+        app.root.update_idletasks()
+        self.assertFalse(app.update_banner.winfo_ismapped())
+
     def test_user_switcher_hidden_with_one_user(self):
         app = self._build_app()  # no users option -> single implicit user
         self.assertFalse(app.user_box.winfo_ismapped())

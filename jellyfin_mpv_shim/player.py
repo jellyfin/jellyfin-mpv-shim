@@ -211,6 +211,10 @@ class PlayerManager(object):
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
         self.on_playstate = None
+        # Optional callback (set by gui_mgr) invoked (version, url) when an
+        # update is found, so the notice shows in the browser UI instead of on
+        # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
+        self.notify_update = None
         # Repeat mode for the music bar: "none" | "all" | "one".
         self.repeat_mode = "none"
         # Set once the async session_playing has opened the server session;

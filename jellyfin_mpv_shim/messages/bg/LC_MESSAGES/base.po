@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-18 18:34-0400\n"
+"POT-Creation-Date: 2026-07-18 18:57-0400\n"
 "PO-Revision-Date: 2026-04-29 16:08+0000\n"
 "Last-Translator: d0nizam <dzhaid.nizam@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -115,7 +115,7 @@ msgstr ""
 msgid "Quick Connect is not enabled on this server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:547 jellyfin_mpv_shim/gui_mgr.py:724
+#: jellyfin_mpv_shim/clients.py:547 jellyfin_mpv_shim/gui_mgr.py:741
 msgid "Could not start Quick Connect."
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr "Готов да предава"
 msgid "Select your media in Jellyfin and play it here."
 msgstr "Избери своята медия в Джелифин и я пусни тук"
 
-#: jellyfin_mpv_shim/gui_mgr.py:685
+#: jellyfin_mpv_shim/gui_mgr.py:702
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -139,78 +139,78 @@ msgstr ""
 "Не може да бъде добавен сървър.\n"
 "Моля,проверете информацията за връзката."
 
-#: jellyfin_mpv_shim/gui_mgr.py:741
+#: jellyfin_mpv_shim/gui_mgr.py:758
 msgid "Quick Connect was not authorized in time. Please try again."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:778 jellyfin_mpv_shim/users.py:316
+#: jellyfin_mpv_shim/gui_mgr.py:795 jellyfin_mpv_shim/users.py:316
 msgid "User not found."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:782 jellyfin_mpv_shim/gui_mgr.py:843
+#: jellyfin_mpv_shim/gui_mgr.py:799 jellyfin_mpv_shim/gui_mgr.py:860
 #: jellyfin_mpv_shim/library_browser/views.py:2648
 msgid "Incorrect PIN."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:791
+#: jellyfin_mpv_shim/gui_mgr.py:808
 msgid "Another user switch is already in progress."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:887
+#: jellyfin_mpv_shim/gui_mgr.py:904
 msgid "A download-folder change is already running."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:916
+#: jellyfin_mpv_shim/gui_mgr.py:933
 msgid ""
 "Download folder moved. Restart the app to finish switching to the new folder."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:924
+#: jellyfin_mpv_shim/gui_mgr.py:941
 msgid "Moving the downloads failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1079
+#: jellyfin_mpv_shim/gui_mgr.py:1096
 msgid "This needs a newer jellyfin-apiclient-python."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1082
+#: jellyfin_mpv_shim/gui_mgr.py:1099
 msgid "The change could not be applied."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1095 jellyfin_mpv_shim/gui_mgr.py:1139
+#: jellyfin_mpv_shim/gui_mgr.py:1112 jellyfin_mpv_shim/gui_mgr.py:1156
 msgid "Editing needs a server connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1114
+#: jellyfin_mpv_shim/gui_mgr.py:1131
 msgid "New Playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1152
+#: jellyfin_mpv_shim/gui_mgr.py:1169
 msgid "New Collection"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1318
+#: jellyfin_mpv_shim/gui_mgr.py:1335
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1319
-#: jellyfin_mpv_shim/library_browser/app.py:218
+#: jellyfin_mpv_shim/gui_mgr.py:1336
+#: jellyfin_mpv_shim/library_browser/app.py:229
 msgid "Configure Servers"
 msgstr "Конфигурирай сървъри"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1320
+#: jellyfin_mpv_shim/gui_mgr.py:1337
 msgid "Show Console"
 msgstr "Покажи конзола"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1321
+#: jellyfin_mpv_shim/gui_mgr.py:1338
 msgid "Application Menu"
 msgstr "Меню на приложението"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1322
+#: jellyfin_mpv_shim/gui_mgr.py:1339
 msgid "Open Config Folder"
 msgstr "Отвори папката с настройки"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1323
+#: jellyfin_mpv_shim/gui_mgr.py:1340
 msgid "Quit"
 msgstr "Излез"
 
@@ -235,84 +235,97 @@ msgstr "SVP Настройки"
 msgid "SyncPlay"
 msgstr "синхронизирано възпроизвеждане"
 
-#: jellyfin_mpv_shim/library_browser/app.py:205
+#: jellyfin_mpv_shim/library_browser/app.py:195
+#: jellyfin_mpv_shim/library_browser/app.py:199
 msgid "Search"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:222
+#: jellyfin_mpv_shim/library_browser/app.py:233
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
 msgstr "Повтори"
 
-#: jellyfin_mpv_shim/library_browser/app.py:236
+#: jellyfin_mpv_shim/library_browser/app.py:245
+msgid "Dismiss"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:248
+msgid "View Release"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:262
 msgid "View Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:364
+#: jellyfin_mpv_shim/library_browser/app.py:439
 msgid "Previous"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:365
+#: jellyfin_mpv_shim/library_browser/app.py:440
 msgid "Play / Pause"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:366
+#: jellyfin_mpv_shim/library_browser/app.py:441
 msgid "Next"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:367
+#: jellyfin_mpv_shim/library_browser/app.py:442
 msgid "Stop"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:368
+#: jellyfin_mpv_shim/library_browser/app.py:443
 msgid "Volume"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:369
+#: jellyfin_mpv_shim/library_browser/app.py:444
 msgid "Show queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:370
+#: jellyfin_mpv_shim/library_browser/app.py:445
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Add queue to playlist"
 msgstr "Отдалечен сървър"
 
-#: jellyfin_mpv_shim/library_browser/app.py:371
+#: jellyfin_mpv_shim/library_browser/app.py:446
 #: jellyfin_mpv_shim/library_browser/views.py:60
 msgid "Favorite"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:372
+#: jellyfin_mpv_shim/library_browser/app.py:447
 msgid "Repeat"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:568
+#: jellyfin_mpv_shim/library_browser/app.py:635
+msgid "Update available: jellyfin-mpv-shim v%s"
+msgstr ""
+
+#: jellyfin_mpv_shim/library_browser/app.py:665
 msgid "Offline — showing downloaded content."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:687
-#: jellyfin_mpv_shim/library_browser/app.py:720
+#: jellyfin_mpv_shim/library_browser/app.py:784
+#: jellyfin_mpv_shim/library_browser/app.py:817
 msgid "Server unreachable — showing downloads."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:692
+#: jellyfin_mpv_shim/library_browser/app.py:789
 msgid "Preparing…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:694
+#: jellyfin_mpv_shim/library_browser/app.py:791
 msgid "Downloading %(name)s%(pct)s — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:802
+#: jellyfin_mpv_shim/library_browser/app.py:903
 msgid "Enter PIN"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:803
+#: jellyfin_mpv_shim/library_browser/app.py:904
 msgid "Enter the PIN for %s."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:842
+#: jellyfin_mpv_shim/library_browser/app.py:943
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -322,23 +335,23 @@ msgstr ""
 "Не може да бъде добавен сървър.\n"
 "Моля,проверете информацията за връзката."
 
-#: jellyfin_mpv_shim/library_browser/app.py:1006
+#: jellyfin_mpv_shim/library_browser/app.py:1107
 msgid "Something went wrong rendering this screen."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1139
+#: jellyfin_mpv_shim/library_browser/app.py:1240
 msgid "SyncPlay needs a server connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1227
+#: jellyfin_mpv_shim/library_browser/app.py:1328
 msgid "Nothing is playing to add."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1229
+#: jellyfin_mpv_shim/library_browser/app.py:1330
 msgid "current queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1434
+#: jellyfin_mpv_shim/library_browser/app.py:1537
 msgid "The action could not be completed."
 msgstr ""
 
@@ -1815,27 +1828,27 @@ msgstr "\"Синхронизирано възпроизвеждане\" е вк�
 msgid "{0}'s Group"
 msgstr "Групата на {0}"
 
-#: jellyfin_mpv_shim/player.py:461
+#: jellyfin_mpv_shim/player.py:465
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:774
+#: jellyfin_mpv_shim/player.py:778
 msgid "Skipped Credits"
 msgstr "Пропуснати надписи"
 
-#: jellyfin_mpv_shim/player.py:776
+#: jellyfin_mpv_shim/player.py:780
 msgid "Skipped Intro"
 msgstr "Пропуснато въведение"
 
-#: jellyfin_mpv_shim/player.py:794
+#: jellyfin_mpv_shim/player.py:798
 msgid "Seek to Skip Credits"
 msgstr "Търсене за пропускане на надписите"
 
-#: jellyfin_mpv_shim/player.py:796
+#: jellyfin_mpv_shim/player.py:800
 msgid "Seek to Skip Intro"
 msgstr "Търсене за пропускане на въведението"
 
-#: jellyfin_mpv_shim/player.py:1022
+#: jellyfin_mpv_shim/player.py:1026
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -1844,11 +1857,11 @@ msgstr ""
 "Натиснете c, за да коригирате настройките на потока, ако това не е "
 "необходимо."
 
-#: jellyfin_mpv_shim/player.py:1217
+#: jellyfin_mpv_shim/player.py:1221
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1741
+#: jellyfin_mpv_shim/player.py:1745
 msgid "Season {0} - Episode {1}"
 msgstr "Сезон {0} - Епизод {1}"
 
@@ -1952,7 +1965,7 @@ msgstr "{0} напусна."
 msgid "{0} is buffering."
 msgstr "{0} се буферира."
 
-#: jellyfin_mpv_shim/update_check.py:67
+#: jellyfin_mpv_shim/update_check.py:80
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
