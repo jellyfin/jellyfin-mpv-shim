@@ -3160,7 +3160,8 @@ class DownloadsPanel:
 SETTINGS_SECTIONS = [
     (_("Interface"), ["player_name", "enable_gui", "start_minimized",
                       "close_to_tray", "fullscreen",
-                      "enable_osc", "raise_mpv", "check_updates", "notify_updates"]),
+                      "enable_osc", "osc_style", "raise_mpv",
+                      "check_updates", "notify_updates"]),
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
                      "playback_timeout"]),
@@ -3175,7 +3176,8 @@ SETTINGS_SECTIONS = [
                         "transcode_dolby_vision", "force_video_codec",
                         "force_audio_codec"]),
     (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
-                                 "skip_credits_enable", "skip_credits_always"]),
+                                 "skip_credits_enable", "skip_credits_always",
+                                 "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_page_size", "library_image_width",
                             "library_image_cache_mb"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded"]),
@@ -3191,6 +3193,7 @@ SETTINGS_LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "close_to_tray": _("Close to Tray (keep running)"),
+    "osc_style": _("Player Controls Style"),
 }
 
 SETTINGS_ENUMS = {
@@ -3201,6 +3204,11 @@ SETTINGS_ENUMS = {
 
 # Enums with friendly labels distinct from the stored value.
 SETTINGS_LABELED_ENUMS = {
+    "osc_style": [
+        (_("Jellyfin UI"), "jellyfin"),
+        (_("MPV UI with thumbnails"), "mpv"),
+        (_("MPV built-in default"), "default"),
+    ],
     "language_preference": [
         (_("Unset"), "unset"),
         (_("Dubbed (shows only)"), "dubbed_shows"),

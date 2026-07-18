@@ -174,8 +174,16 @@ class Settings(SettingsBase):
     skip_intro_enable: bool = True
     skip_credits_always: bool = False
     skip_credits_enable: bool = True
+    # Seeking forward during an intro/credits window skips the whole
+    # segment. Applies to keyboard/remote seeks; seeks made from the
+    # jellyfin OSC's seekbar never trigger it (it has its own button).
+    skip_intro_on_seek: bool = True
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
+    # In-player UI: "jellyfin" (jellyfin-web styled OSC), "mpv" (stock mpv
+    # OSC patched with trickplay previews), or "default" (whatever OSC is
+    # built into the mpv binary / the user's own scripts).
+    osc_style: str = "jellyfin"
     thumbnail_preferred_size: int = 320
     tls_client_cert: Optional[str] = None
     tls_client_key: Optional[str] = None

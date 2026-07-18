@@ -16,6 +16,7 @@ from .utils import synchronous, Timer, none_fallback, get_resource
 from .mpv_events import wait_property
 from .conf import settings
 from .menu import OSDMenu
+from .osc_bridge import OscBridge
 from .constants import APP_NAME
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
@@ -166,9 +167,14 @@ class PlayerManager(object):
         self.fullscreen_disable = False
         self.update_check = UpdateChecker(self)
         self.menu = None
+        self.osc_bridge = OscBridge(self)
         self.is_in_intro = False
         self.playback_time_before_seek = None
+        # time.time() of the last seek initiated from the jellyfin OSC's
+        # own controls (seekbar/buttons); such seeks never intro-skip.
+        self._last_ui_seek_time = 0.0
         self.trickplay = None
+        self._osc_script_loaded = False
         self._mpv_alive = False
         # True when mpv was terminated intentionally to save resources while
         # idle (mpv_idle_quit), as opposed to a crash / user-close. Lets the
@@ -285,6 +291,16 @@ class PlayerManager(object):
         scripts = []
         if settings.menu_mouse:
             scripts.append(get_resource("mouse.lua"))
+
+        # Which in-player UI to load: the jellyfin-styled OSC, the patched
+        # stock OSC (trickplay previews), or none (whatever the mpv binary
+        # ships / the user's own scripts).
+        osc_style = settings.osc_style
+        if osc_style == "jellyfin" and not settings.thumbnail_osc_builtin:
+            # Legacy opt-out: thumbnail_osc_builtin=False used to mean
+            # "don't replace my OSC" (e.g. users running uosc).
+            osc_style = "default"
+
         if settings.thumbnail_enable:
             try:
                 from .trickplay import TrickPlay
@@ -292,13 +308,20 @@ class PlayerManager(object):
                 self.trickplay = TrickPlay(self)
                 self.trickplay.start()
 
+                # Loaded regardless of OSC style: both shim OSCs consume
+                # it, and thumbfast-aware user OSCs (e.g. uosc) benefit
+                # under "default" too.
                 scripts.append(get_resource("thumbfast.lua"))
-                if settings.thumbnail_osc_builtin:
-                    scripts.append(get_resource("trickplay-osc.lua"))
-
             except Exception:
                 log.error("Could not enable trickplay.", exc_info=True)
 
+        self._osc_script_loaded = False
+        if osc_style == "jellyfin":
+            scripts.append(get_resource("trickplay-jf-osc.lua"))
+        elif osc_style == "mpv":
+            scripts.append(get_resource("trickplay-osc.lua"))
+        if osc_style in ("jellyfin", "mpv"):
+            self._osc_script_loaded = True
             mpv_options["osc"] = False
 
         # ensure standard mpv configuration directories and files exist
@@ -359,9 +382,9 @@ class PlayerManager(object):
                 log.error("Could not register Discord join callback.", exc_info=True)
 
         if hasattr(self._player, "osc"):
-            # Ensure the built-in OSC is disabled when using trickplay-osc,
-            # even if the user's mpv.conf has osc=yes.
-            if settings.thumbnail_enable and self.trickplay:
+            # Ensure the built-in OSC stays disabled when a shim OSC script
+            # is loaded, even if the user's mpv.conf has osc=yes.
+            if self._osc_script_loaded:
                 self._player.osc = False
             self.enable_osc(settings.enable_osc)
         else:
@@ -416,7 +439,7 @@ class PlayerManager(object):
         @self._player.on_key_press("XF86_NEXT")
         def handle_media_next():
             if settings.media_key_seek:
-                if self.is_in_intro:
+                if self.is_in_intro and settings.skip_intro_on_seek:
                     self.skip_intro()
                 else:
                     _x, seektime = self.get_seek_times()
@@ -466,7 +489,7 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action("right")
             else:
-                if self.is_in_intro:
+                if self.is_in_intro and settings.skip_intro_on_seek:
                     self.skip_intro()
                 else:
                     self.kb_seek("right")
@@ -476,7 +499,7 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action("up")
             else:
-                if self.is_in_intro:
+                if self.is_in_intro and settings.skip_intro_on_seek:
                     self.skip_intro()
                 else:
                     self.kb_seek("up")
@@ -544,9 +567,14 @@ class PlayerManager(object):
                 # Seeking started - store current position
                 self.playback_time_before_seek = self._player.playback_time
             else:
-                # Seeking ended - check if we should skip intro
+                # Seeking ended - check if we should skip intro. Seeks made
+                # from the jellyfin OSC's own controls are exempt (it has an
+                # explicit skip button; scrubbing must not warp to the end
+                # of the intro), and the whole behavior is a setting.
                 if (
-                    self.is_in_intro
+                    settings.skip_intro_on_seek
+                    and time.time() - self._last_ui_seek_time > 2.0
+                    and self.is_in_intro
                     and self.playback_time_before_seek is not None
                     and self._player.playback_time is not None
                     and self._player.playback_time > self.playback_time_before_seek
@@ -635,6 +663,12 @@ class PlayerManager(object):
                     self.menu.mouse_select(int(args[1]))
                 elif args[0] == "shim-menu-click":
                     self.menu.menu_action("ok")
+                elif args[0] == "shim-jf-osc-action":
+                    self.osc_bridge.handle_action(args[1:])
+                elif args[0] == "shim-jf-osc-ui-seek":
+                    # The OSC is about to seek from its own controls;
+                    # exempt the next couple of seconds from seek-to-skip.
+                    self._last_ui_seek_time = time.time()
                 elif args[0] == "shim-close":
                     log.info("Received shim-close message")
                     if self._video and not self._player.playback_abort:
@@ -718,6 +752,11 @@ class PlayerManager(object):
                     self._player.playback_time
                 )
 
+                # With the jellyfin OSC, "ask" mode shows a floating Skip
+                # Intro/Credits button instead of the seek-to-skip OSD
+                # text prompt.
+                jf_skip_button = self.osc_bridge.active()
+
                 if intro is not None:
                     should_prompt = (
                         intro.type != "Outro" and settings.skip_intro_enable
@@ -741,7 +780,11 @@ class PlayerManager(object):
                         )
                         self._last_intro_msg_time = time.time()
 
-                    if (
+                    if jf_skip_button:
+                        self.osc_bridge.update_skip_button(
+                            intro if should_prompt and not should_skip else None
+                        )
+                    elif (
                         not self.is_in_intro
                         and should_prompt
                         and time.time() - self._last_intro_msg_time > 3
@@ -758,6 +801,8 @@ class PlayerManager(object):
                         self._last_intro_msg_time = time.time()
                     self.is_in_intro = True
                 else:
+                    if jf_skip_button:
+                        self.osc_bridge.update_skip_button(None)
                     self.is_in_intro = False
         except _mpv_errors:
             self._handle_mpv_disconnect()
@@ -933,6 +978,8 @@ class PlayerManager(object):
             self.send_timeline_initial()
         else:
             self.send_timeline()
+
+        self.osc_bridge.send_state()
 
         if self.syncplay.is_enabled():
             self.set_speed(1)
@@ -1466,6 +1513,9 @@ class PlayerManager(object):
             self.configure_streams()
         # Remember the user's manual choice for subsequent episodes.
         self._capture_track_memory(self._video)
+        # Keep the jellyfin OSC's menus in sync no matter who changed the
+        # tracks (OSC itself, the c menu, or a remote client).
+        self.osc_bridge.send_state()
         self.timeline_handle()
 
     @synchronous("_lock")
@@ -2047,7 +2097,8 @@ class PlayerManager(object):
         if not self._mpv_alive:
             return
         try:
-            if settings.thumbnail_enable and self.trickplay:
+            if self._osc_script_loaded:
+                # Both shim OSC scripts register the osc-visibility message.
                 self.script_message(
                     "osc-visibility", "auto" if enabled else "never", "False"
                 )

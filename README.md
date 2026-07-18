@@ -259,6 +259,13 @@ You can use the config file to enable and disable features.
 - `close_to_tray` - When enabled, closing the library-browser window hides it to the system tray (keeping the app running as a cast target); when disabled, closing exits. The first time you close the window you're asked which you prefer, and the answer is stored here. Default: `true`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
+- `osc_style` - Which on-screen controller to use. Default: `jellyfin`
+  - `jellyfin` - A player UI styled after jellyfin-web, with popup menus for
+    subtitles (including external and burn-in streams), audio, transcode
+    quality, playback speed, aspect ratio, shader profiles, and SyncPlay.
+  - `mpv` - The stock mpv controls, patched with trickplay preview support.
+  - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
+    Thumbnail data is still published for thumbfast-aware OSCs like uosc.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `display_mirroring` - Enable display mirroring (content preview window). Default: `false`
@@ -378,7 +385,7 @@ overriding the default MPV OSC, which may conflict with some custom user script.
 with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua).
 
 - `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
-- `thumbnail_osc_builtin` - Disable this setting if you want to use your own custom osc but leave trickplay enabled. (Default: `true`)
+- `thumbnail_osc_builtin` - Legacy alias: disabling this behaves like `osc_style: default` (use your own OSC but leave trickplay enabled). Prefer `osc_style`. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
 
 ### SVP Integration
@@ -460,9 +467,16 @@ Other miscellaneous configuration options. You probably won't have to change the
 It works the same ways as it did on MPV Shim for Plex. Now uses the MediaSegments API!
 
 - `skip_intro_always` - Always skip intros, without asking. Default: `false`
-- `skip_intro_enable` - Prompt to skip intro via seeking. Default: `true`
+- `skip_intro_enable` - Offer to skip intros. With the Jellyfin player UI
+  (`osc_style: jellyfin`) this shows a floating "Skip Intro" button during the
+  intro; with other UIs it shows the classic seek-to-skip prompt. Default: `true`
 - `skip_credits_always` - Always skip credits, without asking. Default: `false`
-- `skip_credits_enable` - Prompt to skip credits via seeking. Default: `true`
+- `skip_credits_enable` - Offer to skip credits (same behavior as
+  `skip_intro_enable`). Default: `true`
+- `skip_intro_on_seek` - Seeking forward during an intro/credits window skips
+  the whole segment. Applies to keyboard and remote seeks only; scrubbing or
+  seeking from the Jellyfin player UI never triggers it (use its Skip button).
+  Default: `true`
 
 ### Language Config (Power User)
 
