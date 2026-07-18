@@ -169,6 +169,7 @@ class UserInterface(threading.Thread):
         # Latest available-update notice (version, url), if any. Stashed so a
         # browser launched (or relaunched) after the check still shows it.
         self._pending_update = None
+        self._update_check_started = False  # startup update check fired once
 
         threading.Thread.__init__(self)
 
@@ -341,6 +342,15 @@ class UserInterface(threading.Thread):
                 "version": self._pending_update[0],
                 "url": self._pending_update[1],
             }))
+        # The player only checks for updates when something starts playing; for
+        # GUI users, also check at startup so the banner shows without needing
+        # to play first. Runs once per process (the checker throttles anyway),
+        # off-thread since it does a network request.
+        if not self._update_check_started:
+            self._update_check_started = True
+            threading.Thread(
+                target=playerManager.update_check.check, daemon=True,
+                name="update-check").start()
 
     def _on_update_available(self, version, url):
         """Called by the update checker (main process) when a newer release is

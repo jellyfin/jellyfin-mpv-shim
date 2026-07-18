@@ -45,7 +45,7 @@ class UpdateChecker:
                     break
             except Exception:
                 log.error("Could not check for updates.", exc_info=True)
-            return self.new_version is not None
+        return self.new_version is not None
 
     def check(self):
         if not settings.check_updates:
