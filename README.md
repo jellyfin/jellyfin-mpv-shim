@@ -61,10 +61,6 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 ### Known Issues
 
-Please also note that the on-screen controller for MPV (if available) cannot change the
-audio and subtitle track configurations for transcoded media. It also cannot load external
-subtitles. You must either [use the menu](https://github.com/jellyfin/jellyfin-mpv-shim#menu) or the application you casted from.
-
 Please note the following issues with controlling SyncPlay:
 
 - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
@@ -82,6 +78,8 @@ If you find the solution for your case, *please* send me any information you can
 ## Advanced Features
 
 ### Menu
+
+Most advanced features are now accessible via normal exposed UI via the Jellyfin custom MPV OSC.
 
 To open the menu, press **c** on your computer or use the navigation controls
 in the mobile/web app.
