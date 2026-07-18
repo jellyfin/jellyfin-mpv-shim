@@ -40,6 +40,16 @@ def apply_dark_theme(root, ttk):
                           ("disabled", "#212327")],
               foreground=[("disabled", "#5d6168")])
 
+    # Compact top-bar (chrome) buttons: tighter padding than the default so the
+    # nav row stays slim; they collapse to icon-only on a narrow window.
+    style.configure("Chrome.TButton", background=BUTTON_BG, foreground=TEXT_FG,
+                    bordercolor=BORDER, relief="flat", padding=(6, 3),
+                    focuscolor=CARD_BG)
+    style.map("Chrome.TButton",
+              background=[("pressed", ACCENT), ("active", BUTTON_ACTIVE),
+                          ("disabled", "#212327")],
+              foreground=[("disabled", "#5d6168")])
+
     # Accent (primary action) button variant.
     style.configure("Accent.TButton", background=ACCENT, foreground="#ffffff",
                     relief="flat", padding=(14, 6))

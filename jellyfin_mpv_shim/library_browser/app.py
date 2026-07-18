@@ -18,8 +18,12 @@ from .repository import (LibrarySource, OfflineLibrarySource, PLAYABLE_TYPES,
                          SERIES_TYPES, FOLDER_TYPES)
 from .thumbnails import ThumbnailStore
 from .views import VIEW_TYPES
+from . import icons
 from .theme import (apply_dark_theme, WINDOW_BG, CARD_BG, PANEL_BG, SUBTLE_FG,
                     TEXT_FG, ACCENT)
+
+# Heart red for the "favorited" state, matching the OSC's favorite tint.
+FAV_RED = "#e0264b"
 
 log = logging.getLogger("library_browser.app")
 
@@ -40,6 +44,8 @@ class BrowserApp:
         self._closing = False
 
         self.root = tk.Tk()
+        # Bind rasterized icons to this window's interpreter (see icons.set_root).
+        icons.set_root(self.root)
         self.root.title(USER_APP_NAME)
         self.root.geometry("1180x760")
         self.root.minsize(720, 480)
@@ -155,21 +161,48 @@ class BrowserApp:
         bar = tk.Frame(self.root, bg=WINDOW_BG)
         bar.pack(fill="x", side="top")
 
-        self.back_btn = ttk.Button(bar, text=_("◀ Back"), command=self.go_back,
-                                   width=8)
+        # Chrome nav buttons. Each carries a Material icon plus a text label;
+        # on a narrow window they collapse to icon-only (see _relayout_chrome),
+        # so a tooltip is attached to keep them discoverable either way.
+        self._chrome_btns = []
+        self.back_btn = self._chrome_button(bar, "back", _("Back"), self.go_back)
         self.back_btn.pack(side="left", padx=(8, 2), pady=6)
-        ttk.Button(bar, text=_("🏠 Home"), width=8,
-                   command=lambda: self.navigate({"kind": "home"}, reset=True)).pack(
+        self._chrome_button(
+            bar, "home", _("Home"),
+            lambda: self.navigate({"kind": "home"}, reset=True)).pack(
             side="left", padx=2, pady=6)
-        ttk.Button(bar, text=_("⚙ Settings"), width=10,
-                   command=lambda: self.navigate({"kind": "settings"})).pack(
+        self._chrome_button(
+            bar, "settings", _("Settings"),
+            lambda: self.navigate({"kind": "settings"})).pack(
             side="left", padx=2, pady=6)
-        ttk.Button(bar, text=_("SyncPlay"), width=9,
-                   command=self.open_syncplay).pack(side="left", padx=2, pady=6)
+        self._chrome_button(
+            bar, "groups", _("SyncPlay"), self.open_syncplay).pack(
+            side="left", padx=2, pady=6)
+
+        # Search on the right. Built (and packed) before the switchers so it
+        # keeps its parcel when the bar gets crowded — the switchers yield space
+        # instead of the search box. On a narrow window it collapses to an
+        # icon-only button that expands on click (see _relayout_topbar).
+        self.search_frame = tk.Frame(bar, bg=WINDOW_BG)
+        self.search_frame.pack(side="right", padx=8, pady=6)
+        self.search_var = tk.StringVar()
+        self._search_entry = ttk.Entry(self.search_frame,
+                                       textvariable=self.search_var, width=24)
+        self._search_entry.pack(side="left")
+        self._search_entry.bind("<Return>", lambda _e: self._on_search_submit())
+        self._search_entry.bind("<FocusOut>", self._on_search_focus_out)
+        self._search_btn = self.ttk.Button(
+            self.search_frame, text=_("Search"),
+            image=icons.get_photo("search", 16, TEXT_FG), compound="left",
+            style="Chrome.TButton", command=self._on_search_click)
+        self._search_btn.pack(side="left", padx=(4, 0))
+        self._attach_tooltip(self._search_btn, _("Search"))
+        self._search_expanded = False
 
         # User + server switchers share a frame so the user selector always sits
         # to the left of the server selector. Each is hidden when there's only
-        # one option (one user / one server).
+        # one option (one user / one server). Packed after search (above), so
+        # search wins the space contest on a crowded bar.
         self.switch_frame = tk.Frame(bar, bg=WINDOW_BG)
         self.switch_frame.pack(side="left")
 
@@ -182,16 +215,6 @@ class BrowserApp:
         self.server_box = ttk.Combobox(self.switch_frame, textvariable=self.server_var,
                                        state="readonly", width=22)
         self.server_box.bind("<<ComboboxSelected>>", self._on_server_change)
-
-        # Search on the right.
-        search_frame = tk.Frame(bar, bg=WINDOW_BG)
-        search_frame.pack(side="right", padx=8, pady=6)
-        self.search_var = tk.StringVar()
-        entry = ttk.Entry(search_frame, textvariable=self.search_var, width=28)
-        entry.pack(side="left")
-        entry.bind("<Return>", lambda _e: self._do_search())
-        ttk.Button(search_frame, text=_("Search"), command=self._do_search).pack(
-            side="left", padx=(4, 0))
 
         self.topbar = bar
 
@@ -217,7 +240,9 @@ class BrowserApp:
         # Persistent download status bar (shown only while downloads are active).
         self.statusbar = tk.Frame(self.root, bg=PANEL_BG)
         self.status_label = tk.Label(self.statusbar, text="", bg=PANEL_BG,
-                                     fg=TEXT_FG, anchor="w")
+                                     fg=TEXT_FG, anchor="w",
+                                     image=icons.get_photo("download", 14, TEXT_FG),
+                                     compound="left", padx=6)
         self.status_label.pack(side="left", padx=12, pady=5)
         ttk.Button(self.statusbar, text=_("View Downloads"),
                    command=lambda: self.navigate(
@@ -225,6 +250,84 @@ class BrowserApp:
             side="right", padx=8, pady=4)
 
         self._build_playbar()
+
+        # Collapse the chrome labels to icons when the window gets narrow.
+        self._chrome_compact = False
+        self.root.bind("<Configure>", self._on_root_configure, add="+")
+
+    def _chrome_button(self, bar, icon, label, command):
+        """A compact top-bar button (icon + label) that can collapse to
+        icon-only. Registered for the responsive relayout and given a tooltip
+        so it stays discoverable once the label is hidden."""
+        photo = icons.get_photo(icon, 16, TEXT_FG)
+        btn = self.ttk.Button(bar, text=label, image=photo, compound="left",
+                              style="Chrome.TButton", command=command)
+        self._chrome_btns.append((btn, label))
+        self._attach_tooltip(btn, label)
+        return btn
+
+    def _on_root_configure(self, event):
+        # This fires for child widgets too; only the top-level size matters.
+        if event.widget is self.root:
+            self._relayout_topbar(event.width)
+
+    def _relayout_topbar(self, width=None):
+        """Collapse the chrome labels and the search box to icon-only when the
+        bar is narrow. The threshold rises when the user/server switchers are
+        shown, since they claim width the search box would otherwise need — this
+        is what keeps the search box usable once a switcher appears."""
+        if width is None:
+            width = self.root.winfo_width()
+        if width <= 1:
+            return  # not mapped yet; a <Configure> will follow
+        threshold = 820
+        if getattr(self, "server_box", None) and self.server_box.winfo_ismapped():
+            threshold += 180
+        if getattr(self, "user_box", None) and self.user_box.winfo_ismapped():
+            threshold += 160
+        compact = width < threshold
+        if compact == self._chrome_compact:
+            return
+        self._chrome_compact = compact
+        # compound="image" shows the icon only (text is kept but hidden), so
+        # there's no label text to stash and restore.
+        for btn, _label in self._chrome_btns:
+            btn.config(compound="image" if compact else "left")
+        self._set_search_compact(compact)
+
+    def _set_search_compact(self, compact):
+        if compact:
+            self._search_btn.config(compound="image")
+            if not self._search_expanded:
+                self._search_entry.pack_forget()
+        else:
+            self._search_expanded = False
+            self._search_btn.config(compound="left")
+            self._search_entry.config(width=24)
+            if not self._search_entry.winfo_ismapped():
+                self._search_entry.pack(side="left", before=self._search_btn)
+
+    def _on_search_click(self):
+        # Collapsed (icon-only) search reveals the entry on the first click;
+        # otherwise the button submits the current term.
+        if self._chrome_compact and not self._search_expanded:
+            self._search_expanded = True
+            self._search_entry.config(width=18)
+            self._search_entry.pack(side="left", before=self._search_btn)
+            self._search_entry.focus_set()
+        else:
+            self._on_search_submit()
+
+    def _on_search_submit(self):
+        self._do_search()
+        if self._chrome_compact:  # re-collapse after searching from the icon
+            self._search_expanded = False
+            self._search_entry.pack_forget()
+
+    def _on_search_focus_out(self, _event):
+        if self._chrome_compact and self._search_expanded:
+            self._search_expanded = False
+            self._search_entry.pack_forget()
 
     # -- now-playing music bar --------------------------------------------
 
@@ -243,38 +346,49 @@ class BrowserApp:
         bar = tk.Frame(self.root, bg=PANEL_BG)
         self.playbar = bar
 
+        sz = 18  # transport glyph size
         transport = tk.Frame(bar, bg=PANEL_BG)
         transport.pack(side="left", padx=(10, 6), pady=4)
-        prev_btn = ttk.Button(transport, text="⏮", width=3,
+        prev_btn = ttk.Button(transport,
+                              image=icons.get_photo("skip_previous", sz, TEXT_FG),
                               style="Playbar.TButton",
                               command=lambda: self._send_r("play_prev"))
         prev_btn.pack(side="left", padx=2)
         self._pb_playpause = ttk.Button(
-            transport, text="⏸", width=3, style="Playbar.TButton",
+            transport, image=icons.get_photo("pause", sz, TEXT_FG),
+            style="Playbar.TButton",
             command=lambda: self._send_r("playpause"))
         self._pb_playpause.pack(side="left", padx=2)
-        next_btn = ttk.Button(transport, text="⏭", width=3,
+        next_btn = ttk.Button(transport,
+                              image=icons.get_photo("skip_next", sz, TEXT_FG),
                               style="Playbar.TButton",
                               command=lambda: self._send_r("play_next"))
         next_btn.pack(side="left", padx=2)
-        stop_btn = ttk.Button(transport, text="⏹", width=3,
+        stop_btn = ttk.Button(transport,
+                              image=icons.get_photo("stop", sz, TEXT_FG),
                               style="Playbar.TButton",
                               command=lambda: self._send_r("stop_playback"))
         stop_btn.pack(side="left", padx=2)
 
         # Right-side controls (packed right-to-left).
-        self._pb_repeat = ttk.Button(bar, text="🔁", width=3,
+        self._pb_repeat = ttk.Button(bar,
+                                     image=icons.get_photo("repeat", sz, TEXT_FG),
                                      style="Playbar.TButton",
                                      command=self._cycle_repeat)
         self._pb_repeat.pack(side="right", padx=(2, 10))
-        self._pb_fav = ttk.Button(bar, text="♡", width=3,
-                                  style="Playbar.TButton",
-                                  command=lambda: self._send_r("toggle_favorite"))
+        self._pb_fav = ttk.Button(
+            bar, image=icons.get_photo("favorite_off", sz, TEXT_FG),
+            style="Playbar.TButton",
+            command=lambda: self._send_r("toggle_favorite"))
         self._pb_fav.pack(side="right", padx=2)
-        addq_btn = ttk.Button(bar, text="➕", width=3, style="Playbar.TButton",
+        addq_btn = ttk.Button(bar,
+                              image=icons.get_photo("playlist_add", sz, TEXT_FG),
+                              style="Playbar.TButton",
                               command=lambda: self._send_r("queue_to_playlist"))
         addq_btn.pack(side="right", padx=2)
-        queue_btn = ttk.Button(bar, text="☰", width=3, style="Playbar.TButton",
+        queue_btn = ttk.Button(bar,
+                               image=icons.get_photo("queue", sz, TEXT_FG),
+                               style="Playbar.TButton",
                                command=lambda: self.navigate({"kind": "queue"}))
         queue_btn.pack(side="right", padx=2)
         self._pb_vol = ttk.Scale(bar, from_=0, to=100, length=90,
@@ -286,8 +400,8 @@ class BrowserApp:
         self._pb_vol.bind("<Button-1>", self._on_vol_scrub)
         self._pb_vol.bind("<B1-Motion>", self._on_vol_scrub)
         self._pb_vol.bind("<ButtonRelease-1>", self._on_volume_release)
-        tk.Label(bar, text="🔊", bg=PANEL_BG, fg=SUBTLE_FG).pack(
-            side="right", padx=(8, 0))
+        tk.Label(bar, image=icons.get_photo("volume_up", 16, SUBTLE_FG),
+                 bg=PANEL_BG).pack(side="right", padx=(8, 0))
 
         # Center: title + scrubber + times fill the remaining width.
         self._pb_title = tk.Label(bar, text="", bg=PANEL_BG, fg=TEXT_FG,
@@ -409,12 +523,16 @@ class BrowserApp:
         title, artist = st.get("title", ""), st.get("artist", "")
         self._pb_title.config(text=("%s — %s" % (title, artist)) if artist
                               else title)
-        self._pb_playpause.config(text="▶" if st.get("paused") else "⏸")
-        self._pb_fav.config(text="♥" if st.get("favorite") else "♡")
-        self._pb_repeat.config(
-            text="🔂" if st.get("repeat") == "one" else "🔁",
-            style=("PlaybarOn.TButton" if st.get("repeat") in ("all", "one")
-                   else "Playbar.TButton"))
+        self._pb_playpause.config(image=icons.get_photo(
+            "play_arrow" if st.get("paused") else "pause", 18, TEXT_FG))
+        fav = st.get("favorite")
+        self._pb_fav.config(image=icons.get_photo(
+            "favorite" if fav else "favorite_off", 18,
+            FAV_RED if fav else TEXT_FG))
+        rep_on = st.get("repeat") in ("all", "one")
+        self._pb_repeat.config(image=icons.get_photo(
+            "repeat_one" if st.get("repeat") == "one" else "repeat", 18,
+            ACCENT if rep_on else TEXT_FG))
         self._pb_dur_lbl.config(text=self._fmt_time(self._pb_dur))
         self._pb_sync = True
         try:
@@ -633,7 +751,7 @@ class BrowserApp:
         if self.sync_active and self.sync_active > 0:
             name = self.sync_downloading or _("Preparing…")
             pct = (" %d%%" % self._dl_percent) if self._dl_percent is not None else ""
-            self.status_label.config(text=_("⬇ Downloading %(name)s%(pct)s "
+            self.status_label.config(text=_("Downloading %(name)s%(pct)s "
                                             "— %(n)d remaining") % {
                 "name": name, "pct": pct, "n": self.sync_active})
             if not self.statusbar.winfo_ismapped():
@@ -678,6 +796,8 @@ class BrowserApp:
             self.server_box.pack(side="left", padx=8, pady=6)
         else:
             self.server_box.pack_forget()
+        # Switcher visibility feeds the collapse threshold; re-evaluate now.
+        self._relayout_topbar()
 
     def _on_server_change(self, _e):
         idx = self.server_box.current()
@@ -715,6 +835,8 @@ class BrowserApp:
                     self.user_box.pack(side="left", padx=8, pady=6)
         else:
             self.user_box.pack_forget()
+        # Switcher visibility feeds the collapse threshold; re-evaluate now.
+        self._relayout_topbar()
 
     def _select_active_user_in_box(self):
         idx = next((i for i, u in enumerate(self._switcher_users)

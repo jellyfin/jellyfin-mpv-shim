@@ -18,12 +18,49 @@ from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
 from .repository import PLAYLIST_SUPPORTED_TYPES
 from .theme import (CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG,
                     ACCENT)
+from . import icons
 from .widgets import (
     ScrollableGrid, HScrollRow, VScrollFrame, format_ticks, make_key, human_size,
     is_watched, TrackRow,
 )
 
 log = logging.getLogger("library_browser.views")
+
+# Heart red for the "favorited" state, matching the OSC and the music bar.
+FAV_RED = "#e0264b"
+
+# Icon tint for buttons drawn with the Accent (primary) style, whose
+# foreground text is white.
+ACCENT_FG = "#ffffff"
+
+# Reorder-button icons (move to top / up one / down one / to bottom).
+_MOVE_TOP = "move_top"
+_MOVE_UP = "move_up"
+_MOVE_DOWN = "move_down"
+_MOVE_BOTTOM = "move_bottom"
+
+
+def icon_button(app, parent, icon, label, command, accent=False, size=16, **kw):
+    """A ``ttk.Button`` with a Material icon left of its text label.
+
+    Replaces the emoji-glyph-prefixed labels the browser used to use, which
+    rendered inconsistently across platforms. ``accent`` selects the primary
+    (white-on-accent) style and tints the icon to match.
+    """
+    style = kw.pop("style", "Accent.TButton" if accent else "TButton")
+    color = ACCENT_FG if style == "Accent.TButton" else TEXT_FG
+    return app.ttk.Button(
+        parent, text=label, image=icons.get_photo(icon, size, color),
+        compound="left", style=style, command=command, **kw)
+
+
+def fav_button_config(btn, favorited, size=16):
+    """Set a button's label + heart icon for the favorited/not state."""
+    btn.config(
+        text=_("Unfavorite") if favorited else _("Favorite"),
+        image=icons.get_photo("favorite" if favorited else "favorite_off",
+                              size, FAV_RED if favorited else TEXT_FG),
+        compound="left")
 
 HEADER_H = 260
 HEADER_W = 1100
@@ -431,8 +468,8 @@ class GridView(BaseView):
         self._year_box.pack(side="left")
         self._year_box.bind("<<ComboboxSelected>>",
                             lambda _e: self._on_filter_change())
-        ttk.Button(fbar, text=_("🔀 Shuffle"),
-                   command=self._shuffle).pack(side="right")
+        icon_button(self.app, fbar, "shuffle", _("Shuffle"),
+                    self._shuffle).pack(side="right")
 
         abar = tk.Frame(self.frame, bg=CARD_BG)
         abar.pack(fill="x", padx=8, pady=(0, 2))
@@ -691,13 +728,13 @@ class SeriesView(_DetailRowsMixin, BaseView):
                 build_media_header(self.app, body, item)
                 actions = self.app.tk.Frame(body, bg=CARD_BG)
                 actions.pack(fill="x", padx=16, pady=(10, 0))
-                self.app.ttk.Button(
-                    actions, text=_("▶ Play Next Up"), style="Accent.TButton",
-                    command=lambda: self.app.play_next_up(sid)).pack(side="left")
-                self.app.ttk.Button(
-                    actions, text=_("🔀 Shuffle"),
-                    command=lambda: self._shuffle(sid)).pack(side="left",
-                                                             padx=8)
+                icon_button(
+                    self.app, actions, "play", _("Play Next Up"),
+                    lambda: self.app.play_next_up(sid), accent=True).pack(
+                    side="left")
+                icon_button(
+                    self.app, actions, "shuffle", _("Shuffle"),
+                    lambda: self._shuffle(sid)).pack(side="left", padx=8)
                 wlabel = (_("Mark unwatched") if is_watched(item)
                           else _("Mark watched"))
                 self.app.ttk.Button(
@@ -708,8 +745,9 @@ class SeriesView(_DetailRowsMixin, BaseView):
                 self._fav_state = bool(
                     (item.get("UserData") or {}).get("IsFavorite"))
                 self._fav_btn = self.app.ttk.Button(
-                    actions, text=self._fav_label(),
+                    actions, compound="left",
                     command=lambda: self._toggle_favorite(sid))
+                fav_button_config(self._fav_btn, self._fav_state)
                 self._fav_btn.pack(side="left")
                 self._item = item
                 self._actions = actions
@@ -759,27 +797,22 @@ class SeriesView(_DetailRowsMixin, BaseView):
 
         self.run_async(work, done, lambda _e: None)
 
-    def _fav_label(self):
-        return (_("♥ Unfavorite") if getattr(self, "_fav_state", False)
-                else _("♡ Favorite"))
-
     def _toggle_favorite(self, sid):
         self._fav_state = not self._fav_state
         self.app.set_favorite(self.app.current_server, sid, self._fav_state)
         if self._item is not None:
             self._item.setdefault("UserData", {})["IsFavorite"] = self._fav_state
-        self._fav_btn.config(text=self._fav_label())
+        fav_button_config(self._fav_btn, self._fav_state)
 
     def _make_download_button(self, actions, sid, item):
-        ttk = self.app.ttk
         if sid in self.app.sync_series:
-            btn = ttk.Button(actions, text=_("🗑 Remove downloads"),
-                             command=lambda: self.app.delete_download(series_id=sid))
+            btn = icon_button(self.app, actions, "delete", _("Remove downloads"),
+                              lambda: self.app.delete_download(series_id=sid))
         else:
-            btn = ttk.Button(actions, text=_("⬇ Download Series"),
-                             command=lambda: self.app.open_download_dialog(
-                                 self.app.current_server, sid, "Series",
-                                 item.get("Name", "")))
+            btn = icon_button(self.app, actions, "download", _("Download Series"),
+                              lambda: self.app.open_download_dialog(
+                                  self.app.current_server, sid, "Series",
+                                  item.get("Name", "")))
         btn.pack(side="left", padx=8)
         return btn
 
@@ -823,14 +856,15 @@ class SeasonView(BaseView):
 
         bar = tk.Frame(self.frame, bg=CARD_BG)
         bar.pack(fill="x", padx=8, pady=4)
-        ttk.Button(bar, text=_("◀ %s") % self.route.get("series_title", _("Series")),
-                   command=self._to_series).pack(side="left")
-        ttk.Button(bar, text=_("▶ Play Next Up"), style="Accent.TButton",
-                   command=self._play_next_up).pack(side="left", padx=12)
-        ttk.Button(bar, text=_("⬇ Download Season"),
-                   command=lambda: self.app.open_download_dialog(
-                       self.app.current_server, self.route["season_id"], "Season",
-                       self.route.get("title", ""))).pack(side="left")
+        icon_button(self.app, bar, "back",
+                    self.route.get("series_title", _("Series")),
+                    self._to_series).pack(side="left")
+        icon_button(self.app, bar, "play", _("Play Next Up"),
+                    self._play_next_up, accent=True).pack(side="left", padx=12)
+        icon_button(self.app, bar, "download", _("Download Season"),
+                    lambda: self.app.open_download_dialog(
+                        self.app.current_server, self.route["season_id"], "Season",
+                        self.route.get("title", ""))).pack(side="left")
         self.watched_btn = ttk.Button(bar, text=_("Mark watched"),
                                       command=self._toggle_season_watched)
         self.watched_btn.pack(side="left", padx=8)
@@ -968,22 +1002,22 @@ class PlaylistView(BaseView):
             # Now that there's playable content, offer Play All plus a
             # download/delete action, packed left of the title (like the season
             # view). Offline you can't download — offer to remove the downloads.
-            ttk.Button(self.bar, text=_("▶ Play All"), style="Accent.TButton",
-                       command=lambda: self._play_from(0)).pack(
-                           side="left", before=self._title)
-            ttk.Button(self.bar, text=_("🔀 Shuffle"),
-                       command=self._shuffle).pack(
-                           side="left", padx=(4, 0), before=self._title)
+            icon_button(self.app, self.bar, "play", _("Play All"),
+                        lambda: self._play_from(0), accent=True).pack(
+                            side="left", before=self._title)
+            icon_button(self.app, self.bar, "shuffle", _("Shuffle"),
+                        self._shuffle).pack(
+                            side="left", padx=(4, 0), before=self._title)
             if self.app.is_offline:
-                ttk.Button(self.bar, text=_("🗑 Delete Downloads"),
-                           command=self._delete_downloads).pack(
-                               side="left", padx=12, before=self._title)
+                icon_button(self.app, self.bar, "delete", _("Delete Downloads"),
+                            self._delete_downloads).pack(
+                                side="left", padx=12, before=self._title)
             else:
-                ttk.Button(self.bar, text=_("⬇ Download Playlist"),
-                           command=lambda: self.app.open_download_dialog(
-                               server, pid, "Playlist",
-                               self.route.get("title", ""))).pack(
-                                   side="left", padx=12, before=self._title)
+                icon_button(self.app, self.bar, "download", _("Download Playlist"),
+                            lambda: self.app.open_download_dialog(
+                                server, pid, "Playlist",
+                                self.route.get("title", ""))).pack(
+                                    side="left", padx=12, before=self._title)
             self._add_edit_button(pid)
 
             # A playlist that contains ANY music renders as a music playlist —
@@ -1052,14 +1086,14 @@ class PlaylistView(BaseView):
         self._play_from(self._index_of(item))
 
     def _add_edit_button(self, pid):
-        """Add the ✏ Edit action to the bar, when the server exposes the
+        """Add the Edit action to the bar, when the server exposes the
         playlist-edit APIs and we're online. Editing works on all entries
         regardless of type, so it's offered even when nothing is playable."""
         if self.app.is_offline or not getattr(self.app, "edit_apis", False):
             return
-        self.app.ttk.Button(
-            self.bar, text=_("✏ Edit"),
-            command=lambda: self.app.navigate(
+        icon_button(
+            self.app, self.bar, "edit", _("Edit"),
+            lambda: self.app.navigate(
                 {"kind": "playlist_edit", "playlist_id": pid,
                  "title": self.route.get("title", "")})).pack(
                      side="right", padx=8)
@@ -1144,8 +1178,8 @@ class PlaylistEditView(BaseView):
         self._title_lbl.pack(side="left", padx=4)
         ttk.Button(bar, text=_("Done"), style="Accent.TButton",
                    command=self.app.go_back).pack(side="right")
-        ttk.Button(bar, text=_("✎ Rename"),
-                   command=self._rename).pack(side="right", padx=(0, 6))
+        icon_button(self.app, bar, "rename", _("Rename"),
+                    self._rename).pack(side="right", padx=(0, 6))
         # Visibility mirrors the playlist's OpenAccess. Start disabled and only
         # enable once the real value has loaded, so a toggle can never send a
         # change derived from the default rather than the server's state.
@@ -1155,19 +1189,19 @@ class PlaylistEditView(BaseView):
             command=self._toggle_public)
         self._public_chk.state(["disabled"])
         self._public_chk.pack(side="right", padx=(0, 12))
-        ttk.Button(bar, text=_("🗑 Delete playlist"),
-                   command=self._delete).pack(side="right", padx=(0, 12))
+        icon_button(self.app, bar, "delete", _("Delete playlist"),
+                    self._delete).pack(side="right", padx=(0, 12))
 
         tools = tk.Frame(self.frame, bg=CARD_BG)
         tools.pack(fill="x", padx=8, pady=(0, 4))
-        for label, cmd in ((_("⏫ Top"), self._move_top),
-                           (_("🔼 Up"), self._move_up),
-                           (_("🔽 Down"), self._move_down),
-                           (_("⏬ Bottom"), self._move_bottom)):
-            ttk.Button(tools, text=label, command=cmd).pack(side="left",
-                                                            padx=(0, 4))
-        ttk.Button(tools, text=_("🗑 Remove selected"),
-                   command=self._remove_selected).pack(side="left", padx=12)
+        for icon, label, cmd in ((_MOVE_TOP, _("Top"), self._move_top),
+                                 (_MOVE_UP, _("Up"), self._move_up),
+                                 (_MOVE_DOWN, _("Down"), self._move_down),
+                                 (_MOVE_BOTTOM, _("Bottom"), self._move_bottom)):
+            icon_button(self.app, tools, icon, label, cmd).pack(side="left",
+                                                                padx=(0, 4))
+        icon_button(self.app, tools, "delete", _("Remove selected"),
+                    self._remove_selected).pack(side="left", padx=12)
         tk.Label(tools, text=_("Shift/Ctrl-click to select multiple"),
                  bg=CARD_BG, fg=SUBTLE_FG).pack(side="right")
 
@@ -1716,9 +1750,8 @@ class DetailView(_DetailRowsMixin, BaseView):
                 })
 
             try:
-                self.app.ttk.Button(self._actions_row, text=_("🎬 Trailer"),
-                                    command=play_trailer).pack(side="left",
-                                                               padx=8)
+                icon_button(self.app, self._actions_row, "trailer", _("Trailer"),
+                            play_trailer).pack(side="left", padx=8)
             except Exception:
                 pass  # actions row already torn down
 
@@ -1801,8 +1834,8 @@ class DetailView(_DetailRowsMixin, BaseView):
             ttk.Button(row, text=_("Play from start"),
                        command=lambda: self._play(0)).pack(side="left", padx=8)
         else:
-            ttk.Button(row, text=_("▶ Play"), style="Accent.TButton",
-                       command=lambda: self._play(0)).pack(side="left")
+            icon_button(self.app, row, "play", _("Play"),
+                        lambda: self._play(0), accent=True).pack(side="left")
 
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             ttk.Button(row, text=_("Go to Series"),
@@ -1815,34 +1848,31 @@ class DetailView(_DetailRowsMixin, BaseView):
                        refresh=True)).pack(side="left", padx=8)
 
         self._fav_state = bool((item.get("UserData") or {}).get("IsFavorite"))
-        self._fav_btn = ttk.Button(row, text=self._fav_label(),
+        self._fav_btn = ttk.Button(row, compound="left",
                                    command=self._toggle_favorite)
+        fav_button_config(self._fav_btn, self._fav_state)
         self._fav_btn.pack(side="left", padx=8)
 
         self._actions_row = row
         self._download_btn = self._make_download_button(row, item)
-
-    def _fav_label(self):
-        return _("♥ Unfavorite") if self._fav_state else _("♡ Favorite")
 
     def _toggle_favorite(self):
         self._fav_state = not self._fav_state
         self.app.set_favorite(self.app.current_server, self.item["Id"],
                               self._fav_state)
         self.item.setdefault("UserData", {})["IsFavorite"] = self._fav_state
-        self._fav_btn.config(text=self._fav_label())
+        fav_button_config(self._fav_btn, self._fav_state)
 
     def _make_download_button(self, row, item):
-        ttk = self.app.ttk
         if self.app.is_downloaded(item):
-            btn = ttk.Button(row, text=_("🗑 Remove download"),
-                             command=lambda: self.app.delete_download(
-                                 item_id=item["Id"]))
+            btn = icon_button(self.app, row, "delete", _("Remove download"),
+                              lambda: self.app.delete_download(
+                                  item_id=item["Id"]))
         else:
-            btn = ttk.Button(row, text=_("⬇ Download"),
-                             command=lambda: self.app.open_download_dialog(
-                                 self.app.current_server, item["Id"],
-                                 item.get("Type"), item.get("Name", "")))
+            btn = icon_button(self.app, row, "download", _("Download"),
+                              lambda: self.app.open_download_dialog(
+                                  self.app.current_server, item["Id"],
+                                  item.get("Type"), item.get("Name", "")))
         btn.pack(side="right")
         return btn
 
@@ -3756,18 +3786,18 @@ class _MusicActionsMixin:
     play a MusicAlbum/MusicArtist id directly — only Audio tracks)."""
 
     def _music_actions(self, parent, seed_id):
-        tk, ttk = self.app.tk, self.app.ttk
+        tk = self.app.tk
         bar = tk.Frame(parent, bg=CARD_BG)
         bar.pack(fill="x", padx=16, pady=(10, 2))
-        ttk.Button(bar, text=_("▶ Play"), style="Accent.TButton",
-                   command=lambda: self._play_tracks()).pack(side="left")
-        ttk.Button(bar, text=_("🔀 Shuffle"),
-                   command=lambda: self._play_tracks(shuffle=True)).pack(
-                       side="left", padx=8)
-        ttk.Button(bar, text=_("➕ Add to Queue"),
-                   command=self._queue_tracks).pack(side="left", padx=(0, 8))
-        ttk.Button(bar, text=_("📻 Instant Mix"),
-                   command=lambda: self._instant_mix(seed_id)).pack(side="left")
+        icon_button(self.app, bar, "play", _("Play"),
+                    lambda: self._play_tracks(), accent=True).pack(side="left")
+        icon_button(self.app, bar, "shuffle", _("Shuffle"),
+                    lambda: self._play_tracks(shuffle=True)).pack(
+                        side="left", padx=8)
+        icon_button(self.app, bar, "add_to_queue", _("Add to Queue"),
+                    self._queue_tracks).pack(side="left", padx=(0, 8))
+        icon_button(self.app, bar, "instant_mix", _("Instant Mix"),
+                    lambda: self._instant_mix(seed_id)).pack(side="left")
         return bar
 
     def _play_tracks(self, shuffle=False):
@@ -3962,14 +3992,14 @@ class QueueView(BaseView):
 
         tools = tk.Frame(self.frame, bg=CARD_BG)
         tools.pack(fill="x", padx=8, pady=(0, 4))
-        for label, cmd in ((_("⏫ Top"), self._move_top),
-                           (_("🔼 Up"), self._move_up),
-                           (_("🔽 Down"), self._move_down),
-                           (_("⏬ Bottom"), self._move_bottom)):
-            ttk.Button(tools, text=label, command=cmd).pack(side="left",
-                                                            padx=(0, 4))
-        ttk.Button(tools, text=_("🗑 Remove"), command=self._remove).pack(
-            side="left", padx=12)
+        for icon, label, cmd in ((_MOVE_TOP, _("Top"), self._move_top),
+                                 (_MOVE_UP, _("Up"), self._move_up),
+                                 (_MOVE_DOWN, _("Down"), self._move_down),
+                                 (_MOVE_BOTTOM, _("Bottom"), self._move_bottom)):
+            icon_button(self.app, tools, icon, label, cmd).pack(side="left",
+                                                                padx=(0, 4))
+        icon_button(self.app, tools, "delete", _("Remove"),
+                    self._remove).pack(side="left", padx=12)
         tk.Label(tools, text=_("Shift/Ctrl-click to select multiple · "
                                "double-click to jump"),
                  bg=CARD_BG, fg=SUBTLE_FG).pack(side="right")

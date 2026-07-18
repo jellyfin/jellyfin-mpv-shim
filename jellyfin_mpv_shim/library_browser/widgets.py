@@ -19,6 +19,7 @@ import logging
 
 from ..i18n import _
 from .thumbnails import make_key
+from . import icons
 from .theme import (
     CARD_BG, PLACEHOLDER_BG, TEXT_FG, SUBTLE_FG, ACCENT, BUTTON_BG,
 )
@@ -88,10 +89,10 @@ def item_subtitle(item):
 class NavButton:
     """A small square, solid carousel nav button (overlaid on the row edge)."""
 
-    def __init__(self, parent, app, glyph, command, size=38):
+    def __init__(self, parent, app, icon, command, size=38):
         tk = app.tk
         self._s = size
-        self._glyph = glyph
+        self._icon = icons.get_photo(icon, max(16, size // 2), "#ffffff")
         self._command = command
         self._repeat_after = None
         self.c = tk.Canvas(parent, width=size, height=size, highlightthickness=0,
@@ -128,8 +129,7 @@ class NavButton:
         s = self._s
         self.c.delete("all")
         self.c.create_rectangle(0, 0, s, s, fill=fill, outline="#101216")
-        self.c.create_text(s // 2, s // 2 - 1, text=self._glyph, fill="#ffffff",
-                           font=("TkDefaultFont", 15, "bold"))
+        self.c.create_image(s // 2, s // 2, image=self._icon)
 
     def place(self, **kw):
         self.c.place(**kw)
@@ -165,13 +165,17 @@ class MediaTile:
         # never looks broken. Removed in _set_image once real art arrives.
         itype = item.get("Type")
         if itype in ("Audio", "MusicAlbum", "MusicArtist"):
-            glyph = "♪"  # ♪
+            # A muted Material music-note icon (sized to the tile).
+            self.canvas.create_image(
+                w // 2, h // 2,
+                image=icons.get_photo("music_note", max(24, h // 3), SUBTLE_FG),
+                tags=("placeholder",))
         else:
             name = (item.get("Name") or "").strip()
             glyph = name[0].upper() if name else "?"
-        self.canvas.create_text(
-            w // 2, h // 2, text=glyph, fill=SUBTLE_FG,
-            font=("TkDefaultFont", max(16, h // 4)), tags=("placeholder",))
+            self.canvas.create_text(
+                w // 2, h // 2, text=glyph, fill=SUBTLE_FG,
+                font=("TkDefaultFont", max(16, h // 4)), tags=("placeholder",))
 
         pct = played_percent(item)
         if pct:
@@ -184,14 +188,9 @@ class MediaTile:
             cx, cy = w - 17, 17
             self.canvas.create_oval(cx - 11, cy - 11, cx + 11, cy + 11, fill=ACCENT,
                                     outline="#101216", tags="overlay")
-            # Draw the download arrow as one filled polygon (shaft + head). The ⬇
-            # glyph (U+2B07) renders as tofu in the canvas font on Windows, and a
-            # stroked line + arrowhead lands the head off the even-width shaft on
-            # GDI. A polygon symmetric about cx scan-converts centered everywhere.
-            self.canvas.create_polygon(
-                cx - 1.5, cy - 7, cx + 1.5, cy - 7, cx + 1.5, cy + 1,
-                cx + 6, cy + 1, cx, cy + 7, cx - 5, cy + 1, cx - 1.5, cy + 1,
-                fill="#ffffff", outline="", tags="overlay")
+            self.canvas.create_image(
+                cx, cy, image=icons.get_photo("download", 16, "#ffffff"),
+                tags="overlay")
         self._draw_watched_badge()
 
         self.title = tk.Label(self.frame, text=item.get("Name", ""), bg=CARD_BG,
@@ -217,9 +216,9 @@ class MediaTile:
             return
         self.canvas.create_oval(6, 6, 28, 28, fill=ACCENT, outline="#101216",
                                 tags=("overlay", "watched"))
-        self.canvas.create_text(17, 17, text="✓", fill="#ffffff",
-                                font=("TkDefaultFont", 10, "bold"),
-                                tags=("overlay", "watched"))
+        self.canvas.create_image(17, 17,
+                                 image=icons.get_photo("check", 16, "#ffffff"),
+                                 tags=("overlay", "watched"))
 
     def _show_context_menu(self, event):
         itype = self.item.get("Type")
@@ -386,9 +385,10 @@ class TrackRow(MediaTile):
         self.canvas = tk.Canvas(self.frame, width=w, height=h, bg=PLACEHOLDER_BG,
                                 highlightthickness=0, bd=0)
         self.canvas.pack(side="left", padx=(8, 10), pady=3)
-        self.canvas.create_text(w // 2, h // 2, text="♪", fill=SUBTLE_FG,
-                                font=("TkDefaultFont", max(10, h // 3)),
-                                tags=("placeholder",))
+        self.canvas.create_image(
+            w // 2, h // 2,
+            image=icons.get_photo("music_note", max(16, h // 2), SUBTLE_FG),
+            tags=("placeholder",))
         if subtitle:  # playlist position, right-aligned like a track number
             tk.Label(self.frame, text=subtitle, bg=CARD_BG, fg=SUBTLE_FG,
                      width=3, anchor="e").pack(side="left", padx=(0, 8))
@@ -695,8 +695,8 @@ class HScrollRow:
 
         # Square nav buttons overlaid on the row edges (created after the canvas
         # so they stack above it).
-        self.left = NavButton(self.body, app, "‹", lambda: self._page(-1))
-        self.right = NavButton(self.body, app, "›", lambda: self._page(1))
+        self.left = NavButton(self.body, app, "page_left", lambda: self._page(-1))
+        self.right = NavButton(self.body, app, "page_right", lambda: self._page(1))
 
     def widget(self):
         return self.outer
