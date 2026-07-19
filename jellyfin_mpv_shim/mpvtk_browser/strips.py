@@ -70,8 +70,11 @@ class TileGeom:
         return self.tile_h + self.caption_h
 
 
-# A landscape variant for episode/chapter thumbs (16:9-ish).
-WIDE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)
+# Tile shapes, matching the Tk browser's poster_box/thumb_box/square_box.
+POSTER_GEOM = TileGeom(tile_w=150, tile_h=225, caption_h=46)        # 2:3
+LANDSCAPE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)     # 16:9
+SQUARE_GEOM = TileGeom(tile_w=170, tile_h=170, caption_h=44)        # 1:1
+WIDE_GEOM = LANDSCAPE_GEOM  # backwards-compatible alias
 
 
 @dataclass
@@ -81,7 +84,8 @@ class Tile:
     cache key. ``poster`` is a decoded PIL image (any size; centered and
     letterboxed into the tile) or None for a placeholder. ``poster_tag``
     identifies the poster's content for cache keying ("" when absent, so
-    the strip recomposites when the real poster lands)."""
+    the strip recomposites when the real poster lands). ``glyph`` is the
+    placeholder character drawn when there's no poster (initial / ♪)."""
 
     key: str
     title: str = ""
@@ -91,6 +95,8 @@ class Tile:
     watched: bool = False
     badge: int = 0
     progress: float = 0.0
+    downloaded: bool = False
+    glyph: str = ""
 
 
 class StripStore:
@@ -116,29 +122,32 @@ class StripStore:
             bool(t.watched),
             int(t.badge),
             round(float(t.progress), 2),
+            bool(t.downloaded),
+            t.glyph if t.poster is None else "",
         )
 
-    def _geom_key(self):
-        g = self.geom
+    @staticmethod
+    def _geom_key(g):
         return (g.tile_w, g.tile_h, g.gap, g.caption_h,
                 g.title_size, g.sub_size, g.badge_size)
 
     # -- public -----------------------------------------------------------
 
-    def strip(self, tiles):
-        """Composite ``tiles`` into one strip. Returns
-        ``{"src", "iw", "ih", "regions"}`` where each region is
-        ``{"x", "y", "w", "h", "key"}`` in image-local coords (the view
-        wraps these with on_click/on_context/id)."""
+    def strip(self, tiles, geom=None):
+        """Composite ``tiles`` into one strip (in ``geom``'s shape, default
+        the store's). Returns ``{"src", "iw", "ih", "regions"}`` where each
+        region is ``{"x", "y", "w", "h", "key"}`` in image-local coords (the
+        view wraps these with on_click/on_context/id)."""
+        g = geom or self.geom
         tiles = list(tiles)
-        key = (self._geom_key(), tuple(self._tile_key(t) for t in tiles))
+        key = (self._geom_key(g), tuple(self._tile_key(t) for t in tiles))
         hit = self._cache.get(key)
         if hit is not None:
             self._cache.move_to_end(key)
             self.hits += 1
             return hit
         self.misses += 1
-        entry = self._compose(tiles)
+        entry = self._compose(tiles, g)
         self._cache[key] = entry
         self._evict()
         return entry
@@ -168,10 +177,9 @@ class StripStore:
 
     # -- compositing ------------------------------------------------------
 
-    def _compose(self, tiles):
+    def _compose(self, tiles, g):
         from PIL import Image as PILImage, ImageDraw
 
-        g = self.geom
         n = len(tiles)
         iw = n * g.tile_w + (n - 1) * g.gap if n else 1
         img = PILImage.new("RGBA", (iw, g.strip_h), (0, 0, 0, 0))
@@ -179,19 +187,18 @@ class StripStore:
         regions = []
         for col, t in enumerate(tiles):
             x = col * (g.tile_w + g.gap)
-            self._paint_poster(img, dr, x, t)
-            self._paint_decorations(dr, x, t)
-            self._paint_caption(dr, x, t)
+            self._paint_poster(img, dr, x, t, g)
+            self._paint_decorations(dr, x, t, g)
+            self._paint_caption(dr, x, t, g)
             regions.append(
                 {"x": x, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
             )
         src, iw2, ih2 = self._store(img)
         return {"src": src, "iw": iw2, "ih": ih2, "regions": regions}
 
-    def _paint_poster(self, img, dr, x, t):
+    def _paint_poster(self, img, dr, x, t, g):
         from PIL import Image as PILImage
 
-        g = self.geom
         # Opaque card behind the poster (letterbox fill for odd aspects).
         dr.rectangle(
             [x, 0, x + g.tile_w - 1, g.tile_h - 1],
@@ -206,19 +213,36 @@ class StripStore:
             px = x + (g.tile_w - poster.width) // 2
             py = (g.tile_h - poster.height) // 2
             img.paste(poster, (px, py))
+        elif t.glyph:
+            # A muted centered glyph (first initial / ♪) so blank tiles read.
+            gsize = max(24, g.tile_h // 4)
+            dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
+                    font=_font(gsize, bold=True), anchor="mm",
+                    fill=theme.rgb(theme.SUBTLE_FG))
         dr.rectangle(
             [x, 0, x + g.tile_w - 1, g.tile_h - 1],
             outline=theme.rgb("101012", 255),
         )
 
-    def _paint_decorations(self, dr, x, t):
-        g = self.geom
+    def _paint_decorations(self, dr, x, t, g):
         if t.watched:
-            dr.ellipse([x + 6, 6, x + 26, 26],
-                       fill=theme.rgb(theme.WATCHED_GREEN, 255))
-            dr.line([(x + 11, 16), (x + 15, 20), (x + 21, 11)],
+            dr.ellipse([x + 6, 6, x + 28, 28],
+                       fill=theme.rgb(theme.ACCENT, 255))
+            dr.line([(x + 12, 17), (x + 16, 22), (x + 23, 12)],
                     fill=(255, 255, 255, 255), width=2)
-        if t.badge:
+        # Top-right corner: downloaded badge takes priority over the
+        # unplayed-count badge (they rarely coexist).
+        if t.downloaded:
+            cx, cy = x + g.tile_w - 17, 17
+            dr.ellipse([cx - 11, cy - 11, cx + 11, cy + 11],
+                       fill=theme.rgb(theme.ACCENT, 255))
+            dr.line([(cx, cy - 5), (cx, cy + 4)],
+                    fill=(255, 255, 255, 255), width=2)
+            dr.line([(cx - 4, cy), (cx, cy + 4), (cx + 4, cy)],
+                    fill=(255, 255, 255, 255), width=2)
+            dr.line([(cx - 5, cy + 7), (cx + 5, cy + 7)],
+                    fill=(255, 255, 255, 255), width=2)
+        elif t.badge:
             bw = 26
             dr.rounded_rectangle(
                 [x + g.tile_w - bw - 5, 5, x + g.tile_w - 5, 25],
@@ -237,8 +261,7 @@ class StripStore:
                 fill=theme.rgb(theme.ACCENT, 255),
             )
 
-    def _paint_caption(self, dr, x, t):
-        g = self.geom
+    def _paint_caption(self, dr, x, t, g):
         if t.title:
             title = self._ellipsize(dr, t.title, _font(g.title_size), g.tile_w)
             dr.text((x, g.tile_h + 6), title, font=_font(g.title_size),

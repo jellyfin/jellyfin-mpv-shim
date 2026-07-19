@@ -279,6 +279,14 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk download enqueue failed", exc_info=True)
 
+    def downloaded_ids(self):
+        from ..sync.manager import syncManager
+        try:
+            return (set(syncManager.downloaded_item_ids()),
+                    set(syncManager.downloaded_series_ids()))
+        except Exception:
+            return (set(), set())
+
 
 class UserInterface:
     def __init__(self):

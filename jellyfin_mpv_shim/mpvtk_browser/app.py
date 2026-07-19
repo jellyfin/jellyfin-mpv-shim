@@ -42,7 +42,14 @@ from ..mpvtk.widgets import (
 )
 from . import theme
 from .repository import FOLDER_TYPES, PLAYABLE_TYPES, SERIES_TYPES
-from .strips import StripStore, Tile, TileGeom
+from .strips import (
+    LANDSCAPE_GEOM,
+    POSTER_GEOM,
+    SQUARE_GEOM,
+    StripStore,
+    Tile,
+    TileGeom,
+)
 from .thumbnails import make_key
 
 log = logging.getLogger("mpvtk_browser.app")
@@ -86,7 +93,12 @@ class MpvtkBrowser:
         # Startup-PIN lock screen state.
         self._pin = {"pin": ""}
         self._pin_error = None
-        self.geom = geom or TileGeom()
+        self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
+        self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
+        self.geom_square = SQUARE_GEOM        # 1:1 (music)
+        # Downloaded id sets (for the tile badge), refreshed from the sync db.
+        self._downloaded = set()
+        self._downloaded_series = set()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
         self.strips = strips or StripStore(
@@ -335,18 +347,39 @@ class MpvtkBrowser:
                 key, url, box, lambda im, k=key: self._posters.__setitem__(k, im))
         return img
 
-    def _poster_for(self, item):
+    def _poster_for(self, item, geom, image_type="Primary"):
         """Return (PIL image or None, cache tag). Requests the poster once
         if absent; the strip recomposites when it arrives (tag changes)."""
-        spec = self.source.image_spec(item, "Primary", self.geom.tile_w)
+        spec = self.source.image_spec(item, image_type, geom.tile_w)
         if not spec or self.server is None:
             return None, ""
         item_id, itype, itag = spec
-        key = make_key(item_id, itype, itag, self.geom.tile_w)
-        box = (self.geom.tile_w, self.geom.tile_h)
+        w, h = geom.tile_w, geom.tile_h
+        key = make_key(item_id, itype, itag, w, h)
         url = self.source.image_url(self.server, item_id, itype, itag,
-                                    self.geom.tile_w, self.geom.tile_h, fill=True)
-        return self._request_image(key, url, box), key
+                                    w, h, fill=True)
+        return self._request_image(key, url, (w, h)), key
+
+    def _is_watched(self, item):
+        ud = item.get("UserData") or {}
+        if ud.get("Played"):
+            return True
+        if item.get("Type") in ("Series", "Season"):
+            return (ud.get("UnplayedItemCount") or 0) == 0
+        return False
+
+    def _is_downloaded(self, item):
+        if item.get("Id") in self._downloaded:
+            return True
+        return (item.get("Type") == "Series"
+                and item.get("Id") in self._downloaded_series)
+
+    @staticmethod
+    def _glyph(item):
+        if item.get("Type") in ("Audio", "MusicAlbum", "MusicArtist"):
+            return "♪"  # ♪
+        name = (item.get("Name") or "").strip()
+        return name[0].upper() if name else "?"
 
     def _backdrop_node(self, item, box, node_id):
         """A backdrop Image node for detail/series headers, or a placeholder
@@ -366,25 +399,28 @@ class MpvtkBrowser:
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
 
-    def _tile(self, item):
+    def _tile(self, item, geom, image_type="Primary"):
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
         rt = item.get("RunTimeTicks") or 0
-        poster, tag = self._poster_for(item)
+        poster, tag = self._poster_for(item, geom, image_type)
         return Tile(
             key=item.get("Id", ""),
             title=item.get("Name", ""),
             subtitle=self._subtitle(item),
             poster=poster,
             poster_tag=tag,
-            watched=bool(ud.get("Played")),
+            glyph=self._glyph(item),
+            watched=self._is_watched(item),
             badge=int(ud.get("UnplayedItemCount") or 0),
             progress=(pos / rt) if (pos and rt) else 0.0,
+            downloaded=self._is_downloaded(item),
         )
 
-    def _image_map(self, items, prefix):
-        tiles = [self._tile(it) for it in items]
-        s = self.strips.strip(tiles)
+    def _image_map(self, items, prefix, geom=None, image_type="Primary"):
+        geom = geom or self.geom
+        tiles = [self._tile(it, geom, image_type) for it in items]
+        s = self.strips.strip(tiles, geom)
         regions = []
         for r, it in zip(s["regions"], items):
             regions.append(dict(
@@ -481,15 +517,36 @@ class MpvtkBrowser:
         except Exception:
             log.warning("client action failed", exc_info=True)
 
-    def _tile_row(self, title, items, row_id):
+    def _tile_row(self, title, items, row_id, geom=None, image_type="Primary"):
+        geom = geom or self.geom
         return Column(
             [
                 Text(title, size=24, bold=True),
-                HScroll(self._image_map(items, row_id),
-                        id=row_id, h=self.geom.strip_h + 6),
+                self._hscroll_row(
+                    self._image_map(items, row_id, geom, image_type),
+                    row_id, geom.strip_h + 6),
             ],
             gap=8,
         )
+
+    def _hscroll_row(self, content, row_id, h):
+        """An HScroll flanked by ◀ ▶ page buttons (the renderer pages the
+        container by id — see MpvtkApp.scroll)."""
+        def arrow(icon, node_id, direction):
+            return Box([Icon(icon, 26)], id=node_id, w=36, h=h,
+                       align="center", direction="row", bg=theme.BUTTON_BG,
+                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
+                       on_click=lambda: self._page_row(row_id, direction))
+        return Row([
+            arrow("chevron_left", row_id + "-pl", -1),
+            HScroll(content, id=row_id, h=h, flex=1),
+            arrow("chevron_right", row_id + "-pr", 1),
+        ], gap=6, align="center", h=h)
+
+    def _page_row(self, row_id, direction):
+        # Ask the renderer to page the horizontal scroll container.
+        if self.app is not None and hasattr(self.app, "scroll"):
+            self.app.scroll(row_id, direction)
 
     # ------------------------------------------------------------- actions
 
@@ -597,7 +654,22 @@ class MpvtkBrowser:
         self.nav_stack = [{"kind": "home", "server": self.server}]
         self._bump_epoch()
         self._load_route(self.route)
+        self._refresh_downloaded()
         self.invalidate()
+
+    def _refresh_downloaded(self):
+        """Refresh the downloaded-id sets for tile badges (from the sync db)."""
+        if self.controller is None:
+            return
+
+        def work():
+            try:
+                items, series = self.controller.downloaded_ids()
+            except Exception:
+                return
+            self._downloaded, self._downloaded_series = items, series
+            self.invalidate()
+        self._pool.submit(work)
 
     # --------------------------------------------------------------- build
 
@@ -712,16 +784,37 @@ class MpvtkBrowser:
             return self._busy()
         rows = []
         if data["libraries"]:
+            # Libraries read as landscape cards, like the web client.
             rows.append(self._tile_row(
-                _("Libraries"), data["libraries"], "row-libs"))
+                _("Libraries"), data["libraries"], "row-libs",
+                geom=self.geom_wide))
         for i, hr in enumerate(data["rows"]):
             if hr.get("items"):
+                geom, itype = self._row_shape(hr)
                 rows.append(self._tile_row(
-                    hr["title"], hr["items"], "row-%d" % i))
+                    hr["title"], hr["items"], "row-%d" % i,
+                    geom=geom, image_type=itype))
         if not rows:
             rows.append(Text(_("Nothing to show yet."), size=20,
                              color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=16, gap=20), id="home", flex=1)
+
+    def _row_shape(self, hr):
+        """(geom, image_type) for a home row, classified like the Tk browser:
+        movies/tv/boxsets -> poster; music -> square; home-video/misc or
+        episode-bearing rows -> landscape Thumb."""
+        ctype = hr.get("collection_type")
+        has_episode = any(it.get("Type") == "Episode"
+                          for it in hr.get("items", []))
+        if ctype in ("movies", "tvshows", "boxsets"):
+            return self.geom, "Primary"
+        if ctype == "music":
+            return self.geom_square, "Primary"
+        if ctype:
+            return self.geom_wide, ("Thumb" if has_episode else "Primary")
+        if has_episode:
+            return self.geom_wide, "Thumb"
+        return self.geom, "Primary"
 
     def _render_grid(self, route, size):
         items = route.get("_items")
@@ -876,8 +969,7 @@ class MpvtkBrowser:
             return self._busy()
         episodes = data.get("episodes") or []
         seasons = data.get("seasons") or []
-        w = size[0]
-        g = self.geom
+        geom = self.geom_wide   # episodes are landscape Thumb cards
         header = [Text(route.get("title", ""), size=26, bold=True)]
         if len(seasons) > 1:
             names = [s.get("Name", "") for s in seasons]
@@ -886,11 +978,12 @@ class MpvtkBrowser:
             header.append(Dropdown(
                 "season-switch", names, selected=cur, w=220,
                 on_select=lambda i, v: self._switch_season(route, seasons[i])))
-        cols = max(1, int((w - 32 + g.gap) // (g.tile_w + g.gap)))
+        cols = self._cols(size[0], geom)
         rows = header
         for start in range(0, len(episodes), cols):
             rows.append(self._image_map(
-                episodes[start:start + cols], "ep-%d" % start))
+                episodes[start:start + cols], "ep-%d" % start,
+                geom, "Thumb"))
         return VScroll(Column(rows, pad=16, gap=12), id="season", flex=1)
 
     def _switch_season(self, route, season):
@@ -933,14 +1026,18 @@ class MpvtkBrowser:
 
     # ---------------------------------------------------- music / playlists
 
-    def _grid_of(self, items, prefix, size, heading=None):
-        w = size[0]
-        g = self.geom
-        cols = max(1, int((w - 32 + g.gap) // (g.tile_w + g.gap)))
+    def _cols(self, w, geom):
+        return max(1, int((w - 32 + geom.gap) // (geom.tile_w + geom.gap)))
+
+    def _grid_of(self, items, prefix, size, heading=None, geom=None,
+                 image_type="Primary"):
+        geom = geom or self.geom
+        cols = self._cols(size[0], geom)
         rows = [Text(heading, size=26, bold=True)] if heading else []
         for start in range(0, len(items), cols):
             rows.append(self._image_map(items[start:start + cols],
-                                        "%s-%d" % (prefix, start)))
+                                        "%s-%d" % (prefix, start),
+                                        geom, image_type))
         if not items:
             rows.append(Text(_("Nothing here yet."), size=18,
                              color=theme.SUBTLE_FG))
@@ -1411,6 +1508,7 @@ class MpvtkBrowser:
                 dl["server"], item.get("Id"), item.get("Type"),
                 dl["watched"]))
         self._close_download()
+        self._refresh_downloaded()
 
     # ------------------------------------------------------------- dialogs
 

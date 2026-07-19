@@ -467,6 +467,62 @@ class TestPhase1Views(unittest.TestCase):
         self.assertEqual(len(self.b.nav_stack), before)
 
 
+class TestTileShapes(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def test_row_shape_classification(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            POSTER_GEOM, LANDSCAPE_GEOM, SQUARE_GEOM)
+        g, _it = self.b._row_shape({"collection_type": "movies", "items": []})
+        self.assertIs(g, POSTER_GEOM)
+        g, _it = self.b._row_shape({"collection_type": "music", "items": []})
+        self.assertIs(g, SQUARE_GEOM)
+        g, it = self.b._row_shape(
+            {"collection_type": None, "items": [{"Type": "Episode"}]})
+        self.assertIs(g, LANDSCAPE_GEOM)
+        self.assertEqual(it, "Thumb")
+        # collection-type wins over a stray episode in the row
+        g, _it = self.b._row_shape(
+            {"collection_type": "tvshows", "items": [{"Type": "Episode"}]})
+        self.assertIs(g, POSTER_GEOM)
+
+    def test_scroll_arrows_present(self):
+        self.b.route["_data"] = {"libraries": self.b.source.libraries,
+                                 "rows": []}
+        nodes, _h = build_scene(self.b)
+        self.assertIn("row-libs-pl", ids(nodes))
+        self.assertIn("row-libs-pr", ids(nodes))
+
+    def test_downloaded_and_glyph(self):
+        self.b._downloaded = {"m1"}
+        t = self.b._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
+                         self.b.geom)
+        self.assertTrue(t.downloaded)
+        self.assertEqual(t.glyph, "A")
+        t2 = self.b._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
+                          self.b.geom)
+        self.assertEqual(t2.glyph, "♪")
+
+    def test_watched_series_fallback(self):
+        t = self.b._tile({"Id": "s1", "Type": "Series",
+                          "UserData": {"UnplayedItemCount": 0}}, self.b.geom)
+        self.assertTrue(t.watched)
+        t2 = self.b._tile({"Id": "s2", "Type": "Series",
+                           "UserData": {"UnplayedItemCount": 3}}, self.b.geom)
+        self.assertFalse(t2.watched)
+
+    def test_season_episodes_are_landscape(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        self.b.navigate({"kind": "season", "server": "srv1", "item_id": "se1",
+                         "series_id": "sh1", "title": "Season 1"})
+        nodes, _h = build_scene(self.b)
+        imgs = [n for n in nodes if n["t"] == "img"]
+        self.assertTrue(imgs)
+        self.assertEqual(imgs[0]["ih"], LANDSCAPE_GEOM.strip_h)
+
+
 class TestTileContextMenu(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()

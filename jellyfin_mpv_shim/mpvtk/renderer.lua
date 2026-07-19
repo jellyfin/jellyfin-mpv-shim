@@ -1909,6 +1909,17 @@ local function center_of(id)
     return x, y
 end
 
+mp.register_script_message('mpvtk-scroll', function(json)
+    -- Page a scroll container (by id) by ~90% of its viewport along its
+    -- axis — drives the on-screen carousel arrow buttons.
+    local cmd = utils.parse_json(json)
+    if not cmd or not cmd.id then return end
+    local node = state.byid[cmd.id]
+    if not node or node.t ~= 'scroll' then return end
+    local page = ((node.axis == 'x') and node.w or node.h) * 0.9
+    set_scroll(node, (state.scroll[cmd.id] or 0) + (cmd.dir or 1) * page)
+end)
+
 mp.register_script_message('mpvtk-debug', function(json)
     local cmd = utils.parse_json(json)
     if not cmd then return end

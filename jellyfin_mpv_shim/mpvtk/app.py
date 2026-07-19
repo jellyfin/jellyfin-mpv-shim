@@ -414,3 +414,11 @@ class MpvtkApp:
 
     def screenshot(self, path):
         self.backend.command("screenshot-to-file", path, "window")
+
+    def scroll(self, node_id, direction):
+        """Page a scroll container (by id) by ~a viewport along its axis —
+        the hook behind on-screen ◀ ▶ carousel arrows."""
+        self.backend.command(
+            "script-message", "mpvtk-scroll",
+            json.dumps({"id": node_id, "dir": direction}),
+        )

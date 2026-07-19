@@ -13,17 +13,17 @@ repository/data layer already backs almost all of these — they're UI
 wire-ups that were skipped. Status updated as each is fixed.
 
 **Tiles / Home**
-- [ ] Per-row / per-view **tile shape** (poster 2:3 / landscape Thumb 16:9
+- [x] Per-row / per-view **tile shape** (poster 2:3 / landscape Thumb 16:9
   / square 1:1) + `image_type` (Primary/Thumb). Dropped globally — every
   tile is a portrait poster. Home classifies by `collection_type`; Season
   episodes, Search, Playlists, music all need shaping. (`WIDE_GEOM`
   exists but is unused.)
-- [ ] **Downloaded** indicator on tiles (top-right badge; `is_downloaded`).
-- [ ] Tile **placeholder glyph** (music-note for audio / first-initial).
-- [ ] Watched checkmark **Series/Season fallback** (UnplayedItemCount==0);
+- [x] **Downloaded** indicator on tiles (top-right badge; `is_downloaded`).
+- [x] Tile **placeholder glyph** (music-note for audio / first-initial).
+- [x] Watched checkmark **Series/Season fallback** (UnplayedItemCount==0);
   tile currently disagrees with its own menu.
-- [ ] **HScrollRow ◀ ▶ arrow buttons** (page + hold-repeat + auto show/hide).
-- [ ] Libraries row as **landscape** cards.
+- [x] **HScrollRow ◀ ▶ arrow buttons** (page + hold-repeat + auto show/hide).
+- [x] Libraries row as **landscape** cards.
 - [ ] Home **stale-while-revalidate** (signature diff on re-entry;
   `on_sync_state` reload).
 
