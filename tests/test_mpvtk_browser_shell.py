@@ -81,6 +81,42 @@ class FakeSource:
     def search_people(self, server_uuid, term, limit=60):
         return [{"Id": "p1", "Name": "Person", "Type": "Person"}]
 
+    def get_music_albums(self, server_uuid, parent_id, **kw):
+        return ([{"Id": "al%d" % i, "Name": "Album %d" % i,
+                  "Type": "MusicAlbum"} for i in range(4)], 4)
+
+    def get_album_artists(self, server_uuid, parent_id, **kw):
+        return ([{"Id": "ar1", "Name": "Artist", "Type": "MusicArtist"}], 1)
+
+    def get_music_genres(self, server_uuid, parent_id):
+        return [{"Id": "gn1", "Name": "Jazz", "Type": "MusicGenre"}]
+
+    def get_album_tracks(self, server_uuid, album_id):
+        return [{"Id": "tk%d" % i, "Name": "Track %d" % i, "Type": "Audio",
+                 "IndexNumber": i + 1, "RunTimeTicks": 200 * 10000000}
+                for i in range(6)]
+
+    def get_artist_albums(self, server_uuid, artist_id):
+        return [{"Id": "al1", "Name": "Album", "Type": "MusicAlbum"}]
+
+    def get_genre_albums(self, server_uuid, parent_id, genre_id, **kw):
+        return ([{"Id": "al2", "Name": "GenreAlbum", "Type": "MusicAlbum"}], 1)
+
+    def get_playlist_items(self, server_uuid, playlist_id):
+        return [{"Id": "pi%d" % i, "Name": "Song %d" % i, "Type": "Audio"}
+                for i in range(3)]
+
+
+class _SyncPool:
+    """Runs submitted work inline so route loaders complete deterministically
+    within the test (no threads, no shutdown races)."""
+
+    def submit(self, fn, *a, **k):
+        fn(*a, **k)
+
+    def shutdown(self, *a, **k):
+        pass
+
 
 def build_scene(browser, size=(1280, 720)):
     nodes, handlers = layout(browser.build(size), *size)
@@ -227,6 +263,9 @@ class FakeController:
     def play(self, item, server_uuid, offset_ticks=None):
         self.played.append((item.get("Id"), server_uuid, offset_ticks))
 
+    def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None):
+        self.played.append((list(item_ids), server_uuid, start_index))
+
 
 class TestPlaybackLifecycle(unittest.TestCase):
     def setUp(self):
@@ -282,11 +321,10 @@ class TestPlaybackLifecycle(unittest.TestCase):
 class TestPhase1Views(unittest.TestCase):
     def setUp(self):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
 
     def _load_and_render(self, route):
-        # Drive the route's loader synchronously (pool then build).
-        self.b.navigate(route)
-        self.b._pool.shutdown(wait=True)
+        self.b.navigate(route)   # sync pool -> loader already applied
         return build_scene(self.b)
 
     def test_open_series_navigates(self):
@@ -324,7 +362,6 @@ class TestPhase1Views(unittest.TestCase):
         self.b._search("matrix")
         self.assertEqual(self.b.route["kind"], "search")
         self.assertEqual(self.b.route["term"], "matrix")
-        self.b._pool.shutdown(wait=True)
         nodes, handlers = build_scene(self.b)
         self.assertTrue(any(k.startswith("search-") for k in handlers))
 
@@ -332,6 +369,71 @@ class TestPhase1Views(unittest.TestCase):
         before = len(self.b.nav_stack)
         self.b._search("   ")
         self.assertEqual(len(self.b.nav_stack), before)
+
+
+class TestPhase2Views(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _load_and_render(self, route):
+        self.b.navigate(route)   # sync pool -> loader already applied
+        return build_scene(self.b)
+
+    def test_open_music_library(self):
+        self.b._open_item({"Id": "musiclib", "Name": "Music",
+                           "Type": "CollectionFolder", "CollectionType": "music"})
+        self.assertEqual(self.b.route["kind"], "music")
+
+    def test_open_album_and_song_types(self):
+        self.b._open_item({"Id": "al1", "Name": "A", "Type": "MusicAlbum"})
+        self.assertEqual(self.b.route["kind"], "album")
+
+    def test_click_song_plays_immediately(self):
+        self.b._open_item({"Id": "sng", "Name": "S", "Type": "Audio"})
+        self.assertFalse(self.b._browsing)
+        self.assertEqual(self.ctl.played, [(["sng"], "srv1", 0)])
+
+    def test_music_tabs_render_and_switch(self):
+        nodes, _h = self._load_and_render(
+            {"kind": "music", "server": "srv1", "parent_id": "musiclib",
+             "title": "Music"})
+        for tab in ("mtab-albums", "mtab-artists", "mtab-genres"):
+            self.assertIn(tab, ids(nodes))
+        # switch to artists -> reload -> renders
+        self.b._set_music_tab(self.b.route, "artists")
+        self.assertEqual(self.b.route["_tab"], "artists")
+
+    def test_album_tracklist_and_play(self):
+        nodes, handlers = self._load_and_render(
+            {"kind": "album", "server": "srv1", "item_id": "al1",
+             "title": "Album"})
+        self.assertIn("album-play", ids(nodes))
+        self.assertTrue(any(k.startswith("trk-") for k in handlers))
+        # clicking a track plays the whole album from that index
+        handlers[next(k for k in handlers if k == "trk-2")]["click"]()
+        self.assertTrue(self.ctl.played)
+        ids_, srv, start = self.ctl.played[-1]
+        self.assertEqual(start, 2)
+        self.assertEqual(len(ids_), 6)
+
+    def test_playlist_play_all(self):
+        nodes, _h = self._load_and_render(
+            {"kind": "playlist", "server": "srv1", "item_id": "pl1",
+             "title": "My List"})
+        self.assertIn("pl-play", ids(nodes))
+
+    def test_artist_and_genre_render(self):
+        nodes, h = self._load_and_render(
+            {"kind": "artist", "server": "srv1", "item_id": "ar1",
+             "title": "Artist"})
+        self.assertTrue(any(k.startswith("artist-") for k in h))
+        nodes, h = self._load_and_render(
+            {"kind": "music_genre", "server": "srv1", "item_id": "gn1",
+             "parent_id": "musiclib", "title": "Jazz"})
+        self.assertTrue(any(k.startswith("mgenre-") for k in h))
 
 
 if __name__ == "__main__":

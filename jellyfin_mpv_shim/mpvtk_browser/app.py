@@ -220,6 +220,47 @@ class MpvtkBrowser:
                     pass
                 return {"items": items, "people": people}
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "music":
+            srv = route.get("server") or self.server
+            parent = route["parent_id"]
+            tab = route.get("_tab", "albums")
+
+            def work():
+                if tab == "artists":
+                    return self.source.get_album_artists(srv, parent)[0]
+                if tab == "genres":
+                    return self.source.get_music_genres(srv, parent)
+                return self.source.get_music_albums(srv, parent)[0]
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "album":
+            srv = route.get("server") or self.server
+            iid = route["item_id"]
+
+            def work():
+                return {"item": self.source.get_item(srv, iid),
+                        "tracks": self.source.get_album_tracks(srv, iid)}
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "artist":
+            srv = route.get("server") or self.server
+            iid = route["item_id"]
+
+            def work():
+                return self.source.get_artist_albums(srv, iid)
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "music_genre":
+            srv = route.get("server") or self.server
+
+            def work():
+                return self.source.get_genre_albums(
+                    srv, route.get("parent_id"), route["item_id"])[0]
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "playlist":
+            srv = route.get("server") or self.server
+            iid = route["item_id"]
+
+            def work():
+                return self.source.get_playlist_items(srv, iid)
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
 
     # -------------------------------------------------------- tile helpers
 
@@ -318,7 +359,20 @@ class MpvtkBrowser:
         server = self.route.get("server") or self.server
         base = {"server": server, "item_id": item.get("Id"),
                 "title": item.get("Name", "")}
-        if t in SERIES_TYPES:
+        if t == "MusicAlbum":
+            self.navigate(dict(base, kind="album"))
+        elif t == "MusicArtist":
+            self.navigate(dict(base, kind="artist"))
+        elif t == "MusicGenre":
+            self.navigate(dict(base, kind="music_genre",
+                               parent_id=self.route.get("parent_id")))
+        elif t == "Playlist":
+            self.navigate(dict(base, kind="playlist"))
+        elif t == "Audio":
+            self._play_list([item.get("Id")], server)
+        elif item.get("CollectionType") == "music":
+            self.navigate(dict(base, kind="music", parent_id=item.get("Id")))
+        elif t in SERIES_TYPES:
             self.navigate(dict(base, kind="series"))
         elif t == "Season":
             self.navigate(dict(base, kind="season",
@@ -331,15 +385,26 @@ class MpvtkBrowser:
             self.status = _("Selected: %s") % item.get("Name", "")
             self.invalidate()
 
-    def _play(self, item, server, offset_ticks=None):
-        """Yield to playback and start ``item`` (Play/Resume from a detail
-        view or a direct episode click)."""
+    def _yield(self):
         self._browsing = False
         if self.controller is not None:
             self.controller.on_browse_leave()
-        self.invalidate()
+        self.invalidate()  # empty scene clears overlays off the video
+
+    def _play(self, item, server, offset_ticks=None):
+        """Yield to playback and start a single ``item`` (Play/Resume)."""
+        self._yield()
         if self.controller is not None:
             self.controller.play(item, server, offset_ticks=offset_ticks)
+
+    def _play_list(self, ids, server, start_index=0):
+        """Yield and play a whole list from ``start_index`` (album/playlist)."""
+        ids = [i for i in ids if i]
+        if not ids:
+            return
+        self._yield()
+        if self.controller is not None:
+            self.controller.play_list(ids, server, start_index)
 
     # ------------------------------------------------- browse <-> playback
 
@@ -424,6 +489,11 @@ class MpvtkBrowser:
             "series": self._render_series,
             "season": self._render_season,
             "search": self._render_search,
+            "music": self._render_music,
+            "album": self._render_album,
+            "artist": self._render_artist,
+            "music_genre": self._render_music_genre,
+            "playlist": self._render_playlist,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -653,6 +723,119 @@ class MpvtkBrowser:
         if not items and not people:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=16, gap=12), id="search", flex=1)
+
+    # ---------------------------------------------------- music / playlists
+
+    def _grid_of(self, items, prefix, size, heading=None):
+        w = size[0]
+        g = self.geom
+        cols = max(1, int((w - 32 + g.gap) // (g.tile_w + g.gap)))
+        rows = [Text(heading, size=26, bold=True)] if heading else []
+        for start in range(0, len(items), cols):
+            rows.append(self._image_map(items[start:start + cols],
+                                        "%s-%d" % (prefix, start)))
+        if not items:
+            rows.append(Text(_("Nothing here yet."), size=18,
+                             color=theme.SUBTLE_FG))
+        return rows
+
+    def _track_list(self, tracks, prefix, on_click):
+        rows = []
+        for i, tr in enumerate(tracks):
+            num = tr.get("IndexNumber") or (i + 1)
+            secs = (tr.get("RunTimeTicks") or 0) // 10000000
+            rows.append(Row(
+                [Text(str(num), w=44, size=17, color=theme.SUBTLE_FG),
+                 Text(tr.get("Name", ""), flex=1, size=17),
+                 Text("%d:%02d" % (secs // 60, secs % 60), w=64, size=16,
+                      color=theme.SUBTLE_FG)],
+                id="%s-%d" % (prefix, i), pad=8, radius=6,
+                hover={"fill": theme.BUTTON_BG},
+                on_click=lambda i=i: on_click(i)))
+        return Column(rows, gap=2)
+
+    def _music_tab(self, route, label, tab):
+        active = route.get("_tab", "albums") == tab
+        return Button(label, id="mtab-" + tab,
+                      bg=theme.ACCENT if active else theme.BUTTON_BG,
+                      fg="101010" if active else theme.TEXT_FG,
+                      on_click=lambda: self._set_music_tab(route, tab))
+
+    def _set_music_tab(self, route, tab):
+        route["_tab"] = tab
+        route.pop("_data", None)
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def _render_music(self, route, size):
+        tabs = Row([
+            self._music_tab(route, _("Albums"), "albums"),
+            self._music_tab(route, _("Artists"), "artists"),
+            self._music_tab(route, _("Genres"), "genres"),
+        ], gap=8)
+        data = route.get("_data")
+        body = self._busy() if data is None else VScroll(
+            Column(self._grid_of(data, "music", size), pad=16, gap=12),
+            id="music-grid", flex=1)
+        return Column([Row([tabs], pad=12), body], flex=1, align="stretch")
+
+    def _render_album(self, route, size):
+        data = route.get("_data")
+        if data is None:
+            return self._busy()
+        item = data.get("item") or {}
+        tracks = data.get("tracks") or []
+        server = route.get("server") or self.server
+        ids = [t.get("Id") for t in tracks]
+        header = Row([
+            Text(item.get("Name") or route.get("title", ""), size=28,
+                 bold=True),
+            Spacer(),
+            Row([Icon("play_arrow", 20, color="101010"),
+                 Text(_("Play"), size=18, color="101010")],
+                id="album-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
+                align="center",
+                on_click=lambda: self._play_list(ids, server, 0)),
+        ], align="center", gap=10)
+        body = self._track_list(
+            tracks, "trk", lambda i: self._play_list(ids, server, i))
+        return VScroll(Column([header, body], pad=16, gap=12),
+                       id="album", flex=1)
+
+    def _render_artist(self, route, size):
+        data = route.get("_data")
+        if data is None:
+            return self._busy()
+        rows = self._grid_of(data, "artist", size,
+                             heading=route.get("title", ""))
+        return VScroll(Column(rows, pad=16, gap=12), id="artist", flex=1)
+
+    def _render_music_genre(self, route, size):
+        data = route.get("_data")
+        if data is None:
+            return self._busy()
+        rows = self._grid_of(data, "mgenre", size,
+                             heading=route.get("title", ""))
+        return VScroll(Column(rows, pad=16, gap=12), id="mgenre", flex=1)
+
+    def _render_playlist(self, route, size):
+        data = route.get("_data")
+        if data is None:
+            return self._busy()
+        server = route.get("server") or self.server
+        ids = [i.get("Id") for i in data]
+        header = Row([
+            Text(route.get("title", ""), size=28, bold=True),
+            Spacer(),
+            Row([Icon("play_arrow", 20, color="101010"),
+                 Text(_("Play All"), size=18, color="101010")],
+                id="pl-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
+                align="center",
+                on_click=lambda: self._play_list(ids, server, 0)),
+        ], align="center", gap=10)
+        rows = [header] + self._grid_of(data, "pl", size)
+        return VScroll(Column(rows, pad=16, gap=12), id="playlist", flex=1)
 
     def _busy(self):
         return Box(
