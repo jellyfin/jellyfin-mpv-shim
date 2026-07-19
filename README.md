@@ -254,6 +254,11 @@ You can use the config file to enable and disable features.
 
 - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+- `browser_ui` - Which library browser to use. Default: `mpvtk`
+  - `mpvtk` - The library browser is drawn inside the player's own mpv window. One window shows the browser when idle and the video when playing.
+  - `tk` - The legacy Tkinter browser, in its own window. Being removed once the mpvtk UI is signed off.
+- `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
+  - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
 - `close_to_tray` - When enabled, closing the library-browser window hides it to the system tray (keeping the app running as a cast target); when disabled, closing exits. The first time you close the window you're asked which you prefer, and the answer is stored here. Default: `true`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
@@ -708,9 +713,9 @@ components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
 using Windows and would like mpv to maximize properly, `pywin32` is also needed. The GUI
-component uses `pystray` and `tkinter`, but there is a fallback cli mode. Display mirroring uses
-`tkinter` and `Pillow` (the same dependencies as the GUI), and is rendered as a fullscreen tkinter
-window — no webview required.
+component uses `pystray` and `tkinter`, but there is a fallback cli mode. The library browser and
+display mirroring are drawn inside the player's own mpv window (see `browser_ui`) and need `Pillow`;
+no webview and no second window are required.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to

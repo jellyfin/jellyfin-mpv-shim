@@ -40,7 +40,7 @@ Current Dependencies:
  - `pillow` - Provides image processing for trickplay thumbnails, the systray icon, and display mirroring. (Optional)
  - `pywin32` - Allows window management on Windows. (Optional)
  - `pystray` - Provides systray icon. (Optional)
- - `tkinter` - Provides GUI for adding servers, viewing logs, and rendering display mirroring. (Optional)
+ - `tkinter` - Provides the systray GUI and the legacy `browser_ui=tk` library browser. (Optional)
  - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview
@@ -74,7 +74,7 @@ Current Dependencies:
  - `utils.py` - Contains the playback profile and various utilities for other modules.
  - `video_profile.py` - Implements support for shader pack option profiles and related menu items.
  - `win_utils.py` - Implements window management workarounds for Windows.
- - `display_mirror.py` - Implements the full-screen display mirroring window using tkinter + Pillow.
+ - `display_mirror.py` - Implements the "ready to cast" display mirror inside the player's own mpv window, using mpvtk + Pillow.
  - `integration` - This contains the appstream metadata, icons, and desktop files used in the Flatpak version.
  - `default_shader_pack` - This is where the `gen_pkg.sh` script installs the [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 
