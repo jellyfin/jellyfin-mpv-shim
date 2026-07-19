@@ -1885,3 +1885,124 @@ class TestDownloadsGrouping(unittest.TestCase):
         self.assertEqual(show["count"], 2)
         self.assertEqual(len(show["children"]), 1)
         self.assertEqual(len(show["children"][0]["children"]), 2)
+
+
+class LoginController(FakeController):
+    def __init__(self):
+        super().__init__()
+        self.qc_calls = []
+        self.cancelled_at = None
+
+    def known_servers(self):
+        return [{"address": "http://old.example", "name": "Old Server"}]
+
+    approved = False
+
+    def quick_connect(self, server, code_callback, should_cancel):
+        self.qc_calls.append(server)
+        self.codes_shown = []
+        code_callback("ABC123")
+        # Capture what the screen looked like while the code was live — the
+        # call is blocking, so by the time it returns the route has moved on.
+        self.codes_shown.append(dict(self.route_ref.get("_qc") or {}))
+        self.cancelled_at = should_cancel()
+        return self.approved
+
+
+class TestAddServer(unittest.TestCase):
+    def setUp(self):
+        self.ctl = LoginController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_first_run_login_has_no_way_back(self):
+        """With no servers there is no library behind the form."""
+        self.b.server = None
+        self.b.show_login()
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("login-cancel", ids(nodes))
+
+    def test_adding_another_server_can_be_cancelled(self):
+        self.b.show_login()          # server is set -> pushed, not reset
+        nodes, h = build_scene(self.b)
+        self.assertIn("login-cancel", ids(nodes))
+        h["login-cancel"]["click"]()
+        self.assertNotEqual(self.b.route["kind"], "login")
+
+    def test_known_servers_are_offered(self):
+        self.b.show_login()
+        nodes, h = build_scene(self.b)
+        self.assertIn("login-known-0", ids(nodes))
+        h["login-known-0"]["click"]()
+        self.assertEqual(self.b._login["server"], "http://old.example")
+
+    def test_quick_connect_needs_a_server_url(self):
+        self.b.show_login()
+        _n, h = build_scene(self.b)
+        h["login-qc"]["click"]()
+        self.assertEqual(self.ctl.qc_calls, [])
+        self.assertIn("URL", self.b._login_error)
+
+    def test_quick_connect_shows_the_code(self):
+        self.b.show_login()
+        self.b._login["server"] = "http://srv"
+        self.ctl.route_ref = self.b.route
+        _n, h = build_scene(self.b)
+        h["login-qc"]["click"]()
+        self.assertEqual(self.ctl.qc_calls, ["http://srv"])
+        # The code reached the screen while the login was in flight.
+        self.assertEqual(self.ctl.codes_shown[0].get("code"), "ABC123")
+        # It wasn't approved, so we're back on the form with an explanation.
+        nodes, _h = build_scene(self.b)
+        self.assertIn("login-connect", ids(nodes))
+        self.assertIn("Quick Connect", self.b._login_error)
+
+    def test_quick_connect_code_renders(self):
+        self.b.show_login()
+        self.b.route["_qc"] = {"code": "ABC123", "status": "Waiting…",
+                               "cancelled": False}
+        nodes, _h = build_scene(self.b)
+        self.assertIn("ABC123", [n.get("text") for n in nodes])
+        self.assertNotIn("login-connect", ids(nodes))
+
+    def test_quick_connect_can_be_cancelled(self):
+        self.b.show_login()
+        self.b._login["server"] = "http://srv"
+        route = self.b.route
+        route["_qc"] = {"code": "ZZZ", "status": "", "cancelled": False}
+        _n, h = build_scene(self.b)
+        h["login-qc-cancel"]["click"]()
+        self.assertNotIn("_qc", route)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("login-connect", ids(nodes))   # back to the form
+
+
+class TestDownloadStatusBar(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def test_hidden_when_nothing_is_downloading(self):
+        self.b.set_download_status(None)
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("dlbar-view", ids(nodes))
+
+    def test_shows_progress_and_a_way_into_the_manager(self):
+        self.b.set_download_status({"pending": 3, "name": "Pilot",
+                                    "percent": 42})
+        nodes, h = build_scene(self.b)
+        self.assertIn("dlbar-view", ids(nodes))
+        texts = " ".join(n.get("text", "") for n in nodes if n["t"] == "text")
+        self.assertIn("Pilot", texts)
+        self.assertIn("42%", texts)
+        h["dlbar-view"]["click"]()
+        self.assertEqual(self.b.route["kind"], "settings")
+        self.assertEqual(self.b.route["_tab"], "downloads")
+
+    def test_unknown_percentage_still_shows_the_bar(self):
+        self.b.set_download_status({"pending": 1, "name": "X",
+                                    "percent": None})
+        nodes, _h = build_scene(self.b)
+        self.assertIn("dlbar-view", ids(nodes))

@@ -173,12 +173,15 @@ class FinishedCallbackTest(unittest.TestCase):
         pm._reached_eof = False
         pm._last_playback_position = 12  # nowhere near the 100s end
         calls = _stub_advance(pm)
+        # finished_callback clears _video at the end of a queue (so the app
+        # stops looking active), so hold our own reference.
+        video = pm._video
 
         with mock.patch.object(player_module.settings, "force_set_played", True), \
                 mock.patch.object(player_module.settings, "auto_play", True):
             pm.finished_callback(True, pm._play_epoch)
 
-        self.assertEqual(pm._video.played, [])
+        self.assertEqual(video.played, [])
         self.assertEqual(calls["play"], [])
 
     def test_eof_at_end_is_marked_watched(self):
@@ -186,9 +189,10 @@ class FinishedCallbackTest(unittest.TestCase):
         pm = self._player(has_next=False, duration=100)
         pm._reached_eof = True
         _stub_advance(pm)
+        video = pm._video
         with mock.patch.object(player_module.settings, "force_set_played", True):
             pm.finished_callback(True, pm._play_epoch)
-        self.assertEqual(pm._video.played, [True])
+        self.assertEqual(video.played, [True])
 
     def test_video_nulled_mid_callback_is_survived(self):
         # AUDIT RACE (_video snapshot): another thread (stop / mpv disconnect)
@@ -492,12 +496,13 @@ class ResumeAtEofTest(unittest.TestCase):
         pm._player.playback_time = 100      # resume-at-EOF
         pm._player.duration = 100
         calls = _stub_advance(pm)
+        video = pm._video
 
         with mock.patch.object(player_module.settings, "force_set_played", True), \
                 mock.patch.object(player_module.settings, "auto_play", True):
             pm.finished_callback(True, pm._play_epoch)
 
-        self.assertEqual(pm._video.played, [],
+        self.assertEqual(video.played, [],
                          "resume-at-end wrongly marked the item watched")
         self.assertEqual(calls["play"], [],
                          "resume-at-end wrongly auto-advanced")

@@ -344,6 +344,31 @@ which is what lets it through.
   playing. Toggles the app makes for its own reasons (the update notice
   leaving fullscreen, the browser opening windowed) are not.
 
+## Field-test round 4 (2026-07-19)
+
+- [x] **The player UI came back after playback ended**, showing the
+  finished video paused. Root cause: `finished_callback`'s end-of-queue
+  branch sent the timeline stop but never cleared `_video`, so
+  `is_active()` stayed true. Once the browser re-loaded its background
+  image (which clears `playback-abort`), the next timeline tick reported
+  the *finished* item as playing and the browser yielded again. The branch
+  now drops `_video`, unloads the file and pushes a stopped playstate. The
+  brief "Drop files to play here" before it was the same window sitting
+  idle with no file, and goes away with it.
+- [x] Deleting a download refreshes the list. The delete and the re-read
+  were separate pool tasks and raced, so the row came straight back; they
+  run in order on one worker now.
+- [x] Persistent **download status bar** with progress and a "View
+  Downloads" button — downloads were invisible once the confirm dialog
+  closed. Polled, since the sync manager has no push hook.
+- [x] **Startup update check.** The notice previously only appeared once
+  playback had started, because that was the only thing driving the check.
+- [x] **Add Server** supports Quick Connect, offers previously-used server
+  addresses, and can be cancelled. `show_login` only resets the nav stack
+  on a first run — with servers connected it pushes, so Back/Cancel
+  returns to the library instead of trapping the user on the form.
+- [x] Page arrows centre on the poster, not the poster+caption strip.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but

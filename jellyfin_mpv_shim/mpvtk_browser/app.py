@@ -34,6 +34,7 @@ from ..mpvtk.widgets import (
     Image,
     ImageMap,
     Menu,
+    Progress,
     Row,
     Slider,
     Spacer,
@@ -106,6 +107,9 @@ class MpvtkBrowser:
         self._np_stop = threading.Event()
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
+        # Global download progress for the status bar, and its poller.
+        self._dl_status = None
+        self._dlbar_thread = None
         # Open tile context menu: {"item", "server", "x", "y"} or None.
         self._menu = None
         # Banners: update-available notice + offline indicator.
@@ -756,6 +760,10 @@ class MpvtkBrowser:
                        hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
                        anchor=anchor, dx=(self.RING_PAD if anchor == "w"
                                           else -self.RING_PAD),
+                       # "w"/"e" centre on the whole strip, which includes the
+                       # caption block under the tile; shift up by half of it
+                       # so the arrow sits on the artwork.
+                       dy=-(geom.strip_h - geom.tile_h) / 2,
                        occlude=True, repeat=True,
                        on_click=lambda: self._page_row(row_id, direction))
 
@@ -870,6 +878,14 @@ class MpvtkBrowser:
             self.controller.play_list(ids, server, start_index)
 
     # ------------------------------------------------- browse <-> playback
+
+    def start_background_work(self):
+        """Kick off the pollers that keep the chrome honest (download status)
+        and the one-shot startup update check. Called once the browser is
+        live; separate from __init__ so tests don't spawn threads."""
+        self._poll_download_status()
+        if self.controller is not None:
+            self._pool.submit(lambda: self._safe(lambda c: c.check_updates()))
 
     def enter_browse(self):
         """Show the browser: take the window + hide the OSC, then render."""
@@ -1010,6 +1026,9 @@ class MpvtkBrowser:
             banner = self._banner()
             if banner is not None:
                 children.append(banner)
+            dlbar = self._download_bar()
+            if dlbar is not None:
+                children.append(dlbar)
         children.append(content)
         if self._now_playing is not None and route["kind"] not in CHROME_FREE:
             children.append(self._now_playing_bar(w))
@@ -2809,13 +2828,29 @@ class MpvtkBrowser:
 
     def _delete_download(self, route, item_id=None, series_id=None,
                          season_id=None, playlist_id=None):
-        self._client_call(lambda c: c.delete_download(
-            item_id=item_id, series_id=series_id, season_id=season_id,
-            playlist_id=playlist_id))
-        route.pop("_downloads", None)      # re-read the tree from the catalog
-        self._load_downloads(route, force=True)
+        """Delete, then re-read the catalog — in that order, on one worker.
+
+        Submitting the delete and the reload as separate tasks raced: the
+        reload could read the catalog before the delete had touched it, and
+        the row came straight back."""
+        if self.controller is None:
+            return
+        ep = self._epoch
+
+        def work():
+            try:
+                self.controller.delete_download(
+                    item_id=item_id, series_id=series_id,
+                    season_id=season_id, playlist_id=playlist_id)
+            except Exception:
+                log.error("delete_download failed", exc_info=True)
+            return self.controller.list_downloads()
+
+        def done(rows):
+            route["_downloads"] = rows or []
+            route["_dl_loading"] = False
+        self.run_async(work, done, ep)
         self._refresh_downloaded()
-        self.invalidate()
 
     # -- Logs -------------------------------------------------------------
 
@@ -2991,6 +3026,65 @@ class MpvtkBrowser:
                        on_click=self._dismiss_update),
             ], pad=10, gap=10, align="center", h=48, bg="2a3a5a")
         return None
+
+    # -- download status bar ----------------------------------------------
+
+    def _download_bar(self):
+        """A persistent bar while downloads are outstanding, with a way into
+        the manager. Downloads are otherwise completely invisible once the
+        confirm dialog closes."""
+        st = self._dl_status
+        if not st or not st.get("pending"):
+            return None
+        name = st.get("name") or ""
+        pct = st.get("percent")
+        left = (_("Downloading %(name)s — %(n)d remaining")
+                if name else _("Downloading — %(n)d remaining")) % {
+            "name": name, "n": st["pending"]}
+        row = [Icon("file_download", 20), Text(left, size=16)]
+        if pct is not None:
+            row.append(Progress(pct / 100.0, w=160))
+            row.append(Text("%d%%" % pct, size=15, w=48,
+                            color=theme.SUBTLE_FG))
+        row += [
+            Spacer(),
+            Button(_("View Downloads"), id="dlbar-view",
+                   on_click=lambda: self.open_settings("downloads")),
+        ]
+        return Row(row, pad=10, gap=10, align="center", h=44,
+                   bg=theme.PANEL_BG)
+
+    def set_download_status(self, status):
+        """``{"pending": int, "name": str, "percent": int|None}`` — pushed by
+        the sync manager's progress hook."""
+        if status == self._dl_status:
+            return
+        self._dl_status = status
+        self.invalidate()
+
+    def _poll_download_status(self):
+        """Keep the status bar current. The sync manager has no push hook the
+        browser can subscribe to, so poll it — cheaply, and only while there
+        is something to report or the browser is on screen."""
+        if self.controller is None or self._dlbar_thread is not None:
+            return
+
+        def tick():
+            try:
+                while not self._np_stop.wait(2.0):
+                    if not self._browsing:
+                        continue
+                    try:
+                        st = self.controller.download_status()
+                    except Exception:
+                        break
+                    self.set_download_status(st)
+            finally:
+                self._dlbar_thread = None
+
+        self._dlbar_thread = threading.Thread(target=tick, daemon=True,
+                                              name="mpvtk-dlbar")
+        self._dlbar_thread.start()
 
     def _dismiss_update(self):
         self._update = None
@@ -3443,8 +3537,17 @@ class MpvtkBrowser:
     # --------------------------------------------------------------- login
 
     def show_login(self):
-        """Show the add-server / login screen (no servers connected)."""
-        self.navigate({"kind": "login", "title": _("Sign In")}, reset=True)
+        """Show the add-server / login screen.
+
+        Only resets the nav stack when there is nowhere to go back *to*: with
+        servers already connected this is "add another", and cancelling has
+        to return you to the library rather than trapping you on the form.
+        """
+        route = {"kind": "login", "title": _("Add Server")}
+        if self.server is None:
+            self.navigate(route, reset=True)
+        else:
+            self.navigate(route)
 
     def _render_login(self, route, size):
         def field(fid, ph, key, mask=False):
@@ -3456,23 +3559,120 @@ class MpvtkBrowser:
                             k, v)),
             ], gap=12, align="center")
 
-        form = Column([
-            Text(_("Connect to Jellyfin"), size=28, bold=True),
-            field("login-server", _("Server URL"), "server"),
-            field("login-user", _("Username"), "user"),
-            field("login-pass", _("Password"), "pass", mask=True),
-            Row([Spacer(),
-                 Button(_("Connect"), id="login-connect",
-                        on_click=self._do_login)], gap=10),
-        ], pad=28, gap=16, bg=theme.CARD_BG, radius=12, border=theme.BORDER,
-           w=560)
+        qc = route.get("_qc")
+        rows = [Text(_("Connect to Jellyfin"), size=28, bold=True)]
         if self._login_error:
-            form.children.insert(1, Text(self._login_error, size=15,
-                                         color=theme.FAV_RED))
+            rows.append(Text(self._login_error, size=15, color=theme.FAV_RED))
+
+        known = []
+        if self.controller is not None and not qc:
+            try:
+                known = self.controller.known_servers() or []
+            except Exception:
+                known = []
+        if known:
+            rows.append(Text(_("Previously added servers"), size=15,
+                             color=theme.SUBTLE_FG))
+            for i, k in enumerate(known):
+                addr = k.get("address", "")
+                rows.append(Row([
+                    Icon("radio", 16, color=theme.SUBTLE_FG),
+                    Text(k.get("name") or addr, size=16, flex=1),
+                    Button(_("Use"), id="login-known-%d" % i, size=15,
+                           on_click=lambda a=addr: self._use_known_server(a)),
+                ], id="login-known-row-%d" % i, pad=8, gap=10, radius=6,
+                   align="center", bg=theme.PANEL_BG))
+
+        if qc:
+            # Quick Connect: the user types this code into any signed-in
+            # Jellyfin client; we poll until the server authorizes it.
+            rows += [
+                Text(_("Quick Connect"), size=20, bold=True),
+                Text(_("Enter this code in the Jellyfin app or web client:"),
+                     size=15, color=theme.SUBTLE_FG, wrap=True, w=460),
+                Text(qc.get("code") or _("Requesting…"), size=44, bold=True,
+                     align="center"),
+                Text(qc.get("status") or "", size=15,
+                     color=theme.SUBTLE_FG, align="center"),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="login-qc-cancel",
+                           on_click=lambda: self._cancel_quick_connect(route)),
+                ]),
+            ]
+        else:
+            rows += [
+                field("login-server", _("Server URL"), "server"),
+                field("login-user", _("Username"), "user"),
+                field("login-pass", _("Password"), "pass", mask=True),
+                Row([
+                    Button(_("Use Quick Connect"), id="login-qc",
+                           icon="radio",
+                           on_click=lambda: self._start_quick_connect(route)),
+                    Spacer(),
+                    # Only offer Cancel when there's something to go back to;
+                    # on a first run there is no library behind this screen.
+                    Button(_("Cancel"), id="login-cancel",
+                           on_click=self.go_back)
+                    if len(self.nav_stack) > 1 else Spacer(h=0),
+                    Button(_("Connect"), id="login-connect",
+                           on_click=self._do_login),
+                ], gap=10, align="center"),
+            ]
+
+        form = Column(rows, pad=28, gap=16, bg=theme.CARD_BG, radius=12,
+                      border=theme.BORDER, w=560, align="stretch")
         return Box([Spacer(),
                     Row([Spacer(), form, Spacer()]),
                     Spacer()],
                    flex=1, direction="column", align="stretch", gap=10)
+
+    def _use_known_server(self, address):
+        self._login["server"] = address
+        self.invalidate()
+
+    def _start_quick_connect(self, route):
+        server = (self._login.get("server") or "").strip()
+        if not server:
+            self._login_error = _("Enter the server URL first.")
+            self.invalidate()
+            return
+        if self.controller is None:
+            return
+        self._login_error = None
+        route["_qc"] = {"code": None, "status": _("Contacting the server…"),
+                        "cancelled": False}
+        self.invalidate()
+        ep = self._epoch
+
+        def on_code(code):
+            qc = route.get("_qc")
+            if qc is not None:
+                qc["code"] = code
+                qc["status"] = _("Waiting for approval…")
+                self.invalidate()
+
+        def work():
+            return self.controller.quick_connect(
+                server, on_code,
+                lambda: (route.get("_qc") or {}).get("cancelled", True))
+
+        def done(ok):
+            if (route.get("_qc") or {}).get("cancelled"):
+                return
+            route.pop("_qc", None)
+            if ok:
+                self._login_error = None
+                self._after_login()
+            else:
+                self._login_error = _("Quick Connect was not approved.")
+        self.run_async(work, done, ep)
+
+    def _cancel_quick_connect(self, route):
+        qc = route.get("_qc")
+        if qc is not None:
+            qc["cancelled"] = True    # the worker polls this and gives up
+        route.pop("_qc", None)
+        self.invalidate()
 
     def _do_login(self):
         if self.controller is None:

@@ -304,3 +304,78 @@ class BrowserDeathDetachTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EndOfQueueTest(unittest.TestCase):
+    """Reaching the end of a queue has to leave the player genuinely idle.
+
+    Leaving _video set kept is_active() true, so once the browser re-loaded
+    its background image (clearing playback-abort) the next timeline tick
+    reported the finished item as *playing* again and the UI bounced back to
+    the player with the ended video paused.
+    """
+
+    def _player(self):
+        pm = h.build_player(player)
+        pm._mpv_alive = True
+        pm.should_send_timeline = True
+        pm.send_timeline_stopped = lambda *a, **k: None
+        pm.pushed = []
+        pm.push_playstate = lambda stopped=False: pm.pushed.append(stopped)
+        return pm
+
+    def _video(self, has_next=False):
+        class Parent:
+            queue = []
+
+            def __init__(self):
+                self.has_next = has_next
+
+        class Video:
+            def __init__(self):
+                self.parent = Parent()
+                self.item = {"Name": "Ended", "Type": "Movie"}
+                self.terminated = False
+
+            def get_duration(self):
+                return 100
+
+            def set_played(self):
+                pass
+
+            def terminate_transcode(self):
+                self.terminated = True
+
+        return Video()
+
+    def test_end_of_queue_clears_the_video(self):
+        pm = self._player()
+        pm._video = self._video()
+        pm.finished_callback(True)
+        self.assertIsNone(pm._video)
+        self.assertFalse(pm.is_active())
+
+    def test_end_of_queue_unloads_the_file(self):
+        pm = self._player()
+        video = self._video()
+        pm._video = video
+        pm.finished_callback(True)
+        self.assertIn(("stop",), [tuple(c) for c in pm._player.commands])
+        self.assertTrue(video.terminated)
+
+    def test_end_of_queue_reports_stopped_once(self):
+        pm = self._player()
+        pm._video = self._video()
+        pm.finished_callback(True)
+        self.assertEqual(pm.pushed, [True])
+
+    def test_mid_queue_does_not_stop(self):
+        """With a next item, finished_callback advances instead."""
+        pm = self._player()
+        pm._video = self._video(has_next=True)
+        played = []
+        pm.play = lambda v: played.append(v)
+        pm._video.parent.get_next = lambda: type("E", (), {"video": "next"})()
+        pm.finished_callback(True)
+        self.assertEqual(played, ["next"])
+        self.assertEqual(pm.pushed, [])

@@ -1374,6 +1374,24 @@ class PlayerManager(object):
 
             log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
+            # The queue is done — drop the finished video and unload it.
+            # Leaving _video set kept the app looking "active", so once the
+            # browser re-loaded its background image (which clears
+            # playback-abort) the next timeline tick reported the *finished*
+            # item as playing again and the UI bounced back to the player,
+            # showing the ended video paused.
+            self.should_send_timeline = False
+            self._video = None
+            try:
+                video.terminate_transcode()
+            except Exception:
+                log.debug("terminate_transcode failed at end of queue",
+                          exc_info=True)
+            try:
+                self._player.command("stop")
+            except _mpv_errors:
+                self._handle_mpv_disconnect()
+            self.push_playstate(stopped=True)
         self.pause_ignore = False
 
     @synchronous("_lock")

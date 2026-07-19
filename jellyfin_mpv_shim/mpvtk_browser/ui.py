@@ -191,6 +191,29 @@ class _PlayerController:
             log.error("mpvtk remove_server failed", exc_info=True)
             return False
 
+    def known_servers(self):
+        """Server addresses any local user has already used — so a new user
+        doesn't have to retype the URL. Addresses only; the URL alone grants
+        nothing without credentials."""
+        from ..users import userManager
+        try:
+            return userManager.known_servers()
+        except Exception:
+            log.debug("known_servers failed", exc_info=True)
+            return []
+
+    def quick_connect(self, server, code_callback, should_cancel):
+        """Blocking Quick Connect login. ``code_callback(code)`` gets the
+        user-facing code as soon as the server issues it; ``should_cancel()``
+        is polled so the UI can abandon the wait."""
+        try:
+            return bool(clientManager.login_with_quick_connect(
+                server, code_callback=code_callback,
+                should_cancel=should_cancel))
+        except Exception as e:
+            log.error("mpvtk quick connect failed: %s", e)
+            return False
+
     def add_server(self, server, username, password):
         try:
             return bool(clientManager.login(server, username, password))
@@ -558,6 +581,44 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk delete_download failed", exc_info=True)
 
+    def check_updates(self):
+        """One-shot update check at startup.
+
+        Without it a GUI user only ever saw the update notice after starting
+        playback, because that was the only thing driving the check."""
+        from ..player import playerManager
+        try:
+            playerManager.update_check.check()
+        except Exception:
+            log.debug("startup update check failed", exc_info=True)
+
+    def download_status(self):
+        """Global download progress for the status bar:
+        ``{"pending": n, "name": str, "percent": int|None}``, or None when
+        nothing is outstanding."""
+        from ..sync.manager import syncManager
+        from ..sync.db import STATUS_COMPLETE
+        db = getattr(syncManager, "db", None)
+        if db is None:
+            return None
+        try:
+            rows = [r for r in db.list()
+                    if (r.get("status") or "") != STATUS_COMPLETE]
+        except Exception:
+            return None
+        if not rows:
+            return None
+        # The in-flight one is whichever has bytes on disk but isn't done.
+        active = next((r for r in rows if (r.get("downloaded_bytes") or 0) > 0),
+                      rows[0])
+        total = active.get("size_bytes") or 0
+        done = active.get("downloaded_bytes") or 0
+        return {
+            "pending": len(rows),
+            "name": active.get("name") or "",
+            "percent": int(done * 100 / total) if total else None,
+        }
+
     def download_activity(self):
         """(active, pending) counts — the downloads view polls this so it can
         refresh itself while a download runs."""
@@ -743,6 +804,7 @@ class UserInterface:
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="mpvtk-browser")
         self._thread.start()
+        browser.start_background_work()
         # A startup PIN gates connection: show the lock screen and let the
         # unlock drive the connect. Otherwise connect in the background.
         from ..users import userManager
