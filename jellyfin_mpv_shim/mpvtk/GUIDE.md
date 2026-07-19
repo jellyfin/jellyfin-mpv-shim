@@ -126,7 +126,9 @@ bar). Vertical moves are row-focused: the nearest row beyond the
 node's edge wins, then the horizontally nearest element within it —
 no x-overlap required, so UP from a right-hand button lands in the
 row directly above it. Horizontal moves stay overlap-confined to
-their row. Scroll-into-view uses asymmetric margins (56px leading, 12px
+their row. Vertical navigation wraps: UP with nothing above jumps to
+the bottom-most row (the now-playing bar is two presses from anywhere
+in a long list), DOWN past the end wraps to the top. Scroll-into-view uses asymmetric margins (56px leading, 12px
 trailing) so a row's heading scrolls in with its carousel. Modality is
 reported to the app as the `nav` event (`MpvtkApp.on_nav`): the
 browser hides carousel arrows while keyboard/remote navigation is

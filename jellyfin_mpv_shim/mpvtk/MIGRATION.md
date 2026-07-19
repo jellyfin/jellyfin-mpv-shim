@@ -1258,6 +1258,29 @@ development so it can't destabilize the mouse-first parity path.
 
 ---
 
+## Phase 9 (proposal) — playback controls in mpvtk (retire the OSC?)
+
+Open question from field testing: key/remote nav now covers browsing,
+but playback still uses trickplay-jf-osc.lua, which has none of the
+mpvtk affordances. Recommendation: **rebuild the playback controls in
+mpvtk rather than porting nav into the OSC lua.** Rationale: porting
+means a second, parallel focus/hit/scoring model in Lua 5.1 inside a
+~3k-line script we eventually want to shrink; rebuilding gets spatial
+nav, tooltips, theme accent, hold-repeat, the selftest harness and
+both-backend coverage for free, and the osc_bridge protocol already
+feeds the data (position, chapters, tracks, trickplay thumbnails —
+which are bitmaps, i.e. overlay-add, i.e. already mpvtk's native
+model). Target behavior = YouTube-on-TV: during playback any key
+press summons the control bar with focus on play/pause; LEFT/RIGHT
+walk transport buttons (or scrub when the seek slider is focused);
+UP/DOWN move between the seek bar and button row; auto-hide on idle
+with the scene simply not built. The inversion to design carefully:
+today the renderer is *suspended* during playback (mpvtk-active no)
+so the OSC gets input — a playback HUD means staying active with an
+empty scene and binding only on first key press, so mpv defaults
+(seek on arrows) still work until the HUD is up. Sizeable; needs its
+own phase, not a polish commit.
+
 ## Cross-cutting risks & open questions
 
 - **Spatial/remote navigation** is *net-new scope* beyond Tk parity

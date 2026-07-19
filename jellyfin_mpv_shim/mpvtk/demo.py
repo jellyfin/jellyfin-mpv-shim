@@ -1308,6 +1308,14 @@ def _selftest(demo, outdir):
     st = app.debug_state()
     check("nav-up-row-focused", (st or {}).get("nav") == "dtype",
           str((st or {}).get("nav")))
+    # wraparound: UP from the top chrome jumps to the bottom-most row
+    app.debug(cmd="nav", id="tab-widgets")
+    app.debug(cmd="nav", dir="up")
+    time.sleep(0.3)
+    st = app.debug_state()
+    nav = str((st or {}).get("nav", ""))
+    check("nav-wraps-to-bottom",
+          nav != "" and not nav.startswith("tab-"), nav)
     app.debug(cmd="nav", id="btn-toast")
     app.debug(cmd="nav", action="enter")
     time.sleep(0.4)

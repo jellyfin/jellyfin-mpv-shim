@@ -2232,6 +2232,35 @@ local function nav_choose(cur, cands, dx, dy, filter)
     return nav_pick(cur, cands, dx, dy, true, filter)
 end
 
+-- Wraparound (vertical only): when nothing lies further in the
+-- direction anywhere, jump to the FURTHEST row the other way — UP at
+-- the very top reaches the bottom bar in two presses instead of a
+-- hundred DOWNs through a long list.
+local function nav_wrap(cur, cands, dy)
+    local cx = select(1, nav_center(cur))
+    local far, fd
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id then
+            local py = select(2, nav_center(c))
+            local d = (dy < 0) and py or -py  -- UP wraps to bottom-most
+            if fd == nil or d > fd then far, fd = c, d end
+        end
+    end
+    if not far then return nil end
+    local _, fy = eff(far)
+    local best, score
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id then
+            local ex, ey = eff(c)
+            if ey < fy + far.h and fy < ey + c.h then
+                local s = math.abs(ex + c.w / 2 - cx)
+                if score == nil or s < score then best, score = c, s end
+            end
+        end
+    end
+    return best
+end
+
 local function nav_move(dx, dy)
     set_nav_mode(true)
     -- a focused textbox owns the arrows (caret movement) whichever
@@ -2335,7 +2364,15 @@ local function nav_move(dx, dy)
     -- row: RIGHT at the end of a fully scrolled carousel does nothing
     -- rather than hopping to an arbitrary other row.
     best = nav_choose(cur, cands, dx, dy)
-    if best then nav_set(best) end
+    if best then
+        nav_set(best)
+        return
+    end
+    -- tier 3, vertical only: wrap around to the far end
+    if dy ~= 0 then
+        best = nav_wrap(cur, cands, dy)
+        if best then nav_set(best) end
+    end
 end
 
 local function nav_activate()
