@@ -266,6 +266,14 @@ class FakeController:
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None):
         self.played.append((list(item_ids), server_uuid, start_index))
 
+    def __getattr__(self, name):
+        # Record transport calls (toggle_pause/stop/next/prev/…) without
+        # declaring each one.
+        if name.startswith(("_", "on_")) or name in ("play", "play_list"):
+            raise AttributeError(name)
+        calls = self.__dict__.setdefault("transport", [])
+        return lambda *a, **k: calls.append((name, a))
+
 
 class TestPlaybackLifecycle(unittest.TestCase):
     def setUp(self):
@@ -371,6 +379,52 @@ class TestPhase1Views(unittest.TestCase):
         self.assertEqual(len(self.b.nav_stack), before)
 
 
+class TestNowPlaying(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+
+    def test_audio_play_keeps_browsing_and_shows_bar(self):
+        self.b._play_list(["t1", "t2"], "srv1", 0, audio=True)
+        self.assertTrue(self.b._browsing, "audio must not yield the window")
+        self.assertIsNotNone(self.b._now_playing)
+
+    def test_video_play_yields(self):
+        self.b._play({"Id": "m1", "Type": "Movie"}, "srv1")
+        self.assertFalse(self.b._browsing)
+        self.assertIsNone(self.b._now_playing)
+
+    def test_playstate_audio_populates_bar(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True,
+                             "title": "Song", "artist": "Band",
+                             "position": 65, "duration": 200, "paused": False})
+        self.assertTrue(self.b._browsing)
+        nodes, handlers = build_scene(self.b)
+        self.assertIn("np-pp", ids(nodes))
+        self.assertIn("np-stop", ids(nodes))
+        # transport wired to the controller
+        handlers["np-pp"]["click"]()
+        handlers["np-next"]["click"]()
+        names = [c[0] for c in getattr(self.ctl, "transport", [])]
+        self.assertIn("toggle_pause", names)
+        self.assertIn("next", names)
+
+    def test_playstate_stopped_clears_bar(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True,
+                             "title": "S", "duration": 10, "position": 1})
+        self.b.on_playstate({"stopped": True})
+        self.assertIsNone(self.b._now_playing)
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("np-pp", ids(nodes))
+
+    def test_video_playstate_yields_no_bar(self):
+        self.b.on_playstate({"stopped": False, "is_audio": False,
+                             "title": "Movie", "position": 5, "duration": 100})
+        self.assertFalse(self.b._browsing)
+        self.assertIsNone(self.b._now_playing)
+
+
 class TestPhase2Views(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
@@ -393,7 +447,9 @@ class TestPhase2Views(unittest.TestCase):
 
     def test_click_song_plays_immediately(self):
         self.b._open_item({"Id": "sng", "Name": "S", "Type": "Audio"})
-        self.assertFalse(self.b._browsing)
+        # Audio: play but stay in browse (now-playing bar), don't yield.
+        self.assertTrue(self.b._browsing)
+        self.assertIsNotNone(self.b._now_playing)
         self.assertEqual(self.ctl.played, [(["sng"], "srv1", 0)])
 
     def test_music_tabs_render_and_switch(self):

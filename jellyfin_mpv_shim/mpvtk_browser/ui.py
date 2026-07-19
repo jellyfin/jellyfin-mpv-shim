@@ -80,6 +80,34 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk browser failed to start playback", exc_info=True)
 
+    # -- now-playing bar transport (swallow errors like gui_mgr does) -----
+
+    @staticmethod
+    def _act(fn):
+        from ..player import playerManager
+        try:
+            fn(playerManager)
+        except Exception:
+            log.error("mpvtk player action failed", exc_info=True)
+
+    def toggle_pause(self):
+        self._act(lambda pm: pm.toggle_pause())
+
+    def stop(self):
+        self._act(lambda pm: pm.stop_and_close())
+
+    def next(self):
+        self._act(lambda pm: pm.play_next())
+
+    def prev(self):
+        self._act(lambda pm: pm.play_prev())
+
+    def seek(self, secs):
+        self._act(lambda pm: pm.seek(float(secs), absolute=True))
+
+    def set_volume(self, pct):
+        self._act(lambda pm: pm.set_volume(float(pct)))
+
 
 class UserInterface:
     def __init__(self):

@@ -62,6 +62,8 @@ class MpvtkBrowser:
         # playback + the OSC. build() pushes an empty scene when not browsing so
         # its overlays clear off the video.
         self._browsing = True
+        # Latest now-playing snapshot (from on_playstate) for the audio bar.
+        self._now_playing = None
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -369,7 +371,7 @@ class MpvtkBrowser:
         elif t == "Playlist":
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
-            self._play_list([item.get("Id")], server)
+            self._play_list([item.get("Id")], server, audio=True)
         elif item.get("CollectionType") == "music":
             self.navigate(dict(base, kind="music", parent_id=item.get("Id")))
         elif t in SERIES_TYPES:
@@ -391,18 +393,29 @@ class MpvtkBrowser:
             self.controller.on_browse_leave()
         self.invalidate()  # empty scene clears overlays off the video
 
+    def _start(self, audio):
+        """Prepare to start playback. Video yields the whole window to the
+        video + OSC; audio has no picture, so we stay in browse and show the
+        now-playing bar instead (playing would-be background over audio would
+        stop it)."""
+        if audio:
+            self._now_playing = self._now_playing or {"title": _("Loading…")}
+            self.invalidate()
+        else:
+            self._yield()
+
     def _play(self, item, server, offset_ticks=None):
-        """Yield to playback and start a single ``item`` (Play/Resume)."""
-        self._yield()
+        """Yield/keep-browse and start a single ``item`` (Play/Resume)."""
+        self._start(audio=item.get("Type") == "Audio")
         if self.controller is not None:
             self.controller.play(item, server, offset_ticks=offset_ticks)
 
-    def _play_list(self, ids, server, start_index=0):
-        """Yield and play a whole list from ``start_index`` (album/playlist)."""
+    def _play_list(self, ids, server, start_index=0, audio=False):
+        """Play a whole list from ``start_index`` (album/playlist/song)."""
         ids = [i for i in ids if i]
         if not ids:
             return
-        self._yield()
+        self._start(audio=audio)
         if self.controller is not None:
             self.controller.play_list(ids, server, start_index)
 
@@ -416,14 +429,23 @@ class MpvtkBrowser:
         self.invalidate()
 
     def on_playstate(self, state):
-        """Registered as playerManager.on_playstate. A ``stopped`` snapshot
-        (playback ended / aborted) returns us to browse; anything else means
-        playback is live, so stay yielded."""
-        if state and state.get("stopped"):
+        """Registered as playerManager.on_playstate. Drives browse/playback
+        state and the now-playing bar. Audio keeps the browser visible (bar +
+        browsing); video stays yielded to the picture + OSC."""
+        if not state or state.get("stopped"):
+            self._now_playing = None
             if not self._browsing:
                 self.enter_browse()
+            else:
+                self.invalidate()
+            return
+        if state.get("is_audio"):
+            self._now_playing = state
+            self._browsing = True   # audio: stay in browse, show the bar
+            self.invalidate()
         else:
-            self._browsing = False
+            self._now_playing = None
+            self._browsing = False  # video: yield the window
             self.invalidate()
 
     def set_source(self, source, server_uuid=None):
@@ -457,6 +479,8 @@ class MpvtkBrowser:
         if route["kind"] not in CHROME_FREE:
             children.append(self._chrome(w))
         children.append(content)
+        if self._now_playing is not None and route["kind"] not in CHROME_FREE:
+            children.append(self._now_playing_bar(w))
         return Column(children, w=w, h=h, align="stretch")
 
     def _chrome(self, w):
@@ -796,10 +820,11 @@ class MpvtkBrowser:
                  Text(_("Play"), size=18, color="101010")],
                 id="album-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
                 align="center",
-                on_click=lambda: self._play_list(ids, server, 0)),
+                on_click=lambda: self._play_list(ids, server, 0, audio=True)),
         ], align="center", gap=10)
         body = self._track_list(
-            tracks, "trk", lambda i: self._play_list(ids, server, i))
+            tracks, "trk",
+            lambda i: self._play_list(ids, server, i, audio=True))
         return VScroll(Column([header, body], pad=16, gap=12),
                        id="album", flex=1)
 
@@ -832,10 +857,56 @@ class MpvtkBrowser:
                  Text(_("Play All"), size=18, color="101010")],
                 id="pl-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
                 align="center",
-                on_click=lambda: self._play_list(ids, server, 0)),
+                on_click=lambda: self._play_list(ids, server, 0, audio=True)),
         ], align="center", gap=10)
         rows = [header] + self._grid_of(data, "pl", size)
         return VScroll(Column(rows, pad=16, gap=12), id="playlist", flex=1)
+
+    # -------------------------------------------------- now-playing bar
+
+    @staticmethod
+    def _fmt(secs):
+        secs = int(secs or 0)
+        return "%d:%02d" % (secs // 60, secs % 60)
+
+    def _ctl(self, fn):
+        if self.controller is not None:
+            fn(self.controller)
+
+    def _now_playing_bar(self, w):
+        np = self._now_playing
+        pos = np.get("position", 0) or 0
+        dur = np.get("duration", 0) or 0
+        frac = max(0.0, min(1.0, pos / dur)) if dur else 0.0
+        pp = "play_arrow" if np.get("paused") else "pause"
+
+        def tbtn(icon, node_id, cb):
+            return Box([Icon(icon, 22)], id=node_id, pad=8, bg=theme.BUTTON_BG,
+                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
+                       align="center", direction="row", on_click=cb)
+
+        track = Box(
+            [Box(w=max(1, int((w - 620) * frac)), h=6, bg=theme.ACCENT,
+                 radius=3)],
+            flex=1, h=6, bg=theme.BUTTON_BG, radius=3, direction="row")
+        title = np.get("title", "")
+        sub = np.get("artist") or np.get("album") or ""
+        return Row(
+            [
+                Column([Text(title, size=16, bold=True),
+                        Text(sub, size=13, color=theme.SUBTLE_FG)],
+                       gap=2, w=240),
+                tbtn("skip_previous", "np-prev",
+                     lambda: self._ctl(lambda c: c.prev())),
+                tbtn(pp, "np-pp", lambda: self._ctl(lambda c: c.toggle_pause())),
+                tbtn("skip_next", "np-next",
+                     lambda: self._ctl(lambda c: c.next())),
+                tbtn("stop", "np-stop", lambda: self._ctl(lambda c: c.stop())),
+                Text(self._fmt(pos), size=14, w=52, color=theme.SUBTLE_FG),
+                track,
+                Text(self._fmt(dur), size=14, w=52, color=theme.SUBTLE_FG),
+            ],
+            pad=10, gap=12, align="center", h=64, bg=theme.PANEL_BG)
 
     def _busy(self):
         return Box(
