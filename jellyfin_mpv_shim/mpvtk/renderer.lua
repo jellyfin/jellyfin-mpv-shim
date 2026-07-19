@@ -763,9 +763,41 @@ local function dd_state(node)
     return d
 end
 
+-- Vertical fade as stacked translucent ASS bands — bitmaps would
+-- cover the controls that sit on it, ASS bands stay underneath them.
+local GRAD_BANDS = 24
+
+local function draw_gradient(ass, node, ex, ey, clip)
+    local bh = node.h / GRAD_BANDS
+    for i = 0, GRAD_BANDS - 1 do
+        local t = (i + 0.5) / GRAD_BANDS
+        local a = (node.a1 or 0) + ((node.a2 or 0) - (node.a1 or 0)) * t
+        if a > 1 then
+            draw_rect(ass, ex, ey + i * bh, node.w, bh + 0.5, {
+                fill = node.c or '000000', a = math.floor(a),
+                clip = clip,
+            })
+        end
+    end
+end
+
 local function draw_dropdown(ass, node, ex, ey, clip)
     local d = dd_state(node)
     local open = state.dd_open == node.id
+    if node.ticon then
+        -- chromeless icon trigger (playback HUD track pickers):
+        -- translucent wash when hovered/open, no box/border/arrow
+        if open or state.hover_id == node.id then
+            draw_rect(ass, ex, ey, node.w, node.h, {
+                fill = 'ffffff', a = 60, radius = 6, clip = clip,
+            })
+        end
+        local isz = math.floor(node.size * 1.2)
+        draw_icon_path(ass, node.ticon,
+            ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
+            open and state.accent or 'dddddd', clip)
+        return
+    end
     draw_rect(ass, ex, ey, node.w, node.h, {
         fill = '2a2a2a', radius = 6,
         bc = open and state.accent or '444444', bw = 1, clip = clip,
@@ -802,14 +834,17 @@ end
 
 local function popup_geometry(node)
     local ex, ey = eff(node)
-    local ih = node.h
+    -- icon triggers size the popup to the items (pw), not the control
+    local w = node.pw or node.w
+    local ih = node.pw and math.floor(node.size * 1.9) or node.h
     local n = #node.items
     local total = n * ih
+    local px = math.max(0, math.min(ex, state.w - w - 4))
     local py = ey + node.h + 4
     if py + total > state.h and ey - 4 - total >= 0 then
         py = ey - 4 - total
     end
-    return { x = ex, y = py, w = node.w, ih = ih, n = n }
+    return { x = px, y = py, w = w, ih = ih, n = n }
 end
 
 -- Generic floating list (dropdown popups, context menus). sel may be
@@ -1150,6 +1185,8 @@ render = function()
             draw_slider(ass, node, ex, ey, clip)
         elseif node.t == 'busy' then
             draw_busy(ass, node, ex, ey, clip)
+        elseif node.t == 'grad' then
+            draw_gradient(ass, node, ex, ey, clip)
         elseif node.t == 'icon' then
             local hs = hover_style(node)
             draw_icon_path(ass, node.path, ex, ey,

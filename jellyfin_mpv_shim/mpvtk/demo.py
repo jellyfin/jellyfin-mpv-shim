@@ -29,6 +29,7 @@ from .widgets import (
     Dropdown,
     Float,
     HScroll,
+    Gradient,
     Icon,
     Image,
     ImageMap,
@@ -325,6 +326,7 @@ class Demo:
         self.table_sel = None
         self.table_multi = set()  # multi-select via shift/ctrl clicks
         self.hold_count = 0  # incremented by the hold-repeat button
+        self.hud_track = None  # icon-trigger dropdown selection
         self._badge = None  # lazy bitmap floated over a strip (Stack)
         self.dialog_open = False
         self.toast = None
@@ -807,6 +809,34 @@ class Demo:
                     wrap=True,
                     max_lines=3,
                     w=420,
+                ),
+                Text("Playback-HUD style: flat controls on a gradient",
+                     size=18, bold=True),
+                Stack(
+                    [
+                        Gradient(color="000000", top=0, bottom=215),
+                        Row(
+                            [
+                                Button("", id="hud-play",
+                                       icon="play_arrow", flat=True,
+                                       on_click=lambda: setattr(
+                                           self, "status", "HUD play")),
+                                Button("", id="hud-next",
+                                       icon="skip_next", flat=True,
+                                       on_click=lambda: setattr(
+                                           self, "status", "HUD next")),
+                                Spacer(),
+                                Dropdown(
+                                    "hud-tracks",
+                                    ["Stereo", "Surround 5.1"],
+                                    trigger_icon="volume_up",
+                                    on_select=lambda i, v: setattr(
+                                        self, "hud_track", v)),
+                            ],
+                            pad=(14, 10), gap=6, align="center",
+                        ),
+                    ],
+                    h=64, w=560,
                 ),
             ],
             pad=16,
@@ -1316,6 +1346,18 @@ def _selftest(demo, outdir):
     nav = str((st or {}).get("nav", ""))
     check("nav-wraps-to-bottom",
           nav != "" and not nav.startswith("tab-"), nav)
+    # icon-trigger dropdown (playback-HUD style), driven by keyboard:
+    # ENTER opens the popup, DOWN+ENTER picks the second item
+    app.debug(cmd="nav", id="hud-tracks")
+    app.debug(cmd="nav", action="enter")
+    time.sleep(0.3)
+    st = app.debug_state()
+    check("icon-dd-opens", (st or {}).get("dd_open") == "hud-tracks")
+    app.debug(cmd="nav", dir="down")
+    app.debug(cmd="nav", action="enter")
+    time.sleep(0.3)
+    check("icon-dd-selects", demo.hud_track == "Surround 5.1",
+          str(demo.hud_track))
     app.debug(cmd="nav", id="btn-toast")
     app.debug(cmd="nav", action="enter")
     time.sleep(0.4)

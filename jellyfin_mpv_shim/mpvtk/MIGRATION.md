@@ -1266,28 +1266,106 @@ development so it can't destabilize the mouse-first parity path.
 
 ---
 
-## Phase 9 (proposal) — playback controls in mpvtk (retire the OSC?)
+## Phase 9 — playback controls in mpvtk (retire trickplay-jf-osc.lua)
 
-Open question from field testing: key/remote nav now covers browsing,
-but playback still uses trickplay-jf-osc.lua, which has none of the
-mpvtk affordances. Recommendation: **rebuild the playback controls in
-mpvtk rather than porting nav into the OSC lua.** Rationale: porting
-means a second, parallel focus/hit/scoring model in Lua 5.1 inside a
-~3k-line script we eventually want to shrink; rebuilding gets spatial
-nav, tooltips, theme accent, hold-repeat, the selftest harness and
-both-backend coverage for free, and the osc_bridge protocol already
-feeds the data (position, chapters, tracks, trickplay thumbnails —
-which are bitmaps, i.e. overlay-add, i.e. already mpvtk's native
-model). Target behavior = YouTube-on-TV: during playback any key
-press summons the control bar with focus on play/pause; LEFT/RIGHT
-walk transport buttons (or scrub when the seek slider is focused);
-UP/DOWN move between the seek bar and button row; auto-hide on idle
-with the scene simply not built. The inversion to design carefully:
-today the renderer is *suspended* during playback (mpvtk-active no)
-so the OSC gets input — a playback HUD means staying active with an
-empty scene and binding only on first key press, so mpv defaults
-(seek on arrows) still work until the HUD is up. Sizeable; needs its
-own phase, not a polish commit.
+**Decision (2026-07-19, agreed with Izzie): rebuild, don't port.**
+Porting spatial nav into the OSC lua means a second focus/hit/scoring
+model in Lua 5.1 inside a large script we want to shrink; rebuilding
+gets nav (+wraparound), tooltips, theme accent, hold-repeat, flat/
+gradient styling, the selftest harness and both-backend coverage for
+free. This section is the complete plan — written to be picked up in
+a fresh context.
+
+### Target behavior (YouTube-on-TV)
+
+- Playback runs clean (no chrome). Any nav key (arrows/ENTER) or
+  mouse motion summons the HUD; focus lands on play/pause.
+- Bottom bar over a gradient scrim: seek slider on top; transport row
+  under it (prev / play-pause / next / stop), clock "current / total",
+  and right-aligned pickers (audio track, subtitle track, quality?)
+  plus chapters/queue buttons as data allows.
+- LEFT/RIGHT walk the focused row; on the seek slider, ENTER toggles
+  adjust mode and LEFT/RIGHT scrub (slider adjust mode already does
+  5% steps; consider chapter-snap). UP/DOWN move between slider row
+  and button row (row-focused nav handles this already).
+- Auto-hide after ~4s without input (timer in the HUD module; hiding
+  = build returns an empty scene + unbind). Mouse move re-shows;
+  while hidden, mpv's default keys work untouched.
+- ESC/BACK hides the HUD first, then acts as stop-to-browser.
+
+### The lifecycle inversion (the one hard design problem)
+
+Today `mpvtk-active no` suspends the renderer during video so the OSC
+gets input; the browser re-activates on stopped. A HUD inverts this:
+the renderer must stay ATTACHED during playback but IDLE — empty
+scene, mouse/wheel/nav sections UNBOUND — until summoned. Sketch:
+- New renderer message `mpvtk-hud yes|no` (a third state besides
+  active/inactive): scene stays blank and only a lightweight "summon"
+  binding is live (a `keydown` catcher for arrows/ENTER + mouse-move
+  observer). On summon: bind the full sections, notify Python
+  (`{t=hud, active=true}`), app builds the HUD scene.
+- On auto-hide timeout (renderer-side timer, like the tooltip's):
+  unbind, blank, `{t=hud, active=false}`.
+- The browser's `_yield`/`enter_browse` switch between browse-active
+  and hud-idle instead of plain active/inactive. Keep
+  `user-data/mpvtk/active` semantics: remote Move*/Select route to nav
+  keys whenever EITHER browse or a summoned HUD owns input; while the
+  HUD is hidden they should SUMMON it (menu_action already routes;
+  the summon binding makes the first press show the HUD).
+- Compatibility: `enable_osc`/`osc_style` gain an `"mpvtk"` value (or
+  a new `hud_style` key); the lua OSC stays selectable until the HUD
+  is field-proven, then trickplay-jf-osc.lua + osc_bridge's lua side
+  are deleted.
+
+### Data (already flowing — reuse osc_bridge's Python side)
+
+`osc_bridge.py` already assembles: position/duration/pause state,
+chapters (+seek), track lists (audio/subtitle incl. selection),
+skip-intro/credits segments, watched/favorite, trickplay thumbnail
+sources. The HUD module subscribes to the same feeds; playerManager
+push (`on_playstate`-style) + a 1 Hz ticker like the now-playing bar.
+Trickplay previews are Pillow-decoded bitmaps -> `strips.bitmap()`
+one-offs, shown as an Image floated above the slider position while
+scrubbing (bitmap-over-ASS is fine: the preview may cover the bar).
+
+### Component map (all primitives exist as of this commit)
+
+- gradient scrim -> `Gradient` (ASS-banded, controls draw on top)
+- transport/chapter buttons -> `Button(flat=True)` (transparent at
+  rest, translucent hover wash; hold-repeat for seek-step buttons)
+- seek bar -> `Slider` (+ adjust mode; consider `Progress` overlay
+  for buffered ranges later)
+- track pickers -> `Dropdown(trigger_icon=...)` (chromeless icon
+  trigger; popup sizes to items, clamps to screen edges, flips above
+  when near the bottom — all in place)
+- clock/title -> `Text`; layout via `Row(justify=...)` + `Stack`
+- keyboard/remote -> spatial nav as-is (row-focused, wraparound,
+  container tiers); remote GeneralCommands already route via
+  `player.menu_action` + `user-data/mpvtk/active`
+
+### Known gaps to close en route
+
+- **Icons**: the generated set (`ui_icon_paths.py`, 40 names) lacks
+  playback glyphs — need at least pause, fast_forward/rewind (or
+  replay_10/forward_30), subtitles/closed_caption, audiotrack,
+  bookmark/chapters, fullscreen, hd/quality. Add to the icon
+  generation list (gen_ui_icons.py) — data-only change.
+- Slider chapter ticks (marks on the track) — small renderer addition
+  to the slider draw if wanted; not blocking.
+- The demo's widgets page has a working "Playback-HUD style" sample
+  (gradient + flat buttons + icon dropdown) with selftest coverage —
+  the visual reference for the real thing.
+
+### Suggested build order
+
+1. 9.0 lifecycle: `mpvtk-hud` summon/hide in renderer + browser
+   `_yield` integration; prove show/hide over real video (exit test).
+2. 9.1 static bar: gradient + transport + clock, wired to
+   playerManager; auto-hide.
+3. 9.2 seek slider + scrub (+ trickplay preview image on scrub).
+4. 9.3 pickers (audio/subtitle via osc_bridge data), chapters,
+   skip-intro button parity.
+5. 9.4 cutover flag + delete the lua OSC once field-proven.
 
 ## Cross-cutting risks & open questions
 

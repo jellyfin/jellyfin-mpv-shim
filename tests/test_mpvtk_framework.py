@@ -838,3 +838,52 @@ class TestEllipsisEpsilon(unittest.TestCase):
             texts = [n["text"] for n in nodes if n["t"] == "text"]
             self.assertIn(label, texts, "%r truncated: %r"
                           % (label, texts))
+
+
+class TestOscPrimitives(unittest.TestCase):
+    def test_gradient_node(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Gradient
+
+        nodes, _ = layout(
+            Column([Gradient(id="g", color="000000", top=0,
+                             bottom=200, h=90)],
+                   w=400, h=300, align="stretch"),
+            400, 300,
+        )
+        g = by_id(nodes, "g")
+        self.assertEqual(g["t"], "grad")
+        self.assertEqual((g["a1"], g["a2"]), (0, 200))
+        self.assertEqual((g["w"], g["h"]), (400, 90))
+
+    def test_flat_button_transparent_at_rest(self):
+        b = Button("Play", id="b", icon="play_arrow", flat=True,
+                   on_click=lambda: None)
+        nodes, _ = layout(Row([b], w=300, h=60), 300, 60)
+        r = by_id(nodes, "b")
+        self.assertNotIn("fill", r)          # nothing drawn at rest
+        self.assertEqual(r["hover"]["fill"], "ffffff")
+        self.assertEqual(r["a"], 70)         # translucent hover wash
+        self.assertTrue(r.get("click"))
+
+    def test_icon_trigger_dropdown(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Dropdown
+
+        d = Dropdown("tracks", ["English", "Japanese (Full subs)"],
+                     trigger_icon="volume_up",
+                     on_select=lambda i, v: None)
+        nodes, handlers = layout(Row([d], w=300, h=60), 300, 60)
+        n = by_id(nodes, "tracks")
+        self.assertIn("ticon", n)
+        # popup sizes to the widest item, not the (narrow) trigger
+        self.assertGreater(n["pw"], n["w"])
+        self.assertIn("select", handlers["tracks"])
+
+    def test_plain_dropdown_unchanged(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Dropdown
+
+        d = Dropdown("dd", ["A", "B"], w=140,
+                     on_select=lambda i, v: None)
+        nodes, _ = layout(Row([d], w=300, h=60), 300, 60)
+        n = by_id(nodes, "dd")
+        self.assertNotIn("ticon", n)
+        self.assertNotIn("pw", n)

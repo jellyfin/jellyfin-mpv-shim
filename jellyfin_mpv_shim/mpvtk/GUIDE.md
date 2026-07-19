@@ -64,8 +64,14 @@ Content: `Text` (size/color/bold/align; ellipsized to fit, or
 `Image` (pre-rasterized BGRA; never scaled or stretched — see §5),
 `ImageMap` (one composited bitmap + interactive sub-regions; THE tile
 primitive, see §5), `Button` (Box+Text sugar; `repeat=True` refires
-on_click while held — paging arrows), `Checkbox` (Row sugar),
-`Progress` (determinate bar; `Busy` stays the indeterminate spinner).
+on_click while held — paging arrows; `flat=True` is the
+transparent-over-video style: nothing at rest, translucent hover
+wash), `Checkbox` (Row sugar), `Progress` (determinate bar; `Busy`
+stays the indeterminate spinner), `Gradient` (vertical fade drawn as
+stacked ASS bands so ordinary content still draws on top — the
+playback HUD's bottom scrim). `Dropdown(trigger_icon=…)` swaps the
+boxed control for a bare icon button; its popup sizes to the items
+and clamps to the screen edges.
 
 Every element takes `tip="…"` — a renderer-drawn tooltip after a
 0.5s hover delay (occludes images like a popup). `MpvtkApp.node_rect

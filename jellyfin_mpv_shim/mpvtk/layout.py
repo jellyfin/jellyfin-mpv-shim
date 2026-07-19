@@ -18,6 +18,7 @@ from .widgets import (
     Dropdown,
     Element,
     Float,
+    Gradient,
     Grid,
     Icon,
     Image,
@@ -240,6 +241,8 @@ def _measure(el):
         else:
             w = el.w
         return w, el.h or el.size * 1.9
+    if isinstance(el, Gradient):
+        return el.w or 0, el.h or 0
     if isinstance(el, (Menu, Dialog, Float)):
         return 0, 0  # floating: takes no space in flow
     if isinstance(el, Stack):
@@ -531,6 +534,14 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
         return
 
+    if isinstance(el, Gradient):
+        node = _base(el, "grad", x, y, w, h, sc, path)
+        node["c"] = el.color
+        node["a1"] = el.top
+        node["a2"] = el.bottom
+        ctx.nodes.append(node)
+        return
+
     if isinstance(el, Progress):
         node = _base(el, "rect", x, y, w, h, sc, path)
         node["fill"] = el.bg
@@ -670,6 +681,20 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             node["icons"] = _icon_paths(el.icons)
         if el.force:
             node["force"] = True
+        if el.trigger_icon:
+            from .vector import icon_ass
+
+            node["ticon"] = icon_ass(el.trigger_icon)
+            # icon triggers are narrower than their popup: size the
+            # popup to the items (like Menu) and let the renderer
+            # clamp it to the screen edges
+            widest = max(
+                (text_width(i, el.size) for i in el.items), default=40
+            )
+            pw = widest + 36
+            if el.icons:
+                pw += el.size * 1.5
+            node["pw"] = _round(pw)
         _reg(ctx, node["id"], "select", el.on_select)
         ctx.nodes.append(node)
         return

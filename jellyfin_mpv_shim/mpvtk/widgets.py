@@ -213,9 +213,16 @@ class Button(Box):
     just ``label=""``."""
 
     def __init__(self, label, on_click=None, size=20, fg="eeeeee", icon=None,
-                 icon_size=None, gap=None, **kw):
-        kw.setdefault("bg", "333333")
-        kw.setdefault("hover", {"fill": "4a4a4a"})
+                 icon_size=None, gap=None, flat=False, **kw):
+        if flat:
+            # transparent-at-rest, for controls over video/gradients
+            # (playback HUD): no fill, a translucent hover wash
+            kw.setdefault("bg", None)
+            kw.setdefault("alpha", 70)
+            kw.setdefault("hover", {"fill": "ffffff"})
+        else:
+            kw.setdefault("bg", "333333")
+            kw.setdefault("hover", {"fill": "4a4a4a"})
         kw.setdefault("radius", 6)
         kw.setdefault("pad", 10)
         kw.setdefault("align", "center")
@@ -367,6 +374,20 @@ class Form(Grid):
             for l, v in rows
         ]
         super().__init__(grid_rows, cols, size=size, **kw)
+
+
+class Gradient(Element):
+    """A vertical fade (ASS-banded, so ordinary ASS content still draws
+    on top — a bitmap gradient would cover everything). The playback
+    HUD's bottom scrim: ``Gradient(color="000000", top=0, bottom=200)``
+    fades from transparent at the top edge to mostly-opaque at the
+    bottom. Opacities are 0–255. Non-interactive."""
+
+    def __init__(self, color="000000", top=0, bottom=200, **kw):
+        super().__init__(**kw)
+        self.color = color
+        self.top = top
+        self.bottom = bottom
 
 
 class Progress(Element):
@@ -565,6 +586,12 @@ class Dialog(Element):
 
 
 class Dropdown(Element):
+    """``trigger_icon`` replaces the boxed control with a bare Material
+    icon (translucent hover wash, no border/arrow/label) — the playback
+    HUD's track pickers open their popup from a transparent icon
+    button. The popup then sizes to its items (not the trigger) and
+    clamps to the screen edges."""
+
     def __init__(
         self,
         id,
@@ -574,8 +601,12 @@ class Dropdown(Element):
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         force=False,
+        trigger_icon=None,
         **kw,
     ):
+        if trigger_icon:
+            kw.setdefault("w", int(size * 1.9))
+            kw.setdefault("h", int(size * 1.9))
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.selected = selected
@@ -583,6 +614,7 @@ class Dropdown(Element):
         self.icons = icons
         self.on_select = on_select
         self.force = force
+        self.trigger_icon = trigger_icon
 
 
 class Menu(Element):
