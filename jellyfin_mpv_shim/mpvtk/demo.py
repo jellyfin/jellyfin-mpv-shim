@@ -1453,6 +1453,18 @@ def _selftest(demo, outdir):
         "%d strip pieces (occlude punch)" % len(strip_slots),
     )
 
+    # nav paging: arrow-right past the viewport edge must auto-scroll
+    # the carousel to reach fully clipped tiles
+    ftile = "row-cw-tile-%d" % demo._filtered()[0]["idx"]
+    app.debug(cmd="nav", id=ftile)
+    for _ in range(12):
+        app.debug(cmd="nav", dir="right")
+    time.sleep(0.5)
+    st = app.debug_state()
+    scr = (st or {}).get("scroll") or {}
+    check("nav-carousel-autoscroll", scr.get("row-cw", 0) > 0,
+          str(scr.get("row-cw")))
+
     app.quit()
     return results
 

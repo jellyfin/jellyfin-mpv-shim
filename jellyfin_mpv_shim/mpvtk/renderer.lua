@@ -292,6 +292,11 @@ local function clip_tag(clip)
 end
 
 local function hover_style(node)
+    if state.nav == node.id then
+        -- key focus owns the node's visual state: the focus ring
+        -- replaces any hover styling so the two never fight
+        return nil
+    end
     if node.hover and state.hover_id == node.id then
         return node.hover
     end
@@ -1177,13 +1182,14 @@ render = function()
         end
     end
     -- spatial-nav focus ring: outside the node bounds like hover rings
-    -- (bitmaps would cover an inline ring), accent-colored
+    -- (bitmaps would cover an inline ring). Theme accent; white while
+    -- a slider is in adjust mode.
     if state.nav then
         local node = state.byid[state.nav]
         if node and visible(node) then
             local ex, ey, clip = eff(node)
             draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
-                bc = state.nav_adjust and 'ffffff' or '7aa2f7',
+                bc = state.nav_adjust and 'ffffff' or state.accent,
                 bw = 3, radius = 4, clip = clip,
             })
         end
@@ -1786,6 +1792,10 @@ local function on_mouse_down()
     state.nav = nil
     state.nav_pidx = nil
     state.nav_adjust = nil
+    if state.nav_mode then
+        state.nav_mode = false
+        send({ t = 'nav', active = false })
+    end
     -- textbox copy/paste menu eats the click first
     if state.tb_menu then
         local idx = item_at(state.tb_menu_geo, x, y)
@@ -2091,7 +2101,34 @@ local function nav_set(node)
     request_render()
 end
 
+-- Modality flag for the app: keyboard/remote engaged (hide carousel
+-- arrows, etc). Cleared by any mouse press (see on_mouse_down).
+local function set_nav_mode(on)
+    if state.nav_mode == on then return end
+    state.nav_mode = on
+    send({ t = 'nav', active = on })
+end
+
+local function nav_pick(cur, cands, dx, dy)
+    local cx, cy = nav_center(cur)
+    local best, score
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id then
+            local px, py = nav_center(c)
+            local ddx, ddy = px - cx, py - cy
+            local fwd = dx * ddx + dy * ddy       -- along the direction
+            local orth = math.abs(dx * ddy) + math.abs(dy * ddx)
+            if fwd > 0.5 and fwd >= orth * 0.3 then
+                local s = fwd + 2.5 * orth
+                if score == nil or s < score then best, score = c, s end
+            end
+        end
+    end
+    return best
+end
+
 local function nav_move(dx, dy)
+    set_nav_mode(true)
     -- a focused textbox owns the arrows (caret movement) whichever
     -- forced binding mpv happens to prefer — delegate, don't navigate
     if state.focus then
@@ -2138,24 +2175,40 @@ local function nav_move(dx, dy)
         if best then nav_set(best) end
         return
     end
-    local cx, cy = nav_center(cur)
-    local best, score
-    for _, c in ipairs(cands) do
-        if c.id ~= cur.id then
-            local px, py = nav_center(c)
-            local ddx, ddy = px - cx, py - cy
-            local fwd = dx * ddx + dy * ddy       -- along the direction
-            local orth = math.abs(dx * ddy) + math.abs(dy * ddx)
-            if fwd > 0.5 and fwd >= orth * 0.3 then
-                local s = fwd + 2.5 * orth
-                if score == nil or s < score then best, score = c, s end
+    local best = nav_pick(cur, cands, dx, dy)
+    if best then
+        nav_set(best)
+        return
+    end
+    -- Nothing on screen in that direction: the next tile may be fully
+    -- clipped by a scroll viewport. Page the focused node's scroll
+    -- chain along the axis of travel and retry — virtualized content
+    -- over-materializes about a screen, so the neighbour usually
+    -- already exists in the scene.
+    local want_axis = (dx ~= 0) and 'x' or 'y'
+    local dirn = (dx ~= 0) and dx or dy
+    local sc = cur.sc
+    while sc do
+        local cont = state.byid[sc]
+        if not cont or cont.t ~= 'scroll' then break end
+        if cont.axis == want_axis and scroll_max(cont) > 0 then
+            local off = state.scroll[sc] or 0
+            local view = (want_axis == 'x') and cont.w or cont.h
+            local target = clamp(off + dirn * view * 0.6, 0,
+                                 scroll_max(cont))
+            if target ~= off then
+                set_scroll(cont, target)
+                best = nav_pick(cur, nav_candidates(), dx, dy)
+                if best then nav_set(best) end
+                return
             end
         end
+        sc = cont.sc
     end
-    if best then nav_set(best) end
 end
 
 local function nav_activate()
+    set_nav_mode(true)
     if state.focus then
         tb_key('ENTER')  -- submit, same as the textbox's own binding
         return
@@ -2223,6 +2276,7 @@ local function unbind_nav_keys()
 end
 
 bind_nav_keys()
+pcall(mp.set_property_native, 'user-data/mpvtk/active', true)
 
 mp.set_key_bindings({
     { 'mbtn_left', mouse_pair(false, false) },
@@ -2405,6 +2459,9 @@ mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     if want == state.active then return end
     state.active = want
+    -- mirrored so the player can route remote navigation commands to
+    -- the browser's nav keys only while the UI actually owns them
+    pcall(mp.set_property_native, 'user-data/mpvtk/active', want)
     if want then
         mp.enable_key_bindings('mpvtk_mouse')
         mp.enable_key_bindings('mpvtk_wheel')
@@ -2425,6 +2482,10 @@ mp.register_script_message('mpvtk-active', function(on)
         if state.tip_timer then
             state.tip_timer:kill()
             state.tip_timer = nil
+        end
+        if state.nav_mode then
+            state.nav_mode = false
+            send({ t = 'nav', active = false })
         end
         state.dd_open = nil
         state.tb_menu = nil

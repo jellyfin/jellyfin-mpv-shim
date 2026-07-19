@@ -1153,6 +1153,21 @@ id=}` + `nav`/`nav_pidx` in `debug_state`; 5 selftest checks both
 backends. Remaining polish: BACK/ESC as go-back is app wiring; tile
 ImageMap regions already navigate (they're click rects).
 
+**Polish round (same day, from field feedback):** focus ring uses the
+theme accent (white stays for slider adjust) and replaces hover
+styling on the focused node; when nothing on-screen lies in the
+pressed direction the focused node's scroll chain pages ~60% viewport
+and retries, so fully clipped carousel/grid tiles are reachable;
+keyboard/remote modality is reported to the app (`nav` event →
+`MpvtkApp.on_nav`) and the browser hides carousel arrows while it's
+engaged; Jellyfin remote GeneralCommands (MoveUp/…/Select/Back) route
+into the nav keys via `player.menu_action` + the new
+`user-data/mpvtk/active` mirror, so a phone/web remote drives the
+browser (and still seeks during video playback). Row flex-shrink now
+floors clickable Boxes at natural size — the "E…"/"U…" squeezed-button
+reports. A virtualized Table pins `min_w` to its widest content across
+ALL rows so its natural width no longer depends on scroll position.
+
 Original build sketch (kept for reference):
 
 Net-new capability, **nothing built yet** — the only "focus" in mpvtk

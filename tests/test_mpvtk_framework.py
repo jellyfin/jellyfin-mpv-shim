@@ -779,3 +779,48 @@ class TestSizeConstraints(unittest.TestCase):
         bar = Row([Box(w=100, h=20, bg="1"), Box(w=60, h=20, bg="1")],
                   gap=10, pad=(12, 0))
         self.assertEqual(natural_size(bar)[0], 100 + 10 + 60 + 24)
+
+
+class TestNavPolish(unittest.TestCase):
+    def test_buttons_floor_at_natural_in_shrink(self):
+        from jellyfin_mpv_shim.mpvtk.layout import natural_size
+
+        btn = Button("Edit", id="b", on_click=lambda: None)
+        bw = natural_size(btn)[0]
+        nodes, _ = layout(
+            Row([Text("a long title " * 20, id="t"), btn],
+                w=300, h=50),
+            300, 50,
+        )
+        self.assertGreaterEqual(by_id(nodes, "b")["w"], bw - 0.5)
+        # the text absorbed the shrink instead
+        self.assertLessEqual(by_id(nodes, "t")["w"], 300 - bw)
+
+    def test_virtual_table_min_w_is_scroll_independent(self):
+        def rows():
+            return [{"id": "r%d" % i,
+                     "cells": [str(i), "Title %d striiiiing" % i]}
+                    for i in range(100)]
+
+        t0 = Table(columns=[{"label": "#", "w": 40},
+                            {"label": "Title", "flex": 1}],
+                   rows=rows(), row_h=30,
+                   virtual={"offset": 0, "height": 300})
+        t1 = Table(columns=[{"label": "#", "w": 40},
+                            {"label": "Title", "flex": 1}],
+                   rows=rows(), row_h=30,
+                   virtual={"offset": 2400, "height": 300})
+        self.assertIsNotNone(t0.min_w)
+        self.assertEqual(t0.min_w, t1.min_w)  # no jitter with scroll
+        # explicit sizing suppresses the pin
+        t2 = Table(columns=[{"label": "#", "w": 40}], rows=rows(),
+                   virtual={"offset": 0, "height": 300}, w=400)
+        self.assertIsNone(t2.min_w)
+
+    def test_nav_event_dispatch(self):
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        got = []
+        app.on_nav = got.append
+        app._dispatch({"t": "nav", "active": True})
+        app._dispatch({"t": "nav", "active": False})
+        self.assertEqual(got, [True, False])

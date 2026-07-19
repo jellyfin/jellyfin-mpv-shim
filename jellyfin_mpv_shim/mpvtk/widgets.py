@@ -517,6 +517,27 @@ class Table(Column):
         # would re-distribute per-row and drift against the header
         kw.setdefault("align", "stretch")
         super().__init__([header] + body, **kw)
+        if (virtual is not None and self.w is None and not self.flex
+                and self.min_w is None):
+            # A virtualized table's built rows depend on the scroll
+            # offset, so its measured natural width would jitter with
+            # scrolling — a trap for any non-stretch parent. Pin min_w
+            # to the widest content across ALL rows (str cells only;
+            # Element cells are fixed-width in practice).
+            from .layout import text_width
+
+            total = 2 * pad_x + gap * (len(columns) + 1)
+            for ci, col in enumerate(columns):
+                if col.get("w") is not None:
+                    total += col["w"]
+                    continue
+                mx = text_width(str(col.get("label", "")), header_size)
+                for r in rows:
+                    cs = r.get("cells", [])
+                    if ci < len(cs) and not isinstance(cs[ci], Element):
+                        mx = max(mx, text_width(str(cs[ci]), size))
+                total += mx
+            self.min_w = total
 
 
 class Float(Element):

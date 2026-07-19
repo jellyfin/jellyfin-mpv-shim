@@ -98,9 +98,10 @@ Every element takes `id=`, `w=`, `h=`, `flex=`, and size constraints
 fraction of the available space (a Dialog child resolves fractions
 against the window: "natural, but at most 60% of the screen"). Rows
 flex-shrink on overflow: fixed/natural children squeeze proportionally
-down to their min (bitmaps/icons floor at natural — Text simply
-re-ellipsizes); columns still overflow on purpose (vertical overflow
-is pre-scroll content, not an error). `layout.natural_size(tree)` is
+down to their min (bitmaps/icons AND clickable Boxes — buttons — floor
+at natural; a squeezed "E…" button is garbage, so plain Text absorbs
+the shrink and re-ellipsizes); columns still overflow on purpose
+(vertical overflow is pre-scroll content, not an error). `layout.natural_size(tree)` is
 the build-time fit probe: measure a candidate (e.g. the labelled
 chrome bar) against the window and pick a layout — no hardcoded
 breakpoints.
@@ -113,9 +114,19 @@ drawn outside the node; focus scrolls its containers into view. ENTER
 activates: clicks buttons/rows, focuses a textbox (whose own keys then
 own the arrows), opens a dropdown (UP/DOWN walk the popup, ENTER
 picks — same for context menus), toggles slider adjust mode
-(LEFT/RIGHT step 5%, white ring while active). Any mouse press drops
-key focus. The bindings live with the mouse sections: suspended by
-`mpvtk-active no` so playback keeps its seek keys.
+(LEFT/RIGHT step 5%, white ring while active; the accent ring
+otherwise, and it replaces hover styling on the focused node). Any
+mouse press drops key focus. When nothing on-screen lies in the
+pressed direction, the focused node's scroll chain pages ~60% of a
+viewport along that axis and retries — fully clipped neighbours in
+carousels/grids are reachable without pointer arrows. Modality is
+reported to the app as the `nav` event (`MpvtkApp.on_nav`): the
+browser hides carousel arrows while keyboard/remote navigation is
+engaged. The bindings live with the mouse sections: suspended by
+`mpvtk-active no` so playback keeps its seek keys, and the active
+state is mirrored to `user-data/mpvtk/active` so the player can route
+Jellyfin remote commands (MoveUp/Select/…) into these keys only while
+the UI owns them.
 
 ## 3. Scene protocol (Python → Lua)
 
@@ -155,6 +166,7 @@ handlers registered during layout:
 | ready / resize | w, h | osd size known/changed |
 | click | id, shift?, ctrl? | press+release on same target (`rpt` nodes: on press, refiring while held) |
 | dbl | id | double-click on a node with on_dbl (after its two clicks) |
+| nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |

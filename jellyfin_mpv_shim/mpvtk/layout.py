@@ -844,6 +844,12 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             if lo is None and isinstance(c, (Image, ImageMap, Icon,
                                              Busy)):
                 lo = s
+            if lo is None and isinstance(c, Box) and (c.on_click or
+                                                      c.on_dbl):
+                # buttons floor at natural: an "Edit" squeezed to "E…"
+                # is garbage — long plain text absorbs the shrink
+                # instead (it ellipsizes meaningfully)
+                lo = s
             floors.append(min(lo if lo is not None else 0.0, s))
         shrinkable = sum(s - f for s, f in zip(sizes, floors))
         if shrinkable > 0:

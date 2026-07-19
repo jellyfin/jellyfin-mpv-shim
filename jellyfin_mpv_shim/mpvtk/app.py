@@ -247,6 +247,10 @@ class MpvtkApp:
         self._queue = queue.Queue()
         self._handlers = {}
         self._nodes = None  # last pushed scene, for node_rect()
+        # called with True/False when keyboard/remote navigation
+        # engages / a mouse press takes over (hide carousel arrows,
+        # switch affordances). Runs on the loop thread.
+        self.on_nav = None
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -398,6 +402,13 @@ class MpvtkApp:
         if t == "debug_state":
             self._debug_state = evt
             self._debug_evt.set()
+            return
+        if t == "nav":
+            if self.on_nav is not None:
+                try:
+                    self.on_nav(bool(evt.get("active")))
+                except Exception:
+                    log.exception("on_nav handler failed")
             return
         if t in ("change", "submit"):
             # typed text may contain glyphs we've never measured; the

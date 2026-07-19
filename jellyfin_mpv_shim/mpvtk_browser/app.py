@@ -114,6 +114,12 @@ class MpvtkBrowser:
         # Global download progress for the status bar, and its poller.
         self._dl_status = None
         self._dlbar_thread = None
+        # True while keyboard/remote navigation drives the UI (renderer
+        # 'nav' events): carousels hide their pointer arrows and rely on
+        # focus-driven auto-scroll instead. Any mouse press clears it.
+        self._nav_mode = False
+        if app is not None and hasattr(app, "on_nav"):
+            app.on_nav = self._on_nav_mode
         # Open tile context menu: {"item", "server", "x", "y"} or None.
         self._menu = None
         # Banners: update-available notice + offline indicator.
@@ -220,6 +226,14 @@ class MpvtkBrowser:
         ] or [{"kind": "home", "server": self.server}]
         self._bump_epoch()
         self.invalidate()
+
+    def _on_nav_mode(self, active):
+        """Renderer 'nav' event: keyboard/remote engaged or the mouse
+        took over. Repaint so modality-dependent chrome (carousel
+        arrows) follows."""
+        if active != self._nav_mode:
+            self._nav_mode = active
+            self.invalidate()
 
     def _bump_epoch(self):
         with self._lock:
@@ -752,7 +766,9 @@ class MpvtkBrowser:
         if not bleed:
             avail -= 2 * self.CONTENT_PAD
         content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
-        if content_w <= avail:
+        if content_w <= avail or self._nav_mode:
+            # keyboard/remote navigation auto-scrolls the row as focus
+            # moves — pointer paging arrows would only cover artwork
             return Row([scroll], h=h)
 
         def arrow(icon, node_id, direction, anchor):

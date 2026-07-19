@@ -2486,9 +2486,37 @@ class PlayerManager(object):
         else:
             self.menu.menu_action(action)
 
+    # Jellyfin remote navigation (MoveUp/Select/… from a phone or web
+    # client) -> mpv key names. While the mpvtk browser owns input its
+    # forced nav bindings catch these; during video playback they fall
+    # through to kb_seek as before.
+    _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
+                     "right": "RIGHT", "ok": "ENTER", "back": "ESC"}
+
+    def _mpvtk_input_active(self):
+        """True while the in-window UI's key bindings are live (the
+        renderer mirrors it into user-data on every transition)."""
+        if not self.mpvtk_active or self._player is None:
+            return False
+        try:
+            if is_using_ext_mpv:
+                return bool(self._player.command(
+                    "get_property", "user-data/mpvtk/active"))
+            return bool(self._player._get_property(
+                "user-data/mpvtk/active"))
+        except Exception:
+            return False
+
     def menu_action(self, action):
         if self.menu.is_menu_shown:
             self.menu.menu_action(action)
+        elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
+            # remote drives the browser's spatial navigation
+            try:
+                self._player.command(
+                    "keypress", self._NAV_KEYPRESS[action])
+            except Exception:
+                log.debug("nav keypress failed", exc_info=True)
         else:
             self.kb_seek(action)
 
