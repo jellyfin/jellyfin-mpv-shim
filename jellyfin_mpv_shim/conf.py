@@ -55,8 +55,10 @@ class Settings(SettingsBase):
     play_cmd: Optional[str] = None
     idle_cmd_delay: int = 60
     # Quit mpv after this many idle seconds to free the window / GPU / memory;
-    # it is re-created on the next play. Opt-in and off by default.
-    mpv_idle_quit: bool = False
+    # it is re-created on the next play (or when the library is reopened from
+    # the tray). On by default: with the browser and the player sharing one
+    # process, this is what makes a minimized app cost almost nothing.
+    mpv_idle_quit: bool = True
     mpv_idle_quit_secs: int = 300
     direct_paths: bool = False
     remote_direct_paths: bool = False

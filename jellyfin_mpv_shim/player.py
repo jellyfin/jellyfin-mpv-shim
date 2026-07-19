@@ -244,6 +244,15 @@ class PlayerManager(object):
         # the in-window UI owns it. Set by mpvtk_browser.ui, which decides
         # between minimizing to the tray and quitting. Unset -> stop_and_close.
         self.on_window_closed = None
+        # mpv is torn down and re-created across idle-quit and crash recovery.
+        # Anything holding the raw handle has to follow it — the OSD menu does
+        # this via menu.update_player(); the in-window UI attaches a whole
+        # renderer, so it gets explicit hooks. on_mpv_gone fires after the
+        # handle is dead (free anything keyed to it — notably the in-process
+        # BGRA tile buffers, which exist only to be read by that mpv);
+        # on_mpv_recreated fires once a fresh handle is ready.
+        self.on_mpv_gone = None
+        self.on_mpv_recreated = None
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -302,6 +311,8 @@ class PlayerManager(object):
     def _init_mpv(self):
         # Re-open reuses this method; drop the previous instance's trickplay
         # thread first so recovery/idle cycles don't leak it.
+        # getattr: _player isn't bound until the first init finishes.
+        reopen = getattr(self, "_player", None) is not None
         self._teardown_player()
 
         mpv_location = settings.mpv_ext_path
@@ -739,6 +750,24 @@ class PlayerManager(object):
                 log.warning("Error when processing client-message.", exc_info=True)
 
         self._mpv_alive = True
+
+        # Anything attached to the *previous* handle has to move over. Only on
+        # a re-open: on first init there is nothing attached yet (the UI
+        # attaches after the player is constructed).
+        if reopen and self.on_mpv_recreated is not None:
+            try:
+                self.on_mpv_recreated()
+            except Exception:
+                log.error("on_mpv_recreated handler failed", exc_info=True)
+
+    def _notify_mpv_gone(self):
+        handler = self.on_mpv_gone
+        if handler is None:
+            return
+        try:
+            handler()
+        except Exception:
+            log.error("on_mpv_gone handler failed", exc_info=True)
 
     # End-of-playback choreography shared by the eof and abort observers:
     # arm the pause-swallow, take the dedup lock non-blockingly (whichever
@@ -1975,7 +2004,9 @@ class PlayerManager(object):
         if self.get_webview() is not None:
             return
         if self.mpvtk_active:
-            # The in-window browser is showing; keep the window alive.
+            # The in-window browser is on screen; keep the window alive. Note
+            # this is cleared when the browser minimizes, so a minimized app
+            # *does* idle-quit — which is most of the point of minimizing.
             return
         if is_using_ext_mpv and not settings.mpv_ext_start:
             # Never kill an mpv the user launched themselves.
@@ -1990,6 +2021,11 @@ class PlayerManager(object):
             target=self._terminate_mpv, args=(player,), daemon=True
         )
         self._terminate_thread.start()
+        # The handle is gone: let attached UIs drop anything keyed to it.
+        # For the in-window browser that's the composited tile bitmaps, which
+        # on libmpv are in-process buffers mpv reads by address — keeping them
+        # would defeat the whole point of quitting to save memory.
+        self._notify_mpv_gone()
 
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:
@@ -2007,6 +2043,7 @@ class PlayerManager(object):
             target=self._terminate_mpv, args=(self._player,), daemon=True
         )
         self._terminate_thread.start()
+        self._notify_mpv_gone()
         if video:
             # The server still thinks we're playing; report the stop with the
             # last known position so the session and any transcode are freed.

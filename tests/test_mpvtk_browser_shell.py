@@ -424,6 +424,45 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertTrue(self.b.minimized, "cast ended -> back to minimized")
         self.assertFalse(self.b._browsing)
 
+    def test_detaching_frees_the_tile_cache(self):
+        """mpv going away (idle-quit) must drop the composited bitmaps: on
+        libmpv they are in-process buffers the dead mpv read by address, so
+        holding them leaks the memory the quit was meant to free."""
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=self.ctl)
+        b.route["_data"] = {"libraries": b.source.libraries, "rows": []}
+        build_scene(b)
+        self.assertGreater(len(b.strips._cache), 0)
+        b.strips.clear()
+        self.assertEqual(len(b.strips._cache), 0)
+
+    def test_app_can_be_swapped_and_rebuilt(self):
+        """After an idle-quit the browser is pointed at a new MpvtkApp; its
+        route stack and data survive, and invalidate() is a no-op while
+        detached rather than a crash."""
+        class FakeApp:
+            def __init__(self):
+                self.invalidated = 0
+
+            def invalidate(self):
+                self.invalidated += 1
+
+            def set_active(self, on):
+                pass
+
+        b = MpvtkBrowser(app=FakeApp(), source=FakeSource(),
+                         controller=self.ctl)
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        stack = list(b.nav_stack)
+
+        b.app = None            # detached: mpv is gone
+        b.invalidate()          # must not raise
+
+        b.app = FakeApp()       # re-attached to the new handle
+        b.invalidate()
+        self.assertEqual(b.app.invalidated, 1)
+        self.assertEqual(b.nav_stack, stack)
+
     def test_enter_browse_clears_minimized(self):
         self.b.minimize()
         self.b.enter_browse()

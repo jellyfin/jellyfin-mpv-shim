@@ -399,6 +399,12 @@ def build_player(player_module, video=None):
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
     pm.mpvtk_active = False
+    # Optional UI hooks. This harness builds a PlayerManager without running
+    # __init__, so anything the real constructor defines has to be set here or
+    # the code that reads it raises instead of taking its "no handler" path.
+    pm.on_window_closed = None
+    pm.on_mpv_gone = None
+    pm.on_mpv_recreated = None
 
     pm.menu = _FakeMenu()
     pm.syncplay = _FakeSyncplay()

@@ -55,6 +55,9 @@ class _PlayerController:
 
     def on_browse_enter(self):
         from ..player import playerManager
+        # mpvtk_active tells the player the in-window UI is on screen — it
+        # gates the idle-quit and makes `q` return to the library.
+        playerManager.mpvtk_active = True
         # Logo-free, free-resizing browse window (not force_window()'s menu
         # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
         playerManager.set_browse_window(True)
@@ -65,6 +68,11 @@ class _PlayerController:
         force_window when nothing is playing; if a cast is in flight it
         leaves the picture alone, which is exactly the behaviour we want."""
         from ..player import playerManager
+        # Clearing mpvtk_active un-gates the idle quit, so a minimized app
+        # eventually drops mpv entirely and gives back its memory and GPU
+        # context. It comes back on the next play or when the tray reopens
+        # the library (see UserInterface.on_mpv_recreated).
+        playerManager.mpvtk_active = False
         playerManager.enable_osc(settings.enable_osc)
         playerManager.set_browse_window(False)
 
@@ -510,6 +518,10 @@ class UserInterface:
         self._browser = None
         self._thread = None
         self._tray = None
+        # True while we are deliberately tearing the render loop down (mpv
+        # idle-quit / reconnect), so _run doesn't mistake it for a window
+        # close and stop the whole app.
+        self._detaching = False
 
     def start(self):
         # The tray is the only way to reach the app while the mpv window is
@@ -611,6 +623,10 @@ class UserInterface:
         playerManager.notify_update = browser.notify_update
 
         playerManager.on_window_closed = self.on_window_closed
+        # mpv is torn down and rebuilt across idle-quit and crash recovery;
+        # the renderer is bound to a specific handle, so follow it.
+        playerManager.on_mpv_gone = self.on_mpv_gone
+        playerManager.on_mpv_recreated = self.on_mpv_recreated
         # start_minimized: come up in the windowless state — running, castable,
         # reachable from the tray — instead of opening the library. Without a
         # tray there'd be no way back, so honour it only when one is up.
@@ -640,14 +656,65 @@ class UserInterface:
             threading.Thread(target=self._connect, daemon=True,
                              name="mpvtk-connect").start()
 
-    def _run(self):
+    # -- following mpv across teardown / re-create -------------------------
+
+    def on_mpv_gone(self):
+        """mpv terminated (idle-quit or a lost connection).
+
+        Stop the render loop and drop every composited bitmap. On libmpv those
+        are in-process buffers that the dead mpv read by address, so holding
+        them would both leak and defeat the memory saving that quitting mpv
+        while minimized is for."""
+        self._detaching = True
+        app, self._app = self._app, None
+        if app is not None:
+            app.quit()
+        if self._browser is not None:
+            self._browser.app = None
+            try:
+                self._browser.strips.clear()
+            except Exception:
+                log.debug("clearing the tile cache failed", exc_info=True)
+
+    def on_mpv_recreated(self):
+        """A fresh mpv handle exists — attach a new renderer to it.
+
+        mpvtk binds its event callbacks and loads renderer.lua at attach time,
+        so the app object is per-handle; the browser keeps all of its state
+        (routes, data, caches) and simply gets pointed at the new one."""
+        from ..player import playerManager, is_using_ext_mpv
+        from ..mpvtk.app import MpvtkApp
+
+        if self._browser is None:
+            return
         try:
-            self._app.run(self._browser.build)
+            app = MpvtkApp.attach(playerManager.get_mpv(), ext=is_using_ext_mpv)
+        except Exception:
+            log.error("could not re-attach the mpvtk UI to the new mpv",
+                      exc_info=True)
+            return
+        self._app = app
+        self._browser.app = app
+        self._detaching = False
+        self._thread = threading.Thread(target=self._run, daemon=True,
+                                        name="mpvtk-browser")
+        self._thread.start()
+        # A fresh renderer starts active; if mpv came back for a cast while we
+        # were minimized, it must stay out of the way.
+        if not self._browser._browsing:
+            self._browser._set_renderer_active(False)
+        self._browser.invalidate()
+
+    def _run(self):
+        app = self._app
+        try:
+            app.run(self._browser.build)
         except Exception:
             log.error("mpvtk browser loop crashed", exc_info=True)
         finally:
-            # Window closed -> release main()'s halt loop.
-            if self.stop_callback is not None:
+            # A loop that ended because *we* detached (idle-quit, reconnect)
+            # is expected — only a real window close should stop the app.
+            if not self._detaching and self.stop_callback is not None:
                 self.stop_callback()
 
     def _connect(self):

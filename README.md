@@ -294,7 +294,7 @@ You can execute shell commands on media state using the config file:
 - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
 - `idle_when_paused` - Consider the player idle when paused. Default: `false`
 - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
-- `mpv_idle_quit` - Quit MPV when idle to free the window, GPU context, and memory; it is re-created automatically on the next playback request. Off by default. Not applied to an externally-managed MPV you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `false`
+- `mpv_idle_quit` - Quit MPV when idle to free the window, GPU context, and memory; it is re-created automatically on the next playback request, or when the library is reopened from the tray. It never fires while the library browser is on screen. Not applied to an externally-managed MPV you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `true`
 - `mpv_idle_quit_secs` - Seconds of inactivity before `mpv_idle_quit` takes effect. Default: `300`
 - `play_cmd` - After playback starts.
 - `idle_ended_cmd` - After player stops being idle.

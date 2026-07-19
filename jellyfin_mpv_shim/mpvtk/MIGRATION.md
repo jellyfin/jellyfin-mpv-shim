@@ -52,39 +52,49 @@ First real session with `browser_ui=mpvtk`. All fixed unless noted.
 
 ## Framework deficits found while fixing the above
 
-Real mpvtk limitations, not app bugs. Worth fixing in the toolkit.
+Real mpvtk limitations, not app bugs. **All 7 fixed in the toolkit
+(2026-07-19)** — unit-tested in `tests/test_mpvtk_framework.py`,
+renderer behavior exercised by new selftest checks (both backends).
+The app-side adoption (carousel arrows over strips, shift-select in
+the playlist editor, `_wrap`→`Text(wrap=True)`, hand-rolled columns →
+`Table`, tighter virtualization via `scroll_offsets()`) is follow-up
+work — the browser still uses the old patterns.
 
-1. **No way to draw ASS above a bitmap, and no z-order between bitmaps.**
-   `overlay-add` composites above all script ASS (GUIDE §6), and the
-   renderer's overlay *slots* are sticky/arbitrary, so bitmap-over-bitmap
-   ordering isn't controllable either. Consequence: nothing can float over
-   a poster strip — not the carousel arrows, not a hover scrim, not a
-   badge added after the bake. Everything overlaying tiles must be baked
-   into the strip. Possible fix: give the renderer a paint-order slot
-   allocator and re-issue `overlay-add` in scene order when the order
-   changes, which would at least buy bitmap-over-bitmap layering.
-2. **No absolute positioning inside the flow.** `Float` is
-   screen-absolute and never scrolls, so it can't pin anything to a row
-   that scrolls with the page. A `Stack` container (children sharing a
-   rect, per-child anchor) would cover this — but note (1) limits what it
-   could usefully draw over.
-3. **Scroll offsets live only in the renderer.** Virtualization has to
-   round-trip through the debounced `on_scroll` event, so the Python side
-   is always slightly behind and has to over-materialize (±1 screen) to
-   hide the lag. A `scroll` field echoed back in `debug_state`, or a
-   synchronous query, would let the app window tightly.
-4. **No modifier state on click events.** The renderer reports a bare
-   click, so shift/ctrl-click range and additive selection are impossible;
-   the playlist editor uses toggle-select instead. Adding `mods` to the
-   click payload is cheap and would make every table behave normally.
-5. **No hold-repeat on buttons.** The Tk `NavButton` auto-repeated while
-   held; mpvtk buttons fire once per click, so paging a long carousel is
-   one click per page.
-6. **`Text` can't wrap.** Every caller hand-wraps with `_wrap()` +
-   `text_width()`. A `wrap=True` (and `max_lines`) on `Text` would remove
-   that duplication from the browser, the mirror, and the dialogs.
-7. **No table/column primitive.** Columns are hand-laid `Row`s with fixed
-   `w=`, so headers and cells drift apart when one is edited.
+1. [x] **Bitmap z-order.** mpv composites overlay slots in ascending id
+   order; `flush_overlays` now keeps slot order consistent with paint
+   order (slots stay sticky; when an overlapping pair contradicts paint
+   order it renumbers everything to paint index once, add-before-remove
+   preserved). Bitmap-over-bitmap layering now just works. ASS still
+   can't draw over a bitmap directly — but see the `occlude` marker
+   under (2).
+2. [x] **`Stack` container.** Children share the parent rect (per-child
+   `anchor` nw/n/ne/w/c/e/sw/s/se or fill, plus `dx`/`dy`), scroll with
+   the page, and paint in child order. An ASS child marked
+   `occlude=True` emits an `occ` node the renderer subtracts from image
+   siblings *below it* — so arrows/badges/chips can sit "over" a strip
+   by punching through it (opaque bg required).
+3. [x] **Synchronous scroll offsets.** The renderer mirrors offsets into
+   `user-data/mpvtk/scroll` on every change; `MpvtkApp.scroll_offsets()`
+   reads it synchronously at build() time (mpv ≥ 0.36 → `{}` fallback).
+   `debug_state` already echoed `scroll`.
+4. [x] **Click modifiers.** shift/ctrl mbtn variants are bound; the click
+   payload carries `shift`/`ctrl`, and a handler opts in by declaring a
+   required first parameter (`lambda m, i=i: …`); zero-arg and
+   default-arg handlers keep the bare call. Debug hook: `click` takes
+   `shift`/`ctrl`.
+5. [x] **Hold-repeat.** `Button(repeat=True)` (any clickable Box, and
+   ImageMap regions via `"repeat": True`) fires on press and refires
+   while held (0.4s delay, 0.12s interval, pauses while the pointer
+   leaves); the release is swallowed. Debug hooks `down`/`up` cover it.
+6. [x] **`Text(wrap=True, max_lines=…)`.** Layout-side greedy word wrap
+   (kern-aware, hard-breaks long words, `\n` = paragraph); one scene
+   node per line; last kept line ellipsized. Callers' `_wrap()` helpers
+   can be deleted at adoption.
+7. [x] **`Table` primitive.** One column spec (`w`/`flex`/`align`)
+   generates header + rows, so geometry can't drift; `selected` rows
+   get a background; row `on_click` composes with (4) for shift-range /
+   ctrl-toggle selection. The demo's hand-rolled track table now uses
+   it.
 
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
@@ -272,12 +282,28 @@ open. `set_browse_window(True/False)` moves between rows 1 and 3;
 Both settings are ignored when no tray came up — otherwise the app would be
 running with no way to reach or quit it.
 
-Still open: `close_prompt_shown`. The Tk browser asked "Minimize to Tray /
-Exit?" on first close; here the window is already gone when CLOSE_WIN
-arrives, so showing a modal means re-creating the window to ask. Closing
-currently just minimizes (the reversible choice) and `close_to_tray` is
-editable in Settings → Interface. Decide whether the prompt is worth
-re-creating the window for.
+`close_prompt_shown` is **intentionally dead**. The Tk browser asked
+"Minimize to Tray / Exit?" on first close; here the window is already gone
+when CLOSE_WIN arrives, so a modal would mean re-creating the window to
+ask. Minimizing is harmless as long as the setting is discoverable, which
+it is (Settings → Interface → "Close to Tray"). Don't re-add the prompt.
+
+**Minimized is cheap.** `mpv_idle_quit` now defaults on, and minimizing
+clears `mpvtk_active`, which is what gates it — so a minimized app drops
+mpv entirely after `mpv_idle_quit_secs` and gives back the window, the GPU
+context and the process memory. Two consequences the UI has to handle, via
+the new `playerManager.on_mpv_gone` / `on_mpv_recreated` hooks:
+
+- The composited tile bitmaps must be freed on teardown. On libmpv they are
+  in-process buffers that mpv reads *by address*, so keeping them both
+  leaks and defeats the point of the quit. `on_mpv_gone` clears the
+  `StripStore`.
+- mpvtk binds its event callbacks and loads `renderer.lua` at attach time,
+  so the app object is per-handle. `on_mpv_recreated` builds a fresh
+  `MpvtkApp` on the new handle and restarts the loop thread; the browser
+  keeps its routes, data and thumbnail cache and is just re-pointed. The
+  loop ending because *we* detached must not be mistaken for a window
+  close (`UserInterface._detaching`), or an idle-quit would exit the app.
 
 ### Fixed in round 1 from this audit
 
