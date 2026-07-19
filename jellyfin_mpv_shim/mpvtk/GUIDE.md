@@ -116,10 +116,15 @@ own the arrows), opens a dropdown (UP/DOWN walk the popup, ENTER
 picks — same for context menus), toggles slider adjust mode
 (LEFT/RIGHT step 5%, white ring while active; the accent ring
 otherwise, and it replaces hover styling on the focused node). Any
-mouse press drops key focus. When nothing on-screen lies in the
-pressed direction, the focused node's scroll chain pages ~60% of a
-viewport along that axis and retries — fully clipped neighbours in
-carousels/grids are reachable without pointer arrows. Modality is
+mouse press drops key focus. Direction picking is container-aware and
+tiered: aligned candidates inside the focused node's own scroll
+containers win first; then the container pages ~60% of a viewport
+along the axis and retries (completing on the next scene push if the
+content wasn't materialized yet); only when the containers are
+exhausted may focus escape to aligned fixed chrome (top bar,
+now-playing bar), with an unaligned-cone fallback for vertical moves
+only. Scroll-into-view uses asymmetric margins (56px leading, 12px
+trailing) so a row's heading scrolls in with its carousel. Modality is
 reported to the app as the `nav` event (`MpvtkApp.on_nav`): the
 browser hides carousel arrows while keyboard/remote navigation is
 engaged. The bindings live with the mouse sections: suspended by

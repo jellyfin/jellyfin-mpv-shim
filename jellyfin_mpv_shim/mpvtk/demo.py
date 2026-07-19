@@ -1313,6 +1313,23 @@ def _selftest(demo, outdir):
     scr = (st or {}).get("scroll") or {}
     check("nav-scroll-into-view", scr.get("wpage", 0) > 0,
           str(scr.get("wpage")))
+    # walking UP with the page scrolled must scroll the container to
+    # reveal clipped in-page widgets — not eagerly grab the fixed tab
+    # bar above (fixed chrome is tier 2, after the container exhausts)
+    app.debug(cmd="wheel", id="wpage", dir=1, steps=20, axis="y")
+    time.sleep(0.3)
+    app.debug(cmd="nav", id="tbl-up")
+    for _ in range(7):
+        app.debug(cmd="nav", dir="up")
+    time.sleep(0.4)
+    st = app.debug_state()
+    check(
+        "nav-up-scrolls-not-chrome",
+        not str((st or {}).get("nav", "")).startswith("tab-"),
+        str((st or {}).get("nav")),
+    )
+    app.debug(cmd="wheel", id="wpage", dir=-1, steps=25, axis="y")
+    time.sleep(0.3)
 
     # wrapped text emits one node per line, stacked a line apart
     wnodes, _ = _layout(demo.build((1280, 720)), 1280, 720)

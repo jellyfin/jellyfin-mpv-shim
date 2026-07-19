@@ -2075,9 +2075,14 @@ local function nav_center(node)
     return ex + node.w / 2, ey + node.h / 2
 end
 
+-- Asymmetric margins: scrolling back toward the start reveals extra
+-- context above/left of the target — a row's heading scrolls into
+-- view with its carousel instead of being clipped at the viewport top.
+local NAV_LEAD = 56
+local NAV_TAIL = 12
+
 local function nav_scroll_into_view(node)
     local sc = node.sc
-    local margin = 12
     while sc do
         local cont = state.byid[sc]
         if not cont or cont.t ~= 'scroll' then break end
@@ -2088,13 +2093,37 @@ local function nav_scroll_into_view(node)
         else
             rel, ext, view = node.y - cont.y, node.h, cont.h
         end
-        if rel - margin < off then
-            set_scroll(cont, rel - margin)
-        elseif rel + ext + margin > off + view then
-            set_scroll(cont, rel + ext + margin - view)
+        if rel - NAV_LEAD < off then
+            set_scroll(cont, rel - NAV_LEAD)
+        elseif rel + ext + NAV_TAIL > off + view then
+            set_scroll(cont, rel + ext + NAV_TAIL - view)
         end
         sc = cont.sc
     end
+end
+
+-- The set of scroll containers the node lives in, and membership test:
+-- navigation prefers neighbours inside the same containers (and
+-- scrolling them) before letting focus escape to fixed chrome.
+local function nav_chain(node)
+    local set = {}
+    local sc = node.sc
+    while sc do
+        set[sc] = true
+        local cont = state.byid[sc]
+        sc = cont and cont.sc or nil
+    end
+    return set
+end
+
+local function nav_in_chain(chain, c)
+    local sc = c.sc
+    while sc do
+        if chain[sc] then return true end
+        local cont = state.byid[sc]
+        sc = cont and cont.sc or nil
+    end
+    return false
 end
 
 local function nav_set(node)
@@ -2133,12 +2162,13 @@ local function nav_overlap(cur, c, dx)
     return ax < bx + c.w and bx < ax + cur.w
 end
 
-local function nav_pick(cur, cands, dx, dy, need_overlap)
+local function nav_pick(cur, cands, dx, dy, need_overlap, filter)
     local cx, cy = nav_center(cur)
     local best, score
     for _, c in ipairs(cands) do
         if c.id ~= cur.id and
-            (not need_overlap or nav_overlap(cur, c, dx)) then
+            (not need_overlap or nav_overlap(cur, c, dx)) and
+            (filter == nil or filter(c)) then
             local px, py = nav_center(c)
             local ddx, ddy = px - cx, py - cy
             local fwd = dx * ddx + dy * ddy       -- along the direction
@@ -2209,18 +2239,22 @@ local function nav_move(dx, dy)
         if best then nav_set(best) end
         return
     end
-    -- tier 1: candidates aligned with the current node (same row for
-    -- horizontal moves, same column for vertical)
-    local best = nav_pick(cur, cands, dx, dy, true)
+    -- tier 1: aligned candidates INSIDE the focused node's own scroll
+    -- containers — fixed chrome above/below must not win while the
+    -- container can still scroll to reveal an aligned neighbour
+    local chain = nav_chain(cur)
+    local function inside(c)
+        return nav_in_chain(chain, c)
+    end
+    local best = nav_pick(cur, cands, dx, dy, true, inside)
     if best then
         nav_set(best)
         return
     end
-    -- Nothing aligned on screen: the neighbour may be fully clipped by
-    -- a scroll viewport. Page the focused node's scroll chain along
-    -- the axis of travel and retry; if the content isn't materialized
-    -- yet, remember the direction and finish when the next scene
-    -- arrives (see reconcile).
+    -- Nothing aligned in-container on screen: the neighbour may be
+    -- fully clipped. Page the scroll chain along the axis of travel
+    -- and retry; if the content isn't materialized yet, remember the
+    -- direction and finish when the next scene arrives (reconcile).
     local want_axis = (dx ~= 0) and 'x' or 'y'
     local dirn = (dx ~= 0) and dx or dy
     local sc = cur.sc
@@ -2234,7 +2268,8 @@ local function nav_move(dx, dy)
                                  scroll_max(cont))
             if target ~= off then
                 set_scroll(cont, target)
-                best = nav_pick(cur, nav_candidates(), dx, dy, true)
+                best = nav_pick(cur, nav_candidates(), dx, dy, true,
+                                inside)
                 if best then
                     nav_set(best)
                 else
@@ -2245,10 +2280,16 @@ local function nav_move(dx, dy)
         end
         sc = cont.sc
     end
-    -- tier 2, vertical only: cross into other containers (chrome, the
-    -- now-playing bar). Horizontal stays in its row — RIGHT at the end
-    -- of a fully scrolled carousel does nothing rather than hopping to
-    -- an arbitrary other row.
+    -- tier 2: the containers are exhausted — aligned candidates
+    -- anywhere (chrome, the now-playing bar)
+    best = nav_pick(cur, cands, dx, dy, true)
+    if best then
+        nav_set(best)
+        return
+    end
+    -- tier 3, vertical only: the unaligned cone. Horizontal stays in
+    -- its row — RIGHT at the end of a fully scrolled carousel does
+    -- nothing rather than hopping to an arbitrary other row.
     if dy ~= 0 then
         best = nav_pick(cur, cands, dx, dy, false)
         if best then nav_set(best) end
@@ -2439,8 +2480,10 @@ local function reconcile()
         state.nav_pending = nil
         local cur = state.nav and state.byid[state.nav]
         if cur then
-            local best = nav_pick(cur, nav_candidates(), p.dx, p.dy,
-                                  true)
+            local chain = nav_chain(cur)
+            local best = nav_pick(
+                cur, nav_candidates(), p.dx, p.dy, true,
+                function(c) return nav_in_chain(chain, c) end)
             if best then nav_set(best) end
         end
     end
