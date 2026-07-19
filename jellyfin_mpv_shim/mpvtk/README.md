@@ -1,5 +1,10 @@
 # mpvtk — declarative UI rendered inside the mpv window
 
+> Start with **GUIDE.md** (architecture, protocol, widget catalog,
+> constraints, testing) and **PARITY.md** (Tk-browser gap analysis and
+> what's left). This file is the spike log: how we got here and what
+> was learned the hard way.
+
 Spike exploring rendering the library-browser-class UI directly in the
 mpv window, inverting the usual "embed mpv in a toolkit" architecture:
 mpv owns the window and swapchain; the UI is OSD data composited in

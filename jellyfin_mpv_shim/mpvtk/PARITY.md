@@ -36,21 +36,21 @@ not from tkinter's API surface.
 | Poster tiles / MediaTile grid+rows | ImageMap strips (baked badges, progress, captions) | ✅ | z-order + overlay budget solved |
 | ScrollableGrid / VScrollFrame / HScrollRow | V/HScroll + scrollbar + windowed infinite scroll | ✅ | throttled scroll events |
 | Combobox (12, all readonly pickers) | Dropdown | ✅ | |
-| Entry (9) | TextBox | ✅/🔨 | basic editing + paste done; **password mask** (login/PIN) S; **selection+copy** M (~150 lines); IME ⛔ on X11 |
-| Checkbutton (9) | rect + check glyph + click | 🧩 S | settings toggles |
-| Notebook (Settings tabs) | button row + view switch in build() | 🧩 S | |
-| Treeview (PlaylistEdit, Queue track tables) | table composite: header buttons + row Texts + selection highlight state | 🧩 M | single-select + button reorder — no DnD needed |
-| Listbox (AddTo) | VScroll of Buttons | 🧩 S | |
-| Progressbar determinate (Downloads, move) | two rects | 🧩 S | |
-| Progressbar indeterminate (Connecting) | ASS `\t` animation node | 🔨 S | runs in libass, no per-frame pushes |
-| Scale ×2 (seek/volume scrub-drag) | Slider: track+thumb, drag like scrollbar thumb | 🔨 S–M | reuse scrollbar drag machinery |
-| Text (Logs, readonly) | VScroll of Text lines | 🧩 S | no editing needed |
+| Entry (9) | TextBox | ✅ | editing, paste, password `mask`, selection (shift+arrows, ctrl+a/c, replace-on-type); IME ⛔ on X11; click-drag select not built |
+| Checkbutton (9) | Checkbox sugar | ✅ | demo Widgets page |
+| Notebook (Settings tabs) | button row + view switch in build() | ✅ | demo tab bar |
+| Treeview (PlaylistEdit, Queue track tables) | table composite: header + row Texts + selection + reorder buttons | ✅ | demo track table |
+| Listbox (AddTo) | VScroll of Buttons | ✅ | same pattern as table rows |
+| Progressbar determinate (Downloads, move) | nested-Box bar | ✅ | demo, driven by background thread |
+| Progressbar indeterminate (Connecting) | Busy spinner node | ✅ | renderer-side animation timer |
+| Scale ×2 (seek/volume scrub-drag) | Slider (drag + throttled change) | ✅ | |
+| Text (Logs, readonly) | VScroll of Text lines | ✅ | demo Logs page (300 lines) |
 | tk.Menu (tile context menu) | Menu | ✅ | |
-| Toplevel + grab_set (6 dialogs) | **modal dialog layer**: floating Box + hit-test grab + ESC/Enter | 🔨 M | generalize the Menu floating-layer; backdrop dim is z-order-limited (see paradigms) |
-| messagebox (3) | modal dialog composite | 🧩 | after dialogs exist |
+| Toplevel + grab_set (6 dialogs) | Dialog: centered top layer, input grab, ESC/click-away dismiss | ✅ | no backdrop dim (z-order) |
+| messagebox (3) | Dialog composite | ✅ | |
 | filedialog (1, download dir) | path TextBox | ⛔ | accepted |
 | PhotoImage (logo, album art) | Image | ✅ | |
-| Update banner / toasts | floating Box layer + Python timer | 🧩 S | needs floating-layer generalization |
+| Update banner / toasts | Float + Python timer | ✅ | demo auto-dismissing toast |
 
 ## Paradigms
 
@@ -68,23 +68,23 @@ not from tkinter's API surface.
 | Multi-window (Tk Toplevels) | single surface + floating layers; paradigm shift, no gap | ✅ |
 | Window/session lifecycle | quit events wired both backends | ✅ |
 
-## Suggested build order
+## Build order — status
 
-1. **Floating-layer generalization + modal dialogs** (unlocks 6 dialogs,
-   messageboxes, toasts/banner) — extends proven Menu machinery.
-2. **Slider + checkbox + tabs + progress + table composites** — all
-   mechanical, parallelizable.
-3. **TextBox password mask, then selection/copy.**
-4. **Real-data integration**: repository.py/thumbnails.py feeding strips
-   (poster decode on the existing worker pool; strips recomposite as
-   thumbnails arrive).
+1. ~~Floating-layer generalization + modal dialogs~~ **done** (Dialog,
+   Float, top-layer render pass, input grab, ESC/click-away).
+2. ~~Slider + checkbox + tabs + progress + table composites~~ **done**
+   (demo Widgets page proves each).
+3. ~~TextBox password mask + selection/copy~~ **done** (click-drag
+   selection excluded).
+4. **Real-data integration**: repository.py/thumbnails.py feeding
+   strips (poster decode on the existing worker pool; strips
+   recomposite as thumbnails arrive). ← next
 5. **Keyboard/remote spatial navigation** (net-new capability; the
    reason to render in mpv at all for the 10-foot case).
 
-Rough total for parity (1–4): on the order of the spike's size again —
-each item is bounded and none requires a new rendering primitive; the
-hard unknowns (z-order, overlay budget, crop math, input, scroll,
-windowing, metrics) were all retired during the spike rounds.
+Every framework-level PARITY item is now built and exercised by the
+demo's test pages (35 selftest checks, both backends); what remains is
+app integration (4) and the optional 10-foot input model (5).
 
 ## Open issues
 
