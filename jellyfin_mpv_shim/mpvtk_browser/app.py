@@ -120,10 +120,11 @@ class MpvtkBrowser:
         # (None when not scrubbing). Drives the preview thumbnail and the
         # clock; committed to a real seek on gesture end (see hud.py).
         self._hud_scrub = None
-        if app is not None and hasattr(app, "on_hud"):
-            app.on_hud = self._on_hud
-        if app is not None and hasattr(app, "on_hud_skip"):
-            app.on_hud_skip = self._on_hud_skip
+        # Open settings-menu level in the HUD ("root", "speed", …) or None.
+        self._hud_menu = None
+        # Wires on_hud/on_hud_skip (and re-wires on_nav) on the app —
+        # shared with mpv re-creation, which attaches a fresh app.
+        self.set_app(app)
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
         # Global download progress for the status bar, and its poller.
@@ -132,9 +133,8 @@ class MpvtkBrowser:
         # True while keyboard/remote navigation drives the UI (renderer
         # 'nav' events): carousels hide their pointer arrows and rely on
         # focus-driven auto-scroll instead. Any mouse press clears it.
+        # (Wired onto the app by set_app above.)
         self._nav_mode = False
-        if app is not None and hasattr(app, "on_nav"):
-            app.on_nav = self._on_nav_mode
         # Open tile context menu: {"item", "server", "x", "y"} or None.
         self._menu = None
         # Banners: update-available notice + offline indicator.
@@ -940,6 +940,41 @@ class MpvtkBrowser:
             except Exception:
                 log.debug("set_active failed", exc_info=True)
 
+    def set_app(self, app):
+        """Point the browser at a (possibly fresh) MpvtkApp and wire the
+        callbacks. mpv re-creation attaches a brand-new app per handle —
+        without re-wiring here its nav/HUD events would go nowhere (the
+        old app object kept the handlers)."""
+        self.app = app
+        # a fresh renderer has no HUD state; drop ours so build() doesn't
+        # keep pushing a HUD scene at an idle renderer
+        self._hud_shown = False
+        self._hud_scrub = None
+        self._hud_menu = None
+        if app is None:
+            return
+        if hasattr(app, "on_nav"):
+            app.on_nav = self._on_nav_mode
+        if hasattr(app, "on_hud"):
+            app.on_hud = self._on_hud
+        if hasattr(app, "on_hud_skip"):
+            app.on_hud_skip = self._on_hud_skip
+
+    def reassert_window_state(self):
+        """Re-assert window ownership on a FRESH renderer (which starts
+        active): browse takes the window back; a video in flight
+        re-enters attached-but-idle HUD mode; otherwise get fully out
+        of the way (lua OSC / minimized)."""
+        if self._browsing:
+            self._set_renderer_active(True)
+        elif self._use_hud() and self._hud_state is not None:
+            try:
+                self.app.set_hud(True)
+            except Exception:
+                log.debug("set_hud failed", exc_info=True)
+        else:
+            self._set_renderer_active(False)
+
     def _use_hud(self):
         """Whether yielding to video keeps the renderer attached-but-idle
         for the playback HUD (osc_style "mpvtk") instead of getting fully
@@ -970,6 +1005,7 @@ class MpvtkBrowser:
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
         self._hud_scrub = None
+        self._hud_menu = None
         if active:
             # a fresh position snapshot before the bar first paints, then
             # the shared 1s ticker keeps its clock moving
@@ -1086,6 +1122,7 @@ class MpvtkBrowser:
             self._now_playing = None
             self._hud_state = None
             self._hud_shown = False
+            self._hud_menu = None
             if self._minimized:
                 # Cast finished and the library was never open: drop back to
                 # the windowless state rather than popping the browser up on
@@ -1112,15 +1149,19 @@ class MpvtkBrowser:
                 self._yield()         # video: yield the window + the OSC
             else:
                 self.invalidate()     # HUD/bar repaint (clock, pause icon)
-            if (not self._browsing and self._use_hud()
-                    and hasattr(self.app, "set_hud_skip")):
-                # keep the renderer's idle skip overlay in sync with the
-                # live skippable segment (the player pushes a playstate
-                # the moment one starts/ends)
+            if not self._browsing and self._use_hud():
                 try:
+                    # Idempotent HUD-mode engage: covers playback that
+                    # starts while minimized/already-yielded and a fresh
+                    # renderer after mpv re-creation (a plain _yield only
+                    # happens on the browsing -> video transition).
+                    self.app.set_hud(True)
+                    # ... and keep the idle skip overlay in sync with the
+                    # live skippable segment (the player pushes a
+                    # playstate the moment one starts/ends).
                     self.app.set_hud_skip(state.get("skip_label") or "")
                 except Exception:
-                    log.debug("set_hud_skip failed", exc_info=True)
+                    log.debug("hud sync failed", exc_info=True)
 
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.

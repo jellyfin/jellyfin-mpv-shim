@@ -388,6 +388,19 @@ class HudController(FakeController):
                 {"id": "none", "label": "No Transcode", "selected": True},
                 {"id": 20, "label": "20 Mbps", "selected": False},
             ]},
+            "profiles": {"current": "None (Disabled)", "options": [
+                {"id": "none", "label": "None (Disabled)",
+                 "selected": True},
+                {"id": "anime4k", "label": "Anime4K", "selected": False},
+            ]},
+            "sub_style": {
+                key: {"current": "Default", "options": [
+                    {"id": 0, "label": "Default", "selected": True},
+                ]} for key in ("size", "position", "color")
+            },
+            "syncplay": {"enabled": False, "current": "None (Disabled)",
+                         "groups": []},
+            "allow_screenshot": True,
         }
         self.chapter_list = [
             {"title": "Opening", "time": 0.0},
@@ -475,6 +488,166 @@ class TestPlaybackHudLayout(unittest.TestCase):
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["hud-ch-prev"]["click"]()
         self.assertIn(("seek", (0.0,)), ctl.transport)
+
+
+class StubHudApp:
+    """Records the renderer-facing calls the HUD lifecycle makes."""
+
+    def __init__(self):
+        self.calls = []
+        self.on_nav = None
+        self.on_hud = None
+        self.on_hud_skip = None
+
+    def invalidate(self):
+        pass
+
+    def set_active(self, active):
+        self.calls.append(("active", active))
+
+    def set_hud(self, on):
+        self.calls.append(("hud", on))
+
+    def set_hud_skip(self, label):
+        self.calls.append(("skip", label))
+
+
+class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
+    def _browser(self, size=(1280, 720)):
+        ctl = HudController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = False
+        b._hud_shown = True
+        b._hud_state = {"stopped": False, "is_audio": False,
+                        "title": "Movie", "position": 50.0,
+                        "duration": 100.0, "paused": False,
+                        "favorite": False}
+        return b, ctl
+
+    def test_favorite_button_toggles(self):
+        b, ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        self.assertIn("hud-fav", ids(nodes))
+        handlers["hud-fav"]["click"]()
+        self.assertIn(("hud_action", ("toggle-favorite", None)),
+                      ctl.transport)
+        self.assertTrue(b._hud_state["favorite"], "optimistic flip")
+        nodes, _h = build_scene(b, (460, 640))
+        self.assertNotIn("hud-fav", ids(nodes),
+                         "favorite hides below 560px")
+
+    def test_settings_menu_root_and_speed_flow(self):
+        b, ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        self.assertIn("hud-settings", ids(nodes))
+        self.assertNotIn("hud-menu", ids(nodes))
+        handlers["hud-settings"]["click"]()
+        self.assertEqual(b._hud_menu, "root")
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        labels = menu["items"]
+        # parity with the lua gear sheet (+ SyncPlay, which the lua
+        # keeps on its top bar the HUD doesn't have)
+        for want in ("Quality", "Speed", "Aspect", "Profile",
+                     "Subtitle Size", "Subtitle Position",
+                     "Subtitle Color", "SyncPlay", "Playback Data",
+                     "Screenshot", "Unwatched"):
+            self.assertTrue(any(want.lower() in l.lower()
+                                for l in labels),
+                            "missing %r in %r" % (want, labels))
+        idx = next(i for i, l in enumerate(labels)
+                   if "Playback Speed" in l)
+        handlers["hud-menu"]["select"](idx, labels[idx])
+        self.assertEqual(b._hud_menu, "speed")
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        # controller has no real speed -> default 1.0 gets the check
+        # (layout resolves icon names to path data; presence is enough)
+        self.assertTrue(menu["icons"][menu["items"].index("1x")])
+        self.assertFalse(menu["icons"][menu["items"].index("0.5x")])
+        two = menu["items"].index("2x")
+        handlers["hud-menu"]["select"](two, "2x")
+        self.assertIn(("set_speed", (2.0,)), ctl.transport)
+        self.assertIsNone(b._hud_menu, "leaf selection closes the menu")
+
+    def test_settings_menu_back_and_dismiss(self):
+        b, _ctl = self._browser()
+        b._hud_menu = "aspect"
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        self.assertEqual(menu["items"][0], "Back")
+        handlers["hud-menu"]["select"](0, "Back")
+        self.assertEqual(b._hud_menu, "root")
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["hud-menu"]["dismiss"]()
+        self.assertIsNone(b._hud_menu)
+
+    def test_sub_style_submenu_routes_verb(self):
+        b, ctl = self._browser()
+        b._hud_menu = "sub_size"
+        ctl.menu_state["sub_style"] = {"size": {
+            "current": "Normal",
+            "options": [{"id": 0, "label": "Small", "selected": False},
+                        {"id": 1, "label": "Normal", "selected": True}],
+        }}
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        idx = menu["items"].index("Small")
+        handlers["hud-menu"]["select"](idx, "Small")
+        self.assertIn(("hud_action", ("set-sub-size", 0)), ctl.transport)
+        # a group the state blob doesn't carry renders only the Back row
+        b._hud_menu = "sub_color"
+        ctl.menu_state.pop("sub_style")
+        nodes, _h = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        self.assertEqual(menu["items"], ["Back"])
+
+
+class TestHudLifecycleWiring(unittest.TestCase):
+    def test_set_app_rewires_callbacks(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        app = StubHudApp()
+        b._hud_shown = True
+        b.set_app(app)
+        self.assertEqual(app.on_nav, b._on_nav_mode)
+        self.assertEqual(app.on_hud, b._on_hud)
+        self.assertEqual(app.on_hud_skip, b._on_hud_skip)
+        self.assertFalse(b._hud_shown,
+                         "a fresh renderer has no summoned HUD")
+
+    def test_reassert_window_state(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        app = StubHudApp()
+        b.set_app(app)
+        b._browsing = True
+        b.reassert_window_state()
+        self.assertEqual(app.calls[-1], ("active", True))
+        b._browsing = False
+        b._hud_state = {"stopped": False}
+        b.reassert_window_state()
+        self.assertEqual(app.calls[-1], ("hud", True),
+                         "video in flight re-enters HUD mode")
+        b._hud_state = None
+        b.reassert_window_state()
+        self.assertEqual(app.calls[-1], ("active", False))
+
+    def test_video_playstate_engages_hud_when_already_yielded(self):
+        """Playback that starts while minimized/yielded (cast, crash
+        recovery) must still enter HUD mode — _yield only runs on the
+        browsing -> video transition."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        app = StubHudApp()
+        b.set_app(app)
+        b._browsing = False
+        b.on_playstate({"stopped": False, "is_audio": False,
+                        "title": "M", "position": 1.0,
+                        "duration": 100.0, "paused": False,
+                        "skip_label": "Skip Intro"})
+        self.assertIn(("hud", True), app.calls)
+        self.assertIn(("skip", "Skip Intro"), app.calls)
 
 
 class TestPlaybackLifecycle(unittest.TestCase):

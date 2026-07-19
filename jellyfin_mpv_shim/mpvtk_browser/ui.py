@@ -108,6 +108,36 @@ class _PlayerController:
         args = [verb] if arg is None else [verb, str(arg)]
         playerManager.osc_bridge.handle_action(args)
 
+    def get_speed(self):
+        """Current playback speed (1.0 when unknown)."""
+        from ..player import playerManager
+        try:
+            return float(playerManager._player.speed or 1.0)
+        except Exception:
+            return 1.0
+
+    def set_speed(self, speed):
+        self._act(lambda pm: setattr(pm._player, "speed", float(speed)))
+
+    def get_aspect(self):
+        """Current video-aspect-override (-1.0 = auto/unknown)."""
+        from ..player import playerManager
+        try:
+            return float(playerManager._player.video_aspect_override or -1.0)
+        except Exception:
+            return -1.0
+
+    def set_aspect(self, value):
+        """``value`` is mpv's string form ("-1", "16:9", …) — the
+        property parses ratio strings on both backends."""
+        self._act(lambda pm: setattr(
+            pm._player, "video_aspect_override", value))
+
+    def toggle_stats(self):
+        """Toggle mpv's stats overlay (the gear menu's Playback Data)."""
+        self._act(lambda pm: pm._player.command(
+            "script-binding", "stats/display-stats-toggle"))
+
     def chapters(self):
         """mpv's chapter list as [{"title", "time"}], [] when none."""
         from ..player import playerManager
@@ -932,15 +962,16 @@ class UserInterface:
                       exc_info=True)
             return
         self._app = app
-        self._browser.app = app
+        # set_app (not a bare assignment): the fresh app needs the
+        # browser's nav/HUD callbacks re-wired or its events go nowhere.
+        self._browser.set_app(app)
         self._detaching = False
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="mpvtk-browser")
         self._thread.start()
-        # A fresh renderer starts active; if mpv came back for a cast while we
-        # were minimized, it must stay out of the way.
-        if not self._browser._browsing:
-            self._browser._set_renderer_active(False)
+        # A fresh renderer starts active; re-assert the real state
+        # (browse / HUD-idle for a video in flight / fully out of the way).
+        self._browser.reassert_window_state()
         self._browser.invalidate()
 
     def _run(self):

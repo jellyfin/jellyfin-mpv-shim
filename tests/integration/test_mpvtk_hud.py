@@ -342,6 +342,40 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    in self.ctl.calls,
                    msg="skip button never dispatched: %r" % self.ctl.calls)
 
+    def test_settings_menu_keyboard_flow(self):
+        self.ctl.menu_state = {"has_media": True, "quality": {
+            "current": "No Transcode", "options": [
+                {"id": "none", "label": "No Transcode", "selected": True},
+                {"id": 20, "label": "20 Mbps", "selected": False},
+            ]}}
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser._hud_shown,
+                          msg="summon failed")
+        self._wait(lambda: self.app.node_rect("hud-settings") is not None,
+                   msg="gear button never materialized")
+        self.app.debug(cmd="click", id="hud-settings")
+        self._wait(lambda: self.browser._hud_menu == "root",
+                   msg="gear click never opened the settings menu")
+        self._wait(lambda: self._state().get("menu_open"),
+                   msg="menu never reached the renderer")
+        # DOWN highlights row index 1 (menu nav starts un-highlighted,
+        # so the first DOWN lands past row 0) = Playback Speed; ENTER
+        # swaps in its submenu
+        self._keypress("DOWN")
+        self._press_until(
+            "ENTER", lambda: self.browser._hud_menu == "speed",
+            msg="menu selection never opened the speed submenu")
+        # ESC steps back out of the menu without hiding the HUD
+        self._wait(lambda: self._state().get("menu_open"),
+                   msg="submenu never reached the renderer")
+        self._keypress("ESC")
+        self._wait(lambda: self.browser._hud_menu is None,
+                   msg="ESC never dismissed the menu")
+        self.assertTrue(self.browser._hud_shown,
+                        "dismissing the menu must not hide the HUD")
+
     def test_idle_skip_overlay(self):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),

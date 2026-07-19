@@ -1501,6 +1501,43 @@ parity:
   `{cmd=phud, action=mousemove}` debug hook because mouse-pos can't
   be injected under headless X.
 
+**9.3c ✅ (2026-07-19, per Izzie).** Gear menu, favorite, lifecycle
+hardening:
+
+- **Settings gear menu** — the lua jf_settings_sheet rebuilt on the
+  Menu widget (one level open at a time, `b._hud_menu` names it; Back
+  row in submenus for keyboard/remote): Change Video Quality,
+  Playback Speed (0.25–2x, mpv `speed` via controller), Aspect Ratio
+  (Auto/16:9/4:3/2.35:1 via `video-aspect-override`), Change Video
+  Playback Profile, Subtitle Size/Position/Color (the lua keeps these
+  in its CC sheet; the HUD's sub picker is a flat Dropdown, so they
+  live in the gear instead), SyncPlay (groups submenu; opening fires
+  syncplay-refresh once — the cached groups land on a later 1s
+  build), Playback Data (stats script-binding), Screenshot, Quit and
+  Mark Unwatched. Root rows show "· current" asides. Renderer's menu
+  geometry clamps + flips above near the bottom edge. Leaf actions
+  route through the identical osc_bridge verbs as the lua sheet.
+- **Favorite heart** in the transport (red when favorited, optimistic
+  flip like the np bar, toggle-favorite verb; hidden <560px — the
+  lua's show_fav tier).
+- **Lifecycle hardening** (audit prompted by the old player-launch
+  weirdness): two real bugs found and fixed. (1) mpv re-creation
+  attaches a FRESH MpvtkApp but on_mpv_recreated only re-pointed
+  `browser.app` — the new app's on_nav (pre-existing bug!) and
+  on_hud/on_hud_skip callbacks were never wired, so nav mode and the
+  whole HUD went dead after an idle-quit/crash re-open. Now
+  `Browser.set_app()` (shared with __init__) rewires them and drops
+  stale HUD state, and `reassert_window_state()` re-asserts
+  browse-active / HUD-idle (video in flight) / fully-inactive on the
+  fresh renderer. (2) Playback that starts while ALREADY yielded or
+  minimized (cast, crash recovery) never entered HUD mode — `_yield`
+  only runs on the browsing→video transition. on_playstate's video
+  branch now idempotently re-engages `set_hud(True)` (the renderer
+  dedupes) alongside the skip-label sync.
+- Menu-nav quirk for the record: a freshly opened Menu has no
+  highlight, so the first DOWN lands on row index 1 (clamp((nil or
+  0)+1)); pre-existing, shared with tile context menus.
+
 **9.4 — cutover flag ✅, cutover itself pending field-proving.** The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
 enum "In-window HUD (experimental)", conf.py docs; falls back to

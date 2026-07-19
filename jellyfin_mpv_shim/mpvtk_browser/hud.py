@@ -23,12 +23,14 @@ from ..mpvtk.widgets import (
     Dropdown,
     Gradient,
     Image,
+    Menu,
     Row,
     Slider,
     Spacer,
     Stack,
     Text,
 )
+from . import theme
 
 log = logging.getLogger("mpvtk_browser.hud")
 
@@ -175,6 +177,180 @@ def _pickers(b, menu_state, pos, chapters, tiers):
     return out
 
 
+# ------------------------------------------------- settings gear menu
+# The lua OSC's jf_settings_sheet, rebuilt on the Menu widget. One
+# level open at a time (b._hud_menu names it); submenus swap the item
+# list in place, with a Back row for keyboard/remote users. Leaf
+# actions route through hud_action verbs where osc_bridge has one;
+# speed/aspect/stats set mpv properties via the controller, exactly
+# like the lua sheet does locally.
+
+_SPEEDS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+_ASPECTS = [
+    (None, -1.0, "-1"),          # label filled with _("Auto")
+    ("16:9", 16.0 / 9.0, "16:9"),
+    ("4:3", 4.0 / 3.0, "4:3"),
+    ("2.35:1", 2.35, "2.35:1"),
+]
+
+
+def _open_hud_menu(b, kind):
+    if kind == "syncplay":
+        # group discovery hits the server; request it once on open (the
+        # result lands in a later build via osc_bridge's cache)
+        _hud_action(b, "syncplay-refresh")
+    b._hud_menu = kind
+    b.invalidate()
+
+
+def _close_hud_menu(b):
+    b._hud_menu = None
+    b.invalidate()
+
+
+def _ctl_get(b, name, default):
+    fn = getattr(b.controller, name, None)
+    if fn is None:
+        return default
+    try:
+        value = fn()
+        return default if value is None else value
+    except Exception:
+        return default
+
+
+def _menu_rows(b, st):
+    """(label, icon, action) rows for the open settings-menu level.
+    ``st`` is the osc_bridge state blob ({} when unavailable)."""
+    kind = b._hud_menu
+    rows = []
+
+    def leaf(fn):
+        def run():
+            fn()
+            _close_hud_menu(b)
+        return run
+
+    def option_rows(group, verb):
+        for o in (group or {}).get("options") or []:
+            rows.append((
+                o.get("label") or "",
+                "check" if o.get("selected") else None,
+                leaf(lambda oid=o.get("id"): _hud_action(b, verb, oid)),
+            ))
+
+    def with_current(label, current):
+        return "%s  ·  %s" % (label, current) if current else label
+
+    sub_style = st.get("sub_style") or {}
+    if kind == "root":
+        quality = st.get("quality") or {}
+        if quality.get("options"):
+            rows.append((with_current(_("Change Video Quality"),
+                                      quality.get("current")), None,
+                         lambda: _open_hud_menu(b, "quality")))
+        speed = float(_ctl_get(b, "get_speed", 1.0))
+        rows.append((with_current(_("Playback Speed"), "%gx" % speed),
+                     None, lambda: _open_hud_menu(b, "speed")))
+        rows.append((_("Aspect Ratio"), None,
+                     lambda: _open_hud_menu(b, "aspect")))
+        profiles = st.get("profiles") or {}
+        if profiles.get("options"):
+            rows.append((with_current(
+                _("Change Video Playback Profile"),
+                profiles.get("current")), None,
+                lambda: _open_hud_menu(b, "profiles")))
+        for key, label in (("size", _("Subtitle Size")),
+                           ("position", _("Subtitle Position")),
+                           ("color", _("Subtitle Color"))):
+            group = sub_style.get(key)
+            if group:
+                rows.append((with_current(label, group.get("current")),
+                             None,
+                             lambda k=key: _open_hud_menu(b, "sub_" + k)))
+        syncplay = st.get("syncplay")
+        if syncplay is not None:
+            rows.append((with_current(_("SyncPlay"),
+                                      syncplay.get("current")), None,
+                         lambda: _open_hud_menu(b, "syncplay")))
+        rows.append((_("Playback Data"), None, leaf(
+            lambda: b._ctl(lambda c: c.toggle_stats()))))
+        if st.get("allow_screenshot"):
+            rows.append((_("Screenshot"), None, leaf(
+                lambda: _hud_action(b, "screenshot"))))
+        if st.get("has_media"):
+            rows.append((_("Quit and Mark Unwatched"), None, leaf(
+                lambda: _hud_action(b, "unwatched-quit"))))
+        return rows
+
+    rows.append((_("Back"), "arrow_back",
+                 lambda: _open_hud_menu(b, "root")))
+    if kind == "quality":
+        option_rows(st.get("quality"), "set-quality")
+    elif kind == "speed":
+        cur = float(_ctl_get(b, "get_speed", 1.0))
+        for s in _SPEEDS:
+            rows.append(("%gx" % s,
+                         "check" if abs(cur - s) < 0.005 else None,
+                         leaf(lambda s=s: b._ctl(
+                             lambda c: c.set_speed(s)))))
+    elif kind == "aspect":
+        cur = float(_ctl_get(b, "get_aspect", -1.0))
+        for label, num, value in _ASPECTS:
+            rows.append((label or _("Auto"),
+                         "check" if abs(cur - num) < 0.01 else None,
+                         leaf(lambda v=value: b._ctl(
+                             lambda c: c.set_aspect(v)))))
+    elif kind == "profiles":
+        option_rows(st.get("profiles"), "set-profile")
+    elif kind in ("sub_size", "sub_position", "sub_color"):
+        option_rows(sub_style.get(kind[4:]),
+                    "set-" + kind.replace("_", "-"))
+    elif kind == "syncplay":
+        sp = st.get("syncplay") or {}
+        rows.append((_("None (Disabled)"),
+                     "check" if not sp.get("enabled") else None,
+                     leaf(lambda: _hud_action(b, "syncplay-disable"))))
+        if not sp.get("enabled"):
+            rows.append((_("New Group"), None,
+                         leaf(lambda: _hud_action(b, "syncplay-new"))))
+        for g in sp.get("groups") or []:
+            rows.append((g.get("label") or "",
+                         "check" if g.get("selected") else None,
+                         leaf(lambda gid=g.get("id"): _hud_action(
+                             b, "syncplay-join", gid))))
+    return rows
+
+
+def _settings_menu(b, menu_state, size):
+    """The open gear menu as a Menu node anchored at the gear button
+    (renderer clamps to the screen and flips above near the bottom)."""
+    if not b._hud_menu:
+        return None
+    st = menu_state if menu_state and menu_state.get("has_media") else {}
+    rows = _menu_rows(b, st)
+    if not rows:
+        return None
+    w, h = size
+    x, y = w - 300, h - 160
+    if b.app is not None and hasattr(b.app, "node_rect"):
+        rect = b.app.node_rect("hud-settings")
+        if rect is not None:
+            x, y = rect["x"], rect["y"] - 4
+    return Menu(
+        "hud-menu", [r[0] for r in rows], x=x, y=y,
+        icons=[r[1] for r in rows],
+        on_select=lambda i, v, rr=rows: rr[i][2](),
+        on_dismiss=lambda: _close_hud_menu(b))
+
+
+def _toggle_hud_favorite(b):
+    st = b._hud_state or {}
+    st["favorite"] = not st.get("favorite")   # optimistic, like the np bar
+    _hud_action(b, "toggle-favorite")
+    b.invalidate()
+
+
 def _skip_float(b, size):
     """Floating Skip Intro / Skip Credits button above the bar's right
     edge (jellyfin-web's placement), when the player says a skippable
@@ -218,13 +394,14 @@ def build_hud(b, size):
         "seek_btns": w >= 500,   # ±10s/±30s step buttons
         "clock": w >= 500,
         "quality": w >= 560,
+        "favorite": w >= 560,
         "ch_btns": w >= 700,     # chapter prev/next buttons
         "chapters": w >= 700,    # chapter list dropdown
     }
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
-             repeat=False):
-        return Button("", id=node_id, icon=icon, flat=True,
+             repeat=False, fg="eeeeee"):
+        return Button("", id=node_id, icon=icon, flat=True, fg=fg,
                       icon_size=sz(icon_size), autofocus=autofocus,
                       tip=tip, repeat=repeat, on_click=cb)
 
@@ -287,9 +464,19 @@ def build_hud(b, size):
             color="ffffff" if scrub is not None else "dddddd"))
     controls.append(Spacer())
 
-    transport = Row(
-        controls + _pickers(b, menu_state, pos, chapters, tiers),
-        gap=sz(6), align="center")
+    right = []
+    if tiers["favorite"]:
+        fav = bool(st.get("favorite"))
+        right.append(tbtn(
+            "favorite" if fav else "favorite_border", "hud-fav",
+            lambda: _toggle_hud_favorite(b),
+            tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee"))
+    right.extend(_pickers(b, menu_state, pos, chapters, tiers))
+    right.append(tbtn(
+        "settings", "hud-settings",
+        lambda: _open_hud_menu(b, "root"), tip=_("Settings")))
+
+    transport = Row(controls + right, gap=sz(6), align="center")
 
     bar = Column(
         [
@@ -316,6 +503,10 @@ def build_hud(b, size):
     preview = _preview_float(b, scrub, dur, size)
     if preview is not None:
         children.append(preview)
+
+    menu = _settings_menu(b, menu_state, size)
+    if menu is not None:
+        children.append(menu)
 
     return Stack(children, w=w, h=h)
 
