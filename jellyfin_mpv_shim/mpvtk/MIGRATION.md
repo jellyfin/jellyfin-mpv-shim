@@ -5,6 +5,83 @@ bonus, the display mirror) onto **mpvtk**, the in-mpv UI toolkit. This
 is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 (component gap analysis) and `README.md` (spike log) first.
 
+## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
+
+Found after the mechanical pass: the initial port rendered every view but
+dropped many action rows, pickers, filter bars and tile-shape rules. The
+repository/data layer already backs almost all of these — they're UI
+wire-ups that were skipped. Status updated as each is fixed.
+
+**Tiles / Home**
+- [ ] Per-row / per-view **tile shape** (poster 2:3 / landscape Thumb 16:9
+  / square 1:1) + `image_type` (Primary/Thumb). Dropped globally — every
+  tile is a portrait poster. Home classifies by `collection_type`; Season
+  episodes, Search, Playlists, music all need shaping. (`WIDE_GEOM`
+  exists but is unused.)
+- [ ] **Downloaded** indicator on tiles (top-right badge; `is_downloaded`).
+- [ ] Tile **placeholder glyph** (music-note for audio / first-initial).
+- [ ] Watched checkmark **Series/Season fallback** (UnplayedItemCount==0);
+  tile currently disagrees with its own menu.
+- [ ] **HScrollRow ◀ ▶ arrow buttons** (page + hold-repeat + auto show/hide).
+- [ ] Libraries row as **landscape** cards.
+- [ ] Home **stale-while-revalidate** (signature diff on re-entry;
+  `on_sync_state` reload).
+
+**Detail / Series / Season**
+- [ ] Detail **action row**: Mark-watched, Favorite, Download, Go-to-Series,
+  Trailer (only tile-menu today, not on the detail page).
+- [ ] **Audio / Subtitle / Version pickers** + pass `media_source_id` /
+  `audio_index` / `subtitle_index` into play (+ language_config defaults).
+- [ ] **Media-info line** (codec/res/HDR/container/size/bitrate/"Ends at").
+- [ ] **Chapters** row (thumbnails + seek-to-chapter).
+- [ ] **Cast & Crew** people row + person-filmography route.
+- [ ] Episode **autoplay-next season queueing** (Tk queues rest of season).
+- [ ] Episode title formatting ("Series — S1E1 · Title").
+- [ ] Series/Season action buttons: Play Next Up, Shuffle, Mark watched,
+  Download, back-to-series; metadata + More-Like-This.
+
+**Grid**
+- [ ] Filter bar: **sort** dropdown, **Unplayed/Favorites** filters,
+  **Genre** + **Year** pickers, **A–Z letter-jump**, **Shuffle**,
+  **Collections** toggle, status/count line + retry.
+- [ ] **Person** filmography route (`get_person_items`).
+
+**Music**
+- [ ] Missing tabs: **Album Artists**, **Songs** (tabular track list).
+- [ ] **Instant Mix**, **Add to Queue**, artist/genre **action bars**,
+  album/artist backdrops + track album art.
+
+**Now-playing bar**
+- [ ] **Seek scrub**, **volume slider**, **repeat cycle**, **favorite**,
+  add-queue-to-playlist (controller already exposes seek/volume).
+
+**Queue**
+- [ ] **Reordering** (Top/Up/Down/Bottom) + Artist/Runtime columns.
+
+**PlaylistEdit**
+- [ ] **Rename**, **public toggle**, **delete playlist**.
+
+**Playlist / Search shaping**
+- [ ] Playlist: Shuffle, Download, music→track-list vs episode→landscape.
+- [ ] Search: per-type grouped rows with correct shapes.
+
+**Dialogs**
+- [ ] AddTo: **collections** + **create-new** + privacy toggle.
+- [ ] SyncPlay: participants / joined-state / Refresh.
+- [ ] Download: already-downloaded + watched counts.
+
+**Chrome**
+- [ ] Persistent **download status bar** ("View Downloads").
+- [ ] Offline banner **"Configure Servers"** action.
+- [ ] Login **Quick Connect** flow.
+
+**Display mirror (Phase 6)** — replace the Tk+Pillow mirror with mpvtk.
+
+Confirmed intentionally deferred (not regressions to chase now): user
+switcher, PinSetup dialog, dedicated Servers/Logs/Downloads settings
+*panels* (flat schema editor instead), ClosePreference (N/A in-window),
+keybinding reconciliation, spatial/remote nav (Phase 8).
+
 **Goal.** The library browser and the display mirror render *inside the
 player's own mpv window* — one window that shows the browser when idle
 and the video when playing — instead of separate Tk/Pillow windows in a
