@@ -74,6 +74,9 @@ _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 class MpvtkBrowser:
+    # Horizontal padding of ordinary page content.
+    CONTENT_PAD = 16
+
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
@@ -107,6 +110,14 @@ class MpvtkBrowser:
         # here via on_change so Connect can read all three fields at once).
         self._login = {"server": "", "user": "", "pass": ""}
         self._login_error = None
+        # Live text of the chrome search box (the renderer owns the widget; we
+        # mirror it so the search *button* can read it).
+        self._search_box = {"term": ""}
+        # Live text of the "new user" box in Settings → Servers & Users.
+        self._newuser = {"name": ""}
+        # Scroll offsets reported by the renderer, per scroll-container id.
+        # These drive row virtualization (see _grid_scroll).
+        self._scroll_off = {}
         # Startup-PIN lock screen state.
         self._pin = {"pin": ""}
         self._pin_error = None
@@ -139,6 +150,7 @@ class MpvtkBrowser:
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         self.status = ""
+        self._size = None         # last window size seen by build()
 
         self.nav_stack = [{"kind": "home", "server": self.server}]
         self._load_route(self.route)
@@ -291,21 +303,11 @@ class MpvtkBrowser:
                 return {"items": items, "people": people}
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "music":
-            srv = route.get("server") or self.server
-            parent = route["parent_id"]
-            tab = route.get("_tab", "albums")
-
-            def work():
-                if tab == "albumartists":
-                    return self.source.get_album_artists(srv, parent)[0]
-                if tab == "artists":
-                    return self.source.get_artists(srv, parent)[0]
-                if tab == "songs":
-                    return self.source.get_songs(srv, parent)[0]
-                if tab == "genres":
-                    return self.source.get_music_genres(srv, parent)
-                return self.source.get_music_albums(srv, parent)[0]
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            def done(res):
+                items, total = res
+                route["_data"], route["_total"] = items, total
+                route["_loading"] = False
+            self.run_async(self._music_page(route, 0), done, ep)
         elif kind == "album":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -362,8 +364,23 @@ class MpvtkBrowser:
             iid = route["item_id"]
 
             def work():
-                return self.source.get_playlist_items(srv, iid)
-            self.run_async(work, lambda d: route.__setitem__("_items", d), ep)
+                meta = {}
+                try:
+                    meta = self.source.get_playlist(srv, iid) or {}
+                except Exception:
+                    pass
+                return self.source.get_playlist_items(srv, iid), meta
+
+            def done(res):
+                items, meta = res
+                route["_items"] = items
+                # Read the *server's* visibility before offering the toggle;
+                # assuming private meant the first click could flip a public
+                # playlist's visibility based on a value we never read.
+                if "OpenAccess" in meta:
+                    route["_public"] = bool(meta.get("OpenAccess"))
+                    route["_public_known"] = True
+            self.run_async(work, done, ep)
         elif kind == "queue":
             srv = route.get("server") or self.server
 
@@ -577,23 +594,50 @@ class MpvtkBrowser:
         except Exception:
             log.warning("client action failed", exc_info=True)
 
-    def _tile_row(self, title, items, row_id, geom=None, image_type="Primary"):
+    # Width of the page-arrow gutters on either side of a carousel.
+    ARROW_W = 44
+
+    def _tile_row(self, title, items, row_id, geom=None, image_type="Primary",
+                  bleed=False):
+        """A titled horizontal carousel.
+
+        ``bleed`` runs the strip edge-to-edge so the page arrows sit flush
+        against the window's left and right sides; the title is indented to
+        line up with the content instead."""
         geom = geom or self.geom
+        pad = self.CONTENT_PAD if bleed else 0
+        heading = Text(title, size=24, bold=True)
+        if pad:
+            heading = Row([Spacer(w=pad + self.ARROW_W), heading])
         return Column(
             [
-                Text(title, size=24, bold=True),
+                heading,
                 self._hscroll_row(
                     self._image_map(items, row_id, geom, image_type),
-                    row_id, geom.strip_h + 6),
+                    row_id, geom.strip_h + 6, len(items), geom, bleed),
             ],
             gap=8,
         )
 
-    def _hscroll_row(self, content, row_id, h):
+    def _hscroll_row(self, content, row_id, h, count, geom, bleed=False):
         """An HScroll flanked by ◀ ▶ page buttons (the renderer pages the
-        container by id — see MpvtkApp.scroll)."""
+        container by id — see MpvtkApp.scroll).
+
+        The arrows are laid out *beside* the strip rather than floating over
+        it: bitmaps composite above all script ASS in mpv, so an ASS arrow
+        drawn on top of a poster strip would simply be invisible (see
+        mpvtk/MIGRATION.md, "Framework deficits"). With ``bleed`` the row
+        spans the full window, which puts them against the screen edges.
+        They are omitted entirely when the row doesn't overflow."""
+        avail = (self._size[0] if self._size else 1280)
+        if not bleed:
+            avail -= 2 * self.CONTENT_PAD
+        content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
+        if content_w <= avail - 2 * self.ARROW_W:
+            return Row([HScroll(content, id=row_id, h=h, flex=1)], h=h)
+
         def arrow(icon, node_id, direction):
-            return Box([Icon(icon, 26)], id=node_id, w=36, h=h,
+            return Box([Icon(icon, 28)], id=node_id, w=self.ARROW_W, h=h,
                        align="center", direction="row", bg=theme.BUTTON_BG,
                        hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
                        on_click=lambda: self._page_row(row_id, direction))
@@ -601,7 +645,7 @@ class MpvtkBrowser:
             arrow("chevron_left", row_id + "-pl", -1),
             HScroll(content, id=row_id, h=h, flex=1),
             arrow("chevron_right", row_id + "-pr", 1),
-        ], gap=6, align="center", h=h)
+        ], gap=0, align="center", h=h)
 
     def _page_row(self, row_id, direction):
         # Ask the renderer to page the horizontal scroll container.
@@ -801,6 +845,7 @@ class MpvtkBrowser:
 
     def build(self, size):
         w, h = size
+        self._size = size
         if not self._browsing:
             # Yielded to playback: an empty scene clears our overlays so the
             # video + OSC show through.
@@ -828,9 +873,10 @@ class MpvtkBrowser:
     def _chrome(self, w):
         left = []
         if len(self.nav_stack) > 1:
-            left.append(Button(_("Back"), id="nav-back", on_click=self.go_back))
+            left.append(Button(_("Back"), id="nav-back", icon="arrow_back",
+                               on_click=self.go_back))
         left.append(Button(
-            _("Home"), id="nav-home",
+            _("Home"), id="nav-home", icon="home",
             on_click=lambda: self.navigate(
                 {"kind": "home", "server": self.server}, reset=True),
         ))
@@ -847,18 +893,95 @@ class MpvtkBrowser:
             right.append(Dropdown(
                 "nav-server", names, selected=cur, w=160,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
+        users = self._users()
+        if len(users) > 1:
+            names = [u.get("name", "?") for u in users]
+            cur = next((i for i, u in enumerate(users)
+                        if u.get("active")), 0)
+            right.append(Dropdown(
+                "nav-user", names, selected=cur, w=150, force=True,
+                icons=["lock" if u.get("locked") else "person" for u in users],
+                on_select=lambda i, v: self._switch_user(users[i])))
         right += [
             TextBox("nav-search", placeholder=_("Search…"), w=220,
+                    on_change=lambda v: self._search_box.__setitem__("term", v),
                     on_submit=self._search),
-            Button(_("SyncPlay"), id="nav-syncplay",
+            # The textbox submits on Enter, but a visible button is the
+            # discoverable affordance (and the only one with a pointer).
+            Button("", id="nav-search-go", icon="search", size=18,
+                   on_click=lambda: self._search(
+                       self._search_box.get("term", ""))),
+            Button(_("SyncPlay"), id="nav-syncplay", icon="groups",
                    on_click=self._open_syncplay),
-            Button(_("Settings"), id="nav-settings",
+            Button(_("Settings"), id="nav-settings", icon="settings",
                    on_click=self._open_settings),
         ]
         return Row(
             left + [Text(title, size=22, bold=True), Spacer()] + right,
             pad=12, gap=10, align="center", h=60, bg=theme.PANEL_BG,
         )
+
+    # ------------------------------------------------------------ users
+
+    def _users(self):
+        """Local users for the switcher: ``[{id, name, locked, active}]``."""
+        if self.controller is None:
+            return []
+        try:
+            return list(self.controller.list_users() or [])
+        except Exception:
+            log.debug("list_users failed", exc_info=True)
+            return []
+
+    def _switch_user(self, user):
+        if user.get("active"):
+            return
+        if user.get("locked"):
+            self._ask_pin(user)
+        else:
+            self._do_switch_user(user, None)
+
+    def _ask_pin(self, user):
+        state = {"pin": "", "error": None}
+
+        def build():
+            rows = [Text(_("Switch to %s") % user.get("name", ""), size=22,
+                         bold=True)]
+            if state["error"]:
+                rows.append(Text(state["error"], size=15, color=theme.FAV_RED))
+            rows += [
+                TextBox("switch-pin", placeholder=_("PIN"), mask=True, w=240,
+                        on_change=lambda v: state.__setitem__("pin", v),
+                        on_submit=lambda v: submit()),
+                Row([Spacer(),
+                     Button(_("Cancel"), id="switch-cancel",
+                            on_click=self._close_dialog),
+                     Button(_("Switch"), id="switch-ok", on_click=submit)],
+                    gap=10),
+            ]
+            return Dialog("switchpin", self._dialog_shell("switchpin", rows),
+                          on_dismiss=self._close_dialog)
+
+        def submit():
+            self._do_switch_user(user, state["pin"], on_bad_pin=lambda: (
+                state.__setitem__("error", _("Incorrect PIN.")),
+                self._show_dialog(build)))
+        self._show_dialog(build)
+
+    def _do_switch_user(self, user, pin, on_bad_pin=None):
+        ep = self._epoch
+
+        def work():
+            return self.controller.switch_user(user.get("id"), pin)
+
+        def done(source):
+            if source is None:
+                if on_bad_pin is not None:
+                    on_bad_pin()
+                return
+            self._close_dialog()
+            self.set_source(source)
+        self.run_async(work, done, ep)
 
     def _switch_server(self, uuid):
         if uuid == self.server:
@@ -914,17 +1037,20 @@ class MpvtkBrowser:
             # Libraries read as landscape cards, like the web client.
             rows.append(self._tile_row(
                 _("Libraries"), data["libraries"], "row-libs",
-                geom=self.geom_wide))
+                geom=self.geom_wide, bleed=True))
         for i, hr in enumerate(data["rows"]):
             if hr.get("items"):
                 geom, itype = self._row_shape(hr)
                 rows.append(self._tile_row(
                     hr["title"], hr["items"], "row-%d" % i,
-                    geom=geom, image_type=itype))
+                    geom=geom, image_type=itype, bleed=True))
         if not rows:
-            rows.append(Text(_("Nothing to show yet."), size=20,
-                             color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=16, gap=20), id="home", flex=1)
+            rows.append(Row([Spacer(w=self.CONTENT_PAD),
+                             Text(_("Nothing to show yet."), size=20,
+                                  color=theme.SUBTLE_FG)]))
+        # pad=0: home carousels bleed to the window edges so their page
+        # arrows sit flush against them (see _hscroll_row).
+        return VScroll(Column(rows, gap=20), id="home", flex=1)
 
     def _row_shape(self, hr):
         """(geom, image_type) for a home row, classified like the Tk browser:
@@ -947,7 +1073,6 @@ class MpvtkBrowser:
         items = route.get("_items")
         if items is None:
             return self._busy()
-        cols = self._cols(size[0], self.geom)
         header = [Text(route.get("title", ""), size=26, bold=True)]
         if route["kind"] == "grid":
             header.append(self._grid_filter_bar(route))
@@ -955,13 +1080,18 @@ class MpvtkBrowser:
             header.append(Text(_("%(shown)d of %(total)d") % {
                 "shown": len(items), "total": total},
                 size=14, color=theme.SUBTLE_FG))
-        rows = header
-        for start in range(0, len(items), cols):
-            chunk = items[start:start + cols]
-            rows.append(self._image_map(chunk, "grid-%d" % start))
+        # Header height (title + optional filter bar + count) so the
+        # virtualizer can map a scroll offset onto a tile row.
+        head_h = 40 + (110 if route["kind"] == "grid" else 0)
+        rows = header + self._grid_of(
+            items, "grid", size, geom=self.geom, scroll_id="grid",
+            head_h=head_h)
         return VScroll(
-            Column(rows, pad=16, gap=12), id="grid", flex=1,
-            on_scroll=lambda off, mx: self._on_grid_scroll(route, off, mx),
+            Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP), id="grid",
+            flex=1,
+            on_scroll=lambda off, mx: self._on_scroll(
+                "grid", off, mx,
+                lambda o, m: self._on_grid_scroll(route, o, m)),
         )
 
     def _grid_filter_bar(self, route):
@@ -1382,13 +1512,13 @@ class MpvtkBrowser:
                   Row(self._common_actions(season_item or {"Id": route["item_id"],
                                            "Type": "Season"}, server, "se"),
                       gap=8, align="center")]
-        cols = self._cols(size[0], geom)
-        rows = header
-        for start in range(0, len(episodes), cols):
-            rows.append(self._image_map(
-                episodes[start:start + cols], "ep-%d" % start,
-                geom, "Thumb"))
-        return VScroll(Column(rows, pad=16, gap=12), id="season", flex=1)
+        rows = header + self._grid_of(
+            episodes, "ep", size, geom=geom, image_type="Thumb",
+            scroll_id="season", head_h=100)
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                       id="season", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "season", off, mx))
 
     def _switch_season(self, route, season):
         self.navigate({
@@ -1457,19 +1587,55 @@ class MpvtkBrowser:
     def _cols(self, w, geom):
         return max(1, int((w - 32 + geom.gap) // (geom.tile_w + geom.gap)))
 
+    GRID_GAP = 12
+
     def _grid_of(self, items, prefix, size, heading=None, geom=None,
-                 image_type="Primary"):
+                 image_type="Primary", scroll_id=None, head_h=0):
+        """Tile rows for a vertical grid.
+
+        With ``scroll_id`` the rows are **virtualized**: only those within a
+        screen of the viewport are composited, the rest become fixed-height
+        Spacers. Without it a long library blows past both the strip cache and
+        mpv's 63-overlay budget, which showed up as tiles that came back blank
+        after scrolling away and back."""
         geom = geom or self.geom
         cols = self._cols(size[0], geom)
         rows = [Text(heading, size=26, bold=True)] if heading else []
-        for start in range(0, len(items), cols):
-            rows.append(self._image_map(items[start:start + cols],
-                                        "%s-%d" % (prefix, start),
-                                        geom, image_type))
+        nrows = (len(items) + cols - 1) // cols
+        first, last = 0, nrows - 1
+        if scroll_id is not None:
+            rh = geom.strip_h + self.GRID_GAP
+            vh = max(240.0, float(size[1]))
+            top = max(0.0, self._scroll_off.get(scroll_id, 0.0) - head_h)
+            first = int(max(0.0, top - vh) // rh)
+            last = int((top + 2 * vh) // rh)
+        for r in range(nrows):
+            if first <= r <= last:
+                start = r * cols
+                rows.append(self._image_map(items[start:start + cols],
+                                            "%s-%d" % (prefix, start),
+                                            geom, image_type))
+            else:
+                rows.append(Spacer(h=geom.strip_h))
         if not items:
             rows.append(Text(_("Nothing here yet."), size=18,
                              color=theme.SUBTLE_FG))
         return rows
+
+    # Re-render once the view has scrolled about this far, so the virtualized
+    # window is refreshed well before the user reaches its edge.
+    SCROLL_STEP = 120
+
+    def _on_scroll(self, scroll_id, offset, maximum, then=None):
+        """Record a scroll offset (for virtualization) and run ``then``
+        (paging). Only re-renders when the offset moved enough to change the
+        materialized window."""
+        prev = self._scroll_off.get(scroll_id)
+        self._scroll_off[scroll_id] = offset
+        if then is not None:
+            then(offset, maximum)
+        if prev is None or abs(offset - prev) >= self.SCROLL_STEP:
+            self.invalidate()
 
     def _track_list(self, tracks, prefix, on_click):
         rows = []
@@ -1529,10 +1695,66 @@ class MpvtkBrowser:
 
     def _set_music_tab(self, route, tab):
         route["_tab"] = tab
-        route.pop("_data", None)
+        for k in ("_data", "_total"):
+            route.pop(k, None)
+        route["_loading"] = False
+        # A new tab starts at the top; a stale offset would virtualize the
+        # wrong window and show a screenful of blank rows.
+        self._scroll_off.pop("music-grid", None)
+        self._scroll_off.pop("music-songs", None)
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
+
+    def _music_page(self, route, start_index):
+        """A ``work()`` that fetches one page of the route's music tab,
+        returning ``(items, total)``. Genres are unpaged server-side, so they
+        report their own length as the total."""
+        srv = route.get("server") or self.server
+        parent = route["parent_id"]
+        tab = route.get("_tab", "albums")
+
+        def work():
+            if tab == "albumartists":
+                return self.source.get_album_artists(
+                    srv, parent, start_index=start_index)
+            if tab == "artists":
+                return self.source.get_artists(
+                    srv, parent, start_index=start_index)
+            if tab == "songs":
+                return self.source.get_songs(
+                    srv, parent, start_index=start_index)
+            if tab == "genres":
+                genres = self.source.get_music_genres(srv, parent)
+                return (genres if start_index == 0 else []), len(genres)
+            return self.source.get_music_albums(
+                srv, parent, start_index=start_index)
+        return work
+
+    def _on_music_scroll(self, route, offset, maximum):
+        """Page the current music tab in near the bottom (the Tk browser's
+        _MusicGrid did this per tab; without it a library is capped at the
+        first 100 albums)."""
+        if route is not self.route:
+            return
+        items = route.get("_data") or []
+        total = route.get("_total") or 0
+        if route.get("_loading") or len(items) >= total or not items:
+            return
+        if maximum - offset >= 800:
+            return
+        route["_loading"] = True
+        ep = self._epoch
+
+        def done(res):
+            new, total2 = res
+            if new:
+                route["_data"] = (route.get("_data") or []) + new
+                route["_total"] = total2
+            else:
+                route["_total"] = len(route.get("_data") or [])
+            route["_loading"] = False
+        self.run_async(self._music_page(route, len(items)), done, ep)
 
     def _render_music(self, route, size):
         tabs = Row([
@@ -1551,13 +1773,22 @@ class MpvtkBrowser:
             body = VScroll(Column([self._track_list(
                 data, "song",
                 lambda i: self._play_list(ids, server, i, audio=True))],
-                pad=16), id="music-songs", flex=1)
+                pad=self.CONTENT_PAD), id="music-songs", flex=1,
+                on_scroll=lambda off, mx: self._on_scroll(
+                    "music-songs", off, mx,
+                    lambda o, m: self._on_music_scroll(route, o, m)))
         else:
-            geom = self.geom_square if route.get("_tab") in (
-                None, "albums", "albumartists", "artists") else self.geom
+            tab = route.get("_tab")
+            geom = (self.geom_wide if tab == "genres"
+                    else self.geom_square)
             body = VScroll(
-                Column(self._grid_of(data, "music", size, geom=geom),
-                       pad=16, gap=12), id="music-grid", flex=1)
+                Column(self._grid_of(data, "music", size, geom=geom,
+                                     scroll_id="music-grid"),
+                       pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                id="music-grid", flex=1,
+                on_scroll=lambda off, mx: self._on_scroll(
+                    "music-grid", off, mx,
+                    lambda o, m: self._on_music_scroll(route, o, m)))
         return Column([Row([tabs], pad=12), body], flex=1, align="stretch")
 
     def _render_album(self, route, size):
@@ -1589,8 +1820,12 @@ class MpvtkBrowser:
         ids = [s.get("Id") for s in songs]
         rows = [Text(route.get("title", ""), size=26, bold=True),
                 self._music_action_bar(server, ids, route["item_id"], "art")]
-        rows += self._grid_of(albums, "artist", size, geom=self.geom_square)
-        return VScroll(Column(rows, pad=16, gap=12), id="artist", flex=1)
+        rows += self._grid_of(albums, "artist", size, geom=self.geom_square,
+                              scroll_id="artist", head_h=110)
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                       id="artist", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "artist", off, mx))
 
     def _render_music_genre(self, route, size):
         data = route.get("_data")
@@ -1602,8 +1837,12 @@ class MpvtkBrowser:
         ids = [s.get("Id") for s in songs]
         rows = [Text(route.get("title", ""), size=26, bold=True),
                 self._music_action_bar(server, ids, route["item_id"], "gen")]
-        rows += self._grid_of(albums, "mgenre", size, geom=self.geom_square)
-        return VScroll(Column(rows, pad=16, gap=12), id="mgenre", flex=1)
+        rows += self._grid_of(albums, "mgenre", size, geom=self.geom_square,
+                              scroll_id="mgenre", head_h=110)
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                       id="mgenre", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "mgenre", off, mx))
 
     def _render_playlist(self, route, size):
         data = route.get("_data")
@@ -1628,8 +1867,12 @@ class MpvtkBrowser:
                 "kind": "playlist_edit", "server": server,
                 "item_id": pid, "title": route.get("title", "")})),
         ], align="center", gap=10)
-        rows = [header] + self._grid_of(data, "pl", size)
-        return VScroll(Column(rows, pad=16, gap=12), id="playlist", flex=1)
+        rows = [header] + self._grid_of(data, "pl", size,
+                                        scroll_id="playlist", head_h=70)
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                       id="playlist", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "playlist", off, mx))
 
     # -------------------------------------------------- now-playing bar
 
@@ -1722,29 +1965,418 @@ class MpvtkBrowser:
                        % key)
         self.invalidate()
 
+    SETTINGS_TABS = ("general", "servers", "downloads", "logs")
+
     def _render_settings(self, route, size):
+        tab = route.get("_tab", "general")
+        labels = {"general": _("General"), "servers": _("Servers & Users"),
+                  "downloads": _("Downloads"), "logs": _("Logs")}
+        tabs = Row([
+            Button(labels[t], id="stab-" + t,
+                   bg=theme.ACCENT if tab == t else theme.BUTTON_BG,
+                   fg="101010" if tab == t else theme.TEXT_FG,
+                   on_click=lambda t=t: self._set_settings_tab(route, t))
+            for t in self.SETTINGS_TABS
+        ], gap=8)
+        body = {
+            "servers": self._settings_servers,
+            "downloads": self._settings_downloads,
+            "logs": self._settings_logs,
+        }.get(tab, self._settings_general)(route, size)
+        head = [Row([tabs], pad=12)]
+        if self.status:
+            head.append(Row([Spacer(w=self.CONTENT_PAD),
+                             Text(self.status, size=15,
+                                  color=theme.SUBTLE_FG)]))
+        return Column(head + [body], flex=1, align="stretch")
+
+    def _set_settings_tab(self, route, tab):
+        route["_tab"] = tab
+        self.status = ""
+        self.invalidate()
+
+    # -- General (the generated config form) ------------------------------
+
+    def _settings_general(self, route, size):
         cfg = self._config()
         schema = cfg.settings_schema()
         values = cfg.get_settings()
-        rows = [Text(_("Settings"), size=26, bold=True)]
-        if self.status:
-            rows.append(Text(self.status, size=15, color=theme.SUBTLE_FG))
-        for key in sorted(schema):
-            kind = schema[key]
-            val = values.get(key)
-            if kind == "bool":
+        show_adv = bool(route.get("_advanced"))
+        rows = []
+        for title, keys in cfg.sections():
+            advanced = title == _("Advanced")
+            if advanced:
                 rows.append(Checkbox(
-                    key, bool(val), id="set-" + key,
-                    on_toggle=lambda k=key, v=val: self._set_setting(
-                        k, not bool(v))))
-            else:
-                rows.append(Row([
-                    Text(key, w=360, size=17),
-                    TextBox("set-" + key,
-                            text="" if val is None else str(val), w=340,
-                            on_submit=lambda v, k=key: self._set_setting(k, v)),
-                ], gap=12, align="center"))
-        return VScroll(Column(rows, pad=16, gap=8), id="settings", flex=1)
+                    _("Show advanced settings"), show_adv, id="set-adv",
+                    on_toggle=lambda: self._toggle_advanced(route)))
+                if not show_adv:
+                    continue
+            rows.append(Text(title, size=20, bold=True))
+            for key in keys:
+                rows.append(self._setting_row(cfg, schema, values, key))
+        rows.append(Text(_("Some changes take effect after restarting."),
+                         size=14, color=theme.SUBTLE_FG))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
+                       id="settings", flex=1)
+
+    def _toggle_advanced(self, route):
+        route["_advanced"] = not route.get("_advanced")
+        self.invalidate()
+
+    def _setting_row(self, cfg, schema, values, key):
+        kind = schema.get(key, "str")
+        val = values.get(key)
+        label = cfg.label_for(key)
+        if kind == "bool":
+            return Checkbox(label, bool(val), id="set-" + key,
+                            on_toggle=lambda k=key, v=val: self._set_setting(
+                                k, not bool(v)))
+        if key in cfg.LABELED_ENUMS:
+            opts = cfg.LABELED_ENUMS[key]
+            cur = next((i for i, (_l, v) in enumerate(opts)
+                        if str(v) == str(val)), 0)
+            widget = Dropdown(
+                "set-" + key, [lbl for lbl, _v in opts], selected=cur, w=340,
+                force=True,
+                on_select=lambda i, _v, k=key, o=opts: self._set_setting(
+                    k, o[i][1]))
+        elif key in cfg.ENUMS:
+            opts = cfg.ENUMS[key]
+            cur = opts.index(str(val)) if str(val) in opts else 0
+            widget = Dropdown(
+                "set-" + key, opts, selected=cur, w=340, force=True,
+                on_select=lambda i, _v, k=key, o=opts: self._set_setting(
+                    k, o[i]))
+        elif key == "sync_path":
+            widget = Row([
+                TextBox("set-" + key, text="" if val is None else str(val),
+                        w=250,
+                        on_submit=lambda v: self._move_downloads(v)),
+                Button(_("Move"), id="set-sync-move",
+                       on_click=lambda: self._move_downloads(None)),
+            ], gap=8, align="center")
+        else:
+            widget = TextBox("set-" + key,
+                             text="" if val is None else str(val), w=340,
+                             on_submit=lambda v, k=key: self._set_setting(k, v))
+        return Row([Text(label, w=340, size=17, color=theme.SUBTLE_FG),
+                    widget], gap=12, align="center")
+
+    def _move_downloads(self, path):
+        """Relocating the download store copies files (possibly across drives),
+        so it runs on the pool and reports progress into the status line."""
+        if path is None:
+            self.status = _("Press Enter in the folder field to move.")
+            self.invalidate()
+            return
+        cfg = self._config()
+        if not hasattr(cfg, "relocate_downloads"):
+            self._set_setting("sync_path", path)
+            return
+        self.status = _("Moving downloads…")
+        self.invalidate()
+
+        def work():
+            def progress(copied, total):
+                pct = 100 if not total else min(100, int(copied * 100 / total))
+                self.status = _("Moving downloads… %d%%") % pct
+                self.invalidate()
+            try:
+                ok, message = cfg.relocate_downloads(path, progress=progress)
+            except Exception:
+                log.error("download folder move failed", exc_info=True)
+                ok, message = False, _("Moving the downloads failed.")
+            self.status = (message or (
+                _("Download folder moved. Restart to finish switching.")
+                if ok else _("Moving the downloads failed.")))
+            self.invalidate()
+        self._pool.submit(work)
+
+    # -- Servers & Users --------------------------------------------------
+
+    def _settings_servers(self, route, size):
+        rows = [Text(_("Users"), size=20, bold=True),
+                Text(_("Each user has its own servers and device identity; a "
+                       "locked user needs a PIN to switch to."),
+                     size=14, color=theme.SUBTLE_FG)]
+        users = self._users()
+        for i, u in enumerate(users):
+            rows.append(self._user_row(u, i, len(users) > 1))
+        rows.append(Row([
+            TextBox("su-newuser", placeholder=_("New user name…"), w=240,
+                    on_change=lambda v: self._newuser.__setitem__("name", v),
+                    on_submit=self._add_user),
+            Button(_("Add User"), id="su-adduser", icon="person_add",
+                   on_click=lambda: self._add_user(
+                       self._newuser.get("name", ""))),
+        ], gap=8, align="center"))
+
+        rows.append(Text(_("Servers"), size=20, bold=True))
+        servers = []
+        if self.controller is not None:
+            try:
+                servers = self.controller.list_servers()
+            except Exception:
+                log.debug("list_servers failed", exc_info=True)
+        if not servers:
+            rows.append(Text(_("No servers configured yet."), size=15,
+                             color=theme.SUBTLE_FG))
+        for i, s in enumerate(servers):
+            rows.append(Row([
+                Text(s.get("name", "?"), w=260, size=17, bold=True),
+                Text(s.get("username", ""), w=160, size=15,
+                     color=theme.SUBTLE_FG),
+                Text(_("Connected") if s.get("connected") else _("Offline"),
+                     w=140, size=15,
+                     color=theme.OK_GREEN if s.get("connected")
+                     else theme.FAV_RED),
+                Spacer(),
+                Button(_("Remove"), id="sv-rm-%d" % i, icon="delete",
+                       on_click=lambda u=s.get("uuid"), n=s.get("name"):
+                           self._confirm(
+                               _("Remove %s and its saved login?") % n,
+                               lambda: self._remove_server(u),
+                               title=_("Remove Server"), yes=_("Remove"))),
+            ], id="sv-%d" % i, pad=8, gap=10, radius=6, align="center",
+               bg=theme.PANEL_BG))
+        rows.append(Button(_("Add Server"), id="sv-add", icon="add",
+                           on_click=self.show_login))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
+                       id="settings-servers", flex=1)
+
+    def _user_row(self, u, i, can_delete):
+        buttons = []
+        if not u.get("active"):
+            buttons.append(Button(_("Switch"), id="su-sw-%d" % i,
+                                  on_click=lambda: self._switch_user(u)))
+        buttons.append(Button(
+            _("Change PIN") if u.get("locked") else _("Set PIN"),
+            id="su-pin-%d" % i, icon="lock",
+            on_click=lambda: self._open_pin_setup(u)))
+        buttons.append(Button(_("Rename"), id="su-rn-%d" % i,
+                              on_click=lambda: self._open_rename_user(u)))
+        if can_delete and not u.get("active"):
+            buttons.append(Button(
+                _("Delete"), id="su-del-%d" % i, icon="delete",
+                on_click=lambda: self._confirm(
+                    _("Delete user %s and its saved logins?")
+                    % u.get("name", ""),
+                    lambda: self._delete_user(u),
+                    title=_("Delete User"), yes=_("Delete"))))
+        return Row([
+            Icon("lock" if u.get("locked") else "person", 18),
+            Text(u.get("name", "?"), w=220, size=17, bold=True),
+            Text(_("active") if u.get("active") else "", w=90, size=14,
+                 color=theme.OK_GREEN),
+            Spacer(),
+        ] + buttons, id="su-%d" % i, pad=8, gap=8, radius=6, align="center",
+           bg=theme.PANEL_BG)
+
+    def _remove_server(self, uuid):
+        if self.controller is None:
+            return
+        self._pool.submit(lambda: self._safe(
+            lambda c: (c.remove_server(uuid), self._after_users_changed())))
+
+    def _add_user(self, name):
+        name = (name or "").strip()
+        if not name or self.controller is None:
+            return
+        self._safe(lambda c: c.add_user(name))
+        self._newuser["name"] = ""
+        self._after_users_changed()
+
+    def _delete_user(self, u):
+        if self.controller is None:
+            return
+        ok, err = (False, None)
+        try:
+            ok, err = self.controller.delete_user(u.get("id"))
+        except Exception:
+            log.error("delete_user failed", exc_info=True)
+        if not ok and err:
+            self._message(err)
+        self._after_users_changed()
+
+    def _open_rename_user(self, u):
+        state = {"name": u.get("name", "")}
+
+        def build():
+            return Dialog("renameuser", self._dialog_shell("renameuser", [
+                Text(_("Rename User"), size=22, bold=True),
+                TextBox("ru-name", text=state["name"], w=280, force=True,
+                        on_change=lambda v: state.__setitem__("name", v),
+                        on_submit=lambda v: save()),
+                Row([Spacer(),
+                     Button(_("Cancel"), id="ru-cancel",
+                            on_click=self._close_dialog),
+                     Button(_("Rename"), id="ru-ok", on_click=save)], gap=10),
+            ]), on_dismiss=self._close_dialog)
+
+        def save():
+            name = (state["name"] or "").strip()
+            if name:
+                self._safe(lambda c: c.rename_user(u.get("id"), name))
+            self._close_dialog()
+            self._after_users_changed()
+        self._show_dialog(build)
+
+    def _open_pin_setup(self, u):
+        state = {"cur": "", "new": "", "confirm": "", "startup": False,
+                 "error": None}
+
+        def build():
+            rows = [Text(_("Set PIN for %s") % u.get("name", ""), size=22,
+                         bold=True)]
+            if state["error"]:
+                rows.append(Text(state["error"], size=15, color=theme.FAV_RED))
+            if u.get("locked"):
+                rows.append(self._pin_field(_("Current PIN"), "ps-cur", state,
+                                            "cur"))
+            rows += [
+                self._pin_field(_("New PIN"), "ps-new", state, "new"),
+                self._pin_field(_("Confirm"), "ps-confirm", state, "confirm"),
+                Checkbox(_("Require this PIN at startup"), state["startup"],
+                         id="ps-startup",
+                         on_toggle=lambda: (state.__setitem__(
+                             "startup", not state["startup"]),
+                             self._show_dialog(build))),
+                Row([
+                    Button(_("Remove PIN"), id="ps-remove",
+                           on_click=lambda: save(remove=True))
+                    if u.get("locked") else Spacer(h=0),
+                    Spacer(),
+                    Button(_("Cancel"), id="ps-cancel",
+                           on_click=self._close_dialog),
+                    Button(_("Save"), id="ps-ok", on_click=save),
+                ], gap=10, align="center"),
+            ]
+            return Dialog("pinsetup",
+                          self._dialog_shell("pinsetup", rows, w=460),
+                          on_dismiss=self._close_dialog)
+
+        def save(remove=False):
+            if self.controller is None:
+                return self._close_dialog()
+            if u.get("locked"):
+                try:
+                    if not self.controller.unlock_user(u.get("id"),
+                                                       state["cur"]):
+                        state["error"] = _("Current PIN is incorrect.")
+                        return self._show_dialog(build)
+                except Exception:
+                    log.debug("pin verify failed", exc_info=True)
+            if not remove and state["new"] != state["confirm"]:
+                state["error"] = _("The PINs don't match.")
+                return self._show_dialog(build)
+            self._safe(lambda c: c.set_user_pin(
+                u.get("id"), None if remove else state["new"],
+                require_startup=state["startup"]))
+            self._close_dialog()
+            self._after_users_changed()
+        self._show_dialog(build)
+
+    @staticmethod
+    def _pin_field(label, node_id, state, key):
+        return Row([Text(label, w=140, size=16, color=theme.SUBTLE_FG),
+                    TextBox(node_id, placeholder=label, mask=True, w=200,
+                            on_change=lambda v: state.__setitem__(key, v))],
+                   gap=10, align="center")
+
+    def _after_users_changed(self):
+        self.invalidate()
+
+    # -- Downloads --------------------------------------------------------
+
+    def _settings_downloads(self, route, size):
+        rows = [Text(_("Downloads"), size=20, bold=True)]
+        entries = route.get("_downloads")
+        if entries is None:
+            self._load_downloads(route)
+            return self._busy()
+        if not entries:
+            rows.append(Text(_("Nothing downloaded yet."), size=16,
+                             color=theme.SUBTLE_FG))
+        total = sum(e.get("size", 0) or 0 for e in entries)
+        rows.append(Text(_("%(count)d items · %(size)s") % {
+            "count": len(entries), "size": self._human_size(total)},
+            size=15, color=theme.SUBTLE_FG))
+        for i, e in enumerate(entries):
+            rows.append(Row([
+                Text(e.get("name", "?"), flex=1, size=17),
+                Text(e.get("status", ""), w=160, size=14,
+                     color=theme.SUBTLE_FG),
+                Text(self._human_size(e.get("size", 0)), w=100, size=14,
+                     color=theme.SUBTLE_FG),
+                Button(_("Remove"), id="dl-rm-%d" % i, icon="delete",
+                       on_click=lambda it=e: self._confirm(
+                           _("Delete the downloaded copy of %s?")
+                           % it.get("name", ""),
+                           lambda: self._delete_download(route, it),
+                           title=_("Delete Download"), yes=_("Delete"))),
+            ], id="dl-%d" % i, pad=8, gap=10, radius=6, align="center",
+               bg=theme.PANEL_BG))
+        rows.append(Button(_("Refresh"), id="dl-refresh", icon="refresh",
+                           on_click=lambda: self._load_downloads(route,
+                                                                 force=True)))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=6),
+                       id="settings-downloads", flex=1)
+
+    def _load_downloads(self, route, force=False):
+        if self.controller is None:
+            route["_downloads"] = []
+            return
+        if route.get("_dl_loading") and not force:
+            return
+        route["_dl_loading"] = True
+        ep = self._epoch
+
+        def work():
+            return self.controller.list_downloads()
+
+        def done(rows):
+            route["_downloads"] = rows or []
+            route["_dl_loading"] = False
+        self.run_async(work, done, ep)
+
+    def _delete_download(self, route, entry):
+        self._client_call(lambda c: c.delete_download(entry.get("id")))
+        rows = route.get("_downloads") or []
+        route["_downloads"] = [e for e in rows if e is not entry]
+        self._refresh_downloaded()
+        self.invalidate()
+
+    # -- Logs -------------------------------------------------------------
+
+    def _settings_logs(self, route, size):
+        lines = []
+        if self.controller is not None:
+            try:
+                lines = self.controller.recent_logs()
+            except Exception:
+                log.debug("recent_logs failed", exc_info=True)
+        rows = [Row([Text(_("Logs"), size=20, bold=True), Spacer(),
+                     Button(_("Refresh"), id="log-refresh", icon="refresh",
+                            on_click=self.invalidate),
+                     Button(_("Open Config Folder"), id="log-conf",
+                            icon="folder",
+                            on_click=self._open_config_folder)],
+                    gap=8, align="center")]
+        if not lines:
+            rows.append(Text(_("No log output captured yet."), size=15,
+                             color=theme.SUBTLE_FG))
+        # Newest last, like a console; the scroll keeps its offset across
+        # rebuilds so following the tail is a matter of staying at the bottom.
+        for i, line in enumerate(lines[-500:]):
+            rows.append(Text(line, size=14, color=theme.SUBTLE_FG,
+                             id="log-%d" % i))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=2),
+                       id="settings-logs", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "settings-logs", off, mx))
+
+    def _open_config_folder(self):
+        self._client_call(lambda c: c.open_config_folder())
 
     # --------------------------------------------------------------- queue
 
@@ -1879,80 +2511,163 @@ class MpvtkBrowser:
 
     # --------------------------------------------------------- playlist edit
 
+    @staticmethod
+    def _pe_title(item):
+        """Series-aware entry title, like the Tk editor's: an episode reads
+        "Show — S02E05 · Title" so a 300-row playlist is navigable."""
+        name = item.get("Name", "")
+        if item.get("Type") == "Episode":
+            s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
+            se = ("S%sE%s" % (s, e)) if s is not None and e is not None else ""
+            parts = [p for p in (item.get("SeriesName"), se) if p]
+            if parts:
+                return "%s · %s" % (" — ".join(parts), name)
+        artists = item.get("Artists") or []
+        if artists:
+            return "%s — %s" % (", ".join(artists), name)
+        return name
+
+    def _pe_sel(self, route):
+        """Selected row indices as a set (multi-select)."""
+        return set(route.get("_sel") or ())
+
     def _render_playlist_edit(self, route, size):
         items = route.get("_items")
         if items is None:
             return self._busy()
-        sel = route.get("_sel")
-        server = route.get("server") or self.server
-        pid = route["item_id"]
+        sel = self._pe_sel(route)
+        n = len(items)
         toolbar = Row([
-            Button(_("Top"), id="pe-top",
+            Button(_("Top"), id="pe-top", icon="vertical_align_top",
                    on_click=lambda: self._pe_move(route, "top")),
-            Button(_("Up"), id="pe-up",
+            Button(_("Up"), id="pe-up", icon="keyboard_arrow_up",
                    on_click=lambda: self._pe_move(route, "up")),
-            Button(_("Down"), id="pe-down",
+            Button(_("Down"), id="pe-down", icon="keyboard_arrow_down",
                    on_click=lambda: self._pe_move(route, "down")),
-            Button(_("Bottom"), id="pe-bottom",
+            Button(_("Bottom"), id="pe-bottom", icon="vertical_align_bottom",
                    on_click=lambda: self._pe_move(route, "bottom")),
             Spacer(),
-            Button(_("Remove"), id="pe-remove",
+            Text(_("%d selected") % len(sel) if sel else "", size=15,
+                 color=theme.SUBTLE_FG),
+            Button(_("Select All"), id="pe-all",
+                   on_click=lambda: self._pe_set_sel(route, set(range(n)))),
+            Button(_("Clear"), id="pe-none",
+                   on_click=lambda: self._pe_set_sel(route, set())),
+            Button(_("Remove"), id="pe-remove", icon="delete",
                    on_click=lambda: self._pe_remove(route)),
         ], gap=8, align="center")
         rename_row = Row([
             TextBox("pe-name", text=route.get("title", ""), w=280,
-                    on_change=lambda v: route.__setitem__("_newname", v)),
-            Button(_("Rename"), id="pe-rename",
+                    on_change=lambda v: route.__setitem__("_newname", v),
+                    on_submit=lambda v: self._pe_rename(route)),
+            Button(_("Rename"), id="pe-rename", icon="edit",
                    on_click=lambda: self._pe_rename(route)),
             Checkbox(_("Public"), bool(route.get("_public")), id="pe-public",
                      on_toggle=lambda: self._pe_toggle_public(route)),
+            Spacer(),
+            Button(_("Delete Playlist"), id="pe-delete", icon="delete",
+                   on_click=lambda: self._confirm(
+                       _("Delete the playlist %s?") % route.get("title", ""),
+                       lambda: self._pe_delete(route),
+                       title=_("Delete Playlist"), yes=_("Delete"))),
         ], gap=10, align="center")
+        # Column header, so the table reads as a table.
+        head = Row([
+            Spacer(w=30), Text("#", w=44, size=14, color=theme.SUBTLE_FG),
+            Text(_("Title"), flex=1, size=14, color=theme.SUBTLE_FG),
+            Text(_("Type"), w=110, size=14, color=theme.SUBTLE_FG),
+            Text(_("Runtime"), w=80, size=14, color=theme.SUBTLE_FG),
+        ], pad=8, gap=8, align="center")
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
-                     size=26, bold=True), rename_row, toolbar]
+                     size=26, bold=True), rename_row, toolbar, head]
         for i, it in enumerate(items):
+            on = i in sel
+            secs = (it.get("RunTimeTicks") or 0) // 10000000
             rows.append(Row([
-                Text(str(i + 1), w=44, size=17, color=theme.SUBTLE_FG),
-                Text(it.get("Name", ""), flex=1, size=17,
-                     bold=(sel == i)),
+                Icon("check" if on else "add", 16,
+                     color="101010" if on else theme.SUBTLE_FG, w=30),
+                Text(str(i + 1), w=44, size=16,
+                     color="101010" if on else theme.SUBTLE_FG),
+                Text(self._pe_title(it), flex=1, size=17,
+                     color="101010" if on else theme.TEXT_FG),
+                Text(it.get("Type", ""), w=110, size=14,
+                     color="101010" if on else theme.SUBTLE_FG),
+                Text("%d:%02d" % (secs // 60, secs % 60) if secs else "",
+                     w=80, size=14,
+                     color="101010" if on else theme.SUBTLE_FG),
             ], id="pe-row-%d" % i, pad=8, gap=8, radius=6, align="center",
-               bg=theme.PANEL_BG if sel == i else None,
-               hover=None if sel == i else {"fill": theme.BUTTON_BG},
-               on_click=lambda i=i: self._pe_select(route, i)))
-        return VScroll(Column(rows, pad=16, gap=3), id="playlist-edit", flex=1)
+               bg=theme.ACCENT if on else (
+                   theme.PANEL_BG if i % 2 else None),
+               hover=None if on else {"fill": theme.BUTTON_BG},
+               on_click=lambda i=i: self._pe_toggle(route, i)))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=3),
+                       id="playlist-edit", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "playlist-edit", off, mx))
 
-    def _pe_select(self, route, i):
-        route["_sel"] = i
+    def _pe_set_sel(self, route, sel):
+        route["_sel"] = set(sel)
         self.invalidate()
 
+    def _pe_toggle(self, route, i):
+        """Click toggles a row in/out of the selection. There is no modifier
+        state to read (the renderer reports a plain click), so toggle-select is
+        how multi-select is expressed here — see MIGRATION.md."""
+        sel = self._pe_sel(route)
+        sel.symmetric_difference_update({i})
+        self._pe_set_sel(route, sel)
+
     def _pe_move(self, route, where):
+        """Move the whole selection as a block, preserving its internal
+        order — moving 20 rows should not require 20 clicks."""
         items = route.get("_items") or []
-        i = route.get("_sel")
-        if i is None or not items:
+        sel = sorted(self._pe_sel(route))
+        if not sel or not items:
             return
         n = len(items)
-        j = {"top": 0, "up": max(0, i - 1),
-             "down": min(n - 1, i + 1), "bottom": n - 1}[where]
-        if j == i:
+        if where == "top":
+            target = 0
+        elif where == "bottom":
+            target = n - len(sel)
+        elif where == "up":
+            target = max(0, sel[0] - 1)
+        else:
+            target = min(n - len(sel), sel[0] + 1)
+        if target == sel[0]:
             return
-        entry = items.pop(i)
-        items.insert(j, entry)
-        route["_sel"] = j
-        self._client_call(lambda c: c.playlist_move(
-            route.get("server") or self.server, route["item_id"],
-            entry.get("PlaylistItemId"), j))
+        block = [items[i] for i in sel]
+        rest = [it for i, it in enumerate(items) if i not in set(sel)]
+        route["_items"] = rest[:target] + block + rest[target:]
+        route["_sel"] = set(range(target, target + len(block)))
+        server = route.get("server") or self.server
+        pid = route["item_id"]
+        for offset, entry in enumerate(block):
+            self._client_call(
+                lambda c, e=entry, o=offset: c.playlist_move(
+                    server, pid, e.get("PlaylistItemId"), target + o))
         self.invalidate()
 
     def _pe_remove(self, route):
         items = route.get("_items") or []
-        i = route.get("_sel")
-        if i is None or i >= len(items):
+        sel = sorted(self._pe_sel(route))
+        if not sel:
             return
-        entry = items.pop(i)
-        route["_sel"] = None
-        self._client_call(lambda c: c.playlist_remove(
-            route.get("server") or self.server, route["item_id"],
-            [entry.get("PlaylistItemId")]))
+        entries = [items[i] for i in sel if i < len(items)]
+        route["_items"] = [it for i, it in enumerate(items)
+                           if i not in set(sel)]
+        route["_sel"] = set()
+        ids = [e.get("PlaylistItemId") for e in entries
+               if e.get("PlaylistItemId")]
+        if ids:
+            self._client_call(lambda c: c.playlist_remove(
+                route.get("server") or self.server, route["item_id"], ids))
         self.invalidate()
+
+    def _pe_delete(self, route):
+        pid = route["item_id"]
+        self._client_call(lambda c: c.playlist_delete(
+            route.get("server") or self.server, pid))
+        self.after_playlist_deleted(pid)
 
     def _pe_rename(self, route):
         name = (route.get("_newname") or route.get("title") or "").strip()
@@ -1964,6 +2679,13 @@ class MpvtkBrowser:
         self.invalidate()
 
     def _pe_toggle_public(self, route):
+        # Refuse until the loader has read the server's OpenAccess: flipping a
+        # value we never read could make a public playlist private (or worse,
+        # the reverse) on the very first click.
+        if not route.get("_public_known"):
+            self._message(_("Still reading this playlist's visibility from "
+                            "the server. Try again in a moment."))
+            return
         route["_public"] = not route.get("_public")
         self._client_call(lambda c: c.playlist_update(
             route.get("server") or self.server, route["item_id"],

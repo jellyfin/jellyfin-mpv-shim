@@ -28,6 +28,8 @@ SUBTLE_FG = "9aa0a6"
 ACCENT = "00a4dc"
 ACCENT_FG = "ffffff"
 FAV_RED = "e0264b"
+OK_GREEN = "7bd88f"      # "Connected" / "active" badges
+WARN_AMBER = "e5c07b"
 
 # Semantic extras used by baked strip decorations.
 PROGRESS_TRACK = "000000"   # drawn at ~78% alpha behind the resume bar

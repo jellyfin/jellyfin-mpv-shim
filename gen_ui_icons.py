@@ -11,7 +11,7 @@ OSC). See jellyfin_mpv_shim/library_browser/icons.py for the rasterizer.
 This script downloads the SVG sources for the icons the UI needs and
 writes their raw path ``d`` strings into
 
-    jellyfin_mpv_shim/library_browser/_icon_paths.py
+    jellyfin_mpv_shim/ui_icon_paths.py
 
 which is committed so the running app never touches the network. Re-run it
 only when the icon set changes.
@@ -72,6 +72,11 @@ ICON_NAMES = [
     "star",
     # user state
     "lock",
+    "person",
+    "person_add",
+    # settings panels
+    "refresh",
+    "folder",
 ]
 
 SVG_URL = (
@@ -82,8 +87,7 @@ SVG_URL = (
 TARGET = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "jellyfin_mpv_shim",
-    "library_browser",
-    "_icon_paths.py",
+    "ui_icon_paths.py",
 )
 
 

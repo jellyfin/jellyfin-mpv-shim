@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 import re
 
 bad_patterns = (
@@ -85,3 +86,31 @@ def configure_log_file(destination: str, level: str = "info"):
     handler.setFormatter(CustomFormatter(True))
     handler.setLevel(lvl)
     root_logger.addHandler(handler)
+
+
+class RingLogHandler(logging.Handler):
+    """Keeps the last N formatted log lines in memory for in-app log views.
+
+    gui_mgr has its own copy of this (it also forwards lines over IPC to the
+    Tk browser process); the in-window mpvtk browser runs in *this* process and
+    just reads the ring directly, so it doesn't have to import gui_mgr (and
+    with it Tk/pystray)."""
+
+    def __init__(self, capacity=2000):
+        super().__init__()
+        self.lines = deque([], capacity)
+
+    def emit(self, record):
+        try:
+            self.lines.append(self.format(record))
+        except Exception:
+            pass
+
+
+ring_handler = RingLogHandler()
+ring_handler.setFormatter(CustomFormatter())
+root_logger.addHandler(ring_handler)
+
+
+def recent_log_lines():
+    return list(ring_handler.lines)

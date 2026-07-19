@@ -10,7 +10,7 @@ import unittest
 try:
     from PIL import Image  # noqa: F401
     from jellyfin_mpv_shim.library_browser import icons
-    from jellyfin_mpv_shim.library_browser._icon_paths import ICON_PATHS
+    from jellyfin_mpv_shim.ui_icon_paths import ICON_PATHS
     HAVE_PIL = True
 except ImportError:
     HAVE_PIL = False

@@ -14,6 +14,7 @@ browser takes the window back.
 """
 
 import logging
+import os
 import threading
 
 from ..clients import clientManager
@@ -145,6 +146,31 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk set_favorite failed", exc_info=True)
 
+    def list_servers(self):
+        """Saved servers with a connection badge, for the Settings panel —
+        the whole credential list, not just the connected ones _collect_servers
+        returns (an offline server must still be removable)."""
+        out = []
+        for cred in list(clientManager.credentials):
+            uuid = cred.get("uuid")
+            client = clientManager.clients.get(uuid)
+            out.append({
+                "uuid": uuid,
+                "name": cred.get("Name") or cred.get("address") or "?",
+                "address": cred.get("address") or "",
+                "username": cred.get("Username") or cred.get("username") or "",
+                "connected": client is not None,
+            })
+        return out
+
+    def remove_server(self, uuid):
+        try:
+            clientManager.remove_client(uuid)
+            return True
+        except Exception:
+            log.error("mpvtk remove_server failed", exc_info=True)
+            return False
+
     def add_server(self, server, username, password):
         try:
             return bool(clientManager.login(server, username, password))
@@ -161,12 +187,88 @@ class _PlayerController:
                              settings.player_name,
                              not settings.ignore_ssl_cert)
 
+    # -- local users ------------------------------------------------------
+
+    def list_users(self):
+        """``[{id, name, locked, active}]`` for the chrome's user switcher."""
+        from ..users import userManager
+        try:
+            active = userManager.active_id
+            return [{"id": u["id"], "name": u.get("name", "?"),
+                     "locked": bool(userManager.is_locked(u["id"])),
+                     "active": u["id"] == active}
+                    for u in userManager.public_users()]
+        except Exception:
+            log.error("mpvtk list_users failed", exc_info=True)
+            return []
+
+    def switch_user(self, user_id, pin=None):
+        """Switch the active local user and rebuild the data source.
+
+        Returns the new source, or None if the user is PIN-locked and the PIN
+        didn't match (the caller re-prompts). Runs on the browser's worker
+        pool — clientManager.switch_user reconnects and can block."""
+        from ..users import userManager
+        try:
+            if userManager.get(user_id) is None:
+                return None
+            if userManager.is_locked(user_id) and not userManager.verify_pin(
+                    user_id, pin or ""):
+                return None
+            clientManager.switch_user(user_id)
+        except Exception:
+            log.error("mpvtk switch_user failed", exc_info=True)
+            return None
+        return self.rebuild_source()
+
+    def add_user(self, name):
+        from ..users import userManager
+        try:
+            userManager.add_user(name)
+        except Exception:
+            log.error("mpvtk add_user failed", exc_info=True)
+
+    def rename_user(self, user_id, name):
+        from ..users import userManager
+        try:
+            userManager.rename_user(user_id, name)
+        except Exception:
+            log.error("mpvtk rename_user failed", exc_info=True)
+
+    def delete_user(self, user_id):
+        """Returns (ok, error) — the active user and the last user can't go."""
+        from ..users import userManager
+        try:
+            return userManager.delete_user(user_id)
+        except Exception:
+            log.error("mpvtk delete_user failed", exc_info=True)
+            return False, None
+
+    def set_user_pin(self, user_id, pin, require_startup=False):
+        from ..users import userManager
+        try:
+            userManager.set_pin(user_id, pin or None,
+                                require_startup=require_startup)
+            return True
+        except Exception:
+            log.error("mpvtk set_user_pin failed", exc_info=True)
+            return False
+
     # -- startup PIN lock -------------------------------------------------
 
     def needs_unlock(self):
         from ..users import userManager
         try:
             return bool(userManager.startup_needs_unlock())
+        except Exception:
+            return False
+
+    def unlock_user(self, user_id, pin):
+        """Verify a specific user's PIN (the PIN-setup dialog's current-PIN
+        check), as opposed to unlock() which gates the active user."""
+        from ..users import userManager
+        try:
+            return bool(userManager.verify_pin(user_id, pin))
         except Exception:
             return False
 
@@ -298,6 +400,9 @@ class _PlayerController:
         self._edit(server_uuid,
                    lambda jf: jf.new_playlist(name, list(item_ids)))
 
+    def playlist_delete(self, server_uuid, playlist_id):
+        self._edit(server_uuid, lambda jf: jf.delete_item(playlist_id))
+
     def playlist_update(self, server_uuid, playlist_id, name=None,
                         is_public=None):
         self._edit(server_uuid,
@@ -322,6 +427,62 @@ class _PlayerController:
                                 include_watched=include_watched)
         except Exception:
             log.error("mpvtk download enqueue failed", exc_info=True)
+
+    def list_downloads(self):
+        """Rows for the downloads manager: ``[{id, name, status, size}]``."""
+        from ..sync.manager import syncManager
+        try:
+            rows = syncManager.db.list() if syncManager.db else []
+        except Exception:
+            log.error("mpvtk list_downloads failed", exc_info=True)
+            return []
+        out = []
+        for r in rows:
+            name = r.get("name") or r.get("item_id")
+            series = r.get("series_name")
+            if series and r.get("index_number") is not None:
+                name = "%s — S%sE%s · %s" % (
+                    series, r.get("parent_index") or "?",
+                    r.get("index_number"), name)
+            elif series:
+                name = "%s — %s" % (series, name)
+            out.append({"id": r.get("item_id"), "name": name,
+                        "status": r.get("status") or "",
+                        "size": r.get("size") or 0})
+        return out
+
+    def delete_download(self, item_id):
+        from ..sync.manager import syncManager
+        try:
+            syncManager.delete(item_id=item_id)
+        except Exception:
+            log.error("mpvtk delete_download failed", exc_info=True)
+
+    # -- diagnostics ------------------------------------------------------
+
+    def recent_logs(self):
+        from ..log_utils import recent_log_lines
+        return recent_log_lines()
+
+    def open_config_folder(self):
+        """Reveal the config directory. The tray menu used to be the only way
+        to reach it, and the mpvtk browser has no tray."""
+        import subprocess
+        import sys
+
+        from .. import conffile
+        from ..constants import APP_NAME
+
+        path = os.path.dirname(conffile.get(APP_NAME, "conf.json"))
+        try:
+            if sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            elif sys.platform == "win32":
+                os.startfile(path)  # noqa: S606 - documented Windows API
+            else:
+                subprocess.Popen(["xdg-open", path])
+        except Exception:
+            log.error("could not open config folder %s", path, exc_info=True)
 
     def downloaded_ids(self):
         from ..sync.manager import syncManager

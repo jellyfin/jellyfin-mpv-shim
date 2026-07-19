@@ -416,11 +416,24 @@ class TestPlaybackLifecycle(unittest.TestCase):
 
 
 class FakeConfig:
+    # Mirrors the real mpvtk_browser.config surface the Settings view uses:
+    # a schema, curated sections, enum tables and friendly labels.
+    ENUMS = {"osc_mode": ["auto", "never"]}
+    LABELED_ENUMS = {"lang": [("Unset", "unset"), ("Dubbed", "dub")]}
+
     def __init__(self):
         self.values = {"autoplay": True, "player_name": "Bud",
-                       "seek_up": 60}
+                       "seek_up": 60, "osc_mode": "auto", "lang": "unset"}
         self.schema = {"autoplay": "bool", "player_name": "str",
-                       "seek_up": "int"}
+                       "seek_up": "int", "osc_mode": "str", "lang": "str"}
+
+    def sections(self):
+        return [("Interface", ["player_name", "osc_mode", "lang"]),
+                ("Advanced", ["autoplay", "seek_up"])]
+
+    @staticmethod
+    def label_for(key):
+        return key.replace("_", " ").title()
 
     def settings_schema(self):
         return dict(self.schema)
@@ -445,27 +458,54 @@ class TestSettings(unittest.TestCase):
         self.cfg = FakeConfig()
         self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg)
 
+    def _advanced(self):
+        """Reveal the Advanced section (autoplay/seek_up live there)."""
+        self.b.route["_advanced"] = True
+
     def test_settings_nav_and_render(self):
         self.b._open_settings()
         self.assertEqual(self.b.route["kind"], "settings")
+        self._advanced()
         nodes, _h = build_scene(self.b)
         self.assertIn("set-autoplay", ids(nodes))     # bool -> checkbox
         self.assertIn("set-player_name", ids(nodes))  # str -> textbox
+        self.assertIn("set-osc_mode", ids(nodes))     # enum -> dropdown
+
+    def test_settings_tabs_present(self):
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        for tab in ("general", "servers", "downloads", "logs"):
+            self.assertIn("stab-" + tab, ids(nodes))
+
+    def test_advanced_section_is_collapsed_by_default(self):
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("set-autoplay", ids(nodes))
+        self.assertIn("set-adv", ids(nodes))
+
+    def test_enum_dropdown_stores_value_not_label(self):
+        self.b._open_settings()
+        nodes, handlers = build_scene(self.b)
+        handlers["set-lang"]["select"](1, "Dubbed")
+        self.assertEqual(self.cfg.values["lang"], "dub")
 
     def test_setting_bool_toggle_saves(self):
         self.b._open_settings()
+        self._advanced()
         nodes, handlers = build_scene(self.b)
         handlers["set-autoplay"]["click"]()
         self.assertFalse(self.cfg.values["autoplay"])
 
     def test_setting_text_submit_coerces(self):
         self.b._open_settings()
+        self._advanced()
         nodes, handlers = build_scene(self.b)
         handlers["set-seek_up"]["submit"]("15")
         self.assertEqual(self.cfg.values["seek_up"], 15)  # coerced to int
 
     def test_setting_invalid_value_reports(self):
         self.b._open_settings()
+        self._advanced()
         nodes, handlers = build_scene(self.b)
         handlers["set-seek_up"]["submit"]("not-a-number")
         self.assertIn("Invalid", self.b.status)
@@ -564,12 +604,27 @@ class TestTileShapes(unittest.TestCase):
             {"collection_type": "tvshows", "items": [{"Type": "Episode"}]})
         self.assertIs(g, POSTER_GEOM)
 
-    def test_scroll_arrows_present(self):
+    def test_scroll_arrows_appear_only_when_the_row_overflows(self):
+        # One library fits, so no arrows; a long row gets them, pinned to the
+        # window edges.
         self.b.route["_data"] = {"libraries": self.b.source.libraries,
                                  "rows": []}
         nodes, _h = build_scene(self.b)
+        self.assertNotIn("row-libs-pl", ids(nodes))
+
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
         self.assertIn("row-libs-pl", ids(nodes))
         self.assertIn("row-libs-pr", ids(nodes))
+        by_id = {n["id"]: n for n in nodes}
+        self.assertEqual(by_id["row-libs-pl"]["x"], 0.0)
+        # Flush right, inside the vertical scrollbar's gutter.
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+        self.assertAlmostEqual(
+            by_id["row-libs-pr"]["x"] + by_id["row-libs-pr"]["w"],
+            self.b._size[0] - SCROLLBAR_W, places=1)
 
     def test_downloaded_and_glyph(self):
         self.b._downloaded = {"m1"}
@@ -821,22 +876,49 @@ class TestPlaylistEdit(unittest.TestCase):
         self._open_edit()
         route = self.b.route
         first = route["_items"][0]["PlaylistItemId"]
-        self.b._pe_select(route, 0)
+        self.b._pe_set_sel(route, {0})
         self.b._pe_move(route, "down")
         self.assertEqual(route["_items"][1]["PlaylistItemId"], first)
-        self.assertEqual(route["_sel"], 1)
+        self.assertEqual(route["_sel"], {1})
         self.assertIn("playlist_move",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
 
     def test_remove_drops_row_and_calls_api(self):
         self._open_edit()
         route = self.b.route
-        self.b._pe_select(route, 1)
+        self.b._pe_set_sel(route, {1})
         n0 = len(route["_items"])
         self.b._pe_remove(route)
         self.assertEqual(len(route["_items"]), n0 - 1)
         self.assertIn("playlist_remove",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_click_toggles_multi_select(self):
+        nodes, h = self._open_edit()
+        h["pe-row-0"]["click"]()
+        h["pe-row-2"]["click"]()
+        self.assertEqual(self.b.route["_sel"], {0, 2})
+        h["pe-row-0"]["click"]()          # toggles back off
+        self.assertEqual(self.b.route["_sel"], {2})
+
+    def test_block_move_keeps_selection_contiguous(self):
+        self._open_edit()
+        route = self.b.route
+        ids0 = [i["PlaylistItemId"] for i in route["_items"]]
+        self.b._pe_set_sel(route, {1, 2})
+        self.b._pe_move(route, "top")
+        self.assertEqual([i["PlaylistItemId"] for i in route["_items"]],
+                         [ids0[1], ids0[2], ids0[0]])
+        self.assertEqual(route["_sel"], {0, 1})
+
+    def test_bulk_remove_sends_one_call(self):
+        self._open_edit()
+        route = self.b.route
+        self.b._pe_set_sel(route, {0, 2})
+        self.b._pe_remove(route)
+        self.assertEqual(len(route["_items"]), 1)
+        calls = [c for c in self.ctl.transport if c[0] == "playlist_remove"]
+        self.assertEqual(len(calls), 1)
 
 
 class TestAddToPlaylist(unittest.TestCase):
@@ -897,6 +979,12 @@ class TestPlaylistExtras(unittest.TestCase):
         h["pe-rename"]["click"]()
         self.assertEqual(self.b.route["title"], "Renamed")
         self.assertIn("playlist_update", [c[0] for c in self.ctl.transport])
+        # The Public toggle refuses until the server's real visibility has
+        # been read, so a first click can't flip an already-public list.
+        _n, h = build_scene(self.b)
+        h["pe-public"]["click"]()
+        self.assertFalse(self.b.route.get("_public"))
+        self.b.route["_public_known"] = True
         _n, h = build_scene(self.b)
         h["pe-public"]["click"]()
         self.assertTrue(self.b.route["_public"])
