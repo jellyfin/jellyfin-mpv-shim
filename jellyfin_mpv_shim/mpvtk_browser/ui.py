@@ -128,6 +128,22 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk set_favorite failed", exc_info=True)
 
+    def add_server(self, server, username, password):
+        try:
+            return bool(clientManager.login(server, username, password))
+        except Exception:
+            log.error("mpvtk add_server failed", exc_info=True)
+            return False
+
+    def rebuild_source(self):
+        from .repository import LibrarySource
+        servers = _collect_servers()
+        if not servers:
+            return None
+        return LibrarySource(servers, clientManager.device_id,
+                             settings.player_name,
+                             not settings.ignore_ssl_cert)
+
     def open_url(self, url):
         import webbrowser
         try:
@@ -311,7 +327,9 @@ class UserInterface:
                 log.error("mpvtk browser connect failed", exc_info=True)
         servers = _collect_servers()
         if not servers:
-            log.warning("mpvtk browser: no servers connected")
+            log.warning("mpvtk browser: no servers connected; showing login")
+            if self._browser is not None:
+                self._browser.show_login()
             return
         source = LibrarySource(servers, clientManager.device_id,
                                settings.player_name,

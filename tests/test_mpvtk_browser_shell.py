@@ -284,6 +284,14 @@ class FakeController:
         return {"count": 3, "total_bytes": 5 * 1024 * 1024,
                 "audio_only": False}
 
+    def add_server(self, server, username, password):
+        self.__dict__.setdefault("transport", []).append(
+            ("add_server", (server, username, password)))
+        return server == "good"
+
+    def rebuild_source(self):
+        return FakeSource()
+
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
         # declaring each one.
@@ -558,6 +566,45 @@ class TestAddToPlaylist(unittest.TestCase):
         self.b._menu_action(3, None)   # "Add to Playlist"
         self.assertIsNone(self.b._menu)
         self.assertIsNotNone(self.b._dialog)
+
+
+class TestLogin(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_show_login_renders_form(self):
+        self.b.show_login()
+        self.assertEqual(self.b.route["kind"], "login")
+        nodes, _h = build_scene(self.b)
+        for fid in ("login-server", "login-user", "login-pass",
+                    "login-connect"):
+            self.assertIn(fid, ids(nodes))
+        # login is chrome-free
+        self.assertNotIn("nav-home", ids(nodes))
+
+    def test_login_failure_shows_error(self):
+        self.b.show_login()
+        _n, handlers = build_scene(self.b)
+        handlers["login-server"]["change"]("bad")
+        handlers["login-user"]["change"]("u")
+        handlers["login-pass"]["change"]("p")
+        handlers["login-connect"]["click"]()
+        self.assertIn("add_server",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertIn("Could not connect", self.b._login_error)
+        self.assertEqual(self.b.route["kind"], "login")
+
+    def test_login_success_loads_source(self):
+        self.b.show_login()
+        _n, handlers = build_scene(self.b)
+        handlers["login-server"]["change"]("good")
+        handlers["login-connect"]["click"]()
+        # success -> rebuild source -> home
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertIsNone(self.b._login_error)
 
 
 class TestDownloadDialog(unittest.TestCase):

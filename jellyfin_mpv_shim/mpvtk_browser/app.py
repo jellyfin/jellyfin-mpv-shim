@@ -79,6 +79,10 @@ class MpvtkBrowser:
         self._dialog = None
         # Download dialog state {"server","item","est","watched"} or None.
         self._dl = None
+        # Login form field values (renderer holds the live text; we mirror it
+        # here via on_change so Connect can read all three fields at once).
+        self._login = {"server": "", "user": "", "pass": ""}
+        self._login_error = None
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -682,6 +686,7 @@ class MpvtkBrowser:
             "settings": self._render_settings,
             "queue": self._render_queue,
             "playlist_edit": self._render_playlist_edit,
+            "login": self._render_login,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -1500,6 +1505,71 @@ class MpvtkBrowser:
     def _sync_leave(self, server):
         self._client_call(lambda c: c.sync_leave(server))
         self._close_dialog()
+
+    # --------------------------------------------------------------- login
+
+    def show_login(self):
+        """Show the add-server / login screen (no servers connected)."""
+        self.navigate({"kind": "login", "title": _("Sign In")}, reset=True)
+
+    def _render_login(self, route, size):
+        def field(fid, ph, key, mask=False):
+            return Row([
+                Text(ph, w=140, size=17, color=theme.SUBTLE_FG),
+                TextBox(fid, text=self._login[key], placeholder=ph, mask=mask,
+                        w=360,
+                        on_change=lambda v, k=key: self._login.__setitem__(
+                            k, v)),
+            ], gap=12, align="center")
+
+        form = Column([
+            Text(_("Connect to Jellyfin"), size=28, bold=True),
+            field("login-server", _("Server URL"), "server"),
+            field("login-user", _("Username"), "user"),
+            field("login-pass", _("Password"), "pass", mask=True),
+            Row([Spacer(),
+                 Button(_("Connect"), id="login-connect",
+                        on_click=self._do_login)], gap=10),
+        ], pad=28, gap=16, bg=theme.CARD_BG, radius=12, border=theme.BORDER,
+           w=560)
+        if self._login_error:
+            form.children.insert(1, Text(self._login_error, size=15,
+                                         color=theme.FAV_RED))
+        return Box([Spacer(),
+                    Row([Spacer(), form, Spacer()]),
+                    Spacer()],
+                   flex=1, direction="column", align="stretch", gap=10)
+
+    def _do_login(self):
+        if self.controller is None:
+            return
+        info = dict(self._login)
+        self._login_error = _("Connecting…")
+        self.invalidate()
+        ep = self._epoch
+
+        def work():
+            return self.controller.add_server(
+                info["server"], info["user"], info["pass"])
+
+        def done(ok):
+            if ok:
+                self._login_error = None
+                self._after_login()
+            else:
+                self._login_error = _(
+                    "Could not connect. Please check your details.")
+        self.run_async(work, done, ep)
+
+    def _after_login(self):
+        source = None
+        if self.controller is not None:
+            try:
+                source = self.controller.rebuild_source()
+            except Exception:
+                log.warning("rebuild_source failed", exc_info=True)
+        if source is not None:
+            self.set_source(source)
 
     def _busy(self):
         return Box(
