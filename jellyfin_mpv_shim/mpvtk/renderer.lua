@@ -1070,6 +1070,11 @@ mp.set_key_bindings({
 mp.enable_key_bindings('mpvtk_mouse')
 mp.enable_key_bindings('mpvtk_wheel')
 
+mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
+    state.hud = not state.hud
+    request_render()
+end)
+
 mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     if pos.hover == false then
