@@ -258,6 +258,10 @@ class PlayerManager(object):
         # on_mpv_recreated fires once a fresh handle is ready.
         self.on_mpv_gone = None
         self.on_mpv_recreated = None
+        # BACK/ESC handler for the in-window UI. Returns True when it
+        # consumed the press; at the root of its nav stack it declines and
+        # ESC keeps its old meaning (leave fullscreen).
+        self.on_nav_back = None
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -545,6 +549,8 @@ class PlayerManager(object):
         def menu_back():
             if self.menu.is_menu_shown:
                 self.menu.menu_action("back")
+            elif self._nav_back():
+                pass    # the in-window UI consumed it (dialog / go back)
             else:
                 self._player.command("set", "fullscreen", "no")
                 self.fullscreen_disable = True
@@ -2492,6 +2498,16 @@ class PlayerManager(object):
     # through to kb_seek as before.
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
                      "right": "RIGHT", "ok": "ENTER", "back": "ESC"}
+
+    def _nav_back(self):
+        handler = self.on_nav_back
+        if handler is None or not self.mpvtk_active or self._video is not None:
+            return False
+        try:
+            return bool(handler())
+        except Exception:
+            log.debug("nav back handler failed", exc_info=True)
+            return False
 
     def _mpvtk_input_active(self):
         """True while the in-window UI's key bindings are live (the

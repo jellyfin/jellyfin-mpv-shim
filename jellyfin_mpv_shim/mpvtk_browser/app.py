@@ -227,6 +227,44 @@ class MpvtkBrowser:
         self._bump_epoch()
         self.invalidate()
 
+    def display_item(self, server_uuid, item_id):
+        """Open an item's page because a remote asked us to (Jellyfin's
+        DisplayContent — "show me this" from a phone or web client).
+
+        This is the browsable counterpart to the legacy kiosk mirror: the
+        remote picks the page, then its arrows drive the same spatial
+        navigation the keyboard uses."""
+        if server_uuid and server_uuid != self.server:
+            self.server = server_uuid
+        ep = self._epoch
+
+        def work():
+            return self.source.get_item(server_uuid or self.server, item_id)
+
+        def done(item):
+            if not item:
+                return
+            # A cast has to be able to wake a minimized or playing client.
+            if self._minimized or not self._browsing:
+                self.enter_browse()
+            self._open_item(item)
+        self.run_async(work, done, ep)
+
+    def on_back(self):
+        """BACK / ESC from a remote or the keyboard. Returns True when it
+        consumed the press, so the player can fall back to its own handling
+        (leaving fullscreen) at the root of the stack."""
+        if self._dialog is not None:
+            self._close_dialog()
+            return True
+        if self._menu is not None:
+            self._close_menu()
+            return True
+        if len(self.nav_stack) > 1:
+            self.go_back()
+            return True
+        return False
+
     def _on_nav_mode(self, active):
         """Renderer 'nav' event: keyboard/remote engaged or the mouse
         took over. Repaint so modality-dependent chrome (carousel

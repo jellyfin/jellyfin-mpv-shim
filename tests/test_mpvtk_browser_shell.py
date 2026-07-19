@@ -2236,3 +2236,85 @@ class TestListWidthsAreStable(unittest.TestCase):
         widths = self._card_rows(nodes, "q-")
         self.assertTrue(widths)
         self.assertGreater(max(widths), 1280 - 4 * self.b.CONTENT_PAD)
+
+
+class TestNavBack(unittest.TestCase):
+    """BACK from a remote (or ESC) unwinds one layer at a time, and declines
+    at the root so the player can keep ESC's old meaning."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def test_declines_at_the_root(self):
+        self.assertFalse(self.b.on_back())
+
+    def test_pops_the_nav_stack(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.assertTrue(self.b.on_back())
+        self.assertEqual(self.b.route["kind"], "home")
+
+    def test_closes_a_dialog_before_navigating(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.b._message("hello")
+        self.assertTrue(self.b.on_back())
+        self.assertIsNone(self.b._dialog)
+        self.assertEqual(self.b.route["kind"], "grid", "stack must not pop")
+
+    def test_closes_a_tile_menu_first(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.b._open_tile_menu({"Id": "m1", "Name": "A", "Type": "Movie"},
+                               10, 10)
+        self.assertTrue(self.b.on_back())
+        self.assertIsNone(self.b._menu)
+        self.assertEqual(self.b.route["kind"], "grid")
+
+
+class TestRemoteDisplayContent(unittest.TestCase):
+    """Jellyfin's DisplayContent ("show me this" from a phone) opens the
+    item's page in the browser, which the remote's arrows can then drive.
+    The legacy display_mirroring kiosk shows a static backdrop instead."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def test_opens_the_item_page(self):
+        self.b.display_item("srv1", "m1")
+        self.assertEqual(self.b.route["kind"], "detail")
+        self.assertEqual(self.b.route["item_id"], "m1")
+
+    def test_routes_by_item_type(self):
+        """A series lands on the series page, not a detail page — the same
+        dispatch a click uses."""
+        src = self.b.source
+        src.get_item = lambda s, i: {"Id": i, "Name": "Show", "Type": "Series"}
+        self.b.display_item("srv1", "sh1")
+        self.assertEqual(self.b.route["kind"], "series")
+
+    def test_wakes_a_minimized_client(self):
+        self.b.minimize()
+        self.b.display_item("srv1", "m1")
+        self.assertFalse(self.b.minimized)
+        self.assertTrue(self.b._browsing)
+        self.assertEqual(self.b.route["kind"], "detail")
+
+    def test_interrupts_playback(self):
+        self.b._browsing = False
+        self.b.display_item("srv1", "m1")
+        self.assertTrue(self.b._browsing)
+
+    def test_switches_server_when_the_cast_comes_from_another(self):
+        self.b.display_item("srv2", "m1")
+        self.assertEqual(self.b.server, "srv2")
+
+    def test_a_missing_item_is_a_no_op(self):
+        self.b.source.get_item = lambda s, i: None
+        before = self.b.route["kind"]
+        self.b.display_item("srv1", "nope")
+        self.assertEqual(self.b.route["kind"], before)

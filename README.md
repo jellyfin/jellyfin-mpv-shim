@@ -274,7 +274,8 @@ You can use the config file to enable and disable features.
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
-- `display_mirroring` - Enable display mirroring (content preview window). Default: `false`
+- `display_mirroring` - Legacy kiosk mode: casting an item from another client shows a static "now casting" backdrop instead of a browsable UI. Default: `false`
+  - With the default `browser_ui: mpvtk` you don't need this — casting an item opens its page in the library browser, which you can then drive with the remote's arrow keys.
 - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
 - `check_updates` - Check for updates via GitHub. Default: `true`
   - This requests the GitHub releases page and checks for a new version.

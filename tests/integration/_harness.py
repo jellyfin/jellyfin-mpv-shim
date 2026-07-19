@@ -405,6 +405,7 @@ def build_player(player_module, video=None):
     pm.on_window_closed = None
     pm.on_mpv_gone = None
     pm.on_mpv_recreated = None
+    pm.on_nav_back = None
     pm.on_playstate = None
     pm.notify_update = None
     pm._showing_browse_bg = False

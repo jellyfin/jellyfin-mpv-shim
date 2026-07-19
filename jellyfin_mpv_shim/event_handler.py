@@ -88,6 +88,8 @@ def start_playback(
 
 class EventHandler(object):
     mirror = None
+    # Set by the in-window browser: (client, item_id) -> open that item.
+    display_content = None
 
     def handle_event(
         self,
@@ -148,10 +150,23 @@ class EventHandler(object):
         elif command == "SetSubtitleStreamIndex":
             playerManager.set_streams(None, int(arguments["Arguments"]["Index"]))
         elif command == "DisplayContent":
-            # If you have an idle command set, this will delay it.
+            # "Show me this" from a phone or web client. If you have an idle
+            # command set, this will delay it.
             timelineManager.delay_idle()
             if self.mirror:
+                # display_mirroring=true is the legacy kiosk mode: a static
+                # backdrop preview instead of a browsable UI.
                 self.mirror.display_content(client, arguments)
+            elif self.display_content:
+                # The in-window browser navigates to the item's page, which
+                # is the useful version of the same gesture — you can then
+                # drive it with the remote's arrows.
+                try:
+                    self.display_content(
+                        client, arguments["Arguments"]["ItemId"])
+                except Exception:
+                    log.warning("Could not display remote content.",
+                                exc_info=True)
         elif command in (
             "Back",
             "Select",

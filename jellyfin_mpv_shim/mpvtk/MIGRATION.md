@@ -485,6 +485,31 @@ strings, skipping Element cells, which are fixed-width in practice), or
 have it declare that it must stretch. Right now the only defence is every
 caller remembering `align="stretch"`.
 
+## Remote control (2026-07-19)
+
+The Jellyfin remote (phone / web client) now drives the in-window browser
+end to end:
+
+- **Arrows / Select** were wired by the framework round —
+  `playerManager.menu_action` maps MoveUp/… onto the renderer's nav keys
+  whenever the mpvtk UI owns input, falling through to `kb_seek` during
+  video playback.
+- **Back** completes it: `menu_back` asks `playerManager.on_nav_back`
+  (→ `MpvtkBrowser.on_back`) first, which unwinds one layer at a time —
+  dialog, then tile menu, then the nav stack — and *declines* at the root
+  so ESC keeps its old meaning (leave fullscreen).
+- **DisplayContent** ("show me this") opens the item's page, routed through
+  the same `_open_item` dispatch a click uses, so a series lands on the
+  series page. It wakes a minimized client and interrupts playback, since a
+  cast is an explicit instruction. From there the remote's arrows drive the
+  page.
+
+`display_mirroring` stays what it was: a **kiosk mode** kept for
+backwards compatibility, where casting shows a static backdrop preview and
+the mirror owns the window instead of the browser. The two remain mutually
+exclusive — `DisplayContent` goes to the mirror when it is enabled and to
+the browser otherwise.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but
