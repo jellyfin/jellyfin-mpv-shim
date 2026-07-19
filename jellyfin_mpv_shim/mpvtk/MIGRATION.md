@@ -42,20 +42,34 @@ child process.
 
 ## Implementation status (live)
 
-- **Phase 0 (foundation)** ✅ + launch wiring: mpvtk is the **default**
-  UI (`browser_ui="mpvtk"`), attached to the player's mpv window, with
-  logo-free free-resizing browse window. Field-confirmed working.
+The mechanical view/dialog inventory is **complete**. mpvtk is the
+**default** UI (`browser_ui="mpvtk"`), attached to the player's mpv window.
+
+- **Phase 0 (foundation)** ✅ + launch wiring; logo-free free-resizing
+  browse window; browse↔playback handoff (audio keeps the now-playing
+  bar, video yields to the OSC); idle-quit guard. Field-confirmed.
 - **Phase 1 (core views)** ✅ Home, Grid, Detail, Series, Season, Search.
 - **Phase 2 (music/playlists)** ✅ Music tabs, Album (track list), Artist,
-  MusicGenre, Playlist. **Deferred:** Queue + PlaylistEdit (edit-heavy
-  table views).
-- **Now-playing bar** ✅ (Phase 5 slice): audio stays in browse with a
-  transport bar (video still yields to the picture + OSC).
-- **Remaining:** Phase 3 (auth: Login/Locked/Connecting, Settings
-  panels), Phase 4 (dialogs), rest of Phase 5 (nav switchers, banners,
-  tile context menus), Queue + PlaylistEdit, keybinding reconciliation.
+  MusicGenre, Playlist, **PlaylistEdit** (reorder/remove), **Queue**.
+- **Phase 3 (auth/settings)** ✅ Settings (schema form), Connecting state,
+  **Login** (add-server), **Locked** (startup PIN).
+- **Phase 4 (dialogs)** ✅ modal infra + message/confirm, SyncPlay,
+  Add-to-Playlist, Download (with size estimate).
+- **Phase 5 (chrome)** ✅ nav (back/home/search/server-switcher/SyncPlay/
+  Settings), now-playing bar, update/offline banners, tile context menus
+  (watched/favorite/play/add-to-playlist/download).
 
-~330 automated checks (fast suite + real-mpv exit test, both backends).
+**Known remaining (fine-sanding / follow-ups, not blocking):**
+- User switcher + PinSetup dialog + full Servers/Logs/Downloads *panels*
+  (Settings is a single flat schema form rather than the Tk notebook).
+- ClosePreference dialog — N/A for the in-window browser (closing the mpv
+  window quits).
+- Keybinding reconciliation (mpv default keys like `q` still fire while
+  browsing); overview/seek-slider polish; **spatial/remote nav (Phase 8)**.
+
+~340 automated checks: fast suite (`test_mpvtk_browser_shell` 76 +
+adopt/strips/thumbnails/config) + real-mpv exit test on both backends.
+Every view/dialog has scene-level unit coverage.
 
 ---
 
