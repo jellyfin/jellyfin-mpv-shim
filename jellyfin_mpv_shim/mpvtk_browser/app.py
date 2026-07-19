@@ -297,6 +297,15 @@ class MpvtkBrowser:
             def work():
                 return self.source.get_playlist_items(srv, iid)
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "person":
+            srv = route.get("server") or self.server
+
+            def work():
+                return self.source.get_person_items(srv, route["person_id"])
+
+            def done(res):
+                route["_items"], route["_total"] = res
+            self.run_async(work, done, ep)
         elif kind == "playlist_edit":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -575,6 +584,8 @@ class MpvtkBrowser:
                                series_id=item.get("SeriesId")))
         elif t in PLAYABLE_TYPES:
             self.navigate(dict(base, kind="detail"))
+        elif t in ("Person", "Actor", "Director", "Writer"):
+            self.navigate(dict(base, kind="person", person_id=item.get("Id")))
         elif t in FOLDER_TYPES or item.get("CollectionType"):
             self.navigate(dict(base, kind="grid", parent_id=item.get("Id")))
         else:
@@ -598,11 +609,32 @@ class MpvtkBrowser:
         else:
             self._yield()
 
-    def _play(self, item, server, offset_ticks=None):
-        """Yield/keep-browse and start a single ``item`` (Play/Resume)."""
+    def _play(self, item, server, offset_ticks=None, srcid=None, aid=None,
+              sid=None):
+        """Yield/keep-browse and start a single ``item``. Episodes queue the
+        rest of the season so autoplay-next chains them (like the Tk browser)."""
         self._start(audio=item.get("Type") == "Audio")
-        if self.controller is not None:
-            self.controller.play(item, server, offset_ticks=offset_ticks)
+        if self.controller is None:
+            return
+        if item.get("Type") == "Episode" and item.get("SeriesId"):
+            srv, iid, series = server, item.get("Id"), item.get("SeriesId")
+
+            def work():
+                try:
+                    q = self.source.get_series_queue(
+                        srv, series, start_item_id=iid)
+                    return [e.get("Id") for e in q if e.get("Id")] or [iid]
+                except Exception:
+                    return [iid]
+
+            def done(ids):
+                self.controller.play_list(ids, srv, 0,
+                                          offset_ticks=offset_ticks,
+                                          srcid=srcid, aid=aid, sid=sid)
+            self.run_async(work, done, self._epoch)
+        else:
+            self.controller.play(item, server, offset_ticks=offset_ticks,
+                                 srcid=srcid, aid=aid, sid=sid)
 
     def _play_list(self, ids, server, start_index=0, audio=False):
         """Play a whole list from ``start_index`` (album/playlist/song)."""
@@ -763,6 +795,7 @@ class MpvtkBrowser:
             "playlist_edit": self._render_playlist_edit,
             "login": self._render_login,
             "locked": self._render_locked,
+            "person": self._render_grid,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -893,9 +926,67 @@ class MpvtkBrowser:
             gap=3,
         )
 
-    def _play_buttons(self, item, server):
+    def _sel_source(self, sources, route):
+        if not sources:
+            return None
+        return next((s for s in sources
+                     if s.get("Id") == route.get("_srcid")), sources[0])
+
+    def _pick_source(self, route, src):
+        route["_srcid"] = src.get("Id")
+        route["_aid"] = None   # let the new version pick its own defaults
+        route["_sid"] = None
+        self.invalidate()
+
+    def _track_pickers(self, route, item):
+        sources = item.get("MediaSources") or []
+        controls = []
+        if len(sources) > 1:
+            names = [s.get("Name") or _("Version %d") % (i + 1)
+                     for i, s in enumerate(sources)]
+            cur = next((i for i, s in enumerate(sources)
+                        if s.get("Id") == route.get("_srcid")), 0)
+            controls.append(self._picker_row(
+                _("Version"), "dt-version", names, cur,
+                lambda i, v: self._pick_source(route, sources[i])))
+        src = self._sel_source(sources, route)
+        streams = (src or {}).get("MediaStreams") or []
+        audio = [s for s in streams if s.get("Type") == "Audio"]
+        subs = [s for s in streams if s.get("Type") == "Subtitle"]
+
+        def label(s, kind):
+            return (s.get("DisplayTitle") or s.get("Language")
+                    or "%s %s" % (kind, s.get("Index")))
+        if audio:
+            names = [label(s, _("Audio")) for s in audio]
+            cur = next((i for i, s in enumerate(audio)
+                        if s.get("Index") == route.get("_aid")), 0)
+            controls.append(self._picker_row(
+                _("Audio"), "dt-audio", names, cur,
+                lambda i, v: route.__setitem__("_aid", audio[i].get("Index"))))
+        if subs:
+            names = [_("None")] + [label(s, _("Sub")) for s in subs]
+            cur = 0
+            if route.get("_sid") not in (None, -1):
+                cur = next((i + 1 for i, s in enumerate(subs)
+                            if s.get("Index") == route.get("_sid")), 0)
+            controls.append(self._picker_row(
+                _("Subtitle"), "dt-sub", names, cur,
+                lambda i, v: route.__setitem__(
+                    "_sid", -1 if i == 0 else subs[i - 1].get("Index"))))
+        return controls
+
+    def _picker_row(self, label, node_id, names, selected, on_select):
+        return Row([Text(label, w=90, size=16, color=theme.SUBTLE_FG),
+                    Dropdown(node_id, names, selected=selected, w=300,
+                             on_select=on_select)], gap=8, align="center")
+
+    def _play_buttons(self, route, item, server):
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
+        srcid = (route.get("_srcid")
+                 or ((item.get("MediaSources") or [{}])[0]).get("Id"))
+        aid, sid = route.get("_aid"), route.get("_sid")
         buttons = []
         if pos > 0:
             secs = pos // 10000000
@@ -905,13 +996,112 @@ class MpvtkBrowser:
                       size=18, color="101010")],
                 id="btn-resume", gap=6, pad=10, bg=theme.ACCENT, radius=6,
                 align="center",
-                on_click=lambda: self._play(item, server, offset_ticks=pos)))
+                on_click=lambda: self._play(item, server, offset_ticks=pos,
+                                            srcid=srcid, aid=aid, sid=sid)))
         buttons.append(Row(
             [Icon("play_arrow", 20), Text(_("Play"), size=18)],
             id="btn-play", gap=6, pad=10, bg=theme.BUTTON_BG,
             hover={"fill": theme.BUTTON_ACTIVE}, radius=6, align="center",
-            on_click=lambda: self._play(item, server)))
+            on_click=lambda: self._play(item, server, srcid=srcid,
+                                        aid=aid, sid=sid)))
         return Row(buttons, gap=10)
+
+    def _action_btn(self, icon, text, node_id, cb, on=False):
+        fg = "101010" if on else "eeeeee"
+        return Row([Icon(icon, 18, color=fg), Text(text, size=16, color=fg)],
+                   id=node_id, gap=6, pad=9,
+                   bg=theme.ACCENT if on else theme.BUTTON_BG,
+                   hover=None if on else {"fill": theme.BUTTON_ACTIVE},
+                   radius=6, align="center", on_click=cb)
+
+    def _common_actions(self, item, server, prefix):
+        """Watched / Favorite / Download buttons shared by detail/series/
+        season."""
+        ud = item.get("UserData") or {}
+        return [
+            self._action_btn(
+                "check", _("Watched"), prefix + "-watched",
+                lambda: self._act_watched(item, server),
+                on=self._is_watched(item)),
+            self._action_btn(
+                "favorite", _("Favorite"), prefix + "-fav",
+                lambda: self._act_favorite(item, server),
+                on=bool(ud.get("IsFavorite"))),
+            self._action_btn(
+                "file_download", _("Download"), prefix + "-download",
+                lambda: self._open_download(item)),
+        ]
+
+    def _detail_actions(self, item, server):
+        btns = self._common_actions(item, server, "act")
+        if item.get("Type") == "Episode" and item.get("SeriesId"):
+            btns.append(Button(
+                _("Go to Series"), id="act-series",
+                on_click=lambda: self.navigate({
+                    "kind": "series", "server": server,
+                    "item_id": item["SeriesId"],
+                    "title": item.get("SeriesName", "")})))
+        return Row(btns, gap=8, align="center")
+
+    def _play_next_up(self, series_id, server):
+        ep = self._epoch
+
+        def work():
+            return self.source.get_next_up(server, series_id)
+
+        def done(item):
+            if item:
+                self._play(item, server)
+        self.run_async(work, done, ep)
+
+    def _series_actions(self, item, server, series_id):
+        btns = [self._action_btn(
+            "play_arrow", _("Next Up"), "sa-nextup",
+            lambda: self._play_next_up(series_id, server))]
+        btns += self._common_actions(item, server, "sa")
+        return Row(btns, gap=8, align="center")
+
+    def _act_watched(self, item, server):
+        ud = item.setdefault("UserData", {})
+        new = not self._is_watched(item)
+        ud["Played"] = new
+        if item.get("Type") in ("Series", "Season"):
+            ud["UnplayedItemCount"] = 0 if new else 1
+        self._client_call(lambda c: c.set_watched(server, item.get("Id"), new))
+        self.invalidate()
+
+    def _act_favorite(self, item, server):
+        ud = item.setdefault("UserData", {})
+        new = not bool(ud.get("IsFavorite"))
+        ud["IsFavorite"] = new
+        self._client_call(lambda c: c.set_favorite(server, item.get("Id"), new))
+        self.invalidate()
+
+    def _media_info_line(self, item, route):
+        src = self._sel_source(item.get("MediaSources") or [], route)
+        streams = (src or {}).get("MediaStreams") or []
+        video = next((s for s in streams if s.get("Type") == "Video"), None)
+        parts = []
+        if video:
+            if video.get("DisplayTitle"):
+                parts.append(video["DisplayTitle"])
+            elif video.get("Height"):
+                parts.append("%dp" % video["Height"])
+            if video.get("VideoRange") and video["VideoRange"] != "SDR":
+                parts.append(video["VideoRange"])
+        if src and src.get("Container"):
+            parts.append(src["Container"].upper())
+        return "   ·   ".join(parts)
+
+    def _people_row(self, people, server):
+        cast = [p for p in people
+                if p.get("Type") in ("Actor", "Director", "Writer", None)][:20]
+        if not cast:
+            return None
+        for p in cast:
+            p.setdefault("Type", "Person")
+        return self._tile_row(_("Cast & Crew"), cast, "detail-people",
+                              geom=self.geom_square)
 
     def _error(self, msg):
         return Box([Text(msg, size=20, color=theme.SUBTLE_FG)],
@@ -928,16 +1118,30 @@ class MpvtkBrowser:
         server = route.get("server") or self.server
         bw = min(w - 32, 960)
         bh = int(bw * 9 / 16)
+        title = item.get("Name", "")
+        if item.get("Type") == "Episode":
+            s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
+            se = "S%sE%s" % (s, e) if s is not None and e is not None else ""
+            title = "   ·   ".join(
+                p for p in (item.get("SeriesName"), se, title) if p)
         blocks = [
             self._backdrop_node(item, (bw, bh), "detail-bd"),
-            Text(item.get("Name", ""), size=30, bold=True),
+            Text(title, size=30, bold=True),
         ]
         meta = self._meta_line(item)
         if meta:
             blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
-        blocks.append(self._play_buttons(item, server))
+        info = self._media_info_line(item, route)
+        if info:
+            blocks.append(Text(info, size=15, color=theme.SUBTLE_FG))
+        blocks.append(self._play_buttons(route, item, server))
+        blocks.append(self._detail_actions(item, server))
+        blocks.extend(self._track_pickers(route, item))
         if item.get("Overview"):
             blocks.append(self._paragraph(item["Overview"], 18, w - 32))
+        people_row = self._people_row(item.get("People") or [], server)
+        if people_row is not None:
+            blocks.append(people_row)
         if data.get("similar"):
             blocks.append(self._tile_row(
                 _("More Like This"), data["similar"], "detail-similar"))
@@ -951,16 +1155,24 @@ class MpvtkBrowser:
         w = size[0]
         bw = min(w - 32, 960)
         bh = int(bw * 9 / 16)
+        server = route.get("server") or self.server
         blocks = [
             self._backdrop_node(item, (bw, bh), "series-bd"),
             Text(item.get("Name", ""), size=30, bold=True),
         ]
+        meta = self._meta_line(item)
+        if meta:
+            blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+        blocks.append(self._series_actions(item, server, route["item_id"]))
         if item.get("Overview"):
             blocks.append(self._paragraph(item["Overview"], 18, w - 32))
         seasons = data.get("seasons") or []
         if seasons:
             blocks.append(self._tile_row(
                 _("Seasons"), seasons, "series-seasons"))
+        people_row = self._people_row(item.get("People") or [], server)
+        if people_row is not None:
+            blocks.append(people_row)
         return VScroll(Column(blocks, pad=16, gap=16), id="series", flex=1)
 
     def _render_season(self, route, size):
@@ -969,15 +1181,29 @@ class MpvtkBrowser:
             return self._busy()
         episodes = data.get("episodes") or []
         seasons = data.get("seasons") or []
+        server = route.get("server") or self.server
         geom = self.geom_wide   # episodes are landscape Thumb cards
-        header = [Text(route.get("title", ""), size=26, bold=True)]
+        season_item = next((s for s in seasons
+                            if s.get("Id") == route["item_id"]), {})
+        title_row = [Text(route.get("title", ""), size=26, bold=True)]
         if len(seasons) > 1:
             names = [s.get("Name", "") for s in seasons]
             cur = next((i for i, s in enumerate(seasons)
                         if s.get("Id") == route["item_id"]), 0)
-            header.append(Dropdown(
+            title_row.append(Dropdown(
                 "season-switch", names, selected=cur, w=220,
                 on_select=lambda i, v: self._switch_season(route, seasons[i])))
+        if route.get("series_id"):
+            title_row.append(Button(
+                _("To Series"), id="season-to-series",
+                on_click=lambda: self.navigate({
+                    "kind": "series", "server": server,
+                    "item_id": route["series_id"],
+                    "title": season_item.get("SeriesName", "")})))
+        header = [Row(title_row, gap=12, align="center"),
+                  Row(self._common_actions(season_item or {"Id": route["item_id"],
+                                           "Type": "Season"}, server, "se"),
+                      gap=8, align="center")]
         cols = self._cols(size[0], geom)
         rows = header
         for start in range(0, len(episodes), cols):

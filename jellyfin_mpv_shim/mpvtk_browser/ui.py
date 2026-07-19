@@ -64,19 +64,23 @@ class _PlayerController:
         # Hand the OSC back for playback (respecting the user's setting).
         playerManager.enable_osc(settings.enable_osc)
 
-    def play(self, item, server_uuid, offset_ticks=None):
+    def play(self, item, server_uuid, offset_ticks=None,
+             srcid=None, aid=None, sid=None):
         self.play_list([item.get("Id")], server_uuid, 0,
-                       offset_ticks=offset_ticks)
+                       offset_ticks=offset_ticks, srcid=srcid, aid=aid, sid=sid)
 
-    def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None):
+    def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
+                  srcid=None, aid=None, sid=None):
         from ..event_handler import start_playback
         client = clientManager.clients.get(server_uuid)
         if client is None:
             log.warning("mpvtk play: no connected client for %s", server_uuid)
             return
         try:
-            start_playback(client, list(item_ids), start_index=start_index,
-                           offset_ticks=offset_ticks)
+            start_playback(
+                client, list(item_ids), start_index=start_index,
+                offset_ticks=offset_ticks, aid=aid, sid=sid, srcid=srcid,
+                explicit_tracks=(aid is not None or sid is not None))
         except Exception:
             log.error("mpvtk browser failed to start playback", exc_info=True)
 

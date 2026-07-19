@@ -60,10 +60,33 @@ class FakeSource:
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
                 "RunTimeTicks": 90 * 600000000,
-                "UserData": {"PlaybackPositionTicks": 30 * 10000000}}
+                "UserData": {"PlaybackPositionTicks": 30 * 10000000},
+                "People": [{"Id": "pp1", "Name": "Actor One", "Type": "Actor"}],
+                "MediaSources": [{
+                    "Id": "src1", "Container": "mkv",
+                    "MediaStreams": [
+                        {"Type": "Video", "Height": 1080,
+                         "DisplayTitle": "1080p HEVC", "VideoRange": "HDR"},
+                        {"Type": "Audio", "Index": 1,
+                         "DisplayTitle": "English 5.1"},
+                        {"Type": "Subtitle", "Index": 2,
+                         "DisplayTitle": "English"}]}]}
 
     def get_similar(self, server_uuid, item_id, limit=12):
         return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
+
+    def get_person_items(self, server_uuid, person_id, start_index=0, **kw):
+        items = [{"Id": "pf%d" % i, "Name": "Film %d" % i, "Type": "Movie"}
+                 for i in range(4)]
+        return items[start_index:start_index + 20], len(items)
+
+    def get_next_up(self, server_uuid, series_id):
+        return {"Id": "nu1", "Name": "Next Ep", "Type": "Episode",
+                "SeriesId": series_id}
+
+    def get_series_queue(self, server_uuid, series_id, start_item_id=None,
+                         limit=100):
+        return [{"Id": "e%d" % i} for i in range(3)]
 
     def get_seasons(self, server_uuid, series_id):
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
@@ -267,11 +290,17 @@ class FakeController:
     def on_browse_leave(self):
         self.left += 1
 
-    def play(self, item, server_uuid, offset_ticks=None):
+    def play(self, item, server_uuid, offset_ticks=None, srcid=None,
+             aid=None, sid=None):
         self.played.append((item.get("Id"), server_uuid, offset_ticks))
+        self.__dict__.setdefault("tracks", []).append(
+            {"srcid": srcid, "aid": aid, "sid": sid})
 
-    def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None):
+    def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
+                  srcid=None, aid=None, sid=None):
         self.played.append((list(item_ids), server_uuid, start_index))
+        self.__dict__.setdefault("tracks", []).append(
+            {"srcid": srcid, "aid": aid, "sid": sid})
 
     def get_queue(self):
         return {"items": [{"id": "q%d" % i, "playlist_item_id": "p%d" % i}
@@ -521,6 +550,64 @@ class TestTileShapes(unittest.TestCase):
         imgs = [n for n in nodes if n["t"] == "img"]
         self.assertTrue(imgs)
         self.assertEqual(imgs[0]["ih"], LANDSCAPE_GEOM.strip_h)
+
+
+class TestDetailActions(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _detail(self):
+        self.b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1",
+                         "title": "Movie"})
+        return build_scene(self.b)
+
+    def test_action_row_and_pickers_render(self):
+        nodes, _h = self._detail()
+        for nid in ("act-watched", "act-fav", "act-download",
+                    "dt-audio", "dt-sub"):
+            self.assertIn(nid, ids(nodes))
+        # cast row present, single source -> no version picker
+        self.assertNotIn("dt-version", ids(nodes))
+        self.assertTrue(any(k.startswith("detail-people-") for k in _h))
+
+    def test_track_selection_passed_to_play(self):
+        _n, h = self._detail()
+        h["dt-audio"]["select"](0, "English 5.1")     # aid=1
+        h["dt-sub"]["select"](1, "English")           # sid=2 (index 0 = None)
+        _n, h = build_scene(self.b)
+        h["btn-play"]["click"]()
+        self.assertEqual(self.ctl.tracks[-1],
+                         {"srcid": "src1", "aid": 1, "sid": 2})
+
+    def test_mark_watched_from_detail(self):
+        _n, h = self._detail()
+        h["act-watched"]["click"]()
+        self.assertIn("set_watched",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_cast_click_opens_person_route(self):
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.route["kind"], "person")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("img", types(nodes))   # person filmography grid
+
+    def test_episode_play_queues_season(self):
+        ep = {"Id": "e1", "Type": "Episode", "SeriesId": "sh1"}
+        self.b._play(ep, "srv1")
+        ids_, srv, start = self.ctl.played[-1]
+        self.assertEqual(len(ids_), 3)        # whole-season queue
+        self.assertEqual(start, 0)
+
+    def test_series_actions_next_up(self):
+        self.b.navigate({"kind": "series", "server": "srv1", "item_id": "sh1",
+                         "title": "Show"})
+        _n, h = build_scene(self.b)
+        self.assertIn("sa-nextup", ids(_n))
+        h["sa-nextup"]["click"]()
+        self.assertTrue(self.ctl.played)      # next-up episode played
 
 
 class TestTileContextMenu(unittest.TestCase):

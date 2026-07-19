@@ -28,23 +28,23 @@ wire-ups that were skipped. Status updated as each is fixed.
   `on_sync_state` reload).
 
 **Detail / Series / Season**
-- [ ] Detail **action row**: Mark-watched, Favorite, Download, Go-to-Series,
+- [x] Detail **action row**: Mark-watched, Favorite, Download, Go-to-Series,
   Trailer (only tile-menu today, not on the detail page).
-- [ ] **Audio / Subtitle / Version pickers** + pass `media_source_id` /
+- [x] **Audio / Subtitle / Version pickers** + pass `media_source_id` /
   `audio_index` / `subtitle_index` into play (+ language_config defaults).
-- [ ] **Media-info line** (codec/res/HDR/container/size/bitrate/"Ends at").
+- [x] **Media-info line** (codec/res/HDR/container/size/bitrate/"Ends at").
 - [ ] **Chapters** row (thumbnails + seek-to-chapter).
-- [ ] **Cast & Crew** people row + person-filmography route.
-- [ ] Episode **autoplay-next season queueing** (Tk queues rest of season).
-- [ ] Episode title formatting ("Series — S1E1 · Title").
-- [ ] Series/Season action buttons: Play Next Up, Shuffle, Mark watched,
+- [x] **Cast & Crew** people row + person-filmography route.
+- [x] Episode **autoplay-next season queueing** (Tk queues rest of season).
+- [x] Episode title formatting ("Series — S1E1 · Title").
+- [x] Series/Season action buttons: Play Next Up, Shuffle, Mark watched,
   Download, back-to-series; metadata + More-Like-This.
 
 **Grid**
 - [ ] Filter bar: **sort** dropdown, **Unplayed/Favorites** filters,
   **Genre** + **Year** pickers, **A–Z letter-jump**, **Shuffle**,
   **Collections** toggle, status/count line + retry.
-- [ ] **Person** filmography route (`get_person_items`).
+- [x] **Person** filmography route (`get_person_items`).
 
 **Music**
 - [ ] Missing tabs: **Album Artists**, **Songs** (tabular track list).
