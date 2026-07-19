@@ -307,6 +307,7 @@ class FakeController:
         self.entered = 0
         self.left = 0
         self.played = []
+        self.transport = []
 
     def on_browse_enter(self):
         self.entered += 1
@@ -840,6 +841,44 @@ class TestAddToPlaylist(unittest.TestCase):
         self.assertIsNone(self.b._menu)
         self.assertIsNotNone(self.b._dialog)
 
+    def test_create_new_playlist(self):
+        self.b._open_add_to({"Id": "m1", "Name": "Movie", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        self.assertIn("add-newname", ids(_n))
+        h["add-newname"]["change"]("Road Trip")
+        h["add-create"]["click"]()
+        self.assertIn("playlist_new", [c[0] for c in self.ctl.transport])
+        self.assertIsNone(self.b._dialog)
+
+
+class TestPlaylistExtras(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_playlist_shuffle_and_download_buttons(self):
+        self.b.navigate({"kind": "playlist", "server": "srv1",
+                         "item_id": "PL1", "title": "Faves"})
+        nodes, _h = build_scene(self.b)
+        for nid in ("pl-play", "pl-shuffle", "pl-download", "pl-edit"):
+            self.assertIn(nid, ids(nodes))
+
+    def test_playlist_edit_rename_and_public(self):
+        self.b.navigate({"kind": "playlist_edit", "server": "srv1",
+                         "item_id": "PL1", "title": "Faves"})
+        nodes, h = build_scene(self.b)
+        for nid in ("pe-name", "pe-rename", "pe-public"):
+            self.assertIn(nid, ids(nodes))
+        h["pe-name"]["change"]("Renamed")
+        h["pe-rename"]["click"]()
+        self.assertEqual(self.b.route["title"], "Renamed")
+        self.assertIn("playlist_update", [c[0] for c in self.ctl.transport])
+        _n, h = build_scene(self.b)
+        h["pe-public"]["click"]()
+        self.assertTrue(self.b.route["_public"])
+
 
 class TestLogin(unittest.TestCase):
     def setUp(self):
@@ -1009,12 +1048,20 @@ class TestQueueView(unittest.TestCase):
         self.assertIn("q-0", ids(nodes))
         self.assertTrue(any(k.startswith("q-rm-") for k in handlers))
 
-    def test_queue_row_click_skips(self):
+    def test_queue_row_play_skips(self):
         self.b._open_queue()
         _n, handlers = build_scene(self.b)
-        handlers["q-0"]["click"]()
-        self.assertIn("skip_to",
-                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        handlers["q-play-0"]["click"]()
+        self.assertIn("skip_to", [c[0] for c in self.ctl.transport])
+
+    def test_queue_reorder(self):
+        self.b._open_queue()
+        route = self.b.route
+        first = route["_data"]["entries"][0]["pid"]
+        self.b._queue_select(route, 0)
+        self.b._queue_move(route, "down")
+        self.assertEqual(route["_data"]["entries"][1]["pid"], first)
+        self.assertIn("queue_reorder", [c[0] for c in self.ctl.transport])
 
     def test_queue_remove_calls_controller_and_refreshes(self):
         self.b._open_queue()

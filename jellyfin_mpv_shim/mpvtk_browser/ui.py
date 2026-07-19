@@ -208,6 +208,9 @@ class _PlayerController:
     def queue_remove(self, playlist_item_ids):
         self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
 
+    def queue_reorder(self, ordered_playlist_item_ids):
+        self._act(lambda pm: pm.queue_reorder(list(ordered_playlist_item_ids)))
+
     def queue_items(self, server_uuid, item_ids):
         """Append items to the playing queue; if nothing plays, start them."""
         from ..player import playerManager
@@ -233,7 +236,8 @@ class _PlayerController:
             return []
         try:
             return [{"id": g.get("GroupId"),
-                     "name": g.get("GroupName") or "Group"}
+                     "name": g.get("GroupName") or "Group",
+                     "participants": g.get("Participants") or []}
                     for g in (client.jellyfin.get_sync_play() or [])]
         except Exception:
             log.error("mpvtk get_sync_groups failed", exc_info=True)
@@ -286,6 +290,12 @@ class _PlayerController:
     def playlist_new(self, server_uuid, name, item_ids):
         self._edit(server_uuid,
                    lambda jf: jf.new_playlist(name, list(item_ids)))
+
+    def playlist_update(self, server_uuid, playlist_id, name=None,
+                        is_public=None):
+        self._edit(server_uuid,
+                   lambda jf: jf.update_playlist(playlist_id, name=name,
+                                                 is_public=is_public))
 
     # -- offline downloads ------------------------------------------------
 

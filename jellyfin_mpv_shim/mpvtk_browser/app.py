@@ -1536,18 +1536,23 @@ class MpvtkBrowser:
         if data is None:
             return self._busy()
         server = route.get("server") or self.server
+        pid = route["item_id"]
         ids = [i.get("Id") for i in data]
+        pl_item = {"Id": pid, "Type": "Playlist",
+                   "Name": route.get("title", "")}
         header = Row([
             Text(route.get("title", ""), size=28, bold=True),
             Spacer(),
+            self._action_btn("play_arrow", _("Play All"), "pl-play",
+                             lambda: self._play_list(ids, server, 0,
+                                                     audio=True), on=True),
+            self._action_btn("shuffle", _("Shuffle"), "pl-shuffle",
+                             lambda: self._play_shuffle(ids, server)),
+            self._action_btn("file_download", _("Download"), "pl-download",
+                             lambda: self._open_download(pl_item)),
             Button(_("Edit"), id="pl-edit", on_click=lambda: self.navigate({
                 "kind": "playlist_edit", "server": server,
-                "item_id": route["item_id"], "title": route.get("title", "")})),
-            Row([Icon("play_arrow", 20, color="101010"),
-                 Text(_("Play All"), size=18, color="101010")],
-                id="pl-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
-                align="center",
-                on_click=lambda: self._play_list(ids, server, 0, audio=True)),
+                "item_id": pid, "title": route.get("title", "")})),
         ], align="center", gap=10)
         rows = [header] + self._grid_of(data, "pl", size)
         return VScroll(Column(rows, pad=16, gap=12), id="playlist", flex=1)
@@ -1675,25 +1680,67 @@ class MpvtkBrowser:
             return self._busy()
         entries = data.get("entries") or []
         current = data.get("current_id")
-        rows = [Text(_("Play Queue"), size=26, bold=True)]
+        sel = route.get("_sel")
+        toolbar = Row([
+            Text(_("Play Queue"), size=26, bold=True), Spacer(),
+            Button(_("Top"), id="q-top",
+                   on_click=lambda: self._queue_move(route, "top")),
+            Button(_("Up"), id="q-up",
+                   on_click=lambda: self._queue_move(route, "up")),
+            Button(_("Down"), id="q-down",
+                   on_click=lambda: self._queue_move(route, "down")),
+            Button(_("Bottom"), id="q-bottom",
+                   on_click=lambda: self._queue_move(route, "bottom")),
+        ], gap=8, align="center")
+        rows = [toolbar]
         if not entries:
             rows.append(Text(_("The queue is empty."), size=18,
                              color=theme.SUBTLE_FG))
         for i, e in enumerate(entries):
             item = e["item"]
             playing = item.get("Id") == current
+            secs = (item.get("RunTimeTicks") or 0) // 10000000
             rows.append(Row([
-                Text("▶" if playing else str(i + 1), w=44, size=17,
-                     color=theme.ACCENT if playing else theme.SUBTLE_FG),
-                Text(item.get("Name", ""), flex=1, size=17,
-                     bold=playing),
+                Box([Icon("play_arrow", 18,
+                          color=theme.ACCENT if playing else "cccccc")],
+                    id="q-play-%d" % i, w=44, h=30, align="center",
+                    direction="row", hover={"fill": theme.BUTTON_ACTIVE},
+                    radius=4,
+                    on_click=lambda pid=e["pid"]: self._queue_skip(pid)),
+                Text(item.get("Name", ""), flex=1, size=17, bold=playing),
+                Text(", ".join(item.get("Artists") or []), w=180, size=14,
+                     color=theme.SUBTLE_FG),
+                Text("%d:%02d" % (secs // 60, secs % 60) if secs else "",
+                     w=56, size=14, color=theme.SUBTLE_FG),
                 Button(_("Remove"), id="q-rm-%d" % i,
                        on_click=lambda pid=e["pid"]: self._queue_remove(pid)),
             ], id="q-%d" % i, pad=8, gap=10, radius=6, align="center",
-               bg=theme.PANEL_BG if playing else None,
-               hover=None if playing else {"fill": theme.BUTTON_BG},
-               on_click=lambda pid=e["pid"]: self._queue_skip(pid)))
+               bg=(theme.ACCENT if sel == i else
+                   (theme.PANEL_BG if playing else None)),
+               hover=None if sel == i else {"fill": theme.BUTTON_BG},
+               on_click=lambda i=i: self._queue_select(route, i)))
         return VScroll(Column(rows, pad=16, gap=3), id="queue", flex=1)
+
+    def _queue_select(self, route, i):
+        route["_sel"] = i
+        self.invalidate()
+
+    def _queue_move(self, route, where):
+        data = route.get("_data") or {}
+        entries = data.get("entries") or []
+        i = route.get("_sel")
+        if i is None or not entries:
+            return
+        n = len(entries)
+        j = {"top": 0, "up": max(0, i - 1),
+             "down": min(n - 1, i + 1), "bottom": n - 1}[where]
+        if j == i:
+            return
+        entries.insert(j, entries.pop(i))
+        route["_sel"] = j
+        self._client_call(lambda c: c.queue_reorder(
+            [e["pid"] for e in entries if e.get("pid")]))
+        self.invalidate()
 
     def _queue_skip(self, pid):
         if pid and self.controller is not None:
@@ -1761,6 +1808,8 @@ class MpvtkBrowser:
         if items is None:
             return self._busy()
         sel = route.get("_sel")
+        server = route.get("server") or self.server
+        pid = route["item_id"]
         toolbar = Row([
             Button(_("Top"), id="pe-top",
                    on_click=lambda: self._pe_move(route, "top")),
@@ -1774,8 +1823,16 @@ class MpvtkBrowser:
             Button(_("Remove"), id="pe-remove",
                    on_click=lambda: self._pe_remove(route)),
         ], gap=8, align="center")
+        rename_row = Row([
+            TextBox("pe-name", text=route.get("title", ""), w=280,
+                    on_change=lambda v: route.__setitem__("_newname", v)),
+            Button(_("Rename"), id="pe-rename",
+                   on_click=lambda: self._pe_rename(route)),
+            Checkbox(_("Public"), bool(route.get("_public")), id="pe-public",
+                     on_toggle=lambda: self._pe_toggle_public(route)),
+        ], gap=10, align="center")
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
-                     size=26, bold=True), toolbar]
+                     size=26, bold=True), rename_row, toolbar]
         for i, it in enumerate(items):
             rows.append(Row([
                 Text(str(i + 1), w=44, size=17, color=theme.SUBTLE_FG),
@@ -1821,6 +1878,22 @@ class MpvtkBrowser:
             [entry.get("PlaylistItemId")]))
         self.invalidate()
 
+    def _pe_rename(self, route):
+        name = (route.get("_newname") or route.get("title") or "").strip()
+        if not name:
+            return
+        route["title"] = name
+        self._client_call(lambda c: c.playlist_update(
+            route.get("server") or self.server, route["item_id"], name=name))
+        self.invalidate()
+
+    def _pe_toggle_public(self, route):
+        route["_public"] = not route.get("_public")
+        self._client_call(lambda c: c.playlist_update(
+            route.get("server") or self.server, route["item_id"],
+            is_public=route["_public"]))
+        self.invalidate()
+
     # ----------------------------------------------------- add to playlist
 
     def _open_add_to(self, item):
@@ -1839,6 +1912,7 @@ class MpvtkBrowser:
 
     def _show_add_to(self, server, item, playlists):
         item_id = item.get("Id")
+        self._addto_name = {"name": ""}
 
         def build():
             rows = [Text(_("Add to Playlist"), size=22, bold=True)]
@@ -1850,6 +1924,14 @@ class MpvtkBrowser:
             if not playlists:
                 rows.append(Text(_("No playlists yet."), size=15,
                                  color=theme.SUBTLE_FG))
+            rows.append(Row([
+                TextBox("add-newname", placeholder=_("New playlist name…"),
+                        w=280,
+                        on_change=lambda v: self._addto_name.__setitem__(
+                            "name", v)),
+                Button(_("Create"), id="add-create",
+                       on_click=lambda: self._add_to_new(server, item_id)),
+            ], gap=10, align="center"))
             rows.append(Row([Spacer(),
                              Button(_("Close"), id="add-close",
                                     on_click=self._close_dialog)], gap=10))
@@ -1857,6 +1939,12 @@ class MpvtkBrowser:
                           self._dialog_shell("addto", rows, w=460),
                           on_dismiss=self._close_dialog)
         self._show_dialog(build)
+
+    def _add_to_new(self, server, item_id):
+        name = (self._addto_name or {}).get("name", "").strip()
+        if name and item_id:
+            self._client_call(lambda c: c.playlist_new(server, name, [item_id]))
+        self._close_dialog()
 
     def _add_to(self, server, playlist_id, item_id):
         if playlist_id and item_id:
@@ -1905,11 +1993,18 @@ class MpvtkBrowser:
             if est is None:
                 info = Text(_("Estimating…"), size=15, color=theme.SUBTLE_FG)
             else:
-                info = Text(
-                    _("%(count)d items · %(size)s") % {
-                        "count": est.get("count", 0),
-                        "size": self._human_size(est.get("total_bytes", 0))},
-                    size=15, color=theme.SUBTLE_FG)
+                line = _("%(count)d items · %(size)s") % {
+                    "count": est.get("count", 0),
+                    "size": self._human_size(est.get("total_bytes", 0))}
+                extra = []
+                if est.get("already_count"):
+                    extra.append(_("%d already downloaded")
+                                 % est["already_count"])
+                if est.get("watched_count"):
+                    extra.append(_("%d watched") % est["watched_count"])
+                if extra:
+                    line += "   (" + ", ".join(extra) + ")"
+                info = Text(line, size=15, color=theme.SUBTLE_FG)
             return Dialog("download", self._dialog_shell("download", [
                 Text(_("Download"), size=22, bold=True),
                 Text(dl["item"].get("Name", ""), size=17),
@@ -2009,10 +2104,15 @@ class MpvtkBrowser:
             rows = [Text(_("SyncPlay"), size=22, bold=True)]
             if groups:
                 for i, g in enumerate(groups):
-                    rows.append(Button(
-                        g.get("name") or _("Group"), id="sp-join-%d" % i,
-                        on_click=lambda gid=g.get("id"): self._sync_join(
-                            server, gid)))
+                    who = ", ".join(g.get("participants") or [])
+                    rows.append(Column([
+                        Button(g.get("name") or _("Group"),
+                               id="sp-join-%d" % i,
+                               on_click=lambda gid=g.get("id"):
+                                   self._sync_join(server, gid)),
+                        Text(who, size=13, color=theme.SUBTLE_FG)
+                        if who else Spacer(h=0),
+                    ], gap=2))
             else:
                 rows.append(Text(_("No active groups."), size=15,
                                  color=theme.SUBTLE_FG))
@@ -2021,6 +2121,8 @@ class MpvtkBrowser:
                        on_click=lambda: self._sync_new(server)),
                 Button(_("Leave"), id="sp-leave",
                        on_click=lambda: self._sync_leave(server)),
+                Button(_("Refresh"), id="sp-refresh",
+                       on_click=lambda: self._open_syncplay()),
                 Spacer(),
                 Button(_("Close"), id="sp-close", on_click=self._close_dialog),
             ], gap=10))

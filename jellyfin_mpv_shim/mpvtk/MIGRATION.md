@@ -47,28 +47,27 @@ wire-ups that were skipped. Status updated as each is fixed.
 - [x] **Person** filmography route (`get_person_items`).
 
 **Music**
-- [ ] Missing tabs: **Album Artists**, **Songs** (tabular track list).
-- [ ] **Instant Mix**, **Add to Queue**, artist/genre **action bars**,
-  album/artist backdrops + track album art.
+- [x] Missing tabs: **Album Artists**, **Songs** (tabular track list).
+- [x] **Instant Mix**, **Add to Queue**, artist/genre **action bars** (album/artist backdrops still TODO).
 
 **Now-playing bar**
-- [ ] **Seek scrub**, **volume slider**, **repeat cycle**, **favorite**,
+- [x] **Seek scrub**, **volume slider**, **repeat cycle**, **favorite**,
   add-queue-to-playlist (controller already exposes seek/volume).
 
 **Queue**
-- [ ] **Reordering** (Top/Up/Down/Bottom) + Artist/Runtime columns.
+- [x] **Reordering** (Top/Up/Down/Bottom) + Artist/Runtime columns.
 
 **PlaylistEdit**
-- [ ] **Rename**, **public toggle**, **delete playlist**.
+- [x] **Rename**, **public toggle** (delete deferred).
 
 **Playlist / Search shaping**
-- [ ] Playlist: Shuffle, Download, music→track-list vs episode→landscape.
+- [x] Playlist: Shuffle, Download (shape switching still portrait).
 - [ ] Search: per-type grouped rows with correct shapes.
 
 **Dialogs**
-- [ ] AddTo: **collections** + **create-new** + privacy toggle.
-- [ ] SyncPlay: participants / joined-state / Refresh.
-- [ ] Download: already-downloaded + watched counts.
+- [x] AddTo: **create-new** playlist (collections still TODO).
+- [x] SyncPlay: participants + Refresh (joined-state TODO).
+- [x] Download: already-downloaded + watched counts.
 
 **Chrome**
 - [ ] Persistent **download status bar** ("View Downloads").
