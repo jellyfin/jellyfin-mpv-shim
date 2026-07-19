@@ -15,9 +15,11 @@ Phase 9).
 """
 
 import logging
+import time
 
 from ..i18n import _
 from ..mpvtk.widgets import (
+    Box,
     Button,
     Column,
     Dropdown,
@@ -358,6 +360,11 @@ def _settings_menu(b, menu_state, size):
         on_dismiss=lambda: _close_hud_menu(b))
 
 
+def _toggle_tc(b):
+    b._hud_tc_remaining = not getattr(b, "_hud_tc_remaining", False)
+    b.invalidate()
+
+
 def _toggle_hud_favorite(b):
     st = b._hud_state or {}
     st["favorite"] = not st.get("favorite")   # optimistic, like the np bar
@@ -411,6 +418,8 @@ def build_hud(b, size):
         "favorite": w >= 560,
         "ch_btns": w >= 700,     # chapter prev/next buttons
         "chapters": w >= 700,    # chapter list dropdown
+        "volbar": w >= 760,      # volume slider (mute button always)
+        "ends_at": w >= 1000,    # wall-clock end time
     }
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
@@ -473,9 +482,24 @@ def build_hud(b, size):
         lambda: b._ctl(lambda c: c.stop()), tip=_("Stop")))
     shown_pos = pos if scrub is None else scrub
     if tiers["clock"]:
-        controls.append(Text(
-            "%s / %s" % (_clock(shown_pos), _clock(dur)), size=sz(15),
-            color="ffffff" if scrub is not None else "dddddd"))
+        # click toggles total <-> negative-remaining (the lua tc_right)
+        if b._hud_tc_remaining and dur > 0:
+            end_part = "-" + _clock(max(0.0, dur - shown_pos))
+        else:
+            end_part = _clock(dur)
+        controls.append(Box(
+            [Text("%s / %s" % (_clock(shown_pos), end_part),
+                  size=sz(15),
+                  color="ffffff" if scrub is not None else "dddddd")],
+            id="hud-clock", pad=4, align="center", direction="row",
+            on_click=lambda: _toggle_tc(b)))
+    if tiers["ends_at"] and dur > 0:
+        speed = max(0.01, float(_ctl_get(b, "get_speed", 1.0)))
+        ends = time.strftime(
+            "%H:%M",
+            time.localtime(time.time() + max(0.0, dur - pos) / speed))
+        controls.append(Text(_("Ends at {0}").format(ends),
+                             size=sz(14), color="aaaaaa"))
     controls.append(Spacer())
 
     right = []
@@ -486,10 +510,26 @@ def build_hud(b, size):
             lambda: _toggle_hud_favorite(b),
             tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee"))
     right.extend(_pickers(b, menu_state, pos, chapters, tiers))
+    muted = bool(st.get("muted"))
+    vol = st.get("volume", 100) or 0
+    right.append(tbtn(
+        "volume_off" if muted else
+        ("volume_up" if vol >= 50 else "volume_down"),
+        "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
+        tip=_("Mute")))
+    if tiers["volbar"]:
+        right.append(Slider(
+            "hud-vol", value=0 if muted else vol, min=0, max=100,
+            w=sz(110), force=True,
+            on_change=lambda v: b._ctl(lambda c: c.set_volume(v))))
     right.append(tbtn(
         "settings", "hud-settings",
         lambda: _open_hud_menu(b, "root", anchor="hud-settings"),
         tip=_("Settings")))
+    right.append(tbtn(
+        "fullscreen_exit" if st.get("fullscreen") else "fullscreen",
+        "hud-fs", lambda: b._ctl(lambda c: c.toggle_fullscreen()),
+        tip=_("Fullscreen")))
 
     transport = Row(controls + right, gap=sz(6), align="center")
 
@@ -513,12 +553,14 @@ def build_hud(b, size):
     ]
     st_menu = (menu_state
                if menu_state and menu_state.get("has_media") else {})
-    if st_menu.get("syncplay") is not None:
+    syncplay = st_menu.get("syncplay")
+    if syncplay is not None:
         top_items.append(tbtn(
             "groups", "hud-syncplay",
             lambda: _open_hud_menu(b, "syncplay",
                                    anchor="hud-syncplay"),
-            tip=_("SyncPlay")))
+            tip=_("SyncPlay"),
+            fg=theme.ACCENT if syncplay.get("enabled") else "eeeeee"))
     top = Row(top_items, gap=sz(10), pad=(sz(24), sz(10)), w=w,
               anchor="n", align="center")
 

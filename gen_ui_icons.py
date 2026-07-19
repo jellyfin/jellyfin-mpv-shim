@@ -45,6 +45,8 @@ ICON_NAMES = [
     "repeat",
     "repeat_one",
     "volume_up",
+    "volume_down",
+    "volume_off",
     # playback HUD (parity with the icons trickplay-jf-osc.lua embeds)
     "closed_caption",
     "audiotrack",

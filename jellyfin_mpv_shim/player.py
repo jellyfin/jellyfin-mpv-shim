@@ -1853,6 +1853,7 @@ class PlayerManager(object):
                 paused = self._player.pause
                 volume = self._player.volume
                 muted = self._player.mute
+                fullscreen = getattr(self._player, "fullscreen", None)
             except _mpv_errors:
                 cb({"stopped": True})
                 return
@@ -1877,6 +1878,7 @@ class PlayerManager(object):
                 "muted": bool(muted),
                 "favorite": bool((item.get("UserData") or {}).get("IsFavorite")),
                 "repeat": self.repeat_mode,
+                "fullscreen": bool(fullscreen),
             })
         except Exception:
             log.debug("push_playstate failed", exc_info=True)

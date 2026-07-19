@@ -953,6 +953,8 @@ class MpvtkBrowser:
         self._hud_menu = None
         # node the open settings/SyncPlay menu hangs off (see hud.py)
         self._hud_menu_anchor = "hud-settings"
+        # clock shows remaining time instead of total (click toggles)
+        self._hud_tc_remaining = False
         if app is None:
             return
         if hasattr(app, "on_nav"):
@@ -1008,6 +1010,12 @@ class MpvtkBrowser:
         self._hud_shown = bool(active)
         self._hud_scrub = None
         self._hud_menu = None
+        if getattr(self.controller, "hud_sub_margin", None) is not None:
+            # raise bottom subtitles clear of the bar while it shows
+            try:
+                self.controller.hud_sub_margin(bool(active))
+            except Exception:
+                log.debug("hud_sub_margin failed", exc_info=True)
         if active:
             # a fresh position snapshot before the bar first paints, then
             # the shared 1s ticker keeps its clock moving
@@ -1123,6 +1131,14 @@ class MpvtkBrowser:
         if not state or state.get("stopped"):
             self._now_playing = None
             self._hud_state = None
+            if self._hud_shown and getattr(
+                    self.controller, "hud_sub_margin", None) is not None:
+                # playback ended with the HUD up: the renderer clears
+                # without an on_hud(False), so restore the margin here
+                try:
+                    self.controller.hud_sub_margin(False)
+                except Exception:
+                    log.debug("hud_sub_margin failed", exc_info=True)
             self._hud_shown = False
             self._hud_menu = None
             if self._minimized:

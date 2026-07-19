@@ -2016,6 +2016,10 @@ local function on_mouse_down()
                 send({ t = 'dismiss', id = m.id })
                 request_render()
             end
+        elseif state.phud.mode and state.phud.shown then
+            -- summoned HUD: clicking bare video toggles pause, like
+            -- the lua OSC's click-anywhere behavior
+            mp.commandv('cycle', 'pause')
         end
         return
     end
@@ -2926,7 +2930,6 @@ local function phud_skip_hide()
     if not state.phud.skip_show then return end
     state.phud.skip_show = false
     mp.remove_key_binding('mpvtk_skip_enter')
-    mp.remove_key_binding('mpvtk_skip_click')
     if state.phud.mode and not state.phud.shown then
         -- hand ENTER back to the summon surface
         mp.add_forced_key_binding('ENTER', 'mpvtk_summon_ENTER',
@@ -2949,18 +2952,8 @@ function phud_skip_show()
             send({ t = 'hudskip' })
             phud_skip_hide()
         end)
-        mp.add_forced_key_binding('mbtn_left', 'mpvtk_skip_click',
-            function()
-                local r = state.phud.skip_rect
-                local x, y = state.phud.mx, state.phud.my
-                if r and x >= r.x1 and x <= r.x2
-                    and y >= r.y1 and y <= r.y2 then
-                    send({ t = 'hudskip' })
-                    phud_skip_hide()
-                else
-                    phud_summon('mouse')
-                end
-            end)
+        -- clicks route through the always-on mpvtk_phud_click binding
+        -- (skip on the button, pause elsewhere)
     end
     -- (re)arm the auto-hide on every show/pointer touch
     if state.phud.skip_timer then state.phud.skip_timer:kill() end
@@ -2976,12 +2969,26 @@ local function phud_bind_summon()
         mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
             function() phud_summon('key') end)
     end
+    -- clicking the hidden-HUD video pauses (the lua OSC's
+    -- click-anywhere), except on the standalone skip button
+    mp.add_forced_key_binding('mbtn_left', 'mpvtk_phud_click', function()
+        local r = state.phud.skip_rect
+        local x, y = state.phud.mx, state.phud.my
+        if state.phud.skip_show and r and x >= r.x1 and x <= r.x2
+            and y >= r.y1 and y <= r.y2 then
+            send({ t = 'hudskip' })
+            phud_skip_hide()
+        else
+            mp.commandv('cycle', 'pause')
+        end
+    end)
 end
 
 local function phud_unbind_summon()
     for _, key in ipairs(PHUD_SUMMON_KEYS) do
         mp.remove_key_binding('mpvtk_summon_' .. key)
     end
+    mp.remove_key_binding('mpvtk_phud_click')
 end
 
 local function phud_disarm()

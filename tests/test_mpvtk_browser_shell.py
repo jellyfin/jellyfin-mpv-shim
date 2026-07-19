@@ -439,8 +439,11 @@ class TestPlaybackHudLayout(unittest.TestCase):
         present = ids(nodes)
         for nid in ("hud-pp", "hud-seek-back", "hud-seek-fwd",
                     "hud-ch-prev", "hud-ch-next", "hud-chapters",
-                    "hud-audio", "hud-sub", "hud-quality"):
+                    "hud-audio", "hud-sub", "hud-quality",
+                    "hud-mute", "hud-vol", "hud-fs", "hud-clock"):
             self.assertIn(nid, present)
+        self.assertTrue(any("Ends at" in (n.get("text") or "")
+                            for n in nodes), "ends-at label missing")
         seek = next(n for n in nodes if n.get("id") == "hud-seek")
         self.assertEqual(seek.get("marks"), [0.4, 0.8],
                          "chapter slits should be the interior chapters")
@@ -450,11 +453,42 @@ class TestPlaybackHudLayout(unittest.TestCase):
         nodes, _h = build_scene(b, (460, 640))
         present = ids(nodes)
         for nid in ("hud-pp", "hud-prev", "hud-next", "hud-stop",
-                    "hud-audio", "hud-sub"):
+                    "hud-audio", "hud-sub", "hud-mute", "hud-fs"):
             self.assertIn(nid, present)
         for nid in ("hud-seek-back", "hud-seek-fwd", "hud-ch-prev",
-                    "hud-ch-next", "hud-chapters", "hud-quality"):
+                    "hud-ch-next", "hud-chapters", "hud-quality",
+                    "hud-vol", "hud-clock"):
             self.assertNotIn(nid, present)
+        self.assertFalse(any("Ends at" in (n.get("text") or "")
+                             for n in nodes),
+                         "ends-at must drop below 1000px")
+
+    def test_volume_mute_fullscreen_and_clock_toggle(self):
+        b, ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        handlers["hud-mute"]["click"]()
+        handlers["hud-vol"]["change"](30)
+        handlers["hud-fs"]["click"]()
+        names = [c[0] for c in ctl.transport]
+        for n in ("toggle_mute", "set_volume", "toggle_fullscreen"):
+            self.assertIn(n, names)
+        # clock click flips total -> negative remaining
+        clock = next(n for n in nodes
+                     if (n.get("text") or "").startswith("0:50 / "))
+        self.assertIn("1:40", clock["text"])
+        handlers["hud-clock"]["click"]()
+        self.assertTrue(b._hud_tc_remaining)
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertTrue(any((n.get("text") or "") == "0:50 / -0:50"
+                            for n in nodes),
+                        "remaining-time clock missing")
+
+    def test_hud_show_hide_adjusts_sub_margin(self):
+        b, ctl = self._browser()
+        b._on_hud(True)
+        b._on_hud(False)
+        self.assertIn(("hud_sub_margin", (True,)), ctl.transport)
+        self.assertIn(("hud_sub_margin", (False,)), ctl.transport)
 
     def test_mid_viewport_keeps_quality_drops_chapters(self):
         b, _ctl = self._browser()

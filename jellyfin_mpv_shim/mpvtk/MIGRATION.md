@@ -1538,6 +1538,43 @@ hardening:
   highlight, so the first DOWN lands on row index 1 (clamp((nil or
   0)+1)); pre-existing, shared with tile context menus.
 
+**9.3d/e ✅ (2026-07-19, per Izzie + subagent gap diff).** Top bar and
+the remaining parity gaps a full lua-OSC-vs-HUD diff surfaced:
+
+- **Top header** (9.3d): back arrow (yield to library — the
+  stop_to_browser path shim-close maps to under the in-window UI),
+  title on its own top-down scrim, SyncPlay groups button (accent
+  tint while enabled) opening the SyncPlay sheet as a standalone
+  drop-down (no Back row; the gear's copy keeps Back). Menus anchor
+  to whichever button opened them; below top anchors, above bottom.
+- **Volume** (9.3e): mute button (icon reflects level/mute; always
+  shown, like the lua) + volume slider (live on change, ≥760px tier).
+- **Fullscreen button**: toggles mpv fullscreen AND records intent
+  via set_fullscreen (auto-fullscreen won't fight the choice) — the
+  lua tog_fs behavior. Playstate now carries `fullscreen`.
+- **Ends at HH:MM** (speed-adjusted wall clock, ≥1000px tier).
+- **Clock click** toggles total ↔ negative-remaining (tc_right
+  parity; per-session, browser-side flag).
+- **Subtitle push-up**: controller.hud_sub_margin raises sub-margin-y
+  to 130 while the HUD is up (skipped when sub-pos < 50), restored on
+  hide and on the stopped path (the renderer clears without an
+  on_hud(false) there).
+- **Click-to-pause**: clicking bare video toggles pause both while
+  the HUD is summoned (miss-everything path in on_mouse_down) and
+  while idle (always-on mpvtk_phud_click binding, which also owns
+  the standalone skip button's click).
+- Icons: + volume_down, volume_off (53 total).
+
+**Deliberately NOT ported** (from the gap diff; revisit only if
+field-proving misses them): passive-hover seekbar bubble
+(time + chapter name + thumbnail on hover — the HUD previews on
+scrub gestures instead; largest remaining delta), buffered-range
+shading on the track (long-deferred), millisecond clock mode,
+shift-click frame-step / right-click coarse-seek variants on the
+step buttons (mpv's default . , [ ] keys still work while idle),
+and chapter/playlist OSD text lists on shift/right-click (the HUD
+has a chapter dropdown; the queue lives in the browser).
+
 **9.4 — cutover flag ✅, cutover itself pending field-proving.** The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
 enum "In-window HUD (experimental)", conf.py docs; falls back to

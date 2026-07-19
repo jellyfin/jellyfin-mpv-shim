@@ -138,6 +138,44 @@ class _PlayerController:
         self._act(lambda pm: pm._player.command(
             "script-binding", "stats/display-stats-toggle"))
 
+    def toggle_mute(self):
+        self._act(lambda pm: setattr(
+            pm._player, "mute", not pm._player.mute))
+
+    def toggle_fullscreen(self):
+        """Toggle mpv fullscreen AND record the user's intent, exactly
+        like the lua OSC's button (so auto-fullscreen doesn't
+        re-fullscreen the next episode against their choice)."""
+        def flip(pm):
+            was = bool(pm._player.fullscreen)
+            pm._player.fullscreen = not was
+            pm.put_task(pm.set_fullscreen, not was, True)
+        self._act(flip)
+
+    # sub-margin-y saved while the HUD raises the subtitles clear of
+    # its bottom bar (the lua OSC does the same while visible)
+    _saved_sub_margin = None
+
+    def hud_sub_margin(self, visible):
+        """Raise bottom subtitles above the HUD's bar while it is
+        summoned; restore on hide. Skipped for top/middle-positioned
+        subtitles (sub-pos < 50), like the lua OSC."""
+        from ..player import playerManager
+        try:
+            player = playerManager._player
+            if visible:
+                sub_pos = player.sub_pos
+                if sub_pos is not None and sub_pos < 50:
+                    return
+                if self._saved_sub_margin is None:
+                    self._saved_sub_margin = player.sub_margin_y
+                player.sub_margin_y = 130
+            elif self._saved_sub_margin is not None:
+                player.sub_margin_y = self._saved_sub_margin
+                self._saved_sub_margin = None
+        except Exception:
+            log.debug("hud_sub_margin failed", exc_info=True)
+
     def chapters(self):
         """mpv's chapter list as [{"title", "time"}], [] when none."""
         from ..player import playerManager
