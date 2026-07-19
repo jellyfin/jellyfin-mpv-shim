@@ -43,12 +43,20 @@ Principles:
 
 Layout: `Box` (direction/pad/gap/align, bg/radius/border, on_click,
 hover), `Row`/`Column` sugar, `Spacer` (flexes unless given w/h — a
-sized Spacer is the stand-in for virtualized content).
+sized Spacer is the stand-in for virtualized content), `Stack`
+(children share one rect, per-child `anchor`/`dx`/`dy`; scrolls with
+the page unlike `Float` — the way to pin arrows/badges to a row; see
+§6 for what may draw over what), `Table` (header + rows generated from
+one column spec — `{"label", "w"|"flex", "align"}` — so header and
+cell geometry can't drift; row `on_click` may take a mods dict for
+shift-range / ctrl-toggle selection).
 
-Content: `Text` (size/color/bold/align; ellipsized to fit),
+Content: `Text` (size/color/bold/align; ellipsized to fit, or
+`wrap=True` + `max_lines` to word-wrap to the laid-out width),
 `Image` (pre-rasterized BGRA; never scaled or stretched — see §5),
 `ImageMap` (one composited bitmap + interactive sub-regions; THE tile
-primitive, see §5), `Button` (Box+Text sugar), `Checkbox` (Row sugar).
+primitive, see §5), `Button` (Box+Text sugar; `repeat=True` refires
+on_click while held — paging arrows), `Checkbox` (Row sugar).
 
 Inputs: `TextBox` (editing, paste, selection, `mask=True` for
 passwords; `on_change`/`on_submit`), `Dropdown` (readonly picker,
@@ -81,8 +89,8 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 
 | t | extra fields |
 |---|---|
-| rect | fill, a, radius, bc/bw, click, ctx, hover{fill,bc,c}, ring |
-| text | text, size, c, bold, align, click, hover |
+| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring |
+| text | text, size, c, bold, align, click, hover (one node per wrapped line: `id`, `id.l1`, …) |
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |
 | textbox | text, ph, size, mask, force |
@@ -91,6 +99,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 | busy | — |
 | menu | items, size, ih (floating; x/y absolute) |
 | layer | kind: modal\|float (meta: bounds for grab/occlusion) |
+| occ | Stack `occlude=True` marker: rect subtracted from images earlier in paint order |
 
 Children of a scroll are positioned in content space as if offset 0;
 the renderer subtracts live offsets and clips. `ring` marks transparent
@@ -107,7 +116,7 @@ handlers registered during layout:
 | t | payload | fires |
 |---|---|---|
 | ready / resize | w, h | osd size known/changed |
-| click | id | press+release on same target |
+| click | id, shift?, ctrl? | press+release on same target (`rpt` nodes: on press, refiring while held) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |
@@ -116,8 +125,19 @@ handlers registered during layout:
 | scroll | id, offset, max | watched scrolls, ≤ every 150ms |
 | debug_state | … | reply to the `state` debug hook |
 
+Click handlers opt into the modifier payload by declaring one
+**required** positional parameter (`def f(mods)` / `lambda m: …`);
+zero-arg handlers and default-arg lambdas (`lambda i=item: …`) keep
+the bare call. `mods` is `{"shift": bool, "ctrl": bool}`.
+
 `MpvtkApp.invalidate()` is thread-safe and wakes the loop — background
 workers (thumbnails, downloads, playback timers) repaint through it.
+
+Scroll offsets are also mirrored into the `user-data/mpvtk/scroll`
+property on every change; `MpvtkApp.scroll_offsets()` reads it
+synchronously, so a build() can window virtualized content against the
+renderer's LIVE offset instead of trailing the throttled scroll event
+(mpv ≥ 0.36; returns `{}` on older builds).
 
 ## 5. Images: strips, files, memory
 
@@ -152,6 +172,14 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    (popups/menus/dialogs/toasts) *occlude* images — their rect is
    subtracted from image overlays (≤4 sub-rects per image). A
    translucent scrim cannot dim posters — dialogs don't dim.
+   Two escape hatches exist for in-flow content (`Stack`):
+   **bitmap-over-bitmap works** — mpv composites overlay slots in
+   ascending id order and the renderer keeps slot order consistent
+   with paint order (sticky slots; a one-time renumber when an
+   overlapping pair contradicts it), so a later Image child draws
+   above an earlier one; and an ASS child marked `occlude=True` is
+   subtracted from image siblings *below it* and draws in the hole
+   (give it an opaque bg — the hole reveals the window background).
 2. Overlay flush is hole-free by construction: adds/replacements are
    issued before removes and new images take over departing slots
    (slots are sticky per node id — don't regress this; index-shifted
@@ -217,10 +245,12 @@ workers (thumbnails, downloads, playback timers) repaint through it.
 
 - `python3 -m jellyfin_mpv_shim.mpvtk [--backend libmpv]` — demo with
   Browse / Widgets / Logs pages exercising every widget.
-- `--selftest DIR` (headless: `xvfb-run -a …`) — 35 checks driving the
-  renderer's `mpvtk-debug` hooks: `hover`/`click`/`rclick` by node id,
-  `wheel` (id/dir/steps/axis), `text`, `key` (incl. CTRLA/SLEFT…),
-  `popup`/`menu` (item index), `state` (renderer state dump).
+- `--selftest DIR` (headless: `xvfb-run -a …`) — ~60 checks driving the
+  renderer's `mpvtk-debug` hooks: `hover`/`click`/`rclick` by node id
+  (`click` takes `shift`/`ctrl`), `down`/`up` (separate press/release —
+  hold-repeat), `wheel` (id/dir/steps/axis), `text`, `key` (incl.
+  CTRLA/SLEFT…), `popup`/`menu` (item index), `state` (renderer state
+  dump incl. `scroll` offsets and the `ov` overlay-slot map).
   Screenshots per step (mpv can't screenshot without video — falls
   back to X11 `import`).
 - `tests/test_mpvtk_layout.py` — layout engine unit tests (stdlib).

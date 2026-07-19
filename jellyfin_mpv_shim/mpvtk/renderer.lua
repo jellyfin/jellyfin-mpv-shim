@@ -2160,6 +2160,14 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_up()
             state.mods = {}
         end
+    elseif cmd.cmd == 'down' or cmd.cmd == 'up' then
+        -- separate press/release (hold-repeat tests)
+        local x, y = center_of(cmd.id)
+        if x then
+            on_mouse_move(x, y)
+            if cmd.cmd == 'down' then on_mouse_down()
+            else on_mouse_up() end
+        end
     elseif cmd.cmd == 'hud' then
         state.hud = not state.hud
         request_render()
@@ -2247,6 +2255,11 @@ mp.register_script_message('mpvtk-debug', function(json)
     elseif cmd.cmd == 'key' then
         tb_key(cmd.name)
     elseif cmd.cmd == 'state' then
+        local ov = {}
+        for s = 0, MAX_OVERLAYS - 1 do
+            local k = state.ov_keys[s]
+            if k then ov[k] = s end
+        end
         send({
             t = 'debug_state',
             w = state.w, h = state.h,
@@ -2262,6 +2275,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             wheel_count = state.wheel_count or 0,
             scroll = state.scroll,
             overlays = state.ov_used,
+            ov = ov,
             tb = state.tb,
         })
     end

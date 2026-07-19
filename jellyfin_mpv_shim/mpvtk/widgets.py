@@ -395,6 +395,9 @@ class Table(Column):
                     radius=4,
                 )
             )
+        # rows must all stretch to the table width or flex columns
+        # would re-distribute per-row and drift against the header
+        kw.setdefault("align", "stretch")
         super().__init__([header] + body, **kw)
 
 

@@ -30,11 +30,14 @@ from .widgets import (
     Float,
     HScroll,
     Icon,
+    Image,
     ImageMap,
     Menu,
     Row,
     Slider,
     Spacer,
+    Stack,
+    Table,
     Text,
     TextBox,
     VScroll,
@@ -319,6 +322,9 @@ class Demo:
             for i, it in enumerate(self.items[:10])
         ]
         self.table_sel = None
+        self.table_multi = set()  # multi-select via shift/ctrl clicks
+        self.hold_count = 0  # incremented by the hold-repeat button
+        self._badge = None  # lazy bitmap floated over a strip (Stack)
         self.dialog_open = False
         self.toast = None
         self._toast_timer = None
@@ -411,8 +417,18 @@ class Demo:
         self._toast_timer.start()
         self.app.invalidate()
 
-    def _tbl_select(self, i):
-        self.table_sel = i
+    def _tbl_select(self, i, mods=None):
+        # plain: select; shift: range from anchor; ctrl: toggle
+        mods = mods or {}
+        if mods.get("shift") and self.table_sel is not None:
+            lo, hi = sorted((self.table_sel, i))
+            self.table_multi = set(range(lo, hi + 1))
+        elif mods.get("ctrl"):
+            self.table_multi ^= {i}
+            self.table_sel = i
+        else:
+            self.table_sel = i
+            self.table_multi = {i}
         self.app.invalidate()
 
     def _tbl_move(self, d):
@@ -424,7 +440,12 @@ class Demo:
             rows = self.table_rows
             rows[i], rows[j] = rows[j], rows[i]
             self.table_sel = j
+            self.table_multi = {j}
             self.app.invalidate()
+
+    def _hold_tick(self):
+        self.hold_count += 1
+        self.app.invalidate()
 
     def _progress_animator(self):
         # background thread driving the determinate progress bar —
@@ -450,14 +471,62 @@ class Demo:
             )
             for r in s["regions"]
         ]
-        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
+        return ImageMap(
+            s["src"], s["iw"], s["ih"], regions=regions,
+            id="%s-img" % id_prefix,
+        )
+
+    def _badge_img(self):
+        """Small solid dot floated over the first strip (Stack demo):
+        bitmap-over-bitmap needs paint-ordered overlay slots."""
+        if self._badge is None:
+            from PIL import Image as PILImage, ImageDraw
+
+            img = PILImage.new("RGBA", (26, 26), (0, 0, 0, 0))
+            ImageDraw.Draw(img).ellipse(
+                [1, 1, 24, 24], fill=(224, 64, 160, 255)
+            )
+            if self.strips.mem is not None:
+                src, _, _ = self.strips.mem.add(img)
+            else:
+                src = os.path.join(self.cache, "zbadge.bgra")
+                write_bgra(img, src)
+            self._badge = (src, 26, 26)
+        return self._badge
 
     def _row_section(self, heading, items, row_id):
+        im = self._image_map(items, row_id)
+        if row_id == "row-cw":
+            # Stack demo: a bitmap badge over the strip (overlay slots
+            # follow paint order) + an ASS chip punched through it
+            # (occlude=True subtracts its rect from the image below)
+            src, bw, bh = self._badge_img()
+            im = Stack(
+                [
+                    im,
+                    Image(src, bw, bh, id="zbadge",
+                          anchor="nw", dx=TILE_W - 34, dy=8),
+                    Box(
+                        [Text("STACK", size=13, color="101010")],
+                        id="zocc",
+                        bg="ffcc66",
+                        radius=4,
+                        pad=4,
+                        direction="row",
+                        anchor="sw",
+                        dx=8,
+                        dy=-8,
+                        occlude=True,
+                    ),
+                ],
+                w=im.iw,
+                h=im.ih,
+            )
         return Column(
             [
                 Text(heading, size=24, bold=True),
                 HScroll(
-                    self._image_map(items, row_id),
+                    im,
                     id=row_id,
                     h=STRIP_H + 6,
                 ),
@@ -625,6 +694,12 @@ class Demo:
                 ),
                 Button("Show Toast", id="btn-toast",
                        on_click=self._show_toast),
+                Button(
+                    "Hold Me (%d)" % self.hold_count,
+                    id="btn-hold",
+                    repeat=True,
+                    on_click=self._hold_tick,
+                ),
             ],
             gap=12,
             align="center",
@@ -671,41 +746,35 @@ class Demo:
             gap=14,
             align="center",
         )
-        hdr_style = {"size": 16, "bold": True, "color": "aaaaaa"}
         table = Column(
             [
-                Row(
-                    [
-                        Text("#", w=50, **hdr_style),
-                        Text("Title", w=320, **hdr_style),
-                        Text("Year", w=80, **hdr_style),
+                Table(
+                    columns=[
+                        {"label": "#", "w": 50},
+                        {"label": "Title", "w": 320},
+                        {"label": "Year", "w": 80},
                     ],
-                    pad=8,
-                    bg="242424",
-                    radius=6,
-                )
-            ]
-            + [
-                Row(
-                    [
-                        Text(str(r["num"]), w=50, size=17),
-                        Text(r["title"], w=320, size=17),
-                        Text(str(r["year"]), w=80, size=17),
+                    rows=[
+                        {
+                            "id": "trow-%d" % i,
+                            "cells": [str(r["num"]), r["title"],
+                                      str(r["year"])],
+                            "selected": i in self.table_multi
+                            or self.table_sel == i,
+                            # required first param -> receives the click
+                            # modifier dict (shift-range / ctrl-toggle)
+                            "on_click": lambda m, i=i: self._tbl_select(
+                                i, m
+                            ),
+                        }
+                        for i, r in enumerate(self.table_rows)
                     ],
-                    id="trow-%d" % i,
-                    pad=8,
-                    bg="335a9e" if self.table_sel == i else None,
-                    hover=(
-                        None
-                        if self.table_sel == i
-                        else {"fill": "2e2e2e"}
-                    ),
-                    radius=6,
-                    on_click=lambda i=i: self._tbl_select(i),
-                )
-                for i, r in enumerate(self.table_rows)
-            ]
-            + [
+                    size=17,
+                    row_h=32,
+                    selected_bg="335a9e",
+                    hover_bg="2e2e2e",
+                    w=480,
+                ),
                 Row(
                     [
                         Button("Move Up", id="tbl-up",
@@ -714,7 +783,7 @@ class Demo:
                                on_click=lambda: self._tbl_move(1)),
                     ],
                     gap=10,
-                )
+                ),
             ],
             gap=4,
         )
@@ -724,9 +793,21 @@ class Demo:
                 Row([checks, Spacer(w=60), sliders], gap=10),
                 icons_row,
                 entries,
-                Text("Track table (click to select, reorder below)",
+                Text("Track table (click / shift-range / ctrl-toggle)",
                      size=18, bold=True),
                 table,
+                Text(
+                    "Wrapped text: " + " ".join(
+                        "the quick brown fox jumps over the lazy dog"
+                        .split() * 4
+                    ),
+                    id="wraptxt",
+                    size=16,
+                    color="c8c8c8",
+                    wrap=True,
+                    max_lines=3,
+                    w=420,
+                ),
             ],
             pad=16,
             gap=18,
@@ -975,6 +1056,13 @@ def _selftest(demo, outdir):
     st = app.debug_state()
     scr = (st or {}).get("scroll") or {}
     check("vscroll-offset", scr.get("page", 0) > 0, str(scr))
+    # the property mirror lets Python read offsets synchronously
+    sync = app.scroll_offsets()
+    check(
+        "scroll-property-sync",
+        abs(sync.get("page", -1) - scr.get("page", 0)) < 1,
+        str(sync),
+    )
 
     app.debug(cmd="wheel", id="row-mv", dir=1, steps=3, axis="x")
     shot("05-hscroll")
@@ -1133,6 +1221,25 @@ def _selftest(demo, outdir):
     app.debug(cmd="click", id="trow-3")
     time.sleep(0.3)
     check("table-select", demo.table_sel == 3, str(demo.table_sel))
+    # click modifiers: shift extends from the anchor, ctrl toggles
+    app.debug(cmd="click", id="trow-1", shift=True)
+    time.sleep(0.3)
+    check(
+        "table-shift-range",
+        demo.table_multi == {1, 2, 3},
+        str(sorted(demo.table_multi)),
+    )
+    app.debug(cmd="click", id="trow-5", ctrl=True)
+    time.sleep(0.3)
+    check(
+        "table-ctrl-toggle",
+        demo.table_multi == {1, 2, 3, 5},
+        str(sorted(demo.table_multi)),
+    )
+    app.debug(cmd="click", id="trow-3")
+    time.sleep(0.3)
+    check("table-plain-resets", demo.table_multi == {3},
+          str(sorted(demo.table_multi)))
     moved_title = demo.table_rows[3]["title"]
     # the reorder buttons sit below the fold: scroll them into view
     app.debug(cmd="wheel", id="wpage", dir=1, steps=6, axis="y")
@@ -1143,6 +1250,35 @@ def _selftest(demo, outdir):
         "table-reorder",
         demo.table_rows[2]["title"] == moved_title
         and demo.table_sel == 2,
+    )
+
+    # hold-repeat: press fires immediately, refires while held, and
+    # the release adds nothing
+    app.debug(cmd="wheel", id="wpage", dir=-1, steps=10, axis="y")
+    time.sleep(0.3)
+    demo.hold_count = 0
+    app.debug(cmd="down", id="btn-hold")
+    time.sleep(1.0)
+    app.debug(cmd="up", id="btn-hold")
+    time.sleep(0.3)
+    held = demo.hold_count
+    check("hold-repeat-fires", held >= 3, "%d clicks" % held)
+    time.sleep(0.4)
+    check("hold-repeat-stops", demo.hold_count == held,
+          "%d after release" % demo.hold_count)
+
+    # wrapped text emits one node per line, stacked a line apart
+    wnodes, _ = _layout(demo.build((1280, 720)), 1280, 720)
+    wl = [n for n in wnodes
+          if n["id"] == "wraptxt" or n["id"].startswith("wraptxt.l")]
+    check("text-wrap-lines", len(wl) == 3, "%d lines" % len(wl))
+    check(
+        "text-wrap-stacked",
+        len(wl) == 3
+        and wl[0]["x"] == wl[1]["x"]
+        and wl[1]["y"] > wl[0]["y"]
+        and wl[-1]["text"].endswith("…"),
+        "%r" % [n["text"][:16] for n in wl],
     )
 
     app.debug(cmd="click", id="tab-logs")
@@ -1247,6 +1383,28 @@ def _selftest(demo, outdir):
     app.debug(cmd="key", name="BS")
     time.sleep(0.3)
     check("utf8-mixed-edit", demo.sel_text == "caf", repr(demo.sel_text))
+
+    # ---- Stack z-order + occlusion over the browse strip ----
+    app.debug(cmd="click", id="tab-browse")
+    time.sleep(0.6)
+    shot("16-stack")
+    st = app.debug_state()
+    ov = (st or {}).get("ov") or {}
+    strip_slots = [s for k, s in ov.items()
+                   if k.startswith("row-cw-img#")]
+    badge_slot = ov.get("zbadge#1")
+    check(
+        "stack-bitmap-above",
+        badge_slot is not None
+        and strip_slots
+        and badge_slot > max(strip_slots),
+        "badge=%s strip=%s" % (badge_slot, strip_slots),
+    )
+    check(
+        "stack-occlude-splits",
+        len(strip_slots) >= 2,
+        "%d strip pieces (occlude punch)" % len(strip_slots),
+    )
 
     app.quit()
     return results
