@@ -100,6 +100,10 @@ def text_width(s, size, bold=False):
 
 
 def ellipsize(s, size, bold, max_w):
+    # Half-pixel slop: a widget's natural width re-derived through the
+    # arrange path can lose ~1e-14 to float association, and a strict
+    # comparison then truncated exactly-fitting labels ("Up" -> "…").
+    max_w = max_w + 0.5
     if text_width(s, size, bold) <= max_w:
         return s
     ell = text_width("…", size, bold)

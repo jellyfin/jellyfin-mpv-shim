@@ -1464,6 +1464,16 @@ def _selftest(demo, outdir):
     scr = (st or {}).get("scroll") or {}
     check("nav-carousel-autoscroll", scr.get("row-cw", 0) > 0,
           str(scr.get("row-cw")))
+    # ... and RIGHT never hops out of the row, even fully scrolled
+    for _ in range(40):
+        app.debug(cmd="nav", dir="right")
+    time.sleep(0.4)
+    st = app.debug_state()
+    check(
+        "nav-stays-in-row",
+        str((st or {}).get("nav", "")).startswith("row-cw-tile-"),
+        str((st or {}).get("nav")),
+    )
 
     app.quit()
     return results

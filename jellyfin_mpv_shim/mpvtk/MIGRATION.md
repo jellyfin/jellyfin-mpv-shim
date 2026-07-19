@@ -1168,6 +1168,21 @@ floors clickable Boxes at natural size — the "E…"/"U…" squeezed-button
 reports. A virtualized Table pins `min_w` to its widest content across
 ALL rows so its natural width no longer depends on scroll position.
 
+**Nav fixes (field round 2):** direction picking is two-tier — tier 1
+requires orthogonal-interval overlap (same row for horizontal, same
+column for vertical), so RIGHT at the end of a fully scrolled carousel
+does nothing instead of hopping to a diagonal tile in another row;
+vertical falls back to the unaligned cone (chrome/now-playing stay
+reachable). A move into unmaterialized content remembers its direction
+and completes when the next scene arrives (`nav_pending` in
+reconcile), and focus loss (virtualization dematerialized the node)
+re-anchors the next press to the nearest focusable at the remembered
+rect instead of resetting to the top bar. Separately: the recurring
+"E…" squeezed buttons were NOT the shrink pass — an exact-fit label
+lost ~1e-14 to float association between measure and arrange and the
+strict ellipsize comparison truncated it; both ellipsize
+implementations now carry half-pixel slop.
+
 Original build sketch (kept for reference):
 
 Net-new capability, **nothing built yet** — the only "focus" in mpvtk

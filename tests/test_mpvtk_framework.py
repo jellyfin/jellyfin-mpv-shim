@@ -824,3 +824,17 @@ class TestNavPolish(unittest.TestCase):
         app._dispatch({"t": "nav", "active": True})
         app._dispatch({"t": "nav", "active": False})
         self.assertEqual(got, [True, False])
+
+
+class TestEllipsisEpsilon(unittest.TestCase):
+    def test_exactly_fitting_button_label_survives(self):
+        # A composed control's natural width re-derived through arrange
+        # loses ~1e-14 to float association; the strict ellipsize
+        # comparison then turned "Up" into "…".
+        for label, icon in (("Up", "keyboard_arrow_up"),
+                            ("Clear", None), ("Edit", "edit")):
+            b = Button(label, id="b", icon=icon, on_click=lambda: None)
+            nodes, _ = layout(Row([b], w=400, h=60), 400, 60)
+            texts = [n["text"] for n in nodes if n["t"] == "text"]
+            self.assertIn(label, texts, "%r truncated: %r"
+                          % (label, texts))

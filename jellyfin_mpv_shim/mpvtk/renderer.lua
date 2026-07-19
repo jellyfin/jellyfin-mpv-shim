@@ -177,6 +177,7 @@ end
 -- for text the renderer owns: dropdown labels and popup/menu items,
 -- whose available width only the widget knows exactly.
 local function ellipsize(s, size, bold, max_w)
+    max_w = max_w + 0.5  -- float slop, mirror of layout.py's
     if text_w(s, size, bold) <= max_w then return s end
     local ell = text_w('…', size, bold)
     local out = {}
@@ -1792,6 +1793,8 @@ local function on_mouse_down()
     state.nav = nil
     state.nav_pidx = nil
     state.nav_adjust = nil
+    state.nav_rect = nil
+    state.nav_pending = nil
     if state.nav_mode then
         state.nav_mode = false
         send({ t = 'nav', active = false })
@@ -2097,7 +2100,15 @@ end
 local function nav_set(node)
     state.nav = node.id
     state.nav_adjust = nil
+    state.nav_pending = nil
     nav_scroll_into_view(node)
+    -- remember where focus was (effective coords): if the node later
+    -- leaves the scene (virtualized rows dematerialize), the next
+    -- press re-anchors to the nearest focusable instead of resetting
+    -- to the top-left of the screen
+    compute_geo()
+    local ex, ey = eff(node)
+    state.nav_rect = { x = ex, y = ey, w = node.w, h = node.h }
     request_render()
 end
 
@@ -2109,11 +2120,25 @@ local function set_nav_mode(on)
     send({ t = 'nav', active = on })
 end
 
-local function nav_pick(cur, cands, dx, dy)
+-- Does candidate ``c`` overlap ``cur`` on the axis orthogonal to the
+-- move? Same row for horizontal moves, same column for vertical —
+-- the tier-1 requirement that stops RIGHT at the end of a carousel
+-- from hopping to a diagonal tile in some other row.
+local function nav_overlap(cur, c, dx)
+    local ax, ay = eff(cur)
+    local bx, by = eff(c)
+    if dx ~= 0 then
+        return ay < by + c.h and by < ay + cur.h
+    end
+    return ax < bx + c.w and bx < ax + cur.w
+end
+
+local function nav_pick(cur, cands, dx, dy, need_overlap)
     local cx, cy = nav_center(cur)
     local best, score
     for _, c in ipairs(cands) do
-        if c.id ~= cur.id then
+        if c.id ~= cur.id and
+            (not need_overlap or nav_overlap(cur, c, dx)) then
             local px, py = nav_center(c)
             local ddx, ddy = px - cx, py - cy
             local fwd = dx * ddx + dy * ddy       -- along the direction
@@ -2165,26 +2190,37 @@ local function nav_move(dx, dy)
     local cands = nav_candidates()
     if #cands == 0 then return end
     if not cur or not state.byid[state.nav] then
-        -- first press: topmost-leftmost visible focusable
+        -- no current focus: re-anchor near where focus last was (the
+        -- node may have been dematerialized by virtualization); with
+        -- no history, take the topmost-leftmost visible focusable
         local best, score
+        local r = state.nav_rect
         for _, c in ipairs(cands) do
             local cx, cy = nav_center(c)
-            local s = cy * 10000 + cx
+            local s
+            if r then
+                local rx, ry = r.x + r.w / 2, r.y + r.h / 2
+                s = (cx - rx) ^ 2 + (cy - ry) ^ 2
+            else
+                s = cy * 10000 + cx
+            end
             if score == nil or s < score then best, score = c, s end
         end
         if best then nav_set(best) end
         return
     end
-    local best = nav_pick(cur, cands, dx, dy)
+    -- tier 1: candidates aligned with the current node (same row for
+    -- horizontal moves, same column for vertical)
+    local best = nav_pick(cur, cands, dx, dy, true)
     if best then
         nav_set(best)
         return
     end
-    -- Nothing on screen in that direction: the next tile may be fully
-    -- clipped by a scroll viewport. Page the focused node's scroll
-    -- chain along the axis of travel and retry — virtualized content
-    -- over-materializes about a screen, so the neighbour usually
-    -- already exists in the scene.
+    -- Nothing aligned on screen: the neighbour may be fully clipped by
+    -- a scroll viewport. Page the focused node's scroll chain along
+    -- the axis of travel and retry; if the content isn't materialized
+    -- yet, remember the direction and finish when the next scene
+    -- arrives (see reconcile).
     local want_axis = (dx ~= 0) and 'x' or 'y'
     local dirn = (dx ~= 0) and dx or dy
     local sc = cur.sc
@@ -2198,12 +2234,24 @@ local function nav_move(dx, dy)
                                  scroll_max(cont))
             if target ~= off then
                 set_scroll(cont, target)
-                best = nav_pick(cur, nav_candidates(), dx, dy)
-                if best then nav_set(best) end
+                best = nav_pick(cur, nav_candidates(), dx, dy, true)
+                if best then
+                    nav_set(best)
+                else
+                    state.nav_pending = { dx = dx, dy = dy }
+                end
                 return
             end
         end
         sc = cont.sc
+    end
+    -- tier 2, vertical only: cross into other containers (chrome, the
+    -- now-playing bar). Horizontal stays in its row — RIGHT at the end
+    -- of a fully scrolled carousel does nothing rather than hopping to
+    -- an arbitrary other row.
+    if dy ~= 0 then
+        best = nav_pick(cur, cands, dx, dy, false)
+        if best then nav_set(best) end
     end
 end
 
@@ -2379,8 +2427,22 @@ local function reconcile()
         state.dd_open = nil
     end
     if state.nav and not state.byid[state.nav] then
-        state.nav = nil  -- focused node left the scene (route change)
+        -- focused node left the scene (route change / virtualization);
+        -- nav_rect is kept so the next press re-anchors nearby
+        state.nav = nil
         state.nav_adjust = nil
+    end
+    -- a nav move that scrolled into unmaterialized content completes
+    -- here once the pushed scene contains the aligned neighbour
+    if state.nav_pending and state.active then
+        local p = state.nav_pending
+        state.nav_pending = nil
+        local cur = state.nav and state.byid[state.nav]
+        if cur then
+            local best = nav_pick(cur, nav_candidates(), p.dx, p.dy,
+                                  true)
+            if best then nav_set(best) end
+        end
     end
     -- the scene is authoritative for menu and modal presence
     state.menu_hidden = false
@@ -2477,6 +2539,8 @@ mp.register_script_message('mpvtk-active', function(on)
         state.nav = nil
         state.nav_pidx = nil
         state.nav_adjust = nil
+        state.nav_rect = nil
+        state.nav_pending = nil
         state.pressed = nil
         state.tip = nil
         if state.tip_timer then
