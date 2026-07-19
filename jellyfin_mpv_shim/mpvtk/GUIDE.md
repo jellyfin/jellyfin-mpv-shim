@@ -59,6 +59,12 @@ Containers: `HScroll`/`VScroll` (optional scrollbar; `on_scroll` for
 windowed/infinite content — fires leading-edge-throttled every 150ms
 during scrolling).
 
+`Icon` (Material vector icon — the same generated set and SVG→ASS
+pipeline as the Tk UI and the OSC via the shared `svgpath` module;
+24×24 unit canvas with corner anchors, scaled crisp via `\fscx`;
+compose with Text in a Row for labelled buttons). `Dropdown` and
+`Menu` take per-item `icons=` name lists.
+
 Floating: `Menu` (context menu at a point; `on_select`/`on_dismiss`),
 `Dialog` (centered modal, grabs all input, ESC/click-away →
 `on_dismiss`), `Float` (positioned toast/banner, no grab). All floating
@@ -181,8 +187,15 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    jump), ctrl+shift+arrows (word select), ctrl+BS/DEL (word delete),
    ctrl+A/C/X/V, ctrl+HOME/END, replace-on-type — plus a built-in
    right-click Cut/Copy/Paste/Select All menu (masked boxes offer
-   Paste/Select All only — no clipboard leaks). The caret is a thin
-   bar centered on the char boundary. Metrics: ASCII + Latin-1 are
+   Paste/Select All only — no clipboard leaks). The caret is an INLINE
+   zero-width ASS drawing spliced into the text at the cursor — libass
+   positions it at the exact pen boundary, so width math is only
+   needed for click mapping. Three hard-won rules: inline drawing y
+   origin is the line's ASCENT TOP (not baseline); the drawing must
+   stay spliced during blink-off (alpha toggle) or the line bbox
+   change bobs the text ~1px; and the run split drops the kern of the
+   surrounding pair — restored via negative \\fsp on the prefix's last
+   char using the measured kern amount. Metrics: ASCII + Latin-1 are
    bulk-measured at startup (~45ms fast machine, disk-cached to ~6KB
    JSON so warm starts read in ~0.5ms; stack is Pillow → raqm/HarfBuzz
    → FreeType, layout only, no rasterization); everything else is

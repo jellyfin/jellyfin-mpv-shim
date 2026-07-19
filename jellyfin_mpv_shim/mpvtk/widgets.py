@@ -149,6 +149,23 @@ class ImageMap(Element):
         self.regions = regions or []
 
 
+class Icon(Element):
+    """Material vector icon (shared set with the Tk UI and the OSC),
+    rendered as an ASS drawing — crisp at any size. Compose with Text
+    in a Row for labelled buttons; Dropdown/Menu take per-item icons
+    directly."""
+
+    def __init__(self, name, size=20, color="eeeeee", on_click=None,
+                 hover=None, **kw):
+        kw.setdefault("w", size)
+        kw.setdefault("h", size)
+        super().__init__(**kw)
+        self.name = name
+        self.color = color
+        self.on_click = on_click
+        self.hover = hover
+
+
 class Button(Box):
     def __init__(self, label, on_click=None, size=20, fg="eeeeee", **kw):
         kw.setdefault("bg", "333333")
@@ -278,6 +295,7 @@ class Dropdown(Element):
         items,
         selected=0,
         size=20,
+        icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         force=False,
         **kw,
@@ -286,6 +304,7 @@ class Dropdown(Element):
         self.items = list(items)
         self.selected = selected
         self.size = size
+        self.icons = icons
         self.on_select = on_select
         self.force = force
 
@@ -306,6 +325,7 @@ class Menu(Element):
         x,
         y,
         size=20,
+        icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         on_dismiss=None,
         **kw,
@@ -315,6 +335,7 @@ class Menu(Element):
         self.x = x
         self.y = y
         self.size = size
+        self.icons = icons
         self.on_select = on_select
         self.on_dismiss = on_dismiss
 

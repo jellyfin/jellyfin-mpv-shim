@@ -29,6 +29,7 @@ from .widgets import (
     Dropdown,
     Float,
     HScroll,
+    Icon,
     ImageMap,
     Menu,
     Row,
@@ -628,6 +629,48 @@ class Demo:
             gap=12,
             align="center",
         )
+        icons_row = Row(
+            [
+                Box(  # icon+label button
+                    [Icon("play_arrow", 22), Text("Play", size=18)],
+                    id="btn-play",
+                    direction="row",
+                    gap=6,
+                    pad=8,
+                    bg="333333",
+                    hover={"fill": "4a4a4a"},
+                    radius=6,
+                    align="center",
+                    on_click=lambda: self._pick(0),
+                ),
+                Box(  # icon-only button
+                    [Icon("skip_next", 22)],
+                    id="btn-next",
+                    pad=8,
+                    bg="333333",
+                    hover={"fill": "4a4a4a"},
+                    radius=6,
+                    on_click=lambda: self._pick(1),
+                ),
+                Row(  # label with tinted icon
+                    [
+                        Icon("favorite", 18, color="e05070"),
+                        Text("Favorites", size=18),
+                    ],
+                    gap=6,
+                    align="center",
+                ),
+                Dropdown(
+                    "dtype",
+                    ["Movies", "Music", "Radio"],
+                    icons=["movie", "queue_music", "radio"],
+                    w=170,
+                    on_select=lambda i, v: setattr(self, "dtype", v),
+                ),
+            ],
+            gap=14,
+            align="center",
+        )
         hdr_style = {"size": 16, "bold": True, "color": "aaaaaa"}
         table = Column(
             [
@@ -679,6 +722,7 @@ class Demo:
             [
                 Text("Widget gallery", size=24, bold=True),
                 Row([checks, Spacer(w=60), sliders], gap=10),
+                icons_row,
                 entries,
                 Text("Track table (click to select, reorder below)",
                      size=18, bold=True),
@@ -783,6 +827,7 @@ class Demo:
                     ["Play", "Mark Watched", "Toggle Favorite"],
                     self.menu["x"],
                     self.menu["y"],
+                    icons=["play_arrow", "edit", "favorite"],
                     on_select=self._menu_action,
                     on_dismiss=self._close_menu,
                 )
@@ -1014,6 +1059,19 @@ def _selftest(demo, outdir):
     app.debug(cmd="click", id="tab-widgets")
     time.sleep(0.4)
     shot("09-widgets")
+    from .layout import layout as _layout
+
+    nodes, _ = _layout(demo.build((1280, 720)), 1280, 720)
+    n_icons = sum(1 for n in nodes if n["t"] == "icon")
+    dd_icons = any(n.get("icons") for n in nodes if n["t"] == "dropdown")
+    check("vector-icons", n_icons >= 3 and dd_icons,
+          "%d icon nodes" % n_icons)
+    app.debug(cmd="click", id="dtype")
+    time.sleep(0.4)
+    shot("09b-icon-dropdown")
+    app.debug(cmd="popup", index=1)
+    time.sleep(0.3)
+    check("icon-dropdown-select", getattr(demo, "dtype", None) == "Music")
     before = demo.opts["transcode"]
     app.debug(cmd="click", id="chk-transcode")
     time.sleep(0.3)

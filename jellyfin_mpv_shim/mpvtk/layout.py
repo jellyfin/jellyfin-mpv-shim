@@ -17,6 +17,7 @@ from .widgets import (
     Dropdown,
     Element,
     Float,
+    Icon,
     Image,
     ImageMap,
     Menu,
@@ -25,6 +26,14 @@ from .widgets import (
     Text,
     TextBox,
 )
+
+
+def _icon_paths(names):
+    """Resolve Material icon names to unit-canvas ASS paths ('' = no
+    icon for that slot)."""
+    from .vector import icon_ass
+
+    return [icon_ass(n) if n else "" for n in names]
 
 # Heuristic fallback — keep in sync with CHAR_W in renderer.lua.
 # set_metrics() replaces it with measured advances (see metrics.py).
@@ -123,7 +132,7 @@ def measure(el):
         return w, el.h or el.size * 1.9
     if isinstance(el, (Menu, Dialog, Float)):
         return 0, 0  # floating: takes no space in flow
-    if isinstance(el, (Slider, Busy)):
+    if isinstance(el, (Slider, Busy, Icon)):
         return el.w, el.h
     if isinstance(el, Scroll):
         cw, ch = measure(el.child)
@@ -299,6 +308,20 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
         return
 
+    if isinstance(el, Icon):
+        from .vector import icon_ass
+
+        node = _base(el, "icon", x, y, w, h, sc, path)
+        node["path"] = icon_ass(el.name)
+        node["c"] = el.color
+        if el.on_click:
+            node["click"] = True
+            _reg(ctx, node["id"], "click", el.on_click)
+        if el.hover:
+            node["hover"] = el.hover
+        ctx.nodes.append(node)
+        return
+
     if isinstance(el, (Dialog, Float)):
         # Out-of-flow top layer. Dialog centers itself and grabs input;
         # Float sits at its given position without grabbing.
@@ -336,6 +359,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         node["items"] = el.items
         node["sel"] = el.selected
         node["size"] = el.size
+        if el.icons:
+            node["icons"] = _icon_paths(el.icons)
         if el.force:
             node["force"] = True
         _reg(ctx, node["id"], "select", el.on_select)
@@ -357,6 +382,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             "items": el.items,
             "size": el.size,
         }
+        if el.icons:
+            node["icons"] = _icon_paths(el.icons)
+            node["w"] = _round(node["w"] + el.size * 1.5)
         _reg(ctx, el.id, "select", el.on_select)
         _reg(ctx, el.id, "dismiss", el.on_dismiss)
         ctx.nodes.append(node)

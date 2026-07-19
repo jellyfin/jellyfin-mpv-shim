@@ -288,7 +288,10 @@ end
 
 local ALIGN_AN = { left = 4, center = 5, right = 6 }
 
-local function draw_text(ass, node, ex, ey, clip, text, color, extra)
+-- raw=true skips escaping: the caller pre-escaped segments and mixed
+-- in override tags (inline caret drawing).
+local function draw_text(ass, node, ex, ey, clip, text, color, extra,
+                         raw)
     local an = ALIGN_AN[node.align or 'left'] or 4
     local px = ex
     if an == 5 then px = ex + node.w / 2 end
@@ -300,7 +303,21 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra)
         ass_color(color), node.bold and '\\b1' or '',
         ui_font and ('\\fn' .. ui_font) or '',
         clip_tag(clip), extra or ''))
-    ass:append(esc(text))
+    ass:append(raw and text or esc(text))
+end
+
+-- Material icon as an ASS drawing: `path` is on the 24x24 unit canvas
+-- with corner anchors (see mpvtk/vector.py), scaled via \fscx/\fscy —
+-- the same convention as the jellyfin OSC.
+local function draw_icon_path(ass, path, x, y, px, color, clip)
+    local scale = px / 24 * 100
+    ass:new_event()
+    ass:append(string.format(
+        '{\\pos(%.1f,%.1f)\\an7\\bord0\\shad0\\1c%s\\1a&H00&' ..
+        '\\fscx%.2f\\fscy%.2f%s\\p1}',
+        x, y, ass_color(color), scale, scale, clip_tag(clip)))
+    ass:append(path)
+    ass:append('{\\p0}')
 end
 
 local overlay_list  -- rebuilt per render: {slot -> args}
@@ -561,17 +578,59 @@ local function draw_textbox(ass, node, ex, ey, clip)
             { fill = '3d59a1', a = 200, clip = inner })
     end
     local disp = node.mask and string.rep('•', u8_count(text)) or text
-    draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
-    if focused and state.cursor_on then
-        local cx = x0 + tb_text_w(node, text, tb and tb.cursor or #text)
-        if cx >= inner.x1 - 1 and cx <= inner.x2 + 1 then
-            -- thin bar CENTERED on the boundary: a 2px bar starting at
-            -- the boundary visibly overlapped the next glyph (~40% of
-            -- a narrow letter at small sizes)
-            draw_rect(ass, cx - 0.8, ey + node.h * 0.18,
-                1.6, node.h * 0.64,
-                { fill = 'eeeeee', clip = inner })
+    if focused then
+        -- The caret is an INLINE zero-width ASS drawing spliced into
+        -- the text at the cursor: libass places it at the exact pen
+        -- position between the surrounding glyphs (kerning, shaping
+        -- and fallback fonts included) — our width math is only
+        -- needed for click mapping, not caret display. Zero width
+        -- (a vertical line path) means no advance; the visible bar is
+        -- the \bord outline around it.
+        local cur = tb and tb.cursor or #text
+        local dsplit
+        if node.mask then
+            dsplit = u8_count(text:sub(1, cur)) * 3  -- '•' is 3 bytes
+        else
+            dsplit = cur
         end
+        -- inline drawing y origin is the line's ASCENT TOP (positive
+        -- down), not the baseline — negative coords render above the
+        -- glyphs. The drawing is ALWAYS spliced while focused and the
+        -- blink toggles only its border alpha: removing it changed
+        -- the line's bounding box, and \an4 re-centering bobbed the
+        -- text ~1px with every blink.
+        local caret = string.format(
+            '{\\p1\\bord0.8\\3c&HEEEEEE&\\3a%s\\1a&HFF&}' ..
+            'm 0 %d l 0 %d' ..
+            '{\\p0\\bord0\\1a&H00&\\3a&H00&\\fsp0}',
+            state.cursor_on and '&H00&' or '&HFF&',
+            math.floor(node.size * 0.06),
+            math.floor(node.size * 0.92))
+        local a = disp:sub(1, dsplit)
+        local b = disp:sub(dsplit + 1)
+        local pre = esc(a)
+        if not node.mask and #a > 0 and #b > 0 then
+            -- splitting the text at the caret breaks the shaping run,
+            -- dropping the kern between the surrounding pair (the
+            -- suffix shifted while the caret sat inside e.g. "Ta").
+            -- Restore it as negative letter-spacing on the prefix's
+            -- last character — same measured amount, so nothing moves.
+            local pc = a:match(U8PAT .. '$')
+            local nc = b:match('^' .. U8PAT)
+            if pc and nc then
+                local k = kern_w(pc, nc)
+                if k ~= 0 then
+                    pre = esc(a:sub(1, #a - #pc)) ..
+                        string.format('{\\fsp%.2f}', k * node.size) ..
+                        esc(pc)
+                end
+            end
+        end
+        draw_text(ass, tnode, x0, ey, inner,
+            pre .. caret .. esc(b),
+            'eeeeee', nil, true)
+    else
+        draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
     end
 end
 
@@ -592,10 +651,19 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         bc = open and '7aa2f7' or '444444', bw = 1, clip = clip,
     })
     local label = node.items[d.sel + 1] or ''
+    local indent = 0
+    local ipath = node.icons and node.icons[d.sel + 1]
+    if ipath and ipath ~= '' then
+        local isz = math.floor(node.size * 1.1)
+        draw_icon_path(ass, ipath, ex + 8, ey + (node.h - isz) / 2,
+            isz, 'cccccc', clip)
+        indent = isz + 6
+    end
     local tnode = {
-        w = node.w - 40, h = node.h, size = node.size, align = 'left',
+        w = node.w - 40 - indent, h = node.h, size = node.size,
+        align = 'left',
     }
-    draw_text(ass, tnode, ex + 10, ey, clip, label, 'eeeeee')
+    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, 'eeeeee')
     -- arrow
     local ax = ex + node.w - 22
     local ay = ey + node.h / 2 - 2
@@ -623,11 +691,14 @@ local function popup_geometry(node)
 end
 
 -- Generic floating list (dropdown popups, context menus). sel may be
--- nil. Returns the geometry used for hit-testing.
-local function draw_list(ass, g, items, sel, size)
+-- nil; icons is an optional parallel list of unit-canvas ASS paths
+-- ('' = none).
+local function draw_list(ass, g, items, sel, size, icons)
     draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
         fill = '222222', radius = 6, bc = '555555', bw = 1,
     })
+    local isz = math.floor(size * 1.1)
+    local indent = icons and (isz + 10) or 0
     for i, item in ipairs(items) do
         local iy = g.y + (i - 1) * g.ih
         local hovered = state.mouse.x >= g.x and
@@ -638,16 +709,21 @@ local function draw_list(ass, g, items, sel, size)
                 fill = hovered and '3d59a1' or '333333', radius = 4,
             })
         end
-        local tnode = { w = g.w - 20, h = g.ih, size = size,
+        if icons and icons[i] and icons[i] ~= '' then
+            draw_icon_path(ass, icons[i], g.x + 8,
+                iy + (g.ih - isz) / 2, isz, 'cccccc', nil)
+        end
+        local tnode = { w = g.w - 20 - indent, h = g.ih, size = size,
                         align = 'left' }
-        draw_text(ass, tnode, g.x + 10, iy, nil, item, 'eeeeee')
+        draw_text(ass, tnode, g.x + 10 + indent, iy, nil, item,
+            'eeeeee')
     end
 end
 
 local function draw_popup(ass, node)
     local d = dd_state(node)
     local g = state.dd_geo or popup_geometry(node)
-    draw_list(ass, g, node.items, d.sel, node.size)
+    draw_list(ass, g, node.items, d.sel, node.size, node.icons)
 end
 
 local function menu_geometry(node)
@@ -664,7 +740,7 @@ end
 
 local function draw_menu(ass, node)
     draw_list(ass, state.menu_geo or menu_geometry(node), node.items,
-        nil, node.size)
+        nil, node.size, node.icons)
 end
 
 local function item_at(g, x, y)
@@ -905,6 +981,11 @@ render = function()
             draw_slider(ass, node, ex, ey, clip)
         elseif node.t == 'busy' then
             draw_busy(ass, node, ex, ey, clip)
+        elseif node.t == 'icon' then
+            local hs = hover_style(node)
+            draw_icon_path(ass, node.path, ex, ey,
+                math.min(node.w, node.h),
+                (hs and hs.c) or node.c or 'eeeeee', clip)
         end
     end
     local ass = assdraw.ass_new()
