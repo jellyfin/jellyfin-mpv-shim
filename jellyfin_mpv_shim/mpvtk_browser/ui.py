@@ -144,6 +144,31 @@ class _PlayerController:
                              settings.player_name,
                              not settings.ignore_ssl_cert)
 
+    # -- startup PIN lock -------------------------------------------------
+
+    def needs_unlock(self):
+        from ..users import userManager
+        try:
+            return bool(userManager.startup_needs_unlock())
+        except Exception:
+            return False
+
+    def unlock(self, pin):
+        from ..users import userManager
+        try:
+            return bool(userManager.verify_pin(userManager.active_id, pin))
+        except Exception:
+            log.error("mpvtk unlock failed", exc_info=True)
+            return False
+
+    def connect_and_rebuild(self):
+        if not settings.work_offline:
+            try:
+                clientManager.connect_all()
+            except Exception:
+                log.error("mpvtk connect failed", exc_info=True)
+        return self.rebuild_source()
+
     def open_url(self, url):
         import webbrowser
         try:
@@ -305,8 +330,18 @@ class UserInterface:
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="mpvtk-browser")
         self._thread.start()
-        threading.Thread(target=self._connect, daemon=True,
-                         name="mpvtk-connect").start()
+        # A startup PIN gates connection: show the lock screen and let the
+        # unlock drive the connect. Otherwise connect in the background.
+        from ..users import userManager
+        try:
+            locked = userManager.startup_needs_unlock()
+        except Exception:
+            locked = False
+        if locked:
+            browser.show_locked()
+        else:
+            threading.Thread(target=self._connect, daemon=True,
+                             name="mpvtk-connect").start()
 
     def _run(self):
         try:

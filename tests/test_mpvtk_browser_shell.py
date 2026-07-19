@@ -292,6 +292,12 @@ class FakeController:
     def rebuild_source(self):
         return FakeSource()
 
+    def unlock(self, pin):
+        return pin == "1234"
+
+    def connect_and_rebuild(self):
+        return FakeSource()
+
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
         # declaring each one.
@@ -605,6 +611,38 @@ class TestLogin(unittest.TestCase):
         # success -> rebuild source -> home
         self.assertEqual(self.b.route["kind"], "home")
         self.assertIsNone(self.b._login_error)
+
+
+class TestLocked(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_locked_renders_pin_field(self):
+        self.b.show_locked()
+        self.assertEqual(self.b.route["kind"], "locked")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("lock-pin", ids(nodes))
+        self.assertIn("lock-unlock", ids(nodes))
+        self.assertNotIn("nav-home", ids(nodes))   # chrome-free
+
+    def test_wrong_pin_shows_error(self):
+        self.b.show_locked()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("0000")
+        handlers["lock-unlock"]["click"]()
+        self.assertIn("Incorrect", self.b._pin_error)
+        self.assertEqual(self.b.route["kind"], "locked")
+
+    def test_correct_pin_unlocks_to_home(self):
+        self.b.show_locked()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("1234")
+        handlers["lock-unlock"]["click"]()
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertIsNone(self.b._pin_error)
 
 
 class TestDownloadDialog(unittest.TestCase):

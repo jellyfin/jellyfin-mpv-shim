@@ -83,6 +83,9 @@ class MpvtkBrowser:
         # here via on_change so Connect can read all three fields at once).
         self._login = {"server": "", "user": "", "pass": ""}
         self._login_error = None
+        # Startup-PIN lock screen state.
+        self._pin = {"pin": ""}
+        self._pin_error = None
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -687,6 +690,7 @@ class MpvtkBrowser:
             "queue": self._render_queue,
             "playlist_edit": self._render_playlist_edit,
             "login": self._render_login,
+            "locked": self._render_locked,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -1570,6 +1574,48 @@ class MpvtkBrowser:
                 log.warning("rebuild_source failed", exc_info=True)
         if source is not None:
             self.set_source(source)
+
+    # -------------------------------------------------------------- locked
+
+    def show_locked(self):
+        """Show the startup-PIN unlock gate."""
+        self.navigate({"kind": "locked", "title": _("Locked")}, reset=True)
+
+    def _render_locked(self, route, size):
+        form = Column([
+            Text(_("Enter your PIN"), size=28, bold=True),
+            TextBox("lock-pin", text="", placeholder=_("PIN"), mask=True,
+                    w=240, on_change=lambda v: self._pin.__setitem__("pin", v),
+                    on_submit=lambda v: self._do_unlock()),
+            Row([Spacer(),
+                 Button(_("Unlock"), id="lock-unlock",
+                        on_click=self._do_unlock)], gap=10),
+        ], pad=28, gap=16, bg=theme.CARD_BG, radius=12, border=theme.BORDER,
+           w=420)
+        if self._pin_error:
+            form.children.insert(1, Text(self._pin_error, size=15,
+                                         color=theme.FAV_RED))
+        return Box([Spacer(), Row([Spacer(), form, Spacer()]), Spacer()],
+                   flex=1, direction="column", align="stretch")
+
+    def _do_unlock(self):
+        if self.controller is None:
+            return
+        pin = self._pin.get("pin", "")
+        ep = self._epoch
+
+        def work():
+            if not self.controller.unlock(pin):
+                return None
+            return self.controller.connect_and_rebuild()
+
+        def done(source):
+            if source is None:
+                self._pin_error = _("Incorrect PIN.")
+            else:
+                self._pin_error = None
+                self.set_source(source)
+        self.run_async(work, done, ep)
 
     def _busy(self):
         return Box(
