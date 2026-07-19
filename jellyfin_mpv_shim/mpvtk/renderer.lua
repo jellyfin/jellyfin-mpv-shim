@@ -2182,6 +2182,56 @@ local function nav_pick(cur, cands, dx, dy, need_overlap, filter)
     return best
 end
 
+-- Vertical moves are ROW-focused: find the nearest row of candidates
+-- beyond the current node's edge in the direction of travel, then the
+-- horizontally nearest element within that row — UP from a right-hand
+-- button must land in the row directly above even when everything
+-- there sits to its left (no x-overlap required).
+local function nav_pick_row(cur, cands, dy, filter)
+    local cx = select(1, nav_center(cur))
+    local ax, ay = eff(cur)
+    local function beyond(c)
+        local py = select(2, nav_center(c))
+        if dy < 0 then
+            return py < ay, ay - py
+        end
+        return py > ay + cur.h, py - (ay + cur.h)
+    end
+    local nearest, ndist
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id and (filter == nil or filter(c)) then
+            local ok, dist = beyond(c)
+            if ok and (ndist == nil or dist < ndist) then
+                nearest, ndist = c, dist
+            end
+        end
+    end
+    if not nearest then return nil end
+    local _, nyy = eff(nearest)
+    local best, score
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id and (filter == nil or filter(c)) then
+            local ok = beyond(c)
+            local ex, ey = eff(c)
+            -- same visual row = vertical overlap with the nearest hit
+            if ok and ey < nyy + nearest.h and nyy < ey + c.h then
+                local s = math.abs(ex + c.w / 2 - cx)
+                if score == nil or s < score then best, score = c, s end
+            end
+        end
+    end
+    return best
+end
+
+-- One entry point: row-based for vertical, overlap-confined for
+-- horizontal (RIGHT stays inside its carousel row).
+local function nav_choose(cur, cands, dx, dy, filter)
+    if dy ~= 0 then
+        return nav_pick_row(cur, cands, dy, filter)
+    end
+    return nav_pick(cur, cands, dx, dy, true, filter)
+end
+
 local function nav_move(dx, dy)
     set_nav_mode(true)
     -- a focused textbox owns the arrows (caret movement) whichever
@@ -2246,7 +2296,7 @@ local function nav_move(dx, dy)
     local function inside(c)
         return nav_in_chain(chain, c)
     end
-    local best = nav_pick(cur, cands, dx, dy, true, inside)
+    local best = nav_choose(cur, cands, dx, dy, inside)
     if best then
         nav_set(best)
         return
@@ -2268,8 +2318,8 @@ local function nav_move(dx, dy)
                                  scroll_max(cont))
             if target ~= off then
                 set_scroll(cont, target)
-                best = nav_pick(cur, nav_candidates(), dx, dy, true,
-                                inside)
+                best = nav_choose(cur, nav_candidates(), dx, dy,
+                                  inside)
                 if best then
                     nav_set(best)
                 else
@@ -2280,20 +2330,12 @@ local function nav_move(dx, dy)
         end
         sc = cont.sc
     end
-    -- tier 2: the containers are exhausted — aligned candidates
-    -- anywhere (chrome, the now-playing bar)
-    best = nav_pick(cur, cands, dx, dy, true)
-    if best then
-        nav_set(best)
-        return
-    end
-    -- tier 3, vertical only: the unaligned cone. Horizontal stays in
-    -- its row — RIGHT at the end of a fully scrolled carousel does
-    -- nothing rather than hopping to an arbitrary other row.
-    if dy ~= 0 then
-        best = nav_pick(cur, cands, dx, dy, false)
-        if best then nav_set(best) end
-    end
+    -- tier 2: the containers are exhausted — candidates anywhere
+    -- (chrome, the now-playing bar). Horizontal still stays in its
+    -- row: RIGHT at the end of a fully scrolled carousel does nothing
+    -- rather than hopping to an arbitrary other row.
+    best = nav_choose(cur, cands, dx, dy)
+    if best then nav_set(best) end
 end
 
 local function nav_activate()
@@ -2481,8 +2523,8 @@ local function reconcile()
         local cur = state.nav and state.byid[state.nav]
         if cur then
             local chain = nav_chain(cur)
-            local best = nav_pick(
-                cur, nav_candidates(), p.dx, p.dy, true,
+            local best = nav_choose(
+                cur, nav_candidates(), p.dx, p.dy,
                 function(c) return nav_in_chain(chain, c) end)
             if best then nav_set(best) end
         end

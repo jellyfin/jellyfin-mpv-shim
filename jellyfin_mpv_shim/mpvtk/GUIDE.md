@@ -121,9 +121,12 @@ tiered: aligned candidates inside the focused node's own scroll
 containers win first; then the container pages ~60% of a viewport
 along the axis and retries (completing on the next scene push if the
 content wasn't materialized yet); only when the containers are
-exhausted may focus escape to aligned fixed chrome (top bar,
-now-playing bar), with an unaligned-cone fallback for vertical moves
-only. Scroll-into-view uses asymmetric margins (56px leading, 12px
+exhausted may focus escape to fixed chrome (top bar, now-playing
+bar). Vertical moves are row-focused: the nearest row beyond the
+node's edge wins, then the horizontally nearest element within it —
+no x-overlap required, so UP from a right-hand button lands in the
+row directly above it. Horizontal moves stay overlap-confined to
+their row. Scroll-into-view uses asymmetric margins (56px leading, 12px
 trailing) so a row's heading scrolls in with its carousel. Modality is
 reported to the app as the `nav` event (`MpvtkApp.on_nav`): the
 browser hides carousel arrows while keyboard/remote navigation is

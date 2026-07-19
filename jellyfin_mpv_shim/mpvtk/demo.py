@@ -1299,6 +1299,15 @@ def _selftest(demo, outdir):
     st = app.debug_state()
     check("nav-left-moves", (st or {}).get("nav") == "btn-dialog",
           str((st or {}).get("nav")))
+    # vertical moves are row-focused: UP from the rightmost button of
+    # the entries row lands in the row directly above (its rightmost
+    # element sits well to the LEFT — no x-overlap required)
+    app.debug(cmd="nav", id="btn-hold")
+    app.debug(cmd="nav", dir="up")
+    time.sleep(0.3)
+    st = app.debug_state()
+    check("nav-up-row-focused", (st or {}).get("nav") == "dtype",
+          str((st or {}).get("nav")))
     app.debug(cmd="nav", id="btn-toast")
     app.debug(cmd="nav", action="enter")
     time.sleep(0.4)
