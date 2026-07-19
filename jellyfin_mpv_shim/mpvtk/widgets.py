@@ -28,7 +28,8 @@ class Element:
 
     def __init__(self, id=None, w=None, h=None, flex=0,
                  anchor=None, dx=0, dy=0, occlude=False, tip=None,
-                 min_w=None, max_w=None, min_h=None, max_h=None):
+                 min_w=None, max_w=None, min_h=None, max_h=None,
+                 autofocus=False):
         self.id = id
         self.w = w
         self.h = h
@@ -42,6 +43,10 @@ class Element:
         self.max_w = max_w
         self.min_h = min_h
         self.max_h = max_h
+        # Grabs spatial-nav focus when a key-summoned playback HUD's
+        # first scene lands (renderer: phud want_focus). Inert outside
+        # that flow — ordinary scenes never steal focus.
+        self.autofocus = autofocus
 
 
 class Box(Element):

@@ -57,6 +57,9 @@ local state = {
     accent = '7aa2f7',
     accent_soft = '223055',
     active = true,          -- false while yielded to playback (see mpvtk-active)
+    -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
+    -- video, summoned by nav keys / mouse motion, auto-hides
+    phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1 },
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
@@ -99,6 +102,12 @@ local state = {
 local function send(tbl)
     mp.commandv('script-message', 'mpvtk-event', utils.format_json(tbl))
 end
+
+-- Playback-HUD lifecycle (implemented with the mpvtk-hud handler at
+-- the bottom; fwd-declared because the input handlers above it feed
+-- its auto-hide timer and summon path). All are assigned before the
+-- event loop can dispatch anything.
+local phud_touch, phud_summon, phud_hide, phud_clear
 
 -- Heuristic fallback — keep in sync with layout.py. Replaced at
 -- runtime by measured advances via the mpvtk-metrics message.
@@ -1743,6 +1752,7 @@ local function tb_menu_action(node, label)
 end
 
 local function on_mouse_move(x, y)
+    phud_touch()
     state.mouse.x, state.mouse.y = x, y
     if state.tb_drag then
         local node = state.byid[state.tb_drag.id]
@@ -1857,6 +1867,7 @@ local function start_repeat(node)
 end
 
 local function on_mouse_down()
+    phud_touch()
     local x, y = state.mouse.x, state.mouse.y
     if state.tip then
         state.tip = nil  -- clicking dismisses the tooltip
@@ -2013,6 +2024,7 @@ end
 local WHEEL_LOCK_S = 2.0
 
 local function on_wheel(dir, axis, e)
+    phud_touch()
     state.wheel_count = (state.wheel_count or 0) + 1
     local scale = (e and e.scale) or 1
     if scale <= 0 then scale = 1 end
@@ -2334,6 +2346,7 @@ local function nav_wrap(cur, cands, dy)
 end
 
 local function nav_move(dx, dy)
+    phud_touch()
     set_nav_mode(true)
     -- a focused textbox owns the arrows (caret movement) whichever
     -- forced binding mpv happens to prefer — delegate, don't navigate
@@ -2448,6 +2461,7 @@ local function nav_move(dx, dy)
 end
 
 local function nav_activate()
+    phud_touch()
     set_nav_mode(true)
     if state.focus then
         tb_key('ENTER')  -- submit, same as the textbox's own binding
@@ -2560,6 +2574,18 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         return
     end
     state.mouse.hover = true
+    if state.phud.mode and not state.phud.shown then
+        -- HUD idle: real pointer movement summons it. The first event
+        -- after entering idle only records the position (mx = -1 means
+        -- unknown) so a stale delta can't insta-summon.
+        local known = state.phud.mx >= 0
+        local moved = known and
+            (math.abs(pos.x - state.phud.mx) +
+             math.abs(pos.y - state.phud.my)) > 2
+        state.phud.mx, state.phud.my = pos.x, pos.y
+        if moved then phud_summon('mouse') end
+        return
+    end
     on_mouse_move(pos.x, pos.y)
 end)
 
@@ -2703,57 +2729,238 @@ mp.register_script_message('mpvtk-scene', function(json)
     -- over the video; the app re-pushes on resume.
     state.nodes = state.active and (scene.nodes or {}) or {}
     reconcile()
+    if state.phud.shown and state.phud.want_focus then
+        -- first HUD scene after a key/remote summon: focus lands on
+        -- the autofocus node (play/pause)
+        for _, node in ipairs(state.nodes) do
+            if node.af then
+                state.phud.want_focus = nil
+                nav_set(node)
+                break
+            end
+        end
+    end
     request_render()
 end)
+
+-- Full-UI input ownership, shared by browse (mpvtk-active) and a
+-- summoned playback HUD (mpvtk-hud below).
+local function ui_resume()
+    mp.enable_key_bindings('mpvtk_mouse')
+    mp.enable_key_bindings('mpvtk_wheel')
+    bind_nav_keys()
+    mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
+        state.hud = not state.hud
+        request_render()
+    end)
+end
+
+local function ui_suspend()
+    blur()                    -- drops the text-edit bindings + caret timer
+    stop_repeat()
+    unbind_nav_keys()         -- playback needs the arrows (seek/OSC)
+    state.nav = nil
+    state.nav_pidx = nil
+    state.nav_adjust = nil
+    state.nav_rect = nil
+    state.nav_pending = nil
+    state.pressed = nil
+    state.tip = nil
+    if state.tip_timer then
+        state.tip_timer:kill()
+        state.tip_timer = nil
+    end
+    if state.nav_mode then
+        state.nav_mode = false
+        send({ t = 'nav', active = false })
+    end
+    state.dd_open = nil
+    state.tb_menu = nil
+    state.modal = nil
+    mp.disable_key_bindings('mpvtk_mouse')
+    mp.disable_key_bindings('mpvtk_wheel')
+    mp.remove_key_binding('mpvtk_hud')
+    state.nodes = {}
+    state.byid = {}
+    reconcile()
+end
 
 -- When the UI shares the player's window (see mpvtk/app.py AdoptBackend) it
 -- must get completely out of the way during playback: our forced mbtn/wheel
 -- sections otherwise swallow the clicks and scrolls the mpv OSC needs, so the
 -- OSC looks dead even though it is drawn. 'mpvtk-active no' unbinds everything
--- and blanks the scene; 'yes' restores it.
+-- and blanks the scene; 'yes' restores it. Either direction also leaves
+-- HUD mode entirely (browse resuming / yielding to the lua OSC).
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
+    phud_clear()
     if want == state.active then return end
     state.active = want
     -- mirrored so the player can route remote navigation commands to
     -- the browser's nav keys only while the UI actually owns them
     pcall(mp.set_property_native, 'user-data/mpvtk/active', want)
     if want then
-        mp.enable_key_bindings('mpvtk_mouse')
-        mp.enable_key_bindings('mpvtk_wheel')
-        bind_nav_keys()
-        mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
-            state.hud = not state.hud
-            request_render()
-        end)
+        ui_resume()
     else
-        blur()                    -- drops the text-edit bindings + caret timer
-        stop_repeat()
-        unbind_nav_keys()         -- playback needs the arrows (seek/OSC)
-        state.nav = nil
-        state.nav_pidx = nil
-        state.nav_adjust = nil
-        state.nav_rect = nil
-        state.nav_pending = nil
-        state.pressed = nil
-        state.tip = nil
-        if state.tip_timer then
-            state.tip_timer:kill()
-            state.tip_timer = nil
+        ui_suspend()
+    end
+    request_render()
+end)
+
+-- ------------------------------------------------ playback HUD (mpvtk-hud)
+-- A third lifecycle state besides active/inactive (MIGRATION.md Phase
+-- 9): during video playback the renderer stays ATTACHED but IDLE —
+-- blank scene, no forced input sections, only a lightweight summon
+-- surface (arrow/ENTER catchers + the mouse-move observer above).
+-- Summoning binds the full sections and notifies Python ({t=hud,
+-- active=true}), which pushes the HUD scene; an inactivity timer
+-- tears it back down to idle. While idle, every other key keeps its
+-- mpv default (space pauses, q quits, …).
+
+local PHUD_HIDE_S = 4
+local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
+
+local function phud_bind_summon()
+    for _, key in ipairs(PHUD_SUMMON_KEYS) do
+        mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
+            function() phud_summon('key') end)
+    end
+end
+
+local function phud_unbind_summon()
+    for _, key in ipairs(PHUD_SUMMON_KEYS) do
+        mp.remove_key_binding('mpvtk_summon_' .. key)
+    end
+end
+
+local function phud_disarm()
+    if state.phud.timer then
+        state.phud.timer:kill()
+        state.phud.timer = nil
+    end
+end
+
+-- Interactions the auto-hide must not interrupt; checked at expiry
+-- (the timer re-arms instead of hiding). Paused playback also keeps
+-- the HUD up — hiding the controls the moment someone pauses is the
+-- opposite of what pausing means.
+local function phud_busy()
+    return state.dd_open ~= nil or state.modal ~= nil
+        or state.tb_menu ~= nil or state.slider_drag ~= nil
+        or state.pressed ~= nil or state.nav_adjust
+        or active_menu() ~= nil
+        or mp.get_property_native('pause', false)
+end
+
+local function phud_arm()
+    phud_disarm()
+    state.phud.timer = mp.add_timeout(PHUD_HIDE_S, function()
+        state.phud.timer = nil
+        if not (state.phud.mode and state.phud.shown) then return end
+        if phud_busy() then
+            phud_arm()
+        else
+            phud_hide()
         end
-        if state.nav_mode then
-            state.nav_mode = false
-            send({ t = 'nav', active = false })
+    end)
+end
+
+function phud_touch()
+    if state.phud.mode and state.phud.shown then phud_arm() end
+end
+
+function phud_summon(src)
+    if not state.phud.mode or state.phud.shown then return end
+    state.phud.shown = true
+    -- a keyboard/remote summon lands spatial-nav focus on the scene's
+    -- autofocus node (play/pause) once Python pushes the HUD; a mouse
+    -- summon leaves the pointer in charge
+    state.phud.want_focus = src ~= 'mouse'
+    state.active = true
+    phud_unbind_summon()
+    ui_resume()
+    -- ESC steps back out one layer at a time: popup -> menu/dialog ->
+    -- the HUD itself. (A scene-driven dialog also binds
+    -- mpvtk_menu_esc, added later so it wins while it exists.)
+    mp.add_forced_key_binding('ESC', 'mpvtk_phud_esc', function()
+        if state.dd_open then
+            state.dd_open = nil
+            state.nav_pidx = nil
+            request_render()
+        elseif active_menu() then
+            dismiss_menu(nil)
+        elseif modal_active() then
+            state.modal_hidden = true
+            send({ t = 'dismiss', id = state.modal.id })
+            request_render()
+        else
+            phud_hide()
+            return
         end
-        state.dd_open = nil
-        state.tb_menu = nil
-        state.modal = nil
-        mp.disable_key_bindings('mpvtk_mouse')
-        mp.disable_key_bindings('mpvtk_wheel')
-        mp.remove_key_binding('mpvtk_hud')
-        state.nodes = {}
-        state.byid = {}
-        reconcile()
+        phud_touch()
+    end)
+    pcall(mp.set_property_native, 'user-data/mpvtk/active', true)
+    send({ t = 'hud', active = true })
+    phud_arm()
+    request_render()
+end
+
+function phud_hide()
+    if not state.phud.shown then return end
+    state.phud.shown = false
+    state.phud.mx, state.phud.my = -1, -1
+    phud_disarm()
+    state.active = false
+    mp.remove_key_binding('mpvtk_phud_esc')
+    ui_suspend()
+    phud_bind_summon()
+    pcall(mp.set_property_native, 'user-data/mpvtk/active', false)
+    send({ t = 'hud', active = false })
+    request_render()
+end
+
+-- Leave HUD mode entirely (called by mpvtk-active on any transition,
+-- and by 'mpvtk-hud no'). Deliberately does NOT touch the full input
+-- sections: the caller decides whether they stay (browse resuming
+-- from a summoned HUD) or go (plain suspend).
+function phud_clear()
+    if not state.phud.mode then return end
+    state.phud.mode = false
+    state.phud.shown = false
+    state.phud.mx, state.phud.my = -1, -1
+    phud_disarm()
+    phud_unbind_summon()
+    mp.remove_key_binding('mpvtk_phud_esc')
+    pcall(mp.set_property_native, 'user-data/mpvtk/hud', false)
+end
+
+mp.register_script_message('mpvtk-hud', function(on)
+    local want = (on == 'yes' or on == 'true' or on == '1')
+    if want == state.phud.mode then return end
+    if want then
+        -- enter attached-but-idle, tearing down whatever we owned
+        if state.active then
+            state.active = false
+            ui_suspend()
+            pcall(mp.set_property_native,
+                'user-data/mpvtk/active', false)
+        end
+        state.phud.mode = true
+        state.phud.shown = false
+        state.phud.mx, state.phud.my = -1, -1
+        phud_bind_summon()
+        -- mirrored so the player routes remote Move*/Select here (to
+        -- summon) instead of treating them as seek keys
+        pcall(mp.set_property_native, 'user-data/mpvtk/hud', true)
+    else
+        local shown = state.phud.shown
+        phud_clear()
+        if shown then
+            state.active = false
+            ui_suspend()
+            pcall(mp.set_property_native,
+                'user-data/mpvtk/active', false)
+        end
     end
     request_render()
 end)
@@ -2947,6 +3154,16 @@ mp.register_script_message('mpvtk-debug', function(json)
             nav = state.nav,
             nav_pidx = state.nav_pidx,
             tb = state.tb,
+            active = state.active,
+            phud_mode = state.phud.mode,
+            phud_shown = state.phud.shown,
         })
+    elseif cmd.cmd == 'phud' then
+        -- drive the playback-HUD lifecycle from tests
+        if cmd.action == 'summon' then
+            phud_summon()
+        elseif cmd.action == 'hide' then
+            phud_hide()
+        end
     end
 end)

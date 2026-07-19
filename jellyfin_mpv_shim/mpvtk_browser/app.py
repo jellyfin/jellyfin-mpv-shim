@@ -46,6 +46,7 @@ from ..mpvtk.widgets import (
 )
 from ..mpvtk.layout import natural_size
 from . import theme
+from .hud import build_hud
 from .repository import (FOLDER_TYPES, PLAYABLE_TYPES,
                          PLAYLIST_SUPPORTED_TYPES, SERIES_TYPES)
 from .strips import (
@@ -109,6 +110,14 @@ class MpvtkBrowser:
         self._now_playing = None
         self._np_thread = None
         self._np_stop = threading.Event()
+        # Playback HUD (video, osc_style "mpvtk"): the renderer owns the
+        # summon/auto-hide lifecycle and reports it via on_hud; True while
+        # the HUD scene should be on screen. _hud_state is the latest video
+        # playstate snapshot feeding its bar (see hud.py).
+        self._hud_shown = False
+        self._hud_state = None
+        if app is not None and hasattr(app, "on_hud"):
+            app.on_hud = self._on_hud
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
         # Global download progress for the status bar, and its poller.
@@ -925,11 +934,40 @@ class MpvtkBrowser:
             except Exception:
                 log.debug("set_active failed", exc_info=True)
 
+    def _use_hud(self):
+        """Whether yielding to video keeps the renderer attached-but-idle
+        for the playback HUD (osc_style "mpvtk") instead of getting fully
+        out of the way, which is what the lua OSCs need."""
+        c = self.controller
+        return (self.app is not None and hasattr(self.app, "set_hud")
+                and c is not None and getattr(c, "use_hud", None) is not None
+                and c.use_hud())
+
+    def _on_hud(self, active):
+        """Renderer summoned / auto-hid the playback HUD (loop thread)."""
+        self._hud_shown = bool(active)
+        if active:
+            # a fresh position snapshot before the bar first paints, then
+            # the shared 1s ticker keeps its clock moving
+            try:
+                self.controller.refresh_playstate()
+            except Exception:
+                log.debug("playstate refresh failed", exc_info=True)
+            self._start_np_ticker()
+        self.invalidate()
+
     def _yield(self):
         self._browsing = False
         if self.controller is not None:
             self.controller.on_browse_leave()
-        self._set_renderer_active(False)
+        if self._use_hud():
+            # keep the renderer attached: blank scene + summon bindings
+            try:
+                self.app.set_hud(True)
+            except Exception:
+                log.debug("set_hud failed", exc_info=True)
+        else:
+            self._set_renderer_active(False)
         self.invalidate()  # empty scene clears overlays off the video
 
     def _start(self, audio):
@@ -990,9 +1028,11 @@ class MpvtkBrowser:
             self._pool.submit(lambda: self._safe(lambda c: c.check_updates()))
 
     def enter_browse(self):
-        """Show the browser: take the window + hide the OSC, then render."""
+        """Show the browser: take the window + hide the OSC, then render.
+        mpvtk-active yes also drops the renderer out of HUD mode."""
         self._browsing = True
         self._minimized = False
+        self._hud_shown = False
         if self.controller is not None:
             self.controller.on_browse_enter()
         self._set_renderer_active(True)
@@ -1005,6 +1045,7 @@ class MpvtkBrowser:
         dropping force_window with nothing playing."""
         self._minimized = True
         self._browsing = False
+        self._hud_shown = False
         self._set_renderer_active(False)
         if self.controller is not None:
             self.controller.on_minimize()
@@ -1019,6 +1060,8 @@ class MpvtkBrowser:
         browsing); video stays yielded to the picture + OSC."""
         if not state or state.get("stopped"):
             self._now_playing = None
+            self._hud_state = None
+            self._hud_shown = False
             if self._minimized:
                 # Cast finished and the library was never open: drop back to
                 # the windowless state rather than popping the browser up on
@@ -1040,10 +1083,11 @@ class MpvtkBrowser:
             self._start_np_ticker()
         else:
             self._now_playing = None
+            self._hud_state = state   # feeds the playback HUD bar
             if self._browsing:
                 self._yield()         # video: yield the window + the OSC
             else:
-                self.invalidate()
+                self.invalidate()     # HUD/bar repaint (clock, pause icon)
 
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.
@@ -1058,7 +1102,8 @@ class MpvtkBrowser:
         def tick():
             try:
                 while not self._np_stop.wait(1.0):
-                    if self._now_playing is None or not self._browsing:
+                    bar = self._now_playing is not None and self._browsing
+                    if not bar and not self._hud_shown:
                         break
                     try:
                         self.controller.refresh_playstate()
@@ -1114,6 +1159,10 @@ class MpvtkBrowser:
             except Exception:
                 log.debug("scroll_offsets failed", exc_info=True)
         if not self._browsing:
+            if self._hud_shown:
+                # Summoned playback HUD over the video (see hud.py; the
+                # renderer owns the summon/auto-hide lifecycle).
+                return build_hud(self, size)
             # Yielded to playback: an empty scene clears our overlays so the
             # video + OSC show through.
             return Column([], w=w, h=h)

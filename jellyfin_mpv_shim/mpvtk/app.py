@@ -251,6 +251,10 @@ class MpvtkApp:
         # engages / a mouse press takes over (hide carousel arrows,
         # switch affordances). Runs on the loop thread.
         self.on_nav = None
+        # called with True/False when the playback HUD is summoned /
+        # auto-hides (see set_hud). Runs on the loop thread; the True
+        # call should flip the build to the HUD scene + invalidate.
+        self.on_hud = None
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -410,6 +414,14 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_nav handler failed")
             return
+        if t == "hud":
+            if self.on_hud is not None:
+                try:
+                    self.on_hud(bool(evt.get("active")))
+                except Exception:
+                    log.exception("on_hud handler failed")
+            self._dirty = True
+            return
         if t in ("change", "submit"):
             # typed text may contain glyphs we've never measured; the
             # metrics push makes the renderer re-render with real widths
@@ -507,6 +519,21 @@ class MpvtkApp:
         enough — the bindings are what swallow the clicks."""
         self.backend.command(
             "script-message", "mpvtk-active", "yes" if active else "no"
+        )
+
+    def set_hud(self, on):
+        """Enter/leave the playback-HUD lifecycle (attached-but-idle).
+
+        Unlike ``set_active(False)`` — which gets the renderer entirely
+        out of the way for the lua OSC — HUD mode keeps it attached
+        during playback with a blank scene and only a lightweight
+        summon surface bound (arrows/ENTER + mouse motion). Summoning
+        rebinds the full input sections and fires ``on_hud(True)``;
+        the ~4s inactivity timer drops back to idle with
+        ``on_hud(False)``. ``set_active`` in either direction also
+        leaves HUD mode."""
+        self.backend.command(
+            "script-message", "mpvtk-hud", "yes" if on else "no"
         )
 
     def scroll(self, node_id, direction):

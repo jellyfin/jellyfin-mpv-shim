@@ -270,6 +270,12 @@ You can use the config file to enable and disable features.
     subtitles (including external and burn-in streams), audio, transcode
     quality, playback speed, aspect ratio, shader profiles, and SyncPlay.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
+  - `mpvtk` - Experimental: playback controls rendered by the library
+    browser inside the player window (YouTube-on-TV style). Playback runs
+    clean; any arrow key, ENTER, or mouse motion summons the controls, and
+    a few seconds without input hides them again. Fully navigable with a
+    keyboard or a Jellyfin remote. Requires `browser_ui: mpvtk` (falls back
+    to `jellyfin` otherwise).
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`

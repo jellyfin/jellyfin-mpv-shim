@@ -414,6 +414,8 @@ def _base(el, t, x, y, w, h, sc, path):
         node["sc"] = sc
     if getattr(el, "tip", None):
         node["tip"] = el.tip
+    if getattr(el, "autofocus", False):
+        node["af"] = True
     return node
 
 

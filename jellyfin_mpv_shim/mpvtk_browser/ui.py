@@ -77,6 +77,12 @@ class _PlayerController:
         playerManager.enable_osc(settings.enable_osc)
         playerManager.set_browse_window(False)
 
+    def use_hud(self):
+        """Whether video playback uses the in-window mpvtk playback HUD
+        (``osc_style: mpvtk``) instead of yielding fully to a lua OSC.
+        Read per-yield so an osc_style change applies without restart."""
+        return settings.osc_style == "mpvtk"
+
     def on_browse_leave(self):
         from ..player import playerManager
         # Restore video aspect handling / playback fullscreen, then hand the

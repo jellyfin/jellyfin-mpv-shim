@@ -64,6 +64,8 @@ PER_BACKEND_REAL = [
     "tests.integration.test_realmpv_smoke",
     # mpvtk browser attaches renderer.lua to a real mpv per backend.
     "tests.integration.test_mpvtk_browser",
+    # playback-HUD lifecycle (mpvtk-hud) over real video per backend.
+    "tests.integration.test_mpvtk_hud",
 ]
 
 # Tk browser UI under a display -> backend-agnostic (never imports player.py),

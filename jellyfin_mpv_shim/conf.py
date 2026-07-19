@@ -195,8 +195,11 @@ class Settings(SettingsBase):
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
     # In-player UI: "jellyfin" (jellyfin-web styled OSC), "mpv" (stock mpv
-    # OSC patched with trickplay previews), or "default" (whatever OSC is
-    # built into the mpv binary / the user's own scripts).
+    # OSC patched with trickplay previews), "mpvtk" (the in-window playback
+    # HUD rendered by the mpvtk browser — YouTube-on-TV style, remote
+    # navigable; requires browser_ui "mpvtk", falls back to "jellyfin"
+    # otherwise), or "default" (whatever OSC is built into the mpv binary /
+    # the user's own scripts).
     osc_style: str = "jellyfin"
     thumbnail_preferred_size: int = 320
     tls_client_cert: Optional[str] = None

@@ -353,9 +353,14 @@ class PlayerManager(object):
             scripts.append(get_resource("mouse.lua"))
 
         # Which in-player UI to load: the jellyfin-styled OSC, the patched
-        # stock OSC (trickplay previews), or none (whatever the mpv binary
-        # ships / the user's own scripts).
+        # stock OSC (trickplay previews), the in-window mpvtk playback HUD
+        # (no lua script — the browser renders it; see mpvtk_browser/hud.py),
+        # or none (whatever the mpv binary ships / the user's own scripts).
         osc_style = settings.osc_style
+        if osc_style == "mpvtk" and settings.browser_ui != "mpvtk":
+            # The playback HUD lives inside the mpvtk browser; without
+            # that browser the jellyfin lua OSC is the closest equivalent.
+            osc_style = "jellyfin"
         if osc_style == "jellyfin" and not settings.thumbnail_osc_builtin:
             # Legacy opt-out: thumbnail_osc_builtin=False used to mean
             # "don't replace my OSC" (e.g. users running uosc).
@@ -382,6 +387,9 @@ class PlayerManager(object):
             scripts.append(get_resource("trickplay-osc.lua"))
         if osc_style in ("jellyfin", "mpv"):
             self._osc_script_loaded = True
+            mpv_options["osc"] = False
+        elif osc_style == "mpvtk":
+            # The in-window playback HUD replaces any OSC.
             mpv_options["osc"] = False
 
         # ensure standard mpv configuration directories and files exist
@@ -2314,7 +2322,11 @@ class PlayerManager(object):
                     self._player.osc = False
             else:
                 if hasattr(self._player, "osc"):
-                    self._player.osc = enabled
+                    # The mpvtk playback HUD replaces any OSC — never
+                    # turn the built-in one on under it.
+                    self._player.osc = (
+                        enabled and settings.osc_style != "mpvtk"
+                    )
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
@@ -2527,27 +2539,39 @@ class PlayerManager(object):
             log.debug("nav back handler failed", exc_info=True)
             return False
 
-    def _mpvtk_input_active(self):
-        """True while the in-window UI's key bindings are live (the
-        renderer mirrors it into user-data on every transition)."""
+    def _mpvtk_userdata(self, prop):
         if not self.mpvtk_active or self._player is None:
             return False
         try:
             if is_using_ext_mpv:
-                return bool(self._player.command(
-                    "get_property", "user-data/mpvtk/active"))
-            return bool(self._player._get_property(
-                "user-data/mpvtk/active"))
+                return bool(self._player.command("get_property", prop))
+            return bool(self._player._get_property(prop))
         except Exception:
             return False
+
+    def _mpvtk_input_active(self):
+        """True while the in-window UI's key bindings are live (the
+        renderer mirrors it into user-data on every transition)."""
+        return self._mpvtk_userdata("user-data/mpvtk/active")
+
+    def _mpvtk_hud_idle(self):
+        """True while the playback HUD is attached but hidden: remote
+        Move*/Select should reach the renderer's summon bindings (the
+        first press shows the HUD) instead of acting as seek keys.
+        Back keeps its stop-to-browser meaning while hidden."""
+        return self._mpvtk_userdata("user-data/mpvtk/hud")
 
     def menu_action(self, action):
         if self.menu.is_menu_shown:
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
             pass    # the in-window UI has its own home / settings pages
-        elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
-            # remote drives the browser's spatial navigation
+        elif action in self._NAV_KEYPRESS and (
+            self._mpvtk_input_active()
+            or (action != "back" and self._mpvtk_hud_idle())
+        ):
+            # remote drives the browser's spatial navigation (or, while
+            # the playback HUD is hidden, summons it)
             try:
                 self._player.command(
                     "keypress", self._NAV_KEYPRESS[action])

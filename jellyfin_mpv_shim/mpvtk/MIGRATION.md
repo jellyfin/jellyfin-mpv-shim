@@ -1367,6 +1367,62 @@ scrubbing (bitmap-over-ASS is fine: the preview may cover the bar).
    skip-intro button parity.
 5. 9.4 cutover flag + delete the lua OSC once field-proven.
 
+### Progress log
+
+**Prep ✅ (2026-07-19).** Playback glyphs added to the generated icon
+set (40 → 51: replay_10/forward_30, closed_caption, audiotrack,
+fullscreen/_exit, bookmark, hd, undo/redo, close — parity with what
+trickplay-jf-osc.lua embeds). `draw_gradient` rewritten from 24
+stacked alpha bands (visible banding — the exact failure the lua OSC's
+comment warns about) to the OSC's blurred-box technique: one solid box,
+gaussian `\blur` fading edge (blur=h/4, ramp midpoint at h/2.2 from
+the dense end), oversized and clipped to the node rect. Verified
+smooth on both fade directions over white.
+
+**9.0 + 9.1 ✅ (2026-07-19).** The lifecycle inversion works over real
+video on both backends (`tests/integration/test_mpvtk_hud.py`, in the
+PER_BACKEND_REAL leg):
+
+- Renderer: `mpvtk-hud yes|no` message; state `phud` {mode, shown}.
+  Idle = blank scene + summon catchers (arrows/ENTER forced bindings +
+  mouse-move delta in the mouse-pos observer) — every other key keeps
+  its mpv default. Summon = `ui_resume()` (the extracted mpvtk-active
+  'yes' body) + ESC binding (steps out popup → menu/dialog → hide) +
+  `{t=hud, active=true}` to Python. Auto-hide: 4s renderer timer,
+  reset by phud_touch() hooks in on_mouse_move/down, on_wheel,
+  nav_move/activate; expiry re-arms instead of hiding while a popup/
+  modal/drag/adjust is live or the video is PAUSED. `mpvtk-active`
+  (either direction) leaves HUD mode entirely (phud_clear).
+- Focus: `autofocus=True` widget flag → node `af`; a key/remote summon
+  records want_focus and the first pushed HUD scene lands spatial-nav
+  focus on the af node (play/pause). Mouse summons don't steal focus.
+- Remote: renderer mirrors `user-data/mpvtk/hud`; player.menu_action
+  routes Move*/Select as keypresses while EITHER the UI owns input or
+  the HUD is idle (so the first remote press summons); Back keeps
+  stop-to-browser while hidden, hides the HUD while shown.
+- Browser: `_use_hud()` (controller.use_hud → osc_style "mpvtk") picks
+  set_hud(True) in `_yield`; on_hud flips `_hud_shown`, primes a fresh
+  playstate and starts the shared 1s ticker (now-playing ticker keeps
+  running while `_hud_shown`). build() returns `hud.build_hud()` while
+  yielded+shown. Video playstates are kept in `_hud_state` even while
+  yielded (they used to be dropped).
+- 9.1 bar (`mpvtk_browser/hud.py`): gradient scrim (2.2× bar height so
+  the solid half covers the controls), title, seek Slider (force=True,
+  1s-refreshed like the np bar), flat transport (prev/play-pause/next/
+  stop) + "pos / total" clock. Wired through the same _PlayerController
+  transport as the now-playing bar.
+- Config: `osc_style: "mpvtk"` (falls back to jellyfin when browser_ui
+  isn't mpvtk; keeps mpv's builtin OSC off in enable_osc). The lua OSC
+  remains the default until field-proven (9.4 flips it).
+- Test gotcha worth keeping: mpv applies script binding-section updates
+  asynchronously, so a keypress issued immediately after a lifecycle
+  transition can miss the fresh bindings — tests press-until-effect,
+  which is also what a human does.
+
+Remaining: 9.2 (scrub polish + trickplay preview + chapter snap),
+9.3 (pickers/chapters/skip-intro via osc_bridge), 9.4 (default flip +
+lua OSC removal).
+
 ## Cross-cutting risks & open questions
 
 - **Spatial/remote navigation** is *net-new scope* beyond Tk parity

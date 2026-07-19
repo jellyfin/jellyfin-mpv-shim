@@ -56,6 +56,7 @@ ENUMS = {
 LABELED_ENUMS = {
     "osc_style": [
         (_("Jellyfin UI"), "jellyfin"),
+        (_("In-window HUD (experimental)"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
     ],
