@@ -302,15 +302,18 @@ Still unadopted: nothing blocking.
 
 ### Framework requests
 
-- **Dropdown labels don't ellipsize.** `renderer.lua`'s closed-dropdown
-  draw passes the label straight to `draw_text`, so a long server name
-  spills past the control (only the scroll clip stops it). The app
-  pre-truncates via `_fit_items()`, which needs it to guess the arrow and
-  icon insets — the widget knows those exactly and should do it. Same
-  likely applies to Menu items.
-- **Tree disclosure.** `Grid` rows cover card+indent, but the downloads
-  tree still can't collapse a season; playlists are collapsed only because
-  the controller refuses to emit their children.
+- [x] **Dropdown labels don't ellipsize.** Fixed in the renderer: a
+  kern-aware `ellipsize` (mirror of layout.py's) truncates the closed
+  dropdown label to `w - 40 - icon` and popup/menu items to
+  `w - 20 - icon` — the exact insets the widget knows. `_fit_items()`
+  and its guessed insets are deleted; dropdowns get full labels again
+  (so `select` values are no longer pre-truncated strings).
+- [x] **Tree disclosure.** The downloads tree collapses: group and
+  season rows carry a chevron (app-side `Icon` + `on_click` — no new
+  framework needed beyond Grid dict rows), state keyed by entry id in
+  `route["_dl_collapsed"]` so it survives refreshes; rows without a
+  chevron reserve its gutter so indentation stays monotonic.
+  Playlists still rely on the controller not emitting children.
 - **Per-item progress** in the downloads list needs `Progress`, which is
   ready — blocked on app-side live progress push, already logged below.
 

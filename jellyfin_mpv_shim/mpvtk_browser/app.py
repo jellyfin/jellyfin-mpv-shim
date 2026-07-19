@@ -19,7 +19,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from ..i18n import _
-from ..mpvtk.layout import ellipsize
 from ..mpvtk.rawimage import cache_dir
 from ..mpvtk.widgets import (
     Box,
@@ -1025,18 +1024,6 @@ class MpvtkBrowser:
     # start colliding with the page title.
     COMPACT_W = 1280
 
-    @staticmethod
-    def _fit_items(labels, box_w, size=20, icon=False):
-        """Ellipsize dropdown labels to the control's width.
-
-        The renderer draws a closed dropdown's label without truncating it,
-        so a long server name spills past the control (and, when compact,
-        over its neighbours). Doing it here is also the only place that knows
-        the width. See MIGRATION.md — ellipsizing belongs in the widget."""
-        # 10px lead-in, ~22px for the arrow, plus the icon column if present.
-        avail = max(24, box_w - 34 - (int(size * 1.1) + 6 if icon else 0))
-        return [ellipsize(str(x), size, False, avail) for x in labels]
-
     def _chrome(self, w):
         compact = w < self.COMPACT_W
         title = self.route.get("title") or _("Home")
@@ -1065,9 +1052,9 @@ class MpvtkBrowser:
             w_srv = 130 if compact else 190
             cur = next((i for i, s in enumerate(servers)
                         if s["uuid"] == self.server), 0)
+            # long names ellipsize renderer-side, to the exact control width
             right.append(Dropdown(
-                "nav-server", self._fit_items([s["name"] for s in servers],
-                                              w_srv),
+                "nav-server", [s["name"] for s in servers],
                 selected=cur, w=w_srv,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
@@ -1077,8 +1064,7 @@ class MpvtkBrowser:
                         if u.get("active")), 0)
             right.append(Dropdown(
                 "nav-user",
-                self._fit_items([u.get("name", "?") for u in users],
-                                w_usr, icon=True),
+                [u.get("name", "?") for u in users],
                 selected=cur, w=w_usr, force=True,
                 icons=["lock" if u.get("locked") else "person" for u in users],
                 on_select=lambda i, v: self._switch_user(users[i])))
@@ -2659,12 +2645,25 @@ class MpvtkBrowser:
                            "settings-downloads", off, mx))
 
     def _dl_row(self, node_id, title, meta, depth, on_delete, bold=False,
-                icon=None, count=None):
+                icon=None, count=None, route=None, toggle=None,
+                expanded=True):
         """One Grid row spec of the downloads tree. Indentation carries
         the level (inside the title cell, so the meta/Remove tracks stay
         shared across every depth); every level gets its own delete so a
-        whole show can go at once."""
+        whole show can go at once. ``toggle`` (a collapse-state key)
+        adds a disclosure chevron before the title."""
         title_cell = [Spacer(w=depth * self.INDENT, h=1)]
+        if toggle is not None:
+            title_cell.append(Box(
+                [Icon("keyboard_arrow_down" if expanded
+                      else "chevron_right", 16, color=theme.SUBTLE_FG)],
+                id=node_id + "-tgl", pad=3, radius=4, direction="row",
+                align="center", hover={"fill": theme.BUTTON_BG},
+                on_click=lambda: self._dl_toggle(route, toggle)))
+        else:
+            # rows without a disclosure still reserve its gutter, so
+            # titles stay monotonically indented down the tree
+            title_cell.append(Spacer(w=22, h=1))
         if icon:
             title_cell.append(Icon(icon, 16, color=theme.SUBTLE_FG))
         title_cell.append(Text(title, size=17 if bold else 16, bold=bold))
@@ -2686,9 +2685,22 @@ class MpvtkBrowser:
             ],
         }
 
+    def _dl_toggle(self, route, key):
+        route.setdefault(
+            "_dl_collapsed", set()).symmetric_difference_update({key})
+        self.invalidate()
+
+    @staticmethod
+    def _dl_key(entry, fallback):
+        # stable across refreshes (ids); position only as a last resort
+        return str(entry.get("id") or entry.get("title") or fallback)
+
     def _dl_group(self, route, group, gi):
+        collapsed = route.get("_dl_collapsed") or set()
         kind = group.get("kind")
         children = group.get("children") or []
+        gkey = self._dl_key(group, gi)
+        g_open = gkey not in collapsed
         rows = [self._dl_row(
             "dl-g%d" % gi, group.get("title", "?"),
             self._human_size(group.get("size", 0)), 0,
@@ -2697,15 +2709,22 @@ class MpvtkBrowser:
                 series_id=group.get("id") if kind == "series" else None,
                 playlist_id=group.get("id") if kind == "playlist" else None),
             bold=True, count=group.get("count"),
-            icon={"movies": "movie", "playlist": "queue_music"}.get(kind))]
-        for ci, child in enumerate(children):
+            icon={"movies": "movie", "playlist": "queue_music"}.get(kind),
+            route=route, toggle=gkey if children else None,
+            expanded=g_open)]
+        for ci, child in enumerate(children if g_open else []):
             if child.get("kind") == "season":
+                skey = self._dl_key(child, "%d.%d" % (gi, ci))
+                s_open = skey not in collapsed
+                eps = child.get("children") or []
                 rows.append(self._dl_row(
                     "dl-g%d-s%d" % (gi, ci), child.get("title", "?"),
                     self._human_size(child.get("size", 0)), 1,
                     self._dl_delete_cb(route, child,
-                                       season_id=child.get("id"))))
-                for ei, ep in enumerate(child.get("children") or []):
+                                       season_id=child.get("id")),
+                    route=route, toggle=skey if eps else None,
+                    expanded=s_open))
+                for ei, ep in enumerate(eps if s_open else []):
                     rows.append(self._dl_item_row(
                         route, ep, "dl-g%d-s%d-e%d" % (gi, ci, ei), 2))
             else:

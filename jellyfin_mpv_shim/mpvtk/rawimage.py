@@ -33,14 +33,24 @@ _FILE_ATTRIBUTE_TEMPORARY = 0x100
 
 def cache_dir(prefix="mpvtk-"):
     """Create a scratch dir for BGRA files, preferring RAM-backed
-    locations. Returns the path."""
+    locations. Returns the path.
+
+    The dir is removed at interpreter exit as a backstop: stores that
+    shut down cleanly delete their files themselves, but unit-test runs
+    and crashed sessions used to strand thousands of these (a full
+    XDG_RUNTIME_DIR tmpfs presents as ENOSPC everywhere)."""
     base = None
     if not sys.platform.startswith("win"):
         for cand in (os.environ.get("XDG_RUNTIME_DIR"), "/dev/shm"):
             if cand and os.path.isdir(cand) and os.access(cand, os.W_OK):
                 base = cand
                 break
-    return tempfile.mkdtemp(prefix=prefix, dir=base)
+    path = tempfile.mkdtemp(prefix=prefix, dir=base)
+    import atexit
+    import shutil
+
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
 
 
 def _mark_temporary(path):

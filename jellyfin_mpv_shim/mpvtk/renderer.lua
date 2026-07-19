@@ -165,6 +165,27 @@ local function text_w(s, size, bold)
     return w
 end
 
+-- Mirror of layout.py's ellipsize (same metrics, same kern handling)
+-- for text the renderer owns: dropdown labels and popup/menu items,
+-- whose available width only the widget knows exactly.
+local function ellipsize(s, size, bold, max_w)
+    if text_w(s, size, bold) <= max_w then return s end
+    local ell = text_w('…', size, bold)
+    local out = {}
+    local w = 0
+    local prev = nil
+    local bf = bold and 1.04 or 1
+    for c in s:gmatch(U8PAT) do
+        local cw = char_w(c) * size * bf
+        if prev then cw = cw + kern_w(prev, c) * size * bf end
+        if w + cw + ell > max_w then break end
+        out[#out + 1] = c
+        w = w + cw
+        prev = c
+    end
+    return table.concat(out) .. '…'
+end
+
 local function ass_color(hex)
     -- "rrggbb" -> "&Hbbggrr&"
     return string.format('&H%s%s%s&',
@@ -748,6 +769,8 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         w = node.w - 40 - indent, h = node.h, size = node.size,
         align = 'left',
     }
+    -- the label must not spill under the arrow or past the control
+    label = ellipsize(label, node.size, false, tnode.w)
     draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, 'eeeeee')
     -- arrow
     local ax = ex + node.w - 22
@@ -800,8 +823,8 @@ local function draw_list(ass, g, items, sel, size, icons)
         end
         local tnode = { w = g.w - 20 - indent, h = g.ih, size = size,
                         align = 'left' }
-        draw_text(ass, tnode, g.x + 10 + indent, iy, nil, item,
-            'eeeeee')
+        draw_text(ass, tnode, g.x + 10 + indent, iy, nil,
+            ellipsize(item, size, false, tnode.w), 'eeeeee')
     end
 end
 
