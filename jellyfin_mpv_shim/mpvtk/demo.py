@@ -1140,6 +1140,25 @@ def _selftest(demo, outdir):
     time.sleep(0.3)
     check("ctrlx-cut", demo.sel_text == "alpha ", repr(demo.sel_text))
 
+    # double-click word select / triple-click select all
+    app.debug(cmd="click", id="seltb")
+    app.debug(cmd="key", name="CTRLA")
+    app.debug(cmd="text", s="alpha beta gamma")
+    app.debug(cmd="dbl", id="seltb", at=8)  # inside "beta"
+    time.sleep(0.3)
+    app.debug(cmd="text", s="X")
+    time.sleep(0.3)
+    check(
+        "dbl-word-select",
+        demo.sel_text == "alpha X gamma",
+        demo.sel_text,
+    )
+    app.debug(cmd="triple", id="seltb", at=3)
+    time.sleep(0.3)
+    app.debug(cmd="text", s="reset")
+    time.sleep(0.3)
+    check("triple-select-all", demo.sel_text == "reset", demo.sel_text)
+
     app.quit()
     return results
 

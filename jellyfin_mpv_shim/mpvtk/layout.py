@@ -36,15 +36,18 @@ _WIDE_W = 0.85
 _DEFAULT_W = 0.54
 
 _measured = None  # {char: fraction} when metrics were applied
+_kern = {}  # {2-char pair: fraction adjustment}
 
 LINE_H = 1.25  # text node height as a multiple of font size
 
 
-def set_metrics(widths):
-    """Install measured per-char width fractions (metrics.measure_font).
-    Pass None to revert to the heuristic table."""
-    global _measured
+def set_metrics(widths, kern=None):
+    """Install measured per-char width fractions and pair-kerning
+    adjustments (metrics.measure_font). Pass None to revert to the
+    heuristic table."""
+    global _measured, _kern
     _measured = dict(widths) if widths else None
+    _kern = dict(kern) if kern else {}
 
 
 def char_w(ch):
@@ -62,7 +65,14 @@ def char_w(ch):
 
 
 def text_width(s, size, bold=False):
-    w = sum(char_w(c) for c in s) * size
+    w = 0.0
+    prev = None
+    for c in s:
+        if prev is not None:
+            w += _kern.get(prev + c, 0.0)
+        w += char_w(c)
+        prev = c
+    w *= size
     return w * 1.04 if bold else w
 
 
@@ -72,12 +82,17 @@ def ellipsize(s, size, bold, max_w):
     ell = text_width("…", size, bold)
     out = []
     w = 0.0
+    prev = None
+    bf = 1.04 if bold else 1.0
     for c in s:
-        cw = char_w(c) * size * (1.04 if bold else 1.0)
+        cw = char_w(c) * size * bf
+        if prev is not None:
+            cw += _kern.get(prev + c, 0.0) * size * bf
         if w + cw + ell > max_w:
             break
         out.append(c)
         w += cw
+        prev = c
     return "".join(out) + "…"
 
 

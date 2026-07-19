@@ -29,9 +29,13 @@ SAMPLES = [
     ("The q", 40),
     ("The quick", 40),
     ("The quick fox", 40),
+    # kerning-heavy strings: per-char advances alone drift badly here
+    ("TaTaTaTaTaTa", 40),
+    ("AVAVAVAVAVAV", 40),
+    ("ToWaYoToWaYo", 40),
 ]
 X0 = 60
-ROW_H = 70
+ROW_H = 58  # all SAMPLES rows must fit in the 720px window
 MARKER = "ff2222"
 
 

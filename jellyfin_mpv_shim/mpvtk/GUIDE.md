@@ -156,15 +156,21 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    metrics.py folds the correction factor (em/(asc+desc), ≈0.859 for
    DejaVu Sans) into the table; `calibrate.py` verifies pixel-wise
    (ratios ~1.00). Without the factor, widths run ~16% wide and
-   click/selection lands on the wrong letter. Non-ASCII falls back to
-   a heuristic table (`layout.py` + `renderer.lua`, keep in sync).
+   click/selection lands on the wrong letter. **Pair kerning** is also
+   measured (`getlength(ab) - a - b`, ~220 non-zero ASCII pairs for
+   DejaVu, e.g. "Ta" = -0.14em) and applied in every width/boundary
+   path — advances alone drift badly on strings like "TaTaTa".
+   Caret/selection boundaries include the kern INTO the next glyph
+   (that's where libass puts its origin). Non-ASCII falls back to a
+   heuristic table (`layout.py` + `renderer.lua`, keep in sync).
 4. Text input is ASCII key enumeration + `clipboard/text` (mpv ≥0.40).
    Textboxes support the full editing key set — click-drag selection,
-   shift+arrows, ctrl+arrows (word jump), ctrl+shift+arrows (word
-   select), ctrl+BS/DEL (word delete), ctrl+A/C/X/V, ctrl+HOME/END,
-   replace-on-type — plus a built-in right-click Cut/Copy/Paste/Select
-   All menu (masked boxes offer Paste/Select All only — no clipboard
-   leaks). The caret is a thin bar centered on the char boundary
+   double-click word select, triple-click select-all (synthesized:
+   plain click ≤0.4s after a double), shift+arrows, ctrl+arrows (word
+   jump), ctrl+shift+arrows (word select), ctrl+BS/DEL (word delete),
+   ctrl+A/C/X/V, ctrl+HOME/END, replace-on-type — plus a built-in
+   right-click Cut/Copy/Paste/Select All menu (masked boxes offer
+   Paste/Select All only — no clipboard leaks). The caret is a thin bar centered on the char boundary
    (right-biased bars visibly overlap narrow glyphs at small sizes).
    No IME on X11; Wayland IME needs `mp.input` later.
 5. Wheel targeting walks the scroll chain by axis and holds a 2s

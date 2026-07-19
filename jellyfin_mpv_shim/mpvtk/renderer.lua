@@ -92,6 +92,7 @@ local WIDE = {}
 for c in ('mwMW@%&'):gmatch('.') do WIDE[c] = true end
 
 local measured_widths = nil
+local kern_table = nil
 local ui_font = nil
 
 local function char_w(c)
@@ -105,9 +106,19 @@ local function char_w(c)
     return 0.54
 end
 
+local function kern_w(a, b)
+    if not kern_table then return 0 end
+    return kern_table[a .. b] or 0
+end
+
 local function text_w(s, size, bold)
     local w = 0
-    for c in s:gmatch('.') do w = w + char_w(c) end
+    local prev = nil
+    for c in s:gmatch('.') do
+        if prev then w = w + kern_w(prev, c) end
+        w = w + char_w(c)
+        prev = c
+    end
     w = w * size
     if bold then w = w * 1.04 end
     return w
@@ -412,9 +423,23 @@ end
 -- masked — a fixed advance keeps cursor math trivial).
 local MASK_W = 0.55
 
+-- Caret/selection boundary after `upto` chars: the pen position where
+-- the NEXT glyph starts, i.e. including the kern into it — this is
+-- where libass draws the following glyph's origin.
 local function tb_text_w(node, text, upto)
     if node.mask then return upto * MASK_W * node.size end
-    return text_w(text:sub(1, upto), node.size)
+    local pen = 0
+    local prev = nil
+    for i = 1, upto do
+        local c = text:sub(i, i)
+        if prev then pen = pen + kern_w(prev, c) end
+        pen = pen + char_w(c)
+        prev = c
+    end
+    if upto > 0 and upto < #text then
+        pen = pen + kern_w(prev, text:sub(upto + 1, upto + 1))
+    end
+    return pen * node.size
 end
 
 -- Char boundary index nearest to screen x (for click/drag placement).
@@ -422,16 +447,22 @@ local function tb_index_at(node, tb, x)
     local pad = 10
     local ex = select(1, eff(node))
     local rel = x - ex - pad + tb.shift
-    local cur = 0
-    local acc = 0
+    local pen = 0
+    local prev = nil
     for i = 1, #tb.text do
-        local cw = node.mask and MASK_W * node.size or
-            char_w(tb.text:sub(i, i)) * node.size
-        if acc + cw / 2 > rel then break end
-        acc = acc + cw
-        cur = i
+        local c = tb.text:sub(i, i)
+        local cw
+        if node.mask then
+            cw = MASK_W * node.size
+        else
+            cw = ((prev and kern_w(prev, c) or 0) + char_w(c)) *
+                node.size
+        end
+        if pen + cw / 2 > rel then return i - 1 end
+        pen = pen + cw
+        prev = c
     end
-    return cur
+    return #tb.text
 end
 
 local function tb_menu_items(node)
@@ -1437,6 +1468,19 @@ local function on_mouse_down()
     if node.t == 'textbox' then
         focus_textbox(node)
         local tb = tb_state(node)
+        -- triple-click: a plain click right after a double-click on
+        -- the same box selects everything (mpv has no triple event)
+        local last = state.last_dbl
+        if last and last.id == node.id and
+            mp.get_time() - last.t < 0.4 then
+            state.last_dbl = nil
+            if #tb.text > 0 then
+                tb.sel = 0
+                tb.cursor = #tb.text
+            end
+            request_render()
+            return
+        end
         tb.sel = nil
         tb.cursor = tb_index_at(node, tb, x)
         -- arm click-drag selection from this anchor
@@ -1531,6 +1575,26 @@ local function on_wheel(dir, axis, e)
         (state.scroll[node.id] or 0) + dir * WHEEL_STEP * scale)
 end
 
+-- Double-click: select the word under the pointer.
+local function on_dbl()
+    local x, y = state.mouse.x, state.mouse.y
+    local node = node_at(x, y)
+    if not node or node.t ~= 'textbox' then return end
+    focus_textbox(node)
+    state.tb_drag = nil  -- don't let a jitter-drag clobber this
+    local tb = tb_state(node)
+    if #tb.text > 0 then
+        local ci = math.min(#tb.text,
+            math.max(1, tb_index_at(node, tb, x) + 1))
+        tb.sel = word_left(tb.text, ci)
+        tb.cursor = word_right(tb.text, ci - 1)
+        if tb.sel == tb.cursor then tb.sel = nil end
+    end
+    state.last_dbl = { t = mp.get_time(), id = node.id }
+    state.cursor_on = true
+    request_render()
+end
+
 local function on_rclick()
     if state.tb_menu then
         state.tb_menu = nil
@@ -1558,7 +1622,7 @@ end
 mp.set_key_bindings({
     { 'mbtn_left', function() on_mouse_up() end,
       function() on_mouse_down() end },
-    { 'mbtn_left_dbl', 'ignore' },
+    { 'mbtn_left_dbl', function() on_dbl() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
@@ -1685,6 +1749,7 @@ mp.register_script_message('mpvtk-metrics', function(json)
     local m = utils.parse_json(json)
     if not m then return end
     measured_widths = m.widths
+    kern_table = m.kern
     ui_font = m.font
     if m.mask_w then MASK_W = m.mask_w end
     request_render()
@@ -1778,6 +1843,24 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_down()
             on_mouse_move(xb, cy)
             on_mouse_up()
+        end
+    elseif cmd.cmd == 'dbl' or cmd.cmd == 'triple' then
+        -- double/triple-click at char cell `at` of a textbox
+        local node = state.byid[cmd.id]
+        if node and node.t == 'textbox' then
+            local tb = tb_state(node)
+            local ex, ey = eff(node)
+            local at = cmd.at or 0
+            local xa = ex + 10 - tb.shift +
+                (tb_text_w(node, tb.text, at) +
+                 tb_text_w(node, tb.text,
+                     math.min(#tb.text, at + 1))) / 2
+            on_mouse_move(xa, ey + node.h / 2)
+            on_dbl()
+            if cmd.cmd == 'triple' then
+                on_mouse_down()
+                on_mouse_up()
+            end
         end
     elseif cmd.cmd == 'tbmenu' then
         -- click item #index of the open textbox copy/paste menu

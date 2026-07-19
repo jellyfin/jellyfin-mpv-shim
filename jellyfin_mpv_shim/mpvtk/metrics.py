@@ -27,6 +27,45 @@ _CANDIDATES = [
 _MEASURE_SIZE = 128
 
 
+def _load_font():
+    try:
+        from PIL import ImageFont
+    except ImportError:
+        return None
+    for name in _CANDIDATES:
+        try:
+            return ImageFont.truetype(name, _MEASURE_SIZE)
+        except OSError:
+            continue
+    return None
+
+
+def measure_kerning():
+    """Pair-kerning adjustments as {2-char string: em fraction}, only
+    non-zero pairs, with the libass fs factor folded in. ~9k getlength
+    calls — call from a background thread and hot-swap the table in
+    (layout.set_metrics + a second mpvtk-metrics push)."""
+    font = _load_font()
+    if font is None:
+        return None
+    try:
+        ascent, descent = font.getmetrics()
+        factor = _MEASURE_SIZE / float(ascent + descent)
+        chars = [chr(i) for i in range(32, 127)]
+        single = {c: font.getlength(c) for c in chars}
+        kern = {}
+        for a in chars:
+            la = single[a]
+            for b in chars:
+                d = font.getlength(a + b) - la - single[b]
+                if abs(d) > 0.6:  # font units of noise at 128px
+                    kern[a + b] = round(d / _MEASURE_SIZE * factor, 4)
+        log.info("mpvtk metrics: %d kerning pairs", len(kern))
+        return kern
+    except AttributeError:
+        return None
+
+
 def measure_font():
     """Returns {"font": family_name, "widths": {char: fraction}} or None
     when no measurable font / recent-enough Pillow is available."""
@@ -34,11 +73,8 @@ def measure_font():
         from PIL import ImageFont
     except ImportError:
         return None
-    for name in _CANDIDATES:
-        try:
-            font = ImageFont.truetype(name, _MEASURE_SIZE)
-        except OSError:
-            continue
+    font = _load_font()
+    if font is not None:
         try:
             # libass (VSFilter compat) scales \fs to the font's
             # ascender+descender height, NOT the em size — so a glyph's
@@ -68,5 +104,6 @@ def measure_font():
             "font": family,
             "widths": widths,
             "mask_w": round(mask_w, 4),
+            "kern": measure_kerning() or {},
         }
     return None

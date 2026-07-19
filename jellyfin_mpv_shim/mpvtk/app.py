@@ -171,7 +171,7 @@ class MpvtkApp:
         m = measure_font()
         if not m:
             return
-        set_metrics(m["widths"])
+        set_metrics(m["widths"], m.get("kern"))
         self.backend.command(
             "script-message", "mpvtk-metrics", json.dumps(m)
         )
