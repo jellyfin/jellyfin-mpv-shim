@@ -54,7 +54,9 @@ class _PlayerController:
 
     def on_browse_enter(self):
         from ..player import playerManager
-        playerManager.force_window(True)
+        # Logo-free, free-resizing browse window (not force_window()'s menu
+        # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
+        playerManager.set_browse_window(True)
         playerManager.enable_osc(False)
 
     def on_browse_leave(self):

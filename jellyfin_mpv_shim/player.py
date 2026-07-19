@@ -66,6 +66,31 @@ if hasattr(mpv, "ShutdownError"):
 else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
+_browse_bg_path = None
+
+
+def _browse_background():
+    """Path to a solid dark image used as the mpvtk browser's window
+    background, replacing the Jellyfin logo splash that force_window()
+    shows for the menu. Generated once and cached (the browser scales it to
+    fill with keepaspect-window=no)."""
+    global _browse_bg_path
+    if _browse_bg_path and os.path.exists(_browse_bg_path):
+        return _browse_bg_path
+    try:
+        import tempfile
+        from PIL import Image
+
+        path = os.path.join(tempfile.gettempdir(), "mpvtk-browse-bg.png")
+        if not os.path.exists(path):
+            Image.new("RGB", (16, 16), (20, 20, 20)).save(path)
+        _browse_bg_path = path
+        return path
+    except Exception:
+        # PIL missing (the browser needs it anyway) -> fall back to the logo:
+        # the window still opens, just with branding.
+        return get_resource("logo.png")
+
 SUBTITLE_POS = {
     "top": 0,
     "bottom": 100,
@@ -2138,6 +2163,38 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
             return True
+
+    def set_browse_window(self, enabled: bool):
+        """Persistent window for the in-window mpvtk browser.
+
+        Differs from force_window() (used by the OSD menu) in two ways the
+        browser needs: no Jellyfin logo splash (the browser paints its own
+        background) and free resizing (keepaspect-window=no, like the mpvtk
+        demo) so the window doesn't snap to a media aspect ratio."""
+        if not self._mpv_alive:
+            if not enabled:
+                return
+            self._init_mpv()
+        try:
+            if enabled:
+                try:
+                    self._player.keepaspect_window = False
+                except Exception:
+                    pass  # older mpv without the property; harmless
+                self._player.force_window = True
+                self._player.keep_open = True
+                self._player.image_display_duration = "inf"
+                self._player.play(_browse_background())
+                if settings.fullscreen:
+                    self._player.fs = True
+            else:
+                self._player.image_display_duration = 1
+                self._player.keep_open = False
+                if not self._video:
+                    self._player.force_window = False
+                    self._player.command("stop")
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     def force_window(self, enabled: bool):
         if not self._mpv_alive:
