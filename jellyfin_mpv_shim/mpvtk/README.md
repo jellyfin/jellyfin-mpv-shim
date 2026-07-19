@@ -62,6 +62,20 @@ app.py       → JSON over script-message ──►  renderer.lua
   for the platform UI font; both layout and renderer use the table and
   libass gets `\fn` for the same font, so sizing/ellipsis/cursor all
   agree. Heuristic table remains the fallback.
+- **Memory overlays (libmpv backend)**: images live in ctypes buffers
+  and reach mpv via overlay-add's same-process `&<address>` form — no
+  files at all, so nothing on mpv's command path touches the fs during
+  scrolling (file re-reads there were both a lag source and, on a slow
+  fs, an input-stall risk). The renderer folds crop offsets into the
+  address. Buffer lifetime: entries stay alive while any scene refers
+  to them (LRU recency guarantees visible strips are hot) and frees go
+  through a small graveyard to cover in-flight re-issues. The file
+  path remains for jsonipc (RAM-backed dirs + FILE_ATTRIBUTE_TEMPORARY
+  on Windows).
+- **Flush ordering**: overlay adds/replacements are issued before
+  removes, and new images take over departing slots via direct
+  overlay-add — remove-before-add produced one-frame holes visible as
+  tile flicker while scrolling.
 
 Hard-won crash lesson: mpv **mmaps** overlay files — a crop that reads
 past EOF is a silent SIGBUS process death. Image nodes never stretch

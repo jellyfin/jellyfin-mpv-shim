@@ -309,12 +309,22 @@ local function draw_image(node, ex, ey, clip)
                 return
             end
             pidx = pidx + 1
+            local src = node.src
+            local offset = sy * stride + sx * 4
+            if src:sub(1, 1) == '&' then
+                -- same-process memory source (libmpv backend): fold
+                -- the crop offset into the address so overlay-add's
+                -- offset semantics for '&' never matter
+                src = string.format('&%.0f',
+                    tonumber(src:sub(2)) + offset)
+                offset = 0
+            end
             overlay_list[#overlay_list + 1] = {
                 key = node.id .. '#' .. pidx,
                 v = node.v,
                 args = {
-                    tostring(px1), tostring(py1), node.src,
-                    tostring(sy * stride + sx * 4), 'bgra',
+                    tostring(px1), tostring(py1), src,
+                    tostring(offset), 'bgra',
                     tostring(px2 - px1), tostring(py2 - py1),
                     tostring(stride),
                 },
@@ -333,15 +343,18 @@ local function flush_overlays()
     for _, ov in ipairs(overlay_list) do
         wanted[ov.key] = true
     end
+    -- Departing slots are NOT removed up front: a new image can take
+    -- one over with a direct overlay-add (an atomic per-slot swap),
+    -- and removes happen last — remove-before-add left a one-frame
+    -- hole that showed as tile flicker while scrolling.
+    local freeable = {}
     for slot = 0, MAX_OVERLAYS - 1 do
         local k = state.ov_keys[slot]
         if k and not wanted[k] then
-            state.ov_keys[slot] = nil
-            state.ov_slots[k] = nil
-            state.ov_last[slot] = nil
-            mp.commandv('overlay-remove', tostring(slot))
+            freeable[#freeable + 1] = slot
         end
     end
+    local next_free = 1
     for _, ov in ipairs(overlay_list) do
         local slot = state.ov_slots[ov.key]
         if slot == nil then
@@ -350,6 +363,12 @@ local function flush_overlays()
                     slot = s
                     break
                 end
+            end
+            if slot == nil and next_free <= #freeable then
+                slot = freeable[next_free]
+                next_free = next_free + 1
+                state.ov_slots[state.ov_keys[slot]] = nil
+                state.ov_last[slot] = nil
             end
             if slot == nil then
                 msg.warn('no free overlay slot for ' .. ov.key)
@@ -368,6 +387,14 @@ local function flush_overlays()
                     unpack(ov.args))
             end
         end
+    end
+    for i = next_free, #freeable do
+        local slot = freeable[i]
+        local k = state.ov_keys[slot]
+        if k then state.ov_slots[k] = nil end
+        state.ov_keys[slot] = nil
+        state.ov_last[slot] = nil
+        mp.commandv('overlay-remove', tostring(slot))
     end
     state.ov_used = #overlay_list
 end

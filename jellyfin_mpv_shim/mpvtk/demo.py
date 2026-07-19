@@ -18,7 +18,7 @@ import threading
 import time
 
 from .app import MpvtkApp
-from .rawimage import cache_dir, write_bgra
+from .rawimage import MemoryStore, cache_dir, write_bgra
 from .widgets import (
     Button,
     Column,
@@ -144,12 +144,13 @@ class StripStore:
     strips scrolled well out of the materialization window.
     """
 
-    MAX_ENTRIES = 48  # ~6MB worst case each -> bounded scratch footprint
+    MAX_ENTRIES = 48  # ~6MB worst case each -> bounded footprint
 
-    def __init__(self, cache_dir):
+    def __init__(self, cache_dir, mem_store=None):
         from collections import OrderedDict
 
         self.dir = cache_dir
+        self.mem = mem_store  # MemoryStore for the libmpv backend
         self.fonts = _fonts()
         self._cache = OrderedDict()
         self._counter = 0
@@ -239,17 +240,25 @@ class StripStore:
             regions.append(
                 {"x": x, "y": 0, "w": TILE_W, "h": STRIP_H, "idx": it["idx"]}
             )
-        self._counter += 1
-        src = os.path.join(self.dir, "strip%d.bgra" % self._counter)
-        write_bgra(img, src)
+        if self.mem is not None:
+            src, _, _ = self.mem.add(img)
+        else:
+            self._counter += 1
+            src = os.path.join(
+                self.dir, "strip%d.bgra" % self._counter
+            )
+            write_bgra(img, src)
         entry = {"src": src, "iw": iw, "ih": STRIP_H, "regions": regions}
         self._cache[key] = entry
         while len(self._cache) > self.MAX_ENTRIES:
             _, old = self._cache.popitem(last=False)
-            try:
-                os.remove(old["src"])
-            except OSError:
-                pass
+            if self.mem is not None:
+                self.mem.remove(old["src"])
+            else:
+                try:
+                    os.remove(old["src"])
+                except OSError:
+                    pass
         return entry
 
 
@@ -257,14 +266,17 @@ class Demo:
     def __init__(self, backend="jsonipc"):
         self.cache = cache_dir("mpvtk-demo-")
         self.items = make_library(40)
-        self.strips = StripStore(self.cache)
+        self.app = MpvtkApp(backend=backend)
+        self.strips = StripStore(
+            self.cache,
+            mem_store=MemoryStore() if self.app.in_process else None,
+        )
         self.query = ""
         self.sort = "Name"
         self.status = "Hover and click tiles; scroll rows and the page."
         self.grid_window = (0, WINDOW_AHEAD + 4)  # materialized row range
         self._grid_geom = None  # (grid_top, pitch, cols, total_rows)
         self.menu = None  # {"idx": item, "x":, "y":} while a menu is open
-        self.app = MpvtkApp(backend=backend)
 
     # ------------------------------------------------------------- state
 
@@ -537,6 +549,13 @@ def _selftest(demo, outdir):
         st and st.get("has_metrics"),
         "font=%s" % (st and st.get("font")),
     )
+    if app.in_process:
+        srcs = [e["src"] for e in demo.strips._cache.values()]
+        check(
+            "memory-overlays",
+            srcs and all(s.startswith("&") for s in srcs),
+            "%d in-memory strips" % len(srcs),
+        )
     novl = (st or {}).get("overlays", 0)
     check(
         "strip-overlay-budget",

@@ -129,6 +129,9 @@ class MpvtkApp:
             self.backend = LibmpvBackend(geometry)
         else:
             self.backend = JsonIpcBackend(geometry)
+        # Same-process mpv can take images via overlay-add '&<address>'
+        # (rawimage.MemoryStore) instead of scratch files.
+        self.in_process = backend == "libmpv"
         self.size = None
         self._queue = queue.Queue()
         self._handlers = {}

@@ -56,8 +56,8 @@ def _mark_temporary(path):
         log.debug("could not set FILE_ATTRIBUTE_TEMPORARY", exc_info=True)
 
 
-def write_bgra(pil_image, path):
-    """Write a Pillow image as premultiplied BGRA raw. Returns (w, h)."""
+def bgra_bytes(pil_image):
+    """Pillow image -> (premultiplied BGRA bytes, w, h)."""
     img = pil_image.convert("RGBA")
     r, g, b, a = img.split()
     # Premultiply only when there is actual transparency (cheap check).
@@ -71,9 +71,55 @@ def write_bgra(pil_image, path):
     from PIL import Image
 
     bgra = Image.merge("RGBA", (b, g, r, a))
+    return bgra.tobytes(), img.width, img.height
+
+
+def write_bgra(pil_image, path):
+    """Write a Pillow image as premultiplied BGRA raw. Returns (w, h)."""
+    data, w, h = bgra_bytes(pil_image)
     tmp = path + ".tmp"
     with open(tmp, "wb") as f:
-        f.write(bgra.tobytes())
+        f.write(data)
     _mark_temporary(tmp)
     os.replace(tmp, path)
-    return img.width, img.height
+    return w, h
+
+
+class MemoryStore:
+    """BGRA buffers for overlay-add's same-process ``&<address>`` form.
+
+    Only valid when Python and mpv share a process (the libmpv
+    backend): no files, no fs latency on mpv's command path — each
+    re-issued crop during scrolling reads straight from this memory.
+
+    Lifetime rules: a buffer must outlive every scene that references
+    its src. Callers keep entries alive while referenced (an LRU whose
+    recency tracks the current build satisfies this — anything visible
+    was just requested); remove() parks the buffer in a small graveyard
+    rather than freeing immediately, covering a renderer re-issue
+    racing a scene push.
+    """
+
+    GRAVEYARD = 8
+
+    def __init__(self):
+        import collections
+
+        self._bufs = {}  # src -> ctypes buffer
+        self._graveyard = collections.deque(maxlen=self.GRAVEYARD)
+
+    def add(self, pil_image):
+        """Returns (src, w, h) with src usable as an Image/ImageMap
+        source."""
+        import ctypes
+
+        data, w, h = bgra_bytes(pil_image)
+        buf = ctypes.create_string_buffer(data, len(data))
+        src = "&%d" % ctypes.addressof(buf)
+        self._bufs[src] = buf
+        return src, w, h
+
+    def remove(self, src):
+        buf = self._bufs.pop(src, None)
+        if buf is not None:
+            self._graveyard.append(buf)
