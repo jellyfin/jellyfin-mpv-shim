@@ -88,9 +88,13 @@ windowing, metrics) were all retired during the spike rounds.
 
 ## Open issues
 
-- Intermittent ~1s scroll stall at very fast wheel rates. HUD forensics
-  added: `tgt:-` during a stall = hit-test found no scroll target;
-  `tgt:page` with frozen `off` = offset update no-oped; advancing `off`
-  with frozen visuals = render/overlay path. Report the HUD line seen
-  during a stall.
+- Intermittent ~1s scroll stall at very fast wheel rates. Diagnosed via
+  HUD to a failing hit-test (`tgt:- off:-1`) while renders continue —
+  since the Lua side is single-threaded and geometry was fresh, the bad
+  input is the mouse coordinates (mouse-pos likely goes unreliable
+  during trackball button-scrolling). Mitigated by wheel gesture
+  stickiness: a gesture keeps scrolling its last target for up to 2s
+  when the raw hit-test fails (HUD shows `tgt:<id>*` when engaged).
+  Root-cause confirmation: read the `mouse:x,y` HUD field during a
+  stall.
 - Non-ASCII glyph metrics (measured table covers printable ASCII).

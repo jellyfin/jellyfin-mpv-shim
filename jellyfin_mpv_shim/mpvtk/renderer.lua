@@ -1079,18 +1079,42 @@ end
 -- notches. state.wheel_count feeds the debug HUD: if the counter stops
 -- advancing while the device scrolls, mpv isn't delivering events (a
 -- compositor/mpv issue); if it advances but nothing moves, it's ours.
+local WHEEL_LOCK_S = 2.0
+
 local function on_wheel(dir, axis, e)
     state.wheel_count = (state.wheel_count or 0) + 1
     local scale = (e and e.scale) or 1
     if scale <= 0 then scale = 1 end
     if state.hud then request_render() end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
-    -- HUD forensics: tgt=nil means the hit-test found no scrollable
-    -- (geo/hover problem); tgt set with a frozen off means the offset
-    -- update itself no-oped (clamp problem).
+    local locked = false
+    if node then
+        state.wheel_lock = {
+            id = node.id, axis = axis, t = mp.get_time(),
+        }
+    else
+        -- Hit-test came up empty mid-gesture (observed in the field:
+        -- mouse-pos can go unreliable during trackball
+        -- button-scrolling). A wheel gesture keeps scrolling its last
+        -- target — which is also the correct gesture semantics: the
+        -- target shouldn't change under a scroll in progress.
+        local lock = state.wheel_lock
+        if lock and lock.axis == axis and
+            mp.get_time() - lock.t < WHEEL_LOCK_S then
+            local cand = state.byid[lock.id]
+            if cand and cand.t == 'scroll' then
+                node = cand
+                locked = true
+                lock.t = mp.get_time()
+            end
+        end
+    end
+    -- HUD forensics: tgt '-' = no target even via gesture lock;
+    -- 'id*' = gesture lock engaged (raw hit-test failed); frozen off
+    -- with a target = clamp no-op.
     state.last_wheel = {
         scale = scale,
-        target = node and node.id or '-',
+        target = node and (node.id .. (locked and '*' or '')) or '-',
         off = node and math.floor(state.scroll[node.id] or 0) or -1,
     }
     if not node then return end
