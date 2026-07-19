@@ -342,6 +342,31 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    in self.ctl.calls,
                    msg="skip button never dispatched: %r" % self.ctl.calls)
 
+    def test_seek_hover_bubble(self):
+        self.ctl.chapter_list = [{"title": "Opening", "time": 0.0},
+                                 {"title": "Late", "time": 20.0}]
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser._hud_shown,
+                          msg="summon failed")
+        self._wait(lambda: self.app.node_rect("hud-seek") is not None,
+                   msg="seek bar never materialized")
+        # park the pointer on the middle of the seek bar: throttled
+        # hover events flow to the browser, which floats the bubble
+        self.app.debug(cmd="hover", id="hud-seek")
+        self._wait(lambda: self.browser._hud_hover is not None,
+                   msg="hover position never reached the browser")
+        self.assertAlmostEqual(self.browser._hud_hover, 15.0, delta=3.0)
+        self._wait(lambda: self.app.node_rect("hud-preview") is not None,
+                   msg="hover bubble never appeared")
+        # moving off the bar retracts it
+        self.app.debug(cmd="hover", id="hud-pp")
+        self._wait(lambda: self.browser._hud_hover is None,
+                   msg="hover_end never reached the browser")
+        self._wait(lambda: self.app.node_rect("hud-preview") is None,
+                   msg="hover bubble never cleared")
+
     def test_settings_menu_keyboard_flow(self):
         self.ctl.menu_state = {"has_media": True, "quality": {
             "current": "No Transcode", "options": [

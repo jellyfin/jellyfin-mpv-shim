@@ -1857,6 +1857,16 @@ class PlayerManager(object):
             except _mpv_errors:
                 cb({"stopped": True})
                 return
+            ranges = None
+            try:
+                cache = self._player.demuxer_cache_state
+                if cache:
+                    ranges = [
+                        [float(r["start"]), float(r["end"])]
+                        for r in cache.get("seekable-ranges") or []
+                    ]
+            except Exception:
+                ranges = None
             skip = self._hud_skip
             cb({
                 "stopped": False,
@@ -1879,6 +1889,9 @@ class PlayerManager(object):
                 "favorite": bool((item.get("UserData") or {}).get("IsFavorite")),
                 "repeat": self.repeat_mode,
                 "fullscreen": bool(fullscreen),
+                # buffered/seekable ranges in seconds, for the HUD's
+                # seek-bar shading (None when the demuxer has none)
+                "ranges": ranges,
             })
         except Exception:
             log.debug("push_playstate failed", exc_info=True)

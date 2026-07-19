@@ -955,6 +955,9 @@ class MpvtkBrowser:
         self._hud_menu_anchor = "hud-settings"
         # clock shows remaining time instead of total (click toggles)
         self._hud_tc_remaining = False
+        # pointer resting on the seek bar: hovered position in seconds
+        # (drives the preview bubble; scrub takes precedence)
+        self._hud_hover = None
         if app is None:
             return
         if hasattr(app, "on_nav"):
@@ -1005,11 +1008,20 @@ class MpvtkBrowser:
         """The renderer's standalone idle skip button was activated."""
         self._ctl(lambda c: c.hud_action("skip-segment"))
 
+    def _hud_hover_move(self, v):
+        self._hud_hover = float(v)
+        self.invalidate()
+
+    def _hud_hover_end(self):
+        self._hud_hover = None
+        self.invalidate()
+
     def _on_hud(self, active):
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
         self._hud_scrub = None
         self._hud_menu = None
+        self._hud_hover = None
         if getattr(self.controller, "hud_sub_margin", None) is not None:
             # raise bottom subtitles clear of the bar while it shows
             try:

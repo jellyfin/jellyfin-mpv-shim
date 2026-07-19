@@ -483,6 +483,44 @@ class TestPlaybackHudLayout(unittest.TestCase):
                             for n in nodes),
                         "remaining-time clock missing")
 
+    def test_seek_bar_range_shading(self):
+        b, _ctl = self._browser()
+        b._hud_state["ranges"] = [[10.0, 40.0], [90.0, 100.0]]
+        nodes, _h = build_scene(b, (1280, 720))
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertEqual(seek.get("ranges"), [[0.1, 0.4], [0.9, 1.0]])
+        self.assertTrue(seek.get("hoverev"),
+                        "seek bar must opt into hover events")
+
+    def test_hover_bubble_shows_chapter_and_time(self):
+        b, ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        self.assertNotIn("hud-preview", ids(nodes))
+        # need a laid-out slider rect for the float: fake node_rect via
+        # a stub app that serves the previous scene's geometry
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+
+        class GeoApp(StubHudApp):
+            def node_rect(self, node_id):
+                return seek if node_id == "hud-seek" else None
+
+            def invalidate(self):
+                pass
+
+        b.app = GeoApp()
+        handlers["hud-seek"]["hover"](45.0)
+        self.assertEqual(b._hud_hover, 45.0)
+        nodes, handlers = build_scene(b, (1280, 720))
+        self.assertIn("hud-preview", ids(nodes))
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("0:45", texts, "bubble timestamp missing")
+        self.assertIn("Middle", texts,
+                      "bubble chapter name missing (45s is in Middle)")
+        handlers["hud-seek"]["hover_end"]()
+        self.assertIsNone(b._hud_hover)
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertNotIn("hud-preview", ids(nodes))
+
     def test_hud_show_hide_adjusts_sub_margin(self):
         b, ctl = self._browser()
         b._on_hud(True)

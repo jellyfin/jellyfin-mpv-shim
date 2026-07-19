@@ -1023,6 +1023,17 @@ local function draw_slider(ass, node, ex, ey, clip)
     local ty = ey + node.h / 2
     draw_rect(ass, tx1, ty - 3, tw, 6,
         { fill = '3a3a3a', radius = 3, clip = clip })
+    -- buffered/seekable ranges, shaded like the jellyfin OSC's
+    if node.ranges then
+        for _, r in ipairs(node.ranges) do
+            local r1, r2 = clamp(r[1], 0, 1), clamp(r[2], 0, 1)
+            if r2 > r1 then
+                draw_rect(ass, tx1 + tw * r1, ty - 3,
+                    tw * (r2 - r1), 6,
+                    { fill = 'ffffff', a = 100, clip = clip })
+            end
+        end
+    end
     if frac > 0 then
         draw_rect(ass, tx1, ty - 3, tw * frac, 6,
             { fill = state.accent, radius = 3, clip = clip })
@@ -1085,6 +1096,62 @@ local function slider_set_from_x(node, x)
         s.value = v
         notify_slider(node.id)
         request_render()
+    end
+end
+
+-- Passive-hover position reporting for sliders that opt in with
+-- hoverev (the HUD's seek bar): while the pointer rests on the
+-- slider, the app gets throttled {t=hover, value} events (it floats
+-- the trickplay/time bubble there), then one {t=hover_end} when the
+-- pointer moves off. Same 0.15s cadence as drag notifications — this
+-- is a preview, not a per-frame interaction.
+local hover_notify_timers = {}
+local hover_last_notify = {}
+
+local function fire_hover(id)
+    hover_last_notify[id] = mp.get_time()
+    if state.hover_watch == id then
+        send({ t = 'hover', id = id, value = state.hover_value })
+    end
+end
+
+local function notify_hover(id)
+    if hover_notify_timers[id] then return end
+    local elapsed = mp.get_time() - (hover_last_notify[id] or -1e9)
+    if elapsed >= 0.15 then
+        fire_hover(id)
+    else
+        hover_notify_timers[id] = mp.add_timeout(0.15 - elapsed,
+            function()
+                hover_notify_timers[id] = nil
+                fire_hover(id)
+            end)
+    end
+end
+
+local function update_slider_hover(node)
+    local id = nil
+    if node and node.t == 'slider' and node.hoverev
+        and state.slider_drag ~= node.id then
+        id = node.id
+    end
+    local prev = state.hover_watch
+    if prev and prev ~= id then
+        state.hover_watch = nil
+        send({ t = 'hover_end', id = prev })
+    end
+    if id then
+        state.hover_watch = id
+        local ex = select(1, eff(node))
+        local frac = clamp(
+            (state.mouse.x - ex - SLIDER_PAD) /
+            (node.w - 2 * SLIDER_PAD), 0, 1)
+        local v = (node.min or 0) +
+            frac * ((node.max or 100) - (node.min or 0))
+        if v ~= state.hover_value or prev ~= id then
+            state.hover_value = v
+            notify_hover(id)
+        end
     end
 end
 
@@ -1863,6 +1930,7 @@ local function on_mouse_move(x, y)
         return
     end
     local node = node_at(x, y)
+    update_slider_hover(node)
     local id = node and node.id or nil
     if id ~= state.hover_id then
         state.hover_id = id
@@ -2654,6 +2722,7 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
             state.tip_timer:kill()
             state.tip_timer = nil
         end
+        update_slider_hover(nil)
         if state.hover_id then
             state.hover_id = nil
             request_render()
@@ -2726,6 +2795,9 @@ local function reconcile()
     for id in pairs(state.sl) do
         local node = state.byid[id]
         if not node or node.t ~= 'slider' then state.sl[id] = nil end
+    end
+    if state.hover_watch and not state.byid[state.hover_watch] then
+        state.hover_watch = nil  -- slider left the scene mid-hover
     end
     if state.slider_drag and not state.byid[state.slider_drag] then
         state.slider_drag = nil

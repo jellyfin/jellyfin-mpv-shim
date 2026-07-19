@@ -530,9 +530,18 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             node["force"] = True
         if el.marks:
             node["marks"] = [round(float(m), 4) for m in el.marks]
+        if el.ranges:
+            node["ranges"] = [
+                [round(float(a), 4), round(float(b), 4)]
+                for a, b in el.ranges
+            ]
+        if el.on_hover is not None:
+            node["hoverev"] = True
         _reg(ctx, node["id"], "change", el.on_change)
         _reg(ctx, node["id"], "commit", el.on_commit)
         _reg(ctx, node["id"], "cancel", el.on_cancel)
+        _reg(ctx, node["id"], "hover", el.on_hover)
+        _reg(ctx, node["id"], "hover_end", el.on_hover_end)
         ctx.nodes.append(node)
         return
 

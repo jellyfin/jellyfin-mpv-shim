@@ -1565,15 +1565,33 @@ the remaining parity gaps a full lua-OSC-vs-HUD diff surfaced:
   the standalone skip button's click).
 - Icons: + volume_down, volume_off (53 total).
 
+**9.3f ✅ (2026-07-19, per Izzie).** The two big deferrals landed:
+
+- **Buffered/seekable-range shading**: push_playstate reads
+  `demuxer-cache-state`'s seekable-ranges (seconds); hud.py maps
+  them to fractions; `Slider(ranges=…)` → node `ranges`; draw_slider
+  shades them white-at-40% between the track and the accent fill —
+  render_jf_slider's treatment.
+- **Passive-hover seek bubble**: sliders can opt into hover events
+  (`Slider(on_hover/on_hover_end)` → node `hoverev`). The renderer
+  reports the pointer-rest position throttled at 0.15s (same cadence
+  as drag notifications — a preview, not a per-frame interaction;
+  trickplay granularity is ~10s anyway) and one hover_end when the
+  pointer moves off / leaves the window / the node leaves the scene.
+  The browser floats the bubble there: dark rounded Box with the
+  trickplay thumbnail over the chapter name + timestamp (text-only
+  when the video has no tiles — same as the lua with no thumbfast).
+  Scrub position takes precedence over hover for the bubble; the
+  same bubble now also fronts the scrub preview, so scrubbing gained
+  the chapter/timestamp labels too. Suppressed while dragging
+  renderer-side (change events drive the bubble then).
+
 **Deliberately NOT ported** (from the gap diff; revisit only if
-field-proving misses them): passive-hover seekbar bubble
-(time + chapter name + thumbnail on hover — the HUD previews on
-scrub gestures instead; largest remaining delta), buffered-range
-shading on the track (long-deferred), millisecond clock mode,
-shift-click frame-step / right-click coarse-seek variants on the
-step buttons (mpv's default . , [ ] keys still work while idle),
-and chapter/playlist OSD text lists on shift/right-click (the HUD
-has a chapter dropdown; the queue lives in the browser).
+field-proving misses them): millisecond clock mode, shift-click
+frame-step / right-click coarse-seek variants on the step buttons
+(mpv's default . , [ ] keys still work while idle), and
+chapter/playlist OSD text lists on shift/right-click (the HUD has a
+chapter dropdown; the queue lives in the browser).
 
 **9.4 — cutover flag ✅, cutover itself pending field-proving.** The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page

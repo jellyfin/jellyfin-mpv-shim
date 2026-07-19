@@ -436,9 +436,14 @@ def build_hud(b, size):
         force=True, flex=1, h=26,
         marks=([ch["time"] / dur for ch in chapters if 0 < ch["time"] < dur]
                if dur > 0 else None),
+        ranges=([(max(0.0, a / dur), min(1.0, e / dur))
+                 for a, e in (st.get("ranges") or []) if e > a]
+                if dur > 0 else None),
         on_change=b._hud_scrub_change,
         on_commit=b._hud_scrub_commit,
-        on_cancel=b._hud_scrub_cancel)
+        on_cancel=b._hud_scrub_cancel,
+        on_hover=b._hud_hover_move,
+        on_hover_end=b._hud_hover_end)
 
     menu_state = None
     if b.controller is not None and hasattr(b.controller, "hud_menu_state"):
@@ -579,7 +584,8 @@ def build_hud(b, size):
     if skip is not None:
         children.append(skip)
 
-    preview = _preview_float(b, scrub, dur, size)
+    preview_at = scrub if scrub is not None else b._hud_hover
+    preview = _preview_float(b, preview_at, dur, size, chapters)
     if preview is not None:
         children.append(preview)
 
@@ -595,28 +601,42 @@ def build_hud(b, size):
 _SLIDER_PAD = 8
 
 
-def _preview_float(b, scrub, dur, size):
-    """Trickplay thumbnail floated above the slider's scrub position
-    (or None when not scrubbing / no data). Geometry comes from the
-    previous scene's laid-out slider rect — one frame stale, which is
-    fine: the bar doesn't move while the HUD is up."""
-    if scrub is None or dur <= 0:
-        return None
-    entry = _trickplay_frame(b, scrub)
-    if entry is None:
+def _preview_float(b, secs, dur, size, chapters):
+    """Seek-preview bubble floated above the slider at ``secs``: the
+    trickplay thumbnail (when the video has tiles) over the chapter
+    name and timestamp — the lua OSC's hover bubble. Shown while
+    scrubbing or while the pointer rests on the bar. Geometry comes
+    from the previous scene's laid-out slider rect — one frame stale,
+    which is fine: the bar doesn't move while the HUD is up."""
+    if secs is None or dur <= 0:
         return None
     rect = None
     if b.app is not None and hasattr(b.app, "node_rect"):
         rect = b.app.node_rect("hud-seek")
     if rect is None:
         return None
-    w, _h = size
-    iw, ih = entry["iw"], entry["ih"]
-    frac = max(0.0, min(1.0, scrub / dur))
+    w, h = size
+    entry = _trickplay_frame(b, secs)
+    rows = []
+    if entry is not None:
+        rows.append(Image(entry["src"], entry["iw"], entry["ih"]))
+    chapter = None
+    for ch in chapters:
+        if ch["time"] <= secs and ch.get("title"):
+            chapter = ch["title"]
+    if chapter:
+        rows.append(Text(chapter, size=14, color="dddddd",
+                         align="center"))
+    rows.append(Text(_clock(secs), size=14, bold=True, align="center"))
+    bw = max(entry["iw"] if entry is not None else 0, 120) + 16
+    frac = max(0.0, min(1.0, secs / dur))
     track_x = rect["x"] + _SLIDER_PAD
     track_w = rect["w"] - 2 * _SLIDER_PAD
-    px = track_x + frac * track_w - iw / 2
-    px = max(8, min(w - iw - 8, px))
-    py = rect["y"] - ih - 10
-    return Image(entry["src"], iw, ih, id="hud-preview",
-                 anchor="nw", dx=px, dy=py)
+    px = track_x + frac * track_w - bw / 2
+    px = max(8, min(w - bw - 8, px))
+    # anchor sw + negative dy pins the bubble's BOTTOM just above the
+    # slider whatever its content height turns out to be
+    return Box(
+        [Column(rows, gap=4, align="center")],
+        id="hud-preview", bg="282828", radius=6, pad=8,
+        anchor="sw", dx=px, dy=rect["y"] - 10 - h)

@@ -284,8 +284,11 @@ class Slider(Element):
         on_change=None,
         on_commit=None,
         on_cancel=None,
+        on_hover=None,  # throttled pointer-rest position (seek preview)
+        on_hover_end=None,
         force=False,
         marks=None,  # tick fractions in (0,1): chapter slits on a seek bar
+        ranges=None,  # (start, end) fraction pairs: buffered shading
         **kw,
     ):
         kw.setdefault("w", 180)
@@ -297,8 +300,11 @@ class Slider(Element):
         self.on_change = on_change
         self.on_commit = on_commit
         self.on_cancel = on_cancel
+        self.on_hover = on_hover
+        self.on_hover_end = on_hover_end
         self.force = force
         self.marks = marks
+        self.ranges = ranges
 
 
 class Busy(Element):
