@@ -217,8 +217,9 @@ def measure(el):
         widths = _grid_track_widths(el, cells, None)
         heights = _grid_row_heights(el, cells)
         n = len(el.cols)
-        w = sum(widths) + el.gap * (n - 1 if n else 0)
-        h = sum(heights) + el.row_gap * (len(heights) - 1 if heights else 0)
+        w = sum(widths) + el.gap * (n - 1 if n else 0) + 2 * el.row_pad
+        h = (sum(hh + 2 * el.row_pad for hh in heights)
+             + el.row_gap * (len(heights) - 1 if heights else 0))
         return (el.w if el.w is not None else w,
                 el.h if el.h is not None else h)
     if isinstance(el, Box):
@@ -247,9 +248,15 @@ def measure(el):
 
 
 def _grid_cells(el):
-    """Normalize Grid rows: str -> Text (track-aligned), None stays."""
+    """Normalize Grid rows to (cells, spec) pairs: str -> Text
+    (track-aligned), None stays; dict rows split into their cell list
+    and the row styling/interaction spec."""
     out = []
     for r in el.rows:
+        spec = None
+        if isinstance(r, dict):
+            spec = r
+            r = r.get("cells", [])
         row = []
         for ci in range(len(el.cols)):
             v = r[ci] if ci < len(r) else None
@@ -261,7 +268,7 @@ def _grid_cells(el):
                     Text(str(v), size=el.size, color=el.fg,
                          align=col.get("align", "left"))
                 )
-        out.append(row)
+        out.append((row, spec))
     return out
 
 
@@ -278,7 +285,7 @@ def _grid_track_widths(el, cells, avail_w):
         if widths[ci] is None and (avail_w is None
                                    or not col.get("flex")):
             mx = 0.0
-            for row in cells:
+            for row, _spec in cells:
                 c = row[ci]
                 if c is not None:
                     mx = max(mx, measure(c)[0])
@@ -289,7 +296,8 @@ def _grid_track_widths(el, cells, avail_w):
             for ci, col in enumerate(el.cols) if widths[ci] is None
         )
         fixed = sum(wd for wd in widths if wd is not None)
-        leftover = max(0.0, avail_w - fixed - el.gap * (n - 1))
+        leftover = max(0.0, avail_w - fixed - el.gap * (n - 1)
+                       - 2 * el.row_pad)
         for ci, col in enumerate(el.cols):
             if widths[ci] is None:
                 widths[ci] = leftover * col.get("flex", 0) / flex_total
@@ -298,7 +306,7 @@ def _grid_track_widths(el, cells, avail_w):
 
 def _grid_row_heights(el, cells):
     heights = []
-    for row in cells:
+    for row, _spec in cells:
         mx = float(el.row_h or 0)
         for c in row:
             if c is not None:
@@ -501,9 +509,38 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         cells = _grid_cells(el)
         widths = _grid_track_widths(el, cells, w)
         heights = _grid_row_heights(el, cells)
+        rp = float(el.row_pad)
         cy = y
-        for ri, row in enumerate(cells):
-            cx = x
+        for ri, (row, spec) in enumerate(cells):
+            if spec is not None and (spec.get("bg") or spec.get("id")
+                                     or spec.get("on_click")
+                                     or spec.get("on_dbl")
+                                     or spec.get("hover")):
+                rid = spec.get("id") or "%s.gr%d" % (path, ri)
+                rect = {
+                    "t": "rect",
+                    "id": rid,
+                    "x": _round(x),
+                    "y": _round(cy),
+                    "w": _round(w),
+                    "h": _round(heights[ri] + 2 * rp),
+                }
+                if sc:
+                    rect["sc"] = sc
+                if spec.get("bg"):
+                    rect["fill"] = spec["bg"]
+                if spec.get("radius"):
+                    rect["radius"] = spec["radius"]
+                if spec.get("hover"):
+                    rect["hover"] = spec["hover"]
+                if spec.get("on_click"):
+                    rect["click"] = True
+                    _reg(ctx, rid, "click", spec["on_click"])
+                if spec.get("on_dbl"):
+                    rect["dbl"] = True
+                    _reg(ctx, rid, "dbl", spec["on_dbl"])
+                ctx.nodes.append(rect)
+            cx = x + rp
             for ci, c in enumerate(row):
                 tw = widths[ci]
                 if c is not None:
@@ -520,11 +557,11 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
                         ox = (tw - cw2) / 2
                     else:
                         ox = tw - cw2
-                    oy = (heights[ri] - ch2) / 2
+                    oy = rp + (heights[ri] - ch2) / 2
                     _arrange(ctx, c, cx + ox, cy + oy, cw2, ch2, sc,
                              "%s.g%d_%d" % (path, ri, ci))
                 cx += tw + el.gap
-            cy += heights[ri] + el.row_gap
+            cy += heights[ri] + 2 * rp + el.row_gap
         return
 
     if isinstance(el, Icon):

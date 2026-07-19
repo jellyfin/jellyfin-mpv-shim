@@ -50,7 +50,10 @@ sized Spacer is the stand-in for virtualized content), `Stack`
 the page unlike `Float` — the way to pin arrows/badges to a row; see
 §6 for what may draw over what), `Grid` (cells on shared column
 tracks — `{"w"}`/`{"flex"}`/`{}` auto — so sibling rows can't drift;
-`Form` sugar for label+input rows), `Table` (header + rows generated
+rows may be dicts carrying card chrome — `bg`/`radius`/`id`/
+`on_click`/`on_dbl`/`hover` draw a full-width row rect behind the
+cells, `row_pad` insets them — for management-list rows; `Form` sugar
+for label+input rows), `Table` (header + rows generated
 from one column spec — `{"label", "w"|"flex", "align"}`; rows take
 `selected`/`fg`/`bg`/`on_click`/`on_dbl`, cells may be Elements
 (album-art thumbnails, buttons); `virtual={"offset", "height"}`

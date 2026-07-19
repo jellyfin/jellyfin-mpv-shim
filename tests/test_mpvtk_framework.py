@@ -563,3 +563,46 @@ class TestTip(unittest.TestCase):
             200, 100,
         )
         self.assertEqual(by_id(nodes, "b")["tip"], "Saves the thing")
+
+
+class TestGridRowSpecs(unittest.TestCase):
+    def _grid(self):
+        return Grid(
+            [
+                {"id": "row0", "bg": "202020", "radius": 6,
+                 "on_click": lambda: None,
+                 "cells": ["a", Button("Go", id="b0",
+                                       on_click=lambda: None)]},
+                {"id": "row1",
+                 "cells": ["bb", Button("Go", id="b1",
+                                        on_click=lambda: None)]},
+            ],
+            cols=[{"flex": 1}, {"align": "right"}],
+            gap=10, row_gap=4, row_pad=8, w=400,
+        )
+
+    def test_row_rect_style_and_click(self):
+        nodes, handlers = layout(
+            Column([self._grid()], w=400, h=300), 400, 300
+        )
+        r0 = by_id(nodes, "row0")
+        self.assertEqual(r0["fill"], "202020")
+        self.assertEqual(r0["w"], 400)
+        self.assertTrue(r0.get("click"))
+        self.assertIn("click", handlers["row0"])
+        # unstyled row still gets an addressable (invisible) rect
+        r1 = by_id(nodes, "row1")
+        self.assertNotIn("fill", r1)
+
+    def test_row_pad_insets_cells(self):
+        nodes, _ = layout(
+            Column([self._grid()], w=400, h=300), 400, 300
+        )
+        r0 = by_id(nodes, "row0")
+        b0 = by_id(nodes, "b0")
+        self.assertGreaterEqual(b0["y"], r0["y"] + 8)
+        # button track shared: both buttons at the same x
+        self.assertEqual(b0["x"], by_id(nodes, "b1")["x"])
+        # rows advance past the padded row rect
+        r1 = by_id(nodes, "row1")
+        self.assertEqual(r1["y"], r0["y"] + r0["h"] + 4)

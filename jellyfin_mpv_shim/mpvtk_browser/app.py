@@ -28,6 +28,7 @@ from ..mpvtk.widgets import (
     Column,
     Dialog,
     Dropdown,
+    Grid,
     HScroll,
     Icon,
     Image,
@@ -2355,8 +2356,16 @@ class MpvtkBrowser:
 
     def _settings_servers(self, route, size):
         users = self._users()
-        user_rows = [self._user_row(u, i, len(users) > 1)
-                     for i, u in enumerate(users)]
+        # Grid, not per-row fixed widths: the name/status/button columns
+        # share tracks across rows, and the button track auto-sizes to
+        # the widest button set (translations included).
+        user_rows = [Grid(
+            [self._user_row(u, i, len(users) > 1)
+             for i, u in enumerate(users)],
+            cols=[{"w": 22}, {"flex": 1}, {"w": 90},
+                  {"align": "right"}],
+            gap=8, row_gap=4, row_pad=8,
+        )]
         user_rows.append(Row([
             TextBox("su-newuser", placeholder=_("New user name…"), w=240,
                     on_change=lambda v: self._newuser.__setitem__("name", v),
@@ -2378,27 +2387,13 @@ class MpvtkBrowser:
         if not servers:
             server_rows.append(Text(_("No servers configured yet."), size=15,
                                     color=theme.SUBTLE_FG))
-        for i, sv in enumerate(servers):
-            connected = sv.get("connected")
-            server_rows.append(Row([
-                Icon("radio", 16,
-                     color=theme.OK_GREEN if connected else theme.FAV_RED),
-                Column([Text(sv.get("name", "?"), size=17, bold=True),
-                        Text(sv.get("address", ""), size=13,
-                             color=theme.SUBTLE_FG)], gap=1, flex=1),
-                Text(sv.get("username", ""), w=180, size=15,
-                     color=theme.SUBTLE_FG),
-                Text(_("Connected") if connected else _("Offline"), w=120,
-                     size=15,
-                     color=theme.OK_GREEN if connected else theme.FAV_RED),
-                Button(_("Remove"), id="sv-rm-%d" % i, icon="delete", size=15,
-                       on_click=lambda u=sv.get("uuid"), n=sv.get("name"):
-                           self._confirm(
-                               _("Remove %s and its saved login?") % n,
-                               lambda: self._remove_server(u),
-                               title=_("Remove Server"), yes=_("Remove"))),
-            ], id="sv-%d" % i, pad=8, gap=12, radius=6, align="center",
-               bg=theme.PANEL_BG))
+        else:
+            server_rows.append(Grid(
+                [self._server_row(sv, i) for i, sv in enumerate(servers)],
+                cols=[{"w": 22}, {"flex": 1}, {}, {},
+                      {"align": "right"}],
+                gap=12, row_gap=4, row_pad=8,
+            ))
         server_rows.append(Row([
             Button(_("Add Server"), id="sv-add", icon="add",
                    on_click=self.show_login),
@@ -2420,6 +2415,8 @@ class MpvtkBrowser:
             id="settings-servers", flex=1)
 
     def _user_row(self, u, i, can_delete):
+        """One Grid row spec for the Users list (cells share the Grid's
+        tracks; the trailing button set varies per row)."""
         buttons = []
         if not u.get("active"):
             buttons.append(Button(_("Switch"), id="su-sw-%d" % i,
@@ -2438,14 +2435,45 @@ class MpvtkBrowser:
                     % u.get("name", ""),
                     lambda: self._delete_user(u),
                     title=_("Delete User"), yes=_("Delete"))))
-        return Row([
-            Icon("lock" if u.get("locked") else "person", 18),
-            Text(u.get("name", "?"), w=220, size=17, bold=True),
-            Text(_("active") if u.get("active") else "", w=90, size=14,
-                 color=theme.OK_GREEN),
-            Spacer(),
-        ] + buttons, id="su-%d" % i, pad=8, gap=8, radius=6, align="center",
-           bg=theme.PANEL_BG)
+        return {
+            "id": "su-%d" % i,
+            "bg": theme.PANEL_BG,
+            "radius": 6,
+            "cells": [
+                Icon("lock" if u.get("locked") else "person", 18),
+                Text(u.get("name", "?"), size=17, bold=True, flex=1),
+                Text(_("active") if u.get("active") else "", size=14,
+                     color=theme.OK_GREEN),
+                Row(buttons, gap=8),
+            ],
+        }
+
+    def _server_row(self, sv, i):
+        connected = sv.get("connected")
+        return {
+            "id": "sv-%d" % i,
+            "bg": theme.PANEL_BG,
+            "radius": 6,
+            "cells": [
+                Icon("radio", 16,
+                     color=theme.OK_GREEN if connected else theme.FAV_RED),
+                Column([Text(sv.get("name", "?"), size=17, bold=True),
+                        Text(sv.get("address", ""), size=13,
+                             color=theme.SUBTLE_FG)], gap=1, flex=1),
+                Text(sv.get("username", ""), size=15,
+                     color=theme.SUBTLE_FG),
+                Text(_("Connected") if connected else _("Offline"),
+                     size=15,
+                     color=theme.OK_GREEN if connected else theme.FAV_RED),
+                Button(_("Remove"), id="sv-rm-%d" % i, icon="delete",
+                       size=15,
+                       on_click=lambda u=sv.get("uuid"), n=sv.get("name"):
+                           self._confirm(
+                               _("Remove %s and its saved login?") % n,
+                               lambda: self._remove_server(u),
+                               title=_("Remove Server"), yes=_("Remove"))),
+            ],
+        }
 
     def _remove_server(self, uuid):
         if self.controller is None:
@@ -2607,19 +2635,27 @@ class MpvtkBrowser:
 
     def _dl_row(self, node_id, title, meta, depth, on_delete, bold=False,
                 icon=None):
-        """One line of the downloads tree. Indentation carries the level;
-        every level gets its own delete so a whole show can go at once."""
-        cells = [Spacer(w=depth * self.INDENT, h=1)]
+        """One Grid row spec of the downloads tree. Indentation carries
+        the level (inside the title cell, so the meta/Remove tracks stay
+        shared across every depth); every level gets its own delete so a
+        whole show can go at once."""
+        title_cell = [Spacer(w=depth * self.INDENT, h=1)]
         if icon:
-            cells.append(Icon(icon, 16, color=theme.SUBTLE_FG))
-        cells += [
-            Text(title, flex=1, size=17 if bold else 16, bold=bold),
-            Text(meta, w=200, size=14, color=theme.SUBTLE_FG, align="right"),
-            Button(_("Remove"), id=node_id + "-rm", icon="delete", size=15,
-                   on_click=on_delete),
-        ]
-        return Row(cells, id=node_id, pad=6, gap=10, radius=6, align="center",
-                   bg=theme.PANEL_BG if depth == 0 else None)
+            title_cell.append(Icon(icon, 16, color=theme.SUBTLE_FG))
+        title_cell.append(Text(title, flex=1, size=17 if bold else 16,
+                               bold=bold))
+        return {
+            "id": node_id,
+            "bg": theme.PANEL_BG if depth == 0 else None,
+            "radius": 6,
+            "cells": [
+                Row(title_cell, gap=10, align="center", flex=1),
+                Text(meta, size=14, color=theme.SUBTLE_FG,
+                     align="right"),
+                Button(_("Remove"), id=node_id + "-rm", icon="delete",
+                       size=15, on_click=on_delete),
+            ],
+        }
 
     def _dl_group(self, route, group, gi):
         kind = group.get("kind")
@@ -2643,7 +2679,10 @@ class MpvtkBrowser:
             else:
                 rows.append(self._dl_item_row(
                     route, child, "dl-g%d-i%d" % (gi, ci), 1))
-        return Column(rows, gap=2, align="stretch")
+        return Grid(rows,
+                    cols=[{"flex": 1}, {"w": 200, "align": "right"},
+                          {"align": "right"}],
+                    gap=10, row_gap=2, row_pad=6)
 
     def _dl_item_row(self, route, item, node_id, depth):
         num = item.get("index")

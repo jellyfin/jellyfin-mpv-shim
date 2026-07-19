@@ -117,6 +117,17 @@ Bonus shipped with this round: music playlists get a leading album-art
 thumbnail column in the track table (`_track_list(art=True)`,
 `_art_cell` via the thumbnail pool + `strips.bitmap`).
 
+**Adoption (same day):** the Downloads and Servers & Users panels now
+build on `Grid` — which grew dict rows for the purpose (`{"cells",
+"id", "bg", "radius", "on_click", …}` + `row_pad`: a full-width card
+rect behind track-aligned cells). The magic fixed widths
+(name 220 / active 90 / username 180 / status 120 / meta 200-as-Text)
+are gone; button columns auto-size to the widest set, so translations
+can't shear rows; downloads keep tree indentation inside the title
+cell so meta/Remove tracks align across all three depths. Item 4
+(tree rows) is now HALF-covered: Grid dict rows give downloads its
+card/indent structure; disclosure/collapse remains open.
+
 **Tabular**
 
 1. [x] **Table rows aren't virtualized.** Every row is built eagerly on

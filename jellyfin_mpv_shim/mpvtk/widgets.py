@@ -313,16 +313,23 @@ class Grid(Element):
     their natural size, positioned by the track's align. Cells are
     vertically centered in their row (rows size to their tallest cell,
     or ``row_h`` if given).
+
+    A row may also be a dict ``{"cells": [...], "id":, "bg":,
+    "radius":, "hover":, "on_click":, "on_dbl":}`` — the styling/
+    interaction draws as a full-width row rect behind the cells (list
+    rows with card backgrounds, à la the servers/downloads panels).
+    ``row_pad`` insets cells from the row rect on every side.
     """
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
-                 size=18, fg="eeeeee", **kw):
+                 row_pad=0, size=18, fg="eeeeee", **kw):
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
         self.gap = gap
         self.row_gap = row_gap
         self.row_h = row_h
+        self.row_pad = row_pad
         self.size = size
         self.fg = fg
 
