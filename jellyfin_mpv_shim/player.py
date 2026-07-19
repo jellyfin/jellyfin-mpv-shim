@@ -240,6 +240,10 @@ class PlayerManager(object):
         # mode). Guards idle_quit so browsing never tears the window down, the
         # same way get_webview() guards it for the display mirror.
         self.mpvtk_active = False
+        # Optional callback invoked when the user closes the mpv window while
+        # the in-window UI owns it. Set by mpvtk_browser.ui, which decides
+        # between minimizing to the tray and quitting. Unset -> stop_and_close.
+        self.on_window_closed = None
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -455,11 +459,24 @@ class PlayerManager(object):
             else:
                 self.put_task(self.stop_and_close)
 
-        @self._player.on_key_press("CLOSE_WIN")
         @self._player.on_key_press("STOP")
         def handle_stop():
             log.info("handle_stop triggered")
             self.put_task(self.stop_and_close)
+
+        @self._player.on_key_press("CLOSE_WIN")
+        def handle_close_win():
+            # With the in-window browser, closing the window is "minimize to
+            # tray", not "quit" — but only the UI knows whether a tray is
+            # actually there to minimize into, so it decides. Without that
+            # hook this used to stop playback, which fired a stopped
+            # playstate, which re-opened the browser window immediately.
+            log.info("handle_close_win triggered")
+            handler = self.on_window_closed
+            if self.mpvtk_active and handler is not None:
+                self.put_task(handler)
+            else:
+                self.put_task(self.stop_and_close)
 
         @keypress(settings.kb_prev)
         def handle_prev():
@@ -2186,6 +2203,22 @@ class PlayerManager(object):
 
     def set_browse_window(self, enabled: bool):
         """Persistent window for the in-window mpvtk browser.
+
+        With the in-window UI there is exactly one window, and its state is
+        the product of two mpv properties:
+
+            state                          playback_abort  force_window
+            library browser                yes             yes
+            media playing                  no              yes
+            "minimized" (tray only)        yes             no
+            cast to, library not open      no              no
+
+        ``set_browse_window(True)`` is the first row; ``False`` drops to the
+        third (or leaves the fourth alone, since it won't touch the window
+        while something is playing). Minimizing is therefore not a
+        window-manager action — it's releasing force_window with nothing to
+        play, which is also why the app stays a usable cast target while
+        minimized.
 
         Differs from force_window() (used by the OSD menu) in two ways the
         browser needs: no Jellyfin logo splash (the browser paints its own

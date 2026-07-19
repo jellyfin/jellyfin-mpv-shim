@@ -252,8 +252,32 @@ Settings tab). It stays a separate **process**, not a thread — pystray
 needs its process's main thread and pystray + libmpv in one process
 segfaults with GNOME AppIndicator. `UserInterface.activate` exists now, so
 a second launch surfaces the window instead of doing nothing.
-Still inert: `start_minimized` / `close_to_tray` / `close_prompt_shown`
-(there is no separate window to minimize or close-to-tray).
+`start_minimized` and `close_to_tray` work again, once "minimize" was
+pinned down as a *player* state rather than a window-manager action. With
+one shared window the state is the product of two mpv properties:
+
+| state                      | playback_abort | force_window |
+|----------------------------|----------------|--------------|
+| library browser            | yes            | yes          |
+| media playing              | no             | yes          |
+| "minimized" (tray only)    | yes            | no           |
+| cast to, library not open  | no             | no           |
+
+So minimizing is releasing `force_window` with nothing playing — which is
+also why the app stays a usable cast target while minimized, and why a cast
+that ends while minimized returns to row 3 instead of popping the library
+open. `set_browse_window(True/False)` moves between rows 1 and 3;
+`MpvtkBrowser.minimize()`/`enter_browse()` drive it.
+
+Both settings are ignored when no tray came up — otherwise the app would be
+running with no way to reach or quit it.
+
+Still open: `close_prompt_shown`. The Tk browser asked "Minimize to Tray /
+Exit?" on first close; here the window is already gone when CLOSE_WIN
+arrives, so showing a modal means re-creating the window to ask. Closing
+currently just minimizes (the reversible choice) and `close_to_tray` is
+editable in Settings → Interface. Decide whether the prompt is worth
+re-creating the window for.
 
 ### Fixed in round 1 from this audit
 

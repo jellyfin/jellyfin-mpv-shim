@@ -309,6 +309,7 @@ class FakeController:
     def __init__(self):
         self.entered = 0
         self.left = 0
+        self.minimized = 0
         self.played = []
         self.transport = []
 
@@ -317,6 +318,9 @@ class FakeController:
 
     def on_browse_leave(self):
         self.left += 1
+
+    def on_minimize(self):
+        self.minimized += 1
 
     def play(self, item, server_uuid, offset_ticks=None, srcid=None,
              aid=None, sid=None):
@@ -405,6 +409,32 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.b.enter_browse()
         self.assertTrue(self.b._browsing)
         self.assertGreaterEqual(self.ctl.entered, 1)
+
+    def test_minimize_releases_the_window_and_survives_a_cast(self):
+        """"Minimized" is a player state (playback_abort + no force_window),
+        not a hidden window: a cast while minimized must return to minimized
+        when it ends, not pop the library open."""
+        self.b.minimize()
+        self.assertTrue(self.b.minimized)
+        self.assertFalse(self.b._browsing)
+        self.assertEqual(self.ctl.minimized, 1)
+
+        self.b.on_playstate({"stopped": False, "is_audio": False})
+        self.b.on_playstate({"stopped": True})
+        self.assertTrue(self.b.minimized, "cast ended -> back to minimized")
+        self.assertFalse(self.b._browsing)
+
+    def test_enter_browse_clears_minimized(self):
+        self.b.minimize()
+        self.b.enter_browse()
+        self.assertFalse(self.b.minimized)
+        self.assertTrue(self.b._browsing)
+
+    def test_stop_while_not_minimized_still_opens_the_browser(self):
+        self.b._browsing = False
+        self.b.on_playstate({"stopped": True})
+        self.assertTrue(self.b._browsing)
+        self.assertFalse(self.b.minimized)
 
     def test_yield_suspends_the_renderer(self):
         """An empty scene is not enough to hand input to the OSC — the

@@ -260,7 +260,8 @@ You can use the config file to enable and disable features.
   - `tk` - The legacy Tkinter browser, in its own window. Being removed once the mpvtk UI is signed off.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
-- `close_to_tray` - When enabled, closing the library-browser window hides it to the system tray (keeping the app running as a cast target); when disabled, closing exits. The first time you close the window you're asked which you prefer, and the answer is stored here. Default: `true`
+- `close_to_tray` - When enabled, closing the player window minimizes the app to the system tray, keeping it running as a cast target; when disabled, closing exits. Ignored (treated as `false`) when no system tray is available, so the app can't become unreachable. Default: `true`
+- `start_minimized` - Start minimized to the tray instead of opening the library. Also ignored when no tray is available. Default: `false`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `osc_style` - Which on-screen controller to use. Default: `jellyfin`

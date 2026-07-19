@@ -60,6 +60,14 @@ class _PlayerController:
         playerManager.set_browse_window(True)
         playerManager.enable_osc(False)
 
+    def on_minimize(self):
+        """Drop to the windowless state. set_browse_window(False) releases
+        force_window when nothing is playing; if a cast is in flight it
+        leaves the picture alone, which is exactly the behaviour we want."""
+        from ..player import playerManager
+        playerManager.enable_osc(settings.enable_osc)
+        playerManager.set_browse_window(False)
+
     def on_browse_leave(self):
         from ..player import playerManager
         # Restore video aspect handling / playback fullscreen, then hand the
@@ -552,6 +560,24 @@ class UserInterface:
         if self.stop_callback is not None:
             self.stop_callback()
 
+    def on_window_closed(self):
+        """The user closed the mpv window.
+
+        With one shared window, closing it means "minimize to tray" — the app
+        stays alive as a cast target. But that is only safe if there *is* a
+        tray: without one the app would keep running with no way to reach or
+        quit it, so we exit instead."""
+        if not settings.close_to_tray:
+            self._quit()
+            return
+        if self._tray is None or not self._tray.available:
+            log.info("Window closed and no system tray is available; "
+                     "exiting rather than becoming unreachable.")
+            self._quit()
+            return
+        if self._browser is not None:
+            self._browser.minimize()
+
     def login_servers(self):
         from ..player import playerManager, is_using_ext_mpv
         from ..mpvtk.app import MpvtkApp
@@ -584,7 +610,20 @@ class UserInterface:
         # Update notices surface in the browser banner (not the MPV OSD).
         playerManager.notify_update = browser.notify_update
 
-        browser.enter_browse()  # take the window + hide the OSC
+        playerManager.on_window_closed = self.on_window_closed
+        # start_minimized: come up in the windowless state — running, castable,
+        # reachable from the tray — instead of opening the library. Without a
+        # tray there'd be no way back, so honour it only when one is up.
+        if settings.start_minimized and self._tray is not None:
+            self._tray.ready.wait(5)
+        if settings.start_minimized and self._tray is not None \
+                and self._tray.available:
+            browser.minimize()
+        else:
+            if settings.start_minimized:
+                log.info("start_minimized ignored: no system tray to "
+                         "restore the window from.")
+            browser.enter_browse()  # take the window + hide the OSC
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="mpvtk-browser")
         self._thread.start()

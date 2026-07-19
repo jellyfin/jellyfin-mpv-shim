@@ -92,6 +92,10 @@ class MpvtkBrowser:
         # playback + the OSC. build() pushes an empty scene when not browsing so
         # its overlays clear off the video.
         self._browsing = True
+        # True in the "minimized" player state: playback_abort with
+        # force_window off, i.e. no window at all and the app reachable only
+        # from the tray (still a valid cast target). See minimize().
+        self._minimized = False
         # Latest now-playing snapshot (from on_playstate) for the audio bar,
         # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
@@ -756,10 +760,26 @@ class MpvtkBrowser:
     def enter_browse(self):
         """Show the browser: take the window + hide the OSC, then render."""
         self._browsing = True
+        self._minimized = False
         if self.controller is not None:
             self.controller.on_browse_enter()
         self._set_renderer_active(True)
         self.invalidate()
+
+    def minimize(self):
+        """Release the window entirely — the app keeps running in the tray as
+        a cast target. This is the player's "playback_abort yes, force_window
+        no" state; there is no separate window to hide, so minimizing *is*
+        dropping force_window with nothing playing."""
+        self._minimized = True
+        self._browsing = False
+        self._set_renderer_active(False)
+        if self.controller is not None:
+            self.controller.on_minimize()
+
+    @property
+    def minimized(self):
+        return self._minimized
 
     def on_playstate(self, state):
         """Registered as playerManager.on_playstate. Drives browse/playback
@@ -767,7 +787,12 @@ class MpvtkBrowser:
         browsing); video stays yielded to the picture + OSC."""
         if not state or state.get("stopped"):
             self._now_playing = None
-            if not self._browsing:
+            if self._minimized:
+                # Cast finished and the library was never open: drop back to
+                # the windowless state rather than popping the browser up on
+                # a screen the user wasn't looking at.
+                self.minimize()
+            elif not self._browsing:
                 self.enter_browse()
             else:
                 self.invalidate()
