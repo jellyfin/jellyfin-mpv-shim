@@ -150,7 +150,9 @@ def main():
         if mirror:
             user_interface.stop_callback = mirror.stop
             # If the webview runs before the systray icon, it fails.
-            if use_gui:
+            # gui_ready is only set for the Tk GUI path; the mpvtk browser
+            # doesn't use it (and doesn't combine with the mirror).
+            if use_gui and gui_ready is not None:
                 gui_ready.wait()
             mirror.run()
         else:
