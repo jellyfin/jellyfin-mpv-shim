@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-18 18:57-0400\n"
+"POT-Creation-Date: 2026-07-18 21:26-0400\n"
 "PO-Revision-Date: 2026-01-11 07:07+0000\n"
 "Last-Translator: CaRotNamAnh_2k11 <namanhcarot@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
@@ -115,7 +115,7 @@ msgstr ""
 msgid "Quick Connect is not enabled on this server."
 msgstr ""
 
-#: jellyfin_mpv_shim/clients.py:547 jellyfin_mpv_shim/gui_mgr.py:741
+#: jellyfin_mpv_shim/clients.py:547 jellyfin_mpv_shim/gui_mgr.py:751
 msgid "Could not start Quick Connect."
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr "Sẵn sàng truyền"
 msgid "Select your media in Jellyfin and play it here."
 msgstr "Chọn phương tiện của bạn trong Jellyfin và phát nó ở đây"
 
-#: jellyfin_mpv_shim/gui_mgr.py:702
+#: jellyfin_mpv_shim/gui_mgr.py:712
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -139,78 +139,78 @@ msgstr ""
 "Không thể thêm máy chủ.\n"
 "Vui lòng kiểm tra thông tin kết nối của bạn."
 
-#: jellyfin_mpv_shim/gui_mgr.py:758
+#: jellyfin_mpv_shim/gui_mgr.py:768
 msgid "Quick Connect was not authorized in time. Please try again."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:795 jellyfin_mpv_shim/users.py:316
+#: jellyfin_mpv_shim/gui_mgr.py:805 jellyfin_mpv_shim/users.py:316
 msgid "User not found."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:799 jellyfin_mpv_shim/gui_mgr.py:860
-#: jellyfin_mpv_shim/library_browser/views.py:2648
+#: jellyfin_mpv_shim/gui_mgr.py:809 jellyfin_mpv_shim/gui_mgr.py:870
+#: jellyfin_mpv_shim/library_browser/views.py:2653
 msgid "Incorrect PIN."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:808
+#: jellyfin_mpv_shim/gui_mgr.py:818
 msgid "Another user switch is already in progress."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:904
+#: jellyfin_mpv_shim/gui_mgr.py:914
 msgid "A download-folder change is already running."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:933
+#: jellyfin_mpv_shim/gui_mgr.py:943
 msgid ""
 "Download folder moved. Restart the app to finish switching to the new folder."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:941
+#: jellyfin_mpv_shim/gui_mgr.py:951
 msgid "Moving the downloads failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1096
+#: jellyfin_mpv_shim/gui_mgr.py:1106
 msgid "This needs a newer jellyfin-apiclient-python."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1099
+#: jellyfin_mpv_shim/gui_mgr.py:1109
 msgid "The change could not be applied."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1112 jellyfin_mpv_shim/gui_mgr.py:1156
+#: jellyfin_mpv_shim/gui_mgr.py:1122 jellyfin_mpv_shim/gui_mgr.py:1166
 msgid "Editing needs a server connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1131
+#: jellyfin_mpv_shim/gui_mgr.py:1141
 msgid "New Playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1169
+#: jellyfin_mpv_shim/gui_mgr.py:1179
 msgid "New Collection"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1335
+#: jellyfin_mpv_shim/gui_mgr.py:1345
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1336
+#: jellyfin_mpv_shim/gui_mgr.py:1346
 #: jellyfin_mpv_shim/library_browser/app.py:229
 msgid "Configure Servers"
 msgstr "Cấu hình máy chủ"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1337
+#: jellyfin_mpv_shim/gui_mgr.py:1347
 msgid "Show Console"
 msgstr "Hiển thị bảng điều khiển"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1338
+#: jellyfin_mpv_shim/gui_mgr.py:1348
 msgid "Application Menu"
 msgstr "Menu ứng dụng"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1339
+#: jellyfin_mpv_shim/gui_mgr.py:1349
 msgid "Open Config Folder"
 msgstr "Mở thư mục cấu hình"
 
-#: jellyfin_mpv_shim/gui_mgr.py:1340
+#: jellyfin_mpv_shim/gui_mgr.py:1350
 msgid "Quit"
 msgstr "Thoát"
 
@@ -223,7 +223,7 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/app.py:175
-#: jellyfin_mpv_shim/library_browser/views.py:3482
+#: jellyfin_mpv_shim/library_browser/views.py:3489
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Settings"
@@ -317,15 +317,15 @@ msgstr ""
 msgid "Downloading %(name)s%(pct)s — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:903
+#: jellyfin_mpv_shim/library_browser/app.py:904
 msgid "Enter PIN"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:904
+#: jellyfin_mpv_shim/library_browser/app.py:905
 msgid "Enter the PIN for %s."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:943
+#: jellyfin_mpv_shim/library_browser/app.py:944
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -335,23 +335,23 @@ msgstr ""
 "Không thể thêm máy chủ.\n"
 "Vui lòng kiểm tra thông tin kết nối của bạn."
 
-#: jellyfin_mpv_shim/library_browser/app.py:1107
+#: jellyfin_mpv_shim/library_browser/app.py:1108
 msgid "Something went wrong rendering this screen."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1240
+#: jellyfin_mpv_shim/library_browser/app.py:1241
 msgid "SyncPlay needs a server connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1328
+#: jellyfin_mpv_shim/library_browser/app.py:1329
 msgid "Nothing is playing to add."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1330
+#: jellyfin_mpv_shim/library_browser/app.py:1331
 msgid "current queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/app.py:1537
+#: jellyfin_mpv_shim/library_browser/app.py:1538
 msgid "The action could not be completed."
 msgstr ""
 
@@ -368,7 +368,7 @@ msgid "Latest %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/repository.py:780
-#: jellyfin_mpv_shim/library_browser/views.py:2962
+#: jellyfin_mpv_shim/library_browser/views.py:2969
 msgid "Playlist"
 msgstr ""
 
@@ -397,7 +397,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/repository.py:842
 #: jellyfin_mpv_shim/library_browser/repository.py:1067
 #: jellyfin_mpv_shim/library_browser/views.py:860
-#: jellyfin_mpv_shim/library_browser/views.py:3084
+#: jellyfin_mpv_shim/library_browser/views.py:3091
 msgid "Series"
 msgstr ""
 
@@ -414,18 +414,18 @@ msgid "Downloaded Shows"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/repository.py:985
-#: jellyfin_mpv_shim/library_browser/views.py:3070
+#: jellyfin_mpv_shim/library_browser/views.py:3077
 msgid "Specials"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/repository.py:987
-#: jellyfin_mpv_shim/library_browser/views.py:3072
+#: jellyfin_mpv_shim/library_browser/views.py:3079
 msgid "Season %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/repository.py:989
 #: jellyfin_mpv_shim/library_browser/views.py:1440
-#: jellyfin_mpv_shim/library_browser/views.py:3073
+#: jellyfin_mpv_shim/library_browser/views.py:3080
 msgid "Episodes"
 msgstr ""
 
@@ -436,7 +436,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:181
 #: jellyfin_mpv_shim/library_browser/views.py:585
 #: jellyfin_mpv_shim/library_browser/views.py:2301
-#: jellyfin_mpv_shim/library_browser/views.py:2883
+#: jellyfin_mpv_shim/library_browser/views.py:2890
 msgid "Loading…"
 msgstr ""
 
@@ -484,7 +484,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:360
 #: jellyfin_mpv_shim/library_browser/views.py:1216
-#: jellyfin_mpv_shim/library_browser/views.py:4015
+#: jellyfin_mpv_shim/library_browser/views.py:4022
 msgid "Runtime"
 msgstr ""
 
@@ -531,7 +531,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:471
 #: jellyfin_mpv_shim/library_browser/views.py:736
 #: jellyfin_mpv_shim/library_browser/views.py:1008
-#: jellyfin_mpv_shim/library_browser/views.py:3794
+#: jellyfin_mpv_shim/library_browser/views.py:3801
 msgid "Shuffle"
 msgstr ""
 
@@ -540,7 +540,7 @@ msgid "Remove from collection"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:630
-#: jellyfin_mpv_shim/library_browser/views.py:3051
+#: jellyfin_mpv_shim/library_browser/views.py:3058
 msgid "%d of %d"
 msgstr ""
 
@@ -593,7 +593,7 @@ msgid "No seasons found."
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:809
-#: jellyfin_mpv_shim/library_browser/views.py:3027
+#: jellyfin_mpv_shim/library_browser/views.py:3034
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove downloads"
@@ -653,12 +653,12 @@ msgid "Edit: %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1179
-#: jellyfin_mpv_shim/library_browser/views.py:3990
+#: jellyfin_mpv_shim/library_browser/views.py:3997
 msgid "Done"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1181
-#: jellyfin_mpv_shim/library_browser/views.py:2738
+#: jellyfin_mpv_shim/library_browser/views.py:2745
 #, fuzzy
 #| msgid "Username:"
 msgid "Rename"
@@ -675,23 +675,23 @@ msgid "Delete playlist"
 msgstr "Xóa máy chủ"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1197
-#: jellyfin_mpv_shim/library_browser/views.py:3995
+#: jellyfin_mpv_shim/library_browser/views.py:4002
 #: jellyfin_mpv_shim/menu.py:515 jellyfin_mpv_shim/osc_bridge.py:207
 msgid "Top"
 msgstr "Ở Trên"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1198
-#: jellyfin_mpv_shim/library_browser/views.py:3996
+#: jellyfin_mpv_shim/library_browser/views.py:4003
 msgid "Up"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1199
-#: jellyfin_mpv_shim/library_browser/views.py:3997
+#: jellyfin_mpv_shim/library_browser/views.py:4004
 msgid "Down"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1200
-#: jellyfin_mpv_shim/library_browser/views.py:3998
+#: jellyfin_mpv_shim/library_browser/views.py:4005
 #: jellyfin_mpv_shim/menu.py:514 jellyfin_mpv_shim/osc_bridge.py:207
 msgid "Bottom"
 msgstr "Ở Dưới"
@@ -707,7 +707,7 @@ msgid "Shift/Ctrl-click to select multiple"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1214
-#: jellyfin_mpv_shim/library_browser/views.py:4013
+#: jellyfin_mpv_shim/library_browser/views.py:4020
 msgid "Title"
 msgstr ""
 
@@ -722,7 +722,7 @@ msgid "Rename Playlist"
 msgstr "Xóa máy chủ"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1279
-#: jellyfin_mpv_shim/library_browser/views.py:2764
+#: jellyfin_mpv_shim/library_browser/views.py:2771
 #, fuzzy
 #| msgid "Username: "
 msgid "New name:"
@@ -745,18 +745,18 @@ msgid "Shows"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1441
-#: jellyfin_mpv_shim/library_browser/views.py:3719
-#: jellyfin_mpv_shim/library_browser/views.py:3909
+#: jellyfin_mpv_shim/library_browser/views.py:3726
+#: jellyfin_mpv_shim/library_browser/views.py:3916
 msgid "Albums"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1441
-#: jellyfin_mpv_shim/library_browser/views.py:3730
+#: jellyfin_mpv_shim/library_browser/views.py:3737
 msgid "Artists"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1442
-#: jellyfin_mpv_shim/library_browser/views.py:3735
+#: jellyfin_mpv_shim/library_browser/views.py:3742
 msgid "Songs"
 msgstr ""
 
@@ -831,7 +831,7 @@ msgid "Play from start"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1837
-#: jellyfin_mpv_shim/library_browser/views.py:3792
+#: jellyfin_mpv_shim/library_browser/views.py:3799
 #: jellyfin_mpv_shim/library_browser/widgets.py:235
 #, fuzzy
 #| msgid "SyncPlay"
@@ -849,9 +849,9 @@ msgid "Remove download"
 msgstr "Xóa máy chủ"
 
 #: jellyfin_mpv_shim/library_browser/views.py:1872
-#: jellyfin_mpv_shim/library_browser/views.py:3559
-#: jellyfin_mpv_shim/library_browser/views.py:3565
-#: jellyfin_mpv_shim/library_browser/views.py:3584
+#: jellyfin_mpv_shim/library_browser/views.py:3566
+#: jellyfin_mpv_shim/library_browser/views.py:3572
+#: jellyfin_mpv_shim/library_browser/views.py:3591
 msgid "Download"
 msgstr ""
 
@@ -908,7 +908,7 @@ msgstr "Cài đặt SVP"
 #: jellyfin_mpv_shim/library_browser/views.py:2074
 #: jellyfin_mpv_shim/library_browser/views.py:2163
 #: jellyfin_mpv_shim/library_browser/views.py:2327
-#: jellyfin_mpv_shim/library_browser/views.py:3583
+#: jellyfin_mpv_shim/library_browser/views.py:3590
 msgid "Cancel"
 msgstr ""
 
@@ -933,19 +933,19 @@ msgid "OK"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2087
-#: jellyfin_mpv_shim/library_browser/views.py:2640
+#: jellyfin_mpv_shim/library_browser/views.py:2645
 msgid "Enter a PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2127
-#: jellyfin_mpv_shim/library_browser/views.py:2734
+#: jellyfin_mpv_shim/library_browser/views.py:2741
 #, fuzzy
 #| msgid "Change Audio"
 msgid "Change PIN"
 msgstr "Thay đổi âm thanh"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2127
-#: jellyfin_mpv_shim/library_browser/views.py:2735
+#: jellyfin_mpv_shim/library_browser/views.py:2742
 msgid "Set PIN"
 msgstr ""
 
@@ -1106,358 +1106,358 @@ msgstr ""
 msgid "Switch user:"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2582
+#: jellyfin_mpv_shim/library_browser/views.py:2584
 msgid "Sign in to your Jellyfin server"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2584
+#: jellyfin_mpv_shim/library_browser/views.py:2586
 msgid "Connect"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2610
+#: jellyfin_mpv_shim/library_browser/views.py:2612
 msgid "%s is locked"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2620
+#: jellyfin_mpv_shim/library_browser/views.py:2622
 msgid "Unlock"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2625
+#: jellyfin_mpv_shim/library_browser/views.py:2627
 msgid "or switch to another user:"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2673
+#: jellyfin_mpv_shim/library_browser/views.py:2678
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers for %s"
 msgstr "Máy chủ:"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2674
-#: jellyfin_mpv_shim/library_browser/views.py:3484
+#: jellyfin_mpv_shim/library_browser/views.py:2679
+#: jellyfin_mpv_shim/library_browser/views.py:3491
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers"
 msgstr "Máy chủ:"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2679
+#: jellyfin_mpv_shim/library_browser/views.py:2684
 #, fuzzy
 #| msgid "Server Configuration"
 msgid "No servers configured yet."
 msgstr "Cấu hình máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2685
+#: jellyfin_mpv_shim/library_browser/views.py:2690
 msgid "Offline"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2687
+#: jellyfin_mpv_shim/library_browser/views.py:2692
 msgid "Connected"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2690
+#: jellyfin_mpv_shim/library_browser/views.py:2695
 msgid "Connected (casting unavailable)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2697
-#: jellyfin_mpv_shim/library_browser/views.py:3138
-#: jellyfin_mpv_shim/library_browser/views.py:4001
+#: jellyfin_mpv_shim/library_browser/views.py:2702
+#: jellyfin_mpv_shim/library_browser/views.py:3145
+#: jellyfin_mpv_shim/library_browser/views.py:4008
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove"
 msgstr "Xóa máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2701
+#: jellyfin_mpv_shim/library_browser/views.py:2706
 #, fuzzy
 #| msgid "Add Server"
 msgid "Add a server"
 msgstr "Thêm máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2704
+#: jellyfin_mpv_shim/library_browser/views.py:2709
 msgid "Add Server"
 msgstr "Thêm máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2709
+#: jellyfin_mpv_shim/library_browser/views.py:2714
 #, fuzzy
 #| msgid "Username:"
 msgid "Users"
 msgstr "Tên đăng nhập:"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2712
+#: jellyfin_mpv_shim/library_browser/views.py:2717
 msgid ""
 "Switch between local users. Each user has its own servers and a separate "
 "device identity; a locked user needs a PIN to switch to."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2728
+#: jellyfin_mpv_shim/library_browser/views.py:2735
 msgid "active"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2731
+#: jellyfin_mpv_shim/library_browser/views.py:2738
 msgid "Delete"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2742
+#: jellyfin_mpv_shim/library_browser/views.py:2749
 msgid "Switch"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2752
+#: jellyfin_mpv_shim/library_browser/views.py:2759
 #, fuzzy
 #| msgid "Add Server"
 msgid "Add User"
 msgstr "Thêm máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:2764
+#: jellyfin_mpv_shim/library_browser/views.py:2771
 msgid "Rename User"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2941
+#: jellyfin_mpv_shim/library_browser/views.py:2948
 msgid "Downloads — %s used"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:2951
+#: jellyfin_mpv_shim/library_browser/views.py:2958
 msgid "Nothing downloaded yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3004
+#: jellyfin_mpv_shim/library_browser/views.py:3011
 msgid "Movies & Videos"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3043
-#: jellyfin_mpv_shim/library_browser/views.py:3096
+#: jellyfin_mpv_shim/library_browser/views.py:3050
+#: jellyfin_mpv_shim/library_browser/views.py:3103
 msgid "Remove watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3054
+#: jellyfin_mpv_shim/library_browser/views.py:3061
 msgid "Playlist: %s  ·  %s · %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3092
+#: jellyfin_mpv_shim/library_browser/views.py:3099
 msgid "Remove show"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3119
+#: jellyfin_mpv_shim/library_browser/views.py:3126
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove season"
 msgstr "Xóa máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3144
+#: jellyfin_mpv_shim/library_browser/views.py:3151
 msgid "watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3155
-#: jellyfin_mpv_shim/library_browser/views.py:3167
+#: jellyfin_mpv_shim/library_browser/views.py:3162
+#: jellyfin_mpv_shim/library_browser/views.py:3174
 msgid "Downloading %d%%"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3157
+#: jellyfin_mpv_shim/library_browser/views.py:3164
 msgid "Queued"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3159
+#: jellyfin_mpv_shim/library_browser/views.py:3166
 #, fuzzy
 #| msgid "Fail"
 msgid "Failed"
 msgstr "Thất bại"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3191
+#: jellyfin_mpv_shim/library_browser/views.py:3198
 msgid "Interface"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3195
+#: jellyfin_mpv_shim/library_browser/views.py:3202
 msgid "Playback"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3198
+#: jellyfin_mpv_shim/library_browser/views.py:3205
 msgid "Subtitles & Languages"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3203
+#: jellyfin_mpv_shim/library_browser/views.py:3210
 #, fuzzy
 #| msgid " (Transcode)"
 msgid "Transcoding"
 msgstr " (Chuyển mã)"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3208
+#: jellyfin_mpv_shim/library_browser/views.py:3215
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
 msgstr "Đi tới để bỏ qua đoạn giới thiệu"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3211
+#: jellyfin_mpv_shim/library_browser/views.py:3218
 msgid "Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3213
-#: jellyfin_mpv_shim/library_browser/views.py:3483
+#: jellyfin_mpv_shim/library_browser/views.py:3220
+#: jellyfin_mpv_shim/library_browser/views.py:3490
 msgid "Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3223
+#: jellyfin_mpv_shim/library_browser/views.py:3230
 msgid "Download Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3224
+#: jellyfin_mpv_shim/library_browser/views.py:3231
 msgid "Prefer Downloaded Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3225
+#: jellyfin_mpv_shim/library_browser/views.py:3232
 msgid "Close to Tray (keep running)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3226
+#: jellyfin_mpv_shim/library_browser/views.py:3233
 msgid "Player Controls Style"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3238
+#: jellyfin_mpv_shim/library_browser/views.py:3245
 msgid "Jellyfin UI"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3239
+#: jellyfin_mpv_shim/library_browser/views.py:3246
 msgid "MPV UI with thumbnails"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3240
+#: jellyfin_mpv_shim/library_browser/views.py:3247
 msgid "MPV built-in default"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3243
+#: jellyfin_mpv_shim/library_browser/views.py:3250
 msgid "Unset"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3244
+#: jellyfin_mpv_shim/library_browser/views.py:3251
 msgid "Dubbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3245
+#: jellyfin_mpv_shim/library_browser/views.py:3252
 msgid "Subbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3246
+#: jellyfin_mpv_shim/library_browser/views.py:3253
 msgid "Dubbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3247
+#: jellyfin_mpv_shim/library_browser/views.py:3254
 msgid "Subbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3248
+#: jellyfin_mpv_shim/library_browser/views.py:3255
 msgid "Custom (set in config)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3292
+#: jellyfin_mpv_shim/library_browser/views.py:3299
 msgid "Show advanced settings"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3301
+#: jellyfin_mpv_shim/library_browser/views.py:3308
 msgid "Advanced"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3307
+#: jellyfin_mpv_shim/library_browser/views.py:3314
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Save Settings"
 msgstr "Cài đặt SVP"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3313
+#: jellyfin_mpv_shim/library_browser/views.py:3320
 msgid "Some changes take effect after restarting."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3362
+#: jellyfin_mpv_shim/library_browser/views.py:3369
 msgid "Browse…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3376
+#: jellyfin_mpv_shim/library_browser/views.py:3383
 msgid "Choose download folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3397
+#: jellyfin_mpv_shim/library_browser/views.py:3404
 msgid "Updating download folder…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3399
+#: jellyfin_mpv_shim/library_browser/views.py:3406
 msgid "Saved."
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3418
+#: jellyfin_mpv_shim/library_browser/views.py:3425
 msgid "Restart required"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3432
+#: jellyfin_mpv_shim/library_browser/views.py:3439
 msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3437
+#: jellyfin_mpv_shim/library_browser/views.py:3444
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads…"
 msgstr "Xóa máy chủ"
 
-#: jellyfin_mpv_shim/library_browser/views.py:3485
+#: jellyfin_mpv_shim/library_browser/views.py:3492
 msgid "Logs"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3568
+#: jellyfin_mpv_shim/library_browser/views.py:3575
 msgid "Estimating download size…"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3574
+#: jellyfin_mpv_shim/library_browser/views.py:3581
 msgid "Include watched items"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3575
+#: jellyfin_mpv_shim/library_browser/views.py:3582
 msgid "Include watched episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3595
+#: jellyfin_mpv_shim/library_browser/views.py:3602
 msgid "%(n)d item(s), about %(size)s"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3598
+#: jellyfin_mpv_shim/library_browser/views.py:3605
 msgid "%d watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3600
+#: jellyfin_mpv_shim/library_browser/views.py:3607
 msgid "%d already downloaded"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3689
+#: jellyfin_mpv_shim/library_browser/views.py:3696
 msgid "%d albums"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3701
+#: jellyfin_mpv_shim/library_browser/views.py:3708
 msgid "Music"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3725
+#: jellyfin_mpv_shim/library_browser/views.py:3732
 msgid "Album Artists"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3740
+#: jellyfin_mpv_shim/library_browser/views.py:3747
 msgid "Genres"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3766
-#: jellyfin_mpv_shim/library_browser/views.py:3945
+#: jellyfin_mpv_shim/library_browser/views.py:3773
+#: jellyfin_mpv_shim/library_browser/views.py:3952
 msgid "Genre"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3797
+#: jellyfin_mpv_shim/library_browser/views.py:3804
 msgid "Add to Queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3799
+#: jellyfin_mpv_shim/library_browser/views.py:3806
 msgid "Instant Mix"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:3988
+#: jellyfin_mpv_shim/library_browser/views.py:3995
 msgid "Play Queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:4003
+#: jellyfin_mpv_shim/library_browser/views.py:4010
 msgid "Shift/Ctrl-click to select multiple · double-click to jump"
 msgstr ""
 
-#: jellyfin_mpv_shim/library_browser/views.py:4014
+#: jellyfin_mpv_shim/library_browser/views.py:4021
 msgid "Artist"
 msgstr ""
 
@@ -2029,31 +2029,39 @@ msgstr "Anime4K x2 Perceptual + Deblur (Dành cho HD)"
 msgid "Select Shader Profile"
 msgstr "Chọn hồ sơ Shader"
 
-#, fuzzy
-#~| msgid "SVP Settings"
-#~ msgid "⚙ Settings"
-#~ msgstr "Cài đặt SVP"
-
-#, fuzzy
-#~| msgid "Username:"
-#~ msgid "✎ Rename"
-#~ msgstr "Tên đăng nhập:"
-
-#, fuzzy
-#~| msgid "Bottom"
-#~ msgid "⏬ Bottom"
-#~ msgstr "Ở Dưới"
-
-#, fuzzy
-#~| msgid "Remove Server"
-#~ msgid "🗑 Remove"
-#~ msgstr "Xóa máy chủ"
+#~ msgid "Select your media in Jellyfin and play it here"
+#~ msgstr "Chọn phương tiện của bạn trong Jellyfin và phát nó ở đây"
 
 #~ msgid "Application Log"
 #~ msgstr "Nhật ký ứng dụng"
 
+#~ msgid ""
+#~ "Could not add server.\n"
+#~ "Please check your connection information."
+#~ msgstr ""
+#~ "Không thể thêm máy chủ.\n"
+#~ "Vui lòng kiểm tra thông tin kết nối của bạn."
+
+#~ msgid "Fail"
+#~ msgstr "Thất bại"
+
 #~ msgid "Ok"
 #~ msgstr "Đồng ý"
+
+#~ msgid "Server Configuration"
+#~ msgstr "Cấu hình máy chủ"
+
+#~ msgid "Server:"
+#~ msgstr "Máy chủ:"
+
+#~ msgid "Username:"
+#~ msgstr "Tên đăng nhập:"
+
+#~ msgid "Password:"
+#~ msgstr "Mật khẩu:"
+
+#~ msgid "Remove Server"
+#~ msgstr "Xóa máy chủ"
 
 #~ msgid "Auto Set Audio/Subtitles (Entire Series)"
 #~ msgstr "Tự động đặt âm thanh/phụ đề (Toàn bộ loạt phim)"
