@@ -171,6 +171,7 @@ class TextBox(Element):
         text="",
         placeholder="",
         size=20,
+        mask=False,  # password entry: render bullets, value unchanged
         on_change=None,
         on_submit=None,
         force=False,  # override renderer-local edit state with ``text``
@@ -181,9 +182,93 @@ class TextBox(Element):
         self.text = text
         self.placeholder = placeholder
         self.size = size
+        self.mask = mask
         self.on_change = on_change
         self.on_submit = on_submit
         self.force = force
+
+
+class Slider(Element):
+    """Draggable value slider (volume, seek). on_change(value) fires
+    throttled while dragging and once on release."""
+
+    def __init__(
+        self,
+        id,
+        value=0.0,
+        min=0.0,
+        max=100.0,
+        on_change=None,
+        force=False,
+        **kw,
+    ):
+        kw.setdefault("w", 180)
+        kw.setdefault("h", 28)
+        super().__init__(id=id, **kw)
+        self.value = value
+        self.min = min
+        self.max = max
+        self.on_change = on_change
+        self.force = force
+
+
+class Busy(Element):
+    """Indeterminate activity spinner (animated renderer-side)."""
+
+    def __init__(self, **kw):
+        kw.setdefault("w", 28)
+        kw.setdefault("h", 28)
+        super().__init__(**kw)
+
+
+class Checkbox(Row):
+    """Labelled toggle — pure composite sugar over Row/Box/Text."""
+
+    def __init__(self, label, checked, on_toggle=None, size=20, **kw):
+        box = Box(
+            w=20,
+            h=20,
+            bg="7aa2f7" if checked else "2a2a2a",
+            border=None if checked else "555555",
+            radius=5,
+            align="center",
+            direction="row",
+            children=(
+                [Text("✓", size=15, color="101010", align="center", flex=1)]
+                if checked
+                else []
+            ),
+        )
+        kw.setdefault("gap", 10)
+        kw.setdefault("align", "center")
+        kw.setdefault("hover", {"c": "ffffff"})
+        super().__init__(
+            [box, Text(label, size=size)], on_click=on_toggle, **kw
+        )
+
+
+class Float(Element):
+    """Absolutely-positioned top-layer container (toasts, banners).
+    Drawn above everything and occluding image overlays; does NOT grab
+    input — content stays clickable underneath elsewhere."""
+
+    def __init__(self, child, x, y, **kw):
+        super().__init__(**kw)
+        self.child = child
+        self.x = x
+        self.y = y
+
+
+class Dialog(Element):
+    """Modal dialog: centered floating container that grabs all input.
+    Clicks outside it and ESC emit on_dismiss(); the app closes it by
+    re-rendering without the Dialog. No dimmed backdrop (bitmaps render
+    above ASS, so a scrim cannot cover posters — see README z-order)."""
+
+    def __init__(self, id, child, on_dismiss=None, **kw):
+        super().__init__(id=id, **kw)
+        self.child = child
+        self.on_dismiss = on_dismiss
 
 
 class Dropdown(Element):

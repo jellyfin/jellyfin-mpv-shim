@@ -60,6 +60,12 @@ local state = {
     geo = {},               -- scroll id -> {dx, dy, x1,y1,x2,y2 (clip)}
     bars = {},              -- scroll id -> thumb geometry (for hit test)
     dd_geo = nil,           -- open popup geometry
+    sl = {},                -- slider id -> {value}
+    slider_drag = nil,      -- slider id being dragged
+    modal = nil,            -- 'layer' meta node of the open Dialog
+    modal_hidden = false,   -- dismissed locally, awaiting scene push
+    busy_phase = 0,
+    busy_timer = nil,
     ov_slots = {},          -- overlay key (node id + piece) -> slot
     ov_keys = {},           -- slot -> overlay key
     ov_last = {},           -- slot -> last issued args string
@@ -399,6 +405,15 @@ local function flush_overlays()
     state.ov_used = #overlay_list
 end
 
+-- Display width of the first `upto` chars as rendered (bullets when
+-- masked — a fixed advance keeps cursor math trivial).
+local MASK_W = 0.55
+
+local function tb_text_w(node, text, upto)
+    if node.mask then return upto * MASK_W * node.size end
+    return text_w(text:sub(1, upto), node.size)
+end
+
 local function draw_textbox(ass, node, ex, ey, clip)
     local tb = state.tb[node.id]
     local focused = state.focus == node.id
@@ -424,10 +439,20 @@ local function draw_textbox(ass, node, ex, ey, clip)
         return
     end
     local shift = tb and tb.shift or 0
-    draw_text(ass, tnode, ex + pad - shift, ey, inner, text, 'eeeeee')
+    local x0 = ex + pad - shift
+    if tb and tb.sel and tb.sel ~= tb.cursor then
+        local a = math.min(tb.sel, tb.cursor)
+        local b = math.max(tb.sel, tb.cursor)
+        local sx1 = x0 + tb_text_w(node, text, a)
+        local sx2 = x0 + tb_text_w(node, text, b)
+        draw_rect(ass, sx1, ey + node.h * 0.14,
+            sx2 - sx1, node.h * 0.72,
+            { fill = '3d59a1', a = 200, clip = inner })
+    end
+    local disp = node.mask and string.rep('•', #text) or text
+    draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
     if focused and state.cursor_on then
-        local cx = ex + pad - shift +
-            text_w(text:sub(1, tb and tb.cursor or #text), node.size)
+        local cx = x0 + tb_text_w(node, text, tb and tb.cursor or #text)
         if cx >= inner.x1 - 1 and cx <= inner.x2 + 1 then
             draw_rect(ass, cx, ey + node.h * 0.18, 2, node.h * 0.64,
                 { fill = 'eeeeee', clip = inner })
@@ -543,6 +568,100 @@ local function active_menu()
     return nil
 end
 
+local function modal_active()
+    return state.modal ~= nil and not state.modal_hidden
+end
+
+-- ------------------------------------------------------ slider & busy
+
+local function sl_state(node)
+    local s = state.sl[node.id]
+    if s == nil or node.force then
+        s = { value = node.value or 0 }
+        state.sl[node.id] = s
+    end
+    return s
+end
+
+local slider_notify_timers = {}
+local slider_last_notify = {}
+
+local function fire_slider(id)
+    slider_last_notify[id] = mp.get_time()
+    local node = state.byid[id]
+    local s = state.sl[id]
+    if node and s then
+        send({ t = 'change', id = id, value = s.value })
+    end
+end
+
+local function notify_slider(id)
+    if slider_notify_timers[id] then return end
+    local elapsed = mp.get_time() - (slider_last_notify[id] or -1e9)
+    if elapsed >= 0.15 then
+        fire_slider(id)
+    else
+        slider_notify_timers[id] = mp.add_timeout(0.15 - elapsed,
+            function()
+                slider_notify_timers[id] = nil
+                fire_slider(id)
+            end)
+    end
+end
+
+local SLIDER_PAD = 8
+
+local function draw_slider(ass, node, ex, ey, clip)
+    local s = sl_state(node)
+    local rng = (node.max or 100) - (node.min or 0)
+    local frac = 0
+    if rng > 0 then
+        frac = clamp((s.value - (node.min or 0)) / rng, 0, 1)
+    end
+    local tx1 = ex + SLIDER_PAD
+    local tw = node.w - 2 * SLIDER_PAD
+    local ty = ey + node.h / 2
+    draw_rect(ass, tx1, ty - 3, tw, 6,
+        { fill = '3a3a3a', radius = 3, clip = clip })
+    if frac > 0 then
+        draw_rect(ass, tx1, ty - 3, tw * frac, 6,
+            { fill = '7aa2f7', radius = 3, clip = clip })
+    end
+    draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
+        { fill = 'dddddd', radius = 8, clip = clip })
+end
+
+local function slider_set_from_x(node, x)
+    local ex = select(1, eff(node))
+    local frac = clamp(
+        (x - ex - SLIDER_PAD) / (node.w - 2 * SLIDER_PAD), 0, 1)
+    local s = sl_state(node)
+    local v = (node.min or 0) +
+        frac * ((node.max or 100) - (node.min or 0))
+    if v ~= s.value then
+        s.value = v
+        notify_slider(node.id)
+        request_render()
+    end
+end
+
+local busy_visible = false
+
+local function draw_busy(ass, node, ex, ey, clip)
+    busy_visible = true
+    local cx, cy = ex + node.w / 2, ey + node.h / 2
+    local r = math.min(node.w, node.h) / 2 - 4
+    for i = 0, 7 do
+        local ang = (i / 8) * 2 * math.pi
+        local fade = ((i - state.busy_phase) % 8) / 8
+        draw_rect(ass,
+            cx + r * math.cos(ang) - 2.5,
+            cy + r * math.sin(ang) - 2.5, 5, 5,
+            { fill = 'cccccc', a = math.floor(255 - 200 * fade),
+              radius = 2.5, clip = clip })
+    end
+end
+
 local function draw_scrollbar(ass, node)
     local g = state.geo[node.id]
     local maxs = scroll_max(node)
@@ -603,13 +722,18 @@ render = function()
             x2 = g.x + g.w + 2, y2 = g.y + g.n * g.ih + 2,
         }
     end
-    local ass = assdraw.ass_new()
+    -- floating layers (dialogs, toasts) occlude images too
     for _, node in ipairs(state.nodes) do
-        if node.t == 'scroll' or node.t == 'menu' or
-            not visible(node) then
-            -- scrolls/menus draw nothing here (bars & floating layers
-            -- come after the flow pass)
-        else
+        if node.t == 'layer' and
+            not (node.mod and state.modal_hidden) then
+            occluders[#occluders + 1] = {
+                x1 = node.x - 2, y1 = node.y - 2,
+                x2 = node.x + node.w + 2, y2 = node.y + node.h + 2,
+            }
+        end
+    end
+    busy_visible = false
+    local function draw_node(ass, node)
         local ex, ey, clip = eff(node)
         if node.t == 'rect' then
             local hs = hover_style(node)
@@ -648,17 +772,51 @@ render = function()
             draw_textbox(ass, node, ex, ey, clip)
         elseif node.t == 'dropdown' then
             draw_dropdown(ass, node, ex, ey, clip)
+        elseif node.t == 'slider' then
+            draw_slider(ass, node, ex, ey, clip)
+        elseif node.t == 'busy' then
+            draw_busy(ass, node, ex, ey, clip)
         end
+    end
+    local ass = assdraw.ass_new()
+    local skip = { scroll = true, menu = true, layer = true }
+    for _, node in ipairs(state.nodes) do
+        if not skip[node.t] and not node.top and visible(node) then
+            draw_node(ass, node)
         end
     end
     for _, node in ipairs(state.nodes) do
-        if node.t == 'scroll' then draw_scrollbar(ass, node) end
+        if node.t == 'scroll' and not node.top then
+            draw_scrollbar(ass, node)
+        end
+    end
+    -- top layer: dialog / toast content above everything in flow
+    for _, node in ipairs(state.nodes) do
+        if node.top and not skip[node.t] and
+            not (node.mod and state.modal_hidden) and visible(node) then
+            draw_node(ass, node)
+        end
+    end
+    for _, node in ipairs(state.nodes) do
+        if node.t == 'scroll' and node.top and
+            not (node.mod and state.modal_hidden) then
+            draw_scrollbar(ass, node)
+        end
     end
     if state.dd_open then
         local node = state.byid[state.dd_open]
         if node then draw_popup(ass, node) end
     end
     if menu_node then draw_menu(ass, menu_node) end
+    if busy_visible and not state.busy_timer then
+        state.busy_timer = mp.add_periodic_timer(0.1, function()
+            state.busy_phase = (state.busy_phase + 1) % 8
+            request_render()
+        end)
+    elseif not busy_visible and state.busy_timer then
+        state.busy_timer:kill()
+        state.busy_timer = nil
+    end
     if state.hud then
         -- input-diagnostics overlay (toggle: F12)
         local lw = state.last_wheel or {}
@@ -691,12 +849,17 @@ local function point_in(x, y, ex, ey, w, h, clip)
 end
 
 -- Interactive node under point (topmost = latest in paint order).
+-- While a modal dialog is open only its nodes are targetable.
 local function node_at(x, y)
+    local modal = modal_active()
     for i = #state.nodes, 1, -1 do
         local node = state.nodes[i]
-        if node.t ~= 'scroll' and
+        if node.t ~= 'scroll' and node.t ~= 'layer' and
+            node.t ~= 'menu' and
+            (not modal or node.mod) and
             (node.click or node.ctx or node.t == 'textbox' or
-             node.t == 'dropdown' or node.hover) then
+             node.t == 'dropdown' or node.t == 'slider' or
+             node.hover) then
             local ex, ey, clip = eff(node)
             if point_in(x, y, ex, ey, node.w, node.h, clip) then
                 return node
@@ -710,9 +873,10 @@ end
 -- container chain to the nearest scrollable with that axis (vertical
 -- wheel over a tile row should scroll the page, not the row).
 local function scroll_at(x, y, axis)
+    local modal = modal_active()
     for i = #state.nodes, 1, -1 do
         local node = state.nodes[i]
-        if node.t == 'scroll' then
+        if node.t == 'scroll' and (not modal or node.mod) then
             local g = state.geo[node.id]
             if g and x >= g.x1 and x < g.x2 and y >= g.y1 and y < g.y2 then
                 local cur = node
@@ -731,8 +895,11 @@ local function scroll_at(x, y, axis)
 end
 
 local function bar_at(x, y)
+    local modal = modal_active()
     for id, b in pairs(state.bars) do
-        if x >= b.x - 2 and x <= b.x + b.w + 2 and y >= b.y and
+        local sn = state.byid[id]
+        if (not modal or (sn and sn.mod)) and
+            x >= b.x - 2 and x <= b.x + b.w + 2 and y >= b.y and
             y <= b.y + b.h then
             return id, b
         end
@@ -766,10 +933,24 @@ end
 local function tb_fix_shift(node, tb)
     local pad = 10
     local avail = node.w - 2 * pad
-    local cx = text_w(tb.text:sub(1, tb.cursor), node.size)
+    local cx = tb_text_w(node, tb.text, tb.cursor)
     if cx - tb.shift > avail then tb.shift = cx - avail end
     if cx - tb.shift < 0 then tb.shift = cx end
     if tb.shift < 0 then tb.shift = 0 end
+end
+
+-- Deletes the selected range if any; returns true when it did.
+local function tb_del_selection(tb)
+    if tb.sel == nil or tb.sel == tb.cursor then
+        tb.sel = nil
+        return false
+    end
+    local a = math.min(tb.sel, tb.cursor)
+    local b = math.max(tb.sel, tb.cursor)
+    tb.text = tb.text:sub(1, a) .. tb.text:sub(b + 1)
+    tb.cursor = a
+    tb.sel = nil
+    return true
 end
 
 local function focused_node()
@@ -787,6 +968,7 @@ local function tb_insert(s)
     local node = focused_node()
     if not node then return end
     local tb = tb_state(node)
+    tb_del_selection(tb)  -- typing replaces the selection
     tb.text = tb.text:sub(1, tb.cursor) .. s .. tb.text:sub(tb.cursor + 1)
     tb.cursor = tb.cursor + #s
     tb_changed(node, tb)
@@ -797,28 +979,56 @@ local function tb_key(name)
     if not node then return end
     local tb = tb_state(node)
     if name == 'BS' then
-        if tb.cursor > 0 then
+        if tb_del_selection(tb) then
+            tb_changed(node, tb)
+        elseif tb.cursor > 0 then
             tb.text = tb.text:sub(1, tb.cursor - 1) ..
                 tb.text:sub(tb.cursor + 1)
             tb.cursor = tb.cursor - 1
             tb_changed(node, tb)
         end
     elseif name == 'DEL' then
-        if tb.cursor < #tb.text then
+        if tb_del_selection(tb) then
+            tb_changed(node, tb)
+        elseif tb.cursor < #tb.text then
             tb.text = tb.text:sub(1, tb.cursor) ..
                 tb.text:sub(tb.cursor + 2)
             tb_changed(node, tb)
         end
     elseif name == 'LEFT' then
+        tb.sel = nil
         tb.cursor = math.max(0, tb.cursor - 1)
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
     elseif name == 'RIGHT' then
+        tb.sel = nil
         tb.cursor = math.min(#tb.text, tb.cursor + 1)
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
+    elseif name == 'SLEFT' or name == 'SRIGHT' then
+        if tb.sel == nil then tb.sel = tb.cursor end
+        if name == 'SLEFT' then
+            tb.cursor = math.max(0, tb.cursor - 1)
+        else
+            tb.cursor = math.min(#tb.text, tb.cursor + 1)
+        end
+        if tb.sel == tb.cursor then tb.sel = nil end
+        tb_fix_shift(node, tb); state.cursor_on = true; request_render()
+    elseif name == 'CTRLA' then
+        tb.sel = 0
+        tb.cursor = #tb.text
+        tb_fix_shift(node, tb); request_render()
+    elseif name == 'CTRLC' then
+        if tb.sel and tb.sel ~= tb.cursor then
+            local a = math.min(tb.sel, tb.cursor)
+            local b = math.max(tb.sel, tb.cursor)
+            pcall(mp.set_property, 'clipboard/text',
+                tb.text:sub(a + 1, b))
+        end
     elseif name == 'HOME' then
+        tb.sel = nil
         tb.cursor = 0
         tb_fix_shift(node, tb); request_render()
     elseif name == 'END' then
+        tb.sel = nil
         tb.cursor = #tb.text
         tb_fix_shift(node, tb); request_render()
     elseif name == 'ENTER' then
@@ -852,11 +1062,20 @@ local function bind_text_keys()
             tb_key(k)
         end, { repeatable = true })
     end
+    local combos = {
+        ['shift+LEFT'] = 'SLEFT',
+        ['shift+RIGHT'] = 'SRIGHT',
+        ['ctrl+a'] = 'CTRLA',
+        ['ctrl+c'] = 'CTRLC',
+        ['ctrl+v'] = 'PASTE',
+    }
+    for key, name in pairs(combos) do
+        mp.add_forced_key_binding(key, 'mpvtk_k_' .. name, function()
+            tb_key(name)
+        end, { repeatable = true })
+    end
     mp.add_forced_key_binding('KP_ENTER', 'mpvtk_k_KPE', function()
         tb_key('ENTER')
-    end)
-    mp.add_forced_key_binding('ctrl+v', 'mpvtk_paste', function()
-        tb_key('PASTE')
     end)
 end
 
@@ -868,11 +1087,11 @@ local function unbind_text_keys()
     end
     mp.remove_key_binding('mpvtk_space')
     for _, k in ipairs({ 'BS', 'DEL', 'LEFT', 'RIGHT', 'HOME', 'END',
-                         'ENTER', 'ESC' }) do
+                         'ENTER', 'ESC', 'SLEFT', 'SRIGHT', 'CTRLA',
+                         'CTRLC', 'PASTE' }) do
         mp.remove_key_binding('mpvtk_k_' .. k)
     end
     mp.remove_key_binding('mpvtk_k_KPE')
-    mp.remove_key_binding('mpvtk_paste')
 end
 
 function blur()
@@ -953,6 +1172,13 @@ end
 
 local function on_mouse_move(x, y)
     state.mouse.x, state.mouse.y = x, y
+    if state.slider_drag then
+        local node = state.byid[state.slider_drag]
+        if node and node.t == 'slider' then
+            slider_set_from_x(node, x)
+        end
+        return
+    end
     if state.drag then
         local node = state.byid[state.drag.sc]
         local b = state.bars[state.drag.sc]
@@ -1030,17 +1256,31 @@ local function on_mouse_down()
     if state.focus and (not node or node.id ~= state.focus) then
         blur()
     end
-    if not node then return end
+    if not node then
+        -- click-away from an open modal dialog dismisses it
+        if modal_active() then
+            local m = state.modal
+            if x < m.x or x >= m.x + m.w or y < m.y or
+                y >= m.y + m.h then
+                state.modal_hidden = true
+                send({ t = 'dismiss', id = m.id })
+                request_render()
+            end
+        end
+        return
+    end
     if node.t == 'textbox' then
         focus_textbox(node)
         local tb = tb_state(node)
+        tb.sel = nil
         local pad = 10
         local ex = select(1, eff(node))
         local rel = x - ex - pad + tb.shift
         local cur = 0
         local acc = 0
         for i = 1, #tb.text do
-            local cw = char_w(tb.text:sub(i, i)) * node.size
+            local cw = node.mask and MASK_W * node.size or
+                char_w(tb.text:sub(i, i)) * node.size
             if acc + cw / 2 > rel then break end
             acc = acc + cw
             cur = i
@@ -1048,6 +1288,11 @@ local function on_mouse_down()
         tb.cursor = cur
         state.cursor_on = true
         request_render()
+        return
+    end
+    if node.t == 'slider' then
+        state.slider_drag = node.id
+        slider_set_from_x(node, x)
         return
     end
     if node.t == 'dropdown' then
@@ -1061,6 +1306,11 @@ local function on_mouse_down()
 end
 
 local function on_mouse_up()
+    if state.slider_drag then
+        fire_slider(state.slider_drag)  -- final value, unthrottled
+        state.slider_drag = nil
+        return
+    end
     if state.drag then
         state.drag = nil
         return
@@ -1207,22 +1457,41 @@ local function reconcile()
         local node = state.byid[id]
         if not node or node.t ~= 'dropdown' then state.dd[id] = nil end
     end
+    for id in pairs(state.sl) do
+        local node = state.byid[id]
+        if not node or node.t ~= 'slider' then state.sl[id] = nil end
+    end
+    if state.slider_drag and not state.byid[state.slider_drag] then
+        state.slider_drag = nil
+    end
     if state.focus and (not state.byid[state.focus]) then blur() end
     if state.dd_open and (not state.byid[state.dd_open]) then
         state.dd_open = nil
     end
-    -- the scene is authoritative for menu presence
+    -- the scene is authoritative for menu and modal presence
     state.menu_hidden = false
+    state.modal_hidden = false
+    state.modal = nil
     local has_menu = false
     for _, node in ipairs(state.nodes) do
         if node.t == 'menu' then has_menu = true end
+        if node.t == 'layer' and node.kind == 'modal' then
+            state.modal = node
+        end
     end
-    if has_menu and not state.menu_esc_bound then
+    local want_esc = has_menu or state.modal ~= nil
+    if want_esc and not state.menu_esc_bound then
         state.menu_esc_bound = true
         mp.add_forced_key_binding('ESC', 'mpvtk_menu_esc', function()
-            dismiss_menu(nil)
+            if active_menu() then
+                dismiss_menu(nil)
+            elseif modal_active() then
+                state.modal_hidden = true
+                send({ t = 'dismiss', id = state.modal.id })
+                request_render()
+            end
         end)
-    elseif not has_menu and state.menu_esc_bound then
+    elseif not want_esc and state.menu_esc_bound then
         state.menu_esc_bound = false
         mp.remove_key_binding('mpvtk_menu_esc')
     end
@@ -1337,6 +1606,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             focus = state.focus,
             dd_open = state.dd_open,
             menu_open = active_menu() ~= nil,
+            modal_open = modal_active(),
+            sliders = state.sl,
             has_metrics = measured_widths ~= nil,
             font = ui_font,
             wheel_count = state.wheel_count or 0,

@@ -12,12 +12,16 @@ limitation of the spike.
 
 from .widgets import (
     Box,
+    Busy,
+    Dialog,
     Dropdown,
     Element,
+    Float,
     Image,
     ImageMap,
     Menu,
     Scroll,
+    Slider,
     Text,
     TextBox,
 )
@@ -100,8 +104,10 @@ def measure(el):
         else:
             w = el.w
         return w, el.h or el.size * 1.9
-    if isinstance(el, Menu):
+    if isinstance(el, (Menu, Dialog, Float)):
         return 0, 0  # floating: takes no space in flow
+    if isinstance(el, (Slider, Busy)):
+        return el.w, el.h
     if isinstance(el, Scroll):
         cw, ch = measure(el.child)
         return el.w if el.w is not None else cw, (
@@ -132,15 +138,17 @@ def measure(el):
 
 
 class _Ctx:
-    def __init__(self):
+    def __init__(self, w=0.0, h=0.0):
         self.nodes = []
         self.handlers = {}
+        self.root_w = w
+        self.root_h = h
 
 
 def layout(root, w, h):
     """Returns (nodes, handlers): flat paint-ordered scene nodes and an
     ``{id: {event: callback}}`` registry for the pushed tree."""
-    ctx = _Ctx()
+    ctx = _Ctx(float(w), float(h))
     _arrange(ctx, root, 0.0, 0.0, float(w), float(h), None, "r")
     seen = set()
     for node in ctx.nodes:
@@ -250,11 +258,60 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         node["text"] = el.text
         node["ph"] = el.placeholder
         node["size"] = el.size
+        if el.mask:
+            node["mask"] = True
         if el.force:
             node["force"] = True
         _reg(ctx, node["id"], "change", el.on_change)
         _reg(ctx, node["id"], "submit", el.on_submit)
         ctx.nodes.append(node)
+        return
+
+    if isinstance(el, Slider):
+        node = _base(el, "slider", x, y, w, h, sc, path)
+        node["min"] = el.min
+        node["max"] = el.max
+        node["value"] = el.value
+        if el.force:
+            node["force"] = True
+        _reg(ctx, node["id"], "change", el.on_change)
+        ctx.nodes.append(node)
+        return
+
+    if isinstance(el, Busy):
+        ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
+        return
+
+    if isinstance(el, (Dialog, Float)):
+        # Out-of-flow top layer. Dialog centers itself and grabs input;
+        # Float sits at its given position without grabbing.
+        cw, ch = measure(el.child)
+        if isinstance(el, Dialog):
+            dx = (ctx.root_w - cw) / 2
+            dy = max(0.0, (ctx.root_h - ch) / 2.5)
+        else:
+            dx, dy = float(el.x), float(el.y)
+        meta = {
+            "t": "layer",
+            "kind": "modal" if isinstance(el, Dialog) else "float",
+            "id": el.id or path,
+            "x": _round(dx),
+            "y": _round(dy),
+            "w": _round(cw),
+            "h": _round(ch),
+            "top": True,
+        }
+        if isinstance(el, Dialog):
+            meta["mod"] = True
+            _reg(ctx, meta["id"], "dismiss", el.on_dismiss)
+        ctx.nodes.append(meta)
+        start = len(ctx.nodes)
+        # floating content never scrolls with page content: sc=None
+        _arrange(ctx, el.child, dx, dy, cw, ch, None, path + ".0")
+        for n in ctx.nodes[start:]:
+            n["top"] = True
+            if isinstance(el, Dialog):
+                n["mod"] = True
         return
 
     if isinstance(el, Dropdown):

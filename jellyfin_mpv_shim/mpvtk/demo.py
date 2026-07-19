@@ -20,13 +20,19 @@ import time
 from .app import MpvtkApp
 from .rawimage import MemoryStore, cache_dir, write_bgra
 from .widgets import (
+    Box,
+    Busy,
     Button,
+    Checkbox,
     Column,
+    Dialog,
     Dropdown,
+    Float,
     HScroll,
     ImageMap,
     Menu,
     Row,
+    Slider,
     Spacer,
     Text,
     TextBox,
@@ -299,6 +305,27 @@ class Demo:
         self.grid_window = (0, WINDOW_AHEAD + 4)  # materialized row range
         self._grid_geom = None  # (grid_top, pitch, cols, total_rows)
         self.menu = None  # {"idx": item, "x":, "y":} while a menu is open
+        # widgets/logs test pages
+        self.page = "browse"
+        self.opts = {"autoplay": True, "transcode": False,
+                     "subtitles": True}
+        self.volume = 40.0
+        self.progress = 0.0  # animated by a background thread
+        self.password = ""
+        self.sel_text = "select me and type"
+        self.table_rows = [
+            {"num": i + 1, "title": it["title"], "year": it["year"]}
+            for i, it in enumerate(self.items[:10])
+        ]
+        self.table_sel = None
+        self.dialog_open = False
+        self.toast = None
+        self._toast_timer = None
+        self.log_lines = [
+            "%05d  %s  %s" % (i, ("INFO", "DEBUG", "WARN")[i % 3],
+                              "demo log line about %s" % _titles(1)[0])
+            for i in range(300)
+        ]
 
     # ------------------------------------------------------------- state
 
@@ -346,6 +373,66 @@ class Demo:
             it["progress"] = 0.0
         self.status = "%s: %s" % (value, it["title"])
         self._close_menu()
+
+    # ---------------------------------------------- widgets-page state
+
+    def _set_page(self, page):
+        self.page = page
+        self.app.invalidate()
+
+    def _toggle(self, key):
+        self.opts[key] = not self.opts[key]
+        self.app.invalidate()
+
+    def _on_volume(self, value):
+        self.volume = value
+        self.app.invalidate()
+
+    def _dlg_close(self):
+        self.dialog_open = False
+        self.app.invalidate()
+
+    def _dlg_confirm(self):
+        self.status = "Confirmed dialog action"
+        self._dlg_close()
+
+    def _show_toast(self):
+        self.toast = "Marked as watched — this toast auto-dismisses"
+        if self._toast_timer:
+            self._toast_timer.cancel()
+
+        def clear():
+            self.toast = None
+            self.app.invalidate()  # thread-safe: fires from the timer
+
+        self._toast_timer = threading.Timer(2.5, clear)
+        self._toast_timer.daemon = True
+        self._toast_timer.start()
+        self.app.invalidate()
+
+    def _tbl_select(self, i):
+        self.table_sel = i
+        self.app.invalidate()
+
+    def _tbl_move(self, d):
+        i = self.table_sel
+        if i is None:
+            return
+        j = i + d
+        if 0 <= j < len(self.table_rows):
+            rows = self.table_rows
+            rows[i], rows[j] = rows[j], rows[i]
+            self.table_sel = j
+            self.app.invalidate()
+
+    def _progress_animator(self):
+        # background thread driving the determinate progress bar —
+        # live proof that invalidate() repaints without user input
+        while True:
+            time.sleep(0.12)
+            if self.page == "widgets":
+                self.progress = (self.progress + 2.5) % 100.0
+                self.app.invalidate()
 
     # ------------------------------------------------------------- build
 
@@ -446,6 +533,173 @@ class Demo:
             self.grid_window = (start, end)
             self.app.invalidate()
 
+    # ------------------------------------------------------ test pages
+
+    def _tab(self, label, page):
+        active = self.page == page
+        return Button(
+            label,
+            id="tab-" + page,
+            bg="7aa2f7" if active else "2a2a2a",
+            fg="101010" if active else "eeeeee",
+            on_click=lambda p=page: self._set_page(p),
+        )
+
+    def _progress_widget(self, frac, w=260, h=10):
+        return Box(
+            [Box(w=max(1, w * frac), h=h, bg="7aa2f7", radius=5)],
+            w=w,
+            h=h,
+            bg="2a2a2a",
+            radius=5,
+            direction="row",
+        )
+
+    def _widgets_page(self, w):
+        checks = Column(
+            [
+                Checkbox(
+                    key.capitalize(),
+                    self.opts[key],
+                    id="chk-" + key,
+                    on_toggle=lambda k=key: self._toggle(k),
+                )
+                for key in ("autoplay", "transcode", "subtitles")
+            ],
+            gap=12,
+        )
+        sliders = Column(
+            [
+                Row(
+                    [
+                        Text("Volume", size=18, w=80),
+                        Slider(
+                            "vol",
+                            value=self.volume,
+                            on_change=self._on_volume,
+                            w=220,
+                        ),
+                        Text("%d%%" % self.volume, size=18, w=60),
+                    ],
+                    gap=10,
+                    align="center",
+                ),
+                Row(
+                    [
+                        Text("Busy", size=18, w=80),
+                        Busy(),
+                        Spacer(w=30),
+                        Text("Progress", size=18),
+                        self._progress_widget(self.progress / 100.0),
+                    ],
+                    gap=10,
+                    align="center",
+                ),
+            ],
+            gap=16,
+        )
+        entries = Row(
+            [
+                TextBox(
+                    "pw",
+                    text=self.password,
+                    placeholder="Password…",
+                    mask=True,
+                    w=220,
+                    on_change=lambda v: setattr(self, "password", v),
+                ),
+                TextBox(
+                    "seltb",
+                    text=self.sel_text,
+                    w=320,
+                    on_change=lambda v: setattr(self, "sel_text", v),
+                ),
+                Button(
+                    "Show Dialog",
+                    id="btn-dialog",
+                    on_click=lambda: (
+                        setattr(self, "dialog_open", True),
+                        self.app.invalidate(),
+                    ),
+                ),
+                Button("Show Toast", id="btn-toast",
+                       on_click=self._show_toast),
+            ],
+            gap=12,
+            align="center",
+        )
+        hdr_style = {"size": 16, "bold": True, "color": "aaaaaa"}
+        table = Column(
+            [
+                Row(
+                    [
+                        Text("#", w=50, **hdr_style),
+                        Text("Title", w=320, **hdr_style),
+                        Text("Year", w=80, **hdr_style),
+                    ],
+                    pad=8,
+                    bg="242424",
+                    radius=6,
+                )
+            ]
+            + [
+                Row(
+                    [
+                        Text(str(r["num"]), w=50, size=17),
+                        Text(r["title"], w=320, size=17),
+                        Text(str(r["year"]), w=80, size=17),
+                    ],
+                    id="trow-%d" % i,
+                    pad=8,
+                    bg="335a9e" if self.table_sel == i else None,
+                    hover=(
+                        None
+                        if self.table_sel == i
+                        else {"fill": "2e2e2e"}
+                    ),
+                    radius=6,
+                    on_click=lambda i=i: self._tbl_select(i),
+                )
+                for i, r in enumerate(self.table_rows)
+            ]
+            + [
+                Row(
+                    [
+                        Button("Move Up", id="tbl-up",
+                               on_click=lambda: self._tbl_move(-1)),
+                        Button("Move Down", id="tbl-down",
+                               on_click=lambda: self._tbl_move(1)),
+                    ],
+                    gap=10,
+                )
+            ],
+            gap=4,
+        )
+        page = Column(
+            [
+                Text("Widget gallery", size=24, bold=True),
+                Row([checks, Spacer(w=60), sliders], gap=10),
+                entries,
+                Text("Track table (click to select, reorder below)",
+                     size=18, bold=True),
+                table,
+            ],
+            pad=16,
+            gap=18,
+        )
+        return VScroll(page, id="wpage", flex=1)
+
+    def _logs_page(self, w):
+        lines = Column(
+            [
+                Text(line, size=15, color="c8c8c8")
+                for line in self.log_lines
+            ],
+            pad=16,
+            gap=2,
+        )
+        return VScroll(lines, id="logs", flex=1)
+
     def build(self, size):
         w, h = size
         items = self._filtered()
@@ -479,37 +733,49 @@ class Demo:
             align="center",
             h=76,
         )
-        # content-space y where the grid section starts (for windowing):
-        # page pad + two sections (heading 30 + gap 8 + scroll) + gaps
-        sec_h = 30 + 8 + STRIP_H + 6
-        grid_top = 16 + 2 * (sec_h + 20)
-        page = Column(
+        tabs = Row(
             [
-                self._row_section(
-                    "Continue Watching", items[:12], "row-cw"
-                ),
-                self._row_section("Movies", items, "row-mv"),
-                self._grid_section("All Media", items, w, grid_top),
+                self._tab("Browse", "browse"),
+                self._tab("Widgets", "widgets"),
+                self._tab("Logs", "logs"),
             ],
-            pad=16,
-            gap=20,
+            pad=10,
+            gap=8,
+            h=56,
         )
+        if self.page == "widgets":
+            content = self._widgets_page(w)
+        elif self.page == "logs":
+            content = self._logs_page(w)
+        else:
+            # content-space y where the grid section starts (windowing):
+            # page pad + two sections (heading 30 + gap 8 + scroll) + gaps
+            sec_h = 30 + 8 + STRIP_H + 6
+            grid_top = 16 + 2 * (sec_h + 20)
+            page = Column(
+                [
+                    self._row_section(
+                        "Continue Watching", items[:12], "row-cw"
+                    ),
+                    self._row_section("Movies", items, "row-mv"),
+                    self._grid_section("All Media", items, w, grid_top),
+                ],
+                pad=16,
+                gap=20,
+            )
+            content = VScroll(
+                page,
+                id="page",
+                flex=1,
+                on_scroll=self._on_page_scroll,
+            )
         footer = Row(
             [Text(self.status, id="status", size=18, color="aaaaaa")],
             pad=12,
             h=44,
             bg="1d1d1d",
         )
-        children = [
-            header,
-            VScroll(
-                page,
-                id="page",
-                flex=1,
-                on_scroll=self._on_page_scroll,
-            ),
-            footer,
-        ]
+        children = [header, tabs, content, footer]
         if self.menu:
             children.append(
                 Menu(
@@ -521,6 +787,55 @@ class Demo:
                     on_dismiss=self._close_menu,
                 )
             )
+        if self.dialog_open:
+            children.append(
+                Dialog(
+                    "dlg",
+                    Column(
+                        [
+                            Text("Confirm action?", size=22, bold=True),
+                            Text(
+                                "Modal test: grabs input, ESC or "
+                                "click-away dismisses.",
+                                size=16,
+                                color="aaaaaa",
+                            ),
+                            Row(
+                                [
+                                    Spacer(),
+                                    Button("Cancel", id="dlg-cancel",
+                                           on_click=self._dlg_close),
+                                    Button("Confirm", id="dlg-ok",
+                                           on_click=self._dlg_confirm),
+                                ],
+                                gap=10,
+                            ),
+                        ],
+                        pad=24,
+                        gap=14,
+                        bg="1e1e1e",
+                        radius=12,
+                        border="555555",
+                        w=420,
+                    ),
+                    on_dismiss=self._dlg_close,
+                )
+            )
+        if self.toast:
+            children.append(
+                Float(
+                    Box(
+                        [Text(self.toast, size=17)],
+                        pad=14,
+                        bg="2d3f2d",
+                        radius=10,
+                        border="4a7a4a",
+                        direction="row",
+                    ),
+                    x=w - 420,
+                    y=h - 110,
+                )
+            )
         return Column(
             children,
             w=w,
@@ -529,6 +844,9 @@ class Demo:
         )
 
     def run(self):
+        threading.Thread(
+            target=self._progress_animator, daemon=True
+        ).start()
         self.app.run(self.build)
 
 
@@ -691,6 +1009,92 @@ def _selftest(demo, outdir):
     app.debug(cmd="key", name="BS")
     shot("08-cleared")
     check("bs-restores", demo.query == "", repr(demo.query))
+
+    # ---- widget-gallery page ----
+    app.debug(cmd="click", id="tab-widgets")
+    time.sleep(0.4)
+    shot("09-widgets")
+    before = demo.opts["transcode"]
+    app.debug(cmd="click", id="chk-transcode")
+    time.sleep(0.3)
+    check("checkbox-toggle", demo.opts["transcode"] != before)
+
+    app.debug(cmd="click", id="vol")  # center click ~= 50%
+    time.sleep(0.4)
+    check("slider-click", 40 <= demo.volume <= 60, str(demo.volume))
+
+    p0 = demo.progress
+    time.sleep(0.5)
+    check(
+        "progress-animates",  # background thread + invalidate wake
+        demo.progress != p0,
+        "%.1f -> %.1f" % (p0, demo.progress),
+    )
+
+    app.debug(cmd="click", id="pw")
+    app.debug(cmd="text", s="hunter2")
+    time.sleep(0.3)
+    shot("10-password")
+    check("password-value", demo.password == "hunter2", demo.password)
+
+    app.debug(cmd="click", id="seltb")
+    app.debug(cmd="key", name="CTRLA")
+    app.debug(cmd="text", s="replaced")
+    time.sleep(0.3)
+    check("selection-replace", demo.sel_text == "replaced",
+          demo.sel_text)
+
+    app.debug(cmd="click", id="btn-dialog")
+    time.sleep(0.4)
+    shot("11-dialog")
+    st = app.debug_state()
+    check(
+        "dialog-open",
+        st and st.get("modal_open") and demo.dialog_open,
+    )
+    app.debug(cmd="click", x=40, y=300)  # click-away dismiss
+    time.sleep(0.4)
+    check("dialog-dismiss", not demo.dialog_open)
+    app.debug(cmd="click", id="btn-dialog")
+    time.sleep(0.4)
+    app.debug(cmd="click", id="dlg-ok")
+    time.sleep(0.4)
+    check(
+        "dialog-confirm",
+        "Confirmed" in demo.status and not demo.dialog_open,
+        demo.status,
+    )
+
+    app.debug(cmd="click", id="btn-toast")
+    time.sleep(0.4)
+    shot("12-toast")
+    check("toast-shown", demo.toast is not None)
+    time.sleep(2.8)
+    check("toast-auto-dismiss", demo.toast is None)
+
+    app.debug(cmd="click", id="trow-3")
+    time.sleep(0.3)
+    check("table-select", demo.table_sel == 3, str(demo.table_sel))
+    moved_title = demo.table_rows[3]["title"]
+    # the reorder buttons sit below the fold: scroll them into view
+    app.debug(cmd="wheel", id="wpage", dir=1, steps=6, axis="y")
+    time.sleep(0.3)
+    app.debug(cmd="click", id="tbl-up")
+    time.sleep(0.3)
+    check(
+        "table-reorder",
+        demo.table_rows[2]["title"] == moved_title
+        and demo.table_sel == 2,
+    )
+
+    app.debug(cmd="click", id="tab-logs")
+    time.sleep(0.4)
+    app.debug(cmd="wheel", id="logs", dir=1, steps=5, axis="y")
+    time.sleep(0.3)
+    shot("13-logs")
+    st = app.debug_state()
+    scr = (st or {}).get("scroll") or {}
+    check("logs-scroll", scr.get("logs", 0) > 0, str(scr.get("logs")))
 
     app.quit()
     return results
