@@ -46,6 +46,7 @@ local state = {
     nodes = {},
     byid = {},
     w = 0, h = 0,
+    active = true,          -- false while yielded to playback (see mpvtk-active)
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
@@ -1889,8 +1890,41 @@ mp.register_script_message('mpvtk-scene', function(json)
         return
     end
     state.scene = scene
-    state.nodes = scene.nodes or {}
+    -- A scene that lands while we're yielded to playback must not repaint
+    -- over the video; the app re-pushes on resume.
+    state.nodes = state.active and (scene.nodes or {}) or {}
     reconcile()
+    request_render()
+end)
+
+-- When the UI shares the player's window (see mpvtk/app.py AdoptBackend) it
+-- must get completely out of the way during playback: our forced mbtn/wheel
+-- sections otherwise swallow the clicks and scrolls the mpv OSC needs, so the
+-- OSC looks dead even though it is drawn. 'mpvtk-active no' unbinds everything
+-- and blanks the scene; 'yes' restores it.
+mp.register_script_message('mpvtk-active', function(on)
+    local want = (on == 'yes' or on == 'true' or on == '1')
+    if want == state.active then return end
+    state.active = want
+    if want then
+        mp.enable_key_bindings('mpvtk_mouse')
+        mp.enable_key_bindings('mpvtk_wheel')
+        mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
+            state.hud = not state.hud
+            request_render()
+        end)
+    else
+        blur()                    -- drops the text-edit bindings + caret timer
+        state.dd_open = nil
+        state.tb_menu = nil
+        state.modal = nil
+        mp.disable_key_bindings('mpvtk_mouse')
+        mp.disable_key_bindings('mpvtk_wheel')
+        mp.remove_key_binding('mpvtk_hud')
+        state.nodes = {}
+        state.byid = {}
+        reconcile()
+    end
     request_render()
 end)
 

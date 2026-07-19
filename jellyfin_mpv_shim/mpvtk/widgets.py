@@ -167,18 +167,27 @@ class Icon(Element):
 
 
 class Button(Box):
-    def __init__(self, label, on_click=None, size=20, fg="eeeeee", **kw):
+    """Labelled button, optionally with a leading Material icon.
+
+    ``icon`` takes the same names as :class:`Icon`; it inherits the label's
+    colour so accented/active buttons stay legible. An icon-only button is
+    just ``label=""``."""
+
+    def __init__(self, label, on_click=None, size=20, fg="eeeeee", icon=None,
+                 icon_size=None, gap=None, **kw):
         kw.setdefault("bg", "333333")
         kw.setdefault("hover", {"fill": "4a4a4a"})
         kw.setdefault("radius", 6)
         kw.setdefault("pad", 10)
         kw.setdefault("align", "center")
         kw.setdefault("direction", "row")
-        super().__init__(
-            [Text(label, size=size, color=fg, align="center")],
-            on_click=on_click,
-            **kw,
-        )
+        children = []
+        if icon:
+            children.append(Icon(icon, icon_size or int(size * 0.95), color=fg))
+            kw.setdefault("gap", gap if gap is not None else 7)
+        if label:
+            children.append(Text(label, size=size, color=fg, align="center"))
+        super().__init__(children, on_click=on_click, **kw)
 
 
 class TextBox(Element):

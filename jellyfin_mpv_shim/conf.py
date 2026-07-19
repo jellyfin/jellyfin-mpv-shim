@@ -81,6 +81,10 @@ class Settings(SettingsBase):
     # (the legacy Tkinter browser). Temporary migration switch — the Tk UI is
     # slated for removal once the mpvtk UI reaches parity (see mpvtk/MIGRATION.md).
     browser_ui: str = "mpvtk"
+    # Run the in-window library browser fullscreen. Off by default: browsing is
+    # a desktop activity, and `fullscreen` (which still applies to playback)
+    # would otherwise make the browser take over the screen at startup.
+    browser_fullscreen: bool = False
     start_minimized: bool = False
     # When True, closing the library-browser window hides it to the system tray
     # (keeping the app alive as a cast target) rather than exiting. Defaults to

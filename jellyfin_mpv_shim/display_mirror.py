@@ -201,13 +201,15 @@ def _apply_dark_gradient(
 
 # ---- The window ---------------------------------------------------------
 
-def _pil_font(size, bold=False):
-    from PIL import ImageFont
-    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
-    try:
-        return ImageFont.truetype(name, size)
-    except OSError:
-        return ImageFont.load_default()
+def _pil_font(size, bold=False, text=None):
+    """Font for the baked title/overview block. ``text`` picks a face that
+    covers the string's script — Pillow has no fallback, so a CJK title drawn
+    with the Latin face is tofu (see mpvtk.pilfont)."""
+    from .mpvtk import pilfont
+
+    if text is None:
+        return pilfont.font("latin", size, bold)
+    return pilfont.font_for(text, size, bold)
 
 
 def _wrap(draw, text, font, max_w):
@@ -381,10 +383,11 @@ class DisplayMirror:
                 y -= lh + 4
             y -= gap - 4
 
-        stack(overview, _pil_font(body_size), (221, 221, 221))
-        stack("    ".join(s for s in (misc, rating) if s),
-              _pil_font(info_size), (187, 187, 187))
-        stack(title, _pil_font(title_size, bold=True), (255, 255, 255), gap=8)
+        info = "    ".join(s for s in (misc, rating) if s)
+        stack(overview, _pil_font(body_size, text=overview), (221, 221, 221))
+        stack(info, _pil_font(info_size, text=info), (187, 187, 187))
+        stack(title, _pil_font(title_size, bold=True, text=title),
+              (255, 255, 255), gap=8)
 
     def _invalidate(self):
         if self._app is not None:

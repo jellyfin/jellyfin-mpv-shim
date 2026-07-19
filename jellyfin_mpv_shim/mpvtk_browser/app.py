@@ -89,8 +89,11 @@ class MpvtkBrowser:
         # playback + the OSC. build() pushes an empty scene when not browsing so
         # its overlays clear off the video.
         self._browsing = True
-        # Latest now-playing snapshot (from on_playstate) for the audio bar.
+        # Latest now-playing snapshot (from on_playstate) for the audio bar,
+        # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
+        self._np_thread = None
+        self._np_stop = threading.Event()
         # Open tile context menu: {"item", "server", "x", "y"} or None.
         self._menu = None
         # Banners: update-available notice + offline indicator.
@@ -640,10 +643,21 @@ class MpvtkBrowser:
             self.status = _("Selected: %s") % item.get("Name", "")
             self.invalidate()
 
+    def _set_renderer_active(self, active):
+        """Suspend/resume the in-mpv renderer. Pushing an empty scene is not
+        enough to yield to the OSC — the renderer's forced mouse/wheel
+        bindings keep swallowing the clicks until it is suspended."""
+        if self.app is not None and hasattr(self.app, "set_active"):
+            try:
+                self.app.set_active(active)
+            except Exception:
+                log.debug("set_active failed", exc_info=True)
+
     def _yield(self):
         self._browsing = False
         if self.controller is not None:
             self.controller.on_browse_leave()
+        self._set_renderer_active(False)
         self.invalidate()  # empty scene clears overlays off the video
 
     def _start(self, audio):
@@ -700,6 +714,7 @@ class MpvtkBrowser:
         self._browsing = True
         if self.controller is not None:
             self.controller.on_browse_enter()
+        self._set_renderer_active(True)
         self.invalidate()
 
     def on_playstate(self, state):
@@ -715,12 +730,43 @@ class MpvtkBrowser:
             return
         if state.get("is_audio"):
             self._now_playing = state
-            self._browsing = True   # audio: stay in browse, show the bar
-            self.invalidate()
+            if not self._browsing:
+                self.enter_browse()   # audio: stay in browse, show the bar
+            else:
+                self.invalidate()
+            self._start_np_ticker()
         else:
             self._now_playing = None
-            self._browsing = False  # video: yield the window
-            self.invalidate()
+            if self._browsing:
+                self._yield()         # video: yield the window + the OSC
+            else:
+                self.invalidate()
+
+    def _start_np_ticker(self):
+        """Keep the now-playing bar's clock at 1s.
+
+        The timeline thread only pushes state every 5s (it also talks to the
+        server, so speeding it up is not free). While the bar is on screen we
+        ask the player for a fresh snapshot once a second instead; the thread
+        exits as soon as the bar goes away."""
+        if self.controller is None or self._np_thread is not None:
+            return
+
+        def tick():
+            try:
+                while not self._np_stop.wait(1.0):
+                    if self._now_playing is None or not self._browsing:
+                        break
+                    try:
+                        self.controller.refresh_playstate()
+                    except Exception:
+                        log.debug("playstate refresh failed", exc_info=True)
+            finally:
+                self._np_thread = None
+
+        self._np_thread = threading.Thread(target=tick, daemon=True,
+                                           name="mpvtk-np-tick")
+        self._np_thread.start()
 
     def set_source(self, source, server_uuid=None):
         """Swap in a live data source once servers connect (the browser opens
@@ -2295,6 +2341,7 @@ class MpvtkBrowser:
         self.app.run(self.build)
 
     def shutdown(self):
+        self._np_stop.set()
         self._pool.shutdown(wait=False, cancel_futures=True)
         if self.thumbs is not None:
             self.thumbs.shutdown()

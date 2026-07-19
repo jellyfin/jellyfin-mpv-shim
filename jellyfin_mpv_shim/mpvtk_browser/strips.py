@@ -34,23 +34,15 @@ from . import theme
 
 log = logging.getLogger("mpvtk_browser.strips")
 
-_FONT_CACHE = {}
+def _font(size, bold=False, text=None):
+    """Font for baked caption text. ``text`` selects the script-appropriate
+    face — Pillow does no font fallback, so a Japanese title drawn with the
+    Latin face is a row of tofu (see mpvtk.pilfont)."""
+    from ..mpvtk import pilfont
 
-
-def _font(size, bold=False):
-    key = (size, bold)
-    hit = _FONT_CACHE.get(key)
-    if hit is not None:
-        return hit
-    from PIL import ImageFont
-
-    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
-    try:
-        font = ImageFont.truetype(name, size)
-    except OSError:
-        font = ImageFont.load_default()
-    _FONT_CACHE[key] = font
-    return font
+    if text is None:
+        return pilfont.font("latin", size, bold)
+    return pilfont.font_for(text, size, bold)
 
 
 @dataclass
@@ -217,7 +209,7 @@ class StripStore:
             # A muted centered glyph (first initial / ♪) so blank tiles read.
             gsize = max(24, g.tile_h // 4)
             dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
-                    font=_font(gsize, bold=True), anchor="mm",
+                    font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
                     fill=theme.rgb(theme.SUBTLE_FG))
         dr.rectangle(
             [x, 0, x + g.tile_w - 1, g.tile_h - 1],
@@ -263,13 +255,15 @@ class StripStore:
 
     def _paint_caption(self, dr, x, t, g):
         if t.title:
-            title = self._ellipsize(dr, t.title, _font(g.title_size), g.tile_w)
-            dr.text((x, g.tile_h + 6), title, font=_font(g.title_size),
+            fnt = _font(g.title_size, text=t.title)
+            title = self._ellipsize(dr, t.title, fnt, g.tile_w)
+            dr.text((x, g.tile_h + 6), title, font=fnt,
                     fill=theme.rgb(theme.TEXT_FG))
         if t.subtitle:
-            sub = self._ellipsize(dr, t.subtitle, _font(g.sub_size), g.tile_w)
+            fnt = _font(g.sub_size, text=t.subtitle)
+            sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
             dr.text((x, g.tile_h + 6 + g.title_size + 7), sub,
-                    font=_font(g.sub_size), fill=theme.rgb(theme.SUBTLE_FG))
+                    font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
 
     @staticmethod
     def _ellipsize(dr, text, font, max_w):

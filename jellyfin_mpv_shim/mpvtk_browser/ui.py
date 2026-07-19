@@ -61,7 +61,9 @@ class _PlayerController:
 
     def on_browse_leave(self):
         from ..player import playerManager
-        # Hand the OSC back for playback (respecting the user's setting).
+        # Restore video aspect handling / playback fullscreen, then hand the
+        # OSC back (respecting the user's setting).
+        playerManager.browse_yield()
         playerManager.enable_osc(settings.enable_osc)
 
     def play(self, item, server_uuid, offset_ticks=None,
@@ -93,6 +95,11 @@ class _PlayerController:
             fn(playerManager)
         except Exception:
             log.error("mpvtk player action failed", exc_info=True)
+
+    def refresh_playstate(self):
+        """Re-push the now-playing snapshot (the bar's 1s clock tick)."""
+        from ..player import playerManager
+        playerManager.push_playstate()
 
     def toggle_pause(self):
         self._act(lambda pm: pm.toggle_pause())

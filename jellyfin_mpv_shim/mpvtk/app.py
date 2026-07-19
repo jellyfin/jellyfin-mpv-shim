@@ -415,6 +415,17 @@ class MpvtkApp:
     def screenshot(self, path):
         self.backend.command("screenshot-to-file", path, "window")
 
+    def set_active(self, active):
+        """Suspend/resume the in-mpv renderer.
+
+        Only meaningful for an attached app: while suspended the renderer
+        unbinds its forced mouse/wheel sections and blanks the scene, so the
+        player's OSC gets the input it needs. Pushing an empty scene is not
+        enough — the bindings are what swallow the clicks."""
+        self.backend.command(
+            "script-message", "mpvtk-active", "yes" if active else "no"
+        )
+
     def scroll(self, node_id, direction):
         """Page a scroll container (by id) by ~a viewport along its axis —
         the hook behind on-screen ◀ ▶ carousel arrows."""

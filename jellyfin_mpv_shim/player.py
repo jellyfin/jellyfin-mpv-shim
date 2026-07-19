@@ -444,9 +444,19 @@ class PlayerManager(object):
 
             return wrapper
 
+        @keypress(settings.kb_stop)
+        def handle_kb_stop():
+            # With the in-window browser, the window IS the library: q should
+            # stop playback and drop back to browsing, not tear mpv down.
+            # Closing the window (CLOSE_WIN) still quits.
+            log.info("handle_stop triggered")
+            if self.mpvtk_active:
+                self.put_task(self.stop_to_browser)
+            else:
+                self.put_task(self.stop_and_close)
+
         @self._player.on_key_press("CLOSE_WIN")
         @self._player.on_key_press("STOP")
-        @keypress(settings.kb_stop)
         def handle_stop():
             log.info("handle_stop triggered")
             self.put_task(self.stop_and_close)
@@ -1117,6 +1127,16 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
         log.info("stop_and_close: done")
+
+    def stop_to_browser(self):
+        """Stop playback but keep the window, so the in-window browser can take
+        it back (the 'q' key while browser_ui=mpvtk). push_playstate(stopped)
+        is what tells the browser to re-enter browse mode."""
+        log.info("stop_to_browser: stopping playback, keeping the window")
+        self.stop()
+        if not self._mpv_alive:
+            return
+        self.set_browse_window(True)
 
     def get_volume(self, percent: bool = False):
         if self._player:
@@ -2179,15 +2199,29 @@ class PlayerManager(object):
             if enabled:
                 try:
                     self._player.keepaspect_window = False
+                    # The background is a solid colour, so stretch it to fill
+                    # the window. Without this mpv letterboxes the (square)
+                    # image and the bars around it show as a grey frame under
+                    # the UI. Restored below so real video keeps its aspect.
+                    self._player.keepaspect = False
                 except Exception:
                     pass  # older mpv without the property; harmless
                 self._player.force_window = True
                 self._player.keep_open = True
                 self._player.image_display_duration = "inf"
                 self._player.play(_browse_background())
-                if settings.fullscreen:
+                # Browsing is a desktop-UI activity: only go fullscreen if the
+                # user explicitly asked for a fullscreen browser. settings.
+                # fullscreen still applies when playback starts.
+                if settings.browser_fullscreen:
                     self._player.fs = True
+                elif not self._video:
+                    self._player.fs = False
             else:
+                try:
+                    self._player.keepaspect = True
+                except Exception:
+                    pass
                 self._player.image_display_duration = 1
                 self._player.keep_open = False
                 if not self._video:
@@ -2195,6 +2229,24 @@ class PlayerManager(object):
                     self._player.command("stop")
         except _mpv_errors:
             self._handle_mpv_disconnect()
+
+    def browse_yield(self):
+        """Hand the window from the in-window browser back to playback.
+
+        Undoes only the parts of set_browse_window() that would harm video —
+        the stretched aspect and the non-fullscreen browse window. It must not
+        touch force_window/keep_open: playback is still starting up here and
+        tearing the window down would kill it."""
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.keepaspect = True
+            if settings.fullscreen and not self.fullscreen_disable:
+                self._player.fs = True
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            log.debug("browse_yield failed", exc_info=True)
 
     def force_window(self, enabled: bool):
         if not self._mpv_alive:
