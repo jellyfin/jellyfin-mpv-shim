@@ -116,6 +116,10 @@ class MpvtkBrowser:
         # playstate snapshot feeding its bar (see hud.py).
         self._hud_shown = False
         self._hud_state = None
+        # Seek-scrub in flight: the slider's pending target in seconds
+        # (None when not scrubbing). Drives the preview thumbnail and the
+        # clock; committed to a real seek on gesture end (see hud.py).
+        self._hud_scrub = None
         if app is not None and hasattr(app, "on_hud"):
             app.on_hud = self._on_hud
         # Poller that refreshes the downloads view while transfers run.
@@ -943,9 +947,23 @@ class MpvtkBrowser:
                 and c is not None and getattr(c, "use_hud", None) is not None
                 and c.use_hud())
 
+    def _hud_scrub_change(self, v):
+        self._hud_scrub = float(v)
+        self.invalidate()
+
+    def _hud_scrub_commit(self, v):
+        self._hud_scrub = None
+        self._ctl(lambda c: c.seek(float(v)))
+        self.invalidate()
+
+    def _hud_scrub_cancel(self):
+        self._hud_scrub = None
+        self.invalidate()
+
     def _on_hud(self, active):
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
+        self._hud_scrub = None
         if active:
             # a fresh position snapshot before the bar first paints, then
             # the shared 1s ticker keeps its clock moving
@@ -2383,9 +2401,10 @@ class MpvtkBrowser:
                        bg=theme.BUTTON_BG, hover={"fill": theme.BUTTON_ACTIVE},
                        radius=6, align="center", direction="row", on_click=cb)
 
+        # commit-only: dragging shouldn't spam absolute seeks mid-gesture
         seek = Slider("np-seek", value=pos, min=0, max=max(1, dur),
                       force=True, flex=1,
-                      on_change=lambda v: self._ctl(lambda c: c.seek(v)))
+                      on_commit=lambda v: self._ctl(lambda c: c.seek(v)))
         title = np.get("title", "")
         sub = np.get("artist") or np.get("album") or ""
         return Row(

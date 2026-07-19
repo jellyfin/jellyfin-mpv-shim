@@ -82,8 +82,11 @@ lists, overflow decisions).
 
 Inputs: `TextBox` (editing, paste, selection, `mask=True` for
 passwords; `on_change`/`on_submit`), `Dropdown` (readonly picker,
-`on_select`), `Slider` (`on_change`, throttled while dragging),
-`Busy` (indeterminate spinner).
+`on_select`), `Slider` (`on_change`, throttled while dragging;
+seek-style sliders add `on_commit` — once, when the drag/adjust
+gesture ends — and `on_cancel` — gesture abandoned via ESC or focus
+moving away, value reverted; `force=True` tracks the scene value but
+never stomps an in-flight gesture), `Busy` (indeterminate spinner).
 
 Containers: `HScroll`/`VScroll` (optional scrollbar; `on_scroll` for
 windowed/infinite content — fires leading-edge-throttled every 150ms

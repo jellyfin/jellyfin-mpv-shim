@@ -970,7 +970,12 @@ end
 
 local function sl_state(node)
     local s = state.sl[node.id]
-    if s == nil or node.force then
+    -- force=true tracks the scene value (seek bars follow playback) —
+    -- but never while the user is mid-gesture, or the app's periodic
+    -- pushes would stomp the in-flight drag/adjust value.
+    local busy = state.slider_drag == node.id
+        or (state.nav_adjust and state.nav == node.id)
+    if s == nil or (node.force and not busy) then
         s = { value = node.value or 0 }
         state.sl[node.id] = s
     end
@@ -1023,6 +1028,35 @@ local function draw_slider(ass, node, ex, ey, clip)
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
         { fill = 'dddddd', radius = 8, clip = clip })
+end
+
+-- Scrub semantics for seek-style sliders: 'change' fires (throttled)
+-- while the value is in flight — a scrubbing preview, not a command;
+-- 'commit' fires once when the gesture ends (drag release / adjust
+-- mode toggled off) with the final value; 'cancel' reverts to the
+-- scene value without committing (ESC, or focus moving off the
+-- slider mid-adjust). Sliders whose app handler only registers
+-- on_change (volume) behave exactly as before.
+local function slider_flush(id)
+    if slider_notify_timers[id] then
+        slider_notify_timers[id]:kill()
+        slider_notify_timers[id] = nil
+    end
+end
+
+local function slider_commit(node)
+    slider_flush(node.id)
+    slider_last_notify[node.id] = mp.get_time()
+    local s = sl_state(node)
+    send({ t = 'commit', id = node.id, value = s.value })
+end
+
+local function slider_cancel(node)
+    slider_flush(node.id)
+    local s = sl_state(node)
+    s.value = node.value or 0
+    send({ t = 'cancel', id = node.id })
+    request_render()
 end
 
 local function slider_set_from_x(node, x)
@@ -1995,6 +2029,8 @@ local function on_mouse_up()
     end
     if state.slider_drag then
         fire_slider(state.slider_drag)  -- final value, unthrottled
+        local node = state.byid[state.slider_drag]
+        if node then slider_commit(node) end
         state.slider_drag = nil
         return
     end
@@ -2380,6 +2416,9 @@ local function nav_move(dx, dy)
         request_render()
         return
     end
+    if state.nav_adjust and cur and cur.t == 'slider' then
+        slider_cancel(cur)  -- focus is leaving mid-adjust: revert
+    end
     state.nav_adjust = nil
     local cands = nav_candidates()
     if #cands == 0 then return end
@@ -2499,6 +2538,9 @@ local function nav_activate()
         request_render()
     elseif node.t == 'slider' then
         state.nav_adjust = not state.nav_adjust
+        if not state.nav_adjust then
+            slider_commit(node)  -- adjust mode ends: final value
+        end
         request_render()
     elseif node.click then
         state.mods = {}
@@ -2883,7 +2925,13 @@ function phud_summon(src)
     -- the HUD itself. (A scene-driven dialog also binds
     -- mpvtk_menu_esc, added later so it wins while it exists.)
     mp.add_forced_key_binding('ESC', 'mpvtk_phud_esc', function()
-        if state.dd_open then
+        if state.nav_adjust then
+            -- scrub in flight: revert it, keep the HUD up
+            local node = state.nav and state.byid[state.nav]
+            if node and node.t == 'slider' then slider_cancel(node) end
+            state.nav_adjust = nil
+            request_render()
+        elseif state.dd_open then
             state.dd_open = nil
             state.nav_pidx = nil
             request_render()

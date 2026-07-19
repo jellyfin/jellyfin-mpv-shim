@@ -199,6 +199,12 @@ class PlayerManager(object):
         # own controls (seekbar/buttons); such seeks never intro-skip.
         self._last_ui_seek_time = 0.0
         self.trickplay = None
+        # Decoded trickplay tile metadata for the CURRENT video, set by the
+        # TrickPlay worker once tiles land ({count, multiplier, width,
+        # height, file} — file is raw BGRA frames back to back). The mpvtk
+        # playback HUD reads frames straight out of it for scrub previews;
+        # the lua OSCs get the same data via shim-trickplay-bif instead.
+        self.trickplay_meta = None
         self._osc_script_loaded = False
         self._mpv_alive = False
         # True when mpv was terminated intentionally to save resources while

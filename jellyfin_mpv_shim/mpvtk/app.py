@@ -441,9 +441,9 @@ class MpvtkApp:
                     })
                 else:
                     fn()
-            elif t in ("change", "submit"):
+            elif t in ("change", "submit", "commit"):
                 fn(evt.get("value", ""))
-            elif t == "dbl":
+            elif t in ("dbl", "cancel"):
                 fn()
             elif t == "select":
                 fn(evt.get("index", 0), evt.get("value"))

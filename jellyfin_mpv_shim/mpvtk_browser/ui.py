@@ -83,6 +83,12 @@ class _PlayerController:
         Read per-yield so an osc_style change applies without restart."""
         return settings.osc_style == "mpvtk"
 
+    def trickplay(self):
+        """Decoded trickplay tile metadata for the current video, or None
+        ({count, multiplier, width, height, file} — see TrickPlay)."""
+        from ..player import playerManager
+        return playerManager.trickplay_meta
+
     def on_browse_leave(self):
         from ..player import playerManager
         # Restore video aspect handling / playback fullscreen, then hand the

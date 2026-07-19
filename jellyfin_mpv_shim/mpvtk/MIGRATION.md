@@ -1419,9 +1419,36 @@ PER_BACKEND_REAL leg):
   transition can miss the fresh bindings — tests press-until-effect,
   which is also what a human does.
 
-Remaining: 9.2 (scrub polish + trickplay preview + chapter snap),
-9.3 (pickers/chapters/skip-intro via osc_bridge), 9.4 (default flip +
-lua OSC removal).
+**9.2 ✅ (2026-07-19).** Scrub + trickplay preview:
+
+- Slider grows commit/cancel semantics (toolkit-wide): 'change' fires
+  throttled while the value is in flight, 'commit' once when the
+  gesture ends (drag release / adjust toggled off), 'cancel' when it's
+  abandoned (ESC in the HUD, or focus moving off the slider
+  mid-adjust — renderer reverts to the scene value). `force=True` no
+  longer stomps an in-flight gesture (sl_state skips the reset while
+  the slider is being dragged/adjusted — this also fixes the np bar's
+  thumb snapping back under the 1s ticker). np-seek and hud-seek are
+  commit-only: scrubbing never spams seeks at a transcode; np-vol
+  stays live on change.
+- Trickplay: the TrickPlay worker now also stores its decoded bif
+  metadata on `player.trickplay_meta` ({count, multiplier, width,
+  height, file} — file is the same raw-BGRA frame dump the lua OSCs
+  consume via shim-trickplay-bif); cleared on clear()/stop(). The HUD
+  reads the frame for the scrub position straight out of the file
+  (PIL raw BGRA decoder → strips.bitmap, one-slot cache keyed by
+  frame index), floats it above the slider via node_rect('hud-seek')
+  geometry feedback, and shows the pending target in the clock.
+  Bitmap-over-ASS means the preview covers the bar — accepted in the
+  plan. Chapter-image fallback (videos with chapter thumbs but no
+  trickplay) is NOT wired — deferred with chapter ticks to 9.3.
+- Layout gotcha for the record: a Slider's default w=180 defeats
+  align="stretch" (stretch only sizes children with no fixed cross
+  size) — wrap it in an unsized Row and flex inside.
+
+Remaining: 9.3 (pickers/chapters/skip-intro via osc_bridge data,
+chapter ticks/snap, maybe chapter-image preview fallback), 9.4
+(default flip + lua OSC removal).
 
 ## Cross-cutting risks & open questions
 

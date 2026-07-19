@@ -27,6 +27,10 @@ class FakeController:
 
     def __init__(self):
         self.calls = []
+        self.trickplay_meta = None
+
+    def trickplay(self):
+        return self.trickplay_meta
 
     def use_hud(self):
         return True
@@ -199,6 +203,75 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="browse never took the window back")
         self.assertIn("enter", self.ctl.calls)
         self.assertTrue(self.browser._browsing)
+
+    def test_scrub_commit_cancel_and_preview(self):
+        # Fake trickplay data: 10 raw-BGRA frames, 3s apart (the format
+        # the TrickPlay worker writes to raw_images.bin).
+        tw, th, count = 64, 36, 10
+        raw = os.path.join(self.tmp, "raw_images.bin")
+        with open(raw, "wb") as fh:
+            for i in range(count):
+                px = bytes((20 * i % 256, 128, 255 - 20 * i % 256, 255))
+                fh.write(px * (tw * th))
+        self.ctl.trickplay_meta = {
+            "count": count, "multiplier": 3000,
+            "width": tw, "height": th, "file": raw,
+        }
+
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="renderer never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser._hud_shown,
+                          msg="summon failed")
+        self._wait(lambda: self._state().get("nav") == "hud-pp",
+                   msg="focus never landed on play/pause")
+
+        # UP focuses the seek slider; ENTER enters adjust mode; LEFT
+        # scrubs 5% back — a 'change' that must NOT seek, only set the
+        # pending scrub target and float the preview thumbnail.
+        self._press_until(
+            "UP", lambda: self._state().get("nav") == "hud-seek",
+            msg="focus never moved to the seek slider")
+        self._keypress("ENTER")
+        self._press_until(
+            "LEFT", lambda: self.browser._hud_scrub is not None,
+            msg="adjust-mode scrub never reached the browser")
+        seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
+                 and c[0] == "seek"]
+        self.assertEqual(seeks, [], "scrubbing must not seek mid-gesture")
+        self._wait(lambda: self.app.node_rect("hud-preview") is not None,
+                   msg="trickplay preview never appeared")
+
+        # ENTER commits: exactly one seek at the scrubbed position.
+        target = self.browser._hud_scrub
+        self._keypress("ENTER")
+        self._wait(lambda: any(isinstance(c, tuple) and c[0] == "seek"
+                               for c in self.ctl.calls),
+                   msg="commit never seeked")
+        seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
+                 and c[0] == "seek"]
+        self.assertEqual(len(seeks), 1)
+        self.assertAlmostEqual(seeks[0][1], target, delta=2.0)
+        self.assertIsNone(self.browser._hud_scrub)
+
+        # Second gesture, abandoned with ESC: no new seek, preview
+        # cleared, HUD still up.
+        self._keypress("ENTER")
+        self._press_until(
+            "LEFT", lambda: self.browser._hud_scrub is not None,
+            msg="second scrub never started")
+        # single press: the ESC binding has been stable since summon (no
+        # rebind race), and a second ESC would hide the whole HUD
+        self._keypress("ESC")
+        self._wait(lambda: self.browser._hud_scrub is None,
+                   msg="ESC never cancelled the scrub")
+        self.assertTrue(self.browser._hud_shown,
+                        "cancelling a scrub must not hide the HUD")
+        seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
+                 and c[0] == "seek"]
+        self.assertEqual(len(seeks), 1, "cancel must not seek")
+        self._wait(lambda: self.app.node_rect("hud-preview") is None,
+                   msg="preview never cleared after cancel")
 
     def test_paused_video_keeps_hud_up(self):
         self._play_video()

@@ -37,6 +37,7 @@ class TrickPlay(threading.Thread):
         # The worker still exits promptly on its next loop turn via `halt`.
         self.halt = True
         self.trigger.set()
+        self.player.trickplay_meta = None
         if os.path.isfile(img_file):
             os.remove(img_file)
         if join:
@@ -46,6 +47,7 @@ class TrickPlay(threading.Thread):
         self.trigger.set()
 
     def clear(self):
+        self.player.trickplay_meta = None
         self.player.script_message("shim-trickplay-clear")
         if os.path.isfile(img_file):
             os.remove(img_file)
@@ -108,6 +110,12 @@ class TrickPlay(threading.Thread):
                             # Video changed while we were decompressing the bif file
                             continue
 
+                        # Same data both ways: the lua OSCs get a script
+                        # message; the mpvtk HUD reads the raw frames via
+                        # this metadata (see player.trickplay_meta).
+                        self.player.trickplay_meta = dict(
+                            bif_meta, file=img_file
+                        )
                         self.player.script_message(
                             "shim-trickplay-bif",
                             str(bif_meta["count"]),

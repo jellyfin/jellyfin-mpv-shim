@@ -267,7 +267,13 @@ class TextBox(Element):
 
 class Slider(Element):
     """Draggable value slider (volume, seek). on_change(value) fires
-    throttled while dragging and once on release."""
+    throttled while the value is in flight (dragging / keyboard adjust
+    mode) and once on release. Seek-style sliders additionally take
+    ``on_commit(value)`` — fired once when the gesture ends (drag
+    release, adjust mode toggled off) — and ``on_cancel()`` — the
+    gesture was abandoned (ESC / focus moved away) and the renderer
+    reverted to the scene value. With only on_change registered
+    (volume) every in-flight change is live, as before."""
 
     def __init__(
         self,
@@ -276,6 +282,8 @@ class Slider(Element):
         min=0.0,
         max=100.0,
         on_change=None,
+        on_commit=None,
+        on_cancel=None,
         force=False,
         **kw,
     ):
@@ -286,6 +294,8 @@ class Slider(Element):
         self.min = min
         self.max = max
         self.on_change = on_change
+        self.on_commit = on_commit
+        self.on_cancel = on_cancel
         self.force = force
 
 

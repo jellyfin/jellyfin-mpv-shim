@@ -529,6 +529,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         if el.force:
             node["force"] = True
         _reg(ctx, node["id"], "change", el.on_change)
+        _reg(ctx, node["id"], "commit", el.on_commit)
+        _reg(ctx, node["id"], "cancel", el.on_cancel)
         ctx.nodes.append(node)
         return
 

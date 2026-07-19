@@ -1499,7 +1499,11 @@ class TestNowPlaying(unittest.TestCase):
         nodes, h = build_scene(self.b)
         for nid in ("np-seek", "np-vol", "np-repeat", "np-fav"):
             self.assertIn(nid, ids(nodes))
-        h["np-seek"]["change"](42)
+        # seek is commit-only (fires when the drag gesture ends); volume
+        # stays live on change
+        h["np-seek"]["commit"](42)
+        self.assertNotIn("change", h["np-seek"],
+                         "np-seek must not live-seek while dragging")
         h["np-vol"]["change"](30)
         h["np-repeat"]["click"]()
         h["np-fav"]["click"]()
