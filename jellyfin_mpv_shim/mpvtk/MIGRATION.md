@@ -506,9 +506,17 @@ end to end:
   menu — that is the only settings surface those have.
 - **DisplayContent** ("show me this") opens the item's page, routed through
   the same `_open_item` dispatch a click uses, so a series lands on the
-  series page. It wakes a minimized client and interrupts playback, since a
-  cast is an explicit instruction. From there the remote's arrows drive the
-  page.
+  series page and the remote's arrows then drive it. It wakes a minimized
+  client and raises the window.
+
+  Two deliberate refusals, both because **jellyfin-web emits DisplayContent
+  as you browse on the phone**, not only when you pick something:
+
+  - It never *interrupts playback*. Browsing on the phone while something
+    plays here would otherwise stop the video every time the remote view
+    changed. The page is simply waiting when playback ends.
+  - It never *starts playback*. A cast track opens its album (or is ignored
+    if it has none), because `_open_item` would play it.
 
 `display_mirroring` stays what it was: a **kiosk mode** kept for
 backwards compatibility, where casting shows a static backdrop preview and

@@ -2280,8 +2280,9 @@ class TestRemoteDisplayContent(unittest.TestCase):
     The legacy display_mirroring kiosk shows a static backdrop instead."""
 
     def setUp(self):
+        self.ctl = FakeController()
         self.b = MpvtkBrowser(app=None, source=FakeSource(),
-                              controller=FakeController())
+                              controller=self.ctl)
         self.b._pool = _SyncPool()
 
     def test_opens_the_item_page(self):
@@ -2304,10 +2305,31 @@ class TestRemoteDisplayContent(unittest.TestCase):
         self.assertTrue(self.b._browsing)
         self.assertEqual(self.b.route["kind"], "detail")
 
-    def test_interrupts_playback(self):
-        self.b._browsing = False
+    def test_never_interrupts_playback(self):
+        """jellyfin-web emits DisplayContent as you browse on the phone, so
+        casting a page while something plays here must not stop it."""
+        self.b._browsing = False        # video playing
         self.b.display_item("srv1", "m1")
-        self.assertTrue(self.b._browsing)
+        self.assertFalse(self.b._browsing, "took the window from playback")
+        self.assertEqual(self.ctl.entered, 0)
+        # The page is waiting when playback ends.
+        self.assertEqual(self.b.route["kind"], "detail")
+
+    def test_a_cast_track_opens_its_album_rather_than_playing(self):
+        """Same reason: DisplayContent is a browse gesture, not a play one."""
+        self.b.source.get_item = lambda s, i: {
+            "Id": i, "Name": "Song", "Type": "Audio", "AlbumId": "al9",
+            "Album": "The Album"}
+        self.b.display_item("srv1", "so1")
+        self.assertEqual(self.b.route["kind"], "album")
+        self.assertEqual(self.b.route["item_id"], "al9")
+        self.assertEqual(self.ctl.played, [], "must not start playback")
+
+    def test_a_cast_track_with_no_album_falls_back(self):
+        self.b.source.get_item = lambda s, i: {
+            "Id": i, "Name": "Song", "Type": "Audio"}
+        self.b.display_item("srv1", "so1")
+        self.assertEqual(self.ctl.played, [], "must not start playback")
 
     def test_switches_server_when_the_cast_comes_from_another(self):
         self.b.display_item("srv2", "m1")

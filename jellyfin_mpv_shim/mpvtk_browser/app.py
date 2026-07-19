@@ -233,7 +233,14 @@ class MpvtkBrowser:
 
         This is the browsable counterpart to the legacy kiosk mirror: the
         remote picks the page, then its arrows drive the same spatial
-        navigation the keyboard uses."""
+        navigation the keyboard uses.
+
+        Two things it deliberately does NOT do. It never starts playback —
+        jellyfin-web emits DisplayContent as you *browse* on the phone, so a
+        cast track has to open its album, not play it. And it never
+        interrupts playback for the same reason: browsing on the phone while
+        something plays here would otherwise stop the video. The page is
+        simply waiting when playback ends."""
         if server_uuid and server_uuid != self.server:
             self.server = server_uuid
         ep = self._epoch
@@ -244,11 +251,33 @@ class MpvtkBrowser:
         def done(item):
             if not item:
                 return
-            # A cast has to be able to wake a minimized or playing client.
-            if self._minimized or not self._browsing:
+            self._display_route(item)
+            if self._minimized or self._browsing:
+                # Idle or already browsing: bring the page forward. A cast
+                # has to be able to wake a minimized client.
                 self.enter_browse()
-            self._open_item(item)
+                if self.controller is not None:
+                    self._safe(lambda c: c.raise_window())
         self.run_async(work, done, ep)
+
+    def _display_route(self, item):
+        """Navigate to an item's *page*. Same dispatch as a click, except
+        that types a click would play resolve to the page they belong to."""
+        if item.get("Type") == "Audio":
+            # _open_item would PLAY a track. Open its album instead, or do
+            # nothing if it has none — a browse gesture must never start
+            # playback.
+            album = item.get("AlbumId")
+            if album:
+                self.navigate({
+                    "kind": "album",
+                    "server": self.route.get("server") or self.server,
+                    "item_id": album,
+                    "title": item.get("Album") or ""})
+            else:
+                log.debug("DisplayContent for a track with no album; ignoring")
+            return
+        self._open_item(item)
 
     def on_nav_command(self, name):
         """Remote menu commands that map onto real pages here (GoHome /

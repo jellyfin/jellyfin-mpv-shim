@@ -114,6 +114,10 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk player action failed", exc_info=True)
 
+    def raise_window(self):
+        from ..player import playerManager
+        playerManager.raise_window()
+
     def refresh_playstate(self):
         """Re-push the now-playing snapshot (the bar's 1s clock tick)."""
         from ..player import playerManager
@@ -733,7 +737,8 @@ class UserInterface:
             return
         uuid = next((u for u, c in clientManager.clients.items()
                      if c is client), None)
-        self.activate()          # a cast wakes a minimized client
+        # display_item decides whether to take the window — it must not
+        # interrupt playback, so waking the client is its call, not ours.
         self._browser.display_item(uuid, item_id)
 
     def _open_config_folder(self):
