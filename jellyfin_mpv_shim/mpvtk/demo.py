@@ -517,6 +517,11 @@ def _selftest(demo, outdir):
     shot("01-initial")
     st = app.debug_state()
     check("ready-size", st and st.get("w", 0) > 0, str(st and st.get("w")))
+    check(
+        "measured-metrics",
+        st and st.get("has_metrics"),
+        "font=%s" % (st and st.get("font")),
+    )
     novl = (st or {}).get("overlays", 0)
     check(
         "strip-overlay-budget",

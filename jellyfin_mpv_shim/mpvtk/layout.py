@@ -22,7 +22,8 @@ from .widgets import (
     TextBox,
 )
 
-# Keep in sync with CHAR_W in renderer.lua.
+# Heuristic fallback — keep in sync with CHAR_W in renderer.lua.
+# set_metrics() replaces it with measured advances (see metrics.py).
 _NARROW = set("iIljtfr.,:;!|'`()[]\"")
 _WIDE = set("mwMW@%&")
 _SPACE_W = 0.30
@@ -30,10 +31,23 @@ _NARROW_W = 0.34
 _WIDE_W = 0.85
 _DEFAULT_W = 0.54
 
+_measured = None  # {char: fraction} when metrics were applied
+
 LINE_H = 1.25  # text node height as a multiple of font size
 
 
+def set_metrics(widths):
+    """Install measured per-char width fractions (metrics.measure_font).
+    Pass None to revert to the heuristic table."""
+    global _measured
+    _measured = dict(widths) if widths else None
+
+
 def char_w(ch):
+    if _measured is not None:
+        w = _measured.get(ch)
+        if w is not None:
+            return w
     if ch == " ":
         return _SPACE_W
     if ch in _NARROW:

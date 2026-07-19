@@ -73,13 +73,21 @@ local function send(tbl)
     mp.commandv('script-message', 'mpvtk-event', utils.format_json(tbl))
 end
 
--- Keep in sync with layout.py.
+-- Heuristic fallback — keep in sync with layout.py. Replaced at
+-- runtime by measured advances via the mpvtk-metrics message.
 local NARROW = {}
 for c in ("iIljtfr.,:;!|'`()[]\""):gmatch('.') do NARROW[c] = true end
 local WIDE = {}
 for c in ('mwMW@%&'):gmatch('.') do WIDE[c] = true end
 
+local measured_widths = nil
+local ui_font = nil
+
 local function char_w(c)
+    if measured_widths then
+        local w = measured_widths[c]
+        if w then return w end
+    end
     if c == ' ' then return 0.30 end
     if NARROW[c] then return 0.34 end
     if WIDE[c] then return 0.85 end
@@ -232,9 +240,10 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra)
     if an == 6 then px = ex + node.w end
     ass:new_event()
     ass:append(string.format(
-        '{\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s\\1a&H00&%s%s%s}',
+        '{\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s\\1a&H00&%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
         ass_color(color), node.bold and '\\b1' or '',
+        ui_font and ('\\fn' .. ui_font) or '',
         clip_tag(clip), extra or ''))
     ass:append(esc(text))
 end
@@ -1082,6 +1091,14 @@ local function reconcile()
     end
 end
 
+mp.register_script_message('mpvtk-metrics', function(json)
+    local m = utils.parse_json(json)
+    if not m then return end
+    measured_widths = m.widths
+    ui_font = m.font
+    request_render()
+end)
+
 mp.register_script_message('mpvtk-scene', function(json)
     local scene, err = utils.parse_json(json)
     if not scene then
@@ -1173,6 +1190,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             focus = state.focus,
             dd_open = state.dd_open,
             menu_open = active_menu() ~= nil,
+            has_metrics = measured_widths ~= nil,
+            font = ui_font,
             scroll = state.scroll,
             overlays = state.ov_used,
             tb = state.tb,

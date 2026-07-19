@@ -12,7 +12,8 @@ import os
 import queue
 import threading
 
-from .layout import layout
+from .layout import layout, set_metrics
+from .metrics import measure_font
 
 log = logging.getLogger("mpvtk")
 
@@ -155,6 +156,18 @@ class MpvtkApp:
     def invalidate(self):
         self._dirty = True
 
+    def _push_metrics(self):
+        """Measured glyph advances -> layout engine + renderer, so both
+        sides agree on real text widths (falls back to the heuristic
+        table when no font is measurable)."""
+        m = measure_font()
+        if not m:
+            return
+        set_metrics(m["widths"])
+        self.backend.command(
+            "script-message", "mpvtk-metrics", json.dumps(m)
+        )
+
     def _render(self):
         if self.size is None or self._build is None:
             return
@@ -173,6 +186,7 @@ class MpvtkApp:
             self.size = (evt["w"], evt["h"])
             self._dirty = True
             if t == "ready":
+                self._push_metrics()
                 self.ready.set()
             return
         if t == "debug_state":

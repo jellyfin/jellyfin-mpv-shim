@@ -38,6 +38,35 @@ app.py       → JSON over script-message ──►  renderer.lua
   and libmpv are identical (`--backend` in the demo; 13/13 selftest
   checks pass on both).
 
+## Round 2: strips, infinite scroll, context menus, metrics
+
+- **Strip compositing (`ImageMap`)**: whole tile rows are baked into one
+  BGRA file — posters, captions, progress bars, unwatched badges,
+  watched checkmarks. This dissolves the z-order problem for
+  data-driven decorations AND the overlay budget (a screenful is 2–8
+  overlays regardless of tile count). Interaction stays declarative:
+  regions become transparent hit-rects with outside hover rings.
+  Strips are content-keyed (decoration changes recomposite under a new
+  filename); `v` busts the renderer cache for in-place rewrites.
+  Scrolling a strip is pure crop math — no recomposite.
+- **Infinite scroll**: `Scroll(on_scroll=...)` gets debounced offset
+  events from the renderer; the app materializes rows around the
+  viewport with fixed-size `Spacer`s standing in for the rest. The demo
+  virtualizes a 400-entry grid at 3 live overlays.
+- **Context menus**: right-click on a node with `on_context` →
+  `context` event → app re-renders with a floating `Menu` node at the
+  click point. Same popup path as dropdowns (occludes images, hover,
+  flip-at-edge); click-away/ESC dismiss instantly renderer-side and
+  notify the app.
+- **Measured metrics**: at startup Pillow measures real glyph advances
+  for the platform UI font; both layout and renderer use the table and
+  libass gets `\fn` for the same font, so sizing/ellipsis/cursor all
+  agree. Heuristic table remains the fallback.
+
+Hard-won crash lesson: mpv **mmaps** overlay files — a crop that reads
+past EOF is a silent SIGBUS process death. Image nodes never stretch
+past their pixel size and the renderer clamps crops to `iw`/`ih`.
+
 ## Spike findings
 
 1. **overlay-add bitmaps composite ABOVE all script ASS** (verified on
@@ -82,10 +111,14 @@ Unit tests for the layout engine: `python3 -m unittest tests.test_mpvtk_layout`.
 
 ## Not yet built (deliberately out of scope for the spike)
 
-- Modal dialogs (the popup-occluder mechanism generalizes to them).
+- Modal dialogs (the menu/popup floating-layer + occluder mechanism
+  generalizes to them).
 - Focus traversal (Tab), keyboard/remote navigation of tiles.
 - Momentum/animated scrolling (ASS `\t` or renderer timers).
 - Scene diffing (full-replace is fine at this scale).
 - Image scaling in the renderer (pre-scale with Pillow instead).
+- Text selection in textboxes (clipboard paste works; select/copy is
+  ~150 lines of renderer work).
 - IME text input; native file chooser (keep Tk for that one settings
   page or use a path textbox).
+- Non-ASCII glyph metrics (measured table covers printable ASCII).
