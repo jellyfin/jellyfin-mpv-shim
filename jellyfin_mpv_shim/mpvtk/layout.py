@@ -16,6 +16,7 @@ from .widgets import (
     Element,
     Image,
     ImageMap,
+    Menu,
     Scroll,
     Text,
     TextBox,
@@ -85,6 +86,8 @@ def measure(el):
         else:
             w = el.w
         return w, el.h or el.size * 1.9
+    if isinstance(el, Menu):
+        return 0, 0  # floating: takes no space in flow
     if isinstance(el, Scroll):
         cw, ch = measure(el.child)
         return el.w if el.w is not None else cw, (
@@ -248,6 +251,26 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         if el.force:
             node["force"] = True
         _reg(ctx, node["id"], "select", el.on_select)
+        ctx.nodes.append(node)
+        return
+
+    if isinstance(el, Menu):
+        # ignores the flow position: x/y are absolute screen coords
+        widest = max(
+            (text_width(i, el.size) for i in el.items), default=40
+        )
+        node = {
+            "t": "menu",
+            "id": el.id,
+            "x": _round(el.x),
+            "y": _round(el.y),
+            "w": _round(widest + 36),
+            "ih": _round(el.size * 1.9),
+            "items": el.items,
+            "size": el.size,
+        }
+        _reg(ctx, el.id, "select", el.on_select)
+        _reg(ctx, el.id, "dismiss", el.on_dismiss)
         ctx.nodes.append(node)
         return
 

@@ -205,6 +205,35 @@ class Dropdown(Element):
         self.force = force
 
 
+class Menu(Element):
+    """Floating context menu at absolute position (x, y) — out of flow.
+
+    Presence in the tree = open. The renderer reports item choice via
+    on_select(index, value) and click-away/ESC via on_dismiss(); the app
+    responds by re-rendering without the Menu (the renderer hides it
+    instantly on its own for responsiveness).
+    """
+
+    def __init__(
+        self,
+        id,
+        items,
+        x,
+        y,
+        size=20,
+        on_select=None,
+        on_dismiss=None,
+        **kw,
+    ):
+        super().__init__(id=id, **kw)
+        self.items = list(items)
+        self.x = x
+        self.y = y
+        self.size = size
+        self.on_select = on_select
+        self.on_dismiss = on_dismiss
+
+
 class Scroll(Element):
     """``on_scroll(offset, max)`` fires debounced from the renderer when
     the user scrolls — the hook for windowed/infinite content."""

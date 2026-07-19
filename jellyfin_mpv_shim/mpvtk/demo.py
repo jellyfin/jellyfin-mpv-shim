@@ -26,6 +26,7 @@ from .widgets import (
     Dropdown,
     HScroll,
     ImageMap,
+    Menu,
     Row,
     Spacer,
     Text,
@@ -247,6 +248,7 @@ class Demo:
         self.status = "Hover and click tiles; scroll rows and the page."
         self.grid_window = (0, WINDOW_AHEAD + 4)  # materialized row range
         self._grid_geom = None  # (grid_top, pitch, cols, total_rows)
+        self.menu = None  # {"idx": item, "x":, "y":} while a menu is open
         self.app = MpvtkApp(backend=backend)
 
     # ------------------------------------------------------------- state
@@ -276,6 +278,26 @@ class Demo:
         self.sort = value
         self.app.invalidate()
 
+    # ------------------------------------------------------ context menu
+
+    def _open_menu(self, idx, x, y):
+        self.menu = {"idx": idx, "x": x, "y": y}
+        self.app.invalidate()
+
+    def _close_menu(self):
+        self.menu = None
+        self.app.invalidate()
+
+    def _menu_action(self, index, value):
+        it = self.items[self.menu["idx"]]
+        if value == "Mark Watched":
+            # mutating decorations recomposites the affected strips
+            it["watched"] = True
+            it["badge"] = 0
+            it["progress"] = 0.0
+        self.status = "%s: %s" % (value, it["title"])
+        self._close_menu()
+
     # ------------------------------------------------------------- build
 
     def _image_map(self, items, id_prefix):
@@ -285,6 +307,9 @@ class Demo:
                 r,
                 id="%s-tile-%d" % (id_prefix, r["idx"]),
                 on_click=lambda i=r["idx"]: self._pick(i),
+                on_context=lambda x, y, i=r["idx"]: self._open_menu(
+                    i, x, y
+                ),
             )
             for r in s["regions"]
         ]
@@ -344,6 +369,9 @@ class Demo:
                 r,
                 id="grid-tile-%d" % e["vidx"],
                 on_click=lambda i=e["idx"]: self._pick(i),
+                on_context=lambda x, y, i=e["idx"]: self._open_menu(
+                    i, x, y
+                ),
             )
             for r, e in zip(s["regions"], entries)
         ]
@@ -416,17 +444,29 @@ class Demo:
             h=44,
             bg="1d1d1d",
         )
+        children = [
+            header,
+            VScroll(
+                page,
+                id="page",
+                flex=1,
+                on_scroll=self._on_page_scroll,
+            ),
+            footer,
+        ]
+        if self.menu:
+            children.append(
+                Menu(
+                    "ctxmenu",
+                    ["Play", "Mark Watched", "Toggle Favorite"],
+                    self.menu["x"],
+                    self.menu["y"],
+                    on_select=self._menu_action,
+                    on_dismiss=self._close_menu,
+                )
+            )
         return Column(
-            [
-                header,
-                VScroll(
-                    page,
-                    id="page",
-                    flex=1,
-                    on_scroll=self._on_page_scroll,
-                ),
-                footer,
-            ],
+            children,
             w=w,
             h=h,
             align="stretch",
@@ -539,6 +579,33 @@ def _selftest(demo, outdir):
     check("dropdown-select", demo.sort == "Year", demo.sort)
     st = app.debug_state()
     check("dropdown-closed", st and not st.get("dd_open"))
+
+    # context menu: open on right-click, act, and dismiss
+    ctx_item = demo._filtered()[0]
+    ctx_tile = "row-cw-tile-%d" % ctx_item["idx"]
+    app.debug(cmd="rclick", id=ctx_tile)
+    time.sleep(0.4)
+    shot("06c-context-open")
+    st = app.debug_state()
+    check(
+        "context-open",
+        st and st.get("menu_open") and demo.menu is not None,
+        str(demo.menu),
+    )
+    app.debug(cmd="menu", index=1)  # "Mark Watched"
+    time.sleep(0.5)
+    shot("06d-context-watched")
+    check(
+        "context-action",
+        demo.items[ctx_item["idx"]]["watched"],
+        demo.status,
+    )
+    check("context-closed", demo.menu is None)
+    app.debug(cmd="rclick", id=ctx_tile)
+    time.sleep(0.4)
+    app.debug(cmd="click", x=600, y=740)  # click away (footer)
+    time.sleep(0.4)
+    check("context-dismiss", demo.menu is None)
 
     app.debug(cmd="click", id="search")
     app.debug(cmd="text", s="ze")

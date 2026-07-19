@@ -192,6 +192,10 @@ class MpvtkApp:
                 fn(evt.get("index", 0), evt.get("value"))
             elif t == "scroll":
                 fn(evt.get("offset", 0), evt.get("max", 0))
+            elif t == "context":
+                fn(evt.get("x", 0), evt.get("y", 0))
+            elif t == "dismiss":
+                fn()
         except Exception:
             log.exception("mpvtk handler for %s failed", evt)
 

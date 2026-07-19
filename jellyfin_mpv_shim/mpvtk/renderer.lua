@@ -408,27 +408,65 @@ local function popup_geometry(node)
     return { x = ex, y = py, w = node.w, ih = ih, n = n }
 end
 
-local function draw_popup(ass, node)
-    local d = dd_state(node)
-    local g = popup_geometry(node)
-    state.dd_geo = g
+-- Generic floating list (dropdown popups, context menus). sel may be
+-- nil. Returns the geometry used for hit-testing.
+local function draw_list(ass, g, items, sel, size)
     draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
         fill = '222222', radius = 6, bc = '555555', bw = 1,
     })
-    for i, item in ipairs(node.items) do
+    for i, item in ipairs(items) do
         local iy = g.y + (i - 1) * g.ih
         local hovered = state.mouse.x >= g.x and
             state.mouse.x <= g.x + g.w and
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
-        if hovered or (i - 1) == d.sel then
+        if hovered or (sel ~= nil and (i - 1) == sel) then
             draw_rect(ass, g.x + 2, iy + 1, g.w - 4, g.ih - 2, {
                 fill = hovered and '3d59a1' or '333333', radius = 4,
             })
         end
-        local tnode = { w = g.w - 20, h = g.ih, size = node.size,
+        local tnode = { w = g.w - 20, h = g.ih, size = size,
                         align = 'left' }
         draw_text(ass, tnode, g.x + 10, iy, nil, item, 'eeeeee')
     end
+end
+
+local function draw_popup(ass, node)
+    local d = dd_state(node)
+    local g = state.dd_geo or popup_geometry(node)
+    draw_list(ass, g, node.items, d.sel, node.size)
+end
+
+local function menu_geometry(node)
+    local n = #node.items
+    local ih = node.ih
+    local x = math.max(0, math.min(node.x, state.w - node.w - 4))
+    local y = node.y
+    if y + n * ih > state.h and y - n * ih >= 0 then
+        y = y - n * ih  -- flip above the click point
+    end
+    y = math.max(0, math.min(y, state.h - n * ih))
+    return { x = x, y = y, w = node.w, ih = ih, n = n }
+end
+
+local function draw_menu(ass, node)
+    draw_list(ass, state.menu_geo or menu_geometry(node), node.items,
+        nil, node.size)
+end
+
+local function item_at(g, x, y)
+    if not g then return nil end
+    if x < g.x or x >= g.x + g.w or y < g.y or y >= g.y + g.n * g.ih then
+        return nil
+    end
+    return math.floor((y - g.y) / g.ih)
+end
+
+local function active_menu()
+    if state.menu_hidden then return nil end
+    for _, node in ipairs(state.nodes) do
+        if node.t == 'menu' then return node end
+    end
+    return nil
 end
 
 local function draw_scrollbar(ass, node)
@@ -469,22 +507,34 @@ render = function()
     occluders = {}
     state.bars = {}
     state.dd_geo = nil
+    state.menu_geo = nil
     if state.dd_open then
         -- popup rect must occlude images, so compute it up front
         local node = state.byid[state.dd_open]
         if node then
             local g = popup_geometry(node)
             state.dd_geo = g
-            occluders[1] = {
+            occluders[#occluders + 1] = {
                 x1 = g.x - 2, y1 = g.y - 2,
                 x2 = g.x + g.w + 2, y2 = g.y + g.n * g.ih + 2,
             }
         end
     end
+    local menu_node = active_menu()
+    if menu_node then
+        local g = menu_geometry(menu_node)
+        state.menu_geo = g
+        occluders[#occluders + 1] = {
+            x1 = g.x - 2, y1 = g.y - 2,
+            x2 = g.x + g.w + 2, y2 = g.y + g.n * g.ih + 2,
+        }
+    end
     local ass = assdraw.ass_new()
     for _, node in ipairs(state.nodes) do
-        if node.t == 'scroll' or not visible(node) then
-            -- scroll containers draw nothing themselves (bars come later)
+        if node.t == 'scroll' or node.t == 'menu' or
+            not visible(node) then
+            -- scrolls/menus draw nothing here (bars & floating layers
+            -- come after the flow pass)
         else
         local ex, ey, clip = eff(node)
         if node.t == 'rect' then
@@ -534,6 +584,7 @@ render = function()
         local node = state.byid[state.dd_open]
         if node then draw_popup(ass, node) end
     end
+    if menu_node then draw_menu(ass, menu_node) end
     osd.res_x = state.w
     osd.res_y = state.h
     osd.data = ass.text
@@ -814,13 +865,32 @@ local function on_mouse_move(x, y)
     if id ~= state.hover_id then
         state.hover_id = id
         request_render()
-    elseif state.dd_open then
-        request_render()  -- popup item hover
+    elseif state.dd_open or active_menu() then
+        request_render()  -- popup/menu item hover
     end
+end
+
+local function dismiss_menu(idx)
+    local menu_node = active_menu()
+    if not menu_node then return false end
+    state.menu_hidden = true  -- hide instantly; scene push confirms
+    if idx ~= nil then
+        send({ t = 'select', id = menu_node.id, index = idx,
+               value = menu_node.items[idx + 1] })
+    else
+        send({ t = 'dismiss', id = menu_node.id })
+    end
+    request_render()
+    return true
 end
 
 local function on_mouse_down()
     local x, y = state.mouse.x, state.mouse.y
+    -- an open context menu eats the click first
+    if active_menu() then
+        dismiss_menu(item_at(state.menu_geo, x, y))
+        return
+    end
     -- open popup eats the click first
     if state.dd_open then
         local idx = popup_item_at(x, y)
@@ -904,10 +974,23 @@ local function on_wheel(dir, axis)
     set_scroll(node, (state.scroll[node.id] or 0) + dir * WHEEL_STEP)
 end
 
+local function on_rclick()
+    if active_menu() then
+        dismiss_menu(nil)
+        return
+    end
+    local x, y = state.mouse.x, state.mouse.y
+    local node = node_at(x, y)
+    if node and node.ctx then
+        send({ t = 'context', id = node.id, x = x, y = y })
+    end
+end
+
 mp.set_key_bindings({
     { 'mbtn_left', function() on_mouse_up() end,
       function() on_mouse_down() end },
     { 'mbtn_left_dbl', 'ignore' },
+    { 'mbtn_right', function() end, function() on_rclick() end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function() on_wheel(-1, 'y') end },
@@ -975,6 +1058,21 @@ local function reconcile()
     if state.dd_open and (not state.byid[state.dd_open]) then
         state.dd_open = nil
     end
+    -- the scene is authoritative for menu presence
+    state.menu_hidden = false
+    local has_menu = false
+    for _, node in ipairs(state.nodes) do
+        if node.t == 'menu' then has_menu = true end
+    end
+    if has_menu and not state.menu_esc_bound then
+        state.menu_esc_bound = true
+        mp.add_forced_key_binding('ESC', 'mpvtk_menu_esc', function()
+            dismiss_menu(nil)
+        end)
+    elseif not has_menu and state.menu_esc_bound then
+        state.menu_esc_bound = false
+        mp.remove_key_binding('mpvtk_menu_esc')
+    end
     -- force=true resets renderer-local widget state from the scene
     for _, node in ipairs(state.nodes) do
         if node.force then
@@ -1037,6 +1135,22 @@ mp.register_script_message('mpvtk-debug', function(json)
         for _ = 1, cmd.steps or 1 do
             on_wheel(cmd.dir or 1, cmd.axis)
         end
+    elseif cmd.cmd == 'rclick' then
+        local x, y = center_of(cmd.id)
+        if x then
+            on_mouse_move(x, y)
+            on_rclick()
+        end
+    elseif cmd.cmd == 'menu' then
+        -- click item #index (0-based) of the open context menu
+        local g = state.menu_geo
+        if g then
+            local x = g.x + g.w / 2
+            local y = g.y + ((cmd.index or 0) + 0.5) * g.ih
+            on_mouse_move(x, y)
+            on_mouse_down()
+            on_mouse_up()
+        end
     elseif cmd.cmd == 'popup' then
         -- click item #index (0-based) of the open dropdown popup
         local g = state.dd_geo
@@ -1058,6 +1172,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             hover = state.hover_id,
             focus = state.focus,
             dd_open = state.dd_open,
+            menu_open = active_menu() ~= nil,
             scroll = state.scroll,
             overlays = state.ov_used,
             tb = state.tb,
