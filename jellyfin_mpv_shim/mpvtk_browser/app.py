@@ -27,6 +27,7 @@ from ..mpvtk.widgets import (
     Button,
     Checkbox,
     Column,
+    Dialog,
     Dropdown,
     HScroll,
     Icon,
@@ -74,6 +75,8 @@ class MpvtkBrowser:
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Modal dialog: a builder callable -> Dialog node, or None.
+        self._dialog = None
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -593,6 +596,8 @@ class MpvtkBrowser:
             children.append(self._now_playing_bar(w))
         if self._menu is not None:
             children.append(self._tile_menu_node())
+        if self._dialog is not None:
+            children.append(self._dialog())
         return Column(children, w=w, h=h, align="stretch")
 
     def _chrome(self, w):
@@ -620,6 +625,8 @@ class MpvtkBrowser:
         right += [
             TextBox("nav-search", placeholder=_("Search…"), w=220,
                     on_submit=self._search),
+            Button(_("SyncPlay"), id="nav-syncplay",
+                   on_click=self._open_syncplay),
             Button(_("Settings"), id="nav-settings",
                    on_click=self._open_settings),
         ]
@@ -1183,6 +1190,104 @@ class MpvtkBrowser:
     def _retry_connect(self):
         if self.controller is not None:
             self._pool.submit(lambda: self._safe(lambda c: c.retry_connect()))
+
+    # ------------------------------------------------------------- dialogs
+
+    def _show_dialog(self, builder):
+        self._dialog = builder
+        self.invalidate()
+
+    def _close_dialog(self):
+        self._dialog = None
+        self.invalidate()
+
+    @staticmethod
+    def _dialog_shell(node_id, children, w=440):
+        return Column(children, pad=24, gap=14, bg="1e1e1e", radius=12,
+                      border="555555", w=w)
+
+    def _message(self, text, title=None):
+        title = title or _("Notice")
+
+        def build():
+            return Dialog("msg", self._dialog_shell("msg", [
+                Text(title, size=22, bold=True),
+                Text(text, size=16, color=theme.SUBTLE_FG),
+                Row([Spacer(), Button(_("OK"), id="dlg-ok",
+                                      on_click=self._close_dialog)], gap=10),
+            ]), on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _confirm(self, text, on_yes, title=None, yes=None):
+        title = title or _("Confirm")
+        yes = yes or _("OK")
+
+        def build():
+            return Dialog("confirm", self._dialog_shell("confirm", [
+                Text(title, size=22, bold=True),
+                Text(text, size=16, color=theme.SUBTLE_FG),
+                Row([Spacer(),
+                     Button(_("Cancel"), id="dlg-cancel",
+                            on_click=self._close_dialog),
+                     Button(yes, id="dlg-ok",
+                            on_click=lambda: (self._close_dialog(), on_yes()))],
+                    gap=10),
+            ]), on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    # -- SyncPlay ---------------------------------------------------------
+
+    def _open_syncplay(self):
+        server = self.server
+        if self.controller is None or server is None:
+            return
+        ep = self._epoch
+
+        def work():
+            return self.controller.get_sync_groups(server)
+
+        def done(groups):
+            self._show_syncplay(server, groups)
+
+        # Fetch groups off-thread, then show the dialog on the loop.
+        self.run_async(work, done, ep)
+
+    def _show_syncplay(self, server, groups):
+        def build():
+            rows = [Text(_("SyncPlay"), size=22, bold=True)]
+            if groups:
+                for i, g in enumerate(groups):
+                    rows.append(Button(
+                        g.get("name") or _("Group"), id="sp-join-%d" % i,
+                        on_click=lambda gid=g.get("id"): self._sync_join(
+                            server, gid)))
+            else:
+                rows.append(Text(_("No active groups."), size=15,
+                                 color=theme.SUBTLE_FG))
+            rows.append(Row([
+                Button(_("New Group"), id="sp-new",
+                       on_click=lambda: self._sync_new(server)),
+                Button(_("Leave"), id="sp-leave",
+                       on_click=lambda: self._sync_leave(server)),
+                Spacer(),
+                Button(_("Close"), id="sp-close", on_click=self._close_dialog),
+            ], gap=10))
+            return Dialog("syncplay", self._dialog_shell("syncplay", rows,
+                                                         w=480),
+                          on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _sync_join(self, server, group_id):
+        self._client_call(lambda c: c.sync_join(server, group_id))
+        self._close_dialog()
+
+    def _sync_new(self, server):
+        self._client_call(lambda c: c.sync_new(server))
+        self._close_dialog()
+
+    def _sync_leave(self, server):
+        self._client_call(lambda c: c.sync_leave(server))
+        self._close_dialog()
 
     def _busy(self):
         return Box(

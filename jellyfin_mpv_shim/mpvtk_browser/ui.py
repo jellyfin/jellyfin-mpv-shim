@@ -157,6 +157,38 @@ class _PlayerController:
     def queue_remove(self, playlist_item_ids):
         self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
 
+    # -- SyncPlay ---------------------------------------------------------
+
+    def get_sync_groups(self, server_uuid):
+        client = clientManager.clients.get(server_uuid)
+        if client is None:
+            return []
+        try:
+            return [{"id": g.get("GroupId"),
+                     "name": g.get("GroupName") or "Group"}
+                    for g in (client.jellyfin.get_sync_play() or [])]
+        except Exception:
+            log.error("mpvtk get_sync_groups failed", exc_info=True)
+            return []
+
+    def _sync(self, server_uuid, fn):
+        client = clientManager.clients.get(server_uuid)
+        if client is None:
+            return
+        try:
+            fn(client.jellyfin)
+        except Exception:
+            log.error("mpvtk syncplay action failed", exc_info=True)
+
+    def sync_join(self, server_uuid, group_id):
+        self._sync(server_uuid, lambda jf: jf.join_sync_play(group_id))
+
+    def sync_new(self, server_uuid):
+        self._sync(server_uuid, lambda jf: jf.new_sync_play())
+
+    def sync_leave(self, server_uuid):
+        self._sync(server_uuid, lambda jf: jf.leave_sync_play())
+
 
 class UserInterface:
     def __init__(self):

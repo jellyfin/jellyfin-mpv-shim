@@ -273,6 +273,9 @@ class FakeController:
         return {"items": [{"id": "q%d" % i, "playlist_item_id": "p%d" % i}
                           for i in range(3)], "current_id": "q1"}
 
+    def get_sync_groups(self, server_uuid):
+        return [{"id": "g1", "name": "Group 1"}]
+
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
         # declaring each one.
@@ -483,6 +486,52 @@ class TestTileContextMenu(unittest.TestCase):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
         self.b._close_menu()
         self.assertIsNone(self.b._menu)
+
+
+class TestDialogs(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _dialog_nodes(self):
+        return build_scene(self.b)
+
+    def test_message_dialog(self):
+        self.b._message("Hello there")
+        nodes, handlers = self._dialog_nodes()
+        self.assertTrue(any(n["t"] == "layer" and n.get("kind") == "modal"
+                            for n in nodes) or "dlg-ok" in ids(nodes))
+        handlers["dlg-ok"]["click"]()
+        _n, _h = self._dialog_nodes()
+        self.assertIsNone(self.b._dialog)
+
+    def test_confirm_runs_callback_on_ok(self):
+        done = []
+        self.b._confirm("Sure?", lambda: done.append(1))
+        _n, handlers = self._dialog_nodes()
+        handlers["dlg-ok"]["click"]()
+        self.assertEqual(done, [1])
+        self.assertIsNone(self.b._dialog)
+
+    def test_confirm_cancel_does_not_run(self):
+        done = []
+        self.b._confirm("Sure?", lambda: done.append(1))
+        _n, handlers = self._dialog_nodes()
+        handlers["dlg-cancel"]["click"]()
+        self.assertEqual(done, [])
+        self.assertIsNone(self.b._dialog)
+
+    def test_syncplay_dialog_lists_and_joins(self):
+        self.b._open_syncplay()      # sync pool -> groups fetched, dialog shown
+        nodes, handlers = self._dialog_nodes()
+        self.assertIn("sp-join-0", ids(nodes))
+        self.assertIn("sp-new", ids(nodes))
+        handlers["sp-join-0"]["click"]()
+        self.assertIn("sync_join",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertIsNone(self.b._dialog)   # closes on join
 
 
 class TestQueueView(unittest.TestCase):
