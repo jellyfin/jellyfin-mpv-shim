@@ -25,8 +25,14 @@ ENTRY_BG = "2a2d33"
 BORDER = "3a3d42"
 TEXT_FG = "e8e8e8"
 SUBTLE_FG = "9aa0a6"
+# There is exactly ONE blue. Anything that reads as "the app's colour" —
+# primary buttons, selection, hover rings, progress, active tabs — uses this
+# family and nothing else; a second unrelated blue makes the UI look
+# assembled from parts. ACCENT_HOVER is the same hue lightened, ACCENT_SOFT
+# the same hue darkened for fills that sit behind text.
 ACCENT = "00a4dc"
 ACCENT_HOVER = "1cb6e8"
+ACCENT_SOFT = "0a3a4d"
 # Accent fills always carry white text — dark-on-blue reads as disabled.
 ACCENT_FG = "ffffff"
 FAV_RED = "e0264b"

@@ -604,6 +604,7 @@ class MpvtkBrowser:
             regions.append(dict(
                 r,
                 id="%s-%s" % (prefix, r["key"]),
+                hover={"bc": theme.ACCENT, "bw": 3},
                 on_click=(lambda i=it: self._open_item(i)),
                 on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
@@ -1409,16 +1410,21 @@ class MpvtkBrowser:
     def _paragraph(self, text, size, max_w, color=None):
         """Wrapped body text (overviews).
 
-        The layout engine wraps within a paragraph, but a blank line between
-        paragraphs would collapse to a single line break — so split them and
-        let the Column's gap do the spacing."""
-        paras = [p.strip() for p in (text or "").split("\n") if p.strip()]
+        The layout engine wraps *within* a paragraph, so blank-line breaks
+        are handled here. The gap is a full line height: at anything less
+        the paragraph break reads as tighter than the wrapped lines around
+        it, which looks like a mistake rather than a break."""
+        from ..mpvtk.layout import LINE_H
+
+        paras = [p.strip() for p in (text or "").replace("\r", "").split("\n")
+                 if p.strip()]
         color = color or theme.TEXT_FG
         if len(paras) <= 1:
             return Text(paras[0] if paras else "", size=size, color=color,
                         wrap=True, w=max_w)
         return Column([Text(p, size=size, color=color, wrap=True, w=max_w)
-                       for p in paras], gap=int(size * 0.7), w=max_w)
+                       for p in paras],
+                      gap=round(size * LINE_H), w=max_w)
 
     def _sel_source(self, sources, route):
         if not sources:
@@ -1503,11 +1509,19 @@ class MpvtkBrowser:
 
         ``primary`` is the accent-filled call to action (Play, Next Up);
         ``on`` is a *toggle* that happens to share the accent fill (Watched,
-        Favorite). Both use white on blue — black on blue read as disabled."""
+        Favorite). Both use white on blue — black on blue read as disabled.
+
+        Every button in an action row must come from here, icon or not: the
+        plain Button widget defaults to a 20px label against this one's 16,
+        which made the odd trailing button ~5px taller than its neighbours.
+        """
         accent = on or primary
         fg = theme.ACCENT_FG if accent else theme.TEXT_FG
-        return Row([Icon(icon, size + 2, color=fg),
-                    Text(text, size=size, color=fg)],
+        children = []
+        if icon:
+            children.append(Icon(icon, size + 2, color=fg))
+        children.append(Text(text, size=size, color=fg))
+        return Row(children,
                    id=node_id, gap=7, pad=10,
                    bg=theme.ACCENT if accent else theme.BUTTON_BG,
                    hover={"fill": theme.ACCENT_HOVER if accent
@@ -1535,9 +1549,9 @@ class MpvtkBrowser:
     def _detail_actions(self, item, server):
         btns = self._common_actions(item, server, "act")
         if item.get("Type") == "Episode" and item.get("SeriesId"):
-            btns.append(Button(
-                _("Go to Series"), id="act-series",
-                on_click=lambda: self.navigate({
+            btns.append(self._action_btn(
+                "movie", _("Go to Series"), "act-series",
+                lambda: self.navigate({
                     "kind": "series", "server": server,
                     "item_id": item["SeriesId"],
                     "title": item.get("SeriesName", "")})))
@@ -1695,9 +1709,9 @@ class MpvtkBrowser:
                 "season-switch", names, selected=cur, w=220,
                 on_select=lambda i, v: self._switch_season(route, seasons[i])))
         if route.get("series_id"):
-            title_row.append(Button(
-                _("To Series"), id="season-to-series",
-                on_click=lambda: self.navigate({
+            title_row.append(self._action_btn(
+                "movie", _("To Series"), "season-to-series",
+                lambda: self.navigate({
                     "kind": "series", "server": server,
                     "item_id": route["series_id"],
                     "title": season_item.get("SeriesName", "")})))
@@ -1906,7 +1920,7 @@ class MpvtkBrowser:
                              else (lambda i=i: on_play(i))),
             })
         return Table(columns, rows, size=17, row_h=34,
-                     selected_bg=theme.PANEL_BG, hover_bg=theme.BUTTON_BG)
+                     selected_bg=theme.ACCENT_SOFT, hover_bg=theme.BUTTON_BG)
 
     def _play_shuffle(self, ids, server, audio=True):
         import random
@@ -2129,10 +2143,11 @@ class MpvtkBrowser:
                                                         audio=audio)),
             self._action_btn("file_download", _("Download"), "pl-download",
                              lambda: self._open_download(pl_item)),
-            Button(_("Edit"), id="pl-edit", icon="edit",
-                   on_click=lambda: self.navigate({
-                       "kind": "playlist_edit", "server": server,
-                       "item_id": pid, "title": route.get("title", "")})),
+            self._action_btn("edit", _("Edit"), "pl-edit",
+                             lambda: self.navigate({
+                                 "kind": "playlist_edit", "server": server,
+                                 "item_id": pid,
+                                 "title": route.get("title", "")})),
         ], align="center", gap=10)
         if not items:
             body = [Text(
@@ -3024,7 +3039,7 @@ class MpvtkBrowser:
                        on_click=lambda: self._open_url(self._update["url"])),
                 Button(_("Dismiss"), id="banner-dismiss",
                        on_click=self._dismiss_update),
-            ], pad=10, gap=10, align="center", h=48, bg="2a3a5a")
+            ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
         return None
 
     # -- download status bar ----------------------------------------------
@@ -3043,7 +3058,8 @@ class MpvtkBrowser:
             "name": name, "n": st["pending"]}
         row = [Icon("file_download", 20), Text(left, size=16)]
         if pct is not None:
-            row.append(Progress(pct / 100.0, w=160))
+            row.append(Progress(pct / 100.0, w=160,
+                                fg=theme.ACCENT))
             row.append(Text("%d%%" % pct, size=15, w=48,
                             color=theme.SUBTLE_FG))
         row += [
@@ -3175,7 +3191,7 @@ class MpvtkBrowser:
               "on_click": (lambda mods, i=i: self._select_click(
                   route, i, mods))}
              for i, it in enumerate(items)],
-            size=17, row_h=34, selected_bg=theme.PANEL_BG,
+            size=17, row_h=34, selected_bg=theme.ACCENT_SOFT,
             hover_bg=theme.BUTTON_BG)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
                      size=26, bold=True), Spacer(h=4), rename_row, toolbar,

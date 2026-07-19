@@ -369,6 +369,39 @@ which is what lets it through.
   returns to the library instead of trapping the user on the form.
 - [x] Page arrows centre on the poster, not the poster+caption strip.
 
+## Polish round 3 (2026-07-19)
+
+- [x] **Paragraph spacing.** `_paragraph` used a fractional gap, which put
+  the paragraph break *close to* the wrapped line spacing around it and
+  read as a mistake. It's a full line height now, so a break is cleanly
+  double the line gap. Also handles `\r\n`.
+- [x] **Mismatched button heights.** The plain `Button` widget defaults to
+  a 20px label; `_action_btn` uses 16, so a trailing plain Button in an
+  action row ("Go to Series", "Edit", "To Series") was ~5px taller than its
+  neighbours. `_action_btn` takes `icon=None` now and every button in an
+  action row comes from it.
+- [x] **One blue.** Selection, hover rings, progress and the update banner
+  all used their own blue — the toolkit's `7aa2f7`, `Table`'s `2f4468` and
+  an ad-hoc `2a3a5a` alongside the app's `00a4dc`. Everything the app
+  colours now comes from `theme.ACCENT` / `ACCENT_HOVER` / `ACCENT_SOFT`,
+  with a test that walks rendered scenes and fails on any blue outside that
+  family.
+
+### Framework request: a themeable accent
+
+The toolkit hardcodes `7aa2f7` as its own accent in five places the app
+can't reach — `Checkbox` fill (`widgets.py`), `Progress` default,
+`ImageMap` hover-ring default (`layout.py`), and the textbox-focus,
+dropdown-open and slider-thumb colours in `renderer.lua`. The app passes
+overrides where a parameter exists, but `Checkbox` has none and the
+renderer ones aren't reachable at all.
+
+What would fix it: a module-level accent (`mpvtk.set_accent("00a4dc")`)
+that those defaults read from, pushed to the renderer alongside the
+metrics. `tests/test_mpvtk_browser_shell.py::TestOneBlue` has a test
+documenting the remaining `Checkbox` gap — it should be deleted when this
+lands.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but

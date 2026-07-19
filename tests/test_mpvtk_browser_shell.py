@@ -2006,3 +2006,86 @@ class TestDownloadStatusBar(unittest.TestCase):
                                     "percent": None})
         nodes, _h = build_scene(self.b)
         self.assertIn("dlbar-view", ids(nodes))
+
+
+class TestOneBlue(unittest.TestCase):
+    """There is exactly one blue. A second, unrelated blue makes the UI look
+    assembled from parts, so anything the app colours itself must come from
+    the accent family."""
+
+    ACCENT_FAMILY = None   # filled in setUp
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        self.theme = theme
+        self.ACCENT_FAMILY = {theme.ACCENT, theme.ACCENT_HOVER,
+                              theme.ACCENT_SOFT}
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl, config=FakeConfig())
+        self.b._pool = _SyncPool()
+
+    @staticmethod
+    def _is_blue(hexstr):
+        try:
+            r, g, bl = (int(hexstr[i:i + 2], 16) for i in (0, 2, 4))
+        except (ValueError, TypeError, IndexError):
+            return False
+        # Blue-dominant and not a near-grey.
+        return bl > r + 25 and bl > 40 and (bl - min(r, g)) > 25
+
+    def _blues_in(self, nodes):
+        out = set()
+        for n in nodes:
+            for key in ("fill", "c", "bc"):
+                v = n.get(key)
+                if isinstance(v, str) and self._is_blue(v):
+                    out.add(v)
+            hov = n.get("hover") or {}
+            for key in ("fill", "c", "bc"):
+                v = hov.get(key)
+                if isinstance(v, str) and self._is_blue(v):
+                    out.add(v)
+        return out
+
+    def _check(self, label):
+        nodes, _h = build_scene(self.b)
+        stray = self._blues_in(nodes) - self.ACCENT_FAMILY
+        self.assertEqual(stray, set(),
+                         "%s uses blues outside the accent family" % label)
+
+    def test_home_tiles_hover_ring(self):
+        self.b.route["_data"] = {"libraries": self.b.source.libraries,
+                                 "rows": self.b.source.home_rows}
+        self._check("home")
+
+    def test_update_banner(self):
+        self.b.notify_update("1.2.3", "http://x")
+        self._check("update banner")
+
+    def test_download_status_bar(self):
+        self.b.set_download_status({"pending": 2, "name": "X", "percent": 50})
+        self._check("download bar")
+
+    def test_selected_rows(self):
+        self.b.navigate({"kind": "playlist_edit", "server": "srv1",
+                         "item_id": "PL1", "title": "Faves"})
+        self.b.route["_sel"] = {0}
+        self._check("playlist editor selection")
+
+    def test_music_tabs_and_settings_tabs(self):
+        self.b.navigate({"kind": "music", "server": "srv1",
+                         "parent_id": "lib1", "title": "Music"})
+        self._check("music tabs")
+        self.b.open_settings("general")
+        self._check("settings tabs")
+
+    def test_known_gap_checkbox_still_uses_the_toolkit_blue(self):
+        """Documents the one stray blue the app cannot reach: Checkbox
+        hardcodes its fill in the toolkit. Delete this test when mpvtk takes
+        a themeable accent (MIGRATION.md, "Framework requests")."""
+        from jellyfin_mpv_shim.mpvtk.layout import layout as lay
+        from jellyfin_mpv_shim.mpvtk.widgets import Checkbox
+        nodes, _h = lay(Checkbox("x", True), 200, 50)
+        self.assertEqual(self._blues_in(nodes) - self.ACCENT_FAMILY,
+                         {"7aa2f7"})
