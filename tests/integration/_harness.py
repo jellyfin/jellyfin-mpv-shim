@@ -405,6 +405,7 @@ def build_player(player_module, video=None):
     pm.on_window_closed = None
     pm.on_mpv_gone = None
     pm.on_mpv_recreated = None
+    pm._showing_browse_bg = False
 
     pm.menu = _FakeMenu()
     pm.syncplay = _FakeSyncplay()

@@ -388,3 +388,111 @@ class MenuSurvivesReopenTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowLifecycleTest(unittest.TestCase):
+    """With the in-window UI there is ONE window, shared by the library and
+    playback, and it must survive everything except being minimized.
+
+        state                       playback_abort  force_window
+        library browser             yes             yes
+        media playing               no              yes
+        "minimized" (tray only)     yes             no
+        cast to, library not open   no              no
+
+    Every path that used to drop force_window — stopping playback, the OSC's
+    close button, closing the OSD menu — showed as the window vanishing and
+    being rebuilt.
+    """
+
+    def _player(self, browsing=True):
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        pm._video = None
+        pm.mpvtk_active = browsing
+        pm._player.force_window = True
+        return pm
+
+    def test_stop_and_close_keeps_the_window_while_the_browser_owns_it(self):
+        pm = self._player()
+        pm.stop_and_close()
+        self.assertTrue(pm._player.force_window)
+
+    def test_stop_and_close_still_closes_without_the_in_window_ui(self):
+        pm = self._player(browsing=False)
+        pm.stop_and_close()
+        self.assertFalse(pm._player.force_window)
+
+    def test_menu_force_window_off_cannot_close_the_browser_window(self):
+        pm = self._player()
+        pm.force_window(False)
+        self.assertTrue(pm._player.force_window)
+
+    def test_minimize_is_the_one_path_that_releases_the_window(self):
+        pm = self._player()
+        # on_minimize() clears mpvtk_active first — that's what lets it past
+        # the guard.
+        pm.mpvtk_active = False
+        pm.set_browse_window(False)
+        self.assertFalse(pm._player.force_window)
+
+    def test_browse_window_is_idempotent(self):
+        """Reloading the background over itself tears the video output down
+        and back up, which reads as the window closing and reopening."""
+        pm = self._player()
+        pm.set_browse_window(True)
+        first = len(pm._player.played)
+        pm.set_browse_window(True)
+        pm.set_browse_window(True)
+        self.assertEqual(len(pm._player.played), first)
+
+    def test_real_media_re_arms_the_background(self):
+        pm = self._player()
+        pm.set_browse_window(True)
+        n = len(pm._player.played)
+        pm._showing_browse_bg = False      # what _play_media does
+        pm.set_browse_window(True)
+        self.assertEqual(len(pm._player.played), n + 1)
+
+
+class FullscreenPersistTest(unittest.TestCase):
+    """A fullscreen toggle the *user* made should be remembered; one the app
+    made for its own reasons (the update notice, the browser opening
+    windowed) should not."""
+
+    def setUp(self):
+        self.settings = player_module.settings
+        self._saved = (self.settings.fullscreen,
+                       self.settings.browser_fullscreen)
+        self.settings.save = lambda: None
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        (self.settings.fullscreen,
+         self.settings.browser_fullscreen) = self._saved
+
+    def _player(self):
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        pm._video = None
+        return pm
+
+    def test_toggle_while_browsing_writes_browser_fullscreen(self):
+        pm = self._player()
+        self.settings.browser_fullscreen = False
+        pm.toggle_fullscreen()
+        self.assertTrue(self.settings.browser_fullscreen)
+        self.assertEqual(self.settings.fullscreen, self._saved[0])
+
+    def test_toggle_while_playing_writes_fullscreen(self):
+        pm = self._player()
+        pm._video = object()
+        self.settings.fullscreen = False
+        pm.toggle_fullscreen()
+        self.assertTrue(self.settings.fullscreen)
+
+    def test_app_initiated_changes_are_not_persisted(self):
+        pm = self._player()
+        self.settings.browser_fullscreen = True
+        pm.set_fullscreen(False)          # e.g. the update notice
+        self.assertTrue(self.settings.browser_fullscreen)

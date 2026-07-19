@@ -746,6 +746,9 @@ class PlayerManager(object):
                     # exempt the next couple of seconds from seek-to-skip.
                     self._last_ui_seek_time = time.time()
                 elif args[0] == "shim-close":
+                    # The OSC's back/close button. With the in-window UI this
+                    # means "yield to the library", not "close the window" —
+                    # _set_force_window keeps it up either way.
                     log.info("Received shim-close message")
                     if self._video and not self._player.playback_abort:
                         self.put_task(self.stop_and_close)
@@ -756,14 +759,18 @@ class PlayerManager(object):
 
         self._showing_browse_bg = False
         if settings.browser_ui == "mpvtk" and settings.enable_gui:
-            try:
-                # One window is shared by the browser and playback, and the
-                # user resizes it to suit. Letting mpv snap it back to each
-                # file's aspect ratio fights that on every play. Set once
-                # here so it survives idle-quit / crash re-creation.
-                self._player.keepaspect_window = False
-            except Exception:
-                log.debug("keepaspect-window unsupported", exc_info=True)
+            # One window is shared by the browser and playback and the user
+            # sizes it to suit, so mpv must not resize it on their behalf.
+            # Two separate properties do that, and both default to yes:
+            #   keepaspect-window  - snaps the window to the file's aspect
+            #   auto-window-resize - resizes the window to the video's size
+            # Set once here so they survive idle-quit / crash re-creation.
+            for prop in ("keepaspect_window", "auto_window_resize"):
+                try:
+                    setattr(self._player, prop, False)
+                except Exception:
+                    log.debug("%s unsupported by this mpv", prop,
+                              exc_info=True)
 
         self._mpv_alive = True
 
@@ -1182,6 +1189,23 @@ class PlayerManager(object):
         if self.trickplay:
             self.trickplay.clear()
 
+    def _set_force_window(self, value):
+        """Single authority for force_window.
+
+        With the in-window UI there is one window and it must survive
+        everything except being minimized: stopping playback, the OSC's close
+        button, the end of a queue and closing the OSD menu all used to drop
+        it, which showed as the window vanishing and being rebuilt. So while
+        ``mpvtk_active`` (the browser owns the window — true even while
+        yielded to playback, false only once minimized) force_window never
+        goes False. The minimize path clears mpvtk_active first, which is
+        what lets it through."""
+        if not value and self.mpvtk_active:
+            log.debug("force_window=False suppressed: the in-window UI "
+                      "owns this window")
+            return
+        self._player.force_window = value
+
     def stop_and_close(self):
         log.info("stop_and_close: stopping playback")
         self.stop()
@@ -1189,7 +1213,7 @@ class PlayerManager(object):
             return
         try:
             self._player.keep_open = False
-            self._player.force_window = False
+            self._set_force_window(False)
             self._player.command("stop")
         except _mpv_errors:
             self._handle_mpv_disconnect()
@@ -1655,13 +1679,31 @@ class PlayerManager(object):
 
     @synchronous("_lock")
     def toggle_fullscreen(self):
-        self._player.fs = not self._player.fs
-        self.fullscreen_disable = not self._player.fs
+        self.set_fullscreen(not self._player.fs, persist=True)
 
     @synchronous("_lock")
-    def set_fullscreen(self, enabled: bool):
+    def set_fullscreen(self, enabled: bool, persist: bool = False):
+        """``persist`` remembers the choice, for toggles the *user* made (a
+        key, the OSC button, a remote command) as opposed to ones the app
+        makes for its own reasons — the update notice dropping out of
+        fullscreen, or the browser opening windowed.
+
+        Which key it lands in depends on what's on screen: browsing writes
+        browser_fullscreen, playback writes fullscreen. They're separate
+        settings precisely because people want different answers for the
+        two."""
         self._player.fs = enabled
         self.fullscreen_disable = not enabled
+        if not persist:
+            return
+        key = "fullscreen" if self._video is not None else "browser_fullscreen"
+        if getattr(settings, key) == enabled:
+            return
+        setattr(settings, key, enabled)
+        try:
+            settings.save()
+        except Exception:
+            log.error("Could not persist %s", key, exc_info=True)
 
     @synchronous("_lock")
     def set_mute(self, mute):
@@ -2323,7 +2365,7 @@ class PlayerManager(object):
                 self._player.image_display_duration = 1
                 self._player.keep_open = False
                 if not self._video:
-                    self._player.force_window = False
+                    self._set_force_window(False)
                     self._player.command("stop")
         except _mpv_errors:
             self._handle_mpv_disconnect()
@@ -2383,10 +2425,10 @@ class PlayerManager(object):
                 self._player.image_display_duration = 1
                 self._player.keep_open = False
                 if not self._video:
-                    self._player.force_window = False
+                    self._set_force_window(False)
                     self._player.command("stop")
                 elif self._player.playback_abort:
-                    self._player.force_window = False
+                    self._set_force_window(False)
                     self._player.play("")
                 else:
                     self.upd_player_hide()

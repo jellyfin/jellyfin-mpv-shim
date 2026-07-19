@@ -306,7 +306,7 @@ class OscBridge:
                 # only records the user's intent so auto-fullscreen
                 # (fullscreen_disable) doesn't re-fullscreen the next
                 # episode. No state/timeline push is needed.
-                pm.put_task(pm.set_fullscreen, arg == "yes")
+                pm.put_task(pm.set_fullscreen, arg == "yes", True)
                 return
             elif verb == "screenshot":
                 pm.put_task(pm.screenshot)

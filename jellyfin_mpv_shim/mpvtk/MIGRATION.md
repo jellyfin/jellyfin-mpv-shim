@@ -317,6 +317,33 @@ Still unadopted: nothing blocking.
 - **Per-item progress** in the downloads list needs `Progress`, which is
   ready — blocked on app-side live progress push, already logged below.
 
+## Playback lifecycle (2026-07-19)
+
+The window rule, stated by the user and now enforced in one place
+(`PlayerManager._set_force_window`):
+
+> force_window is true for everything except being cast to while the
+> library browser is minimized and the display mirror is disabled.
+
+`mpvtk_active` is the flag that encodes it — true while the in-window UI
+owns the window, *including* while yielded to playback, and false only once
+minimized. So while it is set, force_window can never be cleared. Every
+path that used to clear it — `stop_and_close`, the OSC's `shim-close`,
+`force_window(False)` from the OSD menu, `set_browse_window(False)` — now
+goes through the guard, and the minimize path clears `mpvtk_active` first,
+which is what lets it through.
+
+- [x] Window closed on stopping music/video, on `q`, on the OSC's back
+  button, and at the end of a queue. All the same cause as above.
+- [x] Window *resized* when playback started. Two mpv properties do that
+  and both default to yes: `keepaspect-window` (snaps to the file's aspect)
+  and `auto-window-resize` (resizes to the video's pixel size). Both are
+  set to no in `_init_mpv`, so they survive idle-quit re-creation.
+- [x] Fullscreen toggles made by the *user* (key, OSC button, remote) are
+  persisted — to `browser_fullscreen` while browsing, `fullscreen` while
+  playing. Toggles the app makes for its own reasons (the update notice
+  leaving fullscreen, the browser opening windowed) are not.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but
