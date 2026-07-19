@@ -644,6 +644,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         node = _base(el, "icon", x, y, w, h, sc, path)
         node["path"] = icon_ass(el.name)
         node["c"] = el.color
+        if el.hover_parent and el.hover_tint:
+            node["hb"] = el.hover_parent
+            node["hc"] = el.hover_tint
         if el.on_click:
             node["click"] = True
             _reg(ctx, node["id"], "click", el.on_click)

@@ -1593,6 +1593,34 @@ frame-step / right-click coarse-seek variants on the step buttons
 chapter/playlist OSD text lists on shift/right-click (the HUD has a
 chapter dropdown; the queue lives in the browser).
 
+**9.3g ✅ (2026-07-19, per Izzie — polish round).**
+
+- Stop button dropped (the top bar's back arrow yields to the
+  library).
+- Accent styling: popup/menu hover rows use the pushed accent (was a
+  hardcoded indigo); flat buttons and icon-trigger dropdowns hover as
+  a round translucent accent circle + accent icon tint — the lua
+  OSC's treatment (renderer: hover.circle on rects, hb/hc
+  parent-hover tint on icons; custom-fg icons like the favorite
+  heart keep their color, like the lua's icon_color override).
+- Remote seek flow: a key/remote summon focuses the seek bar ACTIVE
+  (autofocus slider → renderer enters adjust mode) — LEFT/RIGHT
+  scrub immediately, UP/DOWN step off the bar, ENTER commits.
+  ENTER-summon additionally toggles pause/play. Scrubbing pauses
+  playback at gesture start and commit/cancel restores it (only if
+  the scrub did the pausing). While the standalone skip overlay is
+  up, ENTER skips and arrows still summon-with-active-bar.
+- **Bug fixed**: ENTER-commit used to seek to the OLD position
+  ("rejects my selection") — nav_activate cleared adjust mode before
+  reading the value, so sl_state's force-reset snapped the slider
+  back to the scene position mid-read. Commit now happens while
+  adjust is still flagged busy.
+- **Consequence handled**: with the bar always waking in adjust mode,
+  nav_adjust had to leave the auto-hide busy-check (it would have
+  pinned the HUD open forever); an actual scrub pauses playback,
+  which already holds the HUD open. phud_hide also reverts a pending
+  adjust gesture so the app resumes a scrub-pause cleanly.
+
 **9.4 — cutover flag ✅, cutover itself pending field-proving.** The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
 enum "In-window HUD (experimental)", conf.py docs; falls back to

@@ -70,6 +70,9 @@ class FakeController:
     def seek(self, secs):
         self.calls.append(("seek", secs))
 
+    def set_paused(self, paused):
+        self.calls.append(("set_paused", (paused,)))
+
     def check_updates(self):
         pass
 
@@ -176,18 +179,29 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertFalse(st.get("phud_shown"))
         self.assertIn("leave", self.ctl.calls)
 
-        # --- arrow keypress summons; focus lands on play/pause
+        # --- arrow keypress summons; the seek bar wakes focused AND
+        # active (adjust mode) so remote arrows scrub immediately
         self._press_until("LEFT", lambda: self.browser._hud_shown,
                           msg="summon never reached the browser")
-        self._wait(lambda: self._state().get("nav") == "hud-pp",
-                   msg="focus did not land on play/pause: %r"
+        self._wait(lambda: self._state().get("nav") == "hud-seek",
+                   msg="focus did not land on the seek bar: %r"
                    % self._state().get("nav"))
         st = self._state()
         self.assertTrue(st.get("phud_shown"))
         self.assertTrue(st.get("active"))
         self.assertIn("refresh", self.ctl.calls)
 
-        # --- ENTER activates the focused transport button
+        # --- DOWN steps off the bar into the transport row (spatial
+        # nav picks the nearest control below); LEFT walks to
+        # play/pause and ENTER activates it
+        self._press_until(
+            "DOWN", lambda: self._state().get("nav")
+            not in (None, "hud-seek"),
+            msg="DOWN never moved focus off the seek bar")
+        self._press_until(
+            "LEFT", lambda: self._state().get("nav") == "hud-pp",
+            msg="LEFT never reached play/pause: %r"
+            % self._state().get("nav"))
         self._press_until(
             "ENTER", lambda: "toggle_pause" in self.ctl.calls,
             msg="ENTER on play/pause never reached the controller")
@@ -234,22 +248,21 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="renderer never entered HUD-idle")
         self._press_until("LEFT", lambda: self.browser._hud_shown,
                           msg="summon failed")
-        self._wait(lambda: self._state().get("nav") == "hud-pp",
-                   msg="focus never landed on play/pause")
+        self._wait(lambda: self._state().get("nav") == "hud-seek",
+                   msg="focus never landed on the seek bar")
 
-        # UP focuses the seek slider; ENTER enters adjust mode; LEFT
-        # scrubs 5% back — a 'change' that must NOT seek, only set the
-        # pending scrub target and float the preview thumbnail.
-        self._press_until(
-            "UP", lambda: self._state().get("nav") == "hud-seek",
-            msg="focus never moved to the seek slider")
-        self._keypress("ENTER")
+        # The bar wakes already in adjust mode: LEFT scrubs 5% back —
+        # a 'change' that must NOT seek, only pause, set the pending
+        # scrub target, and float the preview thumbnail.
         self._press_until(
             "LEFT", lambda: self.browser._hud_scrub is not None,
             msg="adjust-mode scrub never reached the browser")
         seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
                  and c[0] == "seek"]
         self.assertEqual(seeks, [], "scrubbing must not seek mid-gesture")
+        self.assertIn(("set_paused", (True,)), [
+            c for c in self.ctl.calls if isinstance(c, tuple)],
+            "scrub start must pause playback")
         self._wait(lambda: self.app.node_rect("hud-preview") is not None,
                    msg="trickplay preview never appeared")
 

@@ -200,7 +200,7 @@ class Icon(Element):
     directly."""
 
     def __init__(self, name, size=20, color="eeeeee", on_click=None,
-                 hover=None, **kw):
+                 hover=None, hover_parent=None, hover_tint=None, **kw):
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
@@ -208,6 +208,10 @@ class Icon(Element):
         self.color = color
         self.on_click = on_click
         self.hover = hover
+        # tint to ``hover_tint`` while the ancestor button node named
+        # ``hover_parent`` is hovered (flat-button accent treatment)
+        self.hover_parent = hover_parent
+        self.hover_tint = hover_tint
 
 
 class Button(Box):
@@ -221,10 +225,13 @@ class Button(Box):
                  icon_size=None, gap=None, flat=False, **kw):
         if flat:
             # transparent-at-rest, for controls over video/gradients
-            # (playback HUD): no fill, a translucent hover wash
+            # (playback HUD): round translucent accent wash + accent
+            # icon tint on hover — the jellyfin OSC's button treatment.
+            # A custom fg (favorite red, active-SyncPlay accent) keeps
+            # its color, like the lua's icon_color override.
             kw.setdefault("bg", None)
             kw.setdefault("alpha", 70)
-            kw.setdefault("hover", {"fill": "ffffff"})
+            kw.setdefault("hover", {"fill": theme.ACCENT, "circle": True})
         else:
             kw.setdefault("bg", "333333")
             kw.setdefault("hover", {"fill": "4a4a4a"})
@@ -234,7 +241,10 @@ class Button(Box):
         kw.setdefault("direction", "row")
         children = []
         if icon:
-            children.append(Icon(icon, icon_size or int(size * 0.95), color=fg))
+            tint = theme.ACCENT if flat and fg == "eeeeee" else None
+            children.append(Icon(icon, icon_size or int(size * 0.95),
+                                 color=fg, hover_parent=kw.get("id"),
+                                 hover_tint=tint))
             kw.setdefault("gap", gap if gap is not None else 7)
         if label:
             children.append(Text(label, size=size, color=fg, align="center"))

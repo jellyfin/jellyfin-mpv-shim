@@ -856,14 +856,21 @@ class TestOscPrimitives(unittest.TestCase):
         self.assertEqual((g["w"], g["h"]), (400, 90))
 
     def test_flat_button_transparent_at_rest(self):
+        from jellyfin_mpv_shim.mpvtk import theme as tk_theme
+
         b = Button("Play", id="b", icon="play_arrow", flat=True,
                    on_click=lambda: None)
         nodes, _ = layout(Row([b], w=300, h=60), 300, 60)
         r = by_id(nodes, "b")
         self.assertNotIn("fill", r)          # nothing drawn at rest
-        self.assertEqual(r["hover"]["fill"], "ffffff")
+        # accent circle hover + accent icon tint (the OSC treatment)
+        self.assertEqual(r["hover"]["fill"], tk_theme.ACCENT)
+        self.assertTrue(r["hover"]["circle"])
         self.assertEqual(r["a"], 70)         # translucent hover wash
         self.assertTrue(r.get("click"))
+        icon = next(n for n in nodes if n["t"] == "icon")
+        self.assertEqual(icon["hb"], "b")
+        self.assertEqual(icon["hc"], tk_theme.ACCENT)
 
     def test_icon_trigger_dropdown(self):
         from jellyfin_mpv_shim.mpvtk.widgets import Dropdown

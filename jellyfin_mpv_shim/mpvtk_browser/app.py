@@ -950,6 +950,9 @@ class MpvtkBrowser:
         # keep pushing a HUD scene at an idle renderer
         self._hud_shown = False
         self._hud_scrub = None
+        # True when the scrub gesture itself paused playback (restored
+        # on commit/cancel; an explicit user pause stays paused)
+        self._hud_scrub_paused = False
         self._hud_menu = None
         # node the open settings/SyncPlay menu hangs off (see hud.py)
         self._hud_menu_anchor = "hud-settings"
@@ -992,17 +995,29 @@ class MpvtkBrowser:
                 and c.use_hud())
 
     def _hud_scrub_change(self, v):
+        if self._hud_scrub is None:
+            # gesture start: pause so the position is inspectable;
+            # commit/cancel restores playback if WE paused it
+            self._hud_scrub_paused = not (self._hud_state or {}).get(
+                "paused")
+            if self._hud_scrub_paused:
+                self._ctl(lambda c: c.set_paused(True))
         self._hud_scrub = float(v)
         self.invalidate()
 
-    def _hud_scrub_commit(self, v):
+    def _hud_scrub_done(self):
         self._hud_scrub = None
-        self._ctl(lambda c: c.seek(float(v)))
+        if self._hud_scrub_paused:
+            self._hud_scrub_paused = False
+            self._ctl(lambda c: c.set_paused(False))
         self.invalidate()
 
+    def _hud_scrub_commit(self, v):
+        self._ctl(lambda c: c.seek(float(v)))
+        self._hud_scrub_done()
+
     def _hud_scrub_cancel(self):
-        self._hud_scrub = None
-        self.invalidate()
+        self._hud_scrub_done()
 
     def _on_hud_skip(self):
         """The renderer's standalone idle skip button was activated."""
@@ -1019,6 +1034,8 @@ class MpvtkBrowser:
     def _on_hud(self, active):
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
+        if self._hud_scrub_paused:
+            self._hud_scrub_done()  # resumes playback the scrub paused
         self._hud_scrub = None
         self._hud_menu = None
         self._hud_hover = None

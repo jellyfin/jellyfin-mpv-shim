@@ -831,16 +831,21 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local open = state.dd_open == node.id
     if node.ticon then
         -- chromeless icon trigger (playback HUD track pickers):
-        -- translucent wash when hovered/open, no box/border/arrow
-        if open or state.hover_id == node.id then
-            draw_rect(ass, ex, ey, node.w, node.h, {
-                fill = 'ffffff', a = 60, radius = 6, clip = clip,
-            })
+        -- round translucent accent wash when hovered/open, accent
+        -- icon tint — same treatment as the HUD's flat buttons
+        local hovered = open or state.hover_id == node.id
+        if hovered then
+            local r = math.min(node.w, node.h) / 2
+            draw_rect(ass, ex + node.w / 2 - r, ey + node.h / 2 - r,
+                r * 2, r * 2, {
+                    fill = state.accent, a = 70, radius = r,
+                    clip = clip,
+                })
         end
         local isz = math.floor(node.size * 1.2)
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
-            open and state.accent or 'dddddd', clip)
+            hovered and state.accent or 'dddddd', clip)
         return
     end
     draw_rect(ass, ex, ey, node.w, node.h, {
@@ -908,7 +913,7 @@ local function draw_list(ass, g, items, sel, size, icons)
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
         if hovered or (sel ~= nil and (i - 1) == sel) then
             draw_rect(ass, g.x + 2, iy + 1, g.w - 4, g.ih - 2, {
-                fill = hovered and '3d59a1' or '333333', radius = 4,
+                fill = hovered and state.accent or '333333', radius = 4,
             })
         end
         if icons and icons[i] and icons[i] ~= '' then
@@ -1315,6 +1320,15 @@ render = function()
                             radius = 3, clip = clip,
                         })
                 end
+            elseif hs and hs.circle then
+                -- round translucent wash centered on the button —
+                -- the jellyfin OSC's hover treatment
+                local r = math.min(node.w, node.h) / 2
+                draw_rect(ass, ex + node.w / 2 - r, ey + node.h / 2 - r,
+                    r * 2, r * 2, {
+                        fill = hs.fill or state.accent,
+                        a = hs.a or 70, radius = r, clip = clip,
+                    })
             elseif node.fill or node.bc or hs then
                 draw_rect(ass, ex, ey, node.w, node.h, {
                     fill = (hs and hs.fill) or node.fill,
@@ -1349,9 +1363,12 @@ render = function()
             draw_gradient(ass, node, ex, ey, clip)
         elseif node.t == 'icon' then
             local hs = hover_style(node)
+            local c = (hs and hs.c) or node.c or 'eeeeee'
+            if node.hb and state.hover_id == node.hb and node.hc then
+                c = node.hc  -- accent tint while the parent button hovers
+            end
             draw_icon_path(ass, node.path, ex, ey,
-                math.min(node.w, node.h),
-                (hs and hs.c) or node.c or 'eeeeee', clip)
+                math.min(node.w, node.h), c, clip)
         end
     end
     local ass = assdraw.ass_new()
@@ -2650,9 +2667,15 @@ local function nav_activate()
         state.nav_pidx = dd_state(node).sel
         request_render()
     elseif node.t == 'slider' then
-        state.nav_adjust = not state.nav_adjust
-        if not state.nav_adjust then
-            slider_commit(node)  -- adjust mode ends: final value
+        if state.nav_adjust then
+            -- commit BEFORE dropping adjust mode: sl_state treats an
+            -- adjusting slider as busy, so clearing first would let
+            -- force=true snap the value back to the scene position
+            -- and commit the OLD spot (the "ENTER rejects my seek" bug)
+            slider_commit(node)
+            state.nav_adjust = nil
+        else
+            state.nav_adjust = true
         end
         request_render()
     elseif node.click then
@@ -2904,6 +2927,11 @@ mp.register_script_message('mpvtk-scene', function(json)
             if node.af then
                 state.phud.want_focus = nil
                 nav_set(node)
+                if node.t == 'slider' then
+                    -- the seek bar wakes ACTIVE: LEFT/RIGHT scrub
+                    -- immediately, ENTER commits
+                    state.nav_adjust = true
+                end
                 break
             end
         end
@@ -2989,6 +3017,13 @@ local PHUD_HIDE_S = 4
 local PHUD_SKIP_S = 6
 local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
 
+local function phud_summon_enter()
+    -- Select/ENTER wakes the HUD AND toggles pause/play (the bar
+    -- comes up focused + in adjust mode via the autofocus slider)
+    phud_summon('key')
+    mp.commandv('cycle', 'pause')
+end
+
 -- Standalone Skip Intro/Credits overlay while the HUD is idle: shown
 -- for a few seconds when a skippable segment starts (mpvtk-hud-skip
 -- from Python) and again on pointer movement while the segment lasts.
@@ -3005,7 +3040,7 @@ local function phud_skip_hide()
     if state.phud.mode and not state.phud.shown then
         -- hand ENTER back to the summon surface
         mp.add_forced_key_binding('ENTER', 'mpvtk_summon_ENTER',
-            function() phud_summon('key') end)
+            phud_summon_enter)
     end
     request_render()
 end
@@ -3038,8 +3073,13 @@ end
 
 local function phud_bind_summon()
     for _, key in ipairs(PHUD_SUMMON_KEYS) do
-        mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
-            function() phud_summon('key') end)
+        if key == 'ENTER' then
+            mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
+                phud_summon_enter)
+        else
+            mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
+                function() phud_summon('key') end)
+        end
     end
     -- clicking the hidden-HUD video pauses (the lua OSC's
     -- click-anywhere), except on the standalone skip button
@@ -3073,11 +3113,13 @@ end
 -- Interactions the auto-hide must not interrupt; checked at expiry
 -- (the timer re-arms instead of hiding). Paused playback also keeps
 -- the HUD up — hiding the controls the moment someone pauses is the
--- opposite of what pausing means.
+-- opposite of what pausing means. nav_adjust is deliberately NOT
+-- here: the bar wakes in adjust mode by default, and an actual scrub
+-- gesture pauses playback, which already holds the HUD open.
 local function phud_busy()
     return state.dd_open ~= nil or state.modal ~= nil
         or state.tb_menu ~= nil or state.slider_drag ~= nil
-        or state.pressed ~= nil or state.nav_adjust
+        or state.pressed ~= nil
         or active_menu() ~= nil
         or mp.get_property_native('pause', false)
 end
@@ -3144,6 +3186,13 @@ end
 
 function phud_hide()
     if not state.phud.shown then return end
+    if state.nav_adjust then
+        -- an armed (possibly scrubbed) bar reverts cleanly so the app
+        -- drops its pending state / resumes a scrub-pause
+        local node = state.nav and state.byid[state.nav]
+        if node and node.t == 'slider' then slider_cancel(node) end
+        state.nav_adjust = nil
+    end
     state.phud.shown = false
     state.phud.mx, state.phud.my = -1, -1
     phud_disarm()

@@ -452,7 +452,7 @@ class TestPlaybackHudLayout(unittest.TestCase):
         b, _ctl = self._browser()
         nodes, _h = build_scene(b, (460, 640))
         present = ids(nodes)
-        for nid in ("hud-pp", "hud-prev", "hud-next", "hud-stop",
+        for nid in ("hud-pp", "hud-prev", "hud-next",
                     "hud-audio", "hud-sub", "hud-mute", "hud-fs"):
             self.assertIn(nid, present)
         for nid in ("hud-seek-back", "hud-seek-fwd", "hud-ch-prev",

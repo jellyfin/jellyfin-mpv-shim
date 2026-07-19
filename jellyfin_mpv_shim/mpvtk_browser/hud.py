@@ -431,9 +431,12 @@ def build_hud(b, size):
     # Scrub semantics: 'change' only moves the preview + clock; the seek
     # happens once on 'commit' (drag release / adjust-mode exit), so
     # scrubbing never spams seeks at a transcode. ESC/focus-away cancels.
+    # The bar wakes focused AND active on a key/remote summon
+    # (autofocus slider → renderer enters adjust mode): LEFT/RIGHT
+    # scrub immediately, ENTER commits, UP/DOWN step off the bar.
     seek = Slider(
         "hud-seek", value=pos, min=0, max=max(1.0, dur),
-        force=True, flex=1, h=26,
+        force=True, flex=1, h=26, autofocus=True,
         marks=([ch["time"] / dur for ch in chapters if 0 < ch["time"] < dur]
                if dur > 0 else None),
         ranges=([(max(0.0, a / dur), min(1.0, e / dur))
@@ -468,7 +471,7 @@ def build_hud(b, size):
             tip=_("Back 10 Seconds"), repeat=True))
     controls.append(tbtn(
         pp, "hud-pp", lambda: b._ctl(lambda c: c.toggle_pause()),
-        autofocus=True, icon_size=36))
+        icon_size=36))
     if tiers["seek_btns"]:
         controls.append(tbtn(
             "forward_30", "hud-seek-fwd",
@@ -482,9 +485,7 @@ def build_hud(b, size):
     controls.append(tbtn(
         "skip_next", "hud-next",
         lambda: b._ctl(lambda c: c.next()), tip=_("Next")))
-    controls.append(tbtn(
-        "stop", "hud-stop",
-        lambda: b._ctl(lambda c: c.stop()), tip=_("Stop")))
+    # (no stop button: the top bar's back arrow yields to the library)
     shown_pos = pos if scrub is None else scrub
     if tiers["clock"]:
         # click toggles total <-> negative-remaining (the lua tc_right)

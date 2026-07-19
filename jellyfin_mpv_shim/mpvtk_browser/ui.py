@@ -138,6 +138,11 @@ class _PlayerController:
         self._act(lambda pm: pm._player.command(
             "script-binding", "stats/display-stats-toggle"))
 
+    def set_paused(self, paused):
+        """Explicit pause state (scrub-in-progress pauses; commit or
+        cancel restores)."""
+        self._act(lambda pm: pm.set_paused(bool(paused)))
+
     def toggle_mute(self):
         self._act(lambda pm: setattr(
             pm._player, "mute", not pm._player.mute))
