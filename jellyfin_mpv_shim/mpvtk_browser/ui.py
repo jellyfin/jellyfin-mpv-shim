@@ -64,14 +64,15 @@ class _PlayerController:
         # Hand the OSC back for playback (respecting the user's setting).
         playerManager.enable_osc(settings.enable_osc)
 
-    def play(self, item, server_uuid):
+    def play(self, item, server_uuid, offset_ticks=None):
         from ..event_handler import start_playback
         client = clientManager.clients.get(server_uuid)
         if client is None:
             log.warning("mpvtk play: no connected client for %s", server_uuid)
             return
         try:
-            start_playback(client, [item.get("Id")], start_index=0)
+            start_playback(client, [item.get("Id")], start_index=0,
+                           offset_ticks=offset_ticks)
         except Exception:
             log.error("mpvtk browser failed to start playback", exc_info=True)
 

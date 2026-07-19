@@ -143,6 +143,24 @@ class StripStore:
         self._evict()
         return entry
 
+    def bitmap(self, key, image):
+        """Cache a single arbitrary image as BGRA (backdrops, logos, art) in
+        the same store/LRU as strips. ``key`` must identify the content;
+        ``image`` is a PIL image already at display size. Returns
+        ``{"src", "iw", "ih"}``."""
+        ck = ("bitmap", key)
+        hit = self._cache.get(ck)
+        if hit is not None:
+            self._cache.move_to_end(ck)
+            self.hits += 1
+            return hit
+        self.misses += 1
+        src, w, h = self._store(image)
+        entry = {"src": src, "iw": w, "ih": h}
+        self._cache[ck] = entry
+        self._evict()
+        return entry
+
     def clear(self):
         for entry in self._cache.values():
             self._free(entry["src"])

@@ -50,6 +50,37 @@ class FakeSource:
     def image_url(self, *a, **k):
         return None
 
+    def backdrop_spec(self, item):
+        return None
+
+    def backdrop_url(self, *a, **k):
+        return None
+
+    def get_item(self, server_uuid, item_id):
+        return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
+                "Overview": "A short overview. " * 8, "ProductionYear": 2010,
+                "RunTimeTicks": 90 * 600000000,
+                "UserData": {"PlaybackPositionTicks": 30 * 10000000}}
+
+    def get_similar(self, server_uuid, item_id, limit=12):
+        return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
+
+    def get_seasons(self, server_uuid, series_id):
+        return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
+                 "SeriesId": series_id},
+                {"Id": "se2", "Name": "Season 2", "Type": "Season",
+                 "SeriesId": series_id}]
+
+    def get_episodes(self, server_uuid, series_id, season_id):
+        return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
+                 "ParentIndexNumber": 1, "IndexNumber": i} for i in range(5)]
+
+    def search(self, server_uuid, term, limit=60):
+        return [{"Id": "r1", "Name": "Result " + term, "Type": "Movie"}]
+
+    def search_people(self, server_uuid, term, limit=60):
+        return [{"Id": "p1", "Name": "Person", "Type": "Person"}]
+
 
 def build_scene(browser, size=(1280, 720)):
     nodes, handlers = layout(browser.build(size), *size)
@@ -193,8 +224,8 @@ class FakeController:
     def on_browse_leave(self):
         self.left += 1
 
-    def play(self, item, server_uuid):
-        self.played.append((item.get("Id"), server_uuid))
+    def play(self, item, server_uuid, offset_ticks=None):
+        self.played.append((item.get("Id"), server_uuid, offset_ticks))
 
 
 class TestPlaybackLifecycle(unittest.TestCase):
@@ -203,11 +234,18 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.b = MpvtkBrowser(app=None, source=FakeSource(),
                               controller=self.ctl)
 
-    def test_click_playable_yields_and_plays(self):
+    def test_click_playable_opens_detail(self):
         self.b._open_item({"Id": "m1", "Name": "Alpha", "Type": "Movie"})
+        self.assertEqual(self.b.route["kind"], "detail")
+        self.assertEqual(self.b.route["item_id"], "m1")
+        self.assertTrue(self.b._browsing, "opening detail must not yield")
+
+    def test_play_yields_and_starts(self):
+        item = {"Id": "m1", "Name": "Alpha", "Type": "Movie"}
+        self.b._play(item, "srv1", offset_ticks=123)
         self.assertFalse(self.b._browsing, "browser should yield to playback")
         self.assertEqual(self.ctl.left, 1)     # OSC handed back
-        self.assertEqual(self.ctl.played, [("m1", "srv1")])
+        self.assertEqual(self.ctl.played, [("m1", "srv1", 123)])
 
     def test_yielded_build_is_empty(self):
         self.b._browsing = False
@@ -239,6 +277,61 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertEqual(b.server, "srv1")
         self.assertEqual(b.route["kind"], "home")
         self.assertEqual(len(b.nav_stack), 1)
+
+
+class TestPhase1Views(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def _load_and_render(self, route):
+        # Drive the route's loader synchronously (pool then build).
+        self.b.navigate(route)
+        self.b._pool.shutdown(wait=True)
+        return build_scene(self.b)
+
+    def test_open_series_navigates(self):
+        self.b._open_item({"Id": "sh1", "Name": "Show", "Type": "Series"})
+        self.assertEqual(self.b.route["kind"], "series")
+
+    def test_open_season_navigates(self):
+        self.b._open_item({"Id": "se1", "Name": "Season 1", "Type": "Season",
+                           "SeriesId": "sh1"})
+        self.assertEqual(self.b.route["kind"], "season")
+        self.assertEqual(self.b.route["series_id"], "sh1")
+
+    def test_detail_renders_backdrop_title_and_play(self):
+        nodes, _h = self._load_and_render(
+            {"kind": "detail", "server": "srv1", "item_id": "m1",
+             "title": "Alpha"})
+        self.assertIn("detail-bd", ids(nodes))     # backdrop placeholder/image
+        self.assertIn("btn-play", ids(nodes))
+        self.assertIn("btn-resume", ids(nodes))    # resume offset in FakeSource
+
+    def test_series_renders_seasons_row(self):
+        nodes, handlers = self._load_and_render(
+            {"kind": "series", "server": "srv1", "item_id": "sh1",
+             "title": "Show"})
+        self.assertTrue(any(k.startswith("series-seasons-") for k in handlers))
+
+    def test_season_renders_episodes_and_switcher(self):
+        nodes, handlers = self._load_and_render(
+            {"kind": "season", "server": "srv1", "item_id": "se1",
+             "series_id": "sh1", "title": "Season 1"})
+        self.assertIn("season-switch", ids(nodes))   # 2 seasons -> dropdown
+        self.assertTrue(any(k.startswith("ep-") for k in handlers))
+
+    def test_search_from_chrome_navigates_and_renders(self):
+        self.b._search("matrix")
+        self.assertEqual(self.b.route["kind"], "search")
+        self.assertEqual(self.b.route["term"], "matrix")
+        self.b._pool.shutdown(wait=True)
+        nodes, handlers = build_scene(self.b)
+        self.assertTrue(any(k.startswith("search-") for k in handlers))
+
+    def test_empty_search_is_ignored(self):
+        before = len(self.b.nav_stack)
+        self.b._search("   ")
+        self.assertEqual(len(self.b.nav_stack), before)
 
 
 if __name__ == "__main__":
