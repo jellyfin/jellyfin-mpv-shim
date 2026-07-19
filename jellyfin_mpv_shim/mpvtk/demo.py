@@ -1096,6 +1096,37 @@ def _selftest(demo, outdir):
     scr = (st or {}).get("scroll") or {}
     check("logs-scroll", scr.get("logs", 0) > 0, str(scr.get("logs")))
 
+    # ---- textbox: drag-selection + built-in context menu ----
+    app.debug(cmd="click", id="tab-widgets")
+    time.sleep(0.4)
+    app.debug(cmd="click", id="seltb")
+    app.debug(cmd="key", name="CTRLA")
+    app.debug(cmd="text", s="The quick fox")
+    time.sleep(0.3)
+    app.debug(cmd="tbdrag", id="seltb", a=4, b=9)  # select "quick"
+    time.sleep(0.3)
+    shot("14-drag-select")
+    app.debug(cmd="text", s="lazy")
+    time.sleep(0.3)
+    check(
+        "drag-select-replace",
+        demo.sel_text == "The lazy fox",
+        demo.sel_text,
+    )
+
+    app.debug(cmd="rclick", id="seltb")
+    time.sleep(0.4)
+    shot("15-tbmenu")
+    st = app.debug_state()
+    check("tbmenu-open", st and st.get("tb_menu"))
+    app.debug(cmd="tbmenu", index=3)  # Select All
+    time.sleep(0.3)
+    app.debug(cmd="rclick", id="seltb")
+    time.sleep(0.3)
+    app.debug(cmd="tbmenu", index=0)  # Cut (deletes selection)
+    time.sleep(0.3)
+    check("tbmenu-cut", demo.sel_text == "", repr(demo.sel_text))
+
     app.quit()
     return results
 

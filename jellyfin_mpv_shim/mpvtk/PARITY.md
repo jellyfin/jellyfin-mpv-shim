@@ -36,7 +36,7 @@ not from tkinter's API surface.
 | Poster tiles / MediaTile grid+rows | ImageMap strips (baked badges, progress, captions) | ✅ | z-order + overlay budget solved |
 | ScrollableGrid / VScrollFrame / HScrollRow | V/HScroll + scrollbar + windowed infinite scroll | ✅ | throttled scroll events |
 | Combobox (12, all readonly pickers) | Dropdown | ✅ | |
-| Entry (9) | TextBox | ✅ | editing, paste, password `mask`, selection (shift+arrows, ctrl+a/c, replace-on-type); IME ⛔ on X11; click-drag select not built |
+| Entry (9) | TextBox | ✅ | editing, paste, password `mask`, full selection (click-drag, shift+arrows, ctrl+a/c/x, replace-on-type), built-in right-click Cut/Copy/Paste menu, calibrated glyph metrics; IME ⛔ on X11 |
 | Checkbutton (9) | Checkbox sugar | ✅ | demo Widgets page |
 | Notebook (Settings tabs) | button row + view switch in build() | ✅ | demo tab bar |
 | Treeview (PlaylistEdit, Queue track tables) | table composite: header + row Texts + selection + reorder buttons | ✅ | demo track table |

@@ -62,6 +62,9 @@ local state = {
     dd_geo = nil,           -- open popup geometry
     sl = {},                -- slider id -> {value}
     slider_drag = nil,      -- slider id being dragged
+    tb_drag = nil,          -- {id, anchor} during click-drag selection
+    tb_menu = nil,          -- {id, x, y} textbox context menu
+    tb_menu_geo = nil,
     modal = nil,            -- 'layer' meta node of the open Dialog
     modal_hidden = false,   -- dismissed locally, awaiting scene push
     busy_phase = 0,
@@ -414,6 +417,45 @@ local function tb_text_w(node, text, upto)
     return text_w(text:sub(1, upto), node.size)
 end
 
+-- Char boundary index nearest to screen x (for click/drag placement).
+local function tb_index_at(node, tb, x)
+    local pad = 10
+    local ex = select(1, eff(node))
+    local rel = x - ex - pad + tb.shift
+    local cur = 0
+    local acc = 0
+    for i = 1, #tb.text do
+        local cw = node.mask and MASK_W * node.size or
+            char_w(tb.text:sub(i, i)) * node.size
+        if acc + cw / 2 > rel then break end
+        acc = acc + cw
+        cur = i
+    end
+    return cur
+end
+
+local function tb_menu_items(node)
+    -- masked boxes must not leak their contents to the clipboard
+    if node.mask then return { 'Paste', 'Select All' } end
+    return { 'Cut', 'Copy', 'Paste', 'Select All' }
+end
+
+local function tb_menu_geometry(items)
+    local n = #items
+    local ih = 34
+    local w = 40
+    for _, item in ipairs(items) do
+        w = math.max(w, text_w(item, 18) + 32)
+    end
+    local x = clamp(state.tb_menu.x, 0, math.max(0, state.w - w - 4))
+    local y = state.tb_menu.y
+    if y + n * ih > state.h and y - n * ih >= 0 then
+        y = y - n * ih
+    end
+    y = clamp(y, 0, math.max(0, state.h - n * ih))
+    return { x = x, y = y, w = w, ih = ih, n = n }
+end
+
 local function draw_textbox(ass, node, ex, ey, clip)
     local tb = state.tb[node.id]
     local focused = state.focus == node.id
@@ -722,6 +764,20 @@ render = function()
             x2 = g.x + g.w + 2, y2 = g.y + g.n * g.ih + 2,
         }
     end
+    state.tb_menu_geo = nil
+    if state.tb_menu then
+        local tbn = state.byid[state.tb_menu.id]
+        if tbn and tbn.t == 'textbox' then
+            local g = tb_menu_geometry(tb_menu_items(tbn))
+            state.tb_menu_geo = g
+            occluders[#occluders + 1] = {
+                x1 = g.x - 2, y1 = g.y - 2,
+                x2 = g.x + g.w + 2, y2 = g.y + g.n * g.ih + 2,
+            }
+        else
+            state.tb_menu = nil
+        end
+    end
     -- floating layers (dialogs, toasts) occlude images too
     for _, node in ipairs(state.nodes) do
         if node.t == 'layer' and
@@ -808,6 +864,13 @@ render = function()
         if node then draw_popup(ass, node) end
     end
     if menu_node then draw_menu(ass, menu_node) end
+    if state.tb_menu_geo then
+        local tbn = state.byid[state.tb_menu.id]
+        if tbn then
+            draw_list(ass, state.tb_menu_geo, tb_menu_items(tbn),
+                nil, 18)
+        end
+    end
     if busy_visible and not state.busy_timer then
         state.busy_timer = mp.add_periodic_timer(0.1, function()
             state.busy_phase = (state.busy_phase + 1) % 8
@@ -1017,11 +1080,22 @@ local function tb_key(name)
         tb.cursor = #tb.text
         tb_fix_shift(node, tb); request_render()
     elseif name == 'CTRLC' then
-        if tb.sel and tb.sel ~= tb.cursor then
+        if tb.sel and tb.sel ~= tb.cursor and not node.mask then
             local a = math.min(tb.sel, tb.cursor)
             local b = math.max(tb.sel, tb.cursor)
             pcall(mp.set_property, 'clipboard/text',
                 tb.text:sub(a + 1, b))
+        end
+    elseif name == 'CUT' then
+        if tb.sel and tb.sel ~= tb.cursor then
+            if not node.mask then
+                local a = math.min(tb.sel, tb.cursor)
+                local b = math.max(tb.sel, tb.cursor)
+                pcall(mp.set_property, 'clipboard/text',
+                    tb.text:sub(a + 1, b))
+            end
+            tb_del_selection(tb)
+            tb_changed(node, tb)
         end
     elseif name == 'HOME' then
         tb.sel = nil
@@ -1034,7 +1108,12 @@ local function tb_key(name)
     elseif name == 'ENTER' then
         send({ t = 'submit', id = node.id, value = tb.text })
     elseif name == 'ESC' then
-        blur()  -- luacheck: ignore (fwd-declared below)
+        if state.tb_menu then
+            state.tb_menu = nil
+            request_render()
+        else
+            blur()  -- luacheck: ignore (fwd-declared below)
+        end
     elseif name == 'PASTE' then
         local ok, clip = pcall(mp.get_property, 'clipboard/text')
         if ok and clip and clip ~= '' then
@@ -1170,8 +1249,33 @@ local function set_scroll(node, off)
     end
 end
 
+local function tb_menu_action(node, label)
+    if label == 'Cut' then
+        tb_key('CUT')
+    elseif label == 'Copy' then
+        tb_key('CTRLC')
+    elseif label == 'Paste' then
+        tb_key('PASTE')
+    elseif label == 'Select All' then
+        tb_key('CTRLA')
+    end
+end
+
 local function on_mouse_move(x, y)
     state.mouse.x, state.mouse.y = x, y
+    if state.tb_drag then
+        local node = state.byid[state.tb_drag.id]
+        if node and node.t == 'textbox' then
+            local tb = tb_state(node)
+            tb.cursor = tb_index_at(node, tb, x)
+            tb.sel = (state.tb_drag.anchor ~= tb.cursor) and
+                state.tb_drag.anchor or nil
+            tb_fix_shift(node, tb)
+            state.cursor_on = true
+            request_render()
+        end
+        return
+    end
     if state.slider_drag then
         local node = state.byid[state.slider_drag]
         if node and node.t == 'slider' then
@@ -1197,7 +1301,8 @@ local function on_mouse_move(x, y)
     if id ~= state.hover_id then
         state.hover_id = id
         request_render()
-    elseif state.dd_open or active_menu() or state.hud then
+    elseif state.dd_open or active_menu() or state.tb_menu or
+        state.hud then
         request_render()  -- popup/menu item hover, HUD refresh
     end
 end
@@ -1218,7 +1323,18 @@ end
 
 local function on_mouse_down()
     local x, y = state.mouse.x, state.mouse.y
-    -- an open context menu eats the click first
+    -- textbox copy/paste menu eats the click first
+    if state.tb_menu then
+        local idx = item_at(state.tb_menu_geo, x, y)
+        local tbn = state.byid[state.tb_menu.id]
+        state.tb_menu = nil
+        if idx ~= nil and tbn then
+            tb_menu_action(tbn, tb_menu_items(tbn)[idx + 1])
+        end
+        request_render()
+        return
+    end
+    -- an open context menu eats the click next
     if active_menu() then
         dismiss_menu(item_at(state.menu_geo, x, y))
         return
@@ -1273,19 +1389,9 @@ local function on_mouse_down()
         focus_textbox(node)
         local tb = tb_state(node)
         tb.sel = nil
-        local pad = 10
-        local ex = select(1, eff(node))
-        local rel = x - ex - pad + tb.shift
-        local cur = 0
-        local acc = 0
-        for i = 1, #tb.text do
-            local cw = node.mask and MASK_W * node.size or
-                char_w(tb.text:sub(i, i)) * node.size
-            if acc + cw / 2 > rel then break end
-            acc = acc + cw
-            cur = i
-        end
-        tb.cursor = cur
+        tb.cursor = tb_index_at(node, tb, x)
+        -- arm click-drag selection from this anchor
+        state.tb_drag = { id = node.id, anchor = tb.cursor }
         state.cursor_on = true
         request_render()
         return
@@ -1306,6 +1412,10 @@ local function on_mouse_down()
 end
 
 local function on_mouse_up()
+    if state.tb_drag then
+        state.tb_drag = nil  -- selection (if any) stays
+        return
+    end
     if state.slider_drag then
         fire_slider(state.slider_drag)  -- final value, unthrottled
         state.slider_drag = nil
@@ -1373,12 +1483,24 @@ local function on_wheel(dir, axis, e)
 end
 
 local function on_rclick()
+    if state.tb_menu then
+        state.tb_menu = nil
+        request_render()
+        return
+    end
     if active_menu() then
         dismiss_menu(nil)
         return
     end
     local x, y = state.mouse.x, state.mouse.y
     local node = node_at(x, y)
+    if node and node.t == 'textbox' then
+        -- built-in copy/paste menu; keeps any current selection
+        focus_textbox(node)
+        state.tb_menu = { id = node.id, x = x, y = y }
+        request_render()
+        return
+    end
     if node and node.ctx then
         send({ t = 'context', id = node.id, x = x, y = y })
     end
@@ -1464,6 +1586,12 @@ local function reconcile()
     if state.slider_drag and not state.byid[state.slider_drag] then
         state.slider_drag = nil
     end
+    if state.tb_drag and not state.byid[state.tb_drag.id] then
+        state.tb_drag = nil
+    end
+    if state.tb_menu and not state.byid[state.tb_menu.id] then
+        state.tb_menu = nil
+    end
     if state.focus and (not state.byid[state.focus]) then blur() end
     if state.dd_open and (not state.byid[state.dd_open]) then
         state.dd_open = nil
@@ -1509,6 +1637,7 @@ mp.register_script_message('mpvtk-metrics', function(json)
     if not m then return end
     measured_widths = m.widths
     ui_font = m.font
+    if m.mask_w then MASK_W = m.mask_w end
     request_render()
 end)
 
@@ -1584,6 +1713,33 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_down()
             on_mouse_up()
         end
+    elseif cmd.cmd == 'tbdrag' then
+        -- simulate a click-drag selection from char a to char b
+        local node = state.byid[cmd.id]
+        if node and node.t == 'textbox' then
+            local tb = tb_state(node)
+            local ex, ey = eff(node)
+            local cy = ey + node.h / 2
+            local pad = 10
+            local xa = ex + pad - tb.shift +
+                tb_text_w(node, tb.text, cmd.a or 0)
+            local xb = ex + pad - tb.shift +
+                tb_text_w(node, tb.text, cmd.b or 0)
+            on_mouse_move(xa, cy)
+            on_mouse_down()
+            on_mouse_move(xb, cy)
+            on_mouse_up()
+        end
+    elseif cmd.cmd == 'tbmenu' then
+        -- click item #index of the open textbox copy/paste menu
+        local g = state.tb_menu_geo
+        if g then
+            local x = g.x + g.w / 2
+            local y = g.y + ((cmd.index or 0) + 0.5) * g.ih
+            on_mouse_move(x, y)
+            on_mouse_down()
+            on_mouse_up()
+        end
     elseif cmd.cmd == 'popup' then
         -- click item #index (0-based) of the open dropdown popup
         local g = state.dd_geo
@@ -1607,6 +1763,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             dd_open = state.dd_open,
             menu_open = active_menu() ~= nil,
             modal_open = modal_active(),
+            tb_menu = state.tb_menu ~= nil,
             sliders = state.sl,
             has_metrics = measured_widths ~= nil,
             font = ui_font,

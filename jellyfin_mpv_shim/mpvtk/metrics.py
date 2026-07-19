@@ -40,13 +40,33 @@ def measure_font():
         except OSError:
             continue
         try:
+            # libass (VSFilter compat) scales \fs to the font's
+            # ascender+descender height, NOT the em size — so a glyph's
+            # rendered advance is (advance/em) * fs * em/(asc+desc).
+            # Fold that factor in here so every width consumer (layout
+            # sizing, ellipsis, cursor/selection math) agrees with what
+            # libass actually paints. Verified pixel-wise by
+            # calibrate.py (DejaVu Sans: factor 0.859, ratios ~1.00).
+            ascent, descent = font.getmetrics()
+            factor = _MEASURE_SIZE / float(ascent + descent)
             widths = {
-                c: round(font.getlength(c) / _MEASURE_SIZE, 4)
+                c: round(font.getlength(c) / _MEASURE_SIZE * factor, 4)
                 for c in (chr(i) for i in range(32, 127))
             }
+            mask_w = font.getlength("•") / _MEASURE_SIZE * factor
+            if not 0.1 < mask_w < 1.5:  # glyph missing/degenerate
+                mask_w = 0.55
             family = font.getname()[0]
         except AttributeError:  # Pillow < 8: no getlength
             return None
-        log.info("mpvtk metrics: measured %s", family)
-        return {"font": family, "widths": widths}
+        log.info(
+            "mpvtk metrics: measured %s (libass factor %.3f)",
+            family,
+            factor,
+        )
+        return {
+            "font": family,
+            "widths": widths,
+            "mask_w": round(mask_w, 4),
+        }
     return None

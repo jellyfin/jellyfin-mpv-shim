@@ -151,10 +151,18 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    (slots are sticky per node id — don't regress this; index-shifted
    slots and remove-before-add both showed as scroll flicker).
 3. Text metrics: measured per-char advances (ASCII) shared by layout
-   and renderer + `\fn` for the same font. Non-ASCII falls back to a
-   heuristic table (`layout.py` + `renderer.lua`, keep in sync).
+   and renderer + `\fn` for the same font. **libass scales `\fs` to the
+   font's ascender+descender height, not the em** (VSFilter compat) —
+   metrics.py folds the correction factor (em/(asc+desc), ≈0.859 for
+   DejaVu Sans) into the table; `calibrate.py` verifies pixel-wise
+   (ratios ~1.00). Without the factor, widths run ~16% wide and
+   click/selection lands on the wrong letter. Non-ASCII falls back to
+   a heuristic table (`layout.py` + `renderer.lua`, keep in sync).
 4. Text input is ASCII key enumeration + `clipboard/text` (mpv ≥0.40).
-   No IME on X11; Wayland IME needs `mp.input` integration later.
+   Textboxes have full selection (click-drag, shift+arrows, ctrl+a/c,
+   replace-on-type) and a built-in right-click Cut/Copy/Paste/Select
+   All menu (masked boxes offer Paste/Select All only — no clipboard
+   leaks). No IME on X11; Wayland IME needs `mp.input` later.
 5. Wheel targeting walks the scroll chain by axis and holds a 2s
    gesture lock on its target (raw hit-tests can drop out — cause
    still unconfirmed; F12 HUD shows `tgt:<id>*` when the lock saves a
@@ -175,6 +183,10 @@ workers (thumbnails, downloads, playback timers) repaint through it.
   Screenshots per step (mpv can't screenshot without video — falls
   back to X11 `import`).
 - `tests/test_mpvtk_layout.py` — layout engine unit tests (stdlib).
+- `python3 -m jellyfin_mpv_shim.mpvtk.calibrate` (under xvfb) —
+  renders text with markers at predicted widths, screenshots, and
+  prints actual/predicted ratios. Run it when changing fonts or
+  metrics; healthy output is ~1.00 per row.
 - **F12** toggles the input-diagnostics HUD (wheel count/scale/target,
   mouse state). INFO logs time strip composition and render pushes.
 
