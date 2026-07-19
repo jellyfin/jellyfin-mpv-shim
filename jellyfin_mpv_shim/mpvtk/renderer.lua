@@ -100,6 +100,11 @@ local function char_w(c)
         local w = measured_widths[c]
         if w then return w end
     end
+    if #c > 1 then
+        -- unmeasured multibyte: CJK/fullwidth glyphs are ~1em
+        if c:byte(1) >= 0xE3 then return 1.0 end
+        return 0.6
+    end
     if c == ' ' then return 0.30 end
     if NARROW[c] then return 0.34 end
     if WIDE[c] then return 0.85 end
@@ -111,10 +116,38 @@ local function kern_w(a, b)
     return kern_table[a .. b] or 0
 end
 
+-- Iterate UTF-8 codepoints (Lua 5.1 has no utf8 lib).
+local U8PAT = '[\1-\127\194-\244][\128-\191]*'
+
+local function u8_prev(s, i)
+    -- previous codepoint boundary before byte offset i
+    local j = i
+    repeat
+        j = j - 1
+    until j <= 0 or s:byte(j + 1) < 0x80 or s:byte(j + 1) >= 0xC0
+    return math.max(0, j)
+end
+
+local function u8_next(s, i)
+    -- next codepoint boundary after byte offset i
+    local n = #s
+    local j = i + 1
+    while j < n and s:byte(j + 1) >= 0x80 and s:byte(j + 1) < 0xC0 do
+        j = j + 1
+    end
+    return math.min(n, j)
+end
+
+local function u8_count(s)
+    local n = 0
+    for _ in s:gmatch(U8PAT) do n = n + 1 end
+    return n
+end
+
 local function text_w(s, size, bold)
     local w = 0
     local prev = nil
-    for c in s:gmatch('.') do
+    for c in s:gmatch(U8PAT) do
         if prev then w = w + kern_w(prev, c) end
         w = w + char_w(c)
         prev = c
@@ -423,34 +456,38 @@ end
 -- masked — a fixed advance keeps cursor math trivial).
 local MASK_W = 0.55
 
--- Caret/selection boundary after `upto` chars: the pen position where
--- the NEXT glyph starts, i.e. including the kern into it — this is
--- where libass draws the following glyph's origin.
+-- Caret/selection boundary after byte offset `upto` (a codepoint
+-- boundary): the pen position where the NEXT glyph starts, i.e.
+-- including the kern into it — where libass draws its origin.
 local function tb_text_w(node, text, upto)
-    if node.mask then return upto * MASK_W * node.size end
+    if node.mask then
+        return u8_count(text:sub(1, upto)) * MASK_W * node.size
+    end
     local pen = 0
     local prev = nil
-    for i = 1, upto do
-        local c = text:sub(i, i)
+    local pos = 0
+    for c in text:gmatch(U8PAT) do
+        if pos >= upto then
+            if prev then pen = pen + kern_w(prev, c) end
+            break
+        end
         if prev then pen = pen + kern_w(prev, c) end
         pen = pen + char_w(c)
+        pos = pos + #c
         prev = c
-    end
-    if upto > 0 and upto < #text then
-        pen = pen + kern_w(prev, text:sub(upto + 1, upto + 1))
     end
     return pen * node.size
 end
 
--- Char boundary index nearest to screen x (for click/drag placement).
+-- Codepoint boundary (byte offset) nearest to screen x.
 local function tb_index_at(node, tb, x)
     local pad = 10
     local ex = select(1, eff(node))
     local rel = x - ex - pad + tb.shift
     local pen = 0
     local prev = nil
-    for i = 1, #tb.text do
-        local c = tb.text:sub(i, i)
+    local pos = 0
+    for c in tb.text:gmatch(U8PAT) do
         local cw
         if node.mask then
             cw = MASK_W * node.size
@@ -458,11 +495,12 @@ local function tb_index_at(node, tb, x)
             cw = ((prev and kern_w(prev, c) or 0) + char_w(c)) *
                 node.size
         end
-        if pen + cw / 2 > rel then return i - 1 end
+        if pen + cw / 2 > rel then return pos end
         pen = pen + cw
+        pos = pos + #c
         prev = c
     end
-    return #tb.text
+    return pos
 end
 
 local function tb_menu_items(node)
@@ -522,7 +560,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
             sx2 - sx1, node.h * 0.72,
             { fill = '3d59a1', a = 200, clip = inner })
     end
-    local disp = node.mask and string.rep('•', #text) or text
+    local disp = node.mask and string.rep('•', u8_count(text)) or text
     draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
     if focused and state.cursor_on then
         local cx = x0 + tb_text_w(node, text, tb and tb.cursor or #text)
@@ -1098,34 +1136,36 @@ local function tb_key(name)
         if tb_del_selection(tb) then
             tb_changed(node, tb)
         elseif tb.cursor > 0 then
-            tb.text = tb.text:sub(1, tb.cursor - 1) ..
+            local a = u8_prev(tb.text, tb.cursor)
+            tb.text = tb.text:sub(1, a) ..
                 tb.text:sub(tb.cursor + 1)
-            tb.cursor = tb.cursor - 1
+            tb.cursor = a
             tb_changed(node, tb)
         end
     elseif name == 'DEL' then
         if tb_del_selection(tb) then
             tb_changed(node, tb)
         elseif tb.cursor < #tb.text then
+            local b = u8_next(tb.text, tb.cursor)
             tb.text = tb.text:sub(1, tb.cursor) ..
-                tb.text:sub(tb.cursor + 2)
+                tb.text:sub(b + 1)
             tb_changed(node, tb)
         end
     elseif name == 'LEFT' then
         tb.sel = nil
-        tb.cursor = math.max(0, tb.cursor - 1)
+        tb.cursor = u8_prev(tb.text, tb.cursor)
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
     elseif name == 'RIGHT' then
         tb.sel = nil
-        tb.cursor = math.min(#tb.text, tb.cursor + 1)
+        tb.cursor = u8_next(tb.text, tb.cursor)
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
     elseif name == 'SLEFT' or name == 'SRIGHT' or
         name == 'CSLEFT' or name == 'CSRIGHT' then
         if tb.sel == nil then tb.sel = tb.cursor end
         if name == 'SLEFT' then
-            tb.cursor = math.max(0, tb.cursor - 1)
+            tb.cursor = u8_prev(tb.text, tb.cursor)
         elseif name == 'SRIGHT' then
-            tb.cursor = math.min(#tb.text, tb.cursor + 1)
+            tb.cursor = u8_next(tb.text, tb.cursor)
         elseif name == 'CSLEFT' then
             tb.cursor = word_left(tb.text, tb.cursor)
         else
@@ -1216,11 +1256,17 @@ local function bind_text_keys()
             { repeatable = true })
         text_key_names[#text_key_names + 1] = bname
     end
-    for code = 33, 126 do
-        local c = string.char(code)
-        bind(c, 'mpvtk_ch_' .. code, function() tb_insert(c) end)
-    end
-    bind('SPACE', 'mpvtk_space', function() tb_insert(' ') end)
+    -- ALL printable text arrives through any_unicode's key_text — the
+    -- full unicode range, including IME-committed strings on backends
+    -- where mpv receives them (Wayland text-input-v3, Windows IME).
+    mp.add_forced_key_binding('any_unicode', 'mpvtk_text',
+        function(e)
+            if not e or e.event == 'up' then return end
+            local t = e.key_text
+            if not t or t == '' or t:byte(1) < 0x20 then return end
+            tb_insert(t)
+        end, { repeatable = true, complex = true })
+    text_key_names[#text_key_names + 1] = 'mpvtk_text'
     -- editing keys: mpv key -> tb_key op (binding names derive from
     -- the KEY so e.g. ctrl+HOME can share the HOME action)
     local ops = {

@@ -163,16 +163,27 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    Caret/selection boundaries include the kern INTO the next glyph
    (that's where libass puts its origin). Non-ASCII falls back to a
    heuristic table (`layout.py` + `renderer.lua`, keep in sync).
-4. Text input is ASCII key enumeration + `clipboard/text` (mpv ≥0.40).
+4. Text input arrives through a single `any_unicode` complex binding
+   (`e.key_text`) — the FULL unicode range, not just ASCII. Editing is
+   UTF-8 aware: cursors are byte offsets kept on codepoint boundaries
+   (u8_prev/u8_next); BS/DEL/arrows step whole codepoints. IME status
+   by platform: **Wayland** — mpv ≥0.40 supports text-input-v3
+   (`--wayland-ime=yes` default); committed strings become key presses
+   that land in any_unicode; preedit is NOT forwarded (no inline
+   composition display; the popup sits at the window's top-left).
+   **Windows** — mpv handles WM_IME natively (enabled by default);
+   committed text arrives as unicode key events. **X11** — no
+   IME/XIM: keyboard-layout characters (accented Latin via xkb) work,
+   composition-based input (CJK) does not. Clipboard needs mpv ≥0.40.
    Textboxes support the full editing key set — click-drag selection,
    double-click word select, triple-click select-all (synthesized:
    plain click ≤0.4s after a double), shift+arrows, ctrl+arrows (word
    jump), ctrl+shift+arrows (word select), ctrl+BS/DEL (word delete),
    ctrl+A/C/X/V, ctrl+HOME/END, replace-on-type — plus a built-in
    right-click Cut/Copy/Paste/Select All menu (masked boxes offer
-   Paste/Select All only — no clipboard leaks). The caret is a thin bar centered on the char boundary
-   (right-biased bars visibly overlap narrow glyphs at small sizes).
-   No IME on X11; Wayland IME needs `mp.input` later.
+   Paste/Select All only — no clipboard leaks). The caret is a thin
+   bar centered on the char boundary. Metrics cover ASCII + Latin-1;
+   unmeasured glyphs fall back to a fullwidth heuristic for CJK.
 5. Wheel targeting walks the scroll chain by axis and holds a 2s
    gesture lock on its target (raw hit-tests can drop out — cause
    still unconfirmed; F12 HUD shows `tgt:<id>*` when the lock saves a

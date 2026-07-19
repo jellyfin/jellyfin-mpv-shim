@@ -85,9 +85,14 @@ def measure_font():
             # calibrate.py (DejaVu Sans: factor 0.859, ratios ~1.00).
             ascent, descent = font.getmetrics()
             factor = _MEASURE_SIZE / float(ascent + descent)
+            # printable ASCII + Latin-1 supplement (é, ü, ñ, …); other
+            # scripts use the fallback widths (fullwidth heuristic for
+            # CJK)
+            chars = [chr(i) for i in range(32, 127)]
+            chars += [chr(i) for i in range(0xA1, 0x100)]
             widths = {
                 c: round(font.getlength(c) / _MEASURE_SIZE * factor, 4)
-                for c in (chr(i) for i in range(32, 127))
+                for c in chars
             }
             mask_w = font.getlength("•") / _MEASURE_SIZE * factor
             if not 0.1 < mask_w < 1.5:  # glyph missing/degenerate

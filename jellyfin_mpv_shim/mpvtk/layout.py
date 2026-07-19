@@ -55,6 +55,8 @@ def char_w(ch):
         w = _measured.get(ch)
         if w is not None:
             return w
+    if ord(ch) >= 0x2E80:  # CJK/fullwidth blocks render ~1em
+        return 1.0
     if ch == " ":
         return _SPACE_W
     if ch in _NARROW:

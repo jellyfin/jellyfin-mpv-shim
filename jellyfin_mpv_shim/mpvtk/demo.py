@@ -1159,6 +1159,30 @@ def _selftest(demo, outdir):
     time.sleep(0.3)
     check("triple-select-all", demo.sel_text == "reset", demo.sel_text)
 
+    # unicode: text arrives via any_unicode; editing is codepoint-safe
+    app.debug(cmd="key", name="CTRLA")
+    app.debug(cmd="text", s="café жизнь")
+    time.sleep(0.3)
+    check("unicode-input", demo.sel_text == "café жизнь", demo.sel_text)
+    for _ in range(6):  # delete "ь", "н", "з", "и", "ж", space
+        app.debug(cmd="key", name="BS")
+    time.sleep(0.3)
+    check("utf8-backspace", demo.sel_text == "café", repr(demo.sel_text))
+    # real input stack: keypress goes through mpv input -> any_unicode
+    app.backend.command("keypress", "日")
+    app.backend.command("keypress", "本")
+    time.sleep(0.4)
+    check(
+        "any-unicode-keypress",
+        demo.sel_text == "café日本",
+        repr(demo.sel_text),
+    )
+    app.debug(cmd="key", name="BS")
+    app.debug(cmd="key", name="BS")
+    app.debug(cmd="key", name="BS")
+    time.sleep(0.3)
+    check("utf8-mixed-edit", demo.sel_text == "caf", repr(demo.sel_text))
+
     app.quit()
     return results
 
