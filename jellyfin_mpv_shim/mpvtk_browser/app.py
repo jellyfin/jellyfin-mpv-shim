@@ -289,8 +289,12 @@ class MpvtkBrowser:
             tab = route.get("_tab", "albums")
 
             def work():
-                if tab == "artists":
+                if tab == "albumartists":
                     return self.source.get_album_artists(srv, parent)[0]
+                if tab == "artists":
+                    return self.source.get_artists(srv, parent)[0]
+                if tab == "songs":
+                    return self.source.get_songs(srv, parent)[0]
                 if tab == "genres":
                     return self.source.get_music_genres(srv, parent)
                 return self.source.get_music_albums(srv, parent)[0]
@@ -308,14 +312,27 @@ class MpvtkBrowser:
             iid = route["item_id"]
 
             def work():
-                return self.source.get_artist_albums(srv, iid)
+                songs = []
+                try:
+                    songs = self.source.get_artist_songs(srv, iid)
+                except Exception:
+                    pass
+                return {"albums": self.source.get_artist_albums(srv, iid),
+                        "songs": songs}
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "music_genre":
             srv = route.get("server") or self.server
 
             def work():
-                return self.source.get_genre_albums(
-                    srv, route.get("parent_id"), route["item_id"])[0]
+                songs = []
+                try:
+                    songs = self.source.get_genre_songs(
+                        srv, route.get("parent_id"), route["item_id"])
+                except Exception:
+                    pass
+                return {"albums": self.source.get_genre_albums(
+                    srv, route.get("parent_id"), route["item_id"])[0],
+                    "songs": songs}
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "playlist":
             srv = route.get("server") or self.server
@@ -1395,6 +1412,40 @@ class MpvtkBrowser:
                 on_click=lambda i=i: on_click(i)))
         return Column(rows, gap=2)
 
+    def _play_shuffle(self, ids, server):
+        import random
+        ids = [i for i in ids if i]
+        random.shuffle(ids)
+        self._play_list(ids, server, 0, audio=True)
+
+    def _queue_items(self, ids, server):
+        self._client_call(lambda c: c.queue_items(server, [i for i in ids if i]))
+
+    def _instant_mix(self, seed_id, server):
+        ep = self._epoch
+
+        def work():
+            return self.source.get_instant_mix(server, seed_id)
+
+        def done(items):
+            self._play_list([i.get("Id") for i in items], server, 0,
+                            audio=True)
+        self.run_async(work, done, ep)
+
+    def _music_action_bar(self, server, ids, seed_id, prefix="ma"):
+        return Row([
+            self._action_btn("play_arrow", _("Play"), prefix + "-play",
+                             lambda: self._play_list(ids, server, 0,
+                                                     audio=True), on=True),
+            self._action_btn("shuffle", _("Shuffle"), prefix + "-shuffle",
+                             lambda: self._play_shuffle(ids, server)),
+            self._action_btn("playlist_add", _("Add to Queue"),
+                             prefix + "-queue",
+                             lambda: self._queue_items(ids, server)),
+            self._action_btn("queue_music", _("Instant Mix"), prefix + "-mix",
+                             lambda: self._instant_mix(seed_id, server)),
+        ], gap=8, align="center")
+
     def _music_tab(self, route, label, tab):
         active = route.get("_tab", "albums") == tab
         return Button(label, id="mtab-" + tab,
@@ -1412,13 +1463,27 @@ class MpvtkBrowser:
     def _render_music(self, route, size):
         tabs = Row([
             self._music_tab(route, _("Albums"), "albums"),
+            self._music_tab(route, _("Album Artists"), "albumartists"),
             self._music_tab(route, _("Artists"), "artists"),
+            self._music_tab(route, _("Songs"), "songs"),
             self._music_tab(route, _("Genres"), "genres"),
         ], gap=8)
         data = route.get("_data")
-        body = self._busy() if data is None else VScroll(
-            Column(self._grid_of(data, "music", size), pad=16, gap=12),
-            id="music-grid", flex=1)
+        if data is None:
+            body = self._busy()
+        elif route.get("_tab") == "songs":
+            server = route.get("server") or self.server
+            ids = [s.get("Id") for s in data]
+            body = VScroll(Column([self._track_list(
+                data, "song",
+                lambda i: self._play_list(ids, server, i, audio=True))],
+                pad=16), id="music-songs", flex=1)
+        else:
+            geom = self.geom_square if route.get("_tab") in (
+                None, "albums", "albumartists", "artists") else self.geom
+            body = VScroll(
+                Column(self._grid_of(data, "music", size, geom=geom),
+                       pad=16, gap=12), id="music-grid", flex=1)
         return Column([Row([tabs], pad=12), body], flex=1, align="stretch")
 
     def _render_album(self, route, size):
@@ -1429,16 +1494,11 @@ class MpvtkBrowser:
         tracks = data.get("tracks") or []
         server = route.get("server") or self.server
         ids = [t.get("Id") for t in tracks]
-        header = Row([
+        header = Column([
             Text(item.get("Name") or route.get("title", ""), size=28,
                  bold=True),
-            Spacer(),
-            Row([Icon("play_arrow", 20, color="101010"),
-                 Text(_("Play"), size=18, color="101010")],
-                id="album-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
-                align="center",
-                on_click=lambda: self._play_list(ids, server, 0, audio=True)),
-        ], align="center", gap=10)
+            self._music_action_bar(server, ids, route["item_id"], "album"),
+        ], gap=10)
         body = self._track_list(
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True))
@@ -1449,16 +1509,26 @@ class MpvtkBrowser:
         data = route.get("_data")
         if data is None:
             return self._busy()
-        rows = self._grid_of(data, "artist", size,
-                             heading=route.get("title", ""))
+        albums = data.get("albums") or []
+        songs = data.get("songs") or []
+        server = route.get("server") or self.server
+        ids = [s.get("Id") for s in songs]
+        rows = [Text(route.get("title", ""), size=26, bold=True),
+                self._music_action_bar(server, ids, route["item_id"], "art")]
+        rows += self._grid_of(albums, "artist", size, geom=self.geom_square)
         return VScroll(Column(rows, pad=16, gap=12), id="artist", flex=1)
 
     def _render_music_genre(self, route, size):
         data = route.get("_data")
         if data is None:
             return self._busy()
-        rows = self._grid_of(data, "mgenre", size,
-                             heading=route.get("title", ""))
+        albums = data.get("albums") or []
+        songs = data.get("songs") or []
+        server = route.get("server") or self.server
+        ids = [s.get("Id") for s in songs]
+        rows = [Text(route.get("title", ""), size=26, bold=True),
+                self._music_action_bar(server, ids, route["item_id"], "gen")]
+        rows += self._grid_of(albums, "mgenre", size, geom=self.geom_square)
         return VScroll(Column(rows, pad=16, gap=12), id="mgenre", flex=1)
 
     def _render_playlist(self, route, size):

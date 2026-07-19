@@ -208,6 +208,23 @@ class _PlayerController:
     def queue_remove(self, playlist_item_ids):
         self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
 
+    def queue_items(self, server_uuid, item_ids):
+        """Append items to the playing queue; if nothing plays, start them."""
+        from ..player import playerManager
+        item_ids = list(item_ids)
+        if not item_ids:
+            return
+        try:
+            if not playerManager.has_video():
+                self.play_list(item_ids, server_uuid, 0)
+                return
+            video = playerManager.get_video()
+            if video is not None:
+                video.parent.insert_items(item_ids, append=True)
+                playerManager.upd_player_hide()
+        except Exception:
+            log.error("mpvtk queue_items failed", exc_info=True)
+
     # -- SyncPlay ---------------------------------------------------------
 
     def get_sync_groups(self, server_uuid):

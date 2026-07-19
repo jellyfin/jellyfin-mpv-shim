@@ -117,6 +117,24 @@ class FakeSource:
     def get_album_artists(self, server_uuid, parent_id, **kw):
         return ([{"Id": "ar1", "Name": "Artist", "Type": "MusicArtist"}], 1)
 
+    def get_artists(self, server_uuid, parent_id, **kw):
+        return ([{"Id": "ar2", "Name": "Artist 2", "Type": "MusicArtist"}], 1)
+
+    def get_songs(self, server_uuid, parent_id, **kw):
+        return ([{"Id": "so%d" % i, "Name": "Song %d" % i, "Type": "Audio",
+                  "IndexNumber": i + 1} for i in range(5)], 5)
+
+    def get_artist_songs(self, server_uuid, artist_id, limit=500):
+        return [{"Id": "as%d" % i, "Name": "AS %d" % i, "Type": "Audio"}
+                for i in range(4)]
+
+    def get_genre_songs(self, server_uuid, parent_id, genre_id, limit=500):
+        return [{"Id": "gs%d" % i, "Name": "GS %d" % i, "Type": "Audio"}
+                for i in range(4)]
+
+    def get_instant_mix(self, server_uuid, item_id, limit=200):
+        return [{"Id": "mix%d" % i, "Type": "Audio"} for i in range(3)]
+
     def get_music_genres(self, server_uuid, parent_id):
         return [{"Id": "gn1", "Name": "Jazz", "Type": "MusicGenre"}]
 
@@ -614,6 +632,60 @@ class TestDetailActions(unittest.TestCase):
         self.assertIn("sa-nextup", ids(_n))
         h["sa-nextup"]["click"]()
         self.assertTrue(self.ctl.played)      # next-up episode played
+
+
+class TestMusicDepth(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _music(self, tab=None):
+        route = {"kind": "music", "server": "srv1", "parent_id": "ml",
+                 "title": "Music"}
+        if tab:
+            route["_tab"] = tab
+        self.b.navigate(route)
+        return build_scene(self.b)
+
+    def test_all_five_tabs(self):
+        nodes, _h = self._music()
+        for t in ("mtab-albums", "mtab-albumartists", "mtab-artists",
+                  "mtab-songs", "mtab-genres"):
+            self.assertIn(t, ids(nodes))
+
+    def test_songs_tab_is_track_list(self):
+        _n, h = self._music(tab="songs")
+        self.assertTrue(any(k.startswith("song-") for k in h))
+        h[next(k for k in h if k == "song-2")]["click"]()
+        ids_, _srv, start = self.ctl.played[-1]
+        self.assertEqual(start, 2)
+
+    def test_album_action_bar(self):
+        self.b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                         "title": "Album"})
+        nodes, h = build_scene(self.b)
+        for nid in ("album-play", "album-shuffle", "album-queue", "album-mix"):
+            self.assertIn(nid, ids(nodes))
+        h["album-queue"]["click"]()
+        self.assertIn("queue_items",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_instant_mix_plays(self):
+        self.b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                         "title": "Album"})
+        _n, h = build_scene(self.b)
+        h["album-mix"]["click"]()
+        ids_, _srv, _s = self.ctl.played[-1]
+        self.assertEqual(ids_, ["mix0", "mix1", "mix2"])
+
+    def test_artist_action_bar_and_albums(self):
+        self.b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                         "title": "Artist"})
+        nodes, h = build_scene(self.b)
+        self.assertIn("art-play", ids(nodes))
+        self.assertTrue(any(k.startswith("artist-") for k in h))
 
 
 class TestGridFilters(unittest.TestCase):
