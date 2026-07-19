@@ -1471,7 +1471,18 @@ PER_BACKEND_REAL leg):
   while scrubbing, chapter-image preview fallback (videos with
   chapter thumbs but no trickplay).
 
-Remaining: 9.4 (default flip + lua OSC removal after field-proving).
+**9.4 — cutover flag ✅, cutover itself pending field-proving.** The
+flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
+enum "In-window HUD (experimental)", conf.py docs; falls back to
+jellyfin without the mpvtk browser; keeps mpv's builtin OSC off).
+Default remains "jellyfin". What's left is deliberately NOT code:
+Izzie field-tests the HUD against real servers/content, then in a
+later change the default flips and trickplay-jf-osc.lua +
+osc_bridge's lua-side plumbing (send_state gating, skip-button
+script-messages) get deleted. Things to watch while field-proving:
+scrim opacity over bright content, the hidden-skip-button parity gap
+(9.3 note), OSD-menu (`menu.py`) overlap while the HUD is up, picker
+popup usability at 10ft, summon latency on slow IPC.
 
 ## Cross-cutting risks & open questions
 
