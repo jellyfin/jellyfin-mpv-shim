@@ -14,12 +14,11 @@ import colorsys
 import logging
 import os
 import random
-import tempfile
 import threading
 import time
 
 from .app import MpvtkApp
-from .rawimage import write_bgra
+from .rawimage import cache_dir, write_bgra
 from .widgets import (
     Button,
     Column,
@@ -138,12 +137,21 @@ class StripStore:
     Decorations (progress, badge, watched) are part of the key, so
     changing one re-composites that strip under a new filename — the
     renderer's overlay cache never sees stale content.
+
+    The cache is LRU-bounded so a long browsing session doesn't grow
+    the scratch dir without limit. Anything on screen was requested by
+    the current build and is therefore most-recent; evictions only hit
+    strips scrolled well out of the materialization window.
     """
 
+    MAX_ENTRIES = 48  # ~6MB worst case each -> bounded scratch footprint
+
     def __init__(self, cache_dir):
+        from collections import OrderedDict
+
         self.dir = cache_dir
         self.fonts = _fonts()
-        self._cache = {}
+        self._cache = OrderedDict()
         self._counter = 0
 
     def _ellipsize(self, dr, text, font, max_w):
@@ -161,6 +169,7 @@ class StripStore:
         )
         hit = self._cache.get(key)
         if hit:
+            self._cache.move_to_end(key)
             return hit
         from PIL import Image as PILImage, ImageDraw
 
@@ -235,12 +244,18 @@ class StripStore:
         write_bgra(img, src)
         entry = {"src": src, "iw": iw, "ih": STRIP_H, "regions": regions}
         self._cache[key] = entry
+        while len(self._cache) > self.MAX_ENTRIES:
+            _, old = self._cache.popitem(last=False)
+            try:
+                os.remove(old["src"])
+            except OSError:
+                pass
         return entry
 
 
 class Demo:
     def __init__(self, backend="jsonipc"):
-        self.cache = tempfile.mkdtemp(prefix="mpvtk-demo-")
+        self.cache = cache_dir("mpvtk-demo-")
         self.items = make_library(40)
         self.strips = StripStore(self.cache)
         self.query = ""

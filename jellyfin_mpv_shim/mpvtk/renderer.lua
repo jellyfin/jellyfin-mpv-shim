@@ -60,7 +60,9 @@ local state = {
     geo = {},               -- scroll id -> {dx, dy, x1,y1,x2,y2 (clip)}
     bars = {},              -- scroll id -> thumb geometry (for hit test)
     dd_geo = nil,           -- open popup geometry
-    ov_last = {},           -- overlay slot -> last command args string
+    ov_slots = {},          -- overlay key (node id + piece) -> slot
+    ov_keys = {},           -- slot -> overlay key
+    ov_last = {},           -- slot -> last issued args string
     ov_used = 0,
     tick_timer = nil,
     tick_last = 0,
@@ -294,6 +296,7 @@ local function draw_image(node, ex, ey, clip)
         pieces = next_pieces
     end
     local stride = node.iw * 4
+    local pidx = 0
     for _, p in ipairs(pieces) do
         local px1, py1 = math.floor(p.x1), math.floor(p.y1)
         local px2, py2 = math.floor(p.x2), math.floor(p.y2)
@@ -305,7 +308,9 @@ local function draw_image(node, ex, ey, clip)
                     node.id)
                 return
             end
+            pidx = pidx + 1
             overlay_list[#overlay_list + 1] = {
+                key = node.id .. '#' .. pidx,
                 v = node.v,
                 args = {
                     tostring(px1), tostring(py1), node.src,
@@ -318,18 +323,51 @@ local function draw_image(node, ex, ey, clip)
     end
 end
 
+-- Slots are STICKY per overlay key: an unchanged image is never
+-- re-issued and never changes slot, so scene pushes (e.g. infinite
+-- scroll materializing new rows) only touch genuinely new or departed
+-- overlays instead of churning every slot — that churn was visible as
+-- flicker of already-displayed content.
 local function flush_overlays()
-    for i, ov in ipairs(overlay_list) do
-        -- v busts the cache when a file was rewritten in place
-        local key = table.concat(ov.args, '\0') .. '\0' .. (ov.v or 0)
-        if state.ov_last[i] ~= key then
-            state.ov_last[i] = key
-            mp.commandv('overlay-add', tostring(i - 1), unpack(ov.args))
+    local wanted = {}
+    for _, ov in ipairs(overlay_list) do
+        wanted[ov.key] = true
+    end
+    for slot = 0, MAX_OVERLAYS - 1 do
+        local k = state.ov_keys[slot]
+        if k and not wanted[k] then
+            state.ov_keys[slot] = nil
+            state.ov_slots[k] = nil
+            state.ov_last[slot] = nil
+            mp.commandv('overlay-remove', tostring(slot))
         end
     end
-    for i = #overlay_list + 1, state.ov_used do
-        state.ov_last[i] = nil
-        mp.commandv('overlay-remove', tostring(i - 1))
+    for _, ov in ipairs(overlay_list) do
+        local slot = state.ov_slots[ov.key]
+        if slot == nil then
+            for s = 0, MAX_OVERLAYS - 1 do
+                if state.ov_keys[s] == nil then
+                    slot = s
+                    break
+                end
+            end
+            if slot == nil then
+                msg.warn('no free overlay slot for ' .. ov.key)
+            else
+                state.ov_slots[ov.key] = slot
+                state.ov_keys[slot] = ov.key
+            end
+        end
+        if slot ~= nil then
+            -- v busts the cache when a file was rewritten in place
+            local argstr = table.concat(ov.args, '\0') ..
+                '\0' .. (ov.v or 0)
+            if state.ov_last[slot] ~= argstr then
+                state.ov_last[slot] = argstr
+                mp.commandv('overlay-add', tostring(slot),
+                    unpack(ov.args))
+            end
+        end
     end
     state.ov_used = #overlay_list
 end
@@ -594,6 +632,16 @@ render = function()
         if node then draw_popup(ass, node) end
     end
     if menu_node then draw_menu(ass, menu_node) end
+    if state.hud then
+        -- input-diagnostics overlay (toggle: mpvtk-debug {"cmd":"hud"})
+        local tnode = { w = 300, h = 24, size = 16, align = 'right' }
+        draw_text(ass, tnode, state.w - 310, 4, nil,
+            string.format('wheel:%d mouse:%d,%d hover:%s',
+                state.wheel_count or 0,
+                state.mouse.x or -1, state.mouse.y or -1,
+                tostring(state.mouse.hover)),
+            'ffcc66')
+    end
     osd.res_x = state.w
     osd.res_y = state.h
     osd.data = ass.text
@@ -874,8 +922,8 @@ local function on_mouse_move(x, y)
     if id ~= state.hover_id then
         state.hover_id = id
         request_render()
-    elseif state.dd_open or active_menu() then
-        request_render()  -- popup/menu item hover
+    elseif state.dd_open or active_menu() or state.hud then
+        request_render()  -- popup/menu item hover, HUD refresh
     end
 end
 
@@ -977,10 +1025,20 @@ local function on_mouse_up()
     end
 end
 
-local function on_wheel(dir, axis)
+-- e.scale carries hi-res wheel deltas (trackpads, libinput
+-- button-scrolling trackballs) — honor it instead of stepping whole
+-- notches. state.wheel_count feeds the debug HUD: if the counter stops
+-- advancing while the device scrolls, mpv isn't delivering events (a
+-- compositor/mpv issue); if it advances but nothing moves, it's ours.
+local function on_wheel(dir, axis, e)
+    state.wheel_count = (state.wheel_count or 0) + 1
+    local scale = (e and e.scale) or 1
+    if scale <= 0 then scale = 1 end
+    if state.hud then request_render() end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
     if not node then return end
-    set_scroll(node, (state.scroll[node.id] or 0) + dir * WHEEL_STEP)
+    set_scroll(node,
+        (state.scroll[node.id] or 0) + dir * WHEEL_STEP * scale)
 end
 
 local function on_rclick()
@@ -1002,12 +1060,12 @@ mp.set_key_bindings({
     { 'mbtn_right', function() end, function() on_rclick() end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
-    { 'wheel_up', function() on_wheel(-1, 'y') end },
-    { 'wheel_down', function() on_wheel(1, 'y') end },
-    { 'wheel_left', function() on_wheel(-1, 'x') end },
-    { 'wheel_right', function() on_wheel(1, 'x') end },
-    { 'shift+wheel_up', function() on_wheel(-1, 'x') end },
-    { 'shift+wheel_down', function() on_wheel(1, 'x') end },
+    { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
+    { 'wheel_down', function(e) on_wheel(1, 'y', e) end },
+    { 'wheel_left', function(e) on_wheel(-1, 'x', e) end },
+    { 'wheel_right', function(e) on_wheel(1, 'x', e) end },
+    { 'shift+wheel_up', function(e) on_wheel(-1, 'x', e) end },
+    { 'shift+wheel_down', function(e) on_wheel(1, 'x', e) end },
 }, 'mpvtk_wheel', 'force')
 mp.enable_key_bindings('mpvtk_mouse')
 mp.enable_key_bindings('mpvtk_wheel')
@@ -1144,6 +1202,9 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_down()
             on_mouse_up()
         end
+    elseif cmd.cmd == 'hud' then
+        state.hud = not state.hud
+        request_render()
     elseif cmd.cmd == 'wheel' then
         if cmd.id then
             local x, y = center_of(cmd.id)
@@ -1192,6 +1253,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             menu_open = active_menu() ~= nil,
             has_metrics = measured_widths ~= nil,
             font = ui_font,
+            wheel_count = state.wheel_count or 0,
             scroll = state.scroll,
             overlays = state.ov_used,
             tb = state.tb,
