@@ -158,6 +158,10 @@ class MpvtkBrowser:
         if len(self.nav_stack) > 1:
             self.nav_stack.pop()
             self._bump_epoch()
+            # Stale-while-revalidate: refresh Home on return (watched/resume
+            # state may have changed) while showing the cached view meanwhile.
+            if self.route.get("kind") == "home":
+                self._load_route(self.route)
             self.invalidate()
 
     def after_playlist_deleted(self, playlist_id):
@@ -1365,15 +1369,39 @@ class MpvtkBrowser:
             return self._busy()
         items = data.get("items") or []
         people = data.get("people") or []
-        w = size[0]
-        g = self.geom
         rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
         if people:
-            rows.append(self._tile_row(_("People"), people, "search-people"))
-        cols = max(1, int((w - 32 + g.gap) // (g.tile_w + g.gap)))
-        for start in range(0, len(items), cols):
-            rows.append(self._image_map(
-                items[start:start + cols], "search-%d" % start))
+            rows.append(self._tile_row(_("People"), people, "search-people",
+                                       geom=self.geom_square))
+        # Group by type, each with its natural tile shape (like the Tk browser).
+        groups = [
+            (_("Movies"), ("Movie",), self.geom, "Primary"),
+            (_("Shows"), ("Series",), self.geom, "Primary"),
+            (_("Episodes"), ("Episode",), self.geom_wide, "Thumb"),
+            (_("Videos"), ("Video", "MusicVideo"), self.geom_wide, "Primary"),
+            (_("Albums"), ("MusicAlbum",), self.geom_square, "Primary"),
+            (_("Artists"), ("MusicArtist",), self.geom_square, "Primary"),
+        ]
+        used = set()
+        for label, types_, geom, itype in groups:
+            group = [it for it in items if it.get("Type") in types_]
+            if group:
+                used.update(types_)
+                rows.append(self._tile_row(
+                    label, group, "search-" + label, geom=geom,
+                    image_type=itype))
+        songs = [it for it in items if it.get("Type") == "Audio"]
+        if songs:
+            server = route.get("server") or self.server
+            ids = [s.get("Id") for s in songs]
+            rows.append(Text(_("Songs"), size=24, bold=True))
+            rows.append(self._track_list(
+                songs, "search-song",
+                lambda i: self._play_list(ids, server, i, audio=True)))
+        other = [it for it in items
+                 if it.get("Type") not in used and it.get("Type") != "Audio"]
+        if other:
+            rows.append(self._tile_row(_("Other"), other, "search-other"))
         if not items and not people:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=16, gap=12), id="search", flex=1)
@@ -1773,6 +1801,8 @@ class MpvtkBrowser:
             return Row([
                 Text(_("Offline — showing what's available."), size=16),
                 Spacer(),
+                Button(_("Configure Servers"), id="banner-servers",
+                       on_click=self.show_login),
                 Button(_("Retry"), id="banner-retry",
                        on_click=self._retry_connect),
             ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")

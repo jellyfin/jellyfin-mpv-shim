@@ -24,7 +24,7 @@ wire-ups that were skipped. Status updated as each is fixed.
   tile currently disagrees with its own menu.
 - [x] **HScrollRow ◀ ▶ arrow buttons** (page + hold-repeat + auto show/hide).
 - [x] Libraries row as **landscape** cards.
-- [ ] Home **stale-while-revalidate** (signature diff on re-entry;
+- [x] Home **stale-while-revalidate** (signature diff on re-entry;
   `on_sync_state` reload).
 
 **Detail / Series / Season**
@@ -62,7 +62,7 @@ wire-ups that were skipped. Status updated as each is fixed.
 
 **Playlist / Search shaping**
 - [x] Playlist: Shuffle, Download (shape switching still portrait).
-- [ ] Search: per-type grouped rows with correct shapes.
+- [x] Search: per-type grouped rows with correct shapes.
 
 **Dialogs**
 - [x] AddTo: **create-new** playlist (collections still TODO).
@@ -71,7 +71,7 @@ wire-ups that were skipped. Status updated as each is fixed.
 
 **Chrome**
 - [ ] Persistent **download status bar** ("View Downloads").
-- [ ] Offline banner **"Configure Servers"** action.
+- [x] Offline banner **"Configure Servers"** action.
 - [ ] Login **Quick Connect** flow.
 
 **Display mirror (Phase 6)** — replace the Tk+Pillow mirror with mpvtk.

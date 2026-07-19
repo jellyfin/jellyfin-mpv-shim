@@ -105,7 +105,10 @@ class FakeSource:
                  "ParentIndexNumber": 1, "IndexNumber": i} for i in range(5)]
 
     def search(self, server_uuid, term, limit=60):
-        return [{"Id": "r1", "Name": "Result " + term, "Type": "Movie"}]
+        return [{"Id": "r1", "Name": "Movie " + term, "Type": "Movie"},
+                {"Id": "r2", "Name": "Ep", "Type": "Episode"},
+                {"Id": "r3", "Name": "Album", "Type": "MusicAlbum"},
+                {"Id": "r4", "Name": "Song", "Type": "Audio"}]
 
     def search_people(self, server_uuid, term, limit=60):
         return [{"Id": "p1", "Name": "Person", "Type": "Person"}]
@@ -519,6 +522,25 @@ class TestPhase1Views(unittest.TestCase):
         before = len(self.b.nav_stack)
         self.b._search("   ")
         self.assertEqual(len(self.b.nav_stack), before)
+
+    def test_search_groups_by_type(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b._search("x")
+        nodes, h = build_scene(b)
+        # movie/episode/album grouped rows + a songs track list
+        self.assertTrue(any(k.startswith("search-Movies-") for k in h))
+        self.assertTrue(any(k.startswith("search-Episodes-") for k in h))
+        self.assertTrue(any(k.startswith("search-song-") for k in h))
+
+    def test_offline_banner_configure_servers(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.set_offline(True)
+        nodes, h = build_scene(b)
+        self.assertIn("banner-servers", ids(nodes))
+        h["banner-servers"]["click"]()
+        self.assertEqual(b.route["kind"], "login")
 
 
 class TestTileShapes(unittest.TestCase):
