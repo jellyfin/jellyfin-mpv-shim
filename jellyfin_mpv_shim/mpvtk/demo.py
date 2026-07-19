@@ -154,6 +154,8 @@ class StripStore:
         self.fonts = _fonts()
         self._cache = OrderedDict()
         self._counter = 0
+        self.hits = 0
+        self.misses = 0
 
     def _ellipsize(self, dr, text, font, max_w):
         if dr.textlength(text, font=font) <= max_w:
@@ -171,7 +173,16 @@ class StripStore:
         hit = self._cache.get(key)
         if hit:
             self._cache.move_to_end(key)
+            self.hits += 1
             return hit
+        self.misses += 1
+        t0 = time.perf_counter()
+        log.info(
+            "strip: composing %d tiles (cache %d hit / %d miss)…",
+            len(items),
+            self.hits,
+            self.misses,
+        )
         from PIL import Image as PILImage, ImageDraw
 
         n = len(items)
@@ -240,6 +251,7 @@ class StripStore:
             regions.append(
                 {"x": x, "y": 0, "w": TILE_W, "h": STRIP_H, "idx": it["idx"]}
             )
+        t_compose = time.perf_counter()
         if self.mem is not None:
             src, _, _ = self.mem.add(img)
         else:
@@ -248,6 +260,16 @@ class StripStore:
                 self.dir, "strip%d.bgra" % self._counter
             )
             write_bgra(img, src)
+        t_out = time.perf_counter()
+        log.info(
+            "strip: %d tiles (%dx%d) done — draw %.1fms, %s %.1fms",
+            len(items),
+            iw,
+            STRIP_H,
+            (t_compose - t0) * 1000,
+            "to-memory" if self.mem is not None else "to-file",
+            (t_out - t_compose) * 1000,
+        )
         entry = {"src": src, "iw": iw, "ih": STRIP_H, "regions": regions}
         self._cache[key] = entry
         while len(self._cache) > self.MAX_ENTRIES:
@@ -414,6 +436,13 @@ class Demo:
         end = min(total_rows, max(row, 0) + WINDOW_AHEAD)
         cur = self.grid_window
         if abs(start - cur[0]) >= 2 or abs(end - cur[1]) >= 2:
+            log.info(
+                "grid window: rows %s -> (%d, %d) at offset %d",
+                cur,
+                start,
+                end,
+                offset,
+            )
             self.grid_window = (start, end)
             self.app.invalidate()
 

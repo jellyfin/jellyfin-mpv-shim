@@ -900,24 +900,43 @@ end
 -- --------------------------------------------------------------- input
 
 local scroll_notify_timers = {}
+local scroll_last_notify = {}
+local SCROLL_NOTIFY_INTERVAL = 0.15
 
--- Debounced scroll notification for watched containers (drives
--- windowed/infinite scrolling on the Python side).
+-- Scroll notification for watched containers (drives windowed/infinite
+-- scrolling on the Python side). This is a leading-edge THROTTLE, not
+-- a debounce: the first tick notifies immediately and sustained
+-- scrolling notifies every interval, so the app can materialize ahead
+-- DURING the scroll — a trailing debounce only fired after the wheel
+-- stopped, which is exactly "infinite scroll falls behind". A trailing
+-- timer still covers the final resting position.
+local function fire_scroll(id)
+    scroll_last_notify[id] = mp.get_time()
+    local node = state.byid[id]
+    if node and node.t == 'scroll' then
+        send({
+            t = 'scroll', id = id,
+            offset = state.scroll[id] or 0,
+            max = scroll_max(node),
+        })
+    end
+end
+
 local function notify_scroll(id)
     if scroll_notify_timers[id] then
-        scroll_notify_timers[id]:kill()
+        return  -- a trailing notification is already scheduled
     end
-    scroll_notify_timers[id] = mp.add_timeout(0.12, function()
-        scroll_notify_timers[id] = nil
-        local node = state.byid[id]
-        if node and node.t == 'scroll' then
-            send({
-                t = 'scroll', id = id,
-                offset = state.scroll[id] or 0,
-                max = scroll_max(node),
-            })
-        end
-    end)
+    local elapsed = mp.get_time() - (scroll_last_notify[id] or -1e9)
+    if elapsed >= SCROLL_NOTIFY_INTERVAL then
+        fire_scroll(id)
+    else
+        scroll_notify_timers[id] = mp.add_timeout(
+            SCROLL_NOTIFY_INTERVAL - elapsed,
+            function()
+                scroll_notify_timers[id] = nil
+                fire_scroll(id)
+            end)
+    end
 end
 
 local function set_scroll(node, off)

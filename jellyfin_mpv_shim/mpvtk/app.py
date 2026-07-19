@@ -11,6 +11,7 @@ import logging
 import os
 import queue
 import threading
+import time
 
 from .layout import layout, set_metrics
 from .metrics import measure_font
@@ -174,12 +175,23 @@ class MpvtkApp:
     def _render(self):
         if self.size is None or self._build is None:
             return
+        t0 = time.perf_counter()
         tree = self._build(self.size)
+        t1 = time.perf_counter()
         nodes, handlers = layout(tree, *self.size)
         self._handlers = handlers
         scene = {"v": 1, "w": self.size[0], "h": self.size[1], "nodes": nodes}
+        t2 = time.perf_counter()
         self.backend.command(
             "script-message", "mpvtk-scene", json.dumps(scene)
+        )
+        t3 = time.perf_counter()
+        log.info(
+            "render: build %.1fms, layout %.1fms, push %.1fms (%d nodes)",
+            (t1 - t0) * 1000,
+            (t2 - t1) * 1000,
+            (t3 - t2) * 1000,
+            len(nodes),
         )
         self._dirty = False
 
