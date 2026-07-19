@@ -6,6 +6,7 @@ python-mpv (libmpv in-process). The renderer script and the protocol are
 identical for both; only spawn/attach and event plumbing differ.
 """
 
+import inspect
 import json
 import logging
 import os
@@ -61,6 +62,13 @@ class JsonIpcBackend:
     def command(self, *args):
         self.mpv.command(*args)
 
+    def get_property(self, name):
+        # jsonipc: get_property is a raw IPC command with a return value
+        try:
+            return self.mpv.command("get_property", name)
+        except Exception:
+            return None
+
     def on_client_message(self, cb):
         self._cb = cb
 
@@ -104,6 +112,13 @@ class LibmpvBackend:
 
     def command(self, *args):
         self.mpv.command(*args)
+
+    def get_property(self, name):
+        # slash paths ('user-data/...') can't use attribute access
+        try:
+            return self.mpv._get_property(name)
+        except Exception:
+            return None
 
     def on_client_message(self, cb):
         self._cb = cb
@@ -179,6 +194,14 @@ class AdoptBackend:
 
     def command(self, *args):
         self.mpv.command(*args)
+
+    def get_property(self, name):
+        try:
+            if self._ext:
+                return self.mpv.command("get_property", name)
+            return self.mpv._get_property(name)
+        except Exception:
+            return None
 
     def on_client_message(self, cb):
         self._cb = cb
@@ -329,6 +352,25 @@ class MpvtkApp:
         )
         self._dirty = False
 
+    @staticmethod
+    def _wants_mods(fn):
+        """A click handler opts into the modifier payload by declaring a
+        required positional parameter (``def f(mods)``, ``lambda m: …``).
+        Zero-arg handlers and default-arg lambdas (``lambda i=item: …``)
+        keep the bare call — a default first parameter is almost always
+        a captured loop variable, not a mods slot."""
+        try:
+            sig = inspect.signature(fn)
+        except (TypeError, ValueError):
+            return False
+        for p in sig.parameters.values():
+            if p.kind == p.VAR_POSITIONAL:
+                return True
+            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD):
+                return p.default is p.empty
+            return False
+        return False
+
     def _dispatch(self, evt):
         t = evt.get("t")
         if t in ("ready", "resize"):
@@ -354,7 +396,13 @@ class MpvtkApp:
             return
         try:
             if t == "click":
-                fn()
+                if self._wants_mods(fn):
+                    fn({
+                        "shift": bool(evt.get("shift")),
+                        "ctrl": bool(evt.get("ctrl")),
+                    })
+                else:
+                    fn()
             elif t in ("change", "submit"):
                 fn(evt.get("value", ""))
             elif t == "select":
@@ -433,3 +481,12 @@ class MpvtkApp:
             "script-message", "mpvtk-scroll",
             json.dumps({"id": node_id, "dir": direction}),
         )
+
+    def scroll_offsets(self):
+        """Synchronous snapshot of the renderer's live scroll offsets
+        ``{id: px}`` — read it at build() time to window virtualized
+        content tightly instead of trailing the throttled ``on_scroll``
+        event. Empty when nothing has scrolled yet (or mpv < 0.36,
+        which lacks ``user-data``)."""
+        v = self.backend.get_property("user-data/mpvtk/scroll")
+        return v if isinstance(v, dict) else {}

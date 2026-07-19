@@ -23,6 +23,7 @@ from .widgets import (
     Menu,
     Scroll,
     Slider,
+    Stack,
     Text,
     TextBox,
 )
@@ -107,12 +108,64 @@ def ellipsize(s, size, bold, max_w):
     return "".join(out) + "…"
 
 
+def _break_word(word, size, bold, max_w):
+    """Hard-break a word wider than the line into fitting chunks."""
+    out = []
+    cur = ""
+    for ch in word:
+        if cur and text_width(cur + ch, size, bold) > max_w:
+            out.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    if cur:
+        out.append(cur)
+    return out or [""]
+
+
+def wrap_text(s, size, bold, max_w):
+    """Greedy word wrap against the measured metrics. ``\\n`` starts a
+    new paragraph (blank lines preserved); words wider than ``max_w``
+    are hard-broken."""
+    lines = []
+    for para in s.split("\n"):
+        cur = ""
+        for word in para.split():
+            trial = (cur + " " + word) if cur else word
+            if not cur or text_width(trial, size, bold) <= max_w:
+                cur = trial
+            else:
+                lines.append(cur)
+                cur = word
+            if text_width(cur, size, bold) > max_w:
+                chunks = _break_word(cur, size, bold, max_w)
+                lines.extend(chunks[:-1])
+                cur = chunks[-1]
+        lines.append(cur)
+    return lines
+
+
+def _wrap_lines(el, max_w):
+    """Wrapped lines for a Text with wrap=True, honoring max_lines
+    (the last kept line gets an ellipsis when lines were dropped)."""
+    lines = wrap_text(el.text, el.size, el.bold, max_w)
+    if el.max_lines is not None and len(lines) > el.max_lines:
+        lines = lines[: max(1, el.max_lines)]
+        lines[-1] = ellipsize(lines[-1] + "…", el.size, el.bold, max_w)
+    return lines
+
+
 SCROLLBAR_W = 10
 
 
 def measure(el):
     """Natural (width, height) of an element, ignoring flex."""
     if isinstance(el, Text):
+        if el.wrap and el.w is not None:
+            n = len(_wrap_lines(el, el.w))
+            return el.w, (
+                el.h if el.h is not None else n * el.size * LINE_H
+            )
         return (
             el.w if el.w is not None else text_width(el.text, el.size, el.bold),
             el.h if el.h is not None else el.size * LINE_H,
@@ -132,6 +185,16 @@ def measure(el):
         return w, el.h or el.size * 1.9
     if isinstance(el, (Menu, Dialog, Float)):
         return 0, 0  # floating: takes no space in flow
+    if isinstance(el, Stack):
+        mw, mh = 0.0, 0.0
+        for c in el.children:
+            cw, ch = measure(c)
+            mw = max(mw, c.w if c.w is not None else cw)
+            mh = max(mh, c.h if c.h is not None else ch)
+        return (
+            el.w if el.w is not None else mw,
+            el.h if el.h is not None else mh,
+        )
     if isinstance(el, (Slider, Busy, Icon)):
         return el.w, el.h
     if isinstance(el, Scroll):
@@ -215,19 +278,35 @@ def _base(el, t, x, y, w, h, sc, path):
 
 def _arrange(ctx, el, x, y, w, h, sc, path):
     if isinstance(el, Text):
-        node = _base(el, "text", x, y, w, h, sc, path)
-        node["text"] = ellipsize(el.text, el.size, el.bold, w)
-        node["size"] = el.size
-        node["c"] = el.color
-        node["align"] = el.align
-        if el.bold:
-            node["bold"] = True
-        if el.on_click:
-            node["click"] = True
-            _reg(ctx, node["id"], "click", el.on_click)
-        if el.hover:
-            node["hover"] = el.hover
-        ctx.nodes.append(node)
+        if el.wrap:
+            lh = el.size * LINE_H
+            lines = _wrap_lines(el, w)
+            # never overflow an assigned height that fits fewer lines
+            fit = max(1, int(h / lh + 0.001))
+            if len(lines) > fit:
+                lines = lines[:fit]
+                lines[-1] = ellipsize(
+                    lines[-1] + "…", el.size, el.bold, w
+                )
+        else:
+            lh = h
+            lines = [ellipsize(el.text, el.size, el.bold, w)]
+        base_id = el.id or path
+        for i, ln in enumerate(lines):
+            node = _base(el, "text", x, y + i * lh, w, lh, sc, path)
+            node["id"] = base_id if i == 0 else "%s.l%d" % (base_id, i)
+            node["text"] = ln
+            node["size"] = el.size
+            node["c"] = el.color
+            node["align"] = el.align
+            if el.bold:
+                node["bold"] = True
+            if el.on_click:
+                node["click"] = True
+                _reg(ctx, node["id"], "click", el.on_click)
+            if el.hover:
+                node["hover"] = el.hover
+            ctx.nodes.append(node)
         return
 
     if isinstance(el, Image):
@@ -271,6 +350,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
                 rnode["sc"] = sc
             if reg.get("on_click"):
                 rnode["click"] = True
+                if reg.get("repeat"):
+                    rnode["rpt"] = True
                 _reg(ctx, rid, "click", reg["on_click"])
             if reg.get("on_context"):
                 rnode["ctx"] = True
@@ -411,6 +492,49 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         _arrange(ctx, el.child, x, y, cw, ch, node["id"], path + ".0")
         return
 
+    if isinstance(el, Stack):
+        for i, c in enumerate(el.children):
+            mw, mh = measure(c)
+            cw = c.w if c.w is not None else mw
+            ch = c.h if c.h is not None else mh
+            a = c.anchor
+            if a is None or a == "fill":
+                cx, cy, cw, ch = x, y, w, h
+            else:
+                cw, ch = min(cw, w), min(ch, h)
+                if a in ("n", "c", "s"):
+                    cx = x + (w - cw) / 2
+                elif a in ("ne", "e", "se"):
+                    cx = x + w - cw
+                else:
+                    cx = x
+                if a in ("w", "c", "e"):
+                    cy = y + (h - ch) / 2
+                elif a in ("sw", "s", "se"):
+                    cy = y + h - ch
+                else:
+                    cy = y
+            cx += c.dx
+            cy += c.dy
+            cpath = "%s.%d" % (path, i)
+            if c.occlude:
+                # marker consumed by the renderer: this child's rect is
+                # subtracted from IMAGE nodes earlier in paint order, so
+                # ASS-drawn content can sit "over" a bitmap sibling
+                occ = {
+                    "t": "occ",
+                    "id": cpath + ".occ",
+                    "x": _round(cx),
+                    "y": _round(cy),
+                    "w": _round(cw),
+                    "h": _round(ch),
+                }
+                if sc:
+                    occ["sc"] = sc
+                ctx.nodes.append(occ)
+            _arrange(ctx, c, cx, cy, cw, ch, sc, cpath)
+        return
+
     if isinstance(el, Box):
         if el.bg or el.border or el.on_click:
             node = _base(el, "rect", x, y, w, h, sc, path)
@@ -425,6 +549,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
                 node["bw"] = el.border_w
             if el.on_click:
                 node["click"] = True
+                if el.repeat:
+                    node["rpt"] = True
                 _reg(ctx, node["id"], "click", el.on_click)
             if el.hover:
                 node["hover"] = el.hover
@@ -452,6 +578,11 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             flex_total += c.flex
         elif fixed is not None:
             sizes.append(float(fixed))
+        elif isinstance(c, Text) and c.wrap and not row:
+            # a wrapped Text's height depends on the width it will get
+            wrap_w = c.w if c.w is not None else max(1.0, inner_cross)
+            n = len(_wrap_lines(c, wrap_w))
+            sizes.append(float(n * c.size * LINE_H))
         else:
             mw, mh = measure(c)
             sizes.append(float(mw if row else mh))

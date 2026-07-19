@@ -14,11 +14,19 @@ renderer-side state survives structural changes to the tree.
 
 
 class Element:
-    def __init__(self, id=None, w=None, h=None, flex=0):
+    """``anchor``/``dx``/``dy``/``occlude`` only apply to direct children
+    of a :class:`Stack` (see its docstring); they are inert elsewhere."""
+
+    def __init__(self, id=None, w=None, h=None, flex=0,
+                 anchor=None, dx=0, dy=0, occlude=False):
         self.id = id
         self.w = w
         self.h = h
         self.flex = flex
+        self.anchor = anchor
+        self.dx = dx
+        self.dy = dy
+        self.occlude = occlude
 
 
 class Box(Element):
@@ -38,6 +46,7 @@ class Box(Element):
         border_w=1,
         on_click=None,
         hover=None,  # style overrides while hovered, e.g. {"fill": "334455"}
+        repeat=False,  # hold-repeat: on_click refires while held down
         **kw,
     ):
         super().__init__(**kw)
@@ -53,6 +62,7 @@ class Box(Element):
         self.border_w = border_w
         self.on_click = on_click
         self.hover = hover
+        self.repeat = repeat
 
 
 class Row(Box):
@@ -78,6 +88,12 @@ class Spacer(Element):
 
 
 class Text(Element):
+    """``wrap=True`` word-wraps to the laid-out width instead of
+    ellipsizing, emitting one scene line per wrapped line (``\\n`` starts
+    a new paragraph). ``max_lines`` caps the line count; the last kept
+    line is ellipsized. A wrapped Text takes its width from the parent
+    (give it ``w=`` or put it in a width-constrained column)."""
+
     def __init__(
         self,
         text,
@@ -87,6 +103,8 @@ class Text(Element):
         align="left",
         on_click=None,
         hover=None,
+        wrap=False,
+        max_lines=None,
         **kw,
     ):
         super().__init__(**kw)
@@ -97,6 +115,8 @@ class Text(Element):
         self.align = align
         self.on_click = on_click
         self.hover = hover
+        self.wrap = wrap
+        self.max_lines = max_lines
 
 
 class Image(Element):
@@ -271,6 +291,111 @@ class Checkbox(Row):
         super().__init__(
             [box, Text(label, size=size)], on_click=on_toggle, **kw
         )
+
+
+class Stack(Element):
+    """Children share this element's rect; later children paint above
+    earlier ones and everything scrolls with the page (unlike Float,
+    which is screen-absolute). Per-child placement comes from the
+    child's own ``anchor`` ("nw" "n" "ne" "w" "c" "e" "sw" "s" "se", or
+    None to fill the whole rect) plus ``dx``/``dy`` pixel offsets.
+
+    Z-order caveats (GUIDE §6): a bitmap child over a bitmap sibling
+    works (the renderer keeps overlay slots in paint order). An
+    ASS-drawn child (Text/Icon/Box) can NOT composite over an Image
+    sibling directly — mark it ``occlude=True`` and its rect is
+    subtracted from earlier image siblings, so it draws in the hole
+    (give it an opaque bg; whatever the hole reveals is the window
+    background). Without ``occlude`` the image wins.
+    """
+
+    def __init__(self, children=None, **kw):
+        super().__init__(**kw)
+        self.children = children or []
+
+
+class Table(Column):
+    """Header + body rows generated from ONE column spec, so header and
+    cell geometry can never drift apart.
+
+    ``columns``: list of dicts — ``{"label": str, "w": px}`` or
+    ``{"label": str, "flex": n}``, optional ``"align"``
+    ("left"/"center"/"right", default left).
+
+    ``rows``: list of dicts —
+    ``{"cells": [str | Element, ...], "id": optional, "selected": bool,
+    "on_click": fn}``. ``on_click`` may declare one required parameter
+    to receive the click modifier dict ``{"shift": bool, "ctrl": bool}``
+    for range/additive selection (see MpvtkApp click dispatch);
+    zero-arg callables keep the bare call.
+    """
+
+    def __init__(
+        self,
+        columns,
+        rows,
+        row_h=36,
+        header_h=30,
+        size=18,
+        header_size=15,
+        header_fg="9a9a9a",
+        fg="eeeeee",
+        selected_bg="2f4468",
+        hover_bg="333333",
+        gap=12,
+        pad_x=10,
+        **kw,
+    ):
+        def cell(col, content, text_size, color):
+            if isinstance(content, Element):
+                inner = content
+            else:
+                inner = Text(
+                    str(content),
+                    size=text_size,
+                    color=color,
+                    align=col.get("align", "left"),
+                    flex=1,
+                )
+            return Box(
+                [inner],
+                direction="row",
+                align="center",
+                w=col.get("w"),
+                flex=col.get("flex", 0) if col.get("w") is None else 0,
+            )
+
+        def margin():
+            return Spacer(w=pad_x, h=1)
+
+        header = Row(
+            [margin()]
+            + [cell(c, c.get("label", ""), header_size, header_fg)
+               for c in columns]
+            + [margin()],
+            h=header_h,
+            gap=gap,
+            align="stretch",
+        )
+        body = []
+        for i, row in enumerate(rows):
+            body.append(
+                Row(
+                    [margin()]
+                    + [cell(c, v, size, fg)
+                       for c, v in zip(columns, row.get("cells", []))]
+                    + [margin()],
+                    id=row.get("id"),
+                    h=row_h,
+                    gap=gap,
+                    align="stretch",
+                    bg=selected_bg if row.get("selected") else None,
+                    hover={"fill": hover_bg} if row.get("on_click") else None,
+                    on_click=row.get("on_click"),
+                    radius=4,
+                )
+            )
+        super().__init__([header] + body, **kw)
 
 
 class Float(Element):

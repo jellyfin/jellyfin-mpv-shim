@@ -6,12 +6,17 @@
 --   mpvtk-scene  (py -> lua): JSON scene, see layout.py for node shapes.
 --   mpvtk-event  (lua -> py): JSON events:
 --       {t=ready|resize, w, h}
---       {t=click, id} {t=change|submit, id, value}
+--       {t=click, id, shift?, ctrl?} {t=change|submit, id, value}
 --       {t=select, id, index, value}
 --       {t=debug_state, ...} (reply to mpvtk-debug state)
 --   mpvtk-debug  (py -> lua): test hooks, JSON:
 --       {cmd=hover|click, id=...} {cmd=wheel, id=..., dir=1|-1, steps=n}
 --       {cmd=text, s="..."} {cmd=key, name="BS"} {cmd=state}
+--
+-- Scroll offsets are additionally mirrored into the
+-- 'user-data/mpvtk/scroll' property on every change, so the Python side
+-- can read them synchronously (tight virtualization windows) instead of
+-- waiting for the throttled scroll event.
 --
 -- Renderer-local state (scroll offsets, textbox edits, dropdown
 -- selection, focus) survives scene pushes, keyed by node id; a node
@@ -51,6 +56,8 @@ local state = {
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
     pressed = nil,          -- node id armed by mbtn down
+    mods = {},              -- {shift, ctrl} of the current mouse press
+    rpt = nil,              -- {id, timer} while a hold-repeat is armed
     drag = nil,             -- {sc=id, axis, start_m, start_off} scrollbar drag
     scroll = {},            -- id -> offset (px)
     tb = {},                -- id -> {text, cursor, shift}
@@ -321,8 +328,10 @@ local function draw_icon_path(ass, path, x, y, px, color, clip)
     ass:append('{\\p0}')
 end
 
-local overlay_list  -- rebuilt per render: {slot -> args}
-local occluders     -- rects (popup) that must appear above images
+local overlay_list  -- rebuilt per render: paint-ordered {key, args, rect}
+local occluders     -- rects (popup/menu/layer) above ALL images
+local flow_occs     -- Stack occlude markers: {i=scene idx, x1..y2};
+                    -- subtracted only from images EARLIER in paint order
 
 -- Subtract rect o from rect r; appends up to 4 remainder rects to out.
 local function subtract_rect(r, o, out)
@@ -348,7 +357,7 @@ local function subtract_rect(r, o, out)
     end
 end
 
-local function draw_image(node, ex, ey, clip)
+local function draw_image(node, ex, ey, clip, idx)
     -- Crop the source so only the part inside the clip is shown.
     -- CRITICAL: never let the crop exceed the source pixel size (iw/ih)
     -- — mpv mmaps the file and reading past EOF is a SIGBUS crash.
@@ -365,6 +374,17 @@ local function draw_image(node, ex, ey, clip)
             subtract_rect(p, occ, next_pieces)
         end
         pieces = next_pieces
+    end
+    -- Stack occluders only punch images painted BELOW them; images
+    -- later in paint order sit above the ASS anyway (higher slot).
+    for _, occ in ipairs(flow_occs) do
+        if idx and occ.i > idx then
+            local next_pieces = {}
+            for _, p in ipairs(pieces) do
+                subtract_rect(p, occ, next_pieces)
+            end
+            pieces = next_pieces
+        end
     end
     local stride = node.iw * 4
     local pidx = 0
@@ -393,6 +413,7 @@ local function draw_image(node, ex, ey, clip)
             overlay_list[#overlay_list + 1] = {
                 key = node.id .. '#' .. pidx,
                 v = node.v,
+                x1 = px1, y1 = py1, x2 = px2, y2 = py2,
                 args = {
                     tostring(px1), tostring(py1), src,
                     tostring(offset), 'bgra',
@@ -409,6 +430,46 @@ end
 -- scroll materializing new rows) only touch genuinely new or departed
 -- overlays instead of churning every slot — that churn was visible as
 -- flicker of already-displayed content.
+--
+-- Z-ORDER: mpv composites overlay slots in ascending id order, so slot
+-- order IS bitmap stacking order. Sticky assignment ignores that, which
+-- is fine while bitmaps never overlap (grids/strips). When two
+-- OVERLAPPING overlays' slot order contradicts paint order (a Stack
+-- floating a bitmap over a strip), the whole set is renumbered to paint
+-- order once and stickiness resumes from there. Adds are still issued
+-- before removes (remove-before-add showed as a one-frame hole).
+local function rects_overlap(a, b)
+    return a.x1 < b.x2 and b.x1 < a.x2 and a.y1 < b.y2 and b.y1 < a.y2
+end
+
+local function ov_argstr(ov)
+    -- v busts the cache when a file was rewritten in place
+    return table.concat(ov.args, '\0') .. '\0' .. (ov.v or 0)
+end
+
+local function renumber_overlays()
+    -- Re-issue every overlay at slot = paint index. overlay-adds are
+    -- idempotent per slot (skipped when args match) and happen before
+    -- any remove, so already-correct content never blinks.
+    local ns, nk, nl = {}, {}, {}
+    for i, ov in ipairs(overlay_list) do
+        local slot = i - 1
+        local argstr = ov_argstr(ov)
+        if state.ov_last[slot] ~= argstr then
+            mp.commandv('overlay-add', tostring(slot), unpack(ov.args))
+        end
+        ns[ov.key] = slot
+        nk[slot] = ov.key
+        nl[slot] = argstr
+    end
+    for slot = 0, MAX_OVERLAYS - 1 do
+        if state.ov_keys[slot] and not nk[slot] then
+            mp.commandv('overlay-remove', tostring(slot))
+        end
+    end
+    state.ov_slots, state.ov_keys, state.ov_last = ns, nk, nl
+end
+
 local function flush_overlays()
     local wanted = {}
     for _, ov in ipairs(overlay_list) do
@@ -425,6 +486,7 @@ local function flush_overlays()
             freeable[#freeable + 1] = slot
         end
     end
+    -- phase 1: assign slots (sticky; new keys take free slots)
     local next_free = 1
     for _, ov in ipairs(overlay_list) do
         local slot = state.ov_slots[ov.key]
@@ -448,13 +510,36 @@ local function flush_overlays()
                 state.ov_keys[slot] = ov.key
             end
         end
-        if slot ~= nil then
-            -- v busts the cache when a file was rewritten in place
-            local argstr = table.concat(ov.args, '\0') ..
-                '\0' .. (ov.v or 0)
-            if state.ov_last[slot] ~= argstr then
-                state.ov_last[slot] = argstr
-                mp.commandv('overlay-add', tostring(slot),
+        ov.slot = slot
+    end
+    -- phase 2: does any overlapping pair stack in the wrong order?
+    local bad = false
+    for i = 1, #overlay_list do
+        local a = overlay_list[i]
+        if a.slot then
+            for j = i + 1, #overlay_list do
+                local b = overlay_list[j]
+                if b.slot and b.slot < a.slot and
+                    rects_overlap(a, b) then
+                    bad = true
+                    break
+                end
+            end
+        end
+        if bad then break end
+    end
+    if bad then
+        renumber_overlays()
+        state.ov_used = #overlay_list
+        return
+    end
+    -- phase 3: issue changed overlays, then free departed slots
+    for _, ov in ipairs(overlay_list) do
+        if ov.slot ~= nil then
+            local argstr = ov_argstr(ov)
+            if state.ov_last[ov.slot] ~= argstr then
+                state.ov_last[ov.slot] = argstr
+                mp.commandv('overlay-add', tostring(ov.slot),
                     unpack(ov.args))
             end
         end
@@ -890,6 +975,7 @@ render = function()
     compute_geo()
     overlay_list = {}
     occluders = {}
+    flow_occs = {}
     state.bars = {}
     state.dd_geo = nil
     state.menu_geo = nil
@@ -938,8 +1024,29 @@ render = function()
             }
         end
     end
+    -- Stack occlude markers: punch ASS children through image siblings
+    -- painted below them (clipped to their scroll viewport)
+    for i, node in ipairs(state.nodes) do
+        if node.t == 'occ' then
+            local ex, ey, c = eff(node)
+            local r = {
+                i = i,
+                x1 = ex, y1 = ey,
+                x2 = ex + node.w, y2 = ey + node.h,
+            }
+            if c then
+                r.x1 = math.max(r.x1, c.x1)
+                r.y1 = math.max(r.y1, c.y1)
+                r.x2 = math.min(r.x2, c.x2)
+                r.y2 = math.min(r.y2, c.y2)
+            end
+            if r.x2 > r.x1 and r.y2 > r.y1 then
+                flow_occs[#flow_occs + 1] = r
+            end
+        end
+    end
     busy_visible = false
-    local function draw_node(ass, node)
+    local function draw_node(ass, node, idx)
         local ex, ey, clip = eff(node)
         if node.t == 'rect' then
             local hs = hover_style(node)
@@ -965,7 +1072,7 @@ render = function()
             draw_text(ass, node, ex, ey, clip, node.text,
                 (hs and hs.c) or node.c)
         elseif node.t == 'img' then
-            draw_image(node, ex, ey, clip)
+            draw_image(node, ex, ey, clip, idx)
             local hs = hover_style(node)
             if hs and hs.bc then
                 -- bitmaps sit above ASS: the ring must be fully outside
@@ -990,10 +1097,10 @@ render = function()
         end
     end
     local ass = assdraw.ass_new()
-    local skip = { scroll = true, menu = true, layer = true }
-    for _, node in ipairs(state.nodes) do
+    local skip = { scroll = true, menu = true, layer = true, occ = true }
+    for i, node in ipairs(state.nodes) do
         if not skip[node.t] and not node.top and visible(node) then
-            draw_node(ass, node)
+            draw_node(ass, node, i)
         end
     end
     for _, node in ipairs(state.nodes) do
@@ -1002,10 +1109,10 @@ render = function()
         end
     end
     -- top layer: dialog / toast content above everything in flow
-    for _, node in ipairs(state.nodes) do
+    for i, node in ipairs(state.nodes) do
         if node.top and not skip[node.t] and
             not (node.mod and state.modal_hidden) and visible(node) then
-            draw_node(ass, node)
+            draw_node(ass, node, i)
         end
     end
     for _, node in ipairs(state.nodes) do
@@ -1448,10 +1555,19 @@ local function notify_scroll(id)
     end
 end
 
+-- Mirror scroll offsets into a property the Python side can read
+-- SYNCHRONOUSLY at build() time (tight virtualization windows; the
+-- throttled scroll event is the async path). user-data needs mpv >=
+-- 0.36; a failed set is harmless on older builds.
+local function publish_scroll()
+    pcall(mp.set_property_native, 'user-data/mpvtk/scroll', state.scroll)
+end
+
 local function set_scroll(node, off)
     off = clamp(off, 0, scroll_max(node))
     if state.scroll[node.id] ~= off then
         state.scroll[node.id] = off
+        publish_scroll()
         if node.watch then notify_scroll(node.id) end
         request_render()
     end
@@ -1527,6 +1643,45 @@ local function dismiss_menu(idx)
     end
     request_render()
     return true
+end
+
+-- Click payload carries the modifier state of the press (shift/ctrl
+-- range and additive selection in tables). Omitted when unset.
+local function send_click(node)
+    local m = state.mods or {}
+    send({
+        t = 'click', id = node.id,
+        shift = m.shift or nil, ctrl = m.ctrl or nil,
+    })
+end
+
+-- Hold-repeat (node.rpt): fire on press, then refire while held and
+-- still over the control (leaving pauses it; returning resumes).
+local REPEAT_DELAY = 0.4
+local REPEAT_IVL = 0.12
+
+local function stop_repeat()
+    if state.rpt then
+        state.rpt.timer:kill()
+        state.rpt = nil
+    end
+end
+
+local function start_repeat(node)
+    stop_repeat()
+    local id = node.id
+    local mods = state.mods
+    send_click(node)
+    local function tick()
+        local n = state.byid[id]
+        local under = node_at(state.mouse.x, state.mouse.y)
+        if n and n.click and n.rpt and under and under.id == id then
+            state.mods = mods
+            send_click(n)
+        end
+        state.rpt = { id = id, timer = mp.add_timeout(REPEAT_IVL, tick) }
+    end
+    state.rpt = { id = id, timer = mp.add_timeout(REPEAT_DELAY, tick) }
 end
 
 local function on_mouse_down()
@@ -1628,6 +1783,11 @@ local function on_mouse_down()
         return
     end
     if node.click then
+        if node.rpt then
+            -- repeat buttons fire on PRESS (and refire while held);
+            -- the release is swallowed in on_mouse_up
+            start_repeat(node)
+        end
         state.pressed = node.id
     end
 end
@@ -1646,10 +1806,15 @@ local function on_mouse_up()
         state.drag = nil
         return
     end
+    if state.rpt then
+        stop_repeat()  -- press already fired; no click on release
+        state.pressed = nil
+        return
+    end
     if state.pressed then
         local node = node_at(state.mouse.x, state.mouse.y)
         if node and node.id == state.pressed then
-            send({ t = 'click', id = node.id })
+            send_click(node)
         end
         state.pressed = nil
     end
@@ -1747,10 +1912,26 @@ local function on_rclick()
     end
 end
 
+-- Modified presses are distinct mpv keys; each variant records its
+-- modifier set before the shared handlers run. The _dbl variants are
+-- bound (as no-ops for modified ones) so they can't fall through to
+-- the player's defaults while browsing.
+local function mouse_pair(shift, ctrl)
+    local function set()
+        state.mods = { shift = shift, ctrl = ctrl }
+    end
+    return function() set(); on_mouse_up() end,
+        function() set(); on_mouse_down() end
+end
+
 mp.set_key_bindings({
-    { 'mbtn_left', function() on_mouse_up() end,
-      function() on_mouse_down() end },
+    { 'mbtn_left', mouse_pair(false, false) },
+    { 'shift+mbtn_left', mouse_pair(true, false) },
+    { 'ctrl+mbtn_left', mouse_pair(false, true) },
+    { 'ctrl+shift+mbtn_left', mouse_pair(true, true) },
     { 'mbtn_left_dbl', function() on_dbl() end },
+    { 'shift+mbtn_left_dbl', function() end },
+    { 'ctrl+mbtn_left_dbl', function() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
@@ -1812,6 +1993,7 @@ local function reconcile()
             state.scroll[id] = nil
         end
     end
+    publish_scroll()
     for id in pairs(state.tb) do
         local node = state.byid[id]
         if not node or node.t ~= 'textbox' then state.tb[id] = nil end
@@ -1915,6 +2097,8 @@ mp.register_script_message('mpvtk-active', function(on)
         end)
     else
         blur()                    -- drops the text-edit bindings + caret timer
+        stop_repeat()
+        state.pressed = nil
         state.dd_open = nil
         state.tb_menu = nil
         state.modal = nil
@@ -1968,9 +2152,13 @@ mp.register_script_message('mpvtk-debug', function(json)
             x, y = cmd.x, cmd.y
         end
         if x then
+            state.mods = {
+                shift = cmd.shift or false, ctrl = cmd.ctrl or false,
+            }
             on_mouse_move(x, y)
             on_mouse_down()
             on_mouse_up()
+            state.mods = {}
         end
     elseif cmd.cmd == 'hud' then
         state.hud = not state.hud
