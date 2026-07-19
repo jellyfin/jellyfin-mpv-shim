@@ -99,18 +99,49 @@ class Image(Element):
 
     ``src`` is the path to the raw file, ``iw``/``ih`` its pixel size.
     The display size is w/h; keep them equal to iw/ih (the renderer does
-    not scale — pre-scale with Pillow when rasterizing).
+    not scale — pre-scale with Pillow when rasterizing). ``v`` is a
+    content version: bump it when rewriting the same path in place so
+    the renderer re-reads the file (content-keyed filenames don't need
+    it).
     """
 
-    def __init__(self, src, iw, ih, on_click=None, hover=None, **kw):
+    def __init__(self, src, iw, ih, on_click=None, hover=None, v=0, **kw):
         kw.setdefault("w", iw)
         kw.setdefault("h", ih)
         super().__init__(**kw)
         self.src = src
         self.iw = iw
         self.ih = ih
+        self.v = v
         self.on_click = on_click
         self.hover = hover
+
+
+class ImageMap(Element):
+    """A composited bitmap with interactive sub-regions.
+
+    This is the scalable way to draw tile strips: Python bakes a whole
+    row of posters — captions, progress bars, badges included — into
+    ONE image (dodging both the 63-overlay budget and the
+    bitmaps-above-ASS z-order), and declares the clickable tile areas
+    as regions. Each region dict (image-local coords):
+
+        {"id": ..., "x":, "y":, "w":, "h":,
+         "on_click": fn, "on_context": fn, "hover": {"bc": ...}}
+
+    Regions become transparent hit-rects whose hover ring draws OUTSIDE
+    their bounds (the bitmap would cover an inline ring).
+    """
+
+    def __init__(self, src, iw, ih, regions=None, v=0, **kw):
+        kw.setdefault("w", iw)
+        kw.setdefault("h", ih)
+        super().__init__(**kw)
+        self.src = src
+        self.iw = iw
+        self.ih = ih
+        self.v = v
+        self.regions = regions or []
 
 
 class Button(Box):

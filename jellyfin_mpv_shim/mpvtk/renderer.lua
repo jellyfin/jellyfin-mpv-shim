@@ -268,11 +268,13 @@ end
 
 local function draw_image(node, ex, ey, clip)
     -- Crop the source so only the part inside the clip is shown.
+    -- CRITICAL: never let the crop exceed the source pixel size (iw/ih)
+    -- — mpv mmaps the file and reading past EOF is a SIGBUS crash.
     clip = clip or { x1 = 0, y1 = 0, x2 = state.w, y2 = state.h }
     local x1 = math.max(ex, clip.x1)
     local y1 = math.max(ey, clip.y1)
-    local x2 = math.min(ex + node.w, clip.x2)
-    local y2 = math.min(ey + node.h, clip.y2)
+    local x2 = math.min(ex + math.min(node.w, node.iw), clip.x2)
+    local y2 = math.min(ey + math.min(node.h, node.ih), clip.y2)
     if x2 - x1 < 1 or y2 - y1 < 1 then return end
     local pieces = { { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } }
     for _, occ in ipairs(occluders) do
@@ -295,21 +297,25 @@ local function draw_image(node, ex, ey, clip)
                 return
             end
             overlay_list[#overlay_list + 1] = {
-                tostring(px1), tostring(py1), node.src,
-                tostring(sy * stride + sx * 4), 'bgra',
-                tostring(px2 - px1), tostring(py2 - py1),
-                tostring(stride),
+                v = node.v,
+                args = {
+                    tostring(px1), tostring(py1), node.src,
+                    tostring(sy * stride + sx * 4), 'bgra',
+                    tostring(px2 - px1), tostring(py2 - py1),
+                    tostring(stride),
+                },
             }
         end
     end
 end
 
 local function flush_overlays()
-    for i, args in ipairs(overlay_list) do
-        local key = table.concat(args, '\0')
+    for i, ov in ipairs(overlay_list) do
+        -- v busts the cache when a file was rewritten in place
+        local key = table.concat(ov.args, '\0') .. '\0' .. (ov.v or 0)
         if state.ov_last[i] ~= key then
             state.ov_last[i] = key
-            mp.commandv('overlay-add', tostring(i - 1), unpack(args))
+            mp.commandv('overlay-add', tostring(i - 1), unpack(ov.args))
         end
     end
     for i = #overlay_list + 1, state.ov_used do
@@ -483,12 +489,23 @@ render = function()
         local ex, ey, clip = eff(node)
         if node.t == 'rect' then
             local hs = hover_style(node)
-            draw_rect(ass, ex, ey, node.w, node.h, {
-                fill = (hs and hs.fill) or node.fill,
-                a = node.a, radius = node.radius,
-                bc = (hs and hs.bc) or node.bc, bw = node.bw,
-                clip = clip,
-            })
+            if node.ring then
+                -- hit-rect over a bitmap: only a hover ring, outside
+                if hs and hs.bc then
+                    draw_rect(ass, ex - 2, ey - 2,
+                        node.w + 4, node.h + 4, {
+                            bc = hs.bc, bw = hs.bw or 3,
+                            radius = 3, clip = clip,
+                        })
+                end
+            elseif node.fill or node.bc or hs then
+                draw_rect(ass, ex, ey, node.w, node.h, {
+                    fill = (hs and hs.fill) or node.fill,
+                    a = node.a, radius = node.radius,
+                    bc = (hs and hs.bc) or node.bc, bw = node.bw,
+                    clip = clip,
+                })
+            end
         elseif node.t == 'text' then
             local hs = hover_style(node)
             draw_text(ass, node, ex, ey, clip, node.text,
@@ -540,8 +557,8 @@ local function node_at(x, y)
     for i = #state.nodes, 1, -1 do
         local node = state.nodes[i]
         if node.t ~= 'scroll' and
-            (node.click or node.t == 'textbox' or node.t == 'dropdown' or
-             node.hover) then
+            (node.click or node.ctx or node.t == 'textbox' or
+             node.t == 'dropdown' or node.hover) then
             local ex, ey, clip = eff(node)
             if point_in(x, y, ex, ey, node.w, node.h, clip) then
                 return node

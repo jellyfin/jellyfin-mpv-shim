@@ -15,6 +15,7 @@ from .widgets import (
     Dropdown,
     Element,
     Image,
+    ImageMap,
     Scroll,
     Text,
     TextBox,
@@ -71,7 +72,7 @@ def measure(el):
             el.w if el.w is not None else text_width(el.text, el.size, el.bold),
             el.h if el.h is not None else el.size * LINE_H,
         )
-    if isinstance(el, Image):
+    if isinstance(el, (Image, ImageMap)):
         return el.w, el.h
     if isinstance(el, TextBox):
         return el.w or 240, el.h or el.size * 1.9
@@ -179,16 +180,52 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         return
 
     if isinstance(el, Image):
+        # containers may assign a stretched size; images never stretch
+        w, h = min(w, el.iw), min(h, el.ih)
         node = _base(el, "img", x, y, w, h, sc, path)
         node["src"] = el.src
         node["iw"] = el.iw
         node["ih"] = el.ih
+        if el.v:
+            node["v"] = el.v
         if el.on_click:
             node["click"] = True
             _reg(ctx, node["id"], "click", el.on_click)
         if el.hover:
             node["hover"] = el.hover
         ctx.nodes.append(node)
+        return
+
+    if isinstance(el, ImageMap):
+        w, h = min(w, el.iw), min(h, el.ih)
+        node = _base(el, "img", x, y, w, h, sc, path)
+        node["src"] = el.src
+        node["iw"] = el.iw
+        node["ih"] = el.ih
+        if el.v:
+            node["v"] = el.v
+        ctx.nodes.append(node)
+        for i, reg in enumerate(el.regions):
+            rid = reg.get("id") or "%s.r%d" % (node["id"], i)
+            rnode = {
+                "t": "rect",
+                "id": rid,
+                "x": _round(x + reg["x"]),
+                "y": _round(y + reg["y"]),
+                "w": _round(reg["w"]),
+                "h": _round(reg["h"]),
+                "ring": True,
+            }
+            if sc:
+                rnode["sc"] = sc
+            if reg.get("on_click"):
+                rnode["click"] = True
+                _reg(ctx, rid, "click", reg["on_click"])
+            if reg.get("on_context"):
+                rnode["ctx"] = True
+                _reg(ctx, rid, "context", reg["on_context"])
+            rnode["hover"] = reg.get("hover", {"bc": "7aa2f7", "bw": 3})
+            ctx.nodes.append(rnode)
         return
 
     if isinstance(el, TextBox):

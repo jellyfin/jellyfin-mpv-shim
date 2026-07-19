@@ -1,5 +1,9 @@
-"""mpvtk demo: exercises tiles, h/v scrolling, scrollbar, textbox and
-dropdown against generated placeholder posters.
+"""mpvtk demo: exercises tile strips, h/v scrolling, scrollbar, textbox
+and dropdown against generated placeholder posters.
+
+Tiles are NOT individual overlays: whole rows are composited into one
+BGRA strip per row (captions, progress bars and unwatched badges baked
+in — see README "z-order"), with ImageMap hit-regions for interaction.
 
 Run:  python3 -m jellyfin_mpv_shim.mpvtk [--backend libmpv]
 Selftest (headless-friendly, writes screenshots + assertions):
@@ -17,12 +21,11 @@ import time
 from .app import MpvtkApp
 from .rawimage import write_bgra
 from .widgets import (
-    Box,
     Button,
     Column,
     Dropdown,
     HScroll,
-    Image,
+    ImageMap,
     Row,
     Spacer,
     Text,
@@ -33,6 +36,9 @@ from .widgets import (
 log = logging.getLogger("mpvtk.demo")
 
 TILE_W, TILE_H = 140, 200
+TILE_GAP = 14
+CAPTION_H = 44
+STRIP_H = TILE_H + CAPTION_H
 
 _ADJ = ["Amber", "Broken", "Crimson", "Distant", "Electric", "Frozen",
         "Gilded", "Hollow", "Iron", "Jade", "Kindred", "Lunar", "Midnight",
@@ -55,16 +61,27 @@ def _titles(n):
     return out
 
 
-def make_posters(cache_dir, n):
-    """Generate n placeholder posters; returns [{src, title, year}]."""
-    from PIL import Image as PILImage, ImageDraw, ImageFont
+def _fonts():
+    from PIL import ImageFont
 
     try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 44)
-        small = ImageFont.truetype("DejaVuSans.ttf", 16)
+        return {
+            "num": ImageFont.truetype("DejaVuSans-Bold.ttf", 44),
+            "label": ImageFont.truetype("DejaVuSans.ttf", 16),
+            "cap": ImageFont.truetype("DejaVuSans.ttf", 15),
+            "sub": ImageFont.truetype("DejaVuSans.ttf", 13),
+            "badge": ImageFont.truetype("DejaVuSans-Bold.ttf", 14),
+        }
     except OSError:
-        font = small = ImageFont.load_default()
+        f = ImageFont.load_default()
+        return {k: f for k in ("num", "label", "cap", "sub", "badge")}
 
+
+def make_library(n):
+    """Generate n items with in-memory PIL posters + fake metadata."""
+    from PIL import Image as PILImage, ImageDraw
+
+    fonts = _fonts()
     rnd = random.Random(11)
     items = []
     for i, title in enumerate(_titles(n)):
@@ -88,32 +105,139 @@ def make_posters(cache_dir, n):
         dr.text(
             (TILE_W // 2, TILE_H // 2 - 10),
             str(i + 1),
-            font=font,
+            font=fonts["num"],
             anchor="mm",
             fill=(240, 240, 240),
-        )
-        dr.text(
-            (TILE_W // 2, TILE_H - 24),
-            title.split()[0],
-            font=small,
-            anchor="mm",
-            fill=(220, 220, 220),
         )
         dr.rectangle(
             [0, 0, TILE_W - 1, TILE_H - 1], outline=(20, 20, 20)
         )
-        src = os.path.join(cache_dir, "poster%d.bgra" % i)
-        write_bgra(img, src)
         items.append(
-            {"src": src, "title": title, "year": 1980 + rnd.randrange(45)}
+            {
+                "idx": i,
+                "poster": img,
+                "title": title,
+                "year": 1980 + rnd.randrange(45),
+                # decorations exercised by strip baking:
+                "progress": (rnd.random() if rnd.random() < 0.3 else 0.0),
+                "badge": (rnd.randrange(2, 9) if rnd.random() < 0.2 else 0),
+                "watched": False,
+            }
         )
     return items
+
+
+class StripStore:
+    """Bakes a list of tiles into one BGRA strip file, content-keyed.
+
+    Decorations (progress, badge, watched) are part of the key, so
+    changing one re-composites that strip under a new filename — the
+    renderer's overlay cache never sees stale content.
+    """
+
+    def __init__(self, cache_dir):
+        self.dir = cache_dir
+        self.fonts = _fonts()
+        self._cache = {}
+        self._counter = 0
+
+    def _ellipsize(self, dr, text, font, max_w):
+        if dr.textlength(text, font=font) <= max_w:
+            return text
+        while text and dr.textlength(text + "…", font=font) > max_w:
+            text = text[:-1]
+        return text + "…"
+
+    def strip(self, items):
+        key = tuple(
+            (it["idx"], round(it["progress"], 2), it["badge"],
+             it["watched"])
+            for it in items
+        )
+        hit = self._cache.get(key)
+        if hit:
+            return hit
+        from PIL import Image as PILImage, ImageDraw
+
+        n = len(items)
+        iw = n * TILE_W + (n - 1) * TILE_GAP if n else 1
+        img = PILImage.new("RGBA", (iw, STRIP_H), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        regions = []
+        for col, it in enumerate(items):
+            x = col * (TILE_W + TILE_GAP)
+            img.paste(it["poster"], (x, 0))
+            if it["watched"]:
+                # watched checkmark chip, top-left
+                dr.ellipse(
+                    [x + 6, 6, x + 26, 26], fill=(40, 160, 70, 255)
+                )
+                dr.line(
+                    [(x + 11, 16), (x + 15, 20), (x + 21, 11)],
+                    fill=(255, 255, 255, 255),
+                    width=2,
+                )
+            if it["badge"]:
+                # unwatched-count badge, top-right
+                bw = 26
+                dr.rounded_rectangle(
+                    [x + TILE_W - bw - 5, 5, x + TILE_W - 5, 25],
+                    radius=6,
+                    fill=(53, 100, 205, 255),
+                )
+                dr.text(
+                    (x + TILE_W - 5 - bw / 2, 15),
+                    str(it["badge"]),
+                    font=self.fonts["badge"],
+                    anchor="mm",
+                    fill=(255, 255, 255),
+                )
+            if it["progress"] > 0:
+                # resume progress bar along the poster bottom
+                dr.rectangle(
+                    [x, TILE_H - 6, x + TILE_W - 1, TILE_H - 1],
+                    fill=(0, 0, 0, 200),
+                )
+                dr.rectangle(
+                    [
+                        x,
+                        TILE_H - 6,
+                        x + int((TILE_W - 1) * it["progress"]),
+                        TILE_H - 1,
+                    ],
+                    fill=(53, 100, 205, 255),
+                )
+            title = self._ellipsize(
+                dr, it["title"], self.fonts["cap"], TILE_W
+            )
+            dr.text(
+                (x, TILE_H + 6),
+                title,
+                font=self.fonts["cap"],
+                fill=(204, 204, 204),
+            )
+            dr.text(
+                (x, TILE_H + 26),
+                str(it["year"]),
+                font=self.fonts["sub"],
+                fill=(136, 136, 136),
+            )
+            regions.append(
+                {"x": x, "y": 0, "w": TILE_W, "h": STRIP_H, "idx": it["idx"]}
+            )
+        self._counter += 1
+        src = os.path.join(self.dir, "strip%d.bgra" % self._counter)
+        write_bgra(img, src)
+        entry = {"src": src, "iw": iw, "ih": STRIP_H, "regions": regions}
+        self._cache[key] = entry
+        return entry
 
 
 class Demo:
     def __init__(self, backend="jsonipc"):
         self.cache = tempfile.mkdtemp(prefix="mpvtk-demo-")
-        self.items = make_posters(self.cache, 40)
+        self.items = make_library(40)
+        self.strips = StripStore(self.cache)
         self.query = ""
         self.sort = "Name"
         self.status = "Hover and click tiles; scroll rows and the page."
@@ -123,14 +247,14 @@ class Demo:
 
     def _filtered(self):
         items = [
-            (i, it)
-            for i, it in enumerate(self.items)
+            it
+            for it in self.items
             if self.query.lower() in it["title"].lower()
         ]
         if self.sort == "Name":
-            items.sort(key=lambda p: p[1]["title"])
+            items.sort(key=lambda it: it["title"])
         elif self.sort == "Year":
-            items.sort(key=lambda p: p[1]["year"])
+            items.sort(key=lambda it: it["year"])
         return items
 
     def _pick(self, idx):
@@ -148,58 +272,37 @@ class Demo:
 
     # ------------------------------------------------------------- build
 
-    def _tile(self, idx, item, section):
-        return Column(
-            [
-                Image(
-                    item["src"],
-                    TILE_W,
-                    TILE_H,
-                    id="%s-tile-%d" % (section, idx),
-                    on_click=lambda i=idx: self._pick(i),
-                    hover={"bc": "7aa2f7", "bw": 3},
-                ),
-                Text(
-                    item["title"],
-                    size=16,
-                    color="cccccc",
-                    w=TILE_W,
-                ),
-                Text(
-                    str(item["year"]),
-                    size=14,
-                    color="888888",
-                    w=TILE_W,
-                ),
-            ],
-            gap=4,
-            w=TILE_W,
-        )
+    def _image_map(self, items, id_prefix):
+        s = self.strips.strip(items)
+        regions = [
+            dict(
+                r,
+                id="%s-tile-%d" % (id_prefix, r["idx"]),
+                on_click=lambda i=r["idx"]: self._pick(i),
+            )
+            for r in s["regions"]
+        ]
+        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
 
     def _row_section(self, heading, items, row_id):
-        tiles = Row(
-            [self._tile(i, it, row_id) for i, it in items],
-            gap=14,
-            pad=2,
-        )
         return Column(
             [
                 Text(heading, size=24, bold=True),
-                HScroll(tiles, id=row_id, h=TILE_H + 52),
+                HScroll(
+                    self._image_map(items, row_id),
+                    id=row_id,
+                    h=STRIP_H + 6,
+                ),
             ],
             gap=8,
         )
 
     def _grid_section(self, heading, items, width):
-        cols = max(1, int((width - 48 + 14) // (TILE_W + 14)))
+        cols = max(
+            1, int((width - 48 + TILE_GAP) // (TILE_W + TILE_GAP))
+        )
         rows = [
-            Row(
-                [
-                    self._tile(i, it, "grid")
-                    for i, it in items[r : r + cols]
-                ],
-                gap=14,
-            )
+            self._image_map(items[r : r + cols], "grid")
             for r in range(0, len(items), cols)
         ]
         return Column([Text(heading, size=24, bold=True)] + rows, gap=12)
@@ -310,14 +413,15 @@ def _selftest(demo, outdir):
     shot("01-initial")
     st = app.debug_state()
     check("ready-size", st and st.get("w", 0) > 0, str(st and st.get("w")))
+    novl = (st or {}).get("overlays", 0)
     check(
-        "overlays-visible",
-        st and st.get("overlays", 0) > 5,
-        "overlays=%s" % (st and st.get("overlays")),
+        "strip-overlay-budget",
+        2 <= novl <= 12,
+        "overlays=%s (strips, not tiles)" % novl,
     )
 
     # first tile in sort order is guaranteed inside the row viewport
-    first_tile = "row-cw-tile-%d" % demo._filtered()[0][0]
+    first_tile = "row-cw-tile-%d" % demo._filtered()[0]["idx"]
     app.debug(cmd="hover", id=first_tile)
     shot("02-hover")
     st = app.debug_state()
