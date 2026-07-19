@@ -951,6 +951,8 @@ class MpvtkBrowser:
         self._hud_shown = False
         self._hud_scrub = None
         self._hud_menu = None
+        # node the open settings/SyncPlay menu hangs off (see hud.py)
+        self._hud_menu_anchor = "hud-settings"
         if app is None:
             return
         if hasattr(app, "on_nav"):

@@ -194,11 +194,16 @@ _ASPECTS = [
 ]
 
 
-def _open_hud_menu(b, kind):
+def _open_hud_menu(b, kind, anchor=None):
+    """``anchor`` names the button node the menu hangs off (gear or the
+    top bar's SyncPlay button); omitted on submenu/Back transitions so
+    the menu stays where it opened."""
     if kind == "syncplay":
         # group discovery hits the server; request it once on open (the
         # result lands in a later build via osc_bridge's cache)
         _hud_action(b, "syncplay-refresh")
+    if anchor is not None:
+        b._hud_menu_anchor = anchor
     b._hud_menu = kind
     b.invalidate()
 
@@ -283,8 +288,12 @@ def _menu_rows(b, st):
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
-    rows.append((_("Back"), "arrow_back",
-                 lambda: _open_hud_menu(b, "root")))
+    if getattr(b, "_hud_menu_anchor", None) != "hud-syncplay":
+        # opened from the gear: submenus can step back to its root.
+        # The top bar's SyncPlay button opens its sheet standalone
+        # (like the lua OSC's drop-down), so no Back there.
+        rows.append((_("Back"), "arrow_back",
+                     lambda: _open_hud_menu(b, "root")))
     if kind == "quality":
         option_rows(st.get("quality"), "set-quality")
     elif kind == "speed":
@@ -333,10 +342,15 @@ def _settings_menu(b, menu_state, size):
         return None
     w, h = size
     x, y = w - 300, h - 160
+    anchor = getattr(b, "_hud_menu_anchor", None) or "hud-settings"
     if b.app is not None and hasattr(b.app, "node_rect"):
-        rect = b.app.node_rect("hud-settings")
+        rect = b.app.node_rect(anchor)
         if rect is not None:
-            x, y = rect["x"], rect["y"] - 4
+            x = rect["x"]
+            # drop below a top-bar anchor, rise above a bottom one
+            # (the renderer flips/clamps if it doesn't fit anyway)
+            y = (rect["y"] + rect["h"] + 4 if rect["y"] < h / 2
+                 else rect["y"] - 4)
     return Menu(
         "hud-menu", [r[0] for r in rows], x=x, y=y,
         icons=[r[1] for r in rows],
@@ -474,13 +488,13 @@ def build_hud(b, size):
     right.extend(_pickers(b, menu_state, pos, chapters, tiers))
     right.append(tbtn(
         "settings", "hud-settings",
-        lambda: _open_hud_menu(b, "root"), tip=_("Settings")))
+        lambda: _open_hud_menu(b, "root", anchor="hud-settings"),
+        tip=_("Settings")))
 
     transport = Row(controls + right, gap=sz(6), align="center")
 
     bar = Column(
         [
-            Text(st.get("title") or "", size=sz(17), bold=True),
             # the Slider has a fixed default width, so stretch can't
             # touch it directly: an unsized Row wrapper stretches to the
             # column width and flex=1 spreads the slider inside it
@@ -490,10 +504,33 @@ def build_hud(b, size):
         gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
         align="stretch")
 
+    # Top header, like the lua OSC's: back (yield to the library),
+    # title, SyncPlay drop-down — over its own top-down scrim.
+    top_items = [
+        tbtn("arrow_back", "hud-back",
+             lambda: b._ctl(lambda c: c.stop()), tip=_("Back")),
+        Text(st.get("title") or "", size=sz(18), bold=True, flex=1),
+    ]
+    st_menu = (menu_state
+               if menu_state and menu_state.get("has_media") else {})
+    if st_menu.get("syncplay") is not None:
+        top_items.append(tbtn(
+            "groups", "hud-syncplay",
+            lambda: _open_hud_menu(b, "syncplay",
+                                   anchor="hud-syncplay"),
+            tip=_("SyncPlay")))
+    top = Row(top_items, gap=sz(10), pad=(sz(24), sz(10)), w=w,
+              anchor="n", align="center")
+
     children = [
         Gradient(color="000000", top=0, bottom=215, w=w,
                  h=min(int(h * SCRIM_FRAC), SCRIM_MAX), anchor="sw"),
+        # top scrim: dense at the top, ~2.2x the header height so the
+        # title sits on the solid half (same math as the bottom scrim)
+        Gradient(color="000000", top=170, bottom=0, w=w,
+                 h=min(int(h * 0.25), 160), anchor="nw"),
         bar,
+        top,
     ]
 
     skip = _skip_float(b, size)

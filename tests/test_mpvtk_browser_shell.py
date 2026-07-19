@@ -582,6 +582,43 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         handlers["hud-menu"]["dismiss"]()
         self.assertIsNone(b._hud_menu)
 
+    def test_top_bar_back_title_syncplay(self):
+        b, ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        present = ids(nodes)
+        self.assertIn("hud-back", present)
+        self.assertIn("hud-syncplay", present)
+        # the title renders in the top header row, in the top strip
+        title = next(n for n in nodes
+                     if n.get("text") == "Movie" and n.get("y", 999) < 80)
+        self.assertLess(title["y"], 80)
+        # back yields to the library (stop_to_browser via controller)
+        handlers["hud-back"]["click"]()
+        self.assertIn(("stop", ()), ctl.transport)
+        # the top SyncPlay button opens its sheet standalone: no Back
+        # row, anchored at the button
+        handlers["hud-syncplay"]["click"]()
+        self.assertEqual(b._hud_menu, "syncplay")
+        self.assertEqual(b._hud_menu_anchor, "hud-syncplay")
+        nodes, _h = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        self.assertNotIn("Back", menu["items"])
+        self.assertIn("None (Disabled)", menu["items"])
+        # ... while the same sheet from the gear keeps its Back row
+        b._hud_menu = None
+        b._hud_menu_anchor = "hud-settings"
+        b._hud_menu = "syncplay"
+        nodes, _h = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        self.assertEqual(menu["items"][0], "Back")
+
+    def test_no_syncplay_button_without_syncplay_state(self):
+        b, ctl = self._browser()
+        ctl.menu_state.pop("syncplay")
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertIn("hud-back", ids(nodes))
+        self.assertNotIn("hud-syncplay", ids(nodes))
+
     def test_sub_style_submenu_routes_verb(self):
         b, ctl = self._browser()
         b._hud_menu = "sub_size"
