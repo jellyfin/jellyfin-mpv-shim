@@ -660,11 +660,14 @@ render = function()
     end
     if menu_node then draw_menu(ass, menu_node) end
     if state.hud then
-        -- input-diagnostics overlay (toggle: mpvtk-debug {"cmd":"hud"})
-        local tnode = { w = 300, h = 24, size = 16, align = 'right' }
-        draw_text(ass, tnode, state.w - 310, 4, nil,
-            string.format('wheel:%d mouse:%d,%d hover:%s',
-                state.wheel_count or 0,
+        -- input-diagnostics overlay (toggle: F12)
+        local lw = state.last_wheel or {}
+        local tnode = { w = 560, h = 24, size = 16, align = 'right' }
+        draw_text(ass, tnode, state.w - 570, 4, nil,
+            string.format(
+                'wheel:%d s:%.2f tgt:%s off:%s | mouse:%d,%d hover:%s',
+                state.wheel_count or 0, lw.scale or 0,
+                tostring(lw.target), tostring(lw.off),
                 state.mouse.x or -1, state.mouse.y or -1,
                 tostring(state.mouse.hover)),
             'ffcc66')
@@ -1082,6 +1085,14 @@ local function on_wheel(dir, axis, e)
     if scale <= 0 then scale = 1 end
     if state.hud then request_render() end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
+    -- HUD forensics: tgt=nil means the hit-test found no scrollable
+    -- (geo/hover problem); tgt set with a frozen off means the offset
+    -- update itself no-oped (clamp problem).
+    state.last_wheel = {
+        scale = scale,
+        target = node and node.id or '-',
+        off = node and math.floor(state.scroll[node.id] or 0) or -1,
+    }
     if not node then return end
     set_scroll(node,
         (state.scroll[node.id] or 0) + dir * WHEEL_STEP * scale)

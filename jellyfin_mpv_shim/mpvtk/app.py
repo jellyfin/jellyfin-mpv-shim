@@ -158,7 +158,11 @@ class MpvtkApp:
         self._queue.put(("evt", evt))
 
     def invalidate(self):
+        """Request a re-render. Thread-safe: callable from background
+        workers (thumbnail pool, download progress, playback timers) —
+        wakes the loop instead of waiting for the next renderer event."""
         self._dirty = True
+        self._queue.put(("wake", None))
 
     def _push_metrics(self):
         """Measured glyph advances -> layout engine + renderer, so both
@@ -240,7 +244,8 @@ class MpvtkApp:
                 break
             if kind == "__quit":
                 break
-            self._dispatch(evt)
+            if kind == "evt":
+                self._dispatch(evt)
             # coalesce whatever else is queued before re-rendering
             while True:
                 try:
@@ -249,7 +254,8 @@ class MpvtkApp:
                     break
                 if kind == "__quit":
                     return
-                self._dispatch(evt)
+                if kind == "evt":
+                    self._dispatch(evt)
             if self._dirty:
                 self._render()
         self.backend.stop()
