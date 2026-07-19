@@ -252,7 +252,8 @@ You can adjust the basic transcoder settings via the menu.
 
 You can use the config file to enable and disable features.
 
-- `fullscreen` - Fullscreen the player when starting playback. Default: `true`
+- `fullscreen` - Fullscreen the player when starting playback. Default: `false`
+  - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
 - `browser_ui` - Which library browser to use. Default: `mpvtk`
   - `mpvtk` - The library browser is drawn inside the player's own mpv window. One window shows the browser when idle and the video when playing.

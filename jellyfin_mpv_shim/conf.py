@@ -75,7 +75,11 @@ class Settings(SettingsBase):
     subtitle_size: int = 100
     subtitle_color: str = "#FFFFFFFF"
     subtitle_position: str = "bottom"
-    fullscreen: bool = True
+    # Off by default since the browser and the player share one window: a
+    # cast target that only ever showed video could reasonably grab the
+    # screen, but an app you are actively browsing should not go fullscreen
+    # out from under you when you press play.
+    fullscreen: bool = False
     enable_gui: bool = True
     # Which library browser to run: "mpvtk" (the in-mpv-window UI) or "tk"
     # (the legacy Tkinter browser). Temporary migration switch — the Tk UI is
