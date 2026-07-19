@@ -1733,14 +1733,34 @@ class TestChromePolish(unittest.TestCase):
         self.assertIn("SyncPlay", labels)
 
     def test_narrow_top_bar_drops_to_icons(self):
-        """Below half of 1440p the labelled buttons overflow into the title."""
-        labels = self._labels((1100, 900))
+        """The bar collapses when the labelled version genuinely doesn't fit
+        (measured, not a width threshold)."""
+        labels = self._labels((760, 900))
         self.assertNotIn("SyncPlay", labels)
         self.assertNotIn("Settings", labels)
-        nodes, _h = build_scene(self.b, size=(1100, 900))
+        nodes, _h = build_scene(self.b, size=(760, 900))
         # The buttons are still there, just icon-only.
         self.assertIn("nav-settings", ids(nodes))
         self.assertIn("nav-syncplay", ids(nodes))
+
+    def test_collapse_depends_on_what_is_in_the_bar(self):
+        """The bar collapses when its contents don't fit, not at a fixed
+        width: adding the user switcher pushes it over sooner. A width
+        constant can't express that."""
+        class Users(FakeController):
+            def list_users(self):
+                return [{"id": "u1", "name": "Izzie", "locked": False,
+                         "active": True},
+                        {"id": "u2", "name": "Guest", "locked": True,
+                         "active": False}]
+
+        at = 1160, 900
+        self.assertIn("Settings", self._labels(at))       # no switcher
+
+        self.b = MpvtkBrowser(app=None, source=MultiServerSource(),
+                              controller=Users())
+        self.b._pool = _SyncPool()
+        self.assertNotIn("Settings", self._labels(at))    # switcher present
 
     def test_top_bar_never_overflows_the_window(self):
         for w in (900, 1100, 1279, 1280, 1920):
@@ -2150,3 +2170,69 @@ class TestTrackListVirtualization(unittest.TestCase):
         images = [n for n in nodes if n["t"] == "img"]
         self.assertLess(len(images), 63, "exceeds mpv's overlay budget")
         _ = ImageNode
+
+
+class TestListWidthsAreStable(unittest.TestCase):
+    """A Table's *natural* width is whatever its materialized rows need, so
+    inside a Column that doesn't stretch its children a virtualized table
+    changed width as you scrolled, and a downloads listing was sized by its
+    longest label rather than the pane."""
+
+    def setUp(self):
+        self.ctl = DownloadsController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl, config=FakeConfig())
+        self.b._pool = _SyncPool()
+
+    def _row_widths(self, prefix, size=(1280, 720)):
+        self.b._size = size
+        nodes, _h = layout(self.b.build(size), *size)
+        return [n["w"] for n in nodes
+                if n["t"] == "rect"
+                and str(n.get("id", "")).startswith(prefix)]
+
+    def test_playlist_rows_keep_their_width_while_scrolling(self):
+        tracks = [{"Id": "t%d" % i, "Type": "Audio", "IndexNumber": i + 1,
+                   "RunTimeTicks": 2000000000,
+                   # Long titles far down the list: with an unstretched
+                   # container these widened every row once they scrolled in.
+                   "Name": ("An extremely long track title here " * 2)
+                   if i > 40 else "Sh"} for i in range(400)]
+        self.b.navigate({"kind": "playlist", "server": "srv1",
+                         "item_id": "PL1", "title": "Faves"})
+        self.b.route["_data"] = tracks
+        seen = set()
+        for off in (0, 3000, 9000):
+            self.b._scroll_off["playlist"] = off
+            widths = self._row_widths("pl-")
+            self.assertTrue(widths)
+            seen.add(round(max(widths)))
+        self.assertEqual(len(seen), 1,
+                         "row width changed while scrolling: %s" % seen)
+
+    @staticmethod
+    def _card_rows(nodes, prefix):
+        """Row cards only — not the toggle/Remove buttons living inside
+        them, which are legitimately narrow."""
+        return [n["w"] for n in nodes
+                if n["t"] == "rect"
+                and str(n.get("id", "")).startswith(prefix)
+                and not str(n["id"]).endswith(("-rm", "-tgl"))]
+
+    def test_download_rows_span_the_pane(self):
+        self.b.open_settings("downloads")
+        build_scene(self.b)          # first build kicks off the load
+        nodes, _h = layout(self.b.build((1280, 720)), 1280, 720)
+        widths = self._card_rows(nodes, "dl-g")
+        self.assertTrue(widths)
+        # Full width less the content padding, not the width of the text.
+        self.assertGreater(min(widths), 1280 - 4 * self.b.CONTENT_PAD)
+        # Every depth of the tree lines up.
+        self.assertEqual(len(set(round(w) for w in widths)), 1)
+
+    def test_queue_rows_span_the_pane(self):
+        self.b._open_queue()
+        nodes, _h = layout(self.b.build((1280, 720)), 1280, 720)
+        widths = self._card_rows(nodes, "q-")
+        self.assertTrue(widths)
+        self.assertGreater(max(widths), 1280 - 4 * self.b.CONTENT_PAD)

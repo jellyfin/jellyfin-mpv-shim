@@ -426,11 +426,10 @@ Excluding Phase 8 (spatial/remote navigation).
 - **#9 overflow / fit feedback, half done.** `MpvtkApp.node_rect()` gives
   post-layout geometry one frame late, which covers stable things. Still
   hand-derived in the app: the carousel recomputes `content_w` to decide
-  whether arrows are needed, virtualized grids feed estimated header
-  heights (`head_h = 40 + 110…`), and the responsive top bar uses a
-  hardcoded `COMPACT_W = 1280` rather than asking whether the bar fits.
-  Wanted: a build-time "does this overflow?" query or a priority-collapse
-  container.
+  whether arrows are needed, and virtualized grids feed estimated header
+  heights (`head_h = 40 + 110…`). The top bar no longer guesses — it
+  measures a probe bar with `natural_size()` and collapses when the
+  labelled version doesn't fit, which is the shape the other two want too.
 - **#4 tree rows, half done.** `Grid` dict rows give card + indent, and the
   downloads tree gets disclosure from a plain Icon + `route` state. There
   is no tree primitive, but nothing currently needs one.
@@ -458,6 +457,31 @@ Excluding Phase 8 (spatial/remote navigation).
   repaint. Now windowed against `scroll_offsets()` in every track view.
 - [ ] Live per-item download progress push (the `Progress` widget is ready;
   the downloads view polls instead).
+
+## List widths (2026-07-19)
+
+Reported as "table rows change width randomly while scrolling a long
+playlist" and "download listings are as wide as their longest label".
+Same cause, and app-side:
+
+A `Table`'s **natural width is whatever its materialized rows need**. In a
+`Column` with the default `align="start"` a child gets its natural width,
+clamped to the container — so:
+
+- a *virtualized* table's natural width changes as the window of rows
+  moves, i.e. the rows visibly resize while scrolling;
+- an unvirtualized list is sized by its longest label instead of the pane.
+
+Fixed by stretching every container that hosts a `Table`/`Grid`. Servers &
+Users already looked right because it was written with `align="stretch"`.
+
+**Framework note (small, for the toolkit):** a virtualized `Table` having a
+content-dependent natural size is a trap — the width depends on the scroll
+position, which no caller expects. Either measure a virtualized Table's
+natural width across *all* rows' string cells (cheap: `text_width` over
+strings, skipping Element cells, which are fixed-width in practice), or
+have it declare that it must stretch. Right now the only defence is every
+caller remembering `align="stretch"`.
 
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 

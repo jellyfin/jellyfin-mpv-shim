@@ -44,6 +44,7 @@ from ..mpvtk.widgets import (
     TextBox,
     VScroll,
 )
+from ..mpvtk.layout import natural_size
 from . import theme
 from .repository import (FOLDER_TYPES, PLAYABLE_TYPES,
                          PLAYLIST_SUPPORTED_TYPES, SERIES_TYPES)
@@ -1044,14 +1045,21 @@ class MpvtkBrowser:
             children.append(self._dialog())
         return Column(children, w=w, h=h, align="stretch")
 
-    # Below this window width the top bar drops its button labels: at
-    # 1/2 of 1440p the labelled buttons plus the search box overflow and
-    # start colliding with the page title.
-    COMPACT_W = 1280
+    # Minimum room the page title keeps in the top bar before the
+    # buttons drop their labels.
+    TITLE_MIN_W = 180
 
     def _chrome(self, w):
-        compact = w < self.COMPACT_W
-        title = self.route.get("title") or _("Home")
+        # Fit probe instead of a hardcoded breakpoint: the bar goes
+        # icon-only exactly when the labelled version wouldn't leave
+        # the title its minimum room at this window width — however
+        # many switchers/buttons this session happens to show.
+        probe = self._chrome_bar(compact=False, probe=True)
+        compact = natural_size(probe)[0] + self.TITLE_MIN_W > w
+        return self._chrome_bar(compact=compact)
+
+    def _chrome_bar(self, compact, probe=False):
+        title = "" if probe else (self.route.get("title") or _("Home"))
 
         def nav_button(label, node_id, icon, cb):
             # Icon-only when compact — the icons are the same ones the
@@ -1074,23 +1082,24 @@ class MpvtkBrowser:
         except Exception:
             servers = []
         if len(servers) > 1:
-            w_srv = 130 if compact else 190
             cur = next((i for i, s in enumerate(servers)
                         if s["uuid"] == self.server), 0)
-            # long names ellipsize renderer-side, to the exact control width
+            # sized to its content within bounds (so long names count in
+            # the fit probe); overlong labels ellipsize renderer-side
             right.append(Dropdown(
                 "nav-server", [s["name"] for s in servers],
-                selected=cur, w=w_srv,
+                selected=cur, min_w=110,
+                max_w=150 if compact else 260,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
         if len(users) > 1:
-            w_usr = 120 if compact else 160
             cur = next((i for i, u in enumerate(users)
                         if u.get("active")), 0)
             right.append(Dropdown(
                 "nav-user",
                 [u.get("name", "?") for u in users],
-                selected=cur, w=w_usr, force=True,
+                selected=cur, min_w=100,
+                max_w=130 if compact else 200, force=True,
                 icons=["lock" if u.get("locked") else "person" for u in users],
                 on_select=lambda i, v: self._switch_user(users[i])))
         right += [
@@ -1793,7 +1802,8 @@ class MpvtkBrowser:
             rows.append(self._tile_row(_("Other"), other, "search-other"))
         if not items and not people:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=16, gap=12), id="search", flex=1)
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=12,
+                              align="stretch"), id="search", flex=1)
 
     # ---------------------------------------------------- music / playlists
 
@@ -2058,7 +2068,8 @@ class MpvtkBrowser:
                 data, "song",
                 lambda i: self._play_list(ids, server, i, audio=True),
                 scroll_id="music-songs")],
-                pad=self.CONTENT_PAD), id="music-songs", flex=1,
+                pad=self.CONTENT_PAD, align="stretch"),
+                id="music-songs", flex=1,
                 on_scroll=lambda off, mx: self._on_scroll(
                     "music-songs", off, mx,
                     lambda o, m: self._on_music_scroll(route, o, m)))
@@ -2093,7 +2104,8 @@ class MpvtkBrowser:
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True),
             scroll_id="album", head_h=110)
-        return VScroll(Column([header, body], pad=16, gap=12),
+        return VScroll(Column([header, body], pad=self.CONTENT_PAD, gap=12,
+                              align="stretch"),
                        id="album", flex=1)
 
     def _render_artist(self, route, size):
@@ -2181,7 +2193,8 @@ class MpvtkBrowser:
             body = self._grid_of(data, "pl", size, scroll_id="playlist",
                                  head_h=70)
         return VScroll(Column([header, Spacer(h=2)] + body,
-                              pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+                              pad=self.CONTENT_PAD, gap=self.GRID_GAP,
+                              align="stretch"),
                        id="playlist", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "playlist", off, mx))
@@ -2337,7 +2350,8 @@ class MpvtkBrowser:
                 rows.append(self._setting_row(cfg, schema, values, key))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
+                              align="stretch"),
                        id="settings", flex=1)
 
     def _toggle_advanced(self, route):
@@ -2688,7 +2702,8 @@ class MpvtkBrowser:
         for gi, group in enumerate(groups):
             rows.append(self._dl_group(route, group, gi))
         self._poll_downloads(route)
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=10),
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=10,
+                              align="stretch"),
                        id="settings-downloads", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "settings-downloads", off, mx))
@@ -2956,7 +2971,8 @@ class MpvtkBrowser:
                 playing_id=current, selected=sel, scroll_id="queue",
                 head_h=60,
                 on_select=lambda i, mods: self._select_click(route, i, mods)))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8), id="queue",
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
+                          align="stretch"), id="queue",
                        flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "queue", off, mx))
@@ -3210,7 +3226,8 @@ class MpvtkBrowser:
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
                      size=26, bold=True), Spacer(h=4), rename_row, toolbar,
                 Spacer(h=2), table]
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
+                              align="stretch"),
                        id="playlist-edit", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "playlist-edit", off, mx))
