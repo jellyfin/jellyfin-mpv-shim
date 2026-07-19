@@ -273,6 +273,27 @@ class MpvtkBrowser:
             def work():
                 return self.source.get_playlist_items(srv, iid)
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "queue":
+            srv = route.get("server") or self.server
+
+            def work():
+                q = ({"items": [], "current_id": None} if self.controller is None
+                     else self.controller.get_queue())
+                ids = [e["id"] for e in q.get("items", []) if e.get("id")]
+                by_id = {}
+                if ids:
+                    try:
+                        for it in self.source.get_items_by_ids(srv, ids):
+                            by_id[it.get("Id")] = it
+                    except Exception:
+                        pass
+                entries = [
+                    {"item": by_id.get(e["id"], {"Id": e["id"],
+                                                 "Name": e["id"]}),
+                     "pid": e.get("playlist_item_id")}
+                    for e in q.get("items", [])]
+                return {"entries": entries, "current_id": q.get("current_id")}
+            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
 
     # -------------------------------------------------------- tile helpers
 
@@ -584,17 +605,38 @@ class MpvtkBrowser:
                 {"kind": "home", "server": self.server}, reset=True),
         ))
         title = self.route.get("title") or _("Home")
+        right = []
+        try:
+            servers = self.source.servers()
+        except Exception:
+            servers = []
+        if len(servers) > 1:
+            names = [s["name"] for s in servers]
+            cur = next((i for i, s in enumerate(servers)
+                        if s["uuid"] == self.server), 0)
+            right.append(Dropdown(
+                "nav-server", names, selected=cur, w=160,
+                on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
+        right += [
+            TextBox("nav-search", placeholder=_("Search…"), w=220,
+                    on_submit=self._search),
+            Button(_("Settings"), id="nav-settings",
+                   on_click=self._open_settings),
+        ]
         return Row(
-            left + [
-                Text(title, size=22, bold=True),
-                Spacer(),
-                TextBox("nav-search", placeholder=_("Search…"), w=220,
-                        on_submit=self._search),
-                Button(_("Settings"), id="nav-settings",
-                       on_click=self._open_settings),
-            ],
+            left + [Text(title, size=22, bold=True), Spacer()] + right,
             pad=12, gap=10, align="center", h=60, bg=theme.PANEL_BG,
         )
+
+    def _switch_server(self, uuid):
+        if uuid == self.server:
+            return
+        self.server = uuid
+        self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    def _open_queue(self):
+        self.navigate({"kind": "queue", "server": self.server,
+                       "title": _("Queue")})
 
     def _render_route(self, route, size):
         kind = route["kind"]
@@ -611,6 +653,7 @@ class MpvtkBrowser:
             "music_genre": self._render_music_genre,
             "playlist": self._render_playlist,
             "settings": self._render_settings,
+            "queue": self._render_queue,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -1008,6 +1051,7 @@ class MpvtkBrowser:
                 Text(self._fmt(pos), size=14, w=52, color=theme.SUBTLE_FG),
                 track,
                 Text(self._fmt(dur), size=14, w=52, color=theme.SUBTLE_FG),
+                tbtn("queue_music", "np-queue", self._open_queue),
             ],
             pad=10, gap=12, align="center", h=64, bg=theme.PANEL_BG)
 
@@ -1052,6 +1096,46 @@ class MpvtkBrowser:
                             on_submit=lambda v, k=key: self._set_setting(k, v)),
                 ], gap=12, align="center"))
         return VScroll(Column(rows, pad=16, gap=8), id="settings", flex=1)
+
+    # --------------------------------------------------------------- queue
+
+    def _render_queue(self, route, size):
+        data = route.get("_data")
+        if data is None:
+            return self._busy()
+        entries = data.get("entries") or []
+        current = data.get("current_id")
+        rows = [Text(_("Play Queue"), size=26, bold=True)]
+        if not entries:
+            rows.append(Text(_("The queue is empty."), size=18,
+                             color=theme.SUBTLE_FG))
+        for i, e in enumerate(entries):
+            item = e["item"]
+            playing = item.get("Id") == current
+            rows.append(Row([
+                Text("▶" if playing else str(i + 1), w=44, size=17,
+                     color=theme.ACCENT if playing else theme.SUBTLE_FG),
+                Text(item.get("Name", ""), flex=1, size=17,
+                     bold=playing),
+                Button(_("Remove"), id="q-rm-%d" % i,
+                       on_click=lambda pid=e["pid"]: self._queue_remove(pid)),
+            ], id="q-%d" % i, pad=8, gap=10, radius=6, align="center",
+               bg=theme.PANEL_BG if playing else None,
+               hover=None if playing else {"fill": theme.BUTTON_BG},
+               on_click=lambda pid=e["pid"]: self._queue_skip(pid)))
+        return VScroll(Column(rows, pad=16, gap=3), id="queue", flex=1)
+
+    def _queue_skip(self, pid):
+        if pid and self.controller is not None:
+            self._safe(lambda c: c.skip_to(pid))
+
+    def _queue_remove(self, pid):
+        if pid and self.controller is not None:
+            self._safe(lambda c: c.queue_remove([pid]))
+        self.route.pop("_data", None)   # refresh the queue view
+        self._bump_epoch()
+        self._load_route(self.route)
+        self.invalidate()
 
     # ------------------------------------------------------------- banners
 

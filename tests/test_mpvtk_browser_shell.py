@@ -106,6 +106,9 @@ class FakeSource:
         return [{"Id": "pi%d" % i, "Name": "Song %d" % i, "Type": "Audio"}
                 for i in range(3)]
 
+    def get_items_by_ids(self, server_uuid, ids):
+        return [{"Id": i, "Name": "Queued " + i, "Type": "Audio"} for i in ids]
+
 
 class _SyncPool:
     """Runs submitted work inline so route loaders complete deterministically
@@ -265,6 +268,10 @@ class FakeController:
 
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None):
         self.played.append((list(item_ids), server_uuid, start_index))
+
+    def get_queue(self):
+        return {"items": [{"id": "q%d" % i, "playlist_item_id": "p%d" % i}
+                          for i in range(3)], "current_id": "q1"}
 
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
@@ -476,6 +483,57 @@ class TestTileContextMenu(unittest.TestCase):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
         self.b._close_menu()
         self.assertIsNone(self.b._menu)
+
+
+class TestQueueView(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_queue_renders_entries_with_current(self):
+        self.b._open_queue()
+        nodes, handlers = build_scene(self.b)
+        self.assertEqual(self.b.route["kind"], "queue")
+        self.assertIn("q-0", ids(nodes))
+        self.assertTrue(any(k.startswith("q-rm-") for k in handlers))
+
+    def test_queue_row_click_skips(self):
+        self.b._open_queue()
+        _n, handlers = build_scene(self.b)
+        handlers["q-0"]["click"]()
+        self.assertIn("skip_to",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_queue_remove_calls_controller_and_refreshes(self):
+        self.b._open_queue()
+        _n, handlers = build_scene(self.b)
+        handlers["q-rm-0"]["click"]()
+        self.assertIn("queue_remove",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+
+class MultiServerSource(FakeSource):
+    def servers(self):
+        return [{"uuid": "srv1", "name": "Home"},
+                {"uuid": "srv2", "name": "Remote"}]
+
+
+class TestServerSwitcher(unittest.TestCase):
+    def test_switcher_shown_and_switches(self):
+        b = MpvtkBrowser(app=None, source=MultiServerSource())
+        b._pool = _SyncPool()
+        nodes, handlers = build_scene(b)
+        self.assertIn("nav-server", ids(nodes))
+        handlers["nav-server"]["select"](1, "Remote")
+        self.assertEqual(b.server, "srv2")
+        self.assertEqual(b.route["kind"], "home")
+
+    def test_switcher_hidden_for_single_server(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        nodes, _h = build_scene(b)
+        self.assertNotIn("nav-server", ids(nodes))
 
 
 class TestBanners(unittest.TestCase):

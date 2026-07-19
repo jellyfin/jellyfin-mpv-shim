@@ -141,6 +141,22 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk retry connect failed", exc_info=True)
 
+    # -- play queue -------------------------------------------------------
+
+    def get_queue(self):
+        from ..player import playerManager
+        try:
+            return playerManager.get_queue()
+        except Exception:
+            log.error("mpvtk get_queue failed", exc_info=True)
+            return {"items": [], "current_id": None}
+
+    def skip_to(self, playlist_item_id):
+        self._act(lambda pm: pm.skip_to(playlist_item_id))
+
+    def queue_remove(self, playlist_item_ids):
+        self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
+
 
 class UserInterface:
     def __init__(self):
