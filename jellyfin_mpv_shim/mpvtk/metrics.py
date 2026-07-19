@@ -73,6 +73,72 @@ def measure_kerning():
         return None
 
 
+# session state for on-demand measurement (extend_metrics)
+_session_font = None
+_session_factor = None
+_seen_pairs = set()
+
+
+def _dyn_font():
+    global _session_font, _session_factor
+    if _session_font is None:
+        f = _load_font()
+        if f is None:
+            return None, None
+        try:
+            ascent, descent = f.getmetrics()
+        except AttributeError:
+            return None, None
+        _session_factor = _MEASURE_SIZE / float(ascent + descent)
+        _session_font = f
+    return _session_font, _session_factor
+
+
+def extend_metrics(m, texts):
+    """Measure codepoints/pairs from ``texts`` that aren't in ``m`` yet
+    (mutates m['widths']/m['kern']); returns True if anything was
+    added. The full unicode pair space can't be pre-enumerated — this
+    measures exactly what real UI text uses, a few µs per novel glyph.
+
+    Limited to codepoints below U+2E80: the base font genuinely covers
+    those (Latin ext, Greek, Cyrillic, …). CJK keeps the ~1em fallback
+    width — libass renders it with a FALLBACK font Pillow isn't
+    measuring, and measuring the base font's .notdef would be worse
+    than the heuristic. ASCII pairs were bulk-measured at startup and
+    are skipped."""
+    font, factor = _dyn_font()
+    if font is None or not m:
+        return False
+    widths = m["widths"]
+    kern = m.setdefault("kern", {})
+    added = False
+    for s in texts:
+        prev = None
+        for c in s:
+            o = ord(c)
+            if o < 0x20 or o >= 0x2E80:
+                prev = None
+                continue
+            if c not in widths:
+                widths[c] = round(
+                    font.getlength(c) / _MEASURE_SIZE * factor, 4
+                )
+                added = True
+            if prev is not None and (ord(prev) > 0x7E or o > 0x7E):
+                p = prev + c
+                if p not in _seen_pairs:
+                    _seen_pairs.add(p)
+                    d = (font.getlength(p) - font.getlength(prev)
+                         - font.getlength(c))
+                    if abs(d) > 0.6:
+                        kern[p] = round(
+                            d / _MEASURE_SIZE * factor, 4
+                        )
+                        added = True
+            prev = c
+    return added
+
+
 def _cache_path():
     if sys.platform.startswith("win"):
         base = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()

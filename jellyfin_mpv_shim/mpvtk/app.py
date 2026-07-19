@@ -14,7 +14,7 @@ import threading
 import time
 
 from .layout import layout, set_metrics
-from .metrics import measure_font
+from .metrics import extend_metrics, measure_font
 
 log = logging.getLogger("mpvtk")
 
@@ -136,6 +136,7 @@ class MpvtkApp:
         self.size = None
         self._queue = queue.Queue()
         self._handlers = {}
+        self._metrics = None
         self._dirty = False
         self._build = None
         self._debug_state = None
@@ -171,10 +172,39 @@ class MpvtkApp:
         m = measure_font()
         if not m:
             return
+        self._metrics = m
         set_metrics(m["widths"], m.get("kern"))
         self.backend.command(
             "script-message", "mpvtk-metrics", json.dumps(m)
         )
+
+    @staticmethod
+    def _scene_texts(nodes):
+        texts = []
+        for n in nodes:
+            for key in ("text", "ph"):
+                v = n.get(key)
+                if v:
+                    texts.append(v)
+            items = n.get("items")
+            if items:
+                texts.extend(items)
+        return texts
+
+    def _extend_metrics(self, texts):
+        """On-demand glyph/pair measurement for novel text (full
+        unicode can't be pre-enumerated). Returns True if the tables
+        grew — callers then re-push/re-layout."""
+        if not self._metrics or not texts:
+            return False
+        if not extend_metrics(self._metrics, texts):
+            return False
+        m = self._metrics
+        set_metrics(m["widths"], m.get("kern"))
+        self.backend.command(
+            "script-message", "mpvtk-metrics", json.dumps(m)
+        )
+        return True
 
     def _render(self):
         if self.size is None or self._build is None:
@@ -183,6 +213,10 @@ class MpvtkApp:
         tree = self._build(self.size)
         t1 = time.perf_counter()
         nodes, handlers = layout(tree, *self.size)
+        if self._extend_metrics(self._scene_texts(nodes)):
+            # novel glyphs got measured: lay out once more with the
+            # accurate widths (builds cost ~0.3ms; this is rare)
+            nodes, handlers = layout(self._build(self.size), *self.size)
         self._handlers = handlers
         scene = {"v": 1, "w": self.size[0], "h": self.size[1], "nodes": nodes}
         t2 = time.perf_counter()
@@ -212,6 +246,12 @@ class MpvtkApp:
             self._debug_state = evt
             self._debug_evt.set()
             return
+        if t in ("change", "submit"):
+            # typed text may contain glyphs we've never measured; the
+            # metrics push makes the renderer re-render with real widths
+            v = evt.get("value")
+            if isinstance(v, str):
+                self._extend_metrics([v])
         h = self._handlers.get(evt.get("id"), {})
         fn = h.get(t)
         if fn is None:

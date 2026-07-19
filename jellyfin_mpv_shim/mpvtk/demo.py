@@ -1164,6 +1164,13 @@ def _selftest(demo, outdir):
     app.debug(cmd="text", s="café жизнь")
     time.sleep(0.3)
     check("unicode-input", demo.sel_text == "café жизнь", demo.sel_text)
+    from .layout import _measured
+
+    check(
+        "dynamic-metrics",
+        _measured is not None and "ж" in _measured,
+        "measured %s chars" % (len(_measured or ())),
+    )
     for _ in range(6):  # delete "ь", "н", "з", "и", "ж", space
         app.debug(cmd="key", name="BS")
     time.sleep(0.3)

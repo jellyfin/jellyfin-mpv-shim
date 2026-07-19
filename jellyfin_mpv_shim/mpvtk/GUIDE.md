@@ -182,8 +182,15 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    ctrl+A/C/X/V, ctrl+HOME/END, replace-on-type — plus a built-in
    right-click Cut/Copy/Paste/Select All menu (masked boxes offer
    Paste/Select All only — no clipboard leaks). The caret is a thin
-   bar centered on the char boundary. Metrics cover ASCII + Latin-1;
-   unmeasured glyphs fall back to a fullwidth heuristic for CJK.
+   bar centered on the char boundary. Metrics: ASCII + Latin-1 are
+   bulk-measured at startup (~45ms fast machine, disk-cached to ~6KB
+   JSON so warm starts read in ~0.5ms; stack is Pillow → raqm/HarfBuzz
+   → FreeType, layout only, no rasterization); everything else is
+   measured ON DEMAND as it appears in scene text or typed input
+   (extend_metrics — the unicode pair space can't be pre-enumerated),
+   scoped to scripts the base font covers (< U+2E80). CJK keeps the
+   ~1em heuristic deliberately: libass renders it with a fallback font
+   that Pillow isn't measuring, and fallback CJK glyphs are ~1em.
 5. Wheel targeting walks the scroll chain by axis and holds a 2s
    gesture lock on its target (raw hit-tests can drop out — cause
    still unconfirmed; F12 HUD shows `tgt:<id>*` when the lock saves a
