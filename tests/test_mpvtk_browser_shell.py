@@ -710,12 +710,14 @@ class TestTileShapes(unittest.TestCase):
         self.assertIn("row-libs-pr", by_id)
         strip = by_id["row-libs"]
         left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
-        # Anchored to the scroll container's own edges (they overlay it).
-        self.assertAlmostEqual(left["x"], strip["x"], places=1)
+        pad = self.b.RING_PAD
+        # Inset from the scroll container's edges by the ring padding.
+        self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
         self.assertAlmostEqual(right["x"] + right["w"],
-                               strip["x"] + strip["w"], places=1)
-        # Vertically centred on the strip rather than spanning it.
-        self.assertLess(left["h"], strip["h"])
+                               strip["x"] + strip["w"] - pad, places=1)
+        # Square, and small enough to cover little artwork.
+        self.assertEqual(left["w"], left["h"])
+        self.assertLess(left["h"], strip["h"] / 2)
 
     def test_arrows_punch_through_the_strip_bitmap(self):
         """An ASS button can't composite over a bitmap; it needs an occluder
@@ -1706,3 +1708,95 @@ class TestServersPanel(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         icons = [n for n in nodes if n["t"] == "icon"]
         self.assertTrue(icons)
+
+
+class TestChromePolish(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=MultiServerSource())
+        self.b._pool = _SyncPool()
+
+    def _labels(self, size):
+        nodes, _h = build_scene(self.b, size=size)
+        return {n["text"] for n in nodes if n["t"] == "text"}
+
+    def test_wide_top_bar_is_labelled(self):
+        labels = self._labels((1920, 900))
+        self.assertIn("Settings", labels)
+        self.assertIn("SyncPlay", labels)
+
+    def test_narrow_top_bar_drops_to_icons(self):
+        """Below half of 1440p the labelled buttons overflow into the title."""
+        labels = self._labels((1100, 900))
+        self.assertNotIn("SyncPlay", labels)
+        self.assertNotIn("Settings", labels)
+        nodes, _h = build_scene(self.b, size=(1100, 900))
+        # The buttons are still there, just icon-only.
+        self.assertIn("nav-settings", ids(nodes))
+        self.assertIn("nav-syncplay", ids(nodes))
+
+    def test_top_bar_never_overflows_the_window(self):
+        for w in (900, 1100, 1279, 1280, 1920):
+            nodes, _h = build_scene(self.b, size=(w, 800))
+            bar = [n for n in nodes if n.get("id") == "nav-settings"][0]
+            self.assertLessEqual(bar["x"] + bar["w"], w,
+                                 "top bar overflows at %dpx" % w)
+
+
+class TestButtonColors(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def _accent_button_texts(self, nodes):
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        accent = {n["id"] for n in nodes
+                  if n["t"] == "rect" and n.get("fill") == theme.ACCENT}
+        out = []
+        for n in nodes:
+            if n["t"] != "text":
+                continue
+            for a in accent:
+                rect = next(r for r in nodes if r.get("id") == a)
+                if (rect["x"] <= n["x"] <= rect["x"] + rect["w"]
+                        and rect["y"] <= n["y"] <= rect["y"] + rect["h"]):
+                    out.append(n)
+        return out
+
+    def test_accent_buttons_use_white_text(self):
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        self.b.navigate({"kind": "series", "server": "srv1",
+                         "item_id": "sh1", "title": "Show"})
+        nodes, _h = build_scene(self.b)
+        texts = self._accent_button_texts(nodes)
+        self.assertTrue(texts, "expected at least one accent button")
+        for n in texts:
+            self.assertEqual(n["c"], theme.ACCENT_FG,
+                             "%r should be white on blue" % n["text"])
+
+    def test_next_up_is_a_primary_action(self):
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        self.b.navigate({"kind": "series", "server": "srv1",
+                         "item_id": "sh1", "title": "Show"})
+        nodes, _h = build_scene(self.b)
+        btn = [n for n in nodes if n.get("id") == "sa-nextup"][0]
+        self.assertEqual(btn.get("fill"), theme.ACCENT)
+
+
+class TestBanner(unittest.TestCase):
+    def test_banner_is_two_thirds_of_a_16_9_box(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        bw, bh = b._banner_box(1280)
+        self.assertAlmostEqual(bh / bw, 9 / 16 * 2 / 3, places=3)
+
+    def test_heading_is_baked_into_the_banner(self):
+        """Text over artwork has to be part of the bitmap — ASS would render
+        underneath it."""
+        from PIL import Image as PILImage
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        art = PILImage.new("RGB", (800, 800), (40, 40, 40))
+        plain = b._compose_banner(art, (600, 225))
+        titled = b._compose_banner(art, (600, 225), title="The Show",
+                                   meta="2020 · 45 min")
+        self.assertEqual(titled.size, (600, 225))
+        self.assertNotEqual(plain.tobytes(), titled.tobytes())

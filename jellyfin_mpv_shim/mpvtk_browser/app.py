@@ -479,23 +479,79 @@ class MpvtkBrowser:
         name = (item.get("Name") or "").strip()
         return name[0].upper() if name else "?"
 
-    def _backdrop_node(self, item, box, node_id):
-        """A backdrop Image node for detail/series headers, or a placeholder
-        Box while it loads / when absent."""
+    # A banner is a wide crop, not a 16:9 frame — two-thirds the height of
+    # the equivalent 16:9 box, which is roughly 2.4:1.
+    BANNER_RATIO = 9 / 16 * 2 / 3
+
+    def _banner_box(self, width):
+        bw = min(width - 2 * self.CONTENT_PAD, 1100)
+        return bw, int(bw * self.BANNER_RATIO)
+
+    def _backdrop_node(self, item, box, node_id, title=None, meta=None):
+        """A backdrop banner for detail/series headers.
+
+        With ``title`` the heading is *baked into the bitmap* over a bottom
+        gradient, like the Tk browser did — text drawn as ASS would sit
+        under the image (bitmaps composite above all script ASS), and the
+        occlude punch would show the window background rather than the
+        artwork. Returns a placeholder Box while the art loads or if the
+        item has none, in which case the caller still draws its own heading."""
         spec = None
         if self.server is not None:
             spec = self.source.backdrop_spec(item)
         if spec:
             owner_id, tag = spec
-            key = make_key(owner_id, "Backdrop", tag, box[0])
+            key = make_key(owner_id, "Backdrop", tag, box[0], box[1])
+            if title:
+                key += "|" + make_key(title, meta or "", "", box[0], box[1])
             url = self.source.backdrop_url(self.server, item, width=box[0],
                                            height=box[1], fill=True)
-            img = self._request_image(key, url, box)
+            # Request at the *source* aspect and crop to the banner below, so
+            # a shallow banner doesn't ask the server for a squashed image.
+            img = self._request_image(key, url, (box[0], box[0]))
             if img is not None:
-                b = self.strips.bitmap(key, img)
+                b = self.strips.bitmap(key, self._compose_banner(
+                    img, box, title, meta))
                 return Image(b["src"], b["iw"], b["ih"], id=node_id)
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
+
+    @staticmethod
+    def _compose_banner(image, box, title=None, meta=None):
+        """Crop ``image`` to the banner box and bake the heading over a
+        bottom-up dark gradient."""
+        from PIL import ImageDraw
+
+        from ..display_mirror import (_apply_dark_gradient, _pil_font,
+                                      _scale_to_cover)
+
+        w, h = box
+        canvas = _scale_to_cover(image.convert("RGBA"), w, h)
+        if not title:
+            return canvas
+        canvas = _apply_dark_gradient(canvas, height_fraction=0.7,
+                                      max_alpha=215)
+        draw = ImageDraw.Draw(canvas)
+        margin = max(18, w // 40)
+        size = max(22, min(46, h // 4))
+        y = h - margin
+        if meta:
+            f = _pil_font(int(size * 0.5), text=meta)
+            asc, desc = f.getmetrics()
+            draw.text((margin, y - asc - desc), meta, font=f,
+                      fill=(200, 200, 200, 255))
+            y -= asc + desc + 6
+        f = _pil_font(size, bold=True, text=title)
+        asc, desc = f.getmetrics()
+        # Ellipsize rather than overflow the crop.
+        while title and draw.textlength(title, font=f) > w - 2 * margin:
+            title = title[:-1]
+            if draw.textlength(title + "…", font=f) <= w - 2 * margin:
+                title += "…"
+                break
+        draw.text((margin, y - asc - desc), title, font=f,
+                  fill=(255, 255, 255, 255))
+        return canvas
 
     def _tile(self, item, geom, image_type="Primary"):
         ud = item.get("UserData") or {}
@@ -615,8 +671,13 @@ class MpvtkBrowser:
         except Exception:
             log.warning("client action failed", exc_info=True)
 
-    # Width of the page-arrow gutters on either side of a carousel.
-    ARROW_W = 44
+    # Square page-arrow buttons floating over the carousel's edges.
+    ARROW_W = 38
+    # Slack inside a scroll viewport so a tile's hover ring — which the
+    # renderer draws 2px OUTSIDE the hit rect, and clips to the viewport —
+    # isn't shaved off against the container edge. Without it the top of the
+    # ring vanished under the row heading above.
+    RING_PAD = 5
 
     def _tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False):
@@ -636,9 +697,10 @@ class MpvtkBrowser:
                 heading,
                 self._hscroll_row(
                     self._image_map(items, row_id, geom, image_type),
-                    row_id, geom.strip_h + 6, len(items), geom, bleed),
+                    row_id, geom.strip_h + 2 * self.RING_PAD,
+                    len(items), geom, bleed),
             ],
-            gap=8,
+            gap=10,
         )
 
     def _hscroll_row(self, content, row_id, h, count, geom, bleed=False):
@@ -648,8 +710,13 @@ class MpvtkBrowser:
         top, and ``occlude=True`` punches their rect out of the strip bitmap
         below so the ASS button draws in the hole (bitmaps otherwise composite
         above all script ASS — GUIDE §6). They hold-repeat while pressed, and
-        are omitted when the row doesn't overflow."""
-        scroll = HScroll(content, id=row_id, h=h, flex=1)
+        are omitted when the row doesn't overflow.
+
+        The strip is inset by RING_PAD so a tile's hover ring has room inside
+        the viewport; the renderer clips it to the container, and without the
+        inset its top edge was shaved off under the heading above."""
+        scroll = HScroll(Box([content], pad=self.RING_PAD),
+                         id=row_id, h=h, flex=1)
         avail = (self._size[0] if self._size else 1280)
         if not bleed:
             avail -= 2 * self.CONTENT_PAD
@@ -658,11 +725,18 @@ class MpvtkBrowser:
             return Row([scroll], h=h)
 
         def arrow(icon, node_id, direction, anchor):
-            return Box([Icon(icon, 28)], id=node_id, w=self.ARROW_W,
-                       h=min(h, 72), align="center", direction="row",
-                       bg=theme.BUTTON_BG, alpha=225,
+            # Square, and small enough to cover as little artwork as
+            # possible — the occlusion punch reads as a notch, so a tall
+            # slab looked wrong. Flex spacers centre the glyph (Box only
+            # centres on its cross axis).
+            return Box([Spacer(flex=1), Icon(icon, 22), Spacer(flex=1)],
+                       id=node_id, w=self.ARROW_W, h=self.ARROW_W,
+                       align="center", direction="row",
+                       bg=theme.BUTTON_BG, alpha=230,
                        hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
-                       anchor=anchor, occlude=True, repeat=True,
+                       anchor=anchor, dx=(self.RING_PAD if anchor == "w"
+                                          else -self.RING_PAD),
+                       occlude=True, repeat=True,
                        on_click=lambda: self._page_row(row_id, direction))
 
         return Stack([
@@ -925,17 +999,30 @@ class MpvtkBrowser:
             children.append(self._dialog())
         return Column(children, w=w, h=h, align="stretch")
 
+    # Below this window width the top bar drops its button labels: at
+    # 1/2 of 1440p the labelled buttons plus the search box overflow and
+    # start colliding with the page title.
+    COMPACT_W = 1280
+
     def _chrome(self, w):
+        compact = w < self.COMPACT_W
+        title = self.route.get("title") or _("Home")
+
+        def nav_button(label, node_id, icon, cb):
+            # Icon-only when compact — the icons are the same ones the
+            # labels sit next to, so nothing new has to be learned.
+            return Button("" if compact else label, id=node_id, icon=icon,
+                          on_click=cb)
+
         left = []
         if len(self.nav_stack) > 1:
-            left.append(Button(_("Back"), id="nav-back", icon="arrow_back",
-                               on_click=self.go_back))
-        left.append(Button(
-            _("Home"), id="nav-home", icon="home",
-            on_click=lambda: self.navigate(
-                {"kind": "home", "server": self.server}, reset=True),
-        ))
-        title = self.route.get("title") or _("Home")
+            left.append(nav_button(_("Back"), "nav-back", "arrow_back",
+                                   self.go_back))
+        left.append(nav_button(
+            _("Home"), "nav-home", "home",
+            lambda: self.navigate({"kind": "home", "server": self.server},
+                                  reset=True)))
+
         right = []
         try:
             servers = self.source.servers()
@@ -946,7 +1033,7 @@ class MpvtkBrowser:
             cur = next((i for i, s in enumerate(servers)
                         if s["uuid"] == self.server), 0)
             right.append(Dropdown(
-                "nav-server", names, selected=cur, w=160,
+                "nav-server", names, selected=cur, w=110 if compact else 160,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
         if len(users) > 1:
@@ -954,11 +1041,13 @@ class MpvtkBrowser:
             cur = next((i for i, u in enumerate(users)
                         if u.get("active")), 0)
             right.append(Dropdown(
-                "nav-user", names, selected=cur, w=150, force=True,
+                "nav-user", names, selected=cur, w=110 if compact else 150,
+                force=True,
                 icons=["lock" if u.get("locked") else "person" for u in users],
                 on_select=lambda i, v: self._switch_user(users[i])))
         right += [
-            TextBox("nav-search", placeholder=_("Search…"), w=220,
+            TextBox("nav-search", placeholder=_("Search…"),
+                    w=140 if compact else 220,
                     on_change=lambda v: self._search_box.__setitem__("term", v),
                     on_submit=self._search),
             # The textbox submits on Enter, but a visible button is the
@@ -966,14 +1055,16 @@ class MpvtkBrowser:
             Button("", id="nav-search-go", icon="search", size=18,
                    on_click=lambda: self._search(
                        self._search_box.get("term", ""))),
-            Button(_("SyncPlay"), id="nav-syncplay", icon="groups",
-                   on_click=self._open_syncplay),
-            Button(_("Settings"), id="nav-settings", icon="settings",
-                   on_click=self._open_settings),
+            nav_button(_("SyncPlay"), "nav-syncplay", "groups",
+                       self._open_syncplay),
+            nav_button(_("Settings"), "nav-settings", "settings",
+                       self._open_settings),
         ]
+        middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
         return Row(
-            left + [Text(title, size=22, bold=True), Spacer()] + right,
-            pad=12, gap=10, align="center", h=60, bg=theme.PANEL_BG,
+            left + middle + right,
+            pad=12, gap=8 if compact else 10, align="center", h=60,
+            bg=theme.PANEL_BG,
         )
 
     # ------------------------------------------------------------ users
@@ -1142,7 +1233,8 @@ class MpvtkBrowser:
             items, "grid", size, geom=self.geom, scroll_id="grid",
             head_h=head_h)
         return VScroll(
-            Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP), id="grid",
+            Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP,
+                   align="stretch"), id="grid",
             flex=1,
             on_scroll=lambda off, mx: self._on_scroll(
                 "grid", off, mx,
@@ -1182,7 +1274,8 @@ class MpvtkBrowser:
             # Text is packed at the box's left edge (Box only centres on its
             # cross axis), which left every letter hugging its left border.
             Box([Text(ch, size=15, align="center", flex=1,
-                      color="101010" if cur_letter == ch else theme.SUBTLE_FG)],
+                      color=theme.ACCENT_FG if cur_letter == ch
+                      else theme.SUBTLE_FG)],
                 id="grid-l-" + ch, w=26, h=26, align="center", direction="row",
                 radius=4, bg=theme.ACCENT if cur_letter == ch else None,
                 hover=None if cur_letter == ch else {"fill": theme.BUTTON_BG},
@@ -1342,28 +1435,34 @@ class MpvtkBrowser:
         buttons = []
         if pos > 0:
             secs = pos // 10000000
-            buttons.append(Row(
-                [Icon("play_arrow", 20, color="101010"),
-                 Text(_("Resume") + "  %d:%02d" % (secs // 60, secs % 60),
-                      size=18, color="101010")],
-                id="btn-resume", gap=6, pad=10, bg=theme.ACCENT, radius=6,
-                align="center",
-                on_click=lambda: self._play(item, server, offset_ticks=pos,
-                                            srcid=srcid, aid=aid, sid=sid)))
-        buttons.append(Row(
-            [Icon("play_arrow", 20), Text(_("Play"), size=18)],
-            id="btn-play", gap=6, pad=10, bg=theme.BUTTON_BG,
-            hover={"fill": theme.BUTTON_ACTIVE}, radius=6, align="center",
-            on_click=lambda: self._play(item, server, srcid=srcid,
-                                        aid=aid, sid=sid)))
+            buttons.append(self._action_btn(
+                "play_arrow", _("Resume") + "  %d:%02d" % (secs // 60,
+                                                           secs % 60),
+                "btn-resume",
+                lambda: self._play(item, server, offset_ticks=pos,
+                                   srcid=srcid, aid=aid, sid=sid),
+                primary=True, size=18))
+        buttons.append(self._action_btn(
+            "play_arrow", _("Play"), "btn-play",
+            lambda: self._play(item, server, srcid=srcid, aid=aid, sid=sid),
+            primary=(pos <= 0), size=18))
         return Row(buttons, gap=10)
 
-    def _action_btn(self, icon, text, node_id, cb, on=False):
-        fg = "101010" if on else "eeeeee"
-        return Row([Icon(icon, 18, color=fg), Text(text, size=16, color=fg)],
-                   id=node_id, gap=6, pad=9,
-                   bg=theme.ACCENT if on else theme.BUTTON_BG,
-                   hover=None if on else {"fill": theme.BUTTON_ACTIVE},
+    def _action_btn(self, icon, text, node_id, cb, on=False, primary=False,
+                    size=16):
+        """An icon+label action button.
+
+        ``primary`` is the accent-filled call to action (Play, Next Up);
+        ``on`` is a *toggle* that happens to share the accent fill (Watched,
+        Favorite). Both use white on blue — black on blue read as disabled."""
+        accent = on or primary
+        fg = theme.ACCENT_FG if accent else theme.TEXT_FG
+        return Row([Icon(icon, size + 2, color=fg),
+                    Text(text, size=size, color=fg)],
+                   id=node_id, gap=7, pad=10,
+                   bg=theme.ACCENT if accent else theme.BUTTON_BG,
+                   hover={"fill": theme.ACCENT_HOVER if accent
+                          else theme.BUTTON_ACTIVE},
                    radius=6, align="center", on_click=cb)
 
     def _common_actions(self, item, server, prefix):
@@ -1409,7 +1508,7 @@ class MpvtkBrowser:
     def _series_actions(self, item, server, series_id):
         btns = [self._action_btn(
             "play_arrow", _("Next Up"), "sa-nextup",
-            lambda: self._play_next_up(series_id, server))]
+            lambda: self._play_next_up(series_id, server), primary=True)]
         btns += self._common_actions(item, server, "sa")
         return Row(btns, gap=8, align="center")
 
@@ -1468,21 +1567,22 @@ class MpvtkBrowser:
             return self._error(_("Item not available."))
         w = size[0]
         server = route.get("server") or self.server
-        bw = min(w - 32, 960)
-        bh = int(bw * 9 / 16)
+        bw, bh = self._banner_box(w)
         title = item.get("Name", "")
         if item.get("Type") == "Episode":
             s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
             se = "S%sE%s" % (s, e) if s is not None and e is not None else ""
             title = "   ·   ".join(
                 p for p in (item.get("SeriesName"), se, title) if p)
-        blocks = [
-            self._backdrop_node(item, (bw, bh), "detail-bd"),
-            Text(title, size=30, bold=True),
-        ]
         meta = self._meta_line(item)
-        if meta:
-            blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+        banner = self._backdrop_node(item, (bw, bh), "detail-bd",
+                                     title=title, meta=meta)
+        blocks = [banner]
+        if isinstance(banner, Box):
+            # No artwork (or still loading): draw the heading normally.
+            blocks.append(Text(title, size=30, bold=True))
+            if meta:
+                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
         info = self._media_info_line(item, route)
         if info:
             blocks.append(Text(info, size=15, color=theme.SUBTLE_FG))
@@ -1505,16 +1605,16 @@ class MpvtkBrowser:
             return self._busy()
         item = data.get("item") or {}
         w = size[0]
-        bw = min(w - 32, 960)
-        bh = int(bw * 9 / 16)
+        bw, bh = self._banner_box(w)
         server = route.get("server") or self.server
-        blocks = [
-            self._backdrop_node(item, (bw, bh), "series-bd"),
-            Text(item.get("Name", ""), size=30, bold=True),
-        ]
         meta = self._meta_line(item)
-        if meta:
-            blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+        banner = self._backdrop_node(item, (bw, bh), "series-bd",
+                                     title=item.get("Name", ""), meta=meta)
+        blocks = [banner]
+        if isinstance(banner, Box):
+            blocks.append(Text(item.get("Name", ""), size=30, bold=True))
+            if meta:
+                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
         blocks.append(self._series_actions(item, server, route["item_id"]))
         if item.get("Overview"):
             blocks.append(self._paragraph(item["Overview"], 18, w - 32))
@@ -1774,7 +1874,8 @@ class MpvtkBrowser:
         return Row([
             self._action_btn("play_arrow", _("Play"), prefix + "-play",
                              lambda: self._play_list(ids, server, 0,
-                                                     audio=True), on=True),
+                                                     audio=True),
+                             primary=True),
             self._action_btn("shuffle", _("Shuffle"), prefix + "-shuffle",
                              lambda: self._play_shuffle(ids, server)),
             self._action_btn("playlist_add", _("Add to Queue"),
@@ -1788,7 +1889,7 @@ class MpvtkBrowser:
         active = route.get("_tab", "albums") == tab
         return Button(label, id="mtab-" + tab,
                       bg=theme.ACCENT if active else theme.BUTTON_BG,
-                      fg="101010" if active else theme.TEXT_FG,
+                      fg=theme.ACCENT_FG if active else theme.TEXT_FG,
                       on_click=lambda: self._set_music_tab(route, tab))
 
     def _set_music_tab(self, route, tab):
@@ -1901,7 +2002,7 @@ class MpvtkBrowser:
             Text(item.get("Name") or route.get("title", ""), size=28,
                  bold=True),
             self._music_action_bar(server, ids, route["item_id"], "album"),
-        ], gap=10)
+        ], gap=14)
         body = self._track_list(
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True))
@@ -1917,6 +2018,7 @@ class MpvtkBrowser:
         server = route.get("server") or self.server
         ids = [s.get("Id") for s in songs]
         rows = [Text(route.get("title", ""), size=26, bold=True),
+                Spacer(h=4),
                 self._music_action_bar(server, ids, route["item_id"], "art")]
         rows += self._grid_of(albums, "artist", size, geom=self.geom_square,
                               scroll_id="artist", head_h=110)
@@ -1934,6 +2036,7 @@ class MpvtkBrowser:
         server = route.get("server") or self.server
         ids = [s.get("Id") for s in songs]
         rows = [Text(route.get("title", ""), size=26, bold=True),
+                Spacer(h=4),
                 self._music_action_bar(server, ids, route["item_id"], "gen")]
         rows += self._grid_of(albums, "mgenre", size, geom=self.geom_square,
                               scroll_id="mgenre", head_h=110)
@@ -1961,7 +2064,8 @@ class MpvtkBrowser:
             Spacer(),
             self._action_btn("play_arrow", _("Play All"), "pl-play",
                              lambda: self._play_list(ids, server, 0,
-                                                     audio=audio), on=True),
+                                                     audio=audio),
+                             primary=True),
             self._action_btn("shuffle", _("Shuffle"), "pl-shuffle",
                              lambda: self._play_shuffle(ids, server,
                                                         audio=audio)),
@@ -1986,8 +2090,8 @@ class MpvtkBrowser:
         else:
             body = self._grid_of(data, "pl", size, scroll_id="playlist",
                                  head_h=70)
-        return VScroll(Column([header] + body, pad=self.CONTENT_PAD,
-                              gap=self.GRID_GAP),
+        return VScroll(Column([header, Spacer(h=2)] + body,
+                              pad=self.CONTENT_PAD, gap=self.GRID_GAP),
                        id="playlist", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "playlist", off, mx))
@@ -2101,7 +2205,7 @@ class MpvtkBrowser:
         tabs = Row([
             Button(labels[t], id="stab-" + t,
                    bg=theme.ACCENT if tab == t else theme.BUTTON_BG,
-                   fg="101010" if tab == t else theme.TEXT_FG,
+                   fg=theme.ACCENT_FG if tab == t else theme.TEXT_FG,
                    on_click=lambda t=t: self._set_settings_tab(route, t))
             for t in self.SETTINGS_TABS
         ], gap=8)
@@ -2626,7 +2730,7 @@ class MpvtkBrowser:
             Button(_("Remove"), id="q-remove", icon="delete",
                    on_click=lambda: self._queue_remove_selected(route)),
         ], gap=8, align="center")
-        rows = [toolbar]
+        rows = [toolbar, Spacer(h=2)]
         if not entries:
             rows.append(Text(_("The queue is empty."), size=18,
                              color=theme.SUBTLE_FG))
@@ -2830,7 +2934,8 @@ class MpvtkBrowser:
             size=17, row_h=34, selected_bg=theme.PANEL_BG,
             hover_bg=theme.BUTTON_BG)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
-                     size=26, bold=True), rename_row, toolbar, table]
+                     size=26, bold=True), Spacer(h=4), rename_row, toolbar,
+                Spacer(h=2), table]
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
                        id="playlist-edit", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(

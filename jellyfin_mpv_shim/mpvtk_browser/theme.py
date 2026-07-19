@@ -26,6 +26,8 @@ BORDER = "3a3d42"
 TEXT_FG = "e8e8e8"
 SUBTLE_FG = "9aa0a6"
 ACCENT = "00a4dc"
+ACCENT_HOVER = "1cb6e8"
+# Accent fills always carry white text — dark-on-blue reads as disabled.
 ACCENT_FG = "ffffff"
 FAV_RED = "e0264b"
 OK_GREEN = "7bd88f"      # "Connected" / "active" badges

@@ -209,12 +209,14 @@ dropped vs Tk (also listed in the shell gaps above).
   now, and a stopped playstate re-asserts the browse window regardless.
 - [x] Downloads are a series > season > episode tree with a delete at
   every level; Servers & Users is two full-width cards.
-- [ ] **"The floating selection display gets cut off by library
-  headings."** Not reproduced from code yet — menus, dropdowns and dialogs
-  are all drawn after the flow pass and already occlude images, so ASS
-  can't be clipped by a heading. Most likely candidate is the ImageMap
-  *hover ring*, which draws outside the tile bounds and is plain ASS, so
-  any bitmap it reaches over covers it. Needs a screenshot to pin down.
+- [x] **"The floating selection display gets cut off by library
+  headings."** Found: the tile hover ring is ASS (`draw_rect`, not a
+  bitmap) and the renderer draws it 2px *outside* the hit rect — then
+  clips it to the scroll viewport. The strip filled its container exactly,
+  so the ring's outer edge fell outside the clip and was shaved off; the
+  heading above was just what you saw in the gap. Fixed app-side by
+  insetting the strip inside its HScroll by `RING_PAD`, which is also why
+  the arrows are now inset by the same amount.
 
 ### Framework adoption (Fable's round)
 
@@ -228,9 +230,26 @@ All seven deficits are fixed in the toolkit and adopted here:
 - Overviews use `Text(wrap=True)`; the hand-rolled greedy wrap is gone.
 - Virtualization windows against the renderer's live scroll offsets.
 
-Still unadopted: nothing blocking. `Stack`'s occlude punch is worth
-revisiting for tile hover/selection affordances if the ring turns out to
-be the "cut off" report above.
+Still unadopted: nothing blocking.
+
+### Polish round
+
+- Page arrows are square, smaller and glyph-centred (`Box` only centres on
+  its cross axis; the glyph needs flex spacers), so the occlusion punch
+  reads as a notch instead of a slab.
+- Headings get their own spacing above action rows.
+- The top bar drops button labels below `COMPACT_W` (1280 = half of
+  1440p), where the labelled buttons used to overflow into the page title.
+- Accent fills always carry white text (`theme.ACCENT_FG`); black on blue
+  read as disabled. `_action_btn` now distinguishes `primary=` (call to
+  action — Play, Next Up, Play All) from `on=` (a toggle that shares the
+  accent fill — Watched, Favorite).
+- Detail/series banners are 2/3 the height of the equivalent 16:9 box
+  (~2.4:1) with the title and metadata **baked into the bitmap** over a
+  bottom gradient, like the Tk browser. ASS text can't be drawn over a
+  bitmap, and an occlude punch would show the window background rather
+  than the artwork, so baking is the only way to get text *on* the image.
+  The no-artwork path still draws a normal ASS heading.
 
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
