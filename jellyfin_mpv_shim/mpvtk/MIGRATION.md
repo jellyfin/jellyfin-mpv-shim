@@ -96,6 +96,53 @@ work — the browser still uses the old patterns.
    ctrl-toggle selection. The demo's hand-rolled track table now uses
    it.
 
+## Field-test round 2 (2026-07-19) — reported issues
+
+- [x] **Playlists showed "N items" and nothing below.** Scroll container
+  ids are per-view ("grid", "playlist"), not per-route, so a deep scroll in
+  one library carried into the next view opened under the same id. The
+  renderer clamps its own offset to the new content; our copy didn't, so
+  virtualization windowed rows past the end. Offsets now come from
+  `MpvtkApp.scroll_offsets()` synchronously at build time and are cleared
+  on navigation.
+- [x] A-Z letters were packed against their left border (Box only centres
+  on its *cross* axis — the glyph needs `align="center"` + `flex=1`).
+- [x] No fullscreen for music: there's no picture, and it hid the library
+  the now-playing bar belongs to.
+- [x] Music playlists render as a track list; playlist contents are
+  filtered to `PLAYLIST_SUPPORTED_TYPES`.
+- [x] Playlist/queue selection follows normal semantics: shift-click picks
+  a range from the anchor in two clicks, ctrl-click toggles, plain click
+  replaces.
+- [x] The queue is the same Table + toolbar as the playlist editor.
+- [x] Stopping music closed the library — the bar's stop button called
+  `stop_and_close()`, which drops force_window. It stops *to* the browser
+  now, and a stopped playstate re-asserts the browse window regardless.
+- [x] Downloads are a series > season > episode tree with a delete at
+  every level; Servers & Users is two full-width cards.
+- [ ] **"The floating selection display gets cut off by library
+  headings."** Not reproduced from code yet — menus, dropdowns and dialogs
+  are all drawn after the flow pass and already occlude images, so ASS
+  can't be clipped by a heading. Most likely candidate is the ImageMap
+  *hover ring*, which draws outside the tile bounds and is plain ASS, so
+  any bitmap it reaches over covers it. Needs a screenshot to pin down.
+
+### Framework adoption (Fable's round)
+
+All seven deficits are fixed in the toolkit and adopted here:
+
+- Carousel arrows genuinely float over the strip (`Stack` + `occlude`),
+  with hold-repeat. The flush-gutter workaround is gone.
+- All tabular lists come from one `Table` column spec, so header and cells
+  can't drift — the reported misalignment was hand-laid Rows with fixed
+  widths meeting variable-width text.
+- Overviews use `Text(wrap=True)`; the hand-rolled greedy wrap is gone.
+- Virtualization windows against the renderer's live scroll offsets.
+
+Still unadopted: nothing blocking. `Stack`'s occlude punch is worth
+revisiting for tile hover/selection affordances if the ring turns out to
+be the "cut off" report above.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but
