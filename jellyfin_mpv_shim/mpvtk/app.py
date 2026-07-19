@@ -27,6 +27,9 @@ _SPAWN_OPTS = {
     "input_default_bindings": "no",
     "cursor_autohide": "no",
     "background_color": "#141414",
+    # A UI window resizes freely; without this mpv snaps the window back
+    # to the video aspect ratio (and browse mode has no video at all).
+    "keepaspect_window": "no",
     "title": "mpvtk demo",
 }
 
