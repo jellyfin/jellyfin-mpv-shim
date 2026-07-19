@@ -2097,3 +2097,56 @@ class TestOneBlue(unittest.TestCase):
                          "parent_id": "lib1", "title": "Movies"})
         self.b.route["_filters"] = {"unplayed": True, "favorite": True}
         self._check("grid filter bar with checked boxes")
+
+
+class TestTrackListVirtualization(unittest.TestCase):
+    """Track tables must window their rows. With the album-art column each
+    visible row is one mpv overlay, so a few hundred tracks would blow the
+    63-overlay budget outright — not just cost a slow repaint."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+        self.tracks = [{"Id": "t%d" % i, "Name": "Track %d" % i,
+                        "Type": "Audio", "IndexNumber": i + 1,
+                        "RunTimeTicks": 2000000000} for i in range(400)]
+        # _track_list reads _size when it computes the virtual window, so it
+        # has to be set before the tree is built, not just before layout.
+        self.b._size = (1280, 720)
+
+    def _row_ids(self, node, size=(1280, 720)):
+        nodes, _h = layout(node, *size)
+        return {n["id"] for n in nodes
+                if isinstance(n.get("id"), str) and n["id"].startswith("t-")
+                and n["id"].count("-") == 1}
+
+    def test_only_a_window_of_rows_is_built(self):
+        node = self.b._track_list(self.tracks, "t", lambda i: None,
+                                  scroll_id="album")
+        ids = self._row_ids(node)
+        self.assertGreater(len(ids), 0)
+        self.assertLess(len(ids), 60, "should not materialize 400 rows")
+
+    def test_window_follows_the_scroll_offset(self):
+        top = self._row_ids(self.b._track_list(
+            self.tracks, "t", lambda i: None, scroll_id="album"))
+        self.b._scroll_off["album"] = 6000
+        bottom = self._row_ids(self.b._track_list(
+            self.tracks, "t", lambda i: None, scroll_id="album"))
+        self.assertTrue(top and bottom)
+        self.assertNotEqual(top, bottom)
+
+    def test_without_a_scroll_id_nothing_is_windowed(self):
+        """Short lists inside another scroll keep the simple path."""
+        node = self.b._track_list(self.tracks[:5], "t", lambda i: None)
+        self.assertEqual(len(self._row_ids(node)), 5)
+
+    def test_art_column_stays_within_the_overlay_budget(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Image as ImageNode
+        node = self.b._track_list(self.tracks, "t", lambda i: None,
+                                  art=True, scroll_id="playlist")
+        nodes, _h = layout(node, 1280, 720)
+        images = [n for n in nodes if n["t"] == "img"]
+        self.assertLess(len(images), 63, "exceeds mpv's overlay budget")
+        _ = ImageNode

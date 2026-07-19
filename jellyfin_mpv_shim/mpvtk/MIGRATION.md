@@ -412,6 +412,53 @@ The browser calls `mpvtk_browser.theme.apply_to_toolkit()` in
 overrides are gone. `TestOneBlue` walks rendered scenes and fails on any
 blue outside the accent family; `TestThemeAccent` covers the toolkit side.
 
+## Remaining framework work (2026-07-19, verified against code)
+
+Excluding Phase 8 (spatial/remote navigation).
+
+**Open in the toolkit**
+
+- **#8 min/max size constraints.** Nothing exists (`grep min_w` finds only
+  the local wrap parameter). Dialogs are fixed 440–560px, banners clamp by
+  hand (`min(w - 32, 1100)`), and fixed/natural children overflow silently
+  — there is no flex-shrink. Wanted: `min_w`/`max_w` (+ heights) honoured by
+  measure/arrange.
+- **#9 overflow / fit feedback, half done.** `MpvtkApp.node_rect()` gives
+  post-layout geometry one frame late, which covers stable things. Still
+  hand-derived in the app: the carousel recomputes `content_w` to decide
+  whether arrows are needed, virtualized grids feed estimated header
+  heights (`head_h = 40 + 110…`), and the responsive top bar uses a
+  hardcoded `COMPACT_W = 1280` rather than asking whether the bar fits.
+  Wanted: a build-time "does this overflow?" query or a priority-collapse
+  container.
+- **#4 tree rows, half done.** `Grid` dict rows give card + indent, and the
+  downloads tree gets disclosure from a plain Icon + `route` state. There
+  is no tree primitive, but nothing currently needs one.
+
+**Not toolkit bugs, but worth knowing**
+
+- **CJK text metrics are heuristic.** `metrics.extend_metrics` deliberately
+  stops at U+2E80 and `layout.char_w` assumes 1em for CJK, because libass
+  uses fallback fonts Pillow isn't measuring. ASS-drawn CJK text therefore
+  ellipsizes and wraps approximately. Baked bitmap text (tile captions,
+  banners, the mirror) measures exactly via Pillow, so the visible impact
+  is limited to chrome and list rows.
+- **Scratch-dir cleanup is best-effort.** `cache_dir()` registers an
+  `atexit` rmtree, which does not run on SIGKILL or a hard crash, so a
+  dev box can still accumulate BGRA scratch dirs. A startup sweep of stale
+  `mpvtk-*` dirs would close it.
+- **No IME on X11** (mpv limitation; Wayland and Windows are fine).
+
+**App-side debt this audit found**
+
+- [x] Track tables were not virtualized. `Table` grew `virtual=` for
+  exactly this and the app never passed it, so a long playlist built every
+  row — and with the album-art column that is one mpv overlay per row,
+  which would blow the 63-overlay budget outright rather than just cost a
+  repaint. Now windowed against `scroll_offsets()` in every track view.
+- [ ] Live per-item download progress push (the `Progress` widget is ready;
+  the downloads view polls instead).
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but

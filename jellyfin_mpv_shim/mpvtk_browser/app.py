@@ -698,6 +698,9 @@ class MpvtkBrowser:
         except Exception:
             log.warning("client action failed", exc_info=True)
 
+    # Row height of every track table (album, playlist, queue, songs).
+    TRACK_ROW_H = 34
+
     # Square page-arrow buttons floating over the carousel's edges.
     ARROW_W = 38
     # Slack inside a scroll viewport so a tile's hover ring — which the
@@ -1782,7 +1785,8 @@ class MpvtkBrowser:
             rows.append(Text(_("Songs"), size=24, bold=True))
             rows.append(self._track_list(
                 songs, "search-song",
-                lambda i: self._play_list(ids, server, i, audio=True)))
+                lambda i: self._play_list(ids, server, i, audio=True),
+                scroll_id="search", head_h=120))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]
         if other:
@@ -1869,7 +1873,7 @@ class MpvtkBrowser:
 
     def _track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
-                    art=False):
+                    art=False, scroll_id=None, head_h=0):
         """Tabular track list (album, playlist, queue, search songs).
 
         Uses the toolkit's Table so header and cells come from one column
@@ -1921,8 +1925,15 @@ class MpvtkBrowser:
                              if on_select is not None
                              else (lambda i=i: on_play(i))),
             })
-        return Table(columns, rows, size=17, row_h=34,
-                     hover_bg=theme.BUTTON_BG)
+        # Virtualize against the live scroll offset. Not just a repaint
+        # cost: with art=True each visible row is one mpv overlay, and a
+        # few hundred tracks would blow the 63-overlay budget outright.
+        virtual = None
+        if scroll_id is not None and self._size is not None:
+            virtual = {"offset": max(0.0, self._offset(scroll_id) - head_h),
+                       "height": float(self._size[1])}
+        return Table(columns, rows, size=17, row_h=self.TRACK_ROW_H,
+                     hover_bg=theme.BUTTON_BG, virtual=virtual)
 
     def _play_shuffle(self, ids, server, audio=True):
         import random
@@ -2045,7 +2056,8 @@ class MpvtkBrowser:
             ids = [s.get("Id") for s in data]
             body = VScroll(Column([self._track_list(
                 data, "song",
-                lambda i: self._play_list(ids, server, i, audio=True))],
+                lambda i: self._play_list(ids, server, i, audio=True),
+                scroll_id="music-songs")],
                 pad=self.CONTENT_PAD), id="music-songs", flex=1,
                 on_scroll=lambda off, mx: self._on_scroll(
                     "music-songs", off, mx,
@@ -2079,7 +2091,8 @@ class MpvtkBrowser:
         ], gap=14)
         body = self._track_list(
             tracks, "trk",
-            lambda i: self._play_list(ids, server, i, audio=True))
+            lambda i: self._play_list(ids, server, i, audio=True),
+            scroll_id="album", head_h=110)
         return VScroll(Column([header, body], pad=16, gap=12),
                        id="album", flex=1)
 
@@ -2163,7 +2176,7 @@ class MpvtkBrowser:
             body = [self._track_list(
                 items, "pl",
                 lambda i: self._play_list(ids, server, i, audio=True),
-                art=True)]
+                art=True, scroll_id="playlist", head_h=70)]
         else:
             body = self._grid_of(data, "pl", size, scroll_id="playlist",
                                  head_h=70)
@@ -2940,7 +2953,8 @@ class MpvtkBrowser:
             rows.append(self._track_list(
                 [e["item"] for e in entries], "q",
                 lambda i: self._queue_skip(entries[i].get("pid")),
-                playing_id=current, selected=sel,
+                playing_id=current, selected=sel, scroll_id="queue",
+                head_h=60,
                 on_select=lambda i, mods: self._select_click(route, i, mods)))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8), id="queue",
                        flex=1,
