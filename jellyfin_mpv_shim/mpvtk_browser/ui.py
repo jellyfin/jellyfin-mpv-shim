@@ -188,6 +188,10 @@ class _PlayerController:
     def seek(self, secs):
         self._act(lambda pm: pm.seek(float(secs), absolute=True))
 
+    def seek_relative(self, secs):
+        """Relative seek for the HUD's step buttons (±10s/±30s)."""
+        self._act(lambda pm: pm.seek(float(secs)))
+
     def set_volume(self, pct):
         self._act(lambda pm: pm.set_volume(float(pct)))
 

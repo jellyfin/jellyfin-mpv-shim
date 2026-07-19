@@ -285,6 +285,7 @@ class Slider(Element):
         on_commit=None,
         on_cancel=None,
         force=False,
+        marks=None,  # tick fractions in (0,1): chapter slits on a seek bar
         **kw,
     ):
         kw.setdefault("w", 180)
@@ -297,6 +298,7 @@ class Slider(Element):
         self.on_commit = on_commit
         self.on_cancel = on_cancel
         self.force = force
+        self.marks = marks
 
 
 class Busy(Element):

@@ -1463,13 +1463,43 @@ PER_BACKEND_REAL leg):
   lua OSC's floating button, including skip_*_always auto-skip which
   stays player-side); push_playstate carries a localized `skip_label`;
   the HUD floats a white button above the bar's right edge
-  (jellyfin-web placement). PARITY GAP, accepted for field-proving:
-  the lua OSC's skip button appears even with the OSC hidden — the
-  HUD's only while summoned (idle = blank scene + no input sections).
-  Revisit before 9.4 if it grates.
+  (jellyfin-web placement). ~~PARITY GAP: the lua OSC's skip button
+  appears even with the OSC hidden — the HUD's only while summoned.~~
+  Closed in 9.3b (standalone idle overlay).
 - Deferred still: chapter ticks on the slider track, chapter-snap
   while scrubbing, chapter-image preview fallback (videos with
   chapter thumbs but no trickplay).
+
+**9.3b ✅ (2026-07-19, per Izzie).** Idle skip overlay + responsive
+parity:
+
+- **Standalone skip button while the HUD is idle** (closes the 9.3
+  parity gap): player.update() pushes a playstate the moment a
+  skippable segment starts/ends; the browser mirrors `skip_label`
+  into the renderer (`mpvtk-hud-skip`), which — while idle — draws
+  its own Skip Intro/Credits button (the blank-scene state means it
+  can't come from a scene push) for ~6s. ENTER / remote Select skips
+  (`{t=hudskip}` → hud_action skip-segment; the summon-ENTER binding
+  is removed, not shadowed — deterministic), a click skips on the
+  button and summons elsewhere, and while the segment lasts pointer
+  movement re-shows the BUTTON rather than summoning the whole HUD
+  (arrows still summon). Segment end or any lifecycle transition
+  clears it.
+- **Responsive shrink** (lua OSC parity): scale = clamp(w/900, .72, 1)
+  on icons/pads/gaps; breakpoints drop ±10s/±30s step buttons and the
+  clock below 500px, quality below 560px, chapter prev/next buttons +
+  chapter dropdown below 700px. New transport buttons: replay_10 /
+  forward_30 (hold-repeat, controller.seek_relative) and chapter
+  prev/next (undo/redo icons, prev has the 2s re-seek grace like
+  mpv's 'add chapter -1').
+- **Chapter slits** on the seek bar: Slider gains `marks` (fractions);
+  renderer draws 2×11px ticks, accent once passed, dim white ahead —
+  render_jf_slider's treatment.
+- Coverage: fast layout tests (tiers/marks/chapter-jump in
+  test_mpvtk_browser_shell.TestPlaybackHudLayout), idle-overlay
+  lifecycle on real mpv both backends (test_idle_skip_overlay), and a
+  `{cmd=phud, action=mousemove}` debug hook because mouse-pos can't
+  be injected under headless X.
 
 **9.4 — cutover flag ✅, cutover itself pending field-proving.** The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
@@ -1480,9 +1510,9 @@ Izzie field-tests the HUD against real servers/content, then in a
 later change the default flips and trickplay-jf-osc.lua +
 osc_bridge's lua-side plumbing (send_state gating, skip-button
 script-messages) get deleted. Things to watch while field-proving:
-scrim opacity over bright content, the hidden-skip-button parity gap
-(9.3 note), OSD-menu (`menu.py`) overlap while the HUD is up, picker
-popup usability at 10ft, summon latency on slow IPC.
+scrim opacity over bright content, OSD-menu (`menu.py`) overlap while
+the HUD is up, picker popup usability at 10ft, summon latency on slow
+IPC, the idle skip overlay's timing/placement over real intros.
 
 ## Cross-cutting risks & open questions
 

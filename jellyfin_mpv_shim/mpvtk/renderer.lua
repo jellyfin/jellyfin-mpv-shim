@@ -108,6 +108,7 @@ end
 -- its auto-hide timer and summon path). All are assigned before the
 -- event loop can dispatch anything.
 local phud_touch, phud_summon, phud_hide, phud_clear
+local phud_skip_show
 
 -- Heuristic fallback — keep in sync with layout.py. Replaced at
 -- runtime by measured advances via the mpvtk-metrics message.
@@ -1026,6 +1027,20 @@ local function draw_slider(ass, node, ex, ey, clip)
         draw_rect(ass, tx1, ty - 3, tw * frac, 6,
             { fill = state.accent, radius = 3, clip = clip })
     end
+    -- chapter slits (2x11px): accent once passed, dim white ahead —
+    -- same treatment as the jellyfin OSC's seekbar markers
+    if node.marks then
+        for _, m in ipairs(node.marks) do
+            if m > 0 and m < 1 then
+                local passed = m <= frac
+                draw_rect(ass, tx1 + tw * m - 1, ty - 5.5, 2, 11, {
+                    fill = passed and state.accent or 'ffffff',
+                    a = passed and 255 or 77,
+                    clip = clip,
+                })
+            end
+        end
+    end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
         { fill = 'dddddd', radius = 8, clip = clip })
 end
@@ -1340,6 +1355,32 @@ render = function()
     elseif not busy_visible and state.busy_timer then
         state.busy_timer:kill()
         state.busy_timer = nil
+    end
+    if state.phud.mode and not state.phud.shown and state.phud.skip_show
+        and state.phud.intro then
+        -- Standalone Skip Intro/Credits button while the HUD is idle
+        -- (see the mpvtk-hud-skip handler). Renderer-drawn — the idle
+        -- scene is blank by design, so this can't come from a scene
+        -- push. Mirrors the summoned HUD's button styling/placement.
+        local label = state.phud.intro
+        local fs = 18
+        local bw = math.floor(text_w(label, fs, true) + 40)
+        local bh = 44
+        local x1 = state.w - bw - 24
+        local y1 = state.h - 150
+        state.phud.skip_rect = { x1 = x1, y1 = y1,
+                                 x2 = x1 + bw, y2 = y1 + bh }
+        draw_rect(ass, x1, y1, bw, bh,
+            { fill = 'eeeeee', a = 255, radius = 6 })
+        ass:new_event()
+        ass:append(string.format(
+            '{\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
+            '\\1a&H00&\\b1%s}',
+            x1 + bw / 2, y1 + bh / 2, fs, ass_color('111111'),
+            ui_font and ('\\fn' .. ui_font) or ''))
+        ass:append(esc(label))
+    else
+        state.phud.skip_rect = nil
     end
     if state.hud then
         -- input-diagnostics overlay (toggle: F12)
@@ -2625,7 +2666,16 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
             (math.abs(pos.x - state.phud.mx) +
              math.abs(pos.y - state.phud.my)) > 2
         state.phud.mx, state.phud.my = pos.x, pos.y
-        if moved then phud_summon('mouse') end
+        if moved then
+            if state.phud.intro then
+                -- during a skippable segment, pointer movement (re)shows
+                -- the lightweight skip button instead of the whole HUD;
+                -- arrows or a click outside the button still summon
+                phud_skip_show()
+            else
+                phud_summon('mouse')
+            end
+        end
         return
     end
     on_mouse_move(pos.x, pos.y)
@@ -2860,7 +2910,66 @@ end)
 -- mpv default (space pauses, q quits, …).
 
 local PHUD_HIDE_S = 4
+local PHUD_SKIP_S = 6
 local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
+
+-- Standalone Skip Intro/Credits overlay while the HUD is idle: shown
+-- for a few seconds when a skippable segment starts (mpvtk-hud-skip
+-- from Python) and again on pointer movement while the segment lasts.
+-- ENTER (and remote Select, routed here as a keypress) skips instead
+-- of summoning; a click skips on the button, summons elsewhere.
+local function phud_skip_hide()
+    if state.phud.skip_timer then
+        state.phud.skip_timer:kill()
+        state.phud.skip_timer = nil
+    end
+    if not state.phud.skip_show then return end
+    state.phud.skip_show = false
+    mp.remove_key_binding('mpvtk_skip_enter')
+    mp.remove_key_binding('mpvtk_skip_click')
+    if state.phud.mode and not state.phud.shown then
+        -- hand ENTER back to the summon surface
+        mp.add_forced_key_binding('ENTER', 'mpvtk_summon_ENTER',
+            function() phud_summon('key') end)
+    end
+    request_render()
+end
+
+function phud_skip_show()
+    if not state.phud.mode or state.phud.shown
+        or not state.phud.intro then
+        return
+    end
+    if not state.phud.skip_show then
+        state.phud.skip_show = true
+        -- ENTER skips while the button is up (deterministically: the
+        -- summon binding is removed, not merely shadowed)
+        mp.remove_key_binding('mpvtk_summon_ENTER')
+        mp.add_forced_key_binding('ENTER', 'mpvtk_skip_enter', function()
+            send({ t = 'hudskip' })
+            phud_skip_hide()
+        end)
+        mp.add_forced_key_binding('mbtn_left', 'mpvtk_skip_click',
+            function()
+                local r = state.phud.skip_rect
+                local x, y = state.phud.mx, state.phud.my
+                if r and x >= r.x1 and x <= r.x2
+                    and y >= r.y1 and y <= r.y2 then
+                    send({ t = 'hudskip' })
+                    phud_skip_hide()
+                else
+                    phud_summon('mouse')
+                end
+            end)
+    end
+    -- (re)arm the auto-hide on every show/pointer touch
+    if state.phud.skip_timer then state.phud.skip_timer:kill() end
+    state.phud.skip_timer = mp.add_timeout(PHUD_SKIP_S, function()
+        state.phud.skip_timer = nil
+        phud_skip_hide()
+    end)
+    request_render()
+end
 
 local function phud_bind_summon()
     for _, key in ipairs(PHUD_SUMMON_KEYS) do
@@ -2913,6 +3022,7 @@ end
 
 function phud_summon(src)
     if not state.phud.mode or state.phud.shown then return end
+    phud_skip_hide()  -- the full HUD's own skip button takes over
     state.phud.shown = true
     -- a keyboard/remote summon lands spatial-nav focus on the scene's
     -- autofocus node (play/pause) once Python pushes the HUD; a mouse
@@ -2973,6 +3083,8 @@ end
 -- from a summoned HUD) or go (plain suspend).
 function phud_clear()
     if not state.phud.mode then return end
+    phud_skip_hide()
+    state.phud.intro = nil
     state.phud.mode = false
     state.phud.shown = false
     state.phud.mx, state.phud.my = -1, -1
@@ -2995,6 +3107,7 @@ mp.register_script_message('mpvtk-hud', function(on)
         end
         state.phud.mode = true
         state.phud.shown = false
+        state.phud.intro = nil    -- Python re-pushes the live label
         state.phud.mx, state.phud.my = -1, -1
         phud_bind_summon()
         -- mirrored so the player routes remote Move*/Select here (to
@@ -3011,6 +3124,25 @@ mp.register_script_message('mpvtk-hud', function(on)
         end
     end
     request_render()
+end)
+
+-- Skippable-segment label for the idle overlay ('' = no segment).
+-- Pushed by the browser from every video playstate; the player also
+-- pushes a playstate the moment a segment starts/ends, so this stays
+-- within ~a pump of reality. Shows the standalone button on the
+-- idle transition into a segment; while the HUD is summoned, the
+-- scene's own skip button covers it.
+mp.register_script_message('mpvtk-hud-skip', function(label)
+    label = (label ~= nil and label ~= '') and label or nil
+    local started = label ~= nil and state.phud.intro == nil
+    state.phud.intro = label
+    if not state.phud.mode then return end
+    if label == nil then
+        phud_skip_hide()
+        request_render()
+    elseif started and not state.phud.shown then
+        phud_skip_show()
+    end
 end)
 
 -- ---------------------------------------------------------- test hooks
@@ -3205,6 +3337,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             active = state.active,
             phud_mode = state.phud.mode,
             phud_shown = state.phud.shown,
+            phud_intro = state.phud.intro,
+            phud_skip = state.phud.skip_show or false,
         })
     elseif cmd.cmd == 'phud' then
         -- drive the playback-HUD lifecycle from tests
@@ -3212,6 +3346,17 @@ mp.register_script_message('mpvtk-debug', function(json)
             phud_summon()
         elseif cmd.action == 'hide' then
             phud_hide()
+        elseif cmd.action == 'mousemove' then
+            -- synthetic idle-pointer movement (mouse-pos can't be
+            -- injected reliably under headless X)
+            state.phud.mx, state.phud.my = cmd.x or 10, cmd.y or 10
+            if state.phud.mode and not state.phud.shown then
+                if state.phud.intro then
+                    phud_skip_show()
+                else
+                    phud_summon('mouse')
+                end
+            end
         end
     end
 end)

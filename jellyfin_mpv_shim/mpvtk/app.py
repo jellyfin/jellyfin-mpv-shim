@@ -255,6 +255,10 @@ class MpvtkApp:
         # auto-hides (see set_hud). Runs on the loop thread; the True
         # call should flip the build to the HUD scene + invalidate.
         self.on_hud = None
+        # called when the user activates the renderer-drawn standalone
+        # Skip Intro/Credits button while the HUD is idle (ENTER /
+        # remote Select / click). Should perform the skip.
+        self.on_hud_skip = None
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -422,6 +426,13 @@ class MpvtkApp:
                     log.exception("on_hud handler failed")
             self._dirty = True
             return
+        if t == "hudskip":
+            if self.on_hud_skip is not None:
+                try:
+                    self.on_hud_skip()
+                except Exception:
+                    log.exception("on_hud_skip handler failed")
+            return
         if t in ("change", "submit"):
             # typed text may contain glyphs we've never measured; the
             # metrics push makes the renderer re-render with real widths
@@ -534,6 +545,17 @@ class MpvtkApp:
         leaves HUD mode."""
         self.backend.command(
             "script-message", "mpvtk-hud", "yes" if on else "no"
+        )
+
+    def set_hud_skip(self, label):
+        """Tell the renderer whether a skippable segment is live
+        (falsy = none). While the HUD is idle, entering a segment shows
+        a standalone renderer-drawn skip button for a few seconds
+        (pointer movement re-shows it); ENTER / remote Select / a click
+        on it fires ``on_hud_skip``. While summoned, the scene's own
+        button is authoritative and this only tracks the label."""
+        self.backend.command(
+            "script-message", "mpvtk-hud-skip", label or ""
         )
 
     def scroll(self, node_id, direction):

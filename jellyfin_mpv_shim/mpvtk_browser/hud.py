@@ -110,17 +110,38 @@ def _option_picker(b, node_id, icon, tip, options, verb):
             b, verb, opts[i]["id"]))
 
 
-def _pickers(b, menu_state, pos):
+def _chapters(b):
+    if b.controller is None or not hasattr(b.controller, "chapters"):
+        return []
+    try:
+        return b.controller.chapters() or []
+    except Exception:
+        return []
+
+
+def _chapter_jump(b, chapters, pos, direction):
+    """Seek to the previous/next chapter start (the lua OSC's
+    ch_prev/ch_next). Prev re-seeks the current chapter's start unless
+    pressed within its first 2 seconds, like mpv's 'add chapter -1'."""
+    if direction < 0:
+        target = 0.0
+        for ch in chapters:
+            if ch["time"] < pos - 2.0:
+                target = ch["time"]
+        b._ctl(lambda c: c.seek(target))
+        return
+    for ch in chapters:
+        if ch["time"] > pos + 0.5:
+            b._ctl(lambda c, t=ch["time"]: c.seek(t))
+            return
+
+
+def _pickers(b, menu_state, pos, chapters, tiers):
     """Right-aligned controls: chapters, audio/subtitle tracks, quality
-    — each only when there is a real choice to make."""
+    — each only when there is a real choice to make (and the viewport
+    has room for it)."""
     out = []
-    chapters = []
-    if b.controller is not None and hasattr(b.controller, "chapters"):
-        try:
-            chapters = b.controller.chapters()
-        except Exception:
-            chapters = []
-    if chapters:
+    if chapters and tiers["chapters"]:
         cur = 0
         for i, ch in enumerate(chapters):
             if ch["time"] <= pos:
@@ -147,7 +168,7 @@ def _pickers(b, menu_state, pos):
         out.append(_option_picker(b, "hud-sub", "closed_caption",
                                   _("Subtitle Track"), subs, "set-sub"))
     quality = st.get("quality") or {}
-    if quality.get("options"):
+    if quality.get("options") and tiers["quality"]:
         out.append(_option_picker(b, "hud-quality", "hd",
                                   _("Video Quality"), quality["options"],
                                   "set-quality"))
@@ -182,11 +203,30 @@ def build_hud(b, size):
     dur = st.get("duration", 0) or 0
     pp = "play_arrow" if st.get("paused") else "pause"
     scrub = b._hud_scrub
+    chapters = _chapters(b)
 
-    def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None):
+    # Responsive shrink, mirroring the lua OSC's jellyfin layout:
+    # everything scales down to 72% as the window narrows, and the
+    # less essential controls drop out at breakpoints (in the spirit
+    # of jellyfin-web's).
+    scale = min(1.0, max(0.72, w / 900.0))
+
+    def sz(v):
+        return int(v * scale + 0.5)
+
+    tiers = {
+        "seek_btns": w >= 500,   # ±10s/±30s step buttons
+        "clock": w >= 500,
+        "quality": w >= 560,
+        "ch_btns": w >= 700,     # chapter prev/next buttons
+        "chapters": w >= 700,    # chapter list dropdown
+    }
+
+    def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
+             repeat=False):
         return Button("", id=node_id, icon=icon, flat=True,
-                      icon_size=icon_size, autofocus=autofocus,
-                      tip=tip, on_click=cb)
+                      icon_size=sz(icon_size), autofocus=autofocus,
+                      tip=tip, repeat=repeat, on_click=cb)
 
     # Scrub semantics: 'change' only moves the preview + clock; the seek
     # happens once on 'commit' (drag release / adjust-mode exit), so
@@ -194,6 +234,8 @@ def build_hud(b, size):
     seek = Slider(
         "hud-seek", value=pos, min=0, max=max(1.0, dur),
         force=True, flex=1, h=26,
+        marks=([ch["time"] / dur for ch in chapters if 0 < ch["time"] < dur]
+               if dur > 0 else None),
         on_change=b._hud_scrub_change,
         on_commit=b._hud_scrub_commit,
         on_cancel=b._hud_scrub_cancel)
@@ -205,34 +247,61 @@ def build_hud(b, size):
         except Exception:
             menu_state = None
 
+    controls = [
+        tbtn("skip_previous", "hud-prev",
+             lambda: b._ctl(lambda c: c.prev()), tip=_("Previous")),
+    ]
+    if chapters and tiers["ch_btns"]:
+        controls.append(tbtn(
+            "undo", "hud-ch-prev",
+            lambda: _chapter_jump(b, chapters, pos, -1),
+            tip=_("Previous Chapter")))
+    if tiers["seek_btns"]:
+        controls.append(tbtn(
+            "replay_10", "hud-seek-back",
+            lambda: b._ctl(lambda c: c.seek_relative(-10)),
+            tip=_("Back 10 Seconds"), repeat=True))
+    controls.append(tbtn(
+        pp, "hud-pp", lambda: b._ctl(lambda c: c.toggle_pause()),
+        autofocus=True, icon_size=36))
+    if tiers["seek_btns"]:
+        controls.append(tbtn(
+            "forward_30", "hud-seek-fwd",
+            lambda: b._ctl(lambda c: c.seek_relative(30)),
+            tip=_("Forward 30 Seconds"), repeat=True))
+    if chapters and tiers["ch_btns"]:
+        controls.append(tbtn(
+            "redo", "hud-ch-next",
+            lambda: _chapter_jump(b, chapters, pos, 1),
+            tip=_("Next Chapter")))
+    controls.append(tbtn(
+        "skip_next", "hud-next",
+        lambda: b._ctl(lambda c: c.next()), tip=_("Next")))
+    controls.append(tbtn(
+        "stop", "hud-stop",
+        lambda: b._ctl(lambda c: c.stop()), tip=_("Stop")))
     shown_pos = pos if scrub is None else scrub
+    if tiers["clock"]:
+        controls.append(Text(
+            "%s / %s" % (_clock(shown_pos), _clock(dur)), size=sz(15),
+            color="ffffff" if scrub is not None else "dddddd"))
+    controls.append(Spacer())
+
     transport = Row(
-        [
-            tbtn("skip_previous", "hud-prev",
-                 lambda: b._ctl(lambda c: c.prev()), tip=_("Previous")),
-            tbtn(pp, "hud-pp",
-                 lambda: b._ctl(lambda c: c.toggle_pause()),
-                 autofocus=True, icon_size=36),
-            tbtn("skip_next", "hud-next",
-                 lambda: b._ctl(lambda c: c.next()), tip=_("Next")),
-            tbtn("stop", "hud-stop",
-                 lambda: b._ctl(lambda c: c.stop()), tip=_("Stop")),
-            Text("%s / %s" % (_clock(shown_pos), _clock(dur)), size=15,
-                 color="ffffff" if scrub is not None else "dddddd"),
-            Spacer(),
-        ] + _pickers(b, menu_state, pos),
-        gap=6, align="center")
+        controls + _pickers(b, menu_state, pos, chapters, tiers),
+        gap=sz(6), align="center")
 
     bar = Column(
         [
-            Text(st.get("title") or "", size=17, bold=True),
+            Text(st.get("title") or "", size=sz(17), bold=True),
             # the Slider has a fixed default width, so stretch can't
             # touch it directly: an unsized Row wrapper stretches to the
             # column width and flex=1 spreads the slider inside it
             Row([seek], align="center"),
             transport,
         ],
-        gap=6, pad=(24, 14), w=w, anchor="s", align="stretch")
+        gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
+        align="stretch")
 
     children = [
         Gradient(color="000000", top=0, bottom=215, w=w,

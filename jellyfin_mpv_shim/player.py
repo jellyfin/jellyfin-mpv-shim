@@ -875,6 +875,7 @@ class PlayerManager(object):
                 log.exception(
                     "Queued task %s failed.", getattr(func, "__name__", func)
                 )
+        prev_hud_skip = self._hud_skip
         try:
             if (
                 (
@@ -958,6 +959,11 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
             return
+        if (self._hud_skip is None) != (prev_hud_skip is None):
+            # A skippable segment just started/ended: push a playstate
+            # now so the HUD's skip button (and the idle overlay) track
+            # it within a pump instead of the 5s timeline cadence.
+            self.push_playstate()
 
         try:
             if self._video and not self._player.playback_abort:

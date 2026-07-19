@@ -368,6 +368,115 @@ class FakeController:
         return lambda *a, **k: calls.append((name, a))
 
 
+class HudController(FakeController):
+    """FakeController with real HUD data (the catch-all recorder would
+    return None for the data getters)."""
+
+    def __init__(self):
+        super().__init__()
+        self.menu_state = {
+            "has_media": True,
+            "audio": [
+                {"id": 1, "label": "English", "selected": True},
+                {"id": 2, "label": "Commentary", "selected": False},
+            ],
+            "subtitles": [
+                {"id": -1, "label": "None", "selected": True},
+                {"id": 3, "label": "English", "selected": False},
+            ],
+            "quality": {"current": "No Transcode", "options": [
+                {"id": "none", "label": "No Transcode", "selected": True},
+                {"id": 20, "label": "20 Mbps", "selected": False},
+            ]},
+        }
+        self.chapter_list = [
+            {"title": "Opening", "time": 0.0},
+            {"title": "Middle", "time": 40.0},
+            {"title": "End", "time": 80.0},
+        ]
+
+    def use_hud(self):
+        return True
+
+    def hud_menu_state(self):
+        return self.menu_state
+
+    def chapters(self):
+        return list(self.chapter_list)
+
+
+class TestPlaybackHudLayout(unittest.TestCase):
+    """Viewport tiers + chapter slits of the playback HUD bar (hud.py),
+    laid out headlessly. The lifecycle itself is covered on a real mpv
+    in tests/integration/test_mpvtk_hud.py."""
+
+    def _browser(self):
+        ctl = HudController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = False
+        b._hud_shown = True
+        b._hud_state = {"stopped": False, "is_audio": False,
+                        "title": "Movie", "position": 50.0,
+                        "duration": 100.0, "paused": False}
+        return b, ctl
+
+    def test_wide_viewport_has_all_controls_and_marks(self):
+        b, _ctl = self._browser()
+        nodes, handlers = build_scene(b, (1280, 720))
+        present = ids(nodes)
+        for nid in ("hud-pp", "hud-seek-back", "hud-seek-fwd",
+                    "hud-ch-prev", "hud-ch-next", "hud-chapters",
+                    "hud-audio", "hud-sub", "hud-quality"):
+            self.assertIn(nid, present)
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertEqual(seek.get("marks"), [0.4, 0.8],
+                         "chapter slits should be the interior chapters")
+
+    def test_narrow_viewport_drops_optional_controls(self):
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (460, 640))
+        present = ids(nodes)
+        for nid in ("hud-pp", "hud-prev", "hud-next", "hud-stop",
+                    "hud-audio", "hud-sub"):
+            self.assertIn(nid, present)
+        for nid in ("hud-seek-back", "hud-seek-fwd", "hud-ch-prev",
+                    "hud-ch-next", "hud-chapters", "hud-quality"):
+            self.assertNotIn(nid, present)
+
+    def test_mid_viewport_keeps_quality_drops_chapters(self):
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (620, 640))
+        present = ids(nodes)
+        self.assertIn("hud-quality", present)
+        self.assertIn("hud-seek-back", present)
+        self.assertNotIn("hud-chapters", present)
+        self.assertNotIn("hud-ch-prev", present)
+
+    def test_seek_step_buttons_seek_relative(self):
+        b, ctl = self._browser()
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["hud-seek-back"]["click"]()
+        handlers["hud-seek-fwd"]["click"]()
+        self.assertIn(("seek_relative", (-10,)), ctl.transport)
+        self.assertIn(("seek_relative", (30,)), ctl.transport)
+
+    def test_chapter_jump_buttons(self):
+        b, ctl = self._browser()
+        _nodes, handlers = build_scene(b, (1280, 720))
+        # pos=50: prev -> chapter at 40, next -> chapter at 80
+        handlers["hud-ch-prev"]["click"]()
+        handlers["hud-ch-next"]["click"]()
+        self.assertIn(("seek", (40.0,)), ctl.transport)
+        self.assertIn(("seek", (80.0,)), ctl.transport)
+
+    def test_prev_chapter_within_grace_goes_further_back(self):
+        b, ctl = self._browser()
+        b._hud_state["position"] = 41.0  # within 2s of the 40s chapter
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["hud-ch-prev"]["click"]()
+        self.assertIn(("seek", (0.0,)), ctl.transport)
+
+
 class TestPlaybackLifecycle(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()

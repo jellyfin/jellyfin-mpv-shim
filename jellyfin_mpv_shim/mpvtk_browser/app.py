@@ -122,6 +122,8 @@ class MpvtkBrowser:
         self._hud_scrub = None
         if app is not None and hasattr(app, "on_hud"):
             app.on_hud = self._on_hud
+        if app is not None and hasattr(app, "on_hud_skip"):
+            app.on_hud_skip = self._on_hud_skip
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
         # Global download progress for the status bar, and its poller.
@@ -960,6 +962,10 @@ class MpvtkBrowser:
         self._hud_scrub = None
         self.invalidate()
 
+    def _on_hud_skip(self):
+        """The renderer's standalone idle skip button was activated."""
+        self._ctl(lambda c: c.hud_action("skip-segment"))
+
     def _on_hud(self, active):
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
@@ -1106,6 +1112,15 @@ class MpvtkBrowser:
                 self._yield()         # video: yield the window + the OSC
             else:
                 self.invalidate()     # HUD/bar repaint (clock, pause icon)
+            if (not self._browsing and self._use_hud()
+                    and hasattr(self.app, "set_hud_skip")):
+                # keep the renderer's idle skip overlay in sync with the
+                # live skippable segment (the player pushes a playstate
+                # the moment one starts/ends)
+                try:
+                    self.app.set_hud_skip(state.get("skip_label") or "")
+                except Exception:
+                    log.debug("set_hud_skip failed", exc_info=True)
 
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.
