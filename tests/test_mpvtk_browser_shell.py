@@ -44,6 +44,12 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_filter_values(self, server_uuid, parent_id=None):
+        return {"genres": ["Action", "Comedy"], "years": [2020, 2021]}
+
+    def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
+        return ["g0", "g5", "g9"]
+
     def image_spec(self, item, image_type="Primary", width=280):
         return None  # no artwork in tests -> placeholder tiles, no network
 
@@ -608,6 +614,52 @@ class TestDetailActions(unittest.TestCase):
         self.assertIn("sa-nextup", ids(_n))
         h["sa-nextup"]["click"]()
         self.assertTrue(self.ctl.played)      # next-up episode played
+
+
+class TestGridFilters(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _grid(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        return build_scene(self.b)
+
+    def test_filter_bar_present(self):
+        nodes, _h = self._grid()
+        for nid in ("grid-sort", "grid-genre", "grid-unplayed", "grid-fav",
+                    "grid-shuffle", "grid-l-A", "grid-l-#"):
+            self.assertIn(nid, ids(nodes))
+
+    def test_sort_change_sets_and_reloads(self):
+        _n, h = self._grid()
+        h["grid-sort"]["select"](3, "Community Rating")
+        self.assertEqual(self.b.route["_sort"], 3)
+
+    def test_genre_filter(self):
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")   # index 0 = All Genres
+        self.assertEqual(self.b.route["_filters"]["genre"], "Action")
+
+    def test_unplayed_toggle(self):
+        _n, h = self._grid()
+        h["grid-unplayed"]["click"]()
+        self.assertTrue(self.b.route["_filters"]["unplayed"])
+
+    def test_letter_jump(self):
+        _n, h = self._grid()
+        h["grid-l-M"]["click"]()
+        self.assertEqual(self.b.route["_filters"]["letter"], "M")
+
+    def test_shuffle_plays(self):
+        _n, h = self._grid()
+        h["grid-shuffle"]["click"]()
+        self.assertTrue(self.ctl.played)
+        ids_, _srv, _s = self.ctl.played[-1]
+        self.assertEqual(ids_, ["g0", "g5", "g9"])
 
 
 class TestTileContextMenu(unittest.TestCase):

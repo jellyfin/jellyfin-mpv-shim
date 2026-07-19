@@ -59,6 +59,19 @@ log = logging.getLogger("mpvtk_browser.app")
 # browser's login/locked/connecting screens.
 CHROME_FREE = {"login", "locked", "connecting"}
 
+# Grid sort modes (label, SortBy, SortOrder) — ported from the Tk browser.
+SORTS = [
+    (_("Name"), "SortName", "Ascending"),
+    (_("Date Added"), "DateCreated", "Descending"),
+    (_("Release Date"), "PremiereDate", "Descending"),
+    (_("Community Rating"), "CommunityRating", "Descending"),
+    (_("Date Played"), "DatePlayed", "Descending"),
+    (_("Play Count"), "PlayCount", "Descending"),
+    (_("Runtime"), "Runtime", "Ascending"),
+    (_("Random"), "Random", "Ascending"),
+]
+_LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 class MpvtkBrowser:
     def __init__(self, app, source, strips=None, thumbs=None,
@@ -201,12 +214,25 @@ class MpvtkBrowser:
                 return {"libraries": libs, "rows": rows}
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "grid":
+            srv = route.get("server") or self.server
+            parent = route["parent_id"]
+            _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+            filters = route.get("_filters") or {}
+
             def work():
-                return self.source.get_library_items(
-                    route.get("server") or self.server, route["parent_id"]
-                )
+                items, total = self.source.get_library_items(
+                    srv, parent, sort_by=sort_by, sort_order=sort_order,
+                    filters=filters)
+                vals = route.get("_filtervals")
+                if vals is None:
+                    try:
+                        vals = self.source.get_filter_values(srv, parent)
+                    except Exception:
+                        vals = {"genres": [], "years": []}
+                return items, total, vals
+
             def done(res):
-                route["_items"], route["_total"] = res
+                route["_items"], route["_total"], route["_filtervals"] = res
             self.run_async(work, done, ep)
         elif kind == "detail":
             srv = route.get("server") or self.server
@@ -854,10 +880,15 @@ class MpvtkBrowser:
         items = route.get("_items")
         if items is None:
             return self._busy()
-        w = size[0]
-        g = self.geom
-        cols = max(1, int((w - 32 + g.gap) // (g.tile_w + g.gap)))
-        rows = [Text(route.get("title", ""), size=26, bold=True)]
+        cols = self._cols(size[0], self.geom)
+        header = [Text(route.get("title", ""), size=26, bold=True)]
+        if route["kind"] == "grid":
+            header.append(self._grid_filter_bar(route))
+            total = route.get("_total") or 0
+            header.append(Text(_("%(shown)d of %(total)d") % {
+                "shown": len(items), "total": total},
+                size=14, color=theme.SUBTLE_FG))
+        rows = header
         for start in range(0, len(items), cols):
             chunk = items[start:start + cols]
             rows.append(self._image_map(chunk, "grid-%d" % start))
@@ -865,6 +896,78 @@ class MpvtkBrowser:
             Column(rows, pad=16, gap=12), id="grid", flex=1,
             on_scroll=lambda off, mx: self._on_grid_scroll(route, off, mx),
         )
+
+    def _grid_filter_bar(self, route):
+        vals = route.get("_filtervals") or {}
+        filters = route.get("_filters") or {}
+        genres = vals.get("genres") or []
+        gi = 0
+        if filters.get("genre") in genres:
+            gi = genres.index(filters["genre"]) + 1
+        bar = Row([
+            Dropdown("grid-sort", [s[0] for s in SORTS],
+                     selected=route.get("_sort", 0), w=180,
+                     on_select=lambda i, v: self._set_grid("_sort", route, i)),
+            Dropdown("grid-genre", [_("All Genres")] + genres, selected=gi,
+                     w=180,
+                     on_select=lambda i, v: self._set_grid_filter(
+                         route, "genre", None if i == 0 else genres[i - 1])),
+            Checkbox(_("Unplayed"), bool(filters.get("unplayed")),
+                     id="grid-unplayed",
+                     on_toggle=lambda: self._toggle_grid_filter(
+                         route, "unplayed")),
+            Checkbox(_("Favorites"), bool(filters.get("favorite")),
+                     id="grid-fav",
+                     on_toggle=lambda: self._toggle_grid_filter(
+                         route, "favorite")),
+            Spacer(),
+            Button(_("Shuffle"), id="grid-shuffle",
+                   on_click=lambda: self._grid_shuffle(route)),
+        ], gap=10, align="center")
+        cur_letter = filters.get("letter")
+        letters = Row([
+            Box([Text(ch, size=15,
+                      color="101010" if cur_letter == ch else theme.SUBTLE_FG)],
+                id="grid-l-" + ch, w=26, h=26, align="center", direction="row",
+                radius=4, bg=theme.ACCENT if cur_letter == ch else None,
+                hover=None if cur_letter == ch else {"fill": theme.BUTTON_BG},
+                on_click=lambda c=ch: self._set_grid_filter(
+                    route, "letter", None if cur_letter == c else c))
+            for ch in _LETTERS], gap=2, align="center")
+        return Column([bar, letters], gap=8)
+
+    def _reload_grid(self, route):
+        for k in ("_items", "_total"):
+            route.pop(k, None)
+        route["_loading"] = False
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def _set_grid(self, key, route, value):
+        route[key] = value
+        self._reload_grid(route)
+
+    def _set_grid_filter(self, route, key, value):
+        route.setdefault("_filters", {})[key] = value
+        self._reload_grid(route)
+
+    def _toggle_grid_filter(self, route, key):
+        f = route.setdefault("_filters", {})
+        f[key] = not f.get(key)
+        self._reload_grid(route)
+
+    def _grid_shuffle(self, route):
+        srv = route.get("server") or self.server
+        ep = self._epoch
+
+        def work():
+            return self.source.get_shuffle_ids(srv, route["parent_id"])
+
+        def done(ids):
+            if ids:
+                self._play_list(ids, srv, 0)
+        self.run_async(work, done, ep)
 
     def _on_grid_scroll(self, route, offset, maximum):
         if route is not self.route:
@@ -878,11 +981,18 @@ class MpvtkBrowser:
         route["_loading"] = True
         ep = self._epoch
         start = len(items)
+        _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        filters = route.get("_filters") or {}
+        person = route.get("person_id")
 
         def work():
+            srv = route.get("server") or self.server
+            if person:
+                return self.source.get_person_items(srv, person,
+                                                    start_index=start)
             return self.source.get_library_items(
-                route.get("server") or self.server, route["parent_id"],
-                start_index=start)
+                srv, route["parent_id"], start_index=start, sort_by=sort_by,
+                sort_order=sort_order, filters=filters)
 
         def done(res):
             new, total2 = res
