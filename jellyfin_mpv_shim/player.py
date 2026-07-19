@@ -240,6 +240,11 @@ class PlayerManager(object):
         # mode). Guards idle_quit so browsing never tears the window down, the
         # same way get_webview() guards it for the display mirror.
         self.mpvtk_active = False
+        # True while the in-window browser's solid background image is the
+        # loaded file. Guards against reloading it on top of itself, which
+        # tears the video output down and back up (a visible window
+        # close/reopen). Cleared whenever real media takes over.
+        self._showing_browse_bg = False
         # Optional callback invoked when the user closes the mpv window while
         # the in-window UI owns it. Set by mpvtk_browser.ui, which decides
         # between minimizing to the tray and quitting. Unset -> stop_and_close.
@@ -749,6 +754,17 @@ class PlayerManager(object):
             except Exception:
                 log.warning("Error when processing client-message.", exc_info=True)
 
+        self._showing_browse_bg = False
+        if settings.browser_ui == "mpvtk" and settings.enable_gui:
+            try:
+                # One window is shared by the browser and playback, and the
+                # user resizes it to suit. Letting mpv snap it back to each
+                # file's aspect ratio fights that on every play. Set once
+                # here so it survives idle-quit / crash re-creation.
+                self._player.keepaspect_window = False
+            except Exception:
+                log.debug("keepaspect-window unsupported", exc_info=True)
+
         self._mpv_alive = True
 
         # Anything attached to the *previous* handle has to move over. Only on
@@ -984,6 +1000,7 @@ class PlayerManager(object):
         self.pause_ignore = True
         self.do_not_handle_pause = True
         self.url = url
+        self._showing_browse_bg = False   # real media replaces the backdrop
         self.menu.hide_menu()
 
         if self.trickplay:
@@ -2272,18 +2289,24 @@ class PlayerManager(object):
         try:
             if enabled:
                 try:
-                    self._player.keepaspect_window = False
                     # The background is a solid colour, so stretch it to fill
                     # the window. Without this mpv letterboxes the (square)
                     # image and the bars around it show as a grey frame under
-                    # the UI. Restored below so real video keeps its aspect.
+                    # the UI. Restored by browse_yield() for real video.
                     self._player.keepaspect = False
                 except Exception:
                     pass  # older mpv without the property; harmless
                 self._player.force_window = True
                 self._player.keep_open = True
                 self._player.image_display_duration = "inf"
-                self._player.play(_browse_background())
+                # Reloading the background while it is already up tears the
+                # video output down and back up, which reads as the window
+                # closing and reopening. Stopping playback hits this path
+                # twice (once from the stopped-playstate callback, once from
+                # the caller), so it has to be idempotent.
+                if not (self._showing_browse_bg and self._video is None):
+                    self._player.play(_browse_background())
+                    self._showing_browse_bg = True
                 # Browsing is a desktop-UI activity: only go fullscreen if the
                 # user explicitly asked for a fullscreen browser. settings.
                 # fullscreen still applies when playback starts.
@@ -2296,6 +2319,7 @@ class PlayerManager(object):
                     self._player.keepaspect = True
                 except Exception:
                     pass
+                self._showing_browse_bg = False
                 self._player.image_display_duration = 1
                 self._player.keep_open = False
                 if not self._video:
@@ -2331,6 +2355,7 @@ class PlayerManager(object):
         tearing the window down would kill it."""
         if not self._mpv_alive:
             return
+        self._showing_browse_bg = False
         try:
             self._player.keepaspect = True
             if settings.fullscreen and not self.fullscreen_disable:

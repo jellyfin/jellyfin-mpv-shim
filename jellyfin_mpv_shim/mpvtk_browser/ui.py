@@ -451,18 +451,30 @@ class _PlayerController:
     def list_downloads(self):
         """Downloads grouped for display, mirroring the Tk DownloadsPanel:
 
-            [{"kind": "series"|"movies", "title", "id", "size",
-              "children": [{"kind": "season"|"item", ...}]}]
+            [{"kind": "playlist"|"series"|"movies", "title", "id",
+              "size", "count", "children": [...]}]
 
-        Series nest their seasons, seasons nest their episodes, and loose
-        movies/videos land in one flat group — a flat list of 400 episodes
-        was unnavigable and gave no way to delete a whole show."""
+        Playlists come first and are shown *collapsed* — a downloaded music
+        playlist is hundreds of tracks nobody wants listed, and its items are
+        owned by the playlist so they must not also appear below. Series nest
+        their seasons; everything left over lands in one flat group."""
         from ..sync.manager import syncManager
+        db = getattr(syncManager, "db", None)
+        if db is None:
+            return []
         try:
-            rows = syncManager.db.list() if syncManager.db else []
+            rows = db.list()
+            playlists = db.list_playlists()
+            owned = db.playlist_ownership()
         except Exception:
             log.error("mpvtk list_downloads failed", exc_info=True)
             return []
+
+        def size_of(r):
+            # size_bytes is the *expected* size and is only known once the
+            # source has been probed; downloaded_bytes is what's on disk.
+            # Reading a non-existent "size" key is why this showed 0 B.
+            return (r.get("downloaded_bytes") or 0) or (r.get("size_bytes") or 0)
 
         def entry(r):
             return {
@@ -470,13 +482,30 @@ class _PlayerController:
                 "id": r.get("item_id"),
                 "title": r.get("name") or r.get("item_id"),
                 "status": r.get("status") or "",
-                "size": r.get("size") or 0,
+                "size": size_of(r),
                 "index": r.get("index_number"),
             }
+
+        out = []
+        for pl in playlists:
+            try:
+                items = db.playlist_item_rows(pl["playlist_id"])
+            except Exception:
+                items = []
+            out.append({
+                "kind": "playlist",
+                "id": pl["playlist_id"],
+                "title": pl.get("name") or _("Playlist"),
+                "size": sum(size_of(r) for r in items),
+                "count": len(items),
+                "children": [],          # collapsed: managed as a whole
+            })
 
         series = {}
         loose = []
         for r in rows:
+            if r.get("item_id") in owned:
+                continue             # counted under its playlist
             sid = r.get("series_id")
             if not sid:
                 loose.append(entry(r))
@@ -484,47 +513,66 @@ class _PlayerController:
             show = series.setdefault(sid, {
                 "kind": "series", "id": sid,
                 "title": r.get("series_name") or _("Unknown Series"),
-                "size": 0, "children": {},
+                "size": 0, "count": 0, "children": {},
             })
-            show["size"] += r.get("size") or 0
+            show["size"] += size_of(r)
+            show["count"] += 1
             season_id = r.get("season_id") or sid
             season = show["children"].setdefault(season_id, {
-                "kind": "season", "id": season_id,
-                "series_id": sid,
-                "title": (r.get("season_name")
-                          or (_("Season %s") % r.get("parent_index")
-                              if r.get("parent_index") is not None
-                              else _("Episodes"))),
-                "size": 0, "children": [],
+                "kind": "season", "id": season_id, "series_id": sid,
+                "title": (_("Season %s") % r.get("parent_index")
+                          if r.get("parent_index") is not None
+                          else _("Episodes")),
+                "size": 0, "count": 0, "children": [],
             })
-            season["size"] += r.get("size") or 0
+            season["size"] += size_of(r)
+            season["count"] += 1
             season["children"].append(entry(r))
 
-        out = []
+        shows = []
         for show in series.values():
             seasons = sorted(show["children"].values(),
-                             key=lambda s: str(s["title"]))
-            for s in seasons:
-                s["children"].sort(key=lambda e: (e["index"] is None,
-                                                  e["index"], e["title"]))
+                             key=lambda x: str(x["title"]))
+            for s2 in seasons:
+                s2["children"].sort(key=lambda e: (e["index"] is None,
+                                                   e["index"], e["title"]))
             show["children"] = seasons
-            out.append(show)
-        out.sort(key=lambda g: str(g["title"]))
+            shows.append(show)
+        shows.sort(key=lambda g: str(g["title"]))
+        out += shows
         if loose:
             loose.sort(key=lambda e: str(e["title"]))
-            out.append({"kind": "movies", "id": None, "title": _("Movies & Videos"),
+            out.append({"kind": "movies", "id": None,
+                        "title": _("Movies & Videos"),
                         "size": sum(e["size"] for e in loose),
-                        "children": loose})
+                        "count": len(loose), "children": loose})
         return out
 
-    def delete_download(self, item_id=None, series_id=None, season_id=None):
-        """Delete one item, a whole season, or a whole series."""
+    def delete_download(self, item_id=None, series_id=None, season_id=None,
+                        playlist_id=None):
+        """Delete one item, a season, a series, or a playlist's downloads."""
         from ..sync.manager import syncManager
         try:
             syncManager.delete(item_id=item_id, series_id=series_id,
-                               season_id=season_id)
+                               season_id=season_id, playlist_id=playlist_id)
         except Exception:
             log.error("mpvtk delete_download failed", exc_info=True)
+
+    def download_activity(self):
+        """(active, pending) counts — the downloads view polls this so it can
+        refresh itself while a download runs."""
+        from ..sync.manager import syncManager
+        db = getattr(syncManager, "db", None)
+        if db is None:
+            return (0, 0)
+        try:
+            from ..sync.db import STATUS_COMPLETE
+            rows = db.list()
+            pending = sum(1 for r in rows
+                          if (r.get("status") or "") != STATUS_COMPLETE)
+            return (pending, len(rows))
+        except Exception:
+            return (0, 0)
 
     # -- diagnostics ------------------------------------------------------
 

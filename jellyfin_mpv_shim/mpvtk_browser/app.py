@@ -19,6 +19,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from ..i18n import _
+from ..mpvtk.layout import ellipsize
 from ..mpvtk.rawimage import cache_dir
 from ..mpvtk.widgets import (
     Box,
@@ -104,6 +105,8 @@ class MpvtkBrowser:
         self._now_playing = None
         self._np_thread = None
         self._np_stop = threading.Event()
+        # Poller that refreshes the downloads view while transfers run.
+        self._dl_thread = None
         # Open tile context menu: {"item", "server", "x", "y"} or None.
         self._menu = None
         # Banners: update-available notice + offline indicator.
@@ -1022,6 +1025,18 @@ class MpvtkBrowser:
     # start colliding with the page title.
     COMPACT_W = 1280
 
+    @staticmethod
+    def _fit_items(labels, box_w, size=20, icon=False):
+        """Ellipsize dropdown labels to the control's width.
+
+        The renderer draws a closed dropdown's label without truncating it,
+        so a long server name spills past the control (and, when compact,
+        over its neighbours). Doing it here is also the only place that knows
+        the width. See MIGRATION.md — ellipsizing belongs in the widget."""
+        # 10px lead-in, ~22px for the arrow, plus the icon column if present.
+        avail = max(24, box_w - 34 - (int(size * 1.1) + 6 if icon else 0))
+        return [ellipsize(str(x), size, False, avail) for x in labels]
+
     def _chrome(self, w):
         compact = w < self.COMPACT_W
         title = self.route.get("title") or _("Home")
@@ -1047,20 +1062,24 @@ class MpvtkBrowser:
         except Exception:
             servers = []
         if len(servers) > 1:
-            names = [s["name"] for s in servers]
+            w_srv = 130 if compact else 190
             cur = next((i for i, s in enumerate(servers)
                         if s["uuid"] == self.server), 0)
             right.append(Dropdown(
-                "nav-server", names, selected=cur, w=110 if compact else 160,
+                "nav-server", self._fit_items([s["name"] for s in servers],
+                                              w_srv),
+                selected=cur, w=w_srv,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
         if len(users) > 1:
-            names = [u.get("name", "?") for u in users]
+            w_usr = 120 if compact else 160
             cur = next((i for i, u in enumerate(users)
                         if u.get("active")), 0)
             right.append(Dropdown(
-                "nav-user", names, selected=cur, w=110 if compact else 150,
-                force=True,
+                "nav-user",
+                self._fit_items([u.get("name", "?") for u in users],
+                                w_usr, icon=True),
+                selected=cur, w=w_usr, force=True,
                 icons=["lock" if u.get("locked") else "person" for u in users],
                 on_select=lambda i, v: self._switch_user(users[i])))
         right += [
@@ -1117,11 +1136,10 @@ class MpvtkBrowser:
                 TextBox("switch-pin", placeholder=_("PIN"), mask=True, w=240,
                         on_change=lambda v: state.__setitem__("pin", v),
                         on_submit=lambda v: submit()),
-                Row([Spacer(),
-                     Button(_("Cancel"), id="switch-cancel",
-                            on_click=self._close_dialog),
-                     Button(_("Switch"), id="switch-ok", on_click=submit)],
-                    gap=10),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="switch-cancel",
+                           on_click=self._close_dialog),
+                    Button(_("Switch"), id="switch-ok", on_click=submit)]),
             ]
             return Dialog("switchpin", self._dialog_shell("switchpin", rows),
                           on_dismiss=self._close_dialog)
@@ -1384,10 +1402,18 @@ class MpvtkBrowser:
         return "   ·   ".join(parts)
 
     def _paragraph(self, text, size, max_w, color=None):
-        """Wrapped body text (overviews). The layout engine does the kerned
-        wrap now — this used to be a hand-rolled greedy wrap here."""
-        return Text(text, size=size, color=color or theme.TEXT_FG,
-                    wrap=True, w=max_w)
+        """Wrapped body text (overviews).
+
+        The layout engine wraps within a paragraph, but a blank line between
+        paragraphs would collapse to a single line break — so split them and
+        let the Column's gap do the spacing."""
+        paras = [p.strip() for p in (text or "").split("\n") if p.strip()]
+        color = color or theme.TEXT_FG
+        if len(paras) <= 1:
+            return Text(paras[0] if paras else "", size=size, color=color,
+                        wrap=True, w=max_w)
+        return Column([Text(p, size=size, color=color, wrap=True, w=max_w)
+                       for p in paras], gap=int(size * 0.7), w=max_w)
 
     def _sel_source(self, sources, route):
         if not sources:
@@ -2510,10 +2536,10 @@ class MpvtkBrowser:
                 TextBox("ru-name", text=state["name"], w=280, force=True,
                         on_change=lambda v: state.__setitem__("name", v),
                         on_submit=lambda v: save()),
-                Row([Spacer(),
-                     Button(_("Cancel"), id="ru-cancel",
-                            on_click=self._close_dialog),
-                     Button(_("Rename"), id="ru-ok", on_click=save)], gap=10),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="ru-cancel",
+                           on_click=self._close_dialog),
+                    Button(_("Rename"), id="ru-ok", on_click=save)]),
             ]), on_dismiss=self._close_dialog)
 
         def save():
@@ -2552,7 +2578,7 @@ class MpvtkBrowser:
                     Button(_("Cancel"), id="ps-cancel",
                            on_click=self._close_dialog),
                     Button(_("Save"), id="ps-ok", on_click=save),
-                ], gap=10, align="center"),
+                ], gap=10, align="center", justify="end"),
             ]
             return Dialog("pinsetup",
                           self._dialog_shell("pinsetup", rows, w=460),
@@ -2610,9 +2636,7 @@ class MpvtkBrowser:
             self._load_downloads(route)
             return self._busy()
         total = sum(g.get("size", 0) or 0 for g in groups)
-        count = sum(len(c.get("children", [c]))
-                    if c.get("kind") == "season" else 1
-                    for g in groups for c in g.get("children", []))
+        count = sum(g.get("count", 0) or 0 for g in groups)
         head = Row([
             Text(_("Downloads"), size=20, bold=True),
             Text(_("%(count)d items · %(size)s") % {
@@ -2628,13 +2652,14 @@ class MpvtkBrowser:
                              color=theme.SUBTLE_FG))
         for gi, group in enumerate(groups):
             rows.append(self._dl_group(route, group, gi))
+        self._poll_downloads(route)
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=10),
                        id="settings-downloads", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "settings-downloads", off, mx))
 
     def _dl_row(self, node_id, title, meta, depth, on_delete, bold=False,
-                icon=None):
+                icon=None, count=None):
         """One Grid row spec of the downloads tree. Indentation carries
         the level (inside the title cell, so the meta/Remove tracks stay
         shared across every depth); every level gets its own delete so a
@@ -2642,8 +2667,12 @@ class MpvtkBrowser:
         title_cell = [Spacer(w=depth * self.INDENT, h=1)]
         if icon:
             title_cell.append(Icon(icon, 16, color=theme.SUBTLE_FG))
-        title_cell.append(Text(title, flex=1, size=17 if bold else 16,
-                               bold=bold))
+        title_cell.append(Text(title, size=17 if bold else 16, bold=bold))
+        if count:
+            # Collapsed groups (playlists) say how much they stand for.
+            title_cell.append(Text(_("%d items") % count, size=14,
+                                   color=theme.SUBTLE_FG))
+        title_cell.append(Spacer())
         return {
             "id": node_id,
             "bg": theme.PANEL_BG if depth == 0 else None,
@@ -2663,9 +2692,12 @@ class MpvtkBrowser:
         rows = [self._dl_row(
             "dl-g%d" % gi, group.get("title", "?"),
             self._human_size(group.get("size", 0)), 0,
-            self._dl_delete_cb(route, group, series_id=(
-                group.get("id") if kind == "series" else None)),
-            bold=True, icon="movie" if kind == "movies" else None)]
+            self._dl_delete_cb(
+                route, group,
+                series_id=group.get("id") if kind == "series" else None,
+                playlist_id=group.get("id") if kind == "playlist" else None),
+            bold=True, count=group.get("count"),
+            icon={"movies": "movie", "playlist": "queue_music"}.get(kind))]
         for ci, child in enumerate(children):
             if child.get("kind") == "season":
                 rows.append(self._dl_row(
@@ -2697,16 +2729,47 @@ class MpvtkBrowser:
                                                item_id=item.get("id")))
 
     def _dl_delete_cb(self, route, entry, item_id=None, series_id=None,
-                      season_id=None):
+                      season_id=None, playlist_id=None):
         def go():
             self._confirm(
                 _("Delete the downloaded copy of %s?")
                 % entry.get("title", ""),
                 lambda: self._delete_download(route, item_id=item_id,
                                               series_id=series_id,
-                                              season_id=season_id),
+                                              season_id=season_id,
+                                              playlist_id=playlist_id),
                 title=_("Delete Download"), yes=_("Delete"))
         return go
+
+    # How often the downloads view re-reads the catalog while work is
+    # outstanding. Downloads land asynchronously, so a static list is stale
+    # the moment it renders.
+    DL_POLL_SECS = 3.0
+
+    def _poll_downloads(self, route):
+        if self.controller is None or self._dl_thread is not None:
+            return
+
+        def tick():
+            try:
+                while not self._np_stop.wait(self.DL_POLL_SECS):
+                    if (self.route is not route
+                            or route.get("_tab") != "downloads"
+                            or not self._browsing):
+                        break
+                    try:
+                        pending, _total = self.controller.download_activity()
+                    except Exception:
+                        break
+                    if not pending:
+                        break     # nothing in flight; the list can't change
+                    self._load_downloads(route, force=True)
+            finally:
+                self._dl_thread = None
+
+        self._dl_thread = threading.Thread(target=tick, daemon=True,
+                                           name="mpvtk-dl-poll")
+        self._dl_thread.start()
 
     def _load_downloads(self, route, force=False):
         if self.controller is None:
@@ -2726,9 +2789,10 @@ class MpvtkBrowser:
         self.run_async(work, done, ep)
 
     def _delete_download(self, route, item_id=None, series_id=None,
-                         season_id=None):
+                         season_id=None, playlist_id=None):
         self._client_call(lambda c: c.delete_download(
-            item_id=item_id, series_id=series_id, season_id=season_id))
+            item_id=item_id, series_id=series_id, season_id=season_id,
+            playlist_id=playlist_id))
         route.pop("_downloads", None)      # re-read the tree from the catalog
         self._load_downloads(route, force=True)
         self._refresh_downloaded()
@@ -3137,9 +3201,9 @@ class MpvtkBrowser:
                 Button(_("Create"), id="add-create",
                        on_click=lambda: self._add_to_new(server, item_id)),
             ], gap=10, align="center"))
-            rows.append(Row([Spacer(),
-                             Button(_("Close"), id="add-close",
-                                    on_click=self._close_dialog)], gap=10))
+            rows.append(self._dialog_buttons([
+                Button(_("Close"), id="add-close",
+                       on_click=self._close_dialog)]))
             return Dialog("addto",
                           self._dialog_shell("addto", rows, w=460),
                           on_dismiss=self._close_dialog)
@@ -3216,11 +3280,11 @@ class MpvtkBrowser:
                 info,
                 Checkbox(_("Include watched"), dl["watched"],
                          id="dl-watched", on_toggle=self._dl_toggle_watched),
-                Row([Spacer(),
-                     Button(_("Cancel"), id="dl-cancel",
-                            on_click=self._close_download),
-                     Button(_("Download"), id="dl-ok",
-                            on_click=self._dl_confirm)], gap=10),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="dl-cancel",
+                           on_click=self._close_download),
+                    Button(_("Download"), id="dl-ok",
+                           on_click=self._dl_confirm)]),
             ], w=460), on_dismiss=self._close_download)
         self._show_dialog(build)
 
@@ -3255,8 +3319,16 @@ class MpvtkBrowser:
 
     @staticmethod
     def _dialog_shell(node_id, children, w=440):
-        return Column(children, pad=24, gap=14, bg="1e1e1e", radius=12,
-                      border="555555", w=w)
+        # align="stretch" so button rows fill the shell's width; without it
+        # they take their natural width and a trailing flex Spacer has no
+        # leftover to absorb, which left the buttons hugging the left edge.
+        return Column(children, pad=24, gap=16, bg="1e1e1e", radius=12,
+                      border="555555", w=w, align="stretch")
+
+    @staticmethod
+    def _dialog_buttons(children):
+        """Dialog action row: always trailing-aligned."""
+        return Row(children, gap=10, justify="end")
 
     def _message(self, text, title=None):
         title = title or _("Notice")
@@ -3265,8 +3337,9 @@ class MpvtkBrowser:
             return Dialog("msg", self._dialog_shell("msg", [
                 Text(title, size=22, bold=True),
                 Text(text, size=16, color=theme.SUBTLE_FG),
-                Row([Spacer(), Button(_("OK"), id="dlg-ok",
-                                      on_click=self._close_dialog)], gap=10),
+                self._dialog_buttons([
+                    Button(_("OK"), id="dlg-ok",
+                           on_click=self._close_dialog)]),
             ]), on_dismiss=self._close_dialog)
         self._show_dialog(build)
 
@@ -3278,12 +3351,12 @@ class MpvtkBrowser:
             return Dialog("confirm", self._dialog_shell("confirm", [
                 Text(title, size=22, bold=True),
                 Text(text, size=16, color=theme.SUBTLE_FG),
-                Row([Spacer(),
-                     Button(_("Cancel"), id="dlg-cancel",
-                            on_click=self._close_dialog),
-                     Button(yes, id="dlg-ok",
-                            on_click=lambda: (self._close_dialog(), on_yes()))],
-                    gap=10),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="dlg-cancel",
+                           on_click=self._close_dialog),
+                    Button(yes, id="dlg-ok",
+                           on_click=lambda: (self._close_dialog(),
+                                             on_yes()))]),
             ]), on_dismiss=self._close_dialog)
         self._show_dialog(build)
 
@@ -3330,7 +3403,7 @@ class MpvtkBrowser:
                        on_click=lambda: self._open_syncplay()),
                 Spacer(),
                 Button(_("Close"), id="sp-close", on_click=self._close_dialog),
-            ], gap=10))
+            ], gap=10, align="center"))
             return Dialog("syncplay", self._dialog_shell("syncplay", rows,
                                                          w=480),
                           on_dismiss=self._close_dialog)
@@ -3420,19 +3493,43 @@ class MpvtkBrowser:
         self.navigate({"kind": "locked", "title": _("Locked")}, reset=True)
 
     def _render_locked(self, route, size):
-        form = Column([
-            Text(_("Enter your PIN"), size=28, bold=True),
-            TextBox("lock-pin", text="", placeholder=_("PIN"), mask=True,
-                    w=240, on_change=lambda v: self._pin.__setitem__("pin", v),
-                    on_submit=lambda v: self._do_unlock()),
-            Row([Spacer(),
-                 Button(_("Unlock"), id="lock-unlock",
-                        on_click=self._do_unlock)], gap=10),
-        ], pad=28, gap=16, bg=theme.CARD_BG, radius=12, border=theme.BORDER,
-           w=420)
+        """Startup PIN gate.
+
+        A full page rather than a modal, and it offers the other local users
+        — a locked user must not be able to lock the whole client out, which
+        is what a bare PIN prompt with no way past it amounts to."""
+        users = [u for u in self._users() if not u.get("active")]
+        active = next((u.get("name") for u in self._users()
+                       if u.get("active")), None)
+        rows = [
+            Text(_("Enter your PIN"), size=30, bold=True),
+            Text(_("%s is locked.") % active if active else "",
+                 size=16, color=theme.SUBTLE_FG),
+        ]
         if self._pin_error:
-            form.children.insert(1, Text(self._pin_error, size=15,
-                                         color=theme.FAV_RED))
+            rows.append(Text(self._pin_error, size=15, color=theme.FAV_RED))
+        rows += [
+            TextBox("lock-pin", text="", placeholder=_("PIN"), mask=True,
+                    w=260, on_change=lambda v: self._pin.__setitem__("pin", v),
+                    on_submit=lambda v: self._do_unlock()),
+            Row([Button(_("Unlock"), id="lock-unlock", icon="lock",
+                        on_click=self._do_unlock)], gap=10, justify="end"),
+        ]
+        if users:
+            rows.append(Spacer(h=6))
+            rows.append(Text(_("Or switch to another user"), size=15,
+                             color=theme.SUBTLE_FG))
+            for i, u in enumerate(users):
+                rows.append(Row([
+                    Icon("lock" if u.get("locked") else "person", 18),
+                    Text(u.get("name", "?"), size=17, flex=1),
+                    Button(_("Switch"), id="lock-switch-%d" % i, size=15,
+                           on_click=lambda u=u: self._switch_user(u)),
+                ], id="lock-user-%d" % i, pad=8, gap=10, radius=6,
+                   align="center", bg=theme.PANEL_BG,
+                   hover={"fill": theme.BUTTON_BG}))
+        form = Column(rows, pad=28, gap=14, bg=theme.CARD_BG, radius=12,
+                      border=theme.BORDER, w=460, align="stretch")
         return Box([Spacer(), Row([Spacer(), form, Spacer()]), Spacer()],
                    flex=1, direction="column", align="stretch")
 
@@ -3470,7 +3567,7 @@ class MpvtkBrowser:
         self.app.run(self.build)
 
     def shutdown(self):
-        self._np_stop.set()
+        self._np_stop.set()   # also stops the downloads poller
         self._pool.shutdown(wait=False, cancel_futures=True)
         if self.thumbs is not None:
             self.thumbs.shutdown()

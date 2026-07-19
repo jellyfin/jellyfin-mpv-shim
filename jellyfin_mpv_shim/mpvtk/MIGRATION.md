@@ -274,6 +274,46 @@ Still unadopted: nothing blocking.
   than the artwork, so baking is the only way to get text *on* the image.
   The no-artwork path still draws a normal ASS heading.
 
+## Field-test round 3 (2026-07-19)
+
+- [x] **Window closed and reopened when quitting playback / stopping music.**
+  Stopping hits `set_browse_window(True)` twice — once from the
+  stopped-playstate callback, once from the caller — and reloading the
+  background over itself tears the video output down and back up. The call
+  is idempotent now (`_showing_browse_bg`).
+- [x] **`keepaspect-window=no` now survives mpv re-creation** (set in
+  `_init_mpv`, not only in `set_browse_window`). A fresh mpv defaults it to
+  yes, so after an idle-quit the window snapped back to each file's aspect
+  on every play.
+- [x] Paragraph spacing: `_paragraph` splits on newlines and spaces the
+  paragraphs; the layout engine only wraps *within* one.
+- [x] Dialog buttons trail. A content-sized dialog gives a flex Spacer no
+  leftover to absorb, so the Spacer-sandwich packed them left; the shell
+  stretches its children and the button rows use `justify="end"`.
+- [x] The startup PIN gate is a full page listing the other local users. A
+  locked user could otherwise lock the whole client out.
+- [x] Downloads: sizes were read from a nonexistent `size` key (the catalog
+  stores `size_bytes`/`downloaded_bytes`, hence 0 B everywhere); playlists
+  are their own collapsed group and own their items, so a downloaded music
+  playlist no longer lists hundreds of tracks; the view polls while
+  transfers are outstanding.
+- [x] Dropdown labels are ellipsized to the control width by the app —
+  see the framework note below.
+
+### Framework requests
+
+- **Dropdown labels don't ellipsize.** `renderer.lua`'s closed-dropdown
+  draw passes the label straight to `draw_text`, so a long server name
+  spills past the control (only the scroll clip stops it). The app
+  pre-truncates via `_fit_items()`, which needs it to guess the arrow and
+  icon insets — the widget knows those exactly and should do it. Same
+  likely applies to Menu items.
+- **Tree disclosure.** `Grid` rows cover card+indent, but the downloads
+  tree still can't collapse a season; playlists are collapsed only because
+  the controller refuses to emit their children.
+- **Per-item progress** in the downloads list needs `Progress`, which is
+  ready — blocked on app-side live progress push, already logged below.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but

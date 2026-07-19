@@ -1589,15 +1589,19 @@ class DownloadsController(FakeController):
     """Controller whose downloads catalog has real hierarchy."""
 
     TREE = [
+        {"kind": "playlist", "id": "PL9", "title": "Road Trip", "size": 9000,
+         "count": 120, "children": []},
         {"kind": "series", "id": "sh1", "title": "The Show", "size": 3000,
+         "count": 2,
          "children": [
              {"kind": "season", "id": "se1", "series_id": "sh1",
-              "title": "Season 1", "size": 3000, "children": [
+              "title": "Season 1", "size": 3000, "count": 2, "children": [
                   {"kind": "item", "id": "e1", "title": "Pilot",
                    "status": "complete", "size": 2000, "index": 1},
                   {"kind": "item", "id": "e2", "title": "Second",
                    "status": "pending", "size": 1000, "index": 2}]}]},
         {"kind": "movies", "id": None, "title": "Movies & Videos", "size": 500,
+         "count": 1,
          "children": [{"kind": "item", "id": "m1", "title": "A Movie",
                        "status": "complete", "size": 500, "index": None}]},
     ]
@@ -1610,8 +1614,12 @@ class DownloadsController(FakeController):
         import copy
         return copy.deepcopy(self.TREE)
 
-    def delete_download(self, item_id=None, series_id=None, season_id=None):
-        self.deleted.append((item_id, series_id, season_id))
+    def delete_download(self, item_id=None, series_id=None, season_id=None,
+                        playlist_id=None):
+        self.deleted.append((item_id, series_id, season_id, playlist_id))
+
+    def download_activity(self):
+        return (0, 3)
 
     def list_users(self):
         return [{"id": "u1", "name": "Izzie", "locked": False, "active": True},
@@ -1649,22 +1657,22 @@ class TestDownloadsPanel(unittest.TestCase):
 
     def test_every_level_can_be_deleted(self):
         _n, h = build_scene(self.b)
-        for nid in ("dl-g0-rm", "dl-g0-s0-rm", "dl-g0-s0-e0-rm"):
+        for nid in ("dl-g1-rm", "dl-g1-s0-rm", "dl-g1-s0-e0-rm"):
             self.assertIn(nid, h, nid)
 
     def test_deleting_a_series_passes_series_id(self):
         _n, h = build_scene(self.b)
-        h["dl-g0-rm"]["click"]()          # opens the confirm dialog
+        h["dl-g1-rm"]["click"]()          # opens the confirm dialog
         _n, h = build_scene(self.b)
         h["dlg-ok"]["click"]()
-        self.assertEqual(self.ctl.deleted, [(None, "sh1", None)])
+        self.assertEqual(self.ctl.deleted, [(None, "sh1", None, None)])
 
     def test_deleting_an_episode_passes_item_id(self):
         _n, h = build_scene(self.b)
-        h["dl-g0-s0-e0-rm"]["click"]()
+        h["dl-g1-s0-e0-rm"]["click"]()
         _n, h = build_scene(self.b)
         h["dlg-ok"]["click"]()
-        self.assertEqual(self.ctl.deleted, [("e1", None, None)])
+        self.assertEqual(self.ctl.deleted, [("e1", None, None, None)])
 
     def test_loose_movies_group_renders(self):
         """Items with no series land in one flat group at the end."""
@@ -1672,7 +1680,7 @@ class TestDownloadsPanel(unittest.TestCase):
         texts = [n["text"] for n in nodes if n["t"] == "text"]
         self.assertIn("Movies & Videos", texts)
         self.assertIn("A Movie", texts)
-        self.assertIn("dl-g1-i0-rm", ids(nodes))
+        self.assertIn("dl-g2-i0-rm", ids(nodes))
 
     def test_pending_items_show_their_status(self):
         nodes, _h = build_scene(self.b)
@@ -1800,3 +1808,80 @@ class TestBanner(unittest.TestCase):
                                    meta="2020 · 45 min")
         self.assertEqual(titled.size, (600, 225))
         self.assertNotEqual(plain.tobytes(), titled.tobytes())
+
+
+class TestDownloadsGrouping(unittest.TestCase):
+    """The controller's grouping is where the 0 B / music-spam problems were,
+    so exercise it against a fake catalog rather than only the view."""
+
+    def _controller(self, rows, playlists=(), owned=None):
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        class FakeDB:
+            def list(self_inner):
+                return list(rows)
+
+            def list_playlists(self_inner):
+                return list(playlists)
+
+            def playlist_item_rows(self_inner, pid):
+                return [r for r in rows if r.get("_pl") == pid]
+
+            def playlist_ownership(self_inner):
+                return dict(owned or {})
+
+        class FakeSync:
+            db = FakeDB()
+
+        import jellyfin_mpv_shim.sync.manager as mgr
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+        return _PlayerController()
+
+    def test_size_comes_from_the_real_columns(self):
+        """The catalog stores size_bytes/downloaded_bytes; reading a "size"
+        key showed 0 B for everything."""
+        ctl = self._controller([
+            {"item_id": "m1", "name": "A Movie", "status": "complete",
+             "downloaded_bytes": 1024 * 1024, "size_bytes": 2 * 1024 * 1024},
+        ])
+        groups = ctl.list_downloads()
+        self.assertEqual(groups[0]["size"], 1024 * 1024)
+
+    def test_falls_back_to_expected_size_before_download_starts(self):
+        ctl = self._controller([
+            {"item_id": "m1", "name": "Queued", "status": "pending",
+             "downloaded_bytes": 0, "size_bytes": 4096},
+        ])
+        self.assertEqual(ctl.list_downloads()[0]["size"], 4096)
+
+    def test_playlists_are_collapsed_and_own_their_items(self):
+        rows = [{"item_id": "t%d" % i, "name": "Track %d" % i,
+                 "status": "complete", "downloaded_bytes": 100,
+                 "_pl": "PL1"} for i in range(200)]
+        ctl = self._controller(
+            rows, playlists=[{"playlist_id": "PL1", "name": "Road Trip"}],
+            owned={r["item_id"]: "PL1" for r in rows})
+        groups = ctl.list_downloads()
+        self.assertEqual(len(groups), 1, "tracks must not also list loose")
+        pl = groups[0]
+        self.assertEqual(pl["kind"], "playlist")
+        self.assertEqual(pl["count"], 200)
+        self.assertEqual(pl["size"], 200 * 100)
+        self.assertEqual(pl["children"], [], "collapsed, not 200 rows")
+
+    def test_series_nest_seasons_and_episodes(self):
+        ctl = self._controller([
+            {"item_id": "e1", "name": "Pilot", "series_id": "sh1",
+             "series_name": "Show", "season_id": "s1", "parent_index": 1,
+             "index_number": 1, "downloaded_bytes": 10, "status": "complete"},
+            {"item_id": "e2", "name": "Two", "series_id": "sh1",
+             "series_name": "Show", "season_id": "s1", "parent_index": 1,
+             "index_number": 2, "downloaded_bytes": 20, "status": "complete"},
+        ])
+        show = ctl.list_downloads()[0]
+        self.assertEqual(show["kind"], "series")
+        self.assertEqual(show["size"], 30)
+        self.assertEqual(show["count"], 2)
+        self.assertEqual(len(show["children"]), 1)
+        self.assertEqual(len(show["children"][0]["children"]), 2)
