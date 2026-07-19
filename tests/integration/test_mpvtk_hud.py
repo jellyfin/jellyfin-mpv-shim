@@ -30,6 +30,12 @@ class FakeController:
         self.trickplay_meta = None
         self.menu_state = None
         self.chapter_list = []
+        # tests drive summons with arrow keypresses, so opt into the
+        # grab (the no-grab default has its own test)
+        self.key_opts = {"grab": True, "key": "ENTER"}
+
+    def hud_key_opts(self):
+        return dict(self.key_opts)
 
     def trickplay(self):
         return self.trickplay_meta
@@ -279,8 +285,8 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertIsNone(self.browser._hud_scrub)
 
         # Second gesture, abandoned with ESC: no new seek, preview
-        # cleared, HUD still up.
-        self._keypress("ENTER")
+        # cleared, HUD still up. (The always-adjust bar is still live
+        # after the commit — no arming press needed.)
         self._press_until(
             "LEFT", lambda: self.browser._hud_scrub is not None,
             msg="second scrub never started")
@@ -413,6 +419,33 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="ESC never dismissed the menu")
         self.assertTrue(self.browser._hud_shown,
                         "dismissing the menu must not hide the HUD")
+
+    def test_default_no_grab_only_wake_key_summons(self):
+        """With hud_grab_keys off (the shipped default), idle arrows
+        keep their mpv meaning; only the wake key (ENTER) summons —
+        and it toggles pause — while remote arrows still summon via
+        the script-message path."""
+        self.ctl.key_opts = {"grab": False, "key": "ENTER"}
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        # arrows are NOT taken over: no summon
+        for _ in range(3):
+            self._keypress("LEFT")
+            time.sleep(0.2)
+        self.assertFalse(self.browser._hud_shown,
+                         "LEFT must not summon with grab off")
+        # the wake key still summons (it also pause-toggles; not
+        # asserted here — a retried press would make the count racy)
+        self._press_until("ENTER", lambda: self.browser._hud_shown,
+                          msg="wake key never summoned")
+        # drop back to idle, then a remote Move (script-message path)
+        # summons even though arrows aren't grabbed
+        self._press_until("ESC", lambda: not self.browser._hud_shown,
+                          msg="could not hide the HUD")
+        self.handle.command("script-message", "mpvtk-hud-summon", "nav")
+        self._wait(lambda: self.browser._hud_shown,
+                   msg="remote summon path failed with grab off")
 
     def test_idle_skip_overlay(self):
         self._play_video()

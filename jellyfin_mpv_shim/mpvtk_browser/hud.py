@@ -9,9 +9,9 @@ calls :func:`build_hud` from ``build()``; playstate comes from the
 same ``push_playstate`` snapshots that feed the audio now-playing bar,
 kept fresh by the shared 1s ticker.
 
-Replaces trickplay-jf-osc.lua when ``osc_style`` is ``"mpvtk"`` (the
-lua OSC stays selectable until this is field-proven — MIGRATION.md
-Phase 9).
+This IS the jellyfin-styled player UI (``osc_style: mpvtk``, the
+default) — it replaced the retired trickplay-jf-osc.lua at feature
+parity (MIGRATION.md Phase 9).
 """
 
 import logging
@@ -436,7 +436,7 @@ def build_hud(b, size):
     # scrub immediately, ENTER commits, UP/DOWN step off the bar.
     seek = Slider(
         "hud-seek", value=pos, min=0, max=max(1.0, dur),
-        force=True, flex=1, h=26, autofocus=True,
+        force=True, flex=1, h=26, autofocus=True, always_adjust=True,
         marks=([ch["time"] / dur for ch in chapters if 0 < ch["time"] < dur]
                if dur > 0 else None),
         ranges=([(max(0.0, a / dur), min(1.0, e / dur))

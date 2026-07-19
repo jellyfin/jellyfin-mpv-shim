@@ -205,9 +205,8 @@ class PlayerManager(object):
         # playback HUD reads frames straight out of it for scrub previews;
         # the lua OSCs get the same data via shim-trickplay-bif instead.
         self.trickplay_meta = None
-        # Skippable segment the mpvtk playback HUD should offer a button
-        # for (an Intro object, or None). The lua OSC gets the same
-        # prompt via osc_bridge.update_skip_button instead.
+        # Skippable segment the playback HUD should offer a button for
+        # (an Intro object, or None).
         self._hud_skip = None
         self._osc_script_loaded = False
         self._mpv_alive = False
@@ -275,6 +274,10 @@ class PlayerManager(object):
         # Remote menu commands the in-window UI answers itself ("home",
         # "settings"). Returns True when handled.
         self.on_nav_command = None
+        # Opens the playback HUD's gear menu (set by mpvtk_browser.ui).
+        # During video under the in-window OSC, the kb_menu key routes
+        # here instead of the OSD menu. Returns True when handled.
+        self.on_hud_menu = None
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -362,16 +365,21 @@ class PlayerManager(object):
         if settings.menu_mouse:
             scripts.append(get_resource("mouse.lua"))
 
-        # Which in-player UI to load: the jellyfin-styled OSC, the patched
-        # stock OSC (trickplay previews), the in-window mpvtk playback HUD
-        # (no lua script — the browser renders it; see mpvtk_browser/hud.py),
-        # or none (whatever the mpv binary ships / the user's own scripts).
+        # Which in-player UI to load: the in-window mpvtk playback HUD
+        # ("mpvtk"; no lua script — the browser renders it, see
+        # mpvtk_browser/hud.py), the stock mpv OSC patched with
+        # trickplay previews ("mpv"), or none ("default": whatever the
+        # mpv binary ships / the user's own scripts). "jellyfin" is a
+        # legacy alias for the HUD — the jellyfin-styled lua OSC it
+        # used to name was retired once the HUD reached parity.
         osc_style = settings.osc_style
+        if osc_style == "jellyfin":
+            osc_style = "mpvtk"
         if osc_style == "mpvtk" and settings.browser_ui != "mpvtk":
             # The playback HUD lives inside the mpvtk browser; without
-            # that browser the jellyfin lua OSC is the closest equivalent.
-            osc_style = "jellyfin"
-        if osc_style == "jellyfin" and not settings.thumbnail_osc_builtin:
+            # that browser the patched stock OSC is the closest thing.
+            osc_style = "mpv"
+        if osc_style == "mpvtk" and not settings.thumbnail_osc_builtin:
             # Legacy opt-out: thumbnail_osc_builtin=False used to mean
             # "don't replace my OSC" (e.g. users running uosc).
             osc_style = "default"
@@ -391,11 +399,12 @@ class PlayerManager(object):
                 log.error("Could not enable trickplay.", exc_info=True)
 
         self._osc_script_loaded = False
-        if osc_style == "jellyfin":
-            scripts.append(get_resource("trickplay-jf-osc.lua"))
-        elif osc_style == "mpv":
+        # Resolved style for this mpv instance (settings may hold the
+        # legacy alias / a fallback may have applied) — the c-menu
+        # routing, enable_osc and the skip-button path key off it.
+        self._osc_style_resolved = osc_style
+        if osc_style == "mpv":
             scripts.append(get_resource("trickplay-osc.lua"))
-        if osc_style in ("jellyfin", "mpv"):
             self._osc_script_loaded = True
             mpv_options["osc"] = False
         elif osc_style == "mpvtk":
@@ -561,6 +570,20 @@ class PlayerManager(object):
             if self.do_not_handle_pause:
                 self._player.show_text(_("Please wait, loading..."), 1000, 1)
                 return
+            if (
+                self._video is not None
+                and self.on_hud_menu is not None
+                and self.mpvtk_active
+                and getattr(self, "_osc_style_resolved", None) == "mpvtk"
+            ):
+                # Under the in-window OSC the HUD's gear menu replaces
+                # the OSD menu during playback (the OSD menu remains
+                # the settings surface everywhere else).
+                try:
+                    if self.on_hud_menu():
+                        return
+                except Exception:
+                    log.debug("hud menu open failed", exc_info=True)
             if not self.menu.is_menu_shown:
                 self.menu.show_menu()
             else:
@@ -766,21 +789,6 @@ class PlayerManager(object):
                     self.menu.mouse_select(int(args[1]))
                 elif args[0] == "shim-menu-click":
                     self.menu.menu_action("ok")
-                elif args[0] == "shim-jf-osc-action":
-                    self.osc_bridge.handle_action(args[1:])
-                elif args[0] == "shim-jf-osc-ui-seek":
-                    # The OSC is about to seek from its own controls;
-                    # exempt the next couple of seconds from seek-to-skip.
-                    self._last_ui_seek_time = time.time()
-                elif args[0] == "shim-close":
-                    # The OSC's back/close button. With the in-window UI this
-                    # means "yield to the library", not "close the window" —
-                    # _set_force_window keeps it up either way.
-                    log.info("Received shim-close message")
-                    if self._video and not self._player.playback_abort:
-                        self.put_task(self.stop_and_close)
-                    else:
-                        self.put_task(self.force_window, False)
             except Exception:
                 log.warning("Error when processing client-message.", exc_info=True)
 
@@ -892,13 +900,13 @@ class PlayerManager(object):
                     self._player.playback_time
                 )
 
-                # With the jellyfin OSC, "ask" mode shows a floating Skip
-                # Intro/Credits button instead of the seek-to-skip OSD
-                # text prompt. The mpvtk HUD renders its own button from
-                # _hud_skip (visible while the HUD is summoned).
-                jf_skip_button = self.osc_bridge.active()
+                # With the HUD, "ask" mode shows the Skip Intro/Credits
+                # button (scene button while summoned, standalone
+                # overlay while idle) instead of the seek-to-skip OSD
+                # text prompt; _hud_skip carries the live segment.
                 hud_skip_button = (
-                    settings.osc_style == "mpvtk" and self.mpvtk_active
+                    getattr(self, "_osc_style_resolved", None) == "mpvtk"
+                    and self.mpvtk_active
                 )
 
                 if intro is not None:
@@ -924,11 +932,7 @@ class PlayerManager(object):
                         )
                         self._last_intro_msg_time = time.time()
 
-                    if jf_skip_button:
-                        self.osc_bridge.update_skip_button(
-                            intro if should_prompt and not should_skip else None
-                        )
-                    elif hud_skip_button:
+                    if hud_skip_button:
                         self._hud_skip = (
                             intro if should_prompt and not should_skip
                             else None
@@ -950,8 +954,6 @@ class PlayerManager(object):
                         self._last_intro_msg_time = time.time()
                     self.is_in_intro = True
                 else:
-                    if jf_skip_button:
-                        self.osc_bridge.update_skip_button(None)
                     self._hud_skip = None
                     self.is_in_intro = False
             else:
@@ -1140,8 +1142,6 @@ class PlayerManager(object):
             self.send_timeline_initial()
         else:
             self.send_timeline()
-
-        self.osc_bridge.send_state()
 
         if self.syncplay.is_enabled():
             self.set_speed(1)
@@ -1720,9 +1720,8 @@ class PlayerManager(object):
             self.configure_streams()
         # Remember the user's manual choice for subsequent episodes.
         self._capture_track_memory(self._video)
-        # Keep the jellyfin OSC's menus in sync no matter who changed the
-        # tracks (OSC itself, the c menu, or a remote client).
-        self.osc_bridge.send_state()
+        # (The HUD re-reads osc_bridge.build_state on its next repaint,
+        # so track changes show up there without a push.)
         self.timeline_handle()
 
     @synchronous("_lock")
@@ -2374,7 +2373,9 @@ class PlayerManager(object):
                     # The mpvtk playback HUD replaces any OSC — never
                     # turn the built-in one on under it.
                     self._player.osc = (
-                        enabled and settings.osc_style != "mpvtk"
+                        enabled
+                        and getattr(self, "_osc_style_resolved", None)
+                        != "mpvtk"
                     )
         except _mpv_errors:
             self._handle_mpv_disconnect()
@@ -2615,17 +2616,27 @@ class PlayerManager(object):
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
             pass    # the in-window UI has its own home / settings pages
-        elif action in self._NAV_KEYPRESS and (
-            self._mpvtk_input_active()
-            or (action != "back" and self._mpvtk_hud_idle())
-        ):
-            # remote drives the browser's spatial navigation (or, while
-            # the playback HUD is hidden, summons it)
+        elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
+            # remote drives the UI's spatial navigation
             try:
                 self._player.command(
                     "keypress", self._NAV_KEYPRESS[action])
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
+        elif (action in ("up", "down", "left", "right", "ok")
+              and self._mpvtk_hud_idle()):
+            # Hidden HUD: remote Move*/Select wake it via a script
+            # message, NOT keypresses — the idle renderer only grabs
+            # the configured wake key, so a keypress would fall through
+            # to mpv defaults. Select also toggles pause/play (and
+            # accepts a showing skip button). Back keeps its
+            # stop-to-browser meaning while hidden.
+            try:
+                self.script_message(
+                    "mpvtk-hud-summon",
+                    "select" if action == "ok" else "nav")
+            except Exception:
+                log.debug("hud summon failed", exc_info=True)
         else:
             # No in-window UI (CLI / Tk / mid-playback): "settings" keeps its
             # historical meaning of opening the OSD menu, which is the only

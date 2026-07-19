@@ -123,21 +123,9 @@ class FakePlayerManager:
 
 
 class StateBuildTests(unittest.TestCase):
-    def setUp(self):
-        self._osc_style = settings.osc_style
-        settings.osc_style = "jellyfin"
-
-    def tearDown(self):
-        settings.osc_style = self._osc_style
-
     def _state(self, pm):
-        pm.messages.clear()
-        bridge = OscBridge(pm)
-        bridge.send_state()
-        self.assertEqual(len(pm.messages), 1)
-        command, args = pm.messages[0]
-        self.assertEqual(command, "shim-jf-osc-state")
-        return json.loads(args[0])
+        # The HUD pulls this blob directly on every repaint.
+        return OscBridge(pm).build_state()
 
     def test_no_media(self):
         state = self._state(FakePlayerManager())
@@ -187,21 +175,7 @@ class StateBuildTests(unittest.TestCase):
             self.assertIn("current", style[key])
             self.assertTrue(style[key]["options"])
 
-    def test_disabled_when_not_jellyfin_style(self):
-        settings.osc_style = "mpv"
-        pm = FakePlayerManager(FakeVideo())
-        OscBridge(pm).send_state()
-        self.assertEqual(pm.messages, [])
-
-
 class ActionDispatchTests(unittest.TestCase):
-    def setUp(self):
-        self._osc_style = settings.osc_style
-        settings.osc_style = "jellyfin"
-
-    def tearDown(self):
-        settings.osc_style = self._osc_style
-
     def test_set_sub_queues_set_streams(self):
         pm = FakePlayerManager(FakeVideo())
         bridge = OscBridge(pm)
@@ -209,8 +183,6 @@ class ActionDispatchTests(unittest.TestCase):
         funcs = [t[0] for t in pm.tasks]
         self.assertIn(pm.set_streams, funcs)
         self.assertEqual(pm.tasks[0][1], (None, 5))
-        # A state push is queued behind the change.
-        self.assertIn(bridge.send_state, funcs)
         self.assertEqual(pm.timeline_handles, 1)
 
     def test_set_audio(self):
@@ -248,9 +220,7 @@ class ActionDispatchTests(unittest.TestCase):
 
     def test_queue_state(self):
         pm = FakePlayerManager(FakeVideo())
-        bridge = OscBridge(pm)
-        bridge.send_state()
-        state = json.loads(pm.messages[0][1][0])
+        state = OscBridge(pm).build_state()
         self.assertFalse(state["queue"]["has_prev"])
         self.assertTrue(state["queue"]["has_next"])
 
@@ -265,20 +235,6 @@ class ActionDispatchTests(unittest.TestCase):
         pm.tasks.clear()
         bridge.handle_action(["skip-segment"])
         self.assertEqual(pm.tasks[0][0], pm.skip_intro)
-
-    def test_skip_button_dedup(self):
-        class Intro:
-            type = "Intro"
-
-        pm = FakePlayerManager(FakeVideo())
-        bridge = OscBridge(pm)
-        bridge.update_skip_button(Intro())
-        bridge.update_skip_button(Intro())
-        self.assertEqual(
-            pm.messages, [("shim-jf-osc-skip", ("Skip Intro",))]
-        )
-        bridge.update_skip_button(None)
-        self.assertEqual(pm.messages[-1], ("shim-jf-osc-skip", ("",)))
 
     def test_toggle_favorite(self):
         video = FakeVideo()

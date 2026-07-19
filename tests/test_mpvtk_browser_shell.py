@@ -577,8 +577,9 @@ class StubHudApp:
     def set_active(self, active):
         self.calls.append(("active", active))
 
-    def set_hud(self, on):
+    def set_hud(self, on, opts=None):
         self.calls.append(("hud", on))
+        self.hud_opts = opts
 
     def set_hud_skip(self, label):
         self.calls.append(("skip", label))
@@ -1655,6 +1656,60 @@ class TestLocked(unittest.TestCase):
         self.assertEqual(self.b.route["kind"], "home")
         self.assertIsNone(self.b._pin_error)
 
+    def test_correct_pin_with_no_source_is_not_a_bad_pin(self):
+        """work_offline (or an unreachable server) leaves nothing to build a
+        source from. Reporting that as a wrong PIN locked the client out for
+        good — the PIN was right, so land on login instead."""
+        self.ctl.connect_and_rebuild = lambda: None
+        self.b.show_locked()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("1234")
+        handlers["lock-unlock"]["click"]()
+        self.assertIsNone(self.b._pin_error)
+        self.assertEqual(self.b.route["kind"], "login")
+        self.assertFalse(self.b._locked)
+
+    def test_relock_gates_the_ui_again_on_reopen(self):
+        """Unlocking covers that reopen, not the rest of the process's life:
+        closing to the tray and re-raising has to re-prompt."""
+        self.ctl.needs_unlock = lambda: True
+        self.b.show_locked()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("1234")
+        handlers["lock-unlock"]["click"]()
+        self.assertEqual(self.b.route["kind"], "home")
+
+        self.b.maybe_relock()
+        self.assertEqual(self.b.route["kind"], "locked")
+        self.assertTrue(self.b._locked)
+
+    def test_relock_is_a_noop_without_a_startup_pin(self):
+        self.ctl.needs_unlock = lambda: False
+        self.b.maybe_relock()
+        self.assertNotEqual(self.b.route["kind"], "locked")
+
+    def test_relocking_twice_keeps_a_half_typed_pin(self):
+        """The tray can fire show/hide at any moment; a second relock must
+        not reset the gate under the user's fingers."""
+        self.ctl.needs_unlock = lambda: True
+        self.b.maybe_relock()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("12")
+        self.b.maybe_relock()
+        self.assertEqual(self.b._pin["pin"], "12")
+
+    def test_tray_settings_cannot_bypass_the_gate(self):
+        """Configure Servers / Show Console route straight to Settings — the
+        logs and server list are behind the PIN too."""
+        self.b.show_locked()
+        self.b.open_settings("logs")
+        self.assertEqual(self.b.route["kind"], "locked")
+
+    def test_remote_display_content_cannot_bypass_the_gate(self):
+        self.b.show_locked()
+        self.b.display_item("s1", "item-1")
+        self.assertEqual(self.b.route["kind"], "locked")
+
 
 class TestDownloadDialog(unittest.TestCase):
     def setUp(self):
@@ -2272,8 +2327,8 @@ class TestDownloadsGrouping(unittest.TestCase):
 
     def test_playlists_are_collapsed_and_own_their_items(self):
         rows = [{"item_id": "t%d" % i, "name": "Track %d" % i,
-                 "status": "complete", "downloaded_bytes": 100,
-                 "_pl": "PL1"} for i in range(200)]
+                 "type": "Audio", "status": "complete",
+                 "downloaded_bytes": 100, "_pl": "PL1"} for i in range(200)]
         ctl = self._controller(
             rows, playlists=[{"playlist_id": "PL1", "name": "Road Trip"}],
             owned={r["item_id"]: "PL1" for r in rows})
@@ -2284,6 +2339,43 @@ class TestDownloadsGrouping(unittest.TestCase):
         self.assertEqual(pl["count"], 200)
         self.assertEqual(pl["size"], 200 * 100)
         self.assertEqual(pl["children"], [], "collapsed, not 200 rows")
+
+    def test_video_playlists_list_their_items(self):
+        """A playlist of films is a handful of rows, and the whole point of
+        having it in the manager is removing one of them."""
+        rows = [{"item_id": "m1", "name": "First", "type": "Movie",
+                 "status": "complete", "downloaded_bytes": 100, "_pl": "PL1"},
+                {"item_id": "m2", "name": "Second", "type": "Video",
+                 "status": "complete", "downloaded_bytes": 200, "_pl": "PL1"}]
+        ctl = self._controller(
+            rows, playlists=[{"playlist_id": "PL1", "name": "Movie Night"}],
+            owned={r["item_id"]: "PL1" for r in rows})
+        groups = ctl.list_downloads()
+        self.assertEqual(len(groups), 1, "items must not also list loose")
+        pl = groups[0]
+        self.assertEqual(pl["count"], 2)
+        self.assertEqual([c["title"] for c in pl["children"]],
+                         ["First", "Second"])
+        self.assertEqual([c["id"] for c in pl["children"]], ["m1", "m2"])
+
+    def test_mixed_and_untyped_playlists_stay_collapsed(self):
+        """One video among the tracks doesn't make it a video playlist, and
+        a row with no type must not be guessed into one."""
+        mixed = [{"item_id": "a1", "name": "Track", "type": "Audio",
+                  "status": "complete", "downloaded_bytes": 1, "_pl": "PL1"},
+                 {"item_id": "v1", "name": "Clip", "type": "Video",
+                  "status": "complete", "downloaded_bytes": 1, "_pl": "PL1"}]
+        ctl = self._controller(
+            mixed, playlists=[{"playlist_id": "PL1", "name": "Mixed"}],
+            owned={r["item_id"]: "PL1" for r in mixed})
+        self.assertEqual(ctl.list_downloads()[0]["children"], [])
+
+        untyped = [{"item_id": "u1", "name": "?", "status": "complete",
+                    "downloaded_bytes": 1, "_pl": "PL2"}]
+        ctl = self._controller(
+            untyped, playlists=[{"playlist_id": "PL2", "name": "Old"}],
+            owned={r["item_id"]: "PL2" for r in untyped})
+        self.assertEqual(ctl.list_downloads()[0]["children"], [])
 
     def test_series_nest_seasons_and_episodes(self):
         ctl = self._controller([

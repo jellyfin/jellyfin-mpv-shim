@@ -5,8 +5,8 @@ The Tkinter browser used to label its buttons with unicode/emoji glyphs
 (▶ ⏸ ⚙ 🔀 …). Those render inconsistently across platforms -- emoji get
 boxed frames on Windows and some code points fall back to tofu -- so the
 UI now rasterizes Google Material Design icons instead (the same icon set
-jellyfin-web uses, and the same one gen_osc_icons.py feeds to the MPV
-OSC). See jellyfin_mpv_shim/library_browser/icons.py for the rasterizer.
+jellyfin-web uses). See jellyfin_mpv_shim/library_browser/icons.py for
+the rasterizer.
 
 This script downloads the SVG sources for the icons the UI needs and
 writes their raw path ``d`` strings into
@@ -47,7 +47,7 @@ ICON_NAMES = [
     "volume_up",
     "volume_down",
     "volume_off",
-    # playback HUD (parity with the icons trickplay-jf-osc.lua embeds)
+    # playback HUD (the icon set the retired jellyfin lua OSC used)
     "closed_caption",
     "audiotrack",
     "fullscreen",

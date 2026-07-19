@@ -409,6 +409,7 @@ def build_player(player_module, video=None):
     pm.on_mpv_recreated = None
     pm.on_nav_back = None
     pm.on_nav_command = None
+    pm.on_hud_menu = None
     pm.on_playstate = None
     pm.notify_update = None
     pm._showing_browse_bg = False

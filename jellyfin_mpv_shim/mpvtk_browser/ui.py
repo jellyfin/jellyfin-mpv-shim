@@ -16,12 +16,19 @@ browser takes the window back.
 import logging
 import os
 import threading
+import time
 
 from ..clients import clientManager
 from ..conf import settings
 from ..i18n import _
 
 log = logging.getLogger("mpvtk_browser.ui")
+
+# A downloaded playlist made only of these is listed item by item in the
+# downloads manager. Whitelist, not an audio blacklist: a row with a missing
+# or unrecognized type must stay collapsed rather than risk unfolding a
+# few-hundred-track music playlist.
+_VIDEO_TYPES = ("Movie", "Episode", "Video")
 
 
 def _collect_servers():
@@ -78,16 +85,25 @@ class _PlayerController:
         playerManager.set_browse_window(False)
 
     def use_hud(self):
-        """Whether video playback uses the in-window mpvtk playback HUD
-        (``osc_style: mpvtk``) instead of yielding fully to a lua OSC.
-        Read per-yield so an osc_style change applies without restart."""
-        return settings.osc_style == "mpvtk"
+        """Whether video playback uses the in-window playback HUD.
+        Reads the player's RESOLVED style (settings may hold the legacy
+        "jellyfin" alias, and fallbacks may have applied)."""
+        from ..player import playerManager
+        return getattr(playerManager, "_osc_style_resolved",
+                       None) == "mpvtk"
 
     def trickplay(self):
         """Decoded trickplay tile metadata for the current video, or None
         ({count, multiplier, width, height, file} — see TrickPlay)."""
         from ..player import playerManager
         return playerManager.trickplay_meta
+
+    def hud_key_opts(self):
+        """Keyboard policy for the idle HUD ({"grab", "key"}): by
+        default only hud_wake_key is taken over during playback so
+        mpv's own seek keys keep working."""
+        return {"grab": bool(settings.hud_grab_keys),
+                "key": settings.hud_wake_key or "ENTER"}
 
     def hud_menu_state(self):
         """osc_bridge's menu/track state blob for the HUD's pickers
@@ -258,12 +274,25 @@ class _PlayerController:
     def prev(self):
         self._act(lambda pm: pm.play_prev())
 
+    @staticmethod
+    def _ui_seek(pm):
+        # HUD-originated seeks are exempt from seek-to-skip-intro for a
+        # couple of seconds (scrubbing must not warp to the end of the
+        # intro) — the same exemption the lua OSC requested by message.
+        pm._last_ui_seek_time = time.time()
+
     def seek(self, secs):
-        self._act(lambda pm: pm.seek(float(secs), absolute=True))
+        def do(pm):
+            self._ui_seek(pm)
+            pm.seek(float(secs), absolute=True)
+        self._act(do)
 
     def seek_relative(self, secs):
         """Relative seek for the HUD's step buttons (±10s/±30s)."""
-        self._act(lambda pm: pm.seek(float(secs)))
+        def do(pm):
+            self._ui_seek(pm)
+            pm.seek(float(secs))
+        self._act(do)
 
     def set_volume(self, pct):
         self._act(lambda pm: pm.set_volume(float(pct)))
@@ -358,6 +387,24 @@ class _PlayerController:
                              settings.player_name,
                              not settings.ignore_ssl_cert)
 
+    def offline_source(self):
+        """Browse the download catalog with no server, or None if there is
+        nothing downloaded to browse (in which case the caller should fall
+        back to the login screen rather than an empty library)."""
+        from ..sync.manager import syncManager
+        from .repository import OfflineLibrarySource
+        path = getattr(getattr(syncManager, "db", None), "path", None)
+        if not path:
+            return None
+        try:
+            source = OfflineLibrarySource(path)
+            if not source.get_libraries("offline"):
+                return None
+        except Exception:
+            log.error("mpvtk offline source failed", exc_info=True)
+            return None
+        return source
+
     # -- local users ------------------------------------------------------
 
     def list_users(self):
@@ -376,21 +423,24 @@ class _PlayerController:
     def switch_user(self, user_id, pin=None):
         """Switch the active local user and rebuild the data source.
 
-        Returns the new source, or None if the user is PIN-locked and the PIN
-        didn't match (the caller re-prompts). Runs on the browser's worker
-        pool — clientManager.switch_user reconnects and can block."""
+        Returns the new source; False if the user is PIN-locked and the PIN
+        didn't match (the caller re-prompts); None if the switch worked but
+        there is nothing to browse. Those last two are distinct — reporting
+        an unreachable server as a bad PIN is what made a correct PIN look
+        wrong. Runs on the browser's worker pool — clientManager.switch_user
+        reconnects and can block."""
         from ..users import userManager
         try:
             if userManager.get(user_id) is None:
-                return None
+                return False
             if userManager.is_locked(user_id) and not userManager.verify_pin(
                     user_id, pin or ""):
-                return None
+                return False
             clientManager.switch_user(user_id)
         except Exception:
             log.error("mpvtk switch_user failed", exc_info=True)
-            return None
-        return self.rebuild_source()
+            return False
+        return self.rebuild_source() or self.offline_source()
 
     def add_user(self, name):
         from ..users import userManager
@@ -452,12 +502,15 @@ class _PlayerController:
             return False
 
     def connect_and_rebuild(self):
+        """Source to browse after a connect attempt: the live servers if any
+        answered, else the download catalog. work_offline skips the attempt,
+        so it always lands on the catalog."""
         if not settings.work_offline:
             try:
                 clientManager.connect_all()
             except Exception:
                 log.error("mpvtk connect failed", exc_info=True)
-        return self.rebuild_source()
+        return self.rebuild_source() or self.offline_source()
 
     def open_url(self, url):
         import webbrowser
@@ -467,10 +520,19 @@ class _PlayerController:
             log.error("could not open url %s", url, exc_info=True)
 
     def retry_connect(self):
+        """Reconnect from the offline banner. Returns a live source if a
+        server answered, else None — the caller stays offline. Explicitly
+        going back online clears work_offline, so the *next* launch isn't
+        silently offline again (mirrors the Tk browser's banner retry)."""
         try:
             clientManager.connect_all()
         except Exception:
             log.error("mpvtk retry connect failed", exc_info=True)
+        source = self.rebuild_source()
+        if source is not None and settings.work_offline:
+            settings.work_offline = False
+            settings.save()
+        return source
 
     # -- play queue -------------------------------------------------------
 
@@ -605,10 +667,12 @@ class _PlayerController:
             [{"kind": "playlist"|"series"|"movies", "title", "id",
               "size", "count", "children": [...]}]
 
-        Playlists come first and are shown *collapsed* — a downloaded music
-        playlist is hundreds of tracks nobody wants listed, and its items are
-        owned by the playlist so they must not also appear below. Series nest
-        their seasons; everything left over lands in one flat group."""
+        Playlists come first. A *music* playlist is listed collapsed — it is
+        hundreds of tracks nobody wants enumerated — but a video playlist is a
+        handful of films/episodes, so it expands to its items like a series
+        does. Either way its items are owned by the playlist and must not also
+        appear below. Series nest their seasons; everything left over lands in
+        one flat group."""
         from ..sync.manager import syncManager
         db = getattr(syncManager, "db", None)
         if db is None:
@@ -643,13 +707,18 @@ class _PlayerController:
                 items = db.playlist_item_rows(pl["playlist_id"])
             except Exception:
                 items = []
+            # An all-video playlist lists its items; anything else (music,
+            # or mixed — one video in a 400-song playlist must not unfold the
+            # whole thing) stays collapsed.
+            video = bool(items) and all(
+                (r.get("type") or "") in _VIDEO_TYPES for r in items)
             out.append({
                 "kind": "playlist",
                 "id": pl["playlist_id"],
                 "title": pl.get("name") or _("Playlist"),
                 "size": sum(size_of(r) for r in items),
                 "count": len(items),
-                "children": [],          # collapsed: managed as a whole
+                "children": [entry(r) for r in items] if video else [],
             })
 
         series = {}
@@ -842,6 +911,9 @@ class UserInterface:
         from ..player import playerManager
 
         if self._browser is not None:
+            # Re-gate behind the startup PIN before anything is revealed: the
+            # unlock at launch covers that launch, not every later reopen.
+            self._browser.maybe_relock()
             self._browser.enter_browse()
         try:
             playerManager.raise_window()
@@ -888,6 +960,9 @@ class UserInterface:
             self._quit()
             return
         if self._browser is not None:
+            # Gate now, while the window is going away, so the locked screen
+            # is what's already there when it comes back.
+            self._browser.maybe_relock()
             self._browser.minimize()
 
     def login_servers(self):
@@ -927,6 +1002,7 @@ class UserInterface:
         # the renderer is bound to a specific handle, so follow it.
         playerManager.on_mpv_gone = self.on_mpv_gone
         playerManager.on_mpv_recreated = self.on_mpv_recreated
+        playerManager.on_hud_menu = self._browser.open_hud_menu
         # start_minimized: come up in the windowless state — running, castable,
         # reachable from the tray — instead of opening the library. Without a
         # tray there'd be no way back, so honour it only when one is up.
@@ -1037,16 +1113,24 @@ class UserInterface:
             except Exception:
                 log.error("mpvtk browser connect failed", exc_info=True)
         servers = _collect_servers()
+        if self._browser is None:
+            return
         if not servers:
+            # No live server — browse the downloads instead of dead-ending on
+            # the login screen. work_offline always arrives here (the connect
+            # above was skipped), which is what makes the setting mean
+            # something in this UI.
+            offline = _PlayerController().offline_source()
+            if offline is not None:
+                self._browser.set_source(offline)
+                return
             log.warning("mpvtk browser: no servers connected; showing login")
-            if self._browser is not None:
-                self._browser.show_login()
+            self._browser.show_login()
             return
         source = LibrarySource(servers, clientManager.device_id,
                                settings.player_name,
                                not settings.ignore_ssl_cert)
-        if self._browser is not None:
-            self._browser.set_source(source)
+        self._browser.set_source(source)
 
     def stop(self):
         from ..player import playerManager

@@ -299,6 +299,7 @@ class Slider(Element):
         force=False,
         marks=None,  # tick fractions in (0,1): chapter slits on a seek bar
         ranges=None,  # (start, end) fraction pairs: buffered shading
+        always_adjust=False,  # live whenever focused/hovered (seek bar)
         **kw,
     ):
         kw.setdefault("w", 180)
@@ -315,6 +316,7 @@ class Slider(Element):
         self.force = force
         self.marks = marks
         self.ranges = ranges
+        self.always_adjust = always_adjust
 
 
 class Busy(Element):

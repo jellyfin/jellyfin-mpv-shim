@@ -1,8 +1,8 @@
 """SVG path -> ASS drawing conversion (shared).
 
-Single source for the vector-icon pipeline: gen_osc_icons.py uses it
-at build time to bake the OSC icon table, and mpvtk.vector uses it at
-runtime to render the same Material icons as ASS drawings. Handles
+Single source for the vector-icon pipeline: mpvtk.vector uses it at
+runtime to render Material icons as ASS drawings (the retired lua
+OSC's generator consumed it at build time the same way). Handles
 the SVG path command subset Material icons use (M L H V C S Q T A Z,
 absolute and relative), emitting true beziers (no flattening).
 """

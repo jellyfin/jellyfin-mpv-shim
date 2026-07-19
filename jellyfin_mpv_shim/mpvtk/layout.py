@@ -537,6 +537,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             ]
         if el.on_hover is not None:
             node["hoverev"] = True
+        if el.always_adjust:
+            node["aadj"] = True
         _reg(ctx, node["id"], "change", el.on_change)
         _reg(ctx, node["id"], "commit", el.on_commit)
         _reg(ctx, node["id"], "cancel", el.on_cancel)

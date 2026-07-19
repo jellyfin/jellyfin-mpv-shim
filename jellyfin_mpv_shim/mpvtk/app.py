@@ -532,19 +532,32 @@ class MpvtkApp:
             "script-message", "mpvtk-active", "yes" if active else "no"
         )
 
-    def set_hud(self, on):
+    def set_hud(self, on, opts=None):
         """Enter/leave the playback-HUD lifecycle (attached-but-idle).
 
         Unlike ``set_active(False)`` — which gets the renderer entirely
-        out of the way for the lua OSC — HUD mode keeps it attached
+        out of the way for other OSCs — HUD mode keeps it attached
         during playback with a blank scene and only a lightweight
-        summon surface bound (arrows/ENTER + mouse motion). Summoning
+        summon surface bound (the wake key + mouse motion). Summoning
         rebinds the full input sections and fires ``on_hud(True)``;
         the ~4s inactivity timer drops back to idle with
         ``on_hud(False)``. ``set_active`` in either direction also
-        leaves HUD mode."""
+        leaves HUD mode.
+
+        ``opts`` is the keyboard policy: ``{"grab": bool, "key": str}``
+        — grab summons on all arrows/ENTER while idle; otherwise only
+        ``key`` is taken over (mpv key name; ENTER also pause-toggles
+        on wake)."""
+        args = ["script-message", "mpvtk-hud", "yes" if on else "no"]
+        if on and opts is not None:
+            args.append(json.dumps(opts))
+        self.backend.command(*args)
+
+    def summon_hud(self):
+        """Wake an idle HUD as if a nav key were pressed (no pause
+        toggle). No-op unless the renderer is in HUD mode and hidden."""
         self.backend.command(
-            "script-message", "mpvtk-hud", "yes" if on else "no"
+            "script-message", "mpvtk-hud-summon", "nav"
         )
 
     def set_hud_skip(self, label):

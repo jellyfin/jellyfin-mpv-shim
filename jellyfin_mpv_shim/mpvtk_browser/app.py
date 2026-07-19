@@ -158,9 +158,13 @@ class MpvtkBrowser:
         # on_scroll copy, used only as a fallback. See _offset().
         self._scroll_off = {}
         self._live_offsets = None
-        # Startup-PIN lock screen state.
+        # Startup-PIN lock screen state. _locked is True while the gate is
+        # actually gating: tray commands that would navigate (Configure
+        # Servers, Show Console) are swallowed while it is set, so they
+        # can't reveal content from behind the lock.
         self._pin = {"pin": ""}
         self._pin_error = None
+        self._locked = False
         self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
         self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
         self.geom_square = SQUARE_GEOM        # 1:1 (music)
@@ -256,6 +260,8 @@ class MpvtkBrowser:
         interrupts playback for the same reason: browsing on the phone while
         something plays here would otherwise stop the video. The page is
         simply waiting when playback ends."""
+        if self._locked:
+            return       # a remote must not browse past the PIN gate
         if server_uuid and server_uuid != self.server:
             self.server = server_uuid
         ep = self._epoch
@@ -979,7 +985,7 @@ class MpvtkBrowser:
             self._set_renderer_active(True)
         elif self._use_hud() and self._hud_state is not None:
             try:
-                self.app.set_hud(True)
+                self._engage_hud()
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:
@@ -993,6 +999,18 @@ class MpvtkBrowser:
         return (self.app is not None and hasattr(self.app, "set_hud")
                 and c is not None and getattr(c, "use_hud", None) is not None
                 and c.use_hud())
+
+    def _engage_hud(self):
+        """set_hud(True) with the controller's keyboard policy attached
+        (grab arrows vs. wake-key-only; see hud_grab_keys)."""
+        opts = None
+        get = getattr(self.controller, "hud_key_opts", None)
+        if get is not None:
+            try:
+                opts = get()
+            except Exception:
+                opts = None
+        self.app.set_hud(True, opts)
 
     def _hud_scrub_change(self, v):
         if self._hud_scrub is None:
@@ -1031,13 +1049,38 @@ class MpvtkBrowser:
         self._hud_hover = None
         self.invalidate()
 
+    def open_hud_menu(self):
+        """Summon the HUD with the gear menu open (the player routes
+        the kb_menu key here during playback, replacing the OSD menu
+        under the in-window OSC). Pressing it again closes the menu.
+        Returns True when handled."""
+        if not self._use_hud() or self._hud_state is None:
+            return False
+        try:
+            if self._hud_shown and self._hud_menu:
+                self._hud_menu = None       # kb_menu toggles
+                self.invalidate()
+                return True
+            self._engage_hud()              # no-op when already engaged
+            self.app.summon_hud()
+            self._hud_menu = "root"
+            self._hud_menu_anchor = "hud-settings"
+            self.invalidate()
+            return True
+        except Exception:
+            log.debug("open_hud_menu failed", exc_info=True)
+            return False
+
     def _on_hud(self, active):
         """Renderer summoned / auto-hid the playback HUD (loop thread)."""
         self._hud_shown = bool(active)
         if self._hud_scrub_paused:
             self._hud_scrub_done()  # resumes playback the scrub paused
         self._hud_scrub = None
-        self._hud_menu = None
+        if not active:
+            # keep a menu opened in the same beat as a summon
+            # (open_hud_menu sets it right before the hud event lands)
+            self._hud_menu = None
         self._hud_hover = None
         if getattr(self.controller, "hud_sub_margin", None) is not None:
             # raise bottom subtitles clear of the bar while it shows
@@ -1062,7 +1105,7 @@ class MpvtkBrowser:
         if self._use_hud():
             # keep the renderer attached: blank scene + summon bindings
             try:
-                self.app.set_hud(True)
+                self._engage_hud()
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:
@@ -1202,7 +1245,7 @@ class MpvtkBrowser:
                     # starts while minimized/already-yielded and a fresh
                     # renderer after mpv re-creation (a plain _yield only
                     # happens on the browsing -> video transition).
-                    self.app.set_hud(True)
+                    self._engage_hud()
                     # ... and keep the idle skip overlay in sync with the
                     # live skippable segment (the player pushes a
                     # playstate the moment one starts/ends).
@@ -1239,7 +1282,15 @@ class MpvtkBrowser:
 
     def set_source(self, source, server_uuid=None):
         """Swap in a live data source once servers connect (the browser opens
-        immediately on a spinner and populates when the network settles)."""
+        immediately on a spinner and populates when the network settles).
+
+        A catalog-backed source raises the offline banner: every path that
+        can land offline goes through here, so deriving the banner from the
+        source is what keeps the two from drifting apart."""
+        from .repository import OfflineLibrarySource
+
+        self._offline = isinstance(source, OfflineLibrarySource)
+        self._locked = False
         self.source = source
         try:
             servers = source.servers()
@@ -1442,11 +1493,17 @@ class MpvtkBrowser:
             return self.controller.switch_user(user.get("id"), pin)
 
         def done(source):
-            if source is None:
+            if source is False:
                 if on_bad_pin is not None:
                     on_bad_pin()
                 return
             self._close_dialog()
+            if source is None:
+                # switched fine, but that user has no reachable server and
+                # nothing downloaded — the login screen, not a stuck dialog.
+                self._locked = False
+                self.show_login()
+                return
             self.set_source(source)
         self.run_async(work, done, ep)
 
@@ -2551,7 +2608,10 @@ class MpvtkBrowser:
 
     def open_settings(self, tab="general"):
         """Open Settings on ``tab``. Public: the tray's Configure Servers /
-        Show Console entries route here."""
+        Show Console entries route here — which is why it has to respect the
+        lock gate: the logs and server list are behind the PIN too."""
+        if self._locked:
+            return
         if self.route.get("kind") == "settings":
             self.route["_tab"] = tab   # already there — just switch tabs
             self.invalidate()
@@ -3409,8 +3469,26 @@ class MpvtkBrowser:
         self._dismiss_update()
 
     def _retry_connect(self):
-        if self.controller is not None:
-            self._pool.submit(lambda: self._safe(lambda c: c.retry_connect()))
+        """Offline banner → Retry. A reconnect that works has to swap the
+        source in, or the banner clears while the catalog is still what's
+        being browsed."""
+        if self.controller is None:
+            return
+        ep = self._epoch
+
+        def work():
+            # not _safe(): that swallows the return value, and the source is
+            # the whole point here.
+            try:
+                return self.controller.retry_connect()
+            except Exception:
+                log.warning("retry connect failed", exc_info=True)
+                return None
+
+        def done(source):
+            if source is not None:
+                self.set_source(source)
+        self.run_async(work, done, ep)
 
     # --------------------------------------------------------- playlist edit
 
@@ -4021,8 +4099,30 @@ class MpvtkBrowser:
     # -------------------------------------------------------------- locked
 
     def show_locked(self):
-        """Show the startup-PIN unlock gate."""
+        """Show the startup-PIN unlock gate.
+
+        Idempotent: re-locking an already-locked UI must not wipe a PIN the
+        user is halfway through typing (the tray can fire show/hide at any
+        moment)."""
+        if self._locked:
+            return
+        self._locked = True
+        self._pin["pin"] = ""
+        self._pin_error = None
         self.navigate({"kind": "locked", "title": _("Locked")}, reset=True)
+
+    def maybe_relock(self):
+        """Re-gate the UI behind the startup PIN when the window is released
+        or re-surfaced. Unlocking once must not leave the client open for the
+        rest of the process's life — closing to the tray and re-raising
+        re-prompts, matching the Tk browser."""
+        if self.controller is None:
+            return
+        try:
+            if self.controller.needs_unlock():
+                self.show_locked()
+        except Exception:
+            log.debug("relock check failed", exc_info=True)
 
     def _render_locked(self, route, size):
         """Startup PIN gate.
@@ -4072,16 +4172,26 @@ class MpvtkBrowser:
         ep = self._epoch
 
         def work():
+            # False means the PIN was wrong; None means it was right but
+            # nothing could be built (no server answered and nothing is
+            # downloaded). Conflating the two reported a correct PIN as
+            # incorrect — permanently so with work_offline on, since the
+            # connect is skipped and there is never a live source.
             if not self.controller.unlock(pin):
-                return None
+                return False
             return self.controller.connect_and_rebuild()
 
         def done(source):
-            if source is None:
+            if source is False:
                 self._pin_error = _("Incorrect PIN.")
-            else:
-                self._pin_error = None
-                self.set_source(source)
+                return
+            self._pin_error = None
+            self._pin["pin"] = ""
+            if source is None:
+                self._locked = False
+                self.show_login()
+                return
+            self.set_source(source)
         self.run_async(work, done, ep)
 
     def _busy(self):

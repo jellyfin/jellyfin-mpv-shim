@@ -72,7 +72,6 @@ PER_BACKEND_REAL = [
 # run once, wrapped in xvfb when headless. The OSC lua smoke drives the
 # external mpv binary directly, so it is also backend-agnostic.
 DISPLAY_ONCE = [
-    "tests.integration.test_jf_osc_script",
     "tests.integration.test_browser_ui",
 ]
 

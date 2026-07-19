@@ -1621,7 +1621,41 @@ chapter dropdown; the queue lives in the browser).
   which already holds the HUD open. phud_hide also reverts a pending
   adjust gesture so the app resumes a scrub-pause cleanly.
 
-**9.4 — cutover flag ✅, cutover itself pending field-proving.** The
+**9.3h ✅ (2026-07-19, polish round 2 per Izzie).**
+
+- Seek bar: accent outline on hover; **always-adjust** (`aadj` node
+  flag / `Slider(always_adjust=True)`): live whenever focused —
+  LEFT/RIGHT scrub, ENTER commits and stays live, UP/DOWN step off.
+  New `nav_scrubbed` state distinguishes an in-flight gesture from a
+  merely-focused bar (the force-reset busy-guard and ESC-cancel key
+  off it; without it the idle thumb froze while focused). Focused
+  aadj bars ring accent (white stays the explicit-adjust signal for
+  ordinary sliders). Stop button removed (top-bar back covers it).
+- **Keyboard policy** (the "don't grab my keys" defaults):
+  `hud_grab_keys` (default False) + `hud_wake_key` (default ENTER).
+  Idle grabs ONLY the wake key (ENTER also pause-toggles on wake);
+  arrows keep mpv defaults unless grab is enabled. The policy rides
+  the `mpvtk-hud yes {json}` message. Remote Move*/Select route via a
+  new `mpvtk-hud-summon nav|select` script message (keypresses would
+  hit mpv defaults), 'select' accepting a showing skip overlay.
+- The `c` OSD menu is retired during playback under the HUD:
+  `playerManager.on_hud_menu` (wired to Browser.open_hud_menu) opens
+  the gear menu (toggle on repeat press); OSD menu remains for
+  CLI/tk/non-video surfaces.
+
+**9.4 ✅ (2026-07-19) — the lua OSC is GONE.** trickplay-jf-osc.lua,
+gen_osc_icons.py, tools/osc-test/ and test_jf_osc_script.py are
+deleted. `osc_style` defaults to "mpvtk"; "jellyfin" is a legacy
+alias (resolution in player._init_mpv, stored as
+`_osc_style_resolved` — c-menu routing, enable_osc and the skip
+path key off it; browser_ui≠mpvtk falls back to "mpv",
+thumbnail_osc_builtin=False still opts out to "default").
+osc_bridge kept build_state()+handle_action() (the HUD's surface)
+and lost send_state/active/update_skip_button + the
+shim-jf-osc-*/shim-close client-message branches. HUD seeks stamp
+`_last_ui_seek_time` directly (the seek-to-skip exemption the lua
+requested by message). trickplay-osc.lua ("mpv" style) and
+thumbfast.lua remain. The
 flag shipped with 9.0: `osc_style: "mpvtk"` (README, settings-page
 enum "In-window HUD (experimental)", conf.py docs; falls back to
 jellyfin without the mpvtk browser; keeps mpv's builtin OSC off).

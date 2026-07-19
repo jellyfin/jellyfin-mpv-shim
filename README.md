@@ -265,19 +265,28 @@ You can use the config file to enable and disable features.
 - `start_minimized` - Start minimized to the tray instead of opening the library. Also ignored when no tray is available. Default: `false`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
-- `osc_style` - Which on-screen controller to use. Default: `jellyfin`
-  - `jellyfin` - A player UI styled after jellyfin-web, with popup menus for
-    subtitles (including external and burn-in streams), audio, transcode
-    quality, playback speed, aspect ratio, shader profiles, and SyncPlay.
+- `osc_style` - Which on-screen controller to use. Default: `mpvtk`
+  - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
+    browser inside the player window: top bar (back, title, SyncPlay),
+    seek bar with chapter marks, buffered ranges and hover previews,
+    transport with seek/chapter steps, track/quality pickers, a settings
+    menu (speed, aspect, shader profiles, subtitle style, SyncPlay,
+    stats, screenshot), favorites, volume, and Skip Intro/Credits.
+    Playback runs clean; mouse motion (or the `hud_wake_key`) summons the
+    controls, and a few seconds without input hides them again. Fully
+    navigable with a keyboard or a Jellyfin remote. Requires
+    `browser_ui: mpvtk` (falls back to `mpv` otherwise). `jellyfin` is
+    accepted as a legacy alias.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
-  - `mpvtk` - Experimental: playback controls rendered by the library
-    browser inside the player window (YouTube-on-TV style). Playback runs
-    clean; any arrow key, ENTER, or mouse motion summons the controls, and
-    a few seconds without input hides them again. Fully navigable with a
-    keyboard or a Jellyfin remote. Requires `browser_ui: mpvtk` (falls back
-    to `jellyfin` otherwise).
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
+- `hud_grab_keys` - While a video plays with the controls hidden, take over
+  the arrow keys and ENTER to summon/drive them. Default: `false` — mpv's
+  own seek keys keep working and only `hud_wake_key` is taken over.
+  (Jellyfin remotes always work either way.)
+- `hud_wake_key` - The key that summons the on-screen controls for keyboard
+  driving while they are hidden (mpv key name syntax). ENTER also toggles
+  pause/play on wake. Default: `ENTER`
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `display_mirroring` - Legacy kiosk mode: casting an item from another client shows a static "now casting" backdrop instead of a browsable UI. Default: `false`
@@ -481,8 +490,9 @@ It works the same ways as it did on MPV Shim for Plex. Now uses the MediaSegment
 
 - `skip_intro_always` - Always skip intros, without asking. Default: `false`
 - `skip_intro_enable` - Offer to skip intros. With the Jellyfin player UI
-  (`osc_style: jellyfin`) this shows a floating "Skip Intro" button during the
-  intro; with other UIs it shows the classic seek-to-skip prompt. Default: `true`
+  (`osc_style: mpvtk`) this shows a floating "Skip Intro" button during the
+  intro (even while the controls are hidden); with other UIs it shows the
+  classic seek-to-skip prompt. Default: `true`
 - `skip_credits_always` - Always skip credits, without asking. Default: `false`
 - `skip_credits_enable` - Offer to skip credits (same behavior as
   `skip_intro_enable`). Default: `true`

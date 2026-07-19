@@ -194,13 +194,21 @@ class Settings(SettingsBase):
     skip_intro_on_seek: bool = True
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
-    # In-player UI: "jellyfin" (jellyfin-web styled OSC), "mpv" (stock mpv
-    # OSC patched with trickplay previews), "mpvtk" (the in-window playback
-    # HUD rendered by the mpvtk browser — YouTube-on-TV style, remote
-    # navigable; requires browser_ui "mpvtk", falls back to "jellyfin"
-    # otherwise), or "default" (whatever OSC is built into the mpv binary /
-    # the user's own scripts).
-    osc_style: str = "jellyfin"
+    # In-player UI: "mpvtk" (the in-window playback HUD rendered by the
+    # mpvtk browser — jellyfin-web styled, remote navigable; requires
+    # browser_ui "mpvtk", falls back to "mpv" otherwise), "mpv" (stock
+    # mpv OSC patched with trickplay previews), or "default" (whatever
+    # OSC is built into the mpv binary / the user's own scripts).
+    # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
+    # name was retired once the HUD reached parity).
+    osc_style: str = "mpvtk"
+    # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
+    # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
+    # seek keys keep working and only hud_wake_key is taken over.
+    hud_grab_keys: bool = False
+    # The key that summons the HUD for keyboard driving while it is
+    # hidden (mpv key name syntax). ENTER also toggles pause on wake.
+    hud_wake_key: str = "ENTER"
     thumbnail_preferred_size: int = 320
     tls_client_cert: Optional[str] = None
     tls_client_key: Optional[str] = None

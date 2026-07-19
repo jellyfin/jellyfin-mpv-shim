@@ -1,15 +1,17 @@
-"""Bridge between the player and the jellyfin-styled OSC (trickplay-jf-osc.lua).
+"""State/action bridge between the player and the playback HUD.
 
-The Lua side cannot know anything about Jellyfin, so the Python side
-pushes it a JSON state blob (localized labels included) over the
-``shim-jf-osc-state`` script message, and receives menu selections back
-over the ``shim-jf-osc-action`` client message. Actions are routed
+Assembles the menu/track state blob (localized labels included) the
+mpvtk playback HUD's pickers and gear menu render from (build_state),
+and dispatches their selections (handle_action). Actions are routed
 through the same playerManager code paths the OSD menu (menu.py) uses,
 so e.g. selecting a burn-in subtitle stream restarts the transcode
 exactly like the ``c`` menu would.
+
+(Historically this drove the jellyfin-styled lua OSC over script
+messages; that OSC was retired once the HUD reached parity, and the
+verb vocabulary lives on here.)
 """
 
-import json
 import logging
 
 from .conf import settings
@@ -24,64 +26,18 @@ class OscBridge:
     def __init__(self, player_manager):
         self.playerManager = player_manager
         # SyncPlay group discovery hits the server, so it only happens on
-        # explicit request (the OSC sends syncplay-refresh when its
-        # SyncPlay submenu opens); the result is cached for later pushes.
+        # explicit request (the HUD fires syncplay-refresh when its
+        # SyncPlay sheet opens); the result is cached for later builds.
         self._syncplay_groups = []
-        # Currently displayed skip-segment button label (None = hidden);
-        # update_skip_button dedupes against it.
-        self._skip_label = None
 
     # ------------------------------------------------------------- state
 
-    def active(self):
-        """True when the jellyfin OSC is loaded in the current player."""
-        return settings.osc_style == "jellyfin" and getattr(
-            self.playerManager, "_osc_script_loaded", False
-        )
-
-    def update_skip_button(self, intro):
-        """Show/hide the floating Skip Intro / Skip Credits button.
-
-        Called from playerManager.update() on every pump with the current
-        skippable segment (or None); only label transitions are sent.
-        """
-        if not self.active():
-            return
-        label = None
-        if intro is not None:
-            label = (
-                _("Skip Credits") if intro.type == "Outro" else _("Skip Intro")
-            )
-        if label == self._skip_label:
-            return
-        self._skip_label = label
-        self.playerManager.script_message("shim-jf-osc-skip", label or "")
-
     def build_state(self):
         """The full menu/track state blob (tracks with selection,
-        quality, sub style, profiles, SyncPlay, favorite, queue).
-        send_state() pushes this same blob to the lua OSC; the mpvtk
-        playback HUD consumes it directly for its pickers. May raise —
+        quality, sub style, profiles, SyncPlay, favorite, queue) the
+        HUD renders its pickers and gear menu from. May raise —
         callers guard."""
         return self._build_state()
-
-    def send_state(self):
-        """Push the current menu/track state to the OSC."""
-        # Inert unless the jellyfin OSC script was actually loaded into
-        # this mpv instance (osc_style may have changed since startup,
-        # and the legacy thumbnail_osc_builtin opt-out also disables it).
-        if settings.osc_style != "jellyfin" or not getattr(
-            self.playerManager, "_osc_script_loaded", False
-        ):
-            return
-        try:
-            state = self._build_state()
-        except Exception:
-            log.error("Could not build OSC state.", exc_info=True)
-            return
-        self.playerManager.script_message(
-            "shim-jf-osc-state", json.dumps(state)
-        )
 
     def _build_state(self):
         pm = self.playerManager
@@ -271,12 +227,12 @@ class OscBridge:
     # ----------------------------------------------------------- actions
 
     def handle_action(self, args):
-        """Dispatch a shim-jf-osc-action client message (mpv event thread).
+        """Dispatch a HUD action verb ([verb, arg?]).
 
         Anything that touches playback state is queued onto the action
-        thread via put_task, mirroring how menu.py handlers behave. A
-        state push is queued behind the action so the OSC refreshes once
-        the change has landed.
+        thread via put_task, mirroring how menu.py handlers behave. The
+        HUD re-reads build_state() on its next repaint, so no push is
+        needed once the change lands.
         """
         if not args:
             return
@@ -310,10 +266,10 @@ class OscBridge:
             elif verb == "skip-segment":
                 pm.put_task(pm.skip_intro)
             elif verb == "set-fullscreen":
-                # The OSC already toggled mpv's fullscreen locally; this
+                # The HUD already toggled mpv's fullscreen locally; this
                 # only records the user's intent so auto-fullscreen
                 # (fullscreen_disable) doesn't re-fullscreen the next
-                # episode. No state/timeline push is needed.
+                # episode. No timeline push is needed.
                 pm.put_task(pm.set_fullscreen, arg == "yes", True)
                 return
             elif verb == "screenshot":
@@ -323,7 +279,6 @@ class OscBridge:
             else:
                 log.warning("Unknown OSC action %r", verb)
                 return
-            pm.put_task(self.send_state)
             pm.timeline_handle()
         except Exception:
             log.error("Error handling OSC action %r", args, exc_info=True)
@@ -399,13 +354,14 @@ class OscBridge:
         return client
 
     def _refresh_syncplay(self):
+        # The HUD's open sheet picks the refreshed groups up on its
+        # next periodic rebuild.
         try:
             client = self._syncplay_client()
             self._syncplay_groups = client.jellyfin.get_sync_play() or []
         except Exception:
             log.error("Could not fetch SyncPlay groups.", exc_info=True)
             self._syncplay_groups = []
-        self.send_state()
 
     def _syncplay_join(self, group_id):
         client = self._syncplay_client()

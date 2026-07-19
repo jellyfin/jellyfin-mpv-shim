@@ -978,9 +978,13 @@ local function sl_state(node)
     local s = state.sl[node.id]
     -- force=true tracks the scene value (seek bars follow playback) —
     -- but never while the user is mid-gesture, or the app's periodic
-    -- pushes would stomp the in-flight drag/adjust value.
+    -- pushes would stomp the in-flight drag/adjust value. A merely
+    -- FOCUSED always-adjust bar is not a gesture: nav_scrubbed flips
+    -- on the first actual LEFT/RIGHT, so the idle thumb keeps moving
+    -- with playback.
     local busy = state.slider_drag == node.id
-        or (state.nav_adjust and state.nav == node.id)
+        or (state.nav_adjust and state.nav == node.id
+            and state.nav_scrubbed)
     if s == nil or (node.force and not busy) then
         s = { value = node.value or 0 }
         state.sl[node.id] = s
@@ -1017,6 +1021,14 @@ end
 local SLIDER_PAD = 8
 
 local function draw_slider(ass, node, ex, ey, clip)
+    -- always-adjust seek bars read as live under the pointer too:
+    -- accent outline on hover (key focus draws the nav ring instead)
+    if node.aadj and state.hover_id == node.id
+        and state.nav ~= node.id then
+        draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
+            bc = state.accent, bw = 3, radius = 4, clip = clip,
+        })
+    end
     local s = sl_state(node)
     local rng = (node.max or 100) - (node.min or 0)
     local frac = 0
@@ -1080,6 +1092,7 @@ local function slider_commit(node)
     slider_last_notify[node.id] = mp.get_time()
     local s = sl_state(node)
     send({ t = 'commit', id = node.id, value = s.value })
+    state.nav_scrubbed = nil
 end
 
 local function slider_cancel(node)
@@ -1087,6 +1100,7 @@ local function slider_cancel(node)
     local s = sl_state(node)
     s.value = node.value or 0
     send({ t = 'cancel', id = node.id })
+    state.nav_scrubbed = nil
     request_render()
 end
 
@@ -1403,9 +1417,15 @@ render = function()
         local node = state.byid[state.nav]
         if node and visible(node) then
             local ex, ey, clip = eff(node)
+            -- an always-adjust bar is permanently live, so it keeps
+            -- the accent "active" outline; white stays the explicit
+            -- adjust-mode signal for ordinary sliders
+            local ring = state.accent
+            if state.nav_adjust and not node.aadj then
+                ring = 'ffffff'
+            end
             draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
-                bc = state.nav_adjust and 'ffffff' or state.accent,
-                bw = 3, radius = 4, clip = clip,
+                bc = ring, bw = 3, radius = 4, clip = clip,
             })
         end
     end
@@ -2378,7 +2398,10 @@ end
 
 local function nav_set(node)
     state.nav = node.id
-    state.nav_adjust = nil
+    -- always-adjust sliders (the HUD seek bar) are live the moment
+    -- focus lands: LEFT/RIGHT scrub, ENTER commits, no arming step
+    state.nav_adjust = (node.t == 'slider' and node.aadj) or nil
+    state.nav_scrubbed = nil
     state.nav_pending = nil
     nav_scroll_into_view(node)
     -- remember where focus was (effective coords): if the node later
@@ -2539,6 +2562,7 @@ local function nav_move(dx, dy)
     -- slider adjust mode: LEFT/RIGHT change the value in 5% steps
     if cur and cur.t == 'slider' and state.nav_adjust and dx ~= 0 then
         local s = sl_state(cur)
+        state.nav_scrubbed = true  -- gesture begins: value is pinned
         local rng = (cur.max or 100) - (cur.min or 0)
         s.value = clamp(s.value + dx * rng * 0.05,
                         cur.min or 0, cur.max or 100)
@@ -2668,12 +2692,13 @@ local function nav_activate()
         request_render()
     elseif node.t == 'slider' then
         if state.nav_adjust then
-            -- commit BEFORE dropping adjust mode: sl_state treats an
-            -- adjusting slider as busy, so clearing first would let
+            -- commit BEFORE dropping adjust mode: sl_state treats a
+            -- scrubbing slider as busy, so clearing first would let
             -- force=true snap the value back to the scene position
             -- and commit the OLD spot (the "ENTER rejects my seek" bug)
             slider_commit(node)
-            state.nav_adjust = nil
+            -- always-adjust bars stay live for the next gesture
+            state.nav_adjust = node.aadj and true or nil
         else
             state.nav_adjust = true
         end
@@ -2926,12 +2951,7 @@ mp.register_script_message('mpvtk-scene', function(json)
         for _, node in ipairs(state.nodes) do
             if node.af then
                 state.phud.want_focus = nil
-                nav_set(node)
-                if node.t == 'slider' then
-                    -- the seek bar wakes ACTIVE: LEFT/RIGHT scrub
-                    -- immediately, ENTER commits
-                    state.nav_adjust = true
-                end
+                nav_set(node)  -- an aadj seek bar wakes live via nav_set
                 break
             end
         end
@@ -3024,6 +3044,12 @@ local function phud_summon_enter()
     mp.commandv('cycle', 'pause')
 end
 
+local function phud_wake_key()
+    return state.phud.wake_key or 'ENTER'
+end
+
+local phud_bind_summon  -- fwd: the skip overlay rebinds on hide
+
 -- Standalone Skip Intro/Credits overlay while the HUD is idle: shown
 -- for a few seconds when a skippable segment starts (mpvtk-hud-skip
 -- from Python) and again on pointer movement while the segment lasts.
@@ -3038,9 +3064,9 @@ local function phud_skip_hide()
     state.phud.skip_show = false
     mp.remove_key_binding('mpvtk_skip_enter')
     if state.phud.mode and not state.phud.shown then
-        -- hand ENTER back to the summon surface
-        mp.add_forced_key_binding('ENTER', 'mpvtk_summon_ENTER',
-            phud_summon_enter)
+        -- hand ENTER back to the summon surface (add_forced with an
+        -- existing name replaces, so rebinding everything is safe)
+        phud_bind_summon()
     end
     request_render()
 end
@@ -3052,8 +3078,11 @@ function phud_skip_show()
     end
     if not state.phud.skip_show then
         state.phud.skip_show = true
-        -- ENTER skips while the button is up (deterministically: the
-        -- summon binding is removed, not merely shadowed)
+        -- ENTER skips while the button is up (deterministically: any
+        -- ENTER summon/wake binding is removed, not merely shadowed)
+        if phud_wake_key() == 'ENTER' then
+            mp.remove_key_binding('mpvtk_wake')
+        end
         mp.remove_key_binding('mpvtk_summon_ENTER')
         mp.add_forced_key_binding('ENTER', 'mpvtk_skip_enter', function()
             send({ t = 'hudskip' })
@@ -3071,14 +3100,25 @@ function phud_skip_show()
     request_render()
 end
 
-local function phud_bind_summon()
-    for _, key in ipairs(PHUD_SUMMON_KEYS) do
-        if key == 'ENTER' then
-            mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
-                phud_summon_enter)
-        else
-            mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
-                function() phud_summon('key') end)
+local function phud_bind_wake()
+    -- The one key taken over while idle: summons the HUD for keyboard
+    -- driving ('ENTER' also toggles pause/play on wake). Everything
+    -- else keeps its mpv default unless hud_grab_keys opted in.
+    local wk = phud_wake_key()
+    mp.add_forced_key_binding(wk, 'mpvtk_wake',
+        wk == 'ENTER' and phud_summon_enter
+        or function() phud_summon('key') end)
+end
+
+function phud_bind_summon()
+    phud_bind_wake()
+    if state.phud.grab then
+        for _, key in ipairs(PHUD_SUMMON_KEYS) do
+            if key ~= phud_wake_key() then
+                mp.add_forced_key_binding(key, 'mpvtk_summon_' .. key,
+                    key == 'ENTER' and phud_summon_enter
+                    or function() phud_summon('key') end)
+            end
         end
     end
     -- clicking the hidden-HUD video pauses (the lua OSC's
@@ -3097,6 +3137,7 @@ local function phud_bind_summon()
 end
 
 local function phud_unbind_summon()
+    mp.remove_key_binding('mpvtk_wake')
     for _, key in ipairs(PHUD_SUMMON_KEYS) do
         mp.remove_key_binding('mpvtk_summon_' .. key)
     end
@@ -3156,11 +3197,16 @@ function phud_summon(src)
     -- the HUD itself. (A scene-driven dialog also binds
     -- mpvtk_menu_esc, added later so it wins while it exists.)
     mp.add_forced_key_binding('ESC', 'mpvtk_phud_esc', function()
-        if state.nav_adjust then
-            -- scrub in flight: revert it, keep the HUD up
+        if state.nav_adjust and state.nav_scrubbed then
+            -- scrub in flight: revert it, keep the HUD up (an
+            -- always-adjust bar stays live for the next gesture)
             local node = state.nav and state.byid[state.nav]
-            if node and node.t == 'slider' then slider_cancel(node) end
-            state.nav_adjust = nil
+            if node and node.t == 'slider' then
+                slider_cancel(node)
+                if not node.aadj then state.nav_adjust = nil end
+            else
+                state.nav_adjust = nil
+            end
             request_render()
         elseif state.dd_open then
             state.dd_open = nil
@@ -3186,9 +3232,9 @@ end
 
 function phud_hide()
     if not state.phud.shown then return end
-    if state.nav_adjust then
-        -- an armed (possibly scrubbed) bar reverts cleanly so the app
-        -- drops its pending state / resumes a scrub-pause
+    if state.nav_adjust and state.nav_scrubbed then
+        -- a scrubbed bar reverts cleanly so the app drops its pending
+        -- state / resumes a scrub-pause
         local node = state.nav and state.byid[state.nav]
         if node and node.t == 'slider' then slider_cancel(node) end
         state.nav_adjust = nil
@@ -3222,8 +3268,15 @@ function phud_clear()
     pcall(mp.set_property_native, 'user-data/mpvtk/hud', false)
 end
 
-mp.register_script_message('mpvtk-hud', function(on)
+mp.register_script_message('mpvtk-hud', function(on, opts_json)
     local want = (on == 'yes' or on == 'true' or on == '1')
+    if want then
+        -- keyboard policy travels with the engage (re-applied even
+        -- when already in HUD mode, so setting changes stick)
+        local opts = opts_json and utils.parse_json(opts_json) or nil
+        state.phud.grab = (opts and opts.grab) or false
+        state.phud.wake_key = (opts and opts.key) or 'ENTER'
+    end
     if want == state.phud.mode then return end
     if want then
         -- enter attached-but-idle, tearing down whatever we owned
@@ -3252,6 +3305,23 @@ mp.register_script_message('mpvtk-hud', function(on)
         end
     end
     request_render()
+end)
+
+-- Remote navigation while the HUD is idle: the player routes
+-- Move*/Select here because keypresses would hit mpv defaults (only
+-- the configured wake key is grabbed). 'select' = wake + pause/play,
+-- anything else = plain wake.
+mp.register_script_message('mpvtk-hud-summon', function(kind)
+    if not state.phud.mode or state.phud.shown then return end
+    if state.phud.skip_show and kind == 'select' then
+        -- overlay showing: Select accepts the skip, like local ENTER
+        send({ t = 'hudskip' })
+        phud_skip_hide()
+    elseif kind == 'select' then
+        phud_summon_enter()
+    else
+        phud_summon('key')
+    end
 end)
 
 -- Skippable-segment label for the idle overlay ('' = no segment).

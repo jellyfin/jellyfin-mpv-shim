@@ -55,8 +55,7 @@ ENUMS = {
 # Enums whose stored value isn't presentable: [(label, value), ...].
 LABELED_ENUMS = {
     "osc_style": [
-        (_("Jellyfin UI"), "jellyfin"),
-        (_("In-window HUD (experimental)"), "mpvtk"),
+        (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
     ],
