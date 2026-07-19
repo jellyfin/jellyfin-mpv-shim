@@ -25,6 +25,7 @@ from ..mpvtk.widgets import (
     Box,
     Busy,
     Button,
+    Checkbox,
     Column,
     Dropdown,
     HScroll,
@@ -51,9 +52,12 @@ CHROME_FREE = {"login", "locked", "connecting"}
 
 class MpvtkBrowser:
     def __init__(self, app, source, strips=None, thumbs=None,
-                 server_uuid=None, geom=None, controller=None):
+                 server_uuid=None, geom=None, controller=None, config=None):
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
+        # Settings accessor (settings_schema/get_settings/set_setting). None ->
+        # the real in-process config module; tests inject a fake.
+        self._config_obj = config
         # Optional bridge to the player (playback + browse/play window state).
         # None in tests -> playable clicks just report status; the window/OSC
         # handoff is a no-op. See mpvtk_browser.ui._PlayerController.
@@ -499,7 +503,8 @@ class MpvtkBrowser:
                 Spacer(),
                 TextBox("nav-search", placeholder=_("Search…"), w=220,
                         on_submit=self._search),
-                Button(_("Settings"), id="nav-settings", on_click=lambda: None),
+                Button(_("Settings"), id="nav-settings",
+                       on_click=self._open_settings),
             ],
             pad=12, gap=10, align="center", h=60, bg=theme.PANEL_BG,
         )
@@ -518,12 +523,23 @@ class MpvtkBrowser:
             "artist": self._render_artist,
             "music_genre": self._render_music_genre,
             "playlist": self._render_playlist,
+            "settings": self._render_settings,
         }.get(kind)
         if render is None:
             return self._busy()
         return render(route, size)
 
     def _render_home(self, route, size):
+        if self.server is None:
+            return Box(
+                [Spacer(),
+                 Row([Spacer(), Busy(), Spacer()]),
+                 Row([Spacer(),
+                      Text(_("Connecting to your server…"), size=20,
+                           color=theme.SUBTLE_FG),
+                      Spacer()]),
+                 Spacer()],
+                flex=1, direction="column", align="stretch", gap=16)
         data = route.get("_data")
         if data is None:
             return self._busy()
@@ -907,6 +923,48 @@ class MpvtkBrowser:
                 Text(self._fmt(dur), size=14, w=52, color=theme.SUBTLE_FG),
             ],
             pad=10, gap=12, align="center", h=64, bg=theme.PANEL_BG)
+
+    # ------------------------------------------------------------- settings
+
+    def _config(self):
+        if self._config_obj is not None:
+            return self._config_obj
+        from . import config as cfg
+        return cfg
+
+    def _open_settings(self):
+        self.navigate({"kind": "settings", "server": self.server,
+                       "title": _("Settings")})
+
+    def _set_setting(self, key, value):
+        ok = self._config().set_setting(key, value)
+        self.status = ((_("Saved: %s") if ok else _("Invalid value: %s"))
+                       % key)
+        self.invalidate()
+
+    def _render_settings(self, route, size):
+        cfg = self._config()
+        schema = cfg.settings_schema()
+        values = cfg.get_settings()
+        rows = [Text(_("Settings"), size=26, bold=True)]
+        if self.status:
+            rows.append(Text(self.status, size=15, color=theme.SUBTLE_FG))
+        for key in sorted(schema):
+            kind = schema[key]
+            val = values.get(key)
+            if kind == "bool":
+                rows.append(Checkbox(
+                    key, bool(val), id="set-" + key,
+                    on_toggle=lambda k=key, v=val: self._set_setting(
+                        k, not bool(v))))
+            else:
+                rows.append(Row([
+                    Text(key, w=360, size=17),
+                    TextBox("set-" + key,
+                            text="" if val is None else str(val), w=340,
+                            on_submit=lambda v, k=key: self._set_setting(k, v)),
+                ], gap=12, align="center"))
+        return VScroll(Column(rows, pad=16, gap=8), id="settings", flex=1)
 
     def _busy(self):
         return Box(

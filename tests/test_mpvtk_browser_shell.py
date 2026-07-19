@@ -326,6 +326,62 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertEqual(len(b.nav_stack), 1)
 
 
+class FakeConfig:
+    def __init__(self):
+        self.values = {"autoplay": True, "player_name": "Bud",
+                       "seek_up": 60}
+        self.schema = {"autoplay": "bool", "player_name": "str",
+                       "seek_up": "int"}
+
+    def settings_schema(self):
+        return dict(self.schema)
+
+    def get_settings(self):
+        return dict(self.values)
+
+    def set_setting(self, key, value):
+        kind = self.schema.get(key)
+        if kind is None:
+            return False
+        try:
+            self.values[key] = {"bool": bool, "int": int,
+                                "str": str}[kind](value)
+        except (ValueError, TypeError):
+            return False
+        return True
+
+
+class TestSettings(unittest.TestCase):
+    def setUp(self):
+        self.cfg = FakeConfig()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg)
+
+    def test_settings_nav_and_render(self):
+        self.b._open_settings()
+        self.assertEqual(self.b.route["kind"], "settings")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("set-autoplay", ids(nodes))     # bool -> checkbox
+        self.assertIn("set-player_name", ids(nodes))  # str -> textbox
+
+    def test_setting_bool_toggle_saves(self):
+        self.b._open_settings()
+        nodes, handlers = build_scene(self.b)
+        handlers["set-autoplay"]["click"]()
+        self.assertFalse(self.cfg.values["autoplay"])
+
+    def test_setting_text_submit_coerces(self):
+        self.b._open_settings()
+        nodes, handlers = build_scene(self.b)
+        handlers["set-seek_up"]["submit"]("15")
+        self.assertEqual(self.cfg.values["seek_up"], 15)  # coerced to int
+
+    def test_setting_invalid_value_reports(self):
+        self.b._open_settings()
+        nodes, handlers = build_scene(self.b)
+        handlers["set-seek_up"]["submit"]("not-a-number")
+        self.assertIn("Invalid", self.b.status)
+
+
 class TestPhase1Views(unittest.TestCase):
     def setUp(self):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
