@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `--skip-build` does prep only (translations + shader pack), no sdist/wheel. Use this on Windows or when you only want `.mo` files.
   - `--install` runs `pip3 install .[all]` (with `sudo` if available; add `--local` to skip sudo).
   - `--get-pyinstaller` / `--gen-fingerprint` are CI helpers for the Windows build cache.
-- Regenerate translation template and merge into existing `.po` files: `./regen_pot.sh`
+- Regenerate translation template and merge into existing `.po` files (also folds in `master`'s translations so volunteer work isn't lost on a feature branch): `./regen_pot.sh`
 - Windows build (after `gen_pkg.sh --skip-build`): `build-win.bat` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for debug). Installer is built with Inno Setup from `Jellyfin MPV Shim.iss`.
 - Run the test suite (stdlib unittest, no extra deps): `python3 -m unittest discover tests`. It covers pure-logic pieces (credential cleaning, SyncPlay teardown, wait_property, queue inserts, menu indexing); playback/server behavior still needs hand testing against a real server.
 - There is no linter config — code style is `black` (per the README badge), but `black` is not wired into the repo.
@@ -62,7 +62,7 @@ This project's policy (CONTRIBUTING.md) is that **everything beyond the four req
 ## i18n
 
 User-facing strings use gettext via `i18n.py`'s `_()`. After adding/changing strings:
-1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files.
+1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
 2. `./gen_pkg.sh --skip-build` (or `gen_pkg.sh` itself) compiles `.po` → `.mo`. `.mo` files are gitignored and regenerated at build time.
 
 Translations are managed via Weblate (jellyfin/jellyfin-mpv-shim project); commits like "Translated using Weblate (...)" come from there — don't hand-edit `.po` files for in-flight translations.
