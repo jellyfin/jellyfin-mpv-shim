@@ -23,6 +23,12 @@ SAMPLES = [
     ("i" * 40, 40),
     ("The quick brown fox jumps over 42 lazy dogs.", 32),
     ("Silent Harbor 1985 — Continue Watching", 22),
+    # prefixes = caret positions mid-string: these are exactly where
+    # the textbox draws the caret and selection edges
+    ("The", 40),
+    ("The q", 40),
+    ("The quick", 40),
+    ("The quick fox", 40),
 ]
 X0 = 60
 ROW_H = 70

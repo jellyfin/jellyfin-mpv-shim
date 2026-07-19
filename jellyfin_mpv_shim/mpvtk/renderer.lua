@@ -496,7 +496,11 @@ local function draw_textbox(ass, node, ex, ey, clip)
     if focused and state.cursor_on then
         local cx = x0 + tb_text_w(node, text, tb and tb.cursor or #text)
         if cx >= inner.x1 - 1 and cx <= inner.x2 + 1 then
-            draw_rect(ass, cx, ey + node.h * 0.18, 2, node.h * 0.64,
+            -- thin bar CENTERED on the boundary: a 2px bar starting at
+            -- the boundary visibly overlapped the next glyph (~40% of
+            -- a narrow letter at small sizes)
+            draw_rect(ass, cx - 0.8, ey + node.h * 0.18,
+                1.6, node.h * 0.64,
                 { fill = 'eeeeee', clip = inner })
         end
     end
@@ -1002,6 +1006,24 @@ local function tb_fix_shift(node, tb)
     if tb.shift < 0 then tb.shift = 0 end
 end
 
+-- Word boundaries for ctrl+arrow / ctrl+backspace (space-delimited).
+local function word_left(text, pos)
+    while pos > 0 and text:sub(pos, pos) == ' ' do pos = pos - 1 end
+    while pos > 0 and text:sub(pos, pos) ~= ' ' do pos = pos - 1 end
+    return pos
+end
+
+local function word_right(text, pos)
+    local n = #text
+    while pos < n and text:sub(pos + 1, pos + 1) == ' ' do
+        pos = pos + 1
+    end
+    while pos < n and text:sub(pos + 1, pos + 1) ~= ' ' do
+        pos = pos + 1
+    end
+    return pos
+end
+
 -- Deletes the selected range if any; returns true when it did.
 local function tb_del_selection(tb)
     if tb.sel == nil or tb.sel == tb.cursor then
@@ -1066,15 +1088,45 @@ local function tb_key(name)
         tb.sel = nil
         tb.cursor = math.min(#tb.text, tb.cursor + 1)
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
-    elseif name == 'SLEFT' or name == 'SRIGHT' then
+    elseif name == 'SLEFT' or name == 'SRIGHT' or
+        name == 'CSLEFT' or name == 'CSRIGHT' then
         if tb.sel == nil then tb.sel = tb.cursor end
         if name == 'SLEFT' then
             tb.cursor = math.max(0, tb.cursor - 1)
-        else
+        elseif name == 'SRIGHT' then
             tb.cursor = math.min(#tb.text, tb.cursor + 1)
+        elseif name == 'CSLEFT' then
+            tb.cursor = word_left(tb.text, tb.cursor)
+        else
+            tb.cursor = word_right(tb.text, tb.cursor)
         end
         if tb.sel == tb.cursor then tb.sel = nil end
         tb_fix_shift(node, tb); state.cursor_on = true; request_render()
+    elseif name == 'CLEFT' or name == 'CRIGHT' then
+        tb.sel = nil
+        if name == 'CLEFT' then
+            tb.cursor = word_left(tb.text, tb.cursor)
+        else
+            tb.cursor = word_right(tb.text, tb.cursor)
+        end
+        tb_fix_shift(node, tb); state.cursor_on = true; request_render()
+    elseif name == 'CBS' then
+        if tb_del_selection(tb) then
+            tb_changed(node, tb)
+        elseif tb.cursor > 0 then
+            local a = word_left(tb.text, tb.cursor)
+            tb.text = tb.text:sub(1, a) .. tb.text:sub(tb.cursor + 1)
+            tb.cursor = a
+            tb_changed(node, tb)
+        end
+    elseif name == 'CDEL' then
+        if tb_del_selection(tb) then
+            tb_changed(node, tb)
+        elseif tb.cursor < #tb.text then
+            local b = word_right(tb.text, tb.cursor)
+            tb.text = tb.text:sub(1, tb.cursor) .. tb.text:sub(b + 1)
+            tb_changed(node, tb)
+        end
     elseif name == 'CTRLA' then
         tb.sel = 0
         tb.cursor = #tb.text
@@ -1122,55 +1174,52 @@ local function tb_key(name)
     end
 end
 
+local text_key_names = {}
+
 local function bind_text_keys()
     if text_keys_bound then return end
     text_keys_bound = true
+    text_key_names = {}
+    local function bind(key, bname, fn)
+        mp.add_forced_key_binding(key, bname, fn,
+            { repeatable = true })
+        text_key_names[#text_key_names + 1] = bname
+    end
     for code = 33, 126 do
         local c = string.char(code)
-        mp.add_forced_key_binding(c, 'mpvtk_ch_' .. code, function()
-            tb_insert(c)
-        end, { repeatable = true })
+        bind(c, 'mpvtk_ch_' .. code, function() tb_insert(c) end)
     end
-    mp.add_forced_key_binding('SPACE', 'mpvtk_space', function()
-        tb_insert(' ')
-    end, { repeatable = true })
-    local keys = { 'BS', 'DEL', 'LEFT', 'RIGHT', 'HOME', 'END', 'ENTER',
-                   'ESC' }
-    for _, k in ipairs(keys) do
-        mp.add_forced_key_binding(k, 'mpvtk_k_' .. k, function()
-            tb_key(k)
-        end, { repeatable = true })
-    end
-    local combos = {
-        ['shift+LEFT'] = 'SLEFT',
-        ['shift+RIGHT'] = 'SRIGHT',
-        ['ctrl+a'] = 'CTRLA',
-        ['ctrl+c'] = 'CTRLC',
-        ['ctrl+v'] = 'PASTE',
+    bind('SPACE', 'mpvtk_space', function() tb_insert(' ') end)
+    -- editing keys: mpv key -> tb_key op (binding names derive from
+    -- the KEY so e.g. ctrl+HOME can share the HOME action)
+    local ops = {
+        ['BS'] = 'BS', ['DEL'] = 'DEL',
+        ['LEFT'] = 'LEFT', ['RIGHT'] = 'RIGHT',
+        ['HOME'] = 'HOME', ['END'] = 'END',
+        ['ENTER'] = 'ENTER', ['KP_ENTER'] = 'ENTER', ['ESC'] = 'ESC',
+        ['shift+LEFT'] = 'SLEFT', ['shift+RIGHT'] = 'SRIGHT',
+        ['ctrl+LEFT'] = 'CLEFT', ['ctrl+RIGHT'] = 'CRIGHT',
+        ['ctrl+shift+LEFT'] = 'CSLEFT',
+        ['ctrl+shift+RIGHT'] = 'CSRIGHT',
+        ['ctrl+BS'] = 'CBS', ['ctrl+DEL'] = 'CDEL',
+        ['ctrl+HOME'] = 'HOME', ['ctrl+END'] = 'END',
+        ['ctrl+a'] = 'CTRLA', ['ctrl+c'] = 'CTRLC',
+        ['ctrl+x'] = 'CUT', ['ctrl+v'] = 'PASTE',
     }
-    for key, name in pairs(combos) do
-        mp.add_forced_key_binding(key, 'mpvtk_k_' .. name, function()
-            tb_key(name)
-        end, { repeatable = true })
+    for key, op in pairs(ops) do
+        bind(key, 'mpvtk_k_' .. key:gsub('%+', '_'), function()
+            tb_key(op)
+        end)
     end
-    mp.add_forced_key_binding('KP_ENTER', 'mpvtk_k_KPE', function()
-        tb_key('ENTER')
-    end)
 end
 
 local function unbind_text_keys()
     if not text_keys_bound then return end
     text_keys_bound = false
-    for code = 33, 126 do
-        mp.remove_key_binding('mpvtk_ch_' .. code)
+    for _, bname in ipairs(text_key_names) do
+        mp.remove_key_binding(bname)
     end
-    mp.remove_key_binding('mpvtk_space')
-    for _, k in ipairs({ 'BS', 'DEL', 'LEFT', 'RIGHT', 'HOME', 'END',
-                         'ENTER', 'ESC', 'SLEFT', 'SRIGHT', 'CTRLA',
-                         'CTRLC', 'PASTE' }) do
-        mp.remove_key_binding('mpvtk_k_' .. k)
-    end
-    mp.remove_key_binding('mpvtk_k_KPE')
+    text_key_names = {}
 end
 
 function blur()

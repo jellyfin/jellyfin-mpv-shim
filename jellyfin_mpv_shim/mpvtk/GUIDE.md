@@ -159,10 +159,14 @@ workers (thumbnails, downloads, playback timers) repaint through it.
    click/selection lands on the wrong letter. Non-ASCII falls back to
    a heuristic table (`layout.py` + `renderer.lua`, keep in sync).
 4. Text input is ASCII key enumeration + `clipboard/text` (mpv ≥0.40).
-   Textboxes have full selection (click-drag, shift+arrows, ctrl+a/c,
-   replace-on-type) and a built-in right-click Cut/Copy/Paste/Select
+   Textboxes support the full editing key set — click-drag selection,
+   shift+arrows, ctrl+arrows (word jump), ctrl+shift+arrows (word
+   select), ctrl+BS/DEL (word delete), ctrl+A/C/X/V, ctrl+HOME/END,
+   replace-on-type — plus a built-in right-click Cut/Copy/Paste/Select
    All menu (masked boxes offer Paste/Select All only — no clipboard
-   leaks). No IME on X11; Wayland IME needs `mp.input` later.
+   leaks). The caret is a thin bar centered on the char boundary
+   (right-biased bars visibly overlap narrow glyphs at small sizes).
+   No IME on X11; Wayland IME needs `mp.input` later.
 5. Wheel targeting walks the scroll chain by axis and holds a 2s
    gesture lock on its target (raw hit-tests can drop out — cause
    still unconfirmed; F12 HUD shows `tgt:<id>*` when the lock saves a

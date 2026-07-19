@@ -1127,6 +1127,19 @@ def _selftest(demo, outdir):
     time.sleep(0.3)
     check("tbmenu-cut", demo.sel_text == "", repr(demo.sel_text))
 
+    # ctrl word-ops + ctrl+x
+    app.debug(cmd="click", id="seltb")
+    app.debug(cmd="text", s="alpha beta gamma")
+    app.debug(cmd="key", name="CLEFT")  # to start of "gamma"
+    app.debug(cmd="key", name="CBS")  # delete "beta "
+    time.sleep(0.3)
+    check("word-nav-delete", demo.sel_text == "alpha gamma",
+          demo.sel_text)
+    app.debug(cmd="key", name="CSRIGHT")  # select "gamma"
+    app.debug(cmd="key", name="CUT")  # ctrl+x path
+    time.sleep(0.3)
+    check("ctrlx-cut", demo.sel_text == "alpha ", repr(demo.sel_text))
+
     app.quit()
     return results
 
