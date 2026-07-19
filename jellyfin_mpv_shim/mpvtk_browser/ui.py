@@ -219,6 +219,25 @@ class _PlayerController:
         self._edit(server_uuid,
                    lambda jf: jf.new_playlist(name, list(item_ids)))
 
+    # -- offline downloads ------------------------------------------------
+
+    def download_estimate(self, server_uuid, item_id, item_type):
+        from ..sync.manager import syncManager
+        try:
+            return syncManager.estimate(server_uuid, item_id, item_type)
+        except Exception:
+            log.error("mpvtk download estimate failed", exc_info=True)
+            return {"count": 0, "total_bytes": 0}
+
+    def download_enqueue(self, server_uuid, item_id, item_type,
+                         include_watched=False):
+        from ..sync.manager import syncManager
+        try:
+            syncManager.enqueue(server_uuid, item_id, item_type,
+                                include_watched=include_watched)
+        except Exception:
+            log.error("mpvtk download enqueue failed", exc_info=True)
+
 
 class UserInterface:
     def __init__(self):

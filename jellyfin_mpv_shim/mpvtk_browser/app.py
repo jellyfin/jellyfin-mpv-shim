@@ -77,6 +77,8 @@ class MpvtkBrowser:
         self._offline = False
         # Modal dialog: a builder callable -> Dialog node, or None.
         self._dialog = None
+        # Download dialog state {"server","item","est","watched"} or None.
+        self._dl = None
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -411,9 +413,11 @@ class MpvtkBrowser:
             _("Mark Unwatched") if watched else _("Mark Watched"),
             _("Remove from Favorites") if fav else _("Add to Favorites"),
             _("Add to Playlist"),
+            _("Download"),
         ]
         return Menu("tilemenu", labels, m["x"], m["y"],
-                    icons=["play_arrow", "check", "favorite", "queue_music"],
+                    icons=["play_arrow", "check", "favorite", "queue_music",
+                           "file_download"],
                     on_select=self._menu_action, on_dismiss=self._close_menu)
 
     def _menu_action(self, index, value):
@@ -441,6 +445,10 @@ class MpvtkBrowser:
         elif index == 3:                                 # add to playlist
             self._close_menu()
             self._open_add_to(item)
+            return
+        elif index == 4:                                 # download
+            self._close_menu()
+            self._open_download(item)
             return
         self._close_menu()
 
@@ -1316,6 +1324,84 @@ class MpvtkBrowser:
             self._client_call(lambda c: c.playlist_add(
                 server, playlist_id, [item_id]))
         self._close_dialog()
+
+    # -------------------------------------------------------- downloads
+
+    @staticmethod
+    def _human_size(n):
+        n = float(n or 0)
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if n < 1024 or unit == "TB":
+                return ("%d %s" % (n, unit) if unit == "B"
+                        else "%.1f %s" % (n, unit))
+            n /= 1024
+
+    def _open_download(self, item):
+        server = self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        self._dl = {"server": server, "item": item, "est": None,
+                    "watched": False}
+        ep = self._epoch
+
+        def work():
+            return self.controller.download_estimate(
+                server, item.get("Id"), item.get("Type"))
+
+        def done(est):
+            if self._dl is not None:
+                self._dl["est"] = est
+                self._dl["watched"] = bool((est or {}).get("audio_only"))
+            self._show_download()
+        self.run_async(work, done, ep)
+        self._show_download()   # show immediately with an "estimating" state
+
+    def _show_download(self):
+        dl = self._dl
+        if dl is None:
+            return
+
+        def build():
+            est = dl["est"]
+            if est is None:
+                info = Text(_("Estimating…"), size=15, color=theme.SUBTLE_FG)
+            else:
+                info = Text(
+                    _("%(count)d items · %(size)s") % {
+                        "count": est.get("count", 0),
+                        "size": self._human_size(est.get("total_bytes", 0))},
+                    size=15, color=theme.SUBTLE_FG)
+            return Dialog("download", self._dialog_shell("download", [
+                Text(_("Download"), size=22, bold=True),
+                Text(dl["item"].get("Name", ""), size=17),
+                info,
+                Checkbox(_("Include watched"), dl["watched"],
+                         id="dl-watched", on_toggle=self._dl_toggle_watched),
+                Row([Spacer(),
+                     Button(_("Cancel"), id="dl-cancel",
+                            on_click=self._close_download),
+                     Button(_("Download"), id="dl-ok",
+                            on_click=self._dl_confirm)], gap=10),
+            ], w=460), on_dismiss=self._close_download)
+        self._show_dialog(build)
+
+    def _dl_toggle_watched(self):
+        if self._dl is not None:
+            self._dl["watched"] = not self._dl["watched"]
+            self._show_download()
+
+    def _close_download(self):
+        self._dl = None
+        self._close_dialog()
+
+    def _dl_confirm(self):
+        dl = self._dl
+        if dl is not None:
+            item = dl["item"]
+            self._client_call(lambda c: c.download_enqueue(
+                dl["server"], item.get("Id"), item.get("Type"),
+                dl["watched"]))
+        self._close_download()
 
     # ------------------------------------------------------------- dialogs
 

@@ -280,6 +280,10 @@ class FakeController:
     def get_sync_groups(self, server_uuid):
         return [{"id": "g1", "name": "Group 1"}]
 
+    def download_estimate(self, server, item_id, item_type):
+        return {"count": 3, "total_bytes": 5 * 1024 * 1024,
+                "audio_only": False}
+
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
         # declaring each one.
@@ -554,6 +558,43 @@ class TestAddToPlaylist(unittest.TestCase):
         self.b._menu_action(3, None)   # "Add to Playlist"
         self.assertIsNone(self.b._menu)
         self.assertIsNotNone(self.b._dialog)
+
+
+class TestDownloadDialog(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_download_dialog_shows_estimate_and_enqueues(self):
+        self.b._open_download({"Id": "m1", "Name": "Movie", "Type": "Movie"})
+        nodes, handlers = build_scene(self.b)
+        self.assertIn("dl-ok", ids(nodes))
+        self.assertIn("dl-watched", ids(nodes))
+        self.assertEqual(self.b._dl["est"]["count"], 3)   # estimate fetched
+        handlers["dl-ok"]["click"]()
+        self.assertIn("download_enqueue",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertIsNone(self.b._dl)
+
+    def test_download_include_watched_toggles(self):
+        self.b._open_download({"Id": "m1", "Type": "Movie"})
+        self.assertFalse(self.b._dl["watched"])
+        self.b._dl_toggle_watched()
+        self.assertTrue(self.b._dl["watched"])
+
+    def test_download_cancel_clears_state(self):
+        self.b._open_download({"Id": "m1", "Type": "Movie"})
+        self.b._close_download()
+        self.assertIsNone(self.b._dl)
+        self.assertIsNone(self.b._dialog)
+
+    def test_menu_download_opens_dialog(self):
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.b._menu_action(4, None)   # "Download"
+        self.assertIsNone(self.b._menu)
+        self.assertIsNotNone(self.b._dl)
 
 
 class TestDialogs(unittest.TestCase):
