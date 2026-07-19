@@ -458,6 +458,23 @@ class MpvtkBrowser:
                                     w, h, fill=True)
         return self._request_image(key, url, (w, h)), key
 
+    def _art_cell(self, item, size=28):
+        """Small square album-art bitmap for a table cell (track lists);
+        a placeholder box while it loads or when the item has none.
+        Each cell is its own overlay, so only use in virtualized or
+        short tables (the 63-overlay budget is shared)."""
+        spec = self.source.image_spec(item, "Primary", size)
+        if spec and self.server is not None:
+            item_id, itype, itag = spec
+            key = make_key(item_id, itype, itag, size, size)
+            url = self.source.image_url(self.server, item_id, itype,
+                                        itag, size, size, fill=True)
+            img = self._request_image(key, url, (size, size))
+            if img is not None:
+                b = self.strips.bitmap(key, img)
+                return Image(b["src"], b["iw"], b["ih"])
+        return Box(w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4)
+
     def _is_watched(self, item):
         ud = item.get("UserData") or {}
         if ud.get("Played"):
@@ -1803,7 +1820,8 @@ class MpvtkBrowser:
         return ", ".join(item.get("Artists") or item.get("AlbumArtists") or [])
 
     def _track_list(self, tracks, prefix, on_play, playing_id=None,
-                    selected=None, on_select=None, album=True):
+                    selected=None, on_select=None, album=True,
+                    art=False):
         """Tabular track list (album, playlist, queue, search songs).
 
         Uses the toolkit's Table so header and cells come from one column
@@ -1812,11 +1830,17 @@ class MpvtkBrowser:
 
         With ``on_select`` the row click selects (mods-aware) and the first
         column becomes a play button, so a selectable list still has a
-        one-click way to jump to a track. Without it, clicking the row plays."""
+        one-click way to jump to a track. Without it, clicking the row plays.
+
+        ``art=True`` adds a leading album-art thumbnail column — useful in
+        mixed-album lists (playlists); redundant on an album page."""
         selected = selected or set()
-        columns = [{"label": "#", "w": 46, "align": "right"},
-                   {"label": _("Title"), "flex": 3},
-                   {"label": _("Artist"), "flex": 2}]
+        columns = []
+        if art:
+            columns.append({"label": "", "w": 32})
+        columns += [{"label": "#", "w": 46, "align": "right"},
+                    {"label": _("Title"), "flex": 3},
+                    {"label": _("Artist"), "flex": 2}]
         if album:
             columns.append({"label": _("Album"), "flex": 2})
         columns.append({"label": _("Time"), "w": 70, "align": "right"})
@@ -1836,6 +1860,8 @@ class MpvtkBrowser:
         for i, tr in enumerate(tracks):
             playing = playing_id is not None and tr.get("Id") == playing_id
             cells = [first_cell(i, tr), tr.get("Name", ""), self._artists(tr)]
+            if art:
+                cells.insert(0, self._art_cell(tr))
             if album:
                 cells.append(tr.get("Album", "") or "")
             cells.append(self._duration(tr))
@@ -2083,10 +2109,12 @@ class MpvtkBrowser:
                 size=18, color=theme.SUBTLE_FG)]
         elif audio:
             # Music playlists read as a track list, like the Tk browser —
-            # a wall of identical album covers tells you nothing.
+            # a wall of identical album covers tells you nothing. Per-track
+            # art earns its column here though: albums differ per row.
             body = [self._track_list(
                 items, "pl",
-                lambda i: self._play_list(ids, server, i, audio=True))]
+                lambda i: self._play_list(ids, server, i, audio=True),
+                art=True)]
         else:
             body = self._grid_of(data, "pl", size, scroll_id="playlist",
                                  head_h=70)

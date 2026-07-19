@@ -245,6 +245,7 @@ class MpvtkApp:
         self.size = None
         self._queue = queue.Queue()
         self._handlers = {}
+        self._nodes = None  # last pushed scene, for node_rect()
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -337,6 +338,7 @@ class MpvtkApp:
             # accurate widths (builds cost ~0.3ms; this is rare)
             nodes, handlers = layout(self._build(self.size), *self.size)
         self._handlers = handlers
+        self._nodes = nodes
         scene = {"v": 1, "w": self.size[0], "h": self.size[1], "nodes": nodes}
         t2 = time.perf_counter()
         self.backend.command(
@@ -405,6 +407,8 @@ class MpvtkApp:
                     fn()
             elif t in ("change", "submit"):
                 fn(evt.get("value", ""))
+            elif t == "dbl":
+                fn()
             elif t == "select":
                 fn(evt.get("index", 0), evt.get("value"))
             elif t == "scroll":
@@ -481,6 +485,18 @@ class MpvtkApp:
             "script-message", "mpvtk-scroll",
             json.dumps({"id": node_id, "dir": direction}),
         )
+
+    def node_rect(self, node_id):
+        """Laid-out geometry of a node from the LAST pushed scene —
+        layout feedback for the next build (one frame stale by
+        construction, which is fine for stable geometry like header
+        heights above a virtualized list). Returns the scene node dict
+        (x/y/w/h; content-space coords inside a scroll, plus cw/ch on
+        scroll nodes) or None."""
+        for n in self._nodes or []:
+            if n["id"] == node_id:
+                return n
+        return None
 
     def scroll_offsets(self):
         """Synchronous snapshot of the renderer's live scroll offsets

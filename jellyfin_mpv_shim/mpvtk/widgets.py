@@ -18,7 +18,7 @@ class Element:
     of a :class:`Stack` (see its docstring); they are inert elsewhere."""
 
     def __init__(self, id=None, w=None, h=None, flex=0,
-                 anchor=None, dx=0, dy=0, occlude=False):
+                 anchor=None, dx=0, dy=0, occlude=False, tip=None):
         self.id = id
         self.w = w
         self.h = h
@@ -27,6 +27,7 @@ class Element:
         self.dx = dx
         self.dy = dy
         self.occlude = occlude
+        self.tip = tip  # hover tooltip text (renderer-drawn, delayed)
 
 
 class Box(Element):
@@ -36,15 +37,17 @@ class Box(Element):
         self,
         children=None,
         direction="column",
-        pad=0,
+        pad=0,  # uniform px, or (pad_x, pad_y)
         gap=0,
         align="start",  # cross-axis: start | center | end | stretch
+        justify="start",  # main-axis: start | center | end | between
         bg=None,  # "rrggbb"
         alpha=255,
         radius=0,
         border=None,  # "rrggbb"
         border_w=1,
         on_click=None,
+        on_dbl=None,  # double-click activation (fires after the clicks)
         hover=None,  # style overrides while hovered, e.g. {"fill": "334455"}
         repeat=False,  # hold-repeat: on_click refires while held down
         **kw,
@@ -55,12 +58,14 @@ class Box(Element):
         self.pad = pad
         self.gap = gap
         self.align = align
+        self.justify = justify
         self.bg = bg
         self.alpha = alpha
         self.radius = radius
         self.border = border
         self.border_w = border_w
         self.on_click = on_click
+        self.on_dbl = on_dbl
         self.hover = hover
         self.repeat = repeat
 
@@ -293,6 +298,68 @@ class Checkbox(Row):
         )
 
 
+class Grid(Element):
+    """Cells laid out on shared column tracks — the cure for sibling
+    rows faking column alignment with magic fixed widths.
+
+    ``cols``: list of track specs — ``{"w": px}`` fixed, ``{"flex": n}``
+    share of leftover, ``{}`` auto (sized to the widest cell in that
+    column). Optional ``"align"``: "left"/"center"/"right" (default
+    left) positions cells inside their track.
+
+    ``rows``: list of cell lists. A cell is an Element, a str (becomes
+    a Text at ``size``/``fg``), or None (empty). Text cells and cells
+    with ``flex>0`` stretch to the track width; other Elements keep
+    their natural size, positioned by the track's align. Cells are
+    vertically centered in their row (rows size to their tallest cell,
+    or ``row_h`` if given).
+    """
+
+    def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
+                 size=18, fg="eeeeee", **kw):
+        super().__init__(**kw)
+        self.rows = rows
+        self.cols = cols
+        self.gap = gap
+        self.row_gap = row_gap
+        self.row_h = row_h
+        self.size = size
+        self.fg = fg
+
+
+class Form(Grid):
+    """Label + input rows on shared tracks: the label column sizes to
+    the widest label, the value column flexes. ``rows`` is a list of
+    ``(label, element)`` pairs (label may be a str or an Element; a
+    None element leaves the row's value cell empty)."""
+
+    def __init__(self, rows, label_w=None, size=18,
+                 label_fg="9a9a9a", **kw):
+        cols = [
+            {"w": label_w} if label_w else {},
+            {"flex": 1},
+        ]
+        grid_rows = [
+            [Text(l, size=size, color=label_fg)
+             if isinstance(l, str) else l, v]
+            for l, v in rows
+        ]
+        super().__init__(grid_rows, cols, size=size, **kw)
+
+
+class Progress(Element):
+    """Determinate progress bar (composite drawn by layout as two
+    rects). ``frac`` in [0, 1]; give it a width or ``flex``."""
+
+    def __init__(self, frac, fg="7aa2f7", bg="2a2a2a", **kw):
+        kw.setdefault("w", 180)
+        kw.setdefault("h", 8)
+        super().__init__(**kw)
+        self.frac = min(1.0, max(0.0, frac))
+        self.fg = fg
+        self.bg = bg
+
+
 class Stack(Element):
     """Children share this element's rect; later children paint above
     earlier ones and everything scrolls with the page (unlike Float,
@@ -324,10 +391,18 @@ class Table(Column):
 
     ``rows``: list of dicts —
     ``{"cells": [str | Element, ...], "id": optional, "selected": bool,
-    "on_click": fn}``. ``on_click`` may declare one required parameter
-    to receive the click modifier dict ``{"shift": bool, "ctrl": bool}``
-    for range/additive selection (see MpvtkApp click dispatch);
-    zero-arg callables keep the bare call.
+    "fg": row text color, "bg": row background (selected wins),
+    "on_click": fn, "on_dbl": fn}``. ``on_click`` may declare one
+    required parameter to receive the click modifier dict
+    ``{"shift": bool, "ctrl": bool}`` for range/additive selection (see
+    MpvtkApp click dispatch); zero-arg callables keep the bare call.
+    ``on_dbl`` fires on double-click, after the two normal clicks.
+
+    ``virtual``: optional ``{"offset": px, "height": px, "overscan":
+    rows}`` — materialize only the rows intersecting the viewport
+    (``offset`` from ``MpvtkApp.scroll_offsets()``), replacing the rest
+    with two exact-height spacers. Give rows stable ``id``s so
+    renderer-side state survives the window moving.
     """
 
     def __init__(
@@ -344,6 +419,7 @@ class Table(Column):
         hover_bg="333333",
         gap=12,
         pad_x=10,
+        virtual=None,
         **kw,
     ):
         def cell(col, content, text_size, color):
@@ -377,24 +453,42 @@ class Table(Column):
             gap=gap,
             align="stretch",
         )
+        first, last = 0, len(rows)
+        lead_h = tail_h = 0
+        if virtual is not None and rows:
+            over = virtual.get("overscan", 2)
+            off = max(0.0, float(virtual.get("offset", 0)))
+            view = float(virtual.get("height", 0))
+            first = max(0, int(off // row_h) - over)
+            last = min(len(rows), int((off + view) // row_h) + 1 + over)
+            lead_h = first * row_h
+            tail_h = (len(rows) - last) * row_h
         body = []
-        for i, row in enumerate(rows):
+        if lead_h:
+            body.append(Spacer(h=lead_h))
+        for i in range(first, last):
+            row = rows[i]
+            row_fg = row.get("fg", fg)
             body.append(
                 Row(
                     [margin()]
-                    + [cell(c, v, size, fg)
+                    + [cell(c, v, size, row_fg)
                        for c, v in zip(columns, row.get("cells", []))]
                     + [margin()],
                     id=row.get("id"),
                     h=row_h,
                     gap=gap,
                     align="stretch",
-                    bg=selected_bg if row.get("selected") else None,
+                    bg=(selected_bg if row.get("selected")
+                        else row.get("bg")),
                     hover={"fill": hover_bg} if row.get("on_click") else None,
                     on_click=row.get("on_click"),
+                    on_dbl=row.get("on_dbl"),
                     radius=4,
                 )
             )
+        if tail_h:
+            body.append(Spacer(h=tail_h))
         # rows must all stretch to the table width or flex columns
         # would re-distribute per-row and drift against the header
         kw.setdefault("align", "stretch")

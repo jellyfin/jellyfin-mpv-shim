@@ -41,22 +41,34 @@ Principles:
 
 ## 2. Widget catalog (`widgets.py`)
 
-Layout: `Box` (direction/pad/gap/align, bg/radius/border, on_click,
-hover), `Row`/`Column` sugar, `Spacer` (flexes unless given w/h — a
+Layout: `Box` (direction, `pad` — uniform or `(pad_x, pad_y)`, gap,
+cross-axis `align`, main-axis `justify` start/center/end/between,
+bg/radius/border, on_click/on_dbl, hover, `tip=` tooltip),
+`Row`/`Column` sugar, `Spacer` (flexes unless given w/h — a
 sized Spacer is the stand-in for virtualized content), `Stack`
 (children share one rect, per-child `anchor`/`dx`/`dy`; scrolls with
 the page unlike `Float` — the way to pin arrows/badges to a row; see
-§6 for what may draw over what), `Table` (header + rows generated from
-one column spec — `{"label", "w"|"flex", "align"}` — so header and
-cell geometry can't drift; row `on_click` may take a mods dict for
-shift-range / ctrl-toggle selection).
+§6 for what may draw over what), `Grid` (cells on shared column
+tracks — `{"w"}`/`{"flex"}`/`{}` auto — so sibling rows can't drift;
+`Form` sugar for label+input rows), `Table` (header + rows generated
+from one column spec — `{"label", "w"|"flex", "align"}`; rows take
+`selected`/`fg`/`bg`/`on_click`/`on_dbl`, cells may be Elements
+(album-art thumbnails, buttons); `virtual={"offset", "height"}`
+materializes only the visible rows, fed from `scroll_offsets()`).
 
 Content: `Text` (size/color/bold/align; ellipsized to fit, or
 `wrap=True` + `max_lines` to word-wrap to the laid-out width),
 `Image` (pre-rasterized BGRA; never scaled or stretched — see §5),
 `ImageMap` (one composited bitmap + interactive sub-regions; THE tile
 primitive, see §5), `Button` (Box+Text sugar; `repeat=True` refires
-on_click while held — paging arrows), `Checkbox` (Row sugar).
+on_click while held — paging arrows), `Checkbox` (Row sugar),
+`Progress` (determinate bar; `Busy` stays the indeterminate spinner).
+
+Every element takes `tip="…"` — a renderer-drawn tooltip after a
+0.5s hover delay (occludes images like a popup). `MpvtkApp.node_rect
+(id)` returns a node's laid-out geometry from the last pushed scene —
+layout feedback for the next build (header offsets above virtualized
+lists, overflow decisions).
 
 Inputs: `TextBox` (editing, paste, selection, `mask=True` for
 passwords; `on_change`/`on_submit`), `Dropdown` (readonly picker,
@@ -117,6 +129,7 @@ handlers registered during layout:
 |---|---|---|
 | ready / resize | w, h | osd size known/changed |
 | click | id, shift?, ctrl? | press+release on same target (`rpt` nodes: on press, refiring while held) |
+| dbl | id | double-click on a node with on_dbl (after its two clicks) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |

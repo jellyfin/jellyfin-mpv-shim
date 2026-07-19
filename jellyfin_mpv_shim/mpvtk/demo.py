@@ -33,6 +33,7 @@ from .widgets import (
     Image,
     ImageMap,
     Menu,
+    Progress,
     Row,
     Slider,
     Spacer,
@@ -447,6 +448,10 @@ class Demo:
         self.hold_count += 1
         self.app.invalidate()
 
+    def _tbl_activate(self, i):
+        self.status = "Activated %s" % self.table_rows[i]["title"]
+        self.app.invalidate()
+
     def _progress_animator(self):
         # background thread driving the determinate progress bar —
         # live proof that invalidate() repaints without user input
@@ -616,14 +621,7 @@ class Demo:
         )
 
     def _progress_widget(self, frac, w=260, h=10):
-        return Box(
-            [Box(w=max(1, w * frac), h=h, bg="7aa2f7", radius=5)],
-            w=w,
-            h=h,
-            bg="2a2a2a",
-            radius=5,
-            direction="row",
-        )
+        return Progress(frac, w=w, h=h)
 
     def _widgets_page(self, w):
         checks = Column(
@@ -698,6 +696,7 @@ class Demo:
                     "Hold Me (%d)" % self.hold_count,
                     id="btn-hold",
                     repeat=True,
+                    tip="Auto-repeats while held",
                     on_click=self._hold_tick,
                 ),
             ],
@@ -766,6 +765,7 @@ class Demo:
                             "on_click": lambda m, i=i: self._tbl_select(
                                 i, m
                             ),
+                            "on_dbl": lambda i=i: self._tbl_activate(i),
                         }
                         for i, r in enumerate(self.table_rows)
                     ],
@@ -1266,6 +1266,26 @@ def _selftest(demo, outdir):
     time.sleep(0.4)
     check("hold-repeat-stops", demo.hold_count == held,
           "%d after release" % demo.hold_count)
+
+    # double-click on a table row activates it (dbl event)
+    app.debug(cmd="dbl", id="trow-2")
+    time.sleep(0.4)
+    check("table-dblclick", "Activated" in demo.status, demo.status)
+
+    # tooltip appears after the hover delay and clears on hover-away
+    app.debug(cmd="hover", id="btn-hold")
+    time.sleep(0.9)
+    st = app.debug_state()
+    check(
+        "tooltip-shows",
+        (st or {}).get("tip") == "Auto-repeats while held",
+        str((st or {}).get("tip")),
+    )
+    shot("12b-tooltip")
+    app.debug(cmd="hover", id="btn-toast")
+    time.sleep(0.3)
+    st = app.debug_state()
+    check("tooltip-clears", not (st or {}).get("tip"))
 
     # wrapped text emits one node per line, stacked a line apart
     wnodes, _ = _layout(demo.build((1280, 720)), 1280, 720)

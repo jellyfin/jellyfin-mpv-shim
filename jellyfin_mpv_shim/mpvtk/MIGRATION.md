@@ -105,20 +105,32 @@ and management-panel layout — are exactly where the friction clusters.
 Ordered by impact; `(Tk)` cites what the legacy UI used, `(app)` where
 the mpvtk view compensates today.
 
+**Status (same day):** items 1–3, 5–7, 10–12 are FIXED in the toolkit
+(unit tests in `tests/test_mpvtk_framework.py`, selftest checks both
+backends): Table virtualization + per-row `fg`/`bg` + `dbl` events;
+`justify=` on Box; `Grid`/`Form` shared column tracks; `pad=(x, y)`;
+`Progress`; wrap-in-Row heights; `tip=` tooltips. Partial credit on 9:
+`MpvtkApp.node_rect(id)` gives post-layout geometry feedback (one
+frame stale); build-time overflow queries and a priority-collapse
+container remain open. Open: 4 (tree rows), 8 (min/max constraints).
+Bonus shipped with this round: music playlists get a leading album-art
+thumbnail column in the track table (`_track_list(art=True)`,
+`_art_cell` via the thumbnail pool + `strips.bitmap`).
+
 **Tabular**
 
-1. [ ] **Table rows aren't virtualized.** Every row is built eagerly on
+1. [x] **Table rows aren't virtualized.** Every row is built eagerly on
    each repaint (app: `_track_list`, playlist editor, queue), which
    contradicts the windowing story the tile grids use — a
    several-hundred-track playlist re-lays every row per repaint. (Tk:
    Treeview virtualizes internally.) Want: a windowed Table (or Table
    over `scroll_offsets()` with Spacer stand-ins handled internally).
-2. [ ] **No per-row styling override in Table.** Only a `selected`
+2. [x] **No per-row styling override in Table.** Only a `selected`
    bool; the queue's now-playing highlight is faked by merging it into
    `selected`, and status coloring (downloads: green watched / amber
    in-flight / red error text) has nowhere to go. (Tk: Treeview row
    tags.) Want: per-row `fg`/`bg` (and per-cell color) in the row dict.
-3. [ ] **No double-click event.** The renderer only synthesizes
+3. [x] **No double-click event.** The renderer only synthesizes
    double-click for textboxes; Tk's queue jumped on double-click and
    AddTo activated on it. Want: `dbl` on clickable nodes (payload like
    click), then wire queue jump-to-item.
@@ -131,12 +143,12 @@ the mpvtk view compensates today.
 
 **Panel / form layout**
 
-5. [ ] **No main-axis justification.** The single most-repeated hack:
+5. [x] **No main-axis justification.** The single most-repeated hack:
    `Spacer()` sandwiches for centering login/locked/busy cards, footer
    button right-alignment in every dialog, and the A–Z bar needs a
    Box-per-glyph workaround (documented in-code at app.py's letter
    bar). Want: `justify="start|center|end|between"` on Box.
-6. [ ] **No shared column tracks outside Table.** Label+input forms
+6. [x] **No shared column tracks outside Table.** Label+input forms
    (Settings `w=340`, Login/PIN `w=140`) and management list rows
    (Servers `w=220/180/120`, Downloads `w=200`) fake column alignment
    with magic fixed widths — the exact drift Table was built to kill,
@@ -145,7 +157,7 @@ the mpvtk view compensates today.
    `Form`/`Grid` container where sibling rows share column tracks
    (label track sized to widest label, value track flex), cells
    hosting arbitrary Elements.
-7. [ ] **`pad` is uniform on both axes.** Table itself fakes
+7. [x] **`pad` is uniform on both axes.** Table itself fakes
    horizontal-only padding with `Spacer(w=pad_x, h=1)` margin cells;
    tree indent (above) is spacers. Want: `pad=(px, py)` at minimum,
    ideally per-side.
@@ -162,15 +174,15 @@ the mpvtk view compensates today.
    width thresholds) was dropped entirely for lack of it. Want: either
    a post-layout query ("laid-out rect of node id X" / "does scroll Y
    overflow?") or a priority-collapse container.
-10. [ ] **No determinate progress widget.** Downloads rows show
+10. [x] **No determinate progress widget.** Downloads rows show
     "Downloading 43%" as text; the settings folder-move progress is a
     status string. `Busy` (indeterminate) and `Slider` exist; a
     filled-Box `Progress(frac)` composite is trivial and recurs.
-11. [ ] **Wrapped Text only pre-sizes in Columns.** A `wrap=True` Text
+11. [x] **Wrapped Text only pre-sizes in Columns.** A `wrap=True` Text
     in a Row parent needs an explicit `w=`; callers still compute
     `w - 32` by hand for paragraphs. Want: rows to assign wrap width
     from the laid-out slot like columns do.
-12. [ ] **No tooltips.** Tk chrome had hover tooltips; icon-only
+12. [x] **No tooltips.** Tk chrome had hover tooltips; icon-only
     buttons (and any future responsive collapse, #9) need them. The
     renderer already owns hover state — a `tip="…"` field drawing a
     delayed floating label is renderer-local work, no protocol change.

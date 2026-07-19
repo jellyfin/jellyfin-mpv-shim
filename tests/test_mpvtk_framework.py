@@ -19,9 +19,12 @@ from jellyfin_mpv_shim.mpvtk.widgets import (
     Column,
     Image,
     ImageMap,
+    Row,
+    Spacer,
     Stack,
     Table,
     Text,
+    TextBox,
     VScroll,
 )
 
@@ -345,3 +348,218 @@ class TestScrollOffsets(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------- round 2
+
+from jellyfin_mpv_shim.mpvtk.widgets import Form, Grid, Progress  # noqa: E402
+
+
+class TestJustify(unittest.TestCase):
+    def _xs(self, justify):
+        nodes, _ = layout(
+            Row(
+                [Box(w=50, h=20, bg="1", id="a"),
+                 Box(w=50, h=20, bg="1", id="b")],
+                justify=justify, gap=10, w=310, h=30,
+            ),
+            310, 30,
+        )
+        return by_id(nodes, "a")["x"], by_id(nodes, "b")["x"]
+
+    def test_start_center_end_between(self):
+        self.assertEqual(self._xs("start"), (0, 60))
+        self.assertEqual(self._xs("center"), (100, 160))
+        self.assertEqual(self._xs("end"), (200, 260))
+        # between: slack 200 goes into the single gap
+        self.assertEqual(self._xs("between"), (0, 260))
+
+    def test_flex_child_absorbs_slack(self):
+        nodes, _ = layout(
+            Row(
+                [Box(w=50, h=20, bg="1", id="a"), Spacer(),
+                 Box(w=50, h=20, bg="1", id="b")],
+                justify="center", w=300, h=30,
+            ),
+            300, 30,
+        )
+        self.assertEqual(by_id(nodes, "b")["x"], 250)  # unchanged
+
+
+class TestPadTuple(unittest.TestCase):
+    def test_axis_split(self):
+        nodes, _ = layout(
+            Row([Box(w=50, h=20, bg="1", id="a")], pad=(10, 2),
+                w=300, h=24),
+            300, 24,
+        )
+        a = by_id(nodes, "a")
+        self.assertEqual((a["x"], a["y"]), (10, 2))
+
+    def test_column_pad_tuple(self):
+        nodes, _ = layout(
+            Column([Box(w=50, h=20, bg="1", id="a")], pad=(16, 4),
+                   w=300, h=100),
+            300, 100,
+        )
+        a = by_id(nodes, "a")
+        self.assertEqual((a["x"], a["y"]), (16, 4))
+
+
+class TestGridForm(unittest.TestCase):
+    def test_auto_track_shares_width(self):
+        f = Form([
+            ("Server", TextBox("srv", w=200)),
+            ("A much longer label", TextBox("usr", w=200)),
+        ])
+        nodes, _ = layout(Column([f], w=600, h=300), 600, 300)
+        tbs = [n for n in nodes if n["t"] == "textbox"]
+        self.assertEqual(len(tbs), 2)
+        self.assertEqual(tbs[0]["x"], tbs[1]["x"])
+
+    def test_fixed_flex_and_none_cells(self):
+        g = Grid(
+            [["a", None, "c"], ["dd", TextBox("t", w=100), "ff"]],
+            cols=[{"w": 60}, {"flex": 1}, {"w": 80, "align": "right"}],
+            w=400,
+        )
+        nodes, _ = layout(Column([g], w=400, h=300), 400, 300)
+        texts = [n for n in nodes if n["t"] == "text"]
+        a = next(n for n in texts if n["text"] == "a")
+        dd = next(n for n in texts if n["text"] == "dd")
+        self.assertEqual(a["x"], dd["x"])
+        c = next(n for n in texts if n["text"] == "c")
+        self.assertEqual(c["align"], "right")
+        # flex track: textbox sits after the fixed 60 + gap
+        tb = by_id(nodes, "t")
+        self.assertEqual(tb["x"], 60 + 12)
+
+    def test_grid_measures_in_flow(self):
+        g = Grid([["hello"]], cols=[{"w": 100}], row_h=30)
+        nodes, _ = layout(
+            Column([g, Box(id="after", h=10, bg="1")], w=300, h=200),
+            300, 200,
+        )
+        self.assertEqual(by_id(nodes, "after")["y"], 30)
+
+
+class TestProgress(unittest.TestCase):
+    def test_fill_fraction(self):
+        nodes, _ = layout(
+            Column([Progress(0.25, id="p", w=200, h=8)], w=300, h=50),
+            300, 50,
+        )
+        rects = [n for n in nodes if n["t"] == "rect"]
+        self.assertEqual(len(rects), 2)
+        self.assertEqual(rects[1]["id"], "p.fill")
+        self.assertEqual(rects[1]["w"], 50)
+
+    def test_zero_frac_no_fill(self):
+        nodes, _ = layout(
+            Column([Progress(0.0, id="p", w=200)], w=300, h=50),
+            300, 50,
+        )
+        self.assertEqual(
+            len([n for n in nodes if n["t"] == "rect"]), 1
+        )
+
+    def test_flex_width(self):
+        nodes, _ = layout(
+            Row([Progress(0.5, id="p", w=None, flex=1)], w=400, h=20),
+            400, 20,
+        )
+        self.assertEqual(by_id(nodes, "p")["w"], 400)
+
+
+class TestTableRound2(unittest.TestCase):
+    def _rows(self, n=100, **extra):
+        # on_click so every row emits a rect node (id-addressable)
+        return [dict({"id": "r%d" % i, "cells": [str(i)],
+                      "on_click": lambda: None}, **extra)
+                for i in range(n)]
+
+    def test_virtual_window(self):
+        t = Table(
+            columns=[{"label": "#", "w": 50}],
+            rows=self._rows(),
+            row_h=30,
+            virtual={"offset": 900, "height": 300},
+            w=200,
+        )
+        nodes, _ = layout(Column([t], w=200, h=400), 200, 400)
+        rids = [n["id"] for n in nodes
+                if n["t"] == "rect" and n["id"].startswith("r")]
+        self.assertEqual(rids[0], "r28")
+        self.assertEqual(rids[-1], "r42")
+        # absolute position preserved by the lead spacer
+        self.assertEqual(by_id(nodes, "r30")["y"], 30 + 30 * 30)
+
+    def test_virtual_none_builds_all(self):
+        t = Table(columns=[{"label": "#", "w": 50}],
+                  rows=self._rows(20), w=200)
+        nodes, _ = layout(Column([t], w=200, h=400), 200, 400)
+        rids = [n["id"] for n in nodes
+                if n["t"] == "rect" and n["id"].startswith("r")]
+        self.assertEqual(len(rids), 20)
+
+    def test_row_fg_bg_dbl(self):
+        rows = self._rows(3)
+        rows[1]["fg"] = "ff0000"
+        rows[1]["bg"] = "101010"
+        rows[1]["on_dbl"] = lambda: None
+        t = Table(columns=[{"label": "#", "w": 50}], rows=rows, w=200)
+        nodes, handlers = layout(Column([t], w=200, h=400), 200, 400)
+        r1 = by_id(nodes, "r1")
+        self.assertEqual(r1["fill"], "101010")
+        self.assertTrue(r1.get("dbl"))
+        self.assertIn("dbl", handlers["r1"])
+        cell = next(n for n in nodes if n["t"] == "text"
+                    and n["text"] == "1")
+        self.assertEqual(cell["c"], "ff0000")
+
+    def test_selected_beats_row_bg(self):
+        rows = self._rows(1, bg="101010", selected=True)
+        t = Table(columns=[{"label": "#", "w": 50}], rows=rows,
+                  selected_bg="2f4468", w=200)
+        nodes, _ = layout(Column([t], w=200, h=100), 200, 100)
+        self.assertEqual(by_id(nodes, "r0")["fill"], "2f4468")
+
+
+class TestWrapInRow(unittest.TestCase):
+    def test_flexed_wrap_text_gets_multiline_height(self):
+        tree = Row(
+            [Box(w=40, h=10, bg="1"),
+             Text("aaa bbb ccc ddd eee fff", id="t", size=10,
+                  wrap=True, flex=1)],
+            w=100, h=200,
+        )
+        nodes, _ = layout(tree, 100, 200)
+        lines = [n for n in nodes if n["t"] == "text"]
+        self.assertGreater(len(lines), 1)
+
+
+class TestNodeRect(unittest.TestCase):
+    def test_reads_last_scene(self):
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        app.size = (400, 300)
+        app._build = lambda size: Column(
+            [Box(w=50, h=50, bg="222222", id="btn")],
+            w=size[0], h=size[1],
+        )
+        app._render()
+        r = app.node_rect("btn")
+        self.assertEqual((r["w"], r["h"]), (50, 50))
+        self.assertIsNone(app.node_rect("nope"))
+
+
+class TestTip(unittest.TestCase):
+    def test_tip_field_emitted(self):
+        nodes, _ = layout(
+            Column(
+                [Button("Save", id="b", tip="Saves the thing",
+                        on_click=lambda: None)],
+                w=200, h=100,
+            ),
+            200, 100,
+        )
+        self.assertEqual(by_id(nodes, "b")["tip"], "Saves the thing")

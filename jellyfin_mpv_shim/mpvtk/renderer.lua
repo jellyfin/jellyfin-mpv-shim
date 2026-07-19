@@ -268,7 +268,6 @@ local function hover_style(node)
     end
     return nil
 end
-
 local function draw_rect(ass, x, y, w, h, o)
     -- o: {fill, a, radius, bc, bw, clip}
     ass:new_event()
@@ -1024,6 +1023,29 @@ render = function()
             }
         end
     end
+    -- tooltip: geometry computed up front so it can occlude images
+    state.tip_geo = nil
+    if state.tip then
+        local tnode = state.byid[state.tip]
+        if tnode and tnode.tip and state.hover_id == state.tip then
+            local tw = text_w(tnode.tip, 15) + 18
+            local th = 26
+            local tx = clamp(state.mouse.x + 12, 2, state.w - tw - 2)
+            local ty = state.mouse.y + 20
+            if ty + th > state.h - 2 then
+                ty = state.mouse.y - th - 8
+            end
+            state.tip_geo = {
+                x = tx, y = ty, w = tw, h = th, text = tnode.tip,
+            }
+            occluders[#occluders + 1] = {
+                x1 = tx - 2, y1 = ty - 2,
+                x2 = tx + tw + 2, y2 = ty + th + 2,
+            }
+        else
+            state.tip = nil
+        end
+    end
     -- Stack occlude markers: punch ASS children through image siblings
     -- painted below them (clipped to their scroll viewport)
     for i, node in ipairs(state.nodes) do
@@ -1133,6 +1155,16 @@ render = function()
                 nil, 18)
         end
     end
+    if state.tip_geo then
+        local g = state.tip_geo
+        draw_rect(ass, g.x, g.y, g.w, g.h, {
+            fill = '111111', a = 245, radius = 5,
+            bc = '4a4a4a', bw = 1,
+        })
+        draw_text(ass, { w = g.w - 18, h = g.h, size = 15,
+                         align = 'left' },
+            g.x + 9, g.y, nil, g.text, 'dddddd')
+    end
     if busy_visible and not state.busy_timer then
         state.busy_timer = mp.add_periodic_timer(0.1, function()
             state.busy_phase = (state.busy_phase + 1) % 8
@@ -1182,7 +1214,8 @@ local function node_at(x, y)
         if node.t ~= 'scroll' and node.t ~= 'layer' and
             node.t ~= 'menu' and
             (not modal or node.mod) and
-            (node.click or node.ctx or node.t == 'textbox' or
+            (node.click or node.ctx or node.dbl or node.tip or
+             node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then
             local ex, ey, clip = eff(node)
@@ -1624,6 +1657,21 @@ local function on_mouse_move(x, y)
     local id = node and node.id or nil
     if id ~= state.hover_id then
         state.hover_id = id
+        -- tooltip: re-arm on every hover change; show after a delay
+        if state.tip then
+            state.tip = nil
+        end
+        if state.tip_timer then
+            state.tip_timer:kill()
+            state.tip_timer = nil
+        end
+        if node and node.tip then
+            state.tip_timer = mp.add_timeout(0.5, function()
+                state.tip_timer = nil
+                state.tip = id
+                request_render()
+            end)
+        end
         request_render()
     elseif state.dd_open or active_menu() or state.tb_menu or
         state.hud then
@@ -1686,6 +1734,9 @@ end
 
 local function on_mouse_down()
     local x, y = state.mouse.x, state.mouse.y
+    if state.tip then
+        state.tip = nil  -- clicking dismisses the tooltip
+    end
     -- textbox copy/paste menu eats the click first
     if state.tb_menu then
         local idx = item_at(state.tb_menu_geo, x, y)
@@ -1868,11 +1919,18 @@ local function on_wheel(dir, axis, e)
         (state.scroll[node.id] or 0) + dir * WHEEL_STEP * scale)
 end
 
--- Double-click: select the word under the pointer.
+-- Double-click: word-select in a textbox; a 'dbl' event for nodes
+-- that registered on_dbl (fires after the two normal clicks, like Tk).
 local function on_dbl()
     local x, y = state.mouse.x, state.mouse.y
     local node = node_at(x, y)
-    if not node or node.t ~= 'textbox' then return end
+    if not node then return end
+    if node.t ~= 'textbox' then
+        if node.dbl then
+            send({ t = 'dbl', id = node.id })
+        end
+        return
+    end
     focus_textbox(node)
     state.tb_drag = nil  -- don't let a jitter-drag clobber this
     local tb = tb_state(node)
@@ -1954,6 +2012,11 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     if pos.hover == false then
         state.mouse.hover = false
+        state.tip = nil
+        if state.tip_timer then
+            state.tip_timer:kill()
+            state.tip_timer = nil
+        end
         if state.hover_id then
             state.hover_id = nil
             request_render()
@@ -2099,6 +2162,11 @@ mp.register_script_message('mpvtk-active', function(on)
         blur()                    -- drops the text-edit bindings + caret timer
         stop_repeat()
         state.pressed = nil
+        state.tip = nil
+        if state.tip_timer then
+            state.tip_timer:kill()
+            state.tip_timer = nil
+        end
         state.dd_open = nil
         state.tb_menu = nil
         state.modal = nil
@@ -2213,9 +2281,16 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_up()
         end
     elseif cmd.cmd == 'dbl' or cmd.cmd == 'triple' then
-        -- double/triple-click at char cell `at` of a textbox
+        -- double/triple-click at char cell `at` of a textbox, or a
+        -- plain double-click on any other node (dbl event)
         local node = state.byid[cmd.id]
-        if node and node.t == 'textbox' then
+        if node and node.t ~= 'textbox' then
+            local x, y = center_of(cmd.id)
+            if x then
+                on_mouse_move(x, y)
+                on_dbl()
+            end
+        elseif node then
             local tb = tb_state(node)
             local ex, ey = eff(node)
             local at = cmd.at or 0
@@ -2276,6 +2351,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             scroll = state.scroll,
             overlays = state.ov_used,
             ov = ov,
+            tip = state.tip_geo and state.tip_geo.text or nil,
             tb = state.tb,
         })
     end

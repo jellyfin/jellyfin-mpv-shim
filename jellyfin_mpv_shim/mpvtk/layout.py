@@ -17,16 +17,26 @@ from .widgets import (
     Dropdown,
     Element,
     Float,
+    Grid,
     Icon,
     Image,
     ImageMap,
     Menu,
+    Progress,
     Scroll,
     Slider,
     Stack,
     Text,
     TextBox,
 )
+
+
+def _pad2(box):
+    """Box.pad as (pad_x, pad_y) — accepts a uniform int or a tuple."""
+    p = box.pad
+    if isinstance(p, (tuple, list)):
+        return float(p[0]), float(p[1])
+    return float(p), float(p)
 
 
 def _icon_paths(names):
@@ -202,8 +212,18 @@ def measure(el):
         return el.w if el.w is not None else cw, (
             el.h if el.h is not None else ch
         )
+    if isinstance(el, Grid):
+        cells = _grid_cells(el)
+        widths = _grid_track_widths(el, cells, None)
+        heights = _grid_row_heights(el, cells)
+        n = len(el.cols)
+        w = sum(widths) + el.gap * (n - 1 if n else 0)
+        h = sum(heights) + el.row_gap * (len(heights) - 1 if heights else 0)
+        return (el.w if el.w is not None else w,
+                el.h if el.h is not None else h)
     if isinstance(el, Box):
         row = el.direction == "row"
+        px, py = _pad2(el)
         main = 0.0
         cross = 0.0
         for c in el.children:
@@ -217,13 +237,74 @@ def measure(el):
             cross = max(cross, cc)
         if el.children:
             main += el.gap * (len(el.children) - 1)
-        main += 2 * el.pad
-        cross += 2 * el.pad
+        main += 2 * (px if row else py)
+        cross += 2 * (py if row else px)
         w, h = (main, cross) if row else (cross, main)
         return el.w if el.w is not None else w, (
             el.h if el.h is not None else h
         )
     return el.w or 0, el.h or 0
+
+
+def _grid_cells(el):
+    """Normalize Grid rows: str -> Text (track-aligned), None stays."""
+    out = []
+    for r in el.rows:
+        row = []
+        for ci in range(len(el.cols)):
+            v = r[ci] if ci < len(r) else None
+            if v is None or isinstance(v, Element):
+                row.append(v)
+            else:
+                col = el.cols[ci]
+                row.append(
+                    Text(str(v), size=el.size, color=el.fg,
+                         align=col.get("align", "left"))
+                )
+        out.append(row)
+    return out
+
+
+def _grid_track_widths(el, cells, avail_w):
+    """Column track widths. Fixed -> w; auto -> widest cell; flex ->
+    share of the leftover when ``avail_w`` is known, else its natural
+    (widest cell) so a shrink-wrapped Grid still measures sanely."""
+    n = len(el.cols)
+    widths = [None] * n
+    for ci, col in enumerate(el.cols):
+        if col.get("w") is not None:
+            widths[ci] = float(col["w"])
+    for ci, col in enumerate(el.cols):
+        if widths[ci] is None and (avail_w is None
+                                   or not col.get("flex")):
+            mx = 0.0
+            for row in cells:
+                c = row[ci]
+                if c is not None:
+                    mx = max(mx, measure(c)[0])
+            widths[ci] = mx
+    if avail_w is not None:
+        flex_total = sum(
+            col.get("flex", 0)
+            for ci, col in enumerate(el.cols) if widths[ci] is None
+        )
+        fixed = sum(wd for wd in widths if wd is not None)
+        leftover = max(0.0, avail_w - fixed - el.gap * (n - 1))
+        for ci, col in enumerate(el.cols):
+            if widths[ci] is None:
+                widths[ci] = leftover * col.get("flex", 0) / flex_total
+    return widths
+
+
+def _grid_row_heights(el, cells):
+    heights = []
+    for row in cells:
+        mx = float(el.row_h or 0)
+        for c in row:
+            if c is not None:
+                mx = max(mx, measure(c)[1])
+        heights.append(mx)
+    return heights
 
 
 class _Ctx:
@@ -273,6 +354,8 @@ def _base(el, t, x, y, w, h, sc, path):
     }
     if sc:
         node["sc"] = sc
+    if getattr(el, "tip", None):
+        node["tip"] = el.tip
     return node
 
 
@@ -353,6 +436,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
                 if reg.get("repeat"):
                     rnode["rpt"] = True
                 _reg(ctx, rid, "click", reg["on_click"])
+            if reg.get("on_dbl"):
+                rnode["dbl"] = True
+                _reg(ctx, rid, "dbl", reg["on_dbl"])
             if reg.get("on_context"):
                 rnode["ctx"] = True
                 _reg(ctx, rid, "context", reg["on_context"])
@@ -387,6 +473,58 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
 
     if isinstance(el, Busy):
         ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
+        return
+
+    if isinstance(el, Progress):
+        node = _base(el, "rect", x, y, w, h, sc, path)
+        node["fill"] = el.bg
+        node["radius"] = h / 2
+        ctx.nodes.append(node)
+        fw = w * el.frac
+        if fw >= 1:
+            fill = {
+                "t": "rect",
+                "id": node["id"] + ".fill",
+                "x": _round(x),
+                "y": _round(y),
+                "w": _round(fw),
+                "h": _round(h),
+                "fill": el.fg,
+                "radius": h / 2,
+            }
+            if sc:
+                fill["sc"] = sc
+            ctx.nodes.append(fill)
+        return
+
+    if isinstance(el, Grid):
+        cells = _grid_cells(el)
+        widths = _grid_track_widths(el, cells, w)
+        heights = _grid_row_heights(el, cells)
+        cy = y
+        for ri, row in enumerate(cells):
+            cx = x
+            for ci, c in enumerate(row):
+                tw = widths[ci]
+                if c is not None:
+                    mw, mh = measure(c)
+                    if isinstance(c, Text) or c.flex > 0:
+                        cw2 = tw
+                    else:
+                        cw2 = min(mw, tw)
+                    ch2 = min(mh, heights[ri]) if heights[ri] else mh
+                    a = el.cols[ci].get("align", "left")
+                    if isinstance(c, Text) or a == "left":
+                        ox = 0.0
+                    elif a == "center":
+                        ox = (tw - cw2) / 2
+                    else:
+                        ox = tw - cw2
+                    oy = (heights[ri] - ch2) / 2
+                    _arrange(ctx, c, cx + ox, cy + oy, cw2, ch2, sc,
+                             "%s.g%d_%d" % (path, ri, ci))
+                cx += tw + el.gap
+            cy += heights[ri] + el.row_gap
         return
 
     if isinstance(el, Icon):
@@ -552,6 +690,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
                 if el.repeat:
                     node["rpt"] = True
                 _reg(ctx, node["id"], "click", el.on_click)
+            if el.on_dbl:
+                node["dbl"] = True
+                _reg(ctx, node["id"], "dbl", el.on_dbl)
             if el.hover:
                 node["hover"] = el.hover
             ctx.nodes.append(node)
@@ -566,8 +707,11 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
     n = len(box.children)
     if n == 0:
         return
-    inner_main = (w if row else h) - 2 * box.pad - box.gap * (n - 1)
-    inner_cross = (h if row else w) - 2 * box.pad
+    px, py = _pad2(box)
+    pad_main = px if row else py
+    pad_cross = py if row else px
+    inner_main = (w if row else h) - 2 * pad_main - box.gap * (n - 1)
+    inner_cross = (h if row else w) - 2 * pad_cross
 
     sizes = []
     flex_total = 0
@@ -592,28 +736,50 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
         if sizes[i] is None:
             sizes[i] = max(0.0, leftover * c.flex / flex_total)
 
-    main_pos = (x if row else y) + box.pad
+    # main-axis justification: distribute the slack that flex children
+    # didn't absorb (with flex present the slack is already zero)
+    main_pos = (x if row else y) + pad_main
+    extra_gap = 0.0
+    justify = getattr(box, "justify", "start")
+    slack = inner_main - sum(sizes)
+    if slack > 0 and justify != "start":
+        if justify == "center":
+            main_pos += slack / 2
+        elif justify == "end":
+            main_pos += slack
+        elif justify == "between" and n > 1:
+            extra_gap = slack / (n - 1)
+
     for idx, (c, size) in enumerate(zip(box.children, sizes)):
         fixed_cross = c.h if row else c.w
         if box.align == "stretch" and fixed_cross is None:
             cross = inner_cross
         elif fixed_cross is not None:
             cross = float(fixed_cross)
+        elif row and isinstance(c, Text) and c.wrap:
+            # a wrapped Text in a Row wraps to its main-axis width;
+            # its cross size (height) follows the wrapped line count
+            wrapped = c
+            lines = len(_wrap_lines(wrapped, max(1.0, size)))
+            if wrapped.max_lines is not None:
+                lines = min(lines, wrapped.max_lines)
+            cross = min(float(lines) * c.size * LINE_H, inner_cross)
         else:
             mw, mh = measure(c)
             cross = float(mh if row else mw)
             cross = min(cross, inner_cross)
 
         if box.align == "center":
-            cross_pos = (y if row else x) + box.pad + (inner_cross - cross) / 2
+            cross_pos = (y if row else x) + pad_cross + (
+                inner_cross - cross) / 2
         elif box.align == "end":
-            cross_pos = (y if row else x) + box.pad + inner_cross - cross
+            cross_pos = (y if row else x) + pad_cross + inner_cross - cross
         else:
-            cross_pos = (y if row else x) + box.pad
+            cross_pos = (y if row else x) + pad_cross
 
         cpath = "%s.%d" % (path, idx)
         if row:
             _arrange(ctx, c, main_pos, cross_pos, size, cross, sc, cpath)
         else:
             _arrange(ctx, c, cross_pos, main_pos, cross, size, sc, cpath)
-        main_pos += size + box.gap
+        main_pos += size + box.gap + extra_gap
