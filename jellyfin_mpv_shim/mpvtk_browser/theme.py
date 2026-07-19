@@ -1,0 +1,34 @@
+"""Design tokens for the mpvtk browser.
+
+Ported from the Tk browser's ``theme.py`` palette (the ttk styling is
+dropped — mpvtk widgets take colours directly). Colours are stored as
+bare ``"rrggbb"`` (what mpvtk widget ``bg``/``color`` fields want); use
+:func:`rgb` when a PIL drawing needs an ``(r, g, b)`` tuple.
+"""
+
+
+def rgb(hexstr, alpha=None):
+    """``"rrggbb"`` -> ``(r, g, b)``; with ``alpha`` -> ``(r, g, b, a)``."""
+    h = hexstr.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return (r, g, b, alpha) if alpha is not None else (r, g, b)
+
+
+# Core palette (Jellyfin-ish dark), matching the Tk browser 1:1.
+WINDOW_BG = "15171a"
+CARD_BG = "1e2024"
+PANEL_BG = "26292f"
+PLACEHOLDER_BG = "2a2d33"
+BUTTON_BG = "2e3138"
+BUTTON_ACTIVE = "3a3e46"
+ENTRY_BG = "2a2d33"
+BORDER = "3a3d42"
+TEXT_FG = "e8e8e8"
+SUBTLE_FG = "9aa0a6"
+ACCENT = "00a4dc"
+ACCENT_FG = "ffffff"
+FAV_RED = "e0264b"
+
+# Semantic extras used by baked strip decorations.
+PROGRESS_TRACK = "000000"   # drawn at ~78% alpha behind the resume bar
+WATCHED_GREEN = "28a046"

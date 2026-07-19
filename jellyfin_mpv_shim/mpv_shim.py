@@ -75,20 +75,34 @@ def main():
     gui_ready = None
     get_webview = lambda: None
     if settings.enable_gui:
-        try:
-            # Tkinter is optional in some Python builds; probe it before
-            # committing to the GUI so we cleanly fall back to the CLI.
-            import tkinter  # noqa: F401
-            from .gui_mgr import user_interface
+        if settings.browser_ui == "mpvtk":
+            try:
+                # The mpvtk browser rasterizes tiles with Pillow; probe it so
+                # a missing optional dep falls back cleanly.
+                import PIL  # noqa: F401
+                from .mpvtk_browser.ui import user_interface
 
-            use_gui = True
-            gui_ready = Event()
-            user_interface.gui_ready = gui_ready
-        except Exception:
-            log.warning(
-                "Cannot load GUI. Falling back to command line interface.",
-                exc_info=True,
-            )
+                use_gui = True
+            except Exception:
+                log.warning(
+                    "Cannot load mpvtk browser UI; trying the Tk browser.",
+                    exc_info=True,
+                )
+        if not use_gui:
+            try:
+                # Tkinter is optional in some Python builds; probe it before
+                # committing to the GUI so we cleanly fall back to the CLI.
+                import tkinter  # noqa: F401
+                from .gui_mgr import user_interface
+
+                use_gui = True
+                gui_ready = Event()
+                user_interface.gui_ready = gui_ready
+            except Exception:
+                log.warning(
+                    "Cannot load GUI. Falling back to command line interface.",
+                    exc_info=True,
+                )
 
     if settings.display_mirroring:
         try:

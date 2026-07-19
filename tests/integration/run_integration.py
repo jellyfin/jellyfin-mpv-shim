@@ -62,6 +62,8 @@ PER_BACKEND_FAKE = [
 # run once under xvfb (see main()).
 PER_BACKEND_REAL = [
     "tests.integration.test_realmpv_smoke",
+    # mpvtk browser attaches renderer.lua to a real mpv per backend.
+    "tests.integration.test_mpvtk_browser",
 ]
 
 # Tk browser UI under a display -> backend-agnostic (never imports player.py),

@@ -398,6 +398,7 @@ def build_player(player_module, video=None):
 
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
+    pm.mpvtk_active = False
 
     pm.menu = _FakeMenu()
     pm.syncplay = _FakeSyncplay()

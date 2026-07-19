@@ -243,6 +243,13 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
         pm.get_webview = lambda: object()
         self._assert_gated_noop(pm)
 
+    def test_noop_when_mpvtk_browser_active(self):
+        # The in-window mpvtk browser owns the window while browsing; idle_quit
+        # must not tear it down (same guarantee as the display-mirror webview).
+        pm = self._idle_player()
+        pm.mpvtk_active = True
+        self._assert_gated_noop(pm)
+
     def test_noop_for_user_launched_external_mpv(self):
         # External mpv the user started themselves (mpv_ext_start False) must
         # never be killed.

@@ -4,7 +4,7 @@ plumbing, person/chapter artwork specs) added to the library browser."""
 import unittest
 from unittest import mock
 
-from jellyfin_mpv_shim.library_browser.repository import (
+from jellyfin_mpv_shim.mpvtk_browser.repository import (
     LibrarySource, OfflineLibrarySource, _OfflineSnapshot,
 )
 

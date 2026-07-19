@@ -211,6 +211,10 @@ class PlayerManager(object):
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
         self.on_playstate = None
+        # Set True while the in-window mpvtk browser owns the window (browse
+        # mode). Guards idle_quit so browsing never tears the window down, the
+        # same way get_webview() guards it for the display mirror.
+        self.mpvtk_active = False
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -1908,6 +1912,9 @@ class PlayerManager(object):
             return
         if self.get_webview() is not None:
             return
+        if self.mpvtk_active:
+            # The in-window browser is showing; keep the window alive.
+            return
         if is_using_ext_mpv and not settings.mpv_ext_start:
             # Never kill an mpv the user launched themselves.
             return
@@ -2046,6 +2053,14 @@ class PlayerManager(object):
 
     def get_video(self):
         return self._video
+
+    def get_mpv(self):
+        """The raw mpv handle, so the in-window UI (mpvtk) can attach to
+        the same window used for playback instead of opening its own.
+        Pair with the module-level ``is_using_ext_mpv`` flag, which tells
+        the UI whether it's an external jsonipc process or in-process
+        libmpv. See mpvtk.app.MpvtkApp.attach."""
+        return self._player
 
     def show_text(self, text: str, duration: int, level: int = 1):
         if not self._mpv_alive:

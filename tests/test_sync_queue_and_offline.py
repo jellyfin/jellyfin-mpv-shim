@@ -6,7 +6,7 @@ import unittest
 
 from jellyfin_mpv_shim.sync.db import (COLUMNS, SyncDB, STATUS_COMPLETE,
                                        STATUS_PENDING)
-from jellyfin_mpv_shim.library_browser.repository import OfflineLibrarySource
+from jellyfin_mpv_shim.mpvtk_browser.repository import OfflineLibrarySource
 
 
 def make_row(item_id, **overrides):

@@ -118,21 +118,107 @@ class LibmpvBackend:
             pass
 
 
+class AdoptBackend:
+    """Attach to an *existing* mpv handle instead of spawning a new one.
+
+    This is the production path: the browser UI shares the player's own
+    mpv window (see player.PlayerManager.get_mpv) rather than opening a
+    second window. The spawn backends above stay for the standalone
+    demo/selftest only.
+
+    Two things differ from the spawn backends:
+
+    - **The window is shared.** ``stop()`` must NOT terminate the handle
+      — the player owns its lifecycle. We only ever stop pushing scenes.
+    - **We add a second client-message listener.** Both bindings store
+      handlers in a set/list (jsonipc ``bind_event``; libmpv supports
+      multiple ``event_callback``s), so ours coexists with the player's
+      own ``shim-*`` handler on the same stream — the ``mpvtk-*``
+      namespace doesn't collide.
+
+    ``ext`` mirrors ``player.is_using_ext_mpv``: True for an external
+    python-mpv-jsonipc process, False for in-process libmpv (which can
+    take images via same-process ``&<address>`` — see MemoryStore).
+    """
+
+    def __init__(self, mpv_handle, ext):
+        self.mpv = mpv_handle
+        self._ext = ext
+        self._cb = None
+        self._quit_cb = None
+
+        @self.mpv.event_callback("client-message")
+        def _client_message(event):
+            args = self._decode(event)
+            if args and self._cb:
+                self._cb(args)
+
+        @self.mpv.event_callback("shutdown")
+        def _shutdown(event=None):
+            # The player owns teardown; we just let our loop thread exit.
+            if self._quit_cb:
+                self._quit_cb()
+
+    def _decode(self, event):
+        # Mirror the two proven decode paths from the spawn backends /
+        # player.py: jsonipc hands us a plain dict; libmpv hands a struct
+        # that needs .as_dict() + a utf-8 decode of the byte args.
+        if self._ext:
+            if hasattr(event, "as_dict"):
+                event = event.as_dict()
+            return (event.get("args") if isinstance(event, dict) else None) or []
+        if hasattr(event, "as_dict"):
+            event = event.as_dict()
+            if "args" in event:
+                event["args"] = [d.decode("utf-8") for d in event["args"]]
+        if isinstance(event, dict):
+            if "event_id" in event and isinstance(event.get("event"), dict):
+                return event["event"].get("args") or []
+            return event.get("args") or []
+        return []
+
+    def command(self, *args):
+        self.mpv.command(*args)
+
+    def on_client_message(self, cb):
+        self._cb = cb
+
+    def on_quit(self, cb):
+        self._quit_cb = cb
+
+    def stop(self):
+        # Shared handle: never terminate the player's mpv.
+        pass
+
+
 class MpvtkApp:
     """Event loop: build(size) -> element tree, pushed to the renderer.
 
     ``build`` is called on ready/resize and after any callback batch that
     called invalidate(). Callbacks run on the loop thread.
+
+    Spawn its own mpv (``backend=``, demo/selftest) or attach to the
+    player's existing handle (``mpv_handle=`` + ``ext=``, production —
+    see :meth:`attach`).
     """
 
-    def __init__(self, backend="jsonipc", geometry="1280x720"):
-        if backend == "libmpv":
+    def __init__(self, backend="jsonipc", geometry="1280x720",
+                 mpv_handle=None, ext=None):
+        if mpv_handle is not None:
+            if ext is None:
+                raise ValueError(
+                    "attaching requires ext=<player.is_using_ext_mpv>"
+                )
+            self.backend = AdoptBackend(mpv_handle, ext=ext)
+            # In-process (libmpv) can take images via memory addresses;
+            # an external jsonipc mpv needs BGRA scratch files.
+            self.in_process = not ext
+        elif backend == "libmpv":
             self.backend = LibmpvBackend(geometry)
+            self.in_process = True
         else:
             self.backend = JsonIpcBackend(geometry)
-        # Same-process mpv can take images via overlay-add '&<address>'
-        # (rawimage.MemoryStore) instead of scratch files.
-        self.in_process = backend == "libmpv"
+            self.in_process = False
         self.size = None
         self._queue = queue.Queue()
         self._handlers = {}
@@ -145,6 +231,16 @@ class MpvtkApp:
         self.backend.on_client_message(self._on_message)
         self.backend.on_quit(lambda: self._queue.put(("__quit", None)))
         self.backend.command("load-script", _RENDERER)
+
+    @classmethod
+    def attach(cls, mpv_handle, ext, **kw):
+        """Attach the UI to the player's existing mpv handle.
+
+        ``mpv_handle`` is ``playerManager.get_mpv()``; ``ext`` is
+        ``player.is_using_ext_mpv``. The renderer script is loaded into
+        that live mpv and scenes are pushed over the same connection —
+        no second window is opened."""
+        return cls(mpv_handle=mpv_handle, ext=ext, **kw)
 
     # ------------------------------------------------------------ events
 

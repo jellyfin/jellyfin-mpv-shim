@@ -28,7 +28,7 @@ from unittest import mock
 from jellyfin_mpv_shim.users import UserManager
 from jellyfin_mpv_shim.clients import ClientManager
 from jellyfin_mpv_shim import gui_mgr
-from jellyfin_mpv_shim.library_browser.repository import (
+from jellyfin_mpv_shim.mpvtk_browser.repository import (
     LibrarySource, OfflineLibrarySource, _OfflineSnapshot,
 )
 
@@ -310,7 +310,7 @@ class ArtPathMemoTest(unittest.TestCase):
         snap = _OfflineSnapshot(rows={"m1": {"item_id": "m1",
                                              "file_path": "srv/movie/m1/f.mkv"}})
         src._snap = snap
-        with mock.patch("jellyfin_mpv_shim.library_browser.repository."
+        with mock.patch("jellyfin_mpv_shim.mpvtk_browser.repository."
                         "os.path.exists", return_value=True) as exists:
             first = src._art_path("m1", "Primary")
             calls = exists.call_count

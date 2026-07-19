@@ -77,6 +77,10 @@ class Settings(SettingsBase):
     subtitle_position: str = "bottom"
     fullscreen: bool = True
     enable_gui: bool = True
+    # Which library browser to run: "mpvtk" (the in-mpv-window UI) or "tk"
+    # (the legacy Tkinter browser). Temporary migration switch — the Tk UI is
+    # slated for removal once the mpvtk UI reaches parity (see mpvtk/MIGRATION.md).
+    browser_ui: str = "mpvtk"
     start_minimized: bool = False
     # When True, closing the library-browser window hides it to the system tray
     # (keeping the app alive as a cast target) rather than exiting. Defaults to

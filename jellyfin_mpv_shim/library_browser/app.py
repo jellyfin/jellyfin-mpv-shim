@@ -14,8 +14,12 @@ from ..constants import USER_APP_NAME, APP_NAME
 from ..conffile import confdir
 from ..utils import get_resource
 from ..i18n import _
-from .repository import (LibrarySource, OfflineLibrarySource, PLAYABLE_TYPES,
-                         SERIES_TYPES, FOLDER_TYPES)
+# repository.py moved to the surviving mpvtk_browser package during the
+# Tk->mpvtk migration (mpvtk/MIGRATION.md); this doomed package imports it
+# from there until it is deleted at cutover.
+from ..mpvtk_browser.repository import (LibrarySource, OfflineLibrarySource,
+                                        PLAYABLE_TYPES, SERIES_TYPES,
+                                        FOLDER_TYPES)
 from .thumbnails import ThumbnailStore
 from .views import VIEW_TYPES
 from . import icons

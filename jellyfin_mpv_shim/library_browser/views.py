@@ -15,7 +15,7 @@ from ..utils import get_sub_display_title, get_resource
 from ..language_config import apply as apply_language_config, parse_language_config
 from ..sync.db import (SyncDB, STATUS_COMPLETE, STATUS_DOWNLOADING,
                        STATUS_PENDING, STATUS_ERROR)
-from .repository import PLAYLIST_SUPPORTED_TYPES
+from ..mpvtk_browser.repository import PLAYLIST_SUPPORTED_TYPES
 from .theme import (CARD_BG, TEXT_FG, SUBTLE_FG, WINDOW_BG, ENTRY_BG, PANEL_BG,
                     ACCENT)
 from . import icons

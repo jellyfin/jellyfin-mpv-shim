@@ -19,7 +19,7 @@ from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
 
-log = logging.getLogger("library_browser.repository")
+log = logging.getLogger("mpvtk_browser.repository")
 
 # Fields requested for grids/rows. Kept lean for speed. Artists is included so
 # music tiles (e.g. tracks in a playlist) can show the performer.
