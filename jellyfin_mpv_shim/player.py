@@ -262,6 +262,9 @@ class PlayerManager(object):
         # consumed the press; at the root of its nav stack it declines and
         # ESC keeps its old meaning (leave fullscreen).
         self.on_nav_back = None
+        # Remote menu commands the in-window UI answers itself ("home",
+        # "settings"). Returns True when handled.
+        self.on_nav_command = None
         # Optional callback (set by gui_mgr) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
@@ -2499,6 +2502,21 @@ class PlayerManager(object):
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
                      "right": "RIGHT", "ok": "ENTER", "back": "ESC"}
 
+    # Remote commands the in-window browser answers with a real page. The
+    # OSD menu has neither, so for it both still just open the menu.
+    _NAV_COMMANDS = ("home", "settings")
+    _MENU_ALIAS = {"settings": "home"}
+
+    def _nav_command(self, action):
+        handler = self.on_nav_command
+        if handler is None or not self.mpvtk_active or self._video is not None:
+            return False
+        try:
+            return bool(handler(action))
+        except Exception:
+            log.debug("nav command %r failed", action, exc_info=True)
+            return False
+
     def _nav_back(self):
         handler = self.on_nav_back
         if handler is None or not self.mpvtk_active or self._video is not None:
@@ -2525,7 +2543,9 @@ class PlayerManager(object):
 
     def menu_action(self, action):
         if self.menu.is_menu_shown:
-            self.menu.menu_action(action)
+            self.menu.menu_action(self._MENU_ALIAS.get(action, action))
+        elif action in self._NAV_COMMANDS and self._nav_command(action):
+            pass    # the in-window UI has its own home / settings pages
         elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
             # remote drives the browser's spatial navigation
             try:
@@ -2534,7 +2554,10 @@ class PlayerManager(object):
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
         else:
-            self.kb_seek(action)
+            # No in-window UI (CLI / Tk / mid-playback): "settings" keeps its
+            # historical meaning of opening the OSD menu, which is the only
+            # settings surface those paths have.
+            self.kb_seek(self._MENU_ALIAS.get(action, action))
 
 
 playerManager = PlayerManager()

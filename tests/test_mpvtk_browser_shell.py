@@ -2313,6 +2313,22 @@ class TestRemoteDisplayContent(unittest.TestCase):
         self.b.display_item("srv2", "m1")
         self.assertEqual(self.b.server, "srv2")
 
+    def test_go_to_settings_opens_the_settings_page(self):
+        """GoToSettings used to alias to GoHome, which predates the browser
+        having a settings page."""
+        self.assertTrue(self.b.on_nav_command("settings"))
+        self.assertEqual(self.b.route["kind"], "settings")
+
+    def test_go_home_resets_to_the_library(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertEqual(len(self.b.nav_stack), 1, "should reset the stack")
+
+    def test_unknown_command_is_declined(self):
+        self.assertFalse(self.b.on_nav_command("nope"))
+
     def test_a_missing_item_is_a_no_op(self):
         self.b.source.get_item = lambda s, i: None
         before = self.b.route["kind"]

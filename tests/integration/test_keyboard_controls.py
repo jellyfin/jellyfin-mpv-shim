@@ -299,3 +299,49 @@ class KeyboardRoutingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RemoteMenuCommandTest(unittest.TestCase):
+    """GoHome / GoToSettings reach the in-window browser's real pages, and
+    keep their historical "open the OSD menu" meaning everywhere else."""
+
+    def _player(self, mpvtk=False, video=None):
+        pm = h.build_player(player)
+        pm._mpv_alive = True
+        pm.mpvtk_active = mpvtk
+        pm._video = video
+        pm.handled = []
+        pm.on_nav_command = lambda name: (pm.handled.append(name) or True)
+        return pm
+
+    def test_settings_reaches_the_browser(self):
+        pm = self._player(mpvtk=True)
+        pm.menu_action("settings")
+        self.assertEqual(pm.handled, ["settings"])
+        self.assertEqual(pm.menu.actions, [])
+
+    def test_home_reaches_the_browser(self):
+        pm = self._player(mpvtk=True)
+        pm.menu_action("home")
+        self.assertEqual(pm.handled, ["home"])
+
+    def test_without_the_browser_settings_opens_the_osd_menu(self):
+        pm = self._player(mpvtk=False)
+        pm.on_nav_command = None
+        pm.menu_action("settings")
+        # kb_seek routes unknown actions to the menu; "settings" is aliased
+        # to "home" so it still opens it.
+        self.assertEqual(pm.menu.actions, ["home"])
+
+    def test_during_playback_settings_opens_the_osd_menu(self):
+        pm = self._player(mpvtk=True, video=object())
+        pm.menu_action("settings")
+        self.assertEqual(pm.handled, [], "browser must not take over mid-play")
+        self.assertEqual(pm.menu.actions, ["home"])
+
+    def test_an_open_osd_menu_wins(self):
+        pm = self._player(mpvtk=True)
+        pm.menu.is_menu_shown = True
+        pm.menu_action("settings")
+        self.assertEqual(pm.handled, [])
+        self.assertEqual(pm.menu.actions, ["home"])

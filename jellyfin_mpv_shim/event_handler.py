@@ -17,7 +17,7 @@ NAVIGATION_DICT = {
     "MoveRight": "right",
     "MoveLeft": "left",
     "GoHome": "home",
-    "GoToSettings": "home",
+    "GoToSettings": "settings",
 }
 
 from typing import TYPE_CHECKING

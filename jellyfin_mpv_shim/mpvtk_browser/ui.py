@@ -818,6 +818,7 @@ class UserInterface:
         # BACK/ESC — from the keyboard or a Jellyfin remote (menu_action maps
         # "back" to ESC when the in-window UI owns input).
         playerManager.on_nav_back = browser.on_back
+        playerManager.on_nav_command = browser.on_nav_command
         # "Show me this" from a phone/web client opens the item's page here,
         # unless the legacy kiosk mirror is on (it owns the window instead).
         if not settings.display_mirroring:

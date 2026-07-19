@@ -250,6 +250,18 @@ class MpvtkBrowser:
             self._open_item(item)
         self.run_async(work, done, ep)
 
+    def on_nav_command(self, name):
+        """Remote menu commands that map onto real pages here (GoHome /
+        GoToSettings). Returns True when handled; the OSD menu has no such
+        pages, so for every other path both still just open the menu."""
+        if name == "settings":
+            self.open_settings()
+            return True
+        if name == "home":
+            self.navigate({"kind": "home", "server": self.server}, reset=True)
+            return True
+        return False
+
     def on_back(self):
         """BACK / ESC from a remote or the keyboard. Returns True when it
         consumed the press, so the player can fall back to its own handling

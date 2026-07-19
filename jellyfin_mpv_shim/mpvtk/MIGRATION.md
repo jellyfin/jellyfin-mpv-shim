@@ -498,6 +498,12 @@ end to end:
   (→ `MpvtkBrowser.on_back`) first, which unwinds one layer at a time —
   dialog, then tile menu, then the nav stack — and *declines* at the root
   so ESC keeps its old meaning (leave fullscreen).
+- **GoHome / GoToSettings** reach real pages. `GoToSettings` aliased to
+  `"home"` in `NAVIGATION_DICT`, which predates the browser having a
+  settings page; it is its own action now. Both go through
+  `playerManager.on_nav_command`, and every other path (CLI, Tk, and the
+  browser mid-playback) keeps the historical meaning of opening the OSD
+  menu — that is the only settings surface those have.
 - **DisplayContent** ("show me this") opens the item's page, routed through
   the same `_open_item` dispatch a click uses, so a series lands on the
   series page. It wakes a minimized client and interrupts playback, since a

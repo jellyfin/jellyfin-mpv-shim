@@ -406,6 +406,7 @@ def build_player(player_module, video=None):
     pm.on_mpv_gone = None
     pm.on_mpv_recreated = None
     pm.on_nav_back = None
+    pm.on_nav_command = None
     pm.on_playstate = None
     pm.notify_update = None
     pm._showing_browse_bg = False
@@ -420,6 +421,15 @@ def build_player(player_module, video=None):
 
 class _FakeMenu:
     is_menu_shown = False
+
+    def __init__(self):
+        self.actions = []
+
+    def menu_action(self, action):
+        self.actions.append(action)
+
+    def show_menu(self):
+        self.is_menu_shown = True
 
     def hide_menu(self):
         self.is_menu_shown = False
