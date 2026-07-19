@@ -992,6 +992,20 @@ class TestNowPlaying(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertNotIn("np-pp", ids(nodes))
 
+    def test_bar_controls_seek_volume_repeat_favorite(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 100, "volume": 50})
+        nodes, h = build_scene(self.b)
+        for nid in ("np-seek", "np-vol", "np-repeat", "np-fav"):
+            self.assertIn(nid, ids(nodes))
+        h["np-seek"]["change"](42)
+        h["np-vol"]["change"](30)
+        h["np-repeat"]["click"]()
+        h["np-fav"]["click"]()
+        names = [c[0] for c in getattr(self.ctl, "transport", [])]
+        for n in ("seek", "set_volume", "set_repeat", "toggle_favorite"):
+            self.assertIn(n, names)
+
     def test_video_playstate_yields_no_bar(self):
         self.b.on_playstate({"stopped": False, "is_audio": False,
                              "title": "Movie", "position": 5, "duration": 100})

@@ -35,6 +35,7 @@ from ..mpvtk.widgets import (
     ImageMap,
     Menu,
     Row,
+    Slider,
     Spacer,
     Text,
     TextBox,
@@ -1382,41 +1383,67 @@ class MpvtkBrowser:
         if self.controller is not None:
             fn(self.controller)
 
+    _REPEAT = ["none", "all", "one"]
+
+    def _cycle_repeat(self):
+        np = self._now_playing or {}
+        cur = np.get("repeat", "none")
+        nxt = self._REPEAT[(self._REPEAT.index(cur) + 1) % 3] \
+            if cur in self._REPEAT else "all"
+        np["repeat"] = nxt
+        self._ctl(lambda c: c.set_repeat(nxt))
+        self.invalidate()
+
+    def _toggle_np_favorite(self):
+        np = self._now_playing or {}
+        np["favorite"] = not np.get("favorite")
+        self._ctl(lambda c: c.toggle_favorite())
+        self.invalidate()
+
     def _now_playing_bar(self, w):
         np = self._now_playing
         pos = np.get("position", 0) or 0
         dur = np.get("duration", 0) or 0
-        frac = max(0.0, min(1.0, pos / dur)) if dur else 0.0
         pp = "play_arrow" if np.get("paused") else "pause"
+        repeat = np.get("repeat", "none")
 
-        def tbtn(icon, node_id, cb):
-            return Box([Icon(icon, 22)], id=node_id, pad=8, bg=theme.BUTTON_BG,
-                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
-                       align="center", direction="row", on_click=cb)
+        def tbtn(icon, node_id, cb, color="eeeeee"):
+            return Box([Icon(icon, 22, color=color)], id=node_id, pad=8,
+                       bg=theme.BUTTON_BG, hover={"fill": theme.BUTTON_ACTIVE},
+                       radius=6, align="center", direction="row", on_click=cb)
 
-        track = Box(
-            [Box(w=max(1, int((w - 620) * frac)), h=6, bg=theme.ACCENT,
-                 radius=3)],
-            flex=1, h=6, bg=theme.BUTTON_BG, radius=3, direction="row")
+        seek = Slider("np-seek", value=pos, min=0, max=max(1, dur),
+                      force=True, flex=1,
+                      on_change=lambda v: self._ctl(lambda c: c.seek(v)))
         title = np.get("title", "")
         sub = np.get("artist") or np.get("album") or ""
         return Row(
             [
                 Column([Text(title, size=16, bold=True),
                         Text(sub, size=13, color=theme.SUBTLE_FG)],
-                       gap=2, w=240),
+                       gap=2, w=220),
                 tbtn("skip_previous", "np-prev",
                      lambda: self._ctl(lambda c: c.prev())),
                 tbtn(pp, "np-pp", lambda: self._ctl(lambda c: c.toggle_pause())),
                 tbtn("skip_next", "np-next",
                      lambda: self._ctl(lambda c: c.next())),
                 tbtn("stop", "np-stop", lambda: self._ctl(lambda c: c.stop())),
-                Text(self._fmt(pos), size=14, w=52, color=theme.SUBTLE_FG),
-                track,
-                Text(self._fmt(dur), size=14, w=52, color=theme.SUBTLE_FG),
+                Text(self._fmt(pos), size=14, w=48, color=theme.SUBTLE_FG),
+                seek,
+                Text(self._fmt(dur), size=14, w=48, color=theme.SUBTLE_FG),
+                tbtn("favorite" if np.get("favorite") else "favorite_border",
+                     "np-fav", lambda: self._toggle_np_favorite(),
+                     color=theme.FAV_RED if np.get("favorite") else "eeeeee"),
+                tbtn("repeat_one" if repeat == "one" else "repeat", "np-repeat",
+                     lambda: self._cycle_repeat(),
+                     color=theme.ACCENT if repeat != "none" else "888888"),
+                Icon("volume_up", 20, color="aaaaaa"),
+                Slider("np-vol", value=np.get("volume", 100), min=0, max=100,
+                       w=110,
+                       on_change=lambda v: self._ctl(lambda c: c.set_volume(v))),
                 tbtn("queue_music", "np-queue", self._open_queue),
             ],
-            pad=10, gap=12, align="center", h=64, bg=theme.PANEL_BG)
+            pad=10, gap=10, align="center", h=64, bg=theme.PANEL_BG)
 
     # ------------------------------------------------------------- settings
 

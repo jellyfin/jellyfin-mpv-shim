@@ -112,6 +112,12 @@ class _PlayerController:
     def set_volume(self, pct):
         self._act(lambda pm: pm.set_volume(float(pct)))
 
+    def set_repeat(self, mode):
+        self._act(lambda pm: pm.set_repeat(mode))
+
+    def toggle_favorite(self):
+        self._act(lambda pm: pm.toggle_current_favorite())
+
     # -- tile actions (watched / favorite) --------------------------------
 
     def set_watched(self, server_uuid, item_id, watched):
