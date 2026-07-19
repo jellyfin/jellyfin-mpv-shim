@@ -1046,8 +1046,8 @@ class MpvtkBrowser:
         return Column(children, w=w, h=h, align="stretch")
 
     # Minimum room the page title keeps in the top bar before the
-    # buttons drop their labels.
-    TITLE_MIN_W = 180
+    # buttons drop their labels (~a "Continue Watching" at 22px bold).
+    TITLE_MIN_W = 260
 
     def _chrome(self, w):
         # Fit probe instead of a hardcoded breakpoint: the bar goes

@@ -172,19 +172,21 @@ card/indent structure; disclosure/collapse remains open.
    horizontal-only padding with `Spacer(w=pad_x, h=1)` margin cells;
    tree indent (above) is spacers. Want: `pad=(px, py)` at minimum,
    ideally per-side.
-8. [ ] **No min/max size constraints.** Dialogs are fixed 440–560 px,
-   backdrops clamp via hand math (`min(w-32, 960)`); nothing can say
-   "natural size, but between 380 and 60% of the window". Fixed and
-   natural children also overflow silently (no flex-shrink). Want:
-   `min_w`/`max_w` (+`min_h`/`max_h`) honored by measure/arrange.
-9. [ ] **No overflow/fit feedback at build time.** The app re-derives
-   geometry to know things layout already computed: carousel arrow
-   visibility recomputes `content_w` by hand, virtualized grids feed
-   hand-estimated header heights (`head_h = 40 + 110…`) to the offset
-   math, and the Tk topbar's responsive icon-only collapse (window
-   width thresholds) was dropped entirely for lack of it. Want: either
-   a post-layout query ("laid-out rect of node id X" / "does scroll Y
-   overflow?") or a priority-collapse container.
+8. [x] **Min/max size constraints.** `min_w`/`max_w`/`min_h`/`max_h`
+   on every element — px, or a float fraction of the available space
+   (Dialog children resolve fractions against the window). Rows now
+   flex-shrink on overflow (proportional, floored at min; bitmaps/
+   icons floor at natural, Text re-ellipsizes); columns keep
+   overflowing on purpose. The chrome server/user switchers use
+   min/max instead of fixed widths, so long names count toward the
+   collapse decision and get room when there is some.
+9. [x] **Overflow/fit feedback.** `layout.natural_size(tree)` is the
+   synchronous build-time probe: measure a candidate layout against
+   the window and choose. The chrome bar now collapses to icons via
+   the probe (labelled bar + the title's minimum room vs. window
+   width) instead of the hardcoded `COMPACT_W = 1280` — sessions with
+   fewer switchers keep labels narrower. `node_rect()` remains the
+   one-frame-late path for laid-out geometry (virtualizer offsets).
 10. [x] **No determinate progress widget.** Downloads rows show
     "Downloading 43%" as text; the settings folder-move progress is a
     status string. `Busy` (indeterminate) and `Slider` exist; a
@@ -1131,6 +1133,27 @@ public contract to preserve.
 ---
 
 ## Phase 8 — Spatial keyboard/remote navigation (optional, the 10-ft payoff)
+
+**SHIPPED (2026-07-19), renderer-local and simpler than the sketch
+below expected:** no `focusable` protocol flag was needed — the
+renderer infers focusables from the interactivity the scene already
+carries (click/dbl/textbox/dropdown/slider), so every existing view
+got keyboard navigation for free. Arrow keys move focus by a
+directional metric (forward distance + 2.5× orthogonal penalty; first
+press focuses the topmost-leftmost visible node), an accent ring draws
+outside the focused node (hover-ring path), and focus scrolls its
+container chain into view. ENTER activates (click / textbox focus /
+dropdown popup with UP/DOWN+ENTER — context menus too / slider adjust
+mode: LEFT/RIGHT step 5%, white ring). A focused textbox owns the
+arrows/ENTER (delegated, so binding precedence can't break editing);
+any mouse press drops key focus; `mpvtk-active no` unbinds everything
+so playback keeps its seek keys. Modal dialogs restrict candidates to
+their own nodes. Test hooks: `mpvtk-debug {cmd=nav, dir=|action=enter|
+id=}` + `nav`/`nav_pidx` in `debug_state`; 5 selftest checks both
+backends. Remaining polish: BACK/ESC as go-back is app wiring; tile
+ImageMap regions already navigate (they're click rects).
+
+Original build sketch (kept for reference):
 
 Net-new capability, **nothing built yet** — the only "focus" in mpvtk
 today is *textbox* focus for text editing (renderer.lua `state.focus`,

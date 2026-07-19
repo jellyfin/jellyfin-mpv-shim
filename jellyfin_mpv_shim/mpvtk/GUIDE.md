@@ -93,7 +93,29 @@ Floating: `Menu` (context menu at a point; `on_select`/`on_dismiss`),
 `on_dismiss`), `Float` (positioned toast/banner, no grab). All floating
 content draws above everything and occludes image overlays.
 
-Every element takes `id=`, `w=`, `h=`, `flex=`.
+Every element takes `id=`, `w=`, `h=`, `flex=`, and size constraints
+`min_w`/`max_w`/`min_h`/`max_h` — int px, or a float in (0, 1] as a
+fraction of the available space (a Dialog child resolves fractions
+against the window: "natural, but at most 60% of the screen"). Rows
+flex-shrink on overflow: fixed/natural children squeeze proportionally
+down to their min (bitmaps/icons floor at natural — Text simply
+re-ellipsizes); columns still overflow on purpose (vertical overflow
+is pre-scroll content, not an error). `layout.natural_size(tree)` is
+the build-time fit probe: measure a candidate (e.g. the labelled
+chrome bar) against the window and pick a layout — no hardcoded
+breakpoints.
+
+**Spatial navigation (10ft)** is renderer-local and always on while
+the UI is active: arrow keys walk the focusable nodes (anything
+clickable, plus textboxes/dropdowns/sliders — inferred from the scene,
+no protocol additions), scored by direction with an accent focus ring
+drawn outside the node; focus scrolls its containers into view. ENTER
+activates: clicks buttons/rows, focuses a textbox (whose own keys then
+own the arrows), opens a dropdown (UP/DOWN walk the popup, ENTER
+picks — same for context menus), toggles slider adjust mode
+(LEFT/RIGHT step 5%, white ring while active). Any mouse press drops
+key focus. The bindings live with the mouse sections: suspended by
+`mpvtk-active no` so playback keeps its seek keys.
 
 ## 3. Scene protocol (Python → Lua)
 
@@ -265,8 +287,10 @@ renderer's LIVE offset instead of trailing the throttled scroll event
   renderer's `mpvtk-debug` hooks: `hover`/`click`/`rclick` by node id
   (`click` takes `shift`/`ctrl`), `down`/`up` (separate press/release —
   hold-repeat), `wheel` (id/dir/steps/axis), `text`, `key` (incl.
-  CTRLA/SLEFT…), `popup`/`menu` (item index), `state` (renderer state
-  dump incl. `scroll` offsets and the `ov` overlay-slot map).
+  CTRLA/SLEFT…), `popup`/`menu` (item index), `nav` (spatial
+  navigation: `dir=`, `action=enter`, or `id=` to focus directly),
+  `state` (renderer state dump incl. `scroll` offsets, the `ov`
+  overlay-slot map, and `nav` focus).
   Screenshots per step (mpv can't screenshot without video — falls
   back to X11 `import`).
 - `tests/test_mpvtk_layout.py` — layout engine unit tests (stdlib).

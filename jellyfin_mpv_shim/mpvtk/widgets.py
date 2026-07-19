@@ -17,10 +17,18 @@ from . import theme
 
 class Element:
     """``anchor``/``dx``/``dy``/``occlude`` only apply to direct children
-    of a :class:`Stack` (see its docstring); they are inert elsewhere."""
+    of a :class:`Stack` (see its docstring); they are inert elsewhere.
+
+    ``min_w``/``max_w``/``min_h``/``max_h`` bound the laid-out size: an
+    int is pixels, a float in (0, 1] is a fraction of the available
+    space (dialog children resolve fractions against the window). When
+    a Box's fixed/natural children overflow it, they now shrink
+    proportionally down to their min (bitmaps and icons floor at their
+    natural size — pixels never squeeze)."""
 
     def __init__(self, id=None, w=None, h=None, flex=0,
-                 anchor=None, dx=0, dy=0, occlude=False, tip=None):
+                 anchor=None, dx=0, dy=0, occlude=False, tip=None,
+                 min_w=None, max_w=None, min_h=None, max_h=None):
         self.id = id
         self.w = w
         self.h = h
@@ -30,6 +38,10 @@ class Element:
         self.dy = dy
         self.occlude = occlude
         self.tip = tip  # hover tooltip text (renderer-drawn, delayed)
+        self.min_w = min_w
+        self.max_w = max_w
+        self.min_h = min_h
+        self.max_h = max_h
 
 
 class Box(Element):

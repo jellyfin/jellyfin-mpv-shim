@@ -690,3 +690,92 @@ class TestThemeAccent(unittest.TestCase):
         msgs = [a for a in sent if a[:2] == ("script-message", "mpvtk-theme")]
         self.assertEqual(len(msgs), 1)
         self.assertIn("00a4dc", msgs[0][2])
+
+
+class TestSizeConstraints(unittest.TestCase):
+    def test_max_w_caps_natural(self):
+        nodes, _ = layout(
+            Row([Box(id="a", w=300, h=20, bg="1", max_w=120)],
+                w=400, h=30),
+            400, 30,
+        )
+        self.assertEqual(by_id(nodes, "a")["w"], 120)
+
+    def test_min_w_grows_natural(self):
+        nodes, _ = layout(
+            Row([Box(id="a", w=40, h=20, bg="1", min_w=90)],
+                w=400, h=30),
+            400, 30,
+        )
+        self.assertEqual(by_id(nodes, "a")["w"], 90)
+
+    def test_flex_child_max_cap(self):
+        nodes, _ = layout(
+            Row([Box(id="a", h=20, bg="1", flex=1, max_w=100),
+                 Box(id="b", w=50, h=20, bg="1")],
+                w=400, h=30),
+            400, 30,
+        )
+        self.assertEqual(by_id(nodes, "a")["w"], 100)
+
+    def test_row_overflow_shrinks_with_floors(self):
+        # 3 x 200 in a 400 row: text-ish boxes shrink, the image floors
+        # at its natural size (pixels never squeeze)
+        nodes, _ = layout(
+            Row(
+                [Box(id="a", w=200, h=20, bg="1"),
+                 Image("/x.bgra", 200, 20, id="img"),
+                 Box(id="b", w=200, h=20, bg="1")],
+                w=400, h=30,
+            ),
+            400, 30,
+        )
+        self.assertEqual(by_id(nodes, "img")["w"], 200)
+        a = by_id(nodes, "a")
+        b = by_id(nodes, "b")
+        self.assertEqual(round(a["w"] + b["w"]), 200)
+        # everything fits now
+        self.assertLessEqual(b["x"] + b["w"], 400)
+
+    def test_min_w_floor_respected_in_shrink(self):
+        nodes, _ = layout(
+            Row(
+                [Box(id="a", w=300, h=20, bg="1", min_w=250),
+                 Box(id="b", w=300, h=20, bg="1")],
+                w=400, h=30,
+            ),
+            400, 30,
+        )
+        self.assertGreaterEqual(by_id(nodes, "a")["w"], 250)
+        self.assertLessEqual(
+            by_id(nodes, "b")["x"] + by_id(nodes, "b")["w"], 400.5
+        )
+
+    def test_columns_still_overflow(self):
+        # vertical overflow is normal pre-scroll content — no squashing
+        nodes, _ = layout(
+            Column([Box(id="a", h=300, bg="1"),
+                    Box(id="b", h=300, bg="1")],
+                   w=200, h=400),
+            200, 400,
+        )
+        self.assertEqual(by_id(nodes, "a")["h"], 300)
+        self.assertEqual(by_id(nodes, "b")["y"], 300)
+
+    def test_dialog_child_fraction_max(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Dialog
+
+        tree = Column(
+            [Dialog("d", Box(w=900, h=100, bg="1", max_w=0.5))],
+            w=400, h=300,
+        )
+        nodes, _ = layout(tree, 400, 300)
+        layer = next(n for n in nodes if n["t"] == "layer")
+        self.assertEqual(layer["w"], 200)  # 50% of the 400px window
+
+    def test_natural_size_probe(self):
+        from jellyfin_mpv_shim.mpvtk.layout import natural_size
+
+        bar = Row([Box(w=100, h=20, bg="1"), Box(w=60, h=20, bg="1")],
+                  gap=10, pad=(12, 0))
+        self.assertEqual(natural_size(bar)[0], 100 + 10 + 60 + 24)

@@ -63,6 +63,9 @@ local state = {
     pressed = nil,          -- node id armed by mbtn down
     mods = {},              -- {shift, ctrl} of the current mouse press
     rpt = nil,              -- {id, timer} while a hold-repeat is armed
+    nav = nil,              -- spatial-nav focused node id (10ft keys)
+    nav_pidx = nil,         -- keyboard index inside an open popup/menu
+    nav_adjust = nil,       -- slider value-adjust mode (ENTER toggles)
     drag = nil,             -- {sc=id, axis, start_m, start_off} scrollbar drag
     scroll = {},            -- id -> offset (px)
     tb = {},                -- id -> {text, cursor, shift}
@@ -836,7 +839,9 @@ end
 local function draw_popup(ass, node)
     local d = dd_state(node)
     local g = state.dd_geo or popup_geometry(node)
-    draw_list(ass, g, node.items, d.sel, node.size, node.icons)
+    -- keyboard navigation highlights its own index while active
+    draw_list(ass, g, node.items, state.nav_pidx or d.sel, node.size,
+        node.icons)
 end
 
 local function menu_geometry(node)
@@ -853,7 +858,7 @@ end
 
 local function draw_menu(ass, node)
     draw_list(ass, state.menu_geo or menu_geometry(node), node.items,
-        nil, node.size, node.icons)
+        state.nav_pidx, node.size, node.icons)
 end
 
 local function item_at(g, x, y)
@@ -1169,6 +1174,18 @@ render = function()
         if node.t == 'scroll' and node.top and
             not (node.mod and state.modal_hidden) then
             draw_scrollbar(ass, node)
+        end
+    end
+    -- spatial-nav focus ring: outside the node bounds like hover rings
+    -- (bitmaps would cover an inline ring), accent-colored
+    if state.nav then
+        local node = state.byid[state.nav]
+        if node and visible(node) then
+            local ex, ey, clip = eff(node)
+            draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
+                bc = state.nav_adjust and 'ffffff' or '7aa2f7',
+                bw = 3, radius = 4, clip = clip,
+            })
         end
     end
     if state.dd_open then
@@ -1765,6 +1782,10 @@ local function on_mouse_down()
     if state.tip then
         state.tip = nil  -- clicking dismisses the tooltip
     end
+    -- the pointer takes over from spatial navigation
+    state.nav = nil
+    state.nav_pidx = nil
+    state.nav_adjust = nil
     -- textbox copy/paste menu eats the click first
     if state.tb_menu then
         local idx = item_at(state.tb_menu_geo, x, y)
@@ -2010,6 +2031,199 @@ local function mouse_pair(shift, ctrl)
         function() set(); on_mouse_down() end
 end
 
+-- ------------------------------------------- spatial navigation (10ft)
+--
+-- Arrow keys walk the focusable nodes (anything clickable, plus
+-- textboxes/dropdowns/sliders — inferred from the scene, no extra
+-- protocol); ENTER activates. All renderer-local: geometry, scrolling
+-- and the focus ring live here, Python just receives the same
+-- click/select events a mouse would produce. The pointer always wins:
+-- any mouse press drops key focus.
+
+local function nav_candidates()
+    compute_geo()
+    local modal = modal_active()
+    local out = {}
+    for _, node in ipairs(state.nodes) do
+        if node.t ~= 'scroll' and node.t ~= 'layer' and
+            node.t ~= 'menu' and node.t ~= 'occ' and
+            (not modal or node.mod) and
+            (node.click or node.dbl or node.t == 'textbox' or
+             node.t == 'dropdown' or node.t == 'slider') and
+            visible(node) then
+            out[#out + 1] = node
+        end
+    end
+    return out
+end
+
+local function nav_center(node)
+    local ex, ey = eff(node)
+    return ex + node.w / 2, ey + node.h / 2
+end
+
+local function nav_scroll_into_view(node)
+    local sc = node.sc
+    local margin = 12
+    while sc do
+        local cont = state.byid[sc]
+        if not cont or cont.t ~= 'scroll' then break end
+        local off = state.scroll[sc] or 0
+        local rel, ext, view
+        if cont.axis == 'x' then
+            rel, ext, view = node.x - cont.x, node.w, cont.w
+        else
+            rel, ext, view = node.y - cont.y, node.h, cont.h
+        end
+        if rel - margin < off then
+            set_scroll(cont, rel - margin)
+        elseif rel + ext + margin > off + view then
+            set_scroll(cont, rel + ext + margin - view)
+        end
+        sc = cont.sc
+    end
+end
+
+local function nav_set(node)
+    state.nav = node.id
+    state.nav_adjust = nil
+    nav_scroll_into_view(node)
+    request_render()
+end
+
+local function nav_move(dx, dy)
+    -- a focused textbox owns the arrows (caret movement) whichever
+    -- forced binding mpv happens to prefer — delegate, don't navigate
+    if state.focus then
+        if dy == 0 then
+            tb_key(dx < 0 and 'LEFT' or 'RIGHT')
+        end
+        return
+    end
+    -- popups first: UP/DOWN walk the open dropdown/menu
+    local menu_node = active_menu()
+    if state.dd_open or menu_node then
+        local node = state.dd_open and state.byid[state.dd_open]
+        local n = node and #node.items or (menu_node and #menu_node.items)
+        if n and n > 0 and dy ~= 0 then
+            local cur = state.nav_pidx
+            if cur == nil and node then cur = dd_state(node).sel end
+            state.nav_pidx = clamp((cur or 0) + dy, 0, n - 1)
+            request_render()
+        end
+        return
+    end
+    local cur = state.nav and state.byid[state.nav]
+    -- slider adjust mode: LEFT/RIGHT change the value in 5% steps
+    if cur and cur.t == 'slider' and state.nav_adjust and dx ~= 0 then
+        local s = sl_state(cur)
+        local rng = (cur.max or 100) - (cur.min or 0)
+        s.value = clamp(s.value + dx * rng * 0.05,
+                        cur.min or 0, cur.max or 100)
+        notify_slider(cur.id)
+        request_render()
+        return
+    end
+    state.nav_adjust = nil
+    local cands = nav_candidates()
+    if #cands == 0 then return end
+    if not cur or not state.byid[state.nav] then
+        -- first press: topmost-leftmost visible focusable
+        local best, score
+        for _, c in ipairs(cands) do
+            local cx, cy = nav_center(c)
+            local s = cy * 10000 + cx
+            if score == nil or s < score then best, score = c, s end
+        end
+        if best then nav_set(best) end
+        return
+    end
+    local cx, cy = nav_center(cur)
+    local best, score
+    for _, c in ipairs(cands) do
+        if c.id ~= cur.id then
+            local px, py = nav_center(c)
+            local ddx, ddy = px - cx, py - cy
+            local fwd = dx * ddx + dy * ddy       -- along the direction
+            local orth = math.abs(dx * ddy) + math.abs(dy * ddx)
+            if fwd > 0.5 and fwd >= orth * 0.3 then
+                local s = fwd + 2.5 * orth
+                if score == nil or s < score then best, score = c, s end
+            end
+        end
+    end
+    if best then nav_set(best) end
+end
+
+local function nav_activate()
+    if state.focus then
+        tb_key('ENTER')  -- submit, same as the textbox's own binding
+        return
+    end
+    local menu_node = active_menu()
+    if state.dd_open then
+        local node = state.byid[state.dd_open]
+        local idx = state.nav_pidx
+        state.dd_open = nil
+        state.nav_pidx = nil
+        if node and idx ~= nil then
+            local d = dd_state(node)
+            d.sel = idx
+            send({ t = 'select', id = node.id, index = idx,
+                   value = node.items[idx + 1] })
+        end
+        request_render()
+        return
+    end
+    if menu_node then
+        local idx = state.nav_pidx
+        state.nav_pidx = nil
+        dismiss_menu(idx)
+        return
+    end
+    local node = state.nav and state.byid[state.nav]
+    if not node then return end
+    if node.t == 'textbox' then
+        focus_textbox(node)
+        request_render()
+    elseif node.t == 'dropdown' then
+        state.dd_open = node.id
+        state.nav_pidx = dd_state(node).sel
+        request_render()
+    elseif node.t == 'slider' then
+        state.nav_adjust = not state.nav_adjust
+        request_render()
+    elseif node.click then
+        state.mods = {}
+        send_click(node)
+    elseif node.dbl then
+        send({ t = 'dbl', id = node.id })
+    end
+end
+
+local NAV_KEYS = {
+    { 'UP', function() nav_move(0, -1) end },
+    { 'DOWN', function() nav_move(0, 1) end },
+    { 'LEFT', function() nav_move(-1, 0) end },
+    { 'RIGHT', function() nav_move(1, 0) end },
+    { 'ENTER', function() nav_activate() end },
+}
+
+local function bind_nav_keys()
+    for _, k in ipairs(NAV_KEYS) do
+        mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
+            { repeatable = true })
+    end
+end
+
+local function unbind_nav_keys()
+    for _, k in ipairs(NAV_KEYS) do
+        mp.remove_key_binding('mpvtk_nav_' .. k[1])
+    end
+end
+
+bind_nav_keys()
+
 mp.set_key_bindings({
     { 'mbtn_left', mouse_pair(false, false) },
     { 'shift+mbtn_left', mouse_pair(true, false) },
@@ -2110,6 +2324,10 @@ local function reconcile()
     if state.dd_open and (not state.byid[state.dd_open]) then
         state.dd_open = nil
     end
+    if state.nav and not state.byid[state.nav] then
+        state.nav = nil  -- focused node left the scene (route change)
+        state.nav_adjust = nil
+    end
     -- the scene is authoritative for menu and modal presence
     state.menu_hidden = false
     state.modal_hidden = false
@@ -2190,6 +2408,7 @@ mp.register_script_message('mpvtk-active', function(on)
     if want then
         mp.enable_key_bindings('mpvtk_mouse')
         mp.enable_key_bindings('mpvtk_wheel')
+        bind_nav_keys()
         mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
             state.hud = not state.hud
             request_render()
@@ -2197,6 +2416,10 @@ mp.register_script_message('mpvtk-active', function(on)
     else
         blur()                    -- drops the text-edit bindings + caret timer
         stop_repeat()
+        unbind_nav_keys()         -- playback needs the arrows (seek/OSC)
+        state.nav = nil
+        state.nav_pidx = nil
+        state.nav_adjust = nil
         state.pressed = nil
         state.tip = nil
         if state.tip_timer then
@@ -2263,6 +2486,20 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_down()
             on_mouse_up()
             state.mods = {}
+        end
+    elseif cmd.cmd == 'nav' then
+        -- spatial navigation: {cmd=nav, dir=up|down|left|right} moves,
+        -- {cmd=nav, action=enter} activates, {cmd=nav, id=...} focuses
+        if cmd.id then
+            local node = state.byid[cmd.id]
+            if node then nav_set(node) end
+        elseif cmd.action == 'enter' then
+            nav_activate()
+        elseif cmd.dir then
+            local d = { up = { 0, -1 }, down = { 0, 1 },
+                        left = { -1, 0 }, right = { 1, 0 } }
+            local v = d[cmd.dir]
+            if v then nav_move(v[1], v[2]) end
         end
     elseif cmd.cmd == 'down' or cmd.cmd == 'up' then
         -- separate press/release (hold-repeat tests)
@@ -2388,6 +2625,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             overlays = state.ov_used,
             ov = ov,
             tip = state.tip_geo and state.tip_geo.text or nil,
+            nav = state.nav,
+            nav_pidx = state.nav_pidx,
             tb = state.tb,
         })
     end

@@ -1287,6 +1287,33 @@ def _selftest(demo, outdir):
     st = app.debug_state()
     check("tooltip-clears", not (st or {}).get("tip"))
 
+    # ---- spatial navigation (10ft) ----
+    app.debug(cmd="nav", dir="down")  # first press focuses something
+    time.sleep(0.3)
+    st = app.debug_state()
+    check("nav-first-focus", bool((st or {}).get("nav")),
+          str((st or {}).get("nav")))
+    app.debug(cmd="nav", id="btn-toast")
+    app.debug(cmd="nav", dir="left")
+    time.sleep(0.3)
+    st = app.debug_state()
+    check("nav-left-moves", (st or {}).get("nav") == "btn-dialog",
+          str((st or {}).get("nav")))
+    app.debug(cmd="nav", id="btn-toast")
+    app.debug(cmd="nav", action="enter")
+    time.sleep(0.4)
+    check("nav-enter-clicks", demo.toast is not None)
+    time.sleep(2.6)  # let the toast auto-dismiss before moving on
+    # focusing an off-viewport node scrolls it into view
+    app.debug(cmd="wheel", id="wpage", dir=-1, steps=12, axis="y")
+    time.sleep(0.3)
+    app.debug(cmd="nav", id="tbl-up")
+    time.sleep(0.3)
+    st = app.debug_state()
+    scr = (st or {}).get("scroll") or {}
+    check("nav-scroll-into-view", scr.get("wpage", 0) > 0,
+          str(scr.get("wpage")))
+
     # wrapped text emits one node per line, stacked a line apart
     wnodes, _ = _layout(demo.build((1280, 720)), 1280, 720)
     wl = [n for n in wnodes

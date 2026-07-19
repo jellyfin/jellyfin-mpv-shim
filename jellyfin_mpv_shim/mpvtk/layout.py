@@ -169,7 +169,49 @@ def _wrap_lines(el, max_w):
 SCROLLBAR_W = 10
 
 
+def _res(v, avail=None):
+    """Resolve a size constraint: int px, or a float in (0, 1] as a
+    fraction of ``avail`` (unresolvable fractions are ignored)."""
+    if v is None:
+        return None
+    if isinstance(v, float) and 0 < v <= 1:
+        return v * avail if avail is not None else None
+    return float(v)
+
+
+def _clamp_wh(el, w, h, avail_w=None, avail_h=None):
+    """Apply an element's min/max constraints to (w, h)."""
+    lo = _res(el.min_w, avail_w)
+    hi = _res(el.max_w, avail_w)
+    if hi is not None:
+        w = min(w, hi)
+    if lo is not None:
+        w = max(w, lo)
+    lo = _res(el.min_h, avail_h)
+    hi = _res(el.max_h, avail_h)
+    if hi is not None:
+        h = min(h, hi)
+    if lo is not None:
+        h = max(h, lo)
+    return w, h
+
+
 def measure(el):
+    """Natural (width, height) of an element, ignoring flex, clamped
+    to its min/max constraints (px only — fractions resolve at arrange
+    time against the actual available space)."""
+    return _clamp_wh(el, *_measure(el))
+
+
+def natural_size(el):
+    """Public build-time fit probe: the size an element tree would
+    naturally take. Measure a candidate (say, the full chrome bar)
+    against the window width to decide between layouts — no hardcoded
+    breakpoints, no one-frame-late node_rect round-trip."""
+    return measure(el)
+
+
+def _measure(el):
     """Natural (width, height) of an element, ignoring flex."""
     if isinstance(el, Text):
         if el.wrap and el.w is not None:
@@ -582,8 +624,11 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
 
     if isinstance(el, (Dialog, Float)):
         # Out-of-flow top layer. Dialog centers itself and grabs input;
-        # Float sits at its given position without grabbing.
+        # Float sits at its given position without grabbing. Fractional
+        # min/max on the child resolve against the window here, so a
+        # dialog can say "natural, but at most 60% of the screen".
         cw, ch = measure(el.child)
+        cw, ch = _clamp_wh(el.child, cw, ch, ctx.root_w, ctx.root_h)
         if isinstance(el, Dialog):
             dx = (ctx.root_w - cw) / 2
             dy = max(0.0, (ctx.root_h - ch) / 2.5)
@@ -752,6 +797,15 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
     inner_main = (w if row else h) - 2 * pad_main - box.gap * (n - 1)
     inner_cross = (h if row else w) - 2 * pad_cross
 
+    def clamp_main(c, size):
+        lo = _res(c.min_w if row else c.min_h, inner_main)
+        hi = _res(c.max_w if row else c.max_h, inner_main)
+        if hi is not None:
+            size = min(size, hi)
+        if lo is not None:
+            size = max(size, lo)
+        return size
+
     sizes = []
     flex_total = 0
     for c in box.children:
@@ -760,20 +814,41 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             sizes.append(None)
             flex_total += c.flex
         elif fixed is not None:
-            sizes.append(float(fixed))
+            sizes.append(clamp_main(c, float(fixed)))
         elif isinstance(c, Text) and c.wrap and not row:
             # a wrapped Text's height depends on the width it will get
             wrap_w = c.w if c.w is not None else max(1.0, inner_cross)
-            n = len(_wrap_lines(c, wrap_w))
-            sizes.append(float(n * c.size * LINE_H))
+            nl = len(_wrap_lines(c, wrap_w))
+            sizes.append(float(nl * c.size * LINE_H))
         else:
             mw, mh = measure(c)
-            sizes.append(float(mw if row else mh))
+            sizes.append(clamp_main(c, float(mw if row else mh)))
 
     leftover = inner_main - sum(s for s in sizes if s is not None)
     for i, c in enumerate(box.children):
         if sizes[i] is None:
-            sizes[i] = max(0.0, leftover * c.flex / flex_total)
+            sizes[i] = clamp_main(
+                c, max(0.0, leftover * c.flex / flex_total))
+
+    # flex-shrink, ROWS only: fixed/natural children used to overflow
+    # silently and push content off-screen in narrow windows. Shrink
+    # proportionally, floored at each child's min (bitmaps/icons floor
+    # at natural — pixels never squeeze; Text just re-ellipsizes).
+    # Columns keep overflowing on purpose: vertical overflow is normal
+    # pre-scroll content, not a layout error.
+    total = sum(sizes)
+    if row and total > inner_main > 0:
+        floors = []
+        for c, s in zip(box.children, sizes):
+            lo = _res(c.min_w if row else c.min_h, inner_main)
+            if lo is None and isinstance(c, (Image, ImageMap, Icon,
+                                             Busy)):
+                lo = s
+            floors.append(min(lo if lo is not None else 0.0, s))
+        shrinkable = sum(s - f for s, f in zip(sizes, floors))
+        if shrinkable > 0:
+            k = min(1.0, (total - inner_main) / shrinkable)
+            sizes = [s - (s - f) * k for s, f in zip(sizes, floors)]
 
     # main-axis justification: distribute the slack that flex children
     # didn't absorb (with flex present the slack is already zero)
@@ -807,6 +882,12 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             mw, mh = measure(c)
             cross = float(mh if row else mw)
             cross = min(cross, inner_cross)
+        lo = _res(c.min_h if row else c.min_w, inner_cross)
+        hi = _res(c.max_h if row else c.max_w, inner_cross)
+        if hi is not None:
+            cross = min(cross, hi)
+        if lo is not None:
+            cross = max(cross, lo)
 
         if box.align == "center":
             cross_pos = (y if row else x) + pad_cross + (
