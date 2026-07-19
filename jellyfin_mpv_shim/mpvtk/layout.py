@@ -265,6 +265,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             cw, ch = inner_w, max(ch, inner_h)
         node["cw"] = _round(cw)
         node["ch"] = _round(ch)
+        if el.on_scroll:
+            node["watch"] = True
+            _reg(ctx, node["id"], "scroll", el.on_scroll)
         ctx.nodes.append(node)
         _arrange(ctx, el.child, x, y, cw, ch, node["id"], path + ".0")
         return

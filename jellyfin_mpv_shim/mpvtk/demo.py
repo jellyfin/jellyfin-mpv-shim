@@ -33,6 +33,10 @@ from .widgets import (
     VScroll,
 )
 
+GRID_TOTAL = 400  # virtual grid entries (cycled library) for infinite scroll
+WINDOW_AHEAD = 8  # materialized rows below the viewport
+WINDOW_BEHIND = 4  # materialized rows above the viewport
+
 log = logging.getLogger("mpvtk.demo")
 
 TILE_W, TILE_H = 140, 200
@@ -241,6 +245,8 @@ class Demo:
         self.query = ""
         self.sort = "Name"
         self.status = "Hover and click tiles; scroll rows and the page."
+        self.grid_window = (0, WINDOW_AHEAD + 4)  # materialized row range
+        self._grid_geom = None  # (grid_top, pitch, cols, total_rows)
         self.app = MpvtkApp(backend=backend)
 
     # ------------------------------------------------------------- state
@@ -297,15 +303,64 @@ class Demo:
             gap=8,
         )
 
-    def _grid_section(self, heading, items, width):
+    def _grid_section(self, heading, items, width, grid_top):
+        """Windowed 'infinite' grid: GRID_TOTAL virtual entries (library
+        cycled), only rows near the viewport materialized; spacers stand
+        in for the rest so scrollbar and offsets see the full height."""
         cols = max(
             1, int((width - 48 + TILE_GAP) // (TILE_W + TILE_GAP))
         )
-        rows = [
-            self._image_map(items[r : r + cols], "grid")
-            for r in range(0, len(items), cols)
+        gap = 12
+        pitch = STRIP_H + gap
+        total_rows = (GRID_TOTAL + cols - 1) // cols if items else 0
+        # heading (size 24 -> 30px) + column gap precede the first row
+        self._grid_geom = (grid_top + 30 + gap, pitch, cols, total_rows)
+        start, end = self.grid_window
+        start = max(0, min(start, total_rows))
+        end = max(start, min(end, total_rows))
+        rows = []
+        if start > 0:
+            rows.append(Spacer(h=start * pitch - gap))
+        for r in range(start, end):
+            entries = []
+            for c in range(cols):
+                v = r * cols + c
+                if v >= GRID_TOTAL:
+                    break
+                it = dict(items[v % len(items)])
+                entries.append(dict(it, vidx=v))
+            if entries:
+                rows.append(self._grid_image_map(entries))
+        if end < total_rows:
+            rows.append(Spacer(h=(total_rows - end) * pitch - gap))
+        return Column(
+            [Text(heading, size=24, bold=True)] + rows, gap=gap
+        )
+
+    def _grid_image_map(self, entries):
+        s = self.strips.strip(entries)
+        regions = [
+            dict(
+                r,
+                id="grid-tile-%d" % e["vidx"],
+                on_click=lambda i=e["idx"]: self._pick(i),
+            )
+            for r, e in zip(s["regions"], entries)
         ]
-        return Column([Text(heading, size=24, bold=True)] + rows, gap=12)
+        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
+
+    def _on_page_scroll(self, offset, maximum):
+        if not self._grid_geom:
+            return
+        grid_top, pitch, cols, total_rows = self._grid_geom
+        # viewport top row within the grid (page viewport starts at 76)
+        row = int((offset - grid_top) // pitch)
+        start = max(0, row - WINDOW_BEHIND)
+        end = min(total_rows, max(row, 0) + WINDOW_AHEAD)
+        cur = self.grid_window
+        if abs(start - cur[0]) >= 2 or abs(end - cur[1]) >= 2:
+            self.grid_window = (start, end)
+            self.app.invalidate()
 
     def build(self, size):
         w, h = size
@@ -340,13 +395,17 @@ class Demo:
             align="center",
             h=76,
         )
+        # content-space y where the grid section starts (for windowing):
+        # page pad + two sections (heading 30 + gap 8 + scroll) + gaps
+        sec_h = 30 + 8 + STRIP_H + 6
+        grid_top = 16 + 2 * (sec_h + 20)
         page = Column(
             [
                 self._row_section(
                     "Continue Watching", items[:12], "row-cw"
                 ),
                 self._row_section("Movies", items, "row-mv"),
-                self._grid_section("All Media", items, w),
+                self._grid_section("All Media", items, w, grid_top),
             ],
             pad=16,
             gap=20,
@@ -360,7 +419,12 @@ class Demo:
         return Column(
             [
                 header,
-                VScroll(page, id="page", flex=1),
+                VScroll(
+                    page,
+                    id="page",
+                    flex=1,
+                    on_scroll=self._on_page_scroll,
+                ),
                 footer,
             ],
             w=w,
@@ -447,7 +511,24 @@ def _selftest(demo, outdir):
     scr = (st or {}).get("scroll") or {}
     check("hscroll-offset", scr.get("row-mv", 0) > 0, str(scr))
 
-    app.debug(cmd="wheel", id="page", dir=-1, steps=20)  # back to top
+    # deep-scroll into the virtualized grid; the debounced scroll event
+    # should move the materialization window
+    app.debug(cmd="wheel", id="page", dir=1, steps=40, axis="y")
+    time.sleep(0.8)
+    shot("05b-deep-grid")
+    check(
+        "grid-window-moved",
+        demo.grid_window[0] > 0,
+        str(demo.grid_window),
+    )
+    st = app.debug_state()
+    novl = (st or {}).get("overlays", 0)
+    check("deep-grid-overlays", 1 <= novl <= 12, "overlays=%s" % novl)
+    scr = (st or {}).get("scroll") or {}
+    check("deep-grid-offset", scr.get("page", 0) > 2000, str(scr))
+
+    app.debug(cmd="wheel", id="page", dir=-1, steps=80)  # back to top
+    time.sleep(0.8)
     app.debug(cmd="click", id="sort")
     shot("06-dropdown-open")
     st = app.debug_state()

@@ -68,7 +68,12 @@ class Column(Box):
 
 
 class Spacer(Element):
-    def __init__(self, flex=1, **kw):
+    """Flexible filler by default; a fixed-size stand-in (e.g. for
+    virtualized content) when given an explicit w/h."""
+
+    def __init__(self, flex=None, **kw):
+        if flex is None:
+            flex = 0 if ("w" in kw or "h" in kw) else 1
         super().__init__(flex=flex, **kw)
 
 
@@ -201,11 +206,15 @@ class Dropdown(Element):
 
 
 class Scroll(Element):
-    def __init__(self, child, axis, scrollbar=False, **kw):
+    """``on_scroll(offset, max)`` fires debounced from the renderer when
+    the user scrolls — the hook for windowed/infinite content."""
+
+    def __init__(self, child, axis, scrollbar=False, on_scroll=None, **kw):
         super().__init__(**kw)
         self.child = child
         self.axis = axis
         self.scrollbar = scrollbar
+        self.on_scroll = on_scroll
 
 
 class HScroll(Scroll):

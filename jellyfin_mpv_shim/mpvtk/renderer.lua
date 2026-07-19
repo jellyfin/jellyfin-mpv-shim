@@ -764,10 +764,32 @@ end
 
 -- --------------------------------------------------------------- input
 
+local scroll_notify_timers = {}
+
+-- Debounced scroll notification for watched containers (drives
+-- windowed/infinite scrolling on the Python side).
+local function notify_scroll(id)
+    if scroll_notify_timers[id] then
+        scroll_notify_timers[id]:kill()
+    end
+    scroll_notify_timers[id] = mp.add_timeout(0.12, function()
+        scroll_notify_timers[id] = nil
+        local node = state.byid[id]
+        if node and node.t == 'scroll' then
+            send({
+                t = 'scroll', id = id,
+                offset = state.scroll[id] or 0,
+                max = scroll_max(node),
+            })
+        end
+    end)
+end
+
 local function set_scroll(node, off)
     off = clamp(off, 0, scroll_max(node))
     if state.scroll[node.id] ~= off then
         state.scroll[node.id] = off
+        if node.watch then notify_scroll(node.id) end
         request_render()
     end
 end
