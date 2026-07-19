@@ -40,6 +40,23 @@ child process.
 **Status legend:** `[ ]` todo ・ `[~]` in progress ・ `[x]` done ・
 `[-]` intentionally dropped.
 
+## Implementation status (live)
+
+- **Phase 0 (foundation)** ✅ + launch wiring: mpvtk is the **default**
+  UI (`browser_ui="mpvtk"`), attached to the player's mpv window, with
+  logo-free free-resizing browse window. Field-confirmed working.
+- **Phase 1 (core views)** ✅ Home, Grid, Detail, Series, Season, Search.
+- **Phase 2 (music/playlists)** ✅ Music tabs, Album (track list), Artist,
+  MusicGenre, Playlist. **Deferred:** Queue + PlaylistEdit (edit-heavy
+  table views).
+- **Now-playing bar** ✅ (Phase 5 slice): audio stays in browse with a
+  transport bar (video still yields to the picture + OSC).
+- **Remaining:** Phase 3 (auth: Login/Locked/Connecting, Settings
+  panels), Phase 4 (dialogs), rest of Phase 5 (nav switchers, banners,
+  tile context menus), Queue + PlaylistEdit, keybinding reconciliation.
+
+~330 automated checks (fast suite + real-mpv exit test, both backends).
+
 ---
 
 ## Source-of-truth map (what we are porting)
