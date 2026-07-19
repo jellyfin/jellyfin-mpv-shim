@@ -108,6 +108,39 @@ class _PlayerController:
     def set_volume(self, pct):
         self._act(lambda pm: pm.set_volume(float(pct)))
 
+    # -- tile actions (watched / favorite) --------------------------------
+
+    def set_watched(self, server_uuid, item_id, watched):
+        client = clientManager.clients.get(server_uuid)
+        if client is None or not item_id:
+            return
+        try:
+            client.jellyfin.item_played(item_id, bool(watched))
+        except Exception:
+            log.error("mpvtk set_watched failed", exc_info=True)
+
+    def set_favorite(self, server_uuid, item_id, favorite):
+        client = clientManager.clients.get(server_uuid)
+        if client is None or not item_id:
+            return
+        try:
+            client.jellyfin.favorite(item_id, bool(favorite))
+        except Exception:
+            log.error("mpvtk set_favorite failed", exc_info=True)
+
+    def open_url(self, url):
+        import webbrowser
+        try:
+            webbrowser.open(url)
+        except Exception:
+            log.error("could not open url %s", url, exc_info=True)
+
+    def retry_connect(self):
+        try:
+            clientManager.connect_all()
+        except Exception:
+            log.error("mpvtk retry connect failed", exc_info=True)
+
 
 class UserInterface:
     def __init__(self):
@@ -152,6 +185,8 @@ class UserInterface:
         self._browser = browser
         playerManager.mpvtk_active = True
         playerManager.on_playstate = browser.on_playstate
+        # Update notices surface in the browser banner (not the MPV OSD).
+        playerManager.notify_update = browser.notify_update
 
         browser.enter_browse()  # take the window + hide the OSC
         self._thread = threading.Thread(target=self._run, daemon=True,

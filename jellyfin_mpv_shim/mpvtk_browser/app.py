@@ -32,6 +32,7 @@ from ..mpvtk.widgets import (
     Icon,
     Image,
     ImageMap,
+    Menu,
     Row,
     Spacer,
     Text,
@@ -68,6 +69,11 @@ class MpvtkBrowser:
         self._browsing = True
         # Latest now-playing snapshot (from on_playstate) for the audio bar.
         self._now_playing = None
+        # Open tile context menu: {"item", "server", "x", "y"} or None.
+        self._menu = None
+        # Banners: update-available notice + offline indicator.
+        self._update = None       # {"version", "url"} or None
+        self._offline = False
         self.geom = geom or TileGeom()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -345,8 +351,84 @@ class MpvtkBrowser:
                 r,
                 id="%s-%s" % (prefix, r["key"]),
                 on_click=(lambda i=it: self._open_item(i)),
+                on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
+
+    # ------------------------------------------------------ tile context menu
+
+    def _open_tile_menu(self, item, x, y):
+        self._menu = {"item": item,
+                      "server": self.route.get("server") or self.server,
+                      "x": x, "y": y}
+        self.invalidate()
+
+    def _close_menu(self):
+        self._menu = None
+        self.invalidate()
+
+    def _tile_menu_node(self):
+        m = self._menu
+        item = m["item"]
+        ud = item.get("UserData") or {}
+        watched = bool(ud.get("Played")) or (
+            item.get("Type") in ("Series", "Season")
+            and (ud.get("UnplayedItemCount") or 0) == 0)
+        fav = bool(ud.get("IsFavorite"))
+        labels = [
+            _("Play"),
+            _("Mark Unwatched") if watched else _("Mark Watched"),
+            _("Remove from Favorites") if fav else _("Add to Favorites"),
+        ]
+        return Menu("tilemenu", labels, m["x"], m["y"],
+                    icons=["play_arrow", "check", "favorite"],
+                    on_select=self._menu_action, on_dismiss=self._close_menu)
+
+    def _menu_action(self, index, value):
+        m = self._menu
+        if m is None:
+            return
+        item, server = m["item"], m["server"]
+        ud = item.setdefault("UserData", {})
+        if index == 0:                                   # Play
+            self._menu_play(item, server)
+        elif index == 1:                                 # watched toggle
+            new = not (bool(ud.get("Played")) or (
+                item.get("Type") in ("Series", "Season")
+                and (ud.get("UnplayedItemCount") or 0) == 0))
+            ud["Played"] = new
+            if item.get("Type") in ("Series", "Season"):
+                ud["UnplayedItemCount"] = 0 if new else 1
+            self._client_call(lambda c: c.set_watched(
+                server, item.get("Id"), new))
+        elif index == 2:                                 # favorite toggle
+            new = not bool(ud.get("IsFavorite"))
+            ud["IsFavorite"] = new
+            self._client_call(lambda c: c.set_favorite(
+                server, item.get("Id"), new))
+        self._close_menu()
+
+    def _menu_play(self, item, server):
+        t = item.get("Type")
+        if t == "Audio":
+            self._play_list([item.get("Id")], server, audio=True)
+        elif t in PLAYABLE_TYPES:
+            self._play(item, server)
+        else:
+            self._open_item(item)
+
+    def _client_call(self, fn):
+        """Run a client-mutating action (watched/favorite) off the loop
+        thread so a slow server never stalls the UI."""
+        if self.controller is None:
+            return
+        self._pool.submit(lambda: self._safe(fn))
+
+    def _safe(self, fn):
+        try:
+            fn(self.controller)
+        except Exception:
+            log.warning("client action failed", exc_info=True)
 
     def _tile_row(self, title, items, row_id):
         return Column(
@@ -482,9 +564,14 @@ class MpvtkBrowser:
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(self._chrome(w))
+            banner = self._banner()
+            if banner is not None:
+                children.append(banner)
         children.append(content)
         if self._now_playing is not None and route["kind"] not in CHROME_FREE:
             children.append(self._now_playing_bar(w))
+        if self._menu is not None:
+            children.append(self._tile_menu_node())
         return Column(children, w=w, h=h, align="stretch")
 
     def _chrome(self, w):
@@ -965,6 +1052,53 @@ class MpvtkBrowser:
                             on_submit=lambda v, k=key: self._set_setting(k, v)),
                 ], gap=12, align="center"))
         return VScroll(Column(rows, pad=16, gap=8), id="settings", flex=1)
+
+    # ------------------------------------------------------------- banners
+
+    def notify_update(self, version, url):
+        """Registered as playerManager.notify_update: show the update notice
+        as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
+        self._update = {"version": version, "url": url}
+        self.invalidate()
+
+    def set_offline(self, offline):
+        offline = bool(offline)
+        if offline != self._offline:
+            self._offline = offline
+            self.invalidate()
+
+    def _banner(self):
+        if self._offline:
+            return Row([
+                Text(_("Offline — showing what's available."), size=16),
+                Spacer(),
+                Button(_("Retry"), id="banner-retry",
+                       on_click=self._retry_connect),
+            ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")
+        if self._update:
+            return Row([
+                Text(_("Update available: %s") % self._update["version"],
+                     size=16),
+                Spacer(),
+                Button(_("Open"), id="banner-open",
+                       on_click=lambda: self._open_url(self._update["url"])),
+                Button(_("Dismiss"), id="banner-dismiss",
+                       on_click=self._dismiss_update),
+            ], pad=10, gap=10, align="center", h=48, bg="2a3a5a")
+        return None
+
+    def _dismiss_update(self):
+        self._update = None
+        self.invalidate()
+
+    def _open_url(self, url):
+        if self.controller is not None and url:
+            self._safe(lambda c: c.open_url(url))
+        self._dismiss_update()
+
+    def _retry_connect(self):
+        if self.controller is not None:
+            self._pool.submit(lambda: self._safe(lambda c: c.retry_connect()))
 
     def _busy(self):
         return Box(

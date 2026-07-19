@@ -435,6 +435,80 @@ class TestPhase1Views(unittest.TestCase):
         self.assertEqual(len(self.b.nav_stack), before)
 
 
+class TestTileContextMenu(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_context_opens_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Name": "A", "Type": "Movie"},
+                               100, 200)
+        nodes, _h = build_scene(self.b)
+        self.assertTrue(any(n["t"] == "menu" for n in nodes))
+
+    def test_mark_watched_calls_client_and_updates_item(self):
+        item = {"Id": "m1", "Name": "A", "Type": "Movie",
+                "UserData": {"Played": False}}
+        self.b._open_tile_menu(item, 10, 10)
+        self.b._menu_action(1, None)          # "Mark Watched"
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertIsNone(self.b._menu)       # menu closed
+        calls = getattr(self.ctl, "transport", [])
+        self.assertIn("set_watched", [c[0] for c in calls])
+
+    def test_toggle_favorite_calls_client(self):
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"IsFavorite": False}}
+        self.b._open_tile_menu(item, 10, 10)
+        self.b._menu_action(2, None)          # "Add to Favorites"
+        self.assertTrue(item["UserData"]["IsFavorite"])
+        self.assertIn("set_favorite",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_menu_play_audio_plays(self):
+        item = {"Id": "s1", "Type": "Audio"}
+        self.b._open_tile_menu(item, 10, 10)
+        self.b._menu_action(0, None)          # "Play"
+        self.assertTrue(self.ctl.played)
+
+    def test_dismiss_closes_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.b._close_menu()
+        self.assertIsNone(self.b._menu)
+
+
+class TestBanners(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+
+    def test_update_banner_shows_and_dismisses(self):
+        self.b.notify_update("2.5.0", "http://example/rel")
+        nodes, handlers = build_scene(self.b)
+        self.assertIn("banner-open", ids(nodes))
+        self.assertIn("banner-dismiss", ids(nodes))
+        handlers["banner-dismiss"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-dismiss", ids(nodes))
+
+    def test_update_open_calls_controller(self):
+        self.b.notify_update("2.5.0", "http://example/rel")
+        _n, handlers = build_scene(self.b)
+        handlers["banner-open"]["click"]()
+        self.assertIn("open_url",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_offline_banner_toggles(self):
+        self.b.set_offline(True)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("banner-retry", ids(nodes))
+        self.b.set_offline(False)
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-retry", ids(nodes))
+
+
 class TestNowPlaying(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
