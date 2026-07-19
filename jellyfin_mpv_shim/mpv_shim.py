@@ -75,7 +75,9 @@ def main():
     gui_ready = None
     get_webview = lambda: None
     if settings.enable_gui:
-        if settings.browser_ui == "mpvtk":
+        # The mpvtk browser and the mpvtk display mirror both own the player's
+        # mpv window, so they're mutually exclusive — mirroring wins.
+        if settings.browser_ui == "mpvtk" and not settings.display_mirroring:
             try:
                 # The mpvtk browser rasterizes tiles with Pillow; probe it so
                 # a missing optional dep falls back cleanly.

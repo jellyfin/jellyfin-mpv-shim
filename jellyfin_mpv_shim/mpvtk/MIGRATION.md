@@ -74,7 +74,9 @@ wire-ups that were skipped. Status updated as each is fixed.
 - [x] Offline banner **"Configure Servers"** action.
 - [ ] Login **Quick Connect** flow.
 
-**Display mirror (Phase 6)** — replace the Tk+Pillow mirror with mpvtk.
+**Display mirror (Phase 6)** ✅ replaced Tk+Pillow with mpvtk (attaches
+to the player's mpv; backdrop+gradient+text baked into one full-window
+bitmap; mutually exclusive with the mpvtk browser). `display_mirror.py`.
 
 Confirmed intentionally deferred (not regressions to chase now): user
 switcher, PinSetup dialog, dedicated Servers/Logs/Downloads settings

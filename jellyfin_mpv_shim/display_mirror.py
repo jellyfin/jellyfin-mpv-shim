@@ -1,32 +1,32 @@
-"""Tkinter-based fullscreen "ready to cast" / item-preview window.
+"""In-mpv-window "ready to cast" / item-preview mirror (mpvtk).
 
-Replaces the previous pywebview + Jinja2 HTML implementation. Same public
-surface as the old DisplayMirror (run/stop/display_content/get_webview), so
-the rest of the app needs no changes.
+Renders inside the player's own mpv window via mpvtk, replacing the earlier
+Tk+Pillow fullscreen window (which itself replaced a pywebview+Jinja2 one).
+Same public surface as before (run/stop/display_content/get_webview), so the
+rest of the app is unchanged.
 
 Design:
-- A single fullscreen Tk root with a Canvas.
-- Backdrop image fetched via requests, scaled to cover, then composed with
-  a vertical dark gradient via Pillow for text legibility.
-- Title / misc info / overview drawn as Canvas text items, positioned by
-  bbox(...) walking up from the bottom-left.
-- All Tk mutations happen on the main thread via root.after; commands from
-  other threads (websocket events, player playback start/stop) are
-  marshalled through a queue.Queue.
+- Attach mpvtk to playerManager's mpv (no separate window/process).
+- Backdrop fetched via requests, scaled to cover, composited with a vertical
+  dark gradient, then the title / misc / overview text is baked into the SAME
+  bitmap with Pillow (bitmaps composite above ASS, so text must be baked, not
+  drawn as an overlay — see mpvtk GUIDE §6). The whole thing is one
+  full-window Image node.
+- ``display_content`` (websocket thread) and playback hide/show marshal onto
+  the mpvtk loop via ``invalidate()``; compositing runs on a worker pool.
 """
 
 import datetime
 import logging
 import math
-import queue as queue_mod
 import random
 import threading
-import tkinter as tk
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from typing import TYPE_CHECKING, Optional
 
 import requests
-from PIL import Image, ImageTk
+from PIL import Image
 
 from .clients import clientManager
 from .i18n import _
@@ -201,15 +201,43 @@ def _apply_dark_gradient(
 
 # ---- The window ---------------------------------------------------------
 
+def _pil_font(size, bold=False):
+    from PIL import ImageFont
+    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+    try:
+        return ImageFont.truetype(name, size)
+    except OSError:
+        return ImageFont.load_default()
+
+
+def _wrap(draw, text, font, max_w):
+    lines = []
+    for para in text.split("\n"):
+        cur = ""
+        for word in para.split():
+            trial = (cur + " " + word).strip()
+            if not cur or draw.textlength(trial, font=font) <= max_w:
+                cur = trial
+            else:
+                lines.append(cur)
+                cur = word
+        lines.append(cur)
+    return lines
+
+
 class DisplayMirror:
     def __init__(self):
-        self.queue: queue_mod.Queue = queue_mod.Queue()
-        self.root: Optional[tk.Tk] = None
-        self.canvas: Optional[tk.Canvas] = None
-        self.screen_w = 0
-        self.screen_h = 0
-        # Tk PhotoImage is GC'd if not held; keep the most recent reference.
-        self._bg_photo: Optional[ImageTk.PhotoImage] = None
+        self._app = None
+        self._store = None
+        self._size = None
+        self._data = {"idle": True}
+        self._entry = None       # baked {"src","iw","ih"} for the current data
+        self._version = 0
+        self._visible = True
+        self._lock = threading.Lock()
+        self._pool = ThreadPoolExecutor(max_workers=2,
+                                        thread_name_prefix="mirror")
+        self.stop_callback = None
 
     # --- public API matching the previous DisplayMirror -----------------
 
@@ -217,51 +245,49 @@ class DisplayMirror:
         return self  # exposes hide()/show() for player.py
 
     def hide(self):
-        self.queue.put(("hide", None))
+        # Playback started: yield the window to the video.
+        self._visible = False
+        self._invalidate()
 
     def show(self):
-        self.queue.put(("show", None))
+        self._visible = True
+        self._invalidate()
 
     def stop(self):
-        self.queue.put(("die", None))
+        if self._app is not None:
+            self._app.quit()
 
     def display_content(self, client: "client_type", arguments: dict):
-        # Called from the websocket thread. Item fetch is synchronous here
-        # (matches the prior behaviour); image fetch is deferred onto a
-        # worker thread spawned by the Tk loop.
+        # Websocket thread: fetch the item, then recomposite on a worker.
         try:
             item = client.jellyfin.get_item(arguments["Arguments"]["ItemId"])
         except Exception:
             log.warning("Could not fetch item for display.", exc_info=True)
             return
         server = client.config.data["auth.server"]
-        self.queue.put(("display", self._build_item_data(item, server)))
+        self._set_data(self._build_item_data(item, server))
 
     def run(self):
-        self.root = tk.Tk()
-        self.root.title("Jellyfin MPV Shim Mirror")
-        self.root.configure(bg="black")
-        self.root.attributes("-fullscreen", True)
-        self.root.config(cursor="none")
+        from .player import playerManager, is_using_ext_mpv
+        from .mpvtk.app import MpvtkApp
+        from .mpvtk.rawimage import MemoryStore, cache_dir
+        from .mpvtk_browser.strips import StripStore
 
-        self.screen_w = self.root.winfo_screenwidth()
-        self.screen_h = self.root.winfo_screenheight()
-
-        self.canvas = tk.Canvas(
-            self.root,
-            width=self.screen_w,
-            height=self.screen_h,
-            bg="black",
-            highlightthickness=0,
-        )
-        self.canvas.pack(fill="both", expand=True)
-
-        # Show idle state on startup. Network call goes on a worker so we
-        # don't block mainloop's startup.
-        threading.Thread(target=self._show_idle_async, daemon=True).start()
-
-        self.root.after(50, self._poll_queue)
-        self.root.mainloop()
+        self._app = MpvtkApp.attach(playerManager.get_mpv(),
+                                    ext=is_using_ext_mpv)
+        self._store = StripStore(
+            mem_store=MemoryStore() if self._app.in_process else None,
+            cache_dir=None if self._app.in_process
+            else cache_dir("mpvtk-mirror-"))
+        playerManager.mpvtk_active = True
+        playerManager.set_browse_window(True)
+        self._set_data({"idle": True})   # "Ready to cast" on startup
+        try:
+            self._app.run(self._build)   # blocks: this is the main loop
+        finally:
+            playerManager.mpvtk_active = False
+            if self.stop_callback is not None:
+                self.stop_callback()
 
     # --- internals ------------------------------------------------------
 
@@ -276,123 +302,93 @@ class DisplayMirror:
             "logo_url": _logo_url(item, server),
         }
 
-    def _poll_queue(self):
-        try:
-            while True:
-                cmd, payload = self.queue.get_nowait()
-                if cmd == "die":
-                    self.root.destroy()
-                    return
-                if cmd == "hide":
-                    self.root.withdraw()
-                elif cmd == "show":
-                    self.root.deiconify()
-                    self.root.attributes("-fullscreen", True)
-                elif cmd == "display":
-                    threading.Thread(
-                        target=self._render_item, args=(payload,), daemon=True
-                    ).start()
-                elif cmd == "idle":
-                    threading.Thread(target=self._show_idle_async, daemon=True).start()
-        except queue_mod.Empty:
-            pass
-        self.root.after(50, self._poll_queue)
+    def _build(self, size):
+        from .mpvtk.widgets import Column, Image as ImageNode
 
-    def _show_idle_async(self):
-        url = _random_backdrop_url()
-        backdrop = _fetch_image(url) if url else None
-        data = {
-            "title": _("Ready to cast"),
-            "overview": _("Select your media in Jellyfin and play it here."),
-            "misc": "",
-            "rating": "",
-        }
-        self.root.after(0, lambda: self._render(data, backdrop))
+        if self._size != size:
+            self._size = size
+            self._recomposite()   # window size changed -> rebuild the bitmap
+        e = self._entry
+        if not self._visible or e is None:
+            return Column([], w=size[0], h=size[1])
+        return ImageNode(e["src"], e["iw"], e["ih"], w=size[0], h=size[1])
 
-    def _render_item(self, data: dict):
-        backdrop = _fetch_image(data.get("backdrop_url"))
-        self.root.after(0, lambda: self._render(data, backdrop))
+    def _set_data(self, data):
+        self._data = data
+        self._recomposite()
 
-    def _canvas_dimensions(self) -> tuple:
-        """Return the actual rendered canvas size, not the (possibly multi-
-        monitor) screen size. winfo_screenwidth/height returns the combined
-        virtual desktop on multi-monitor and Wayland setups, which causes text
-        wrap to misbehave."""
-        self.canvas.update_idletasks()
-        w = self.canvas.winfo_width()
-        h = self.canvas.winfo_height()
-        if w <= 1 or h <= 1:
-            # Canvas not realized yet — fall back to the root window, then to
-            # the (potentially wrong) screen dims as a last resort.
-            w = self.root.winfo_width() or self.screen_w
-            h = self.root.winfo_height() or self.screen_h
-        return w, h
-
-    def _render(self, data: dict, backdrop: Optional["Image.Image"]):
-        if not self.canvas:
+    def _recomposite(self):
+        if self._size is None or self._store is None:
             return
-        self.canvas.delete("all")
-        cw, ch = self._canvas_dimensions()
+        data, size = self._data, self._size
+        self._pool.submit(lambda: self._composite(data, size))
 
-        if backdrop is not None:
-            try:
-                bg = _scale_to_cover(backdrop, cw, ch)
-                bg = _apply_dark_gradient(bg)
-                self._bg_photo = ImageTk.PhotoImage(bg)
-                self.canvas.create_image(0, 0, image=self._bg_photo, anchor="nw")
-            except Exception:
-                log.warning("Failed to render backdrop.", exc_info=True)
-                self._bg_photo = None
+    def _composite(self, data, size):
+        try:
+            w, h = size
+            if data.get("idle"):
+                title = _("Ready to cast")
+                overview = _("Select your media in Jellyfin and play it here.")
+                misc = rating = ""
+                url = _random_backdrop_url()
+            else:
+                title = data.get("title") or ""
+                overview = data.get("overview") or ""
+                misc = data.get("misc") or ""
+                rating = data.get("rating") or ""
+                url = data.get("backdrop_url")
 
-        self._render_text(data, cw, ch)
+            backdrop = _fetch_image(url) if url else None
+            if backdrop is not None:
+                canvas = _apply_dark_gradient(_scale_to_cover(backdrop, w, h))
+            else:
+                canvas = Image.new("RGBA", (w, h), (18, 18, 20, 255))
 
-    def _render_text(self, data: dict, cw: int, ch: int):
+            self._draw_text(canvas, title, misc, rating, overview, w, h)
+            self._version += 1
+            entry = self._store.bitmap("mirror%d" % self._version, canvas)
+            with self._lock:
+                self._entry = entry
+            self._invalidate()
+        except Exception:
+            log.warning("Display mirror composite failed.", exc_info=True)
+
+    def _draw_text(self, canvas, title, misc, rating, overview, cw, ch):
+        from PIL import ImageDraw
+
+        draw = ImageDraw.Draw(canvas)
         margin = max(40, cw // 30)
         wrap = cw - 2 * margin
-
-        # Font sizes scale with the rendered canvas height; clamped to
-        # sensible bounds for very small/large windows.
         info_size = max(14, min(28, ch // 50))
         body_size = max(18, min(36, ch // 30))
+        title = (title or "")[:200]
+        base = max(36, min(96, ch // 14))
+        title_size = int(base * (0.6 if len(title) > 60
+                                 else 0.75 if len(title) > 40 else 1.0))
 
-        # Title font scales down for long titles so multi-line episode names
-        # don't dominate the screen. Hard-cap absurdly long ones.
-        title = (data.get("title") or "")[:200]
-        base_title_size = max(36, min(96, ch // 14))
-        if len(title) > 60:
-            title_size = int(base_title_size * 0.6)
-        elif len(title) > 40:
-            title_size = int(base_title_size * 0.75)
-        else:
-            title_size = base_title_size
+        # Bottom-up: overview, then misc·rating, then the title.
+        y = ch - margin
 
-        # Build bottom-up: place each line at the previous line's top edge.
-        anchor_y = ch - margin
-
-        def stack_text(text: str, font, fill: str, *, gap: int = 18) -> int:
-            nonlocal anchor_y
+        def stack(text, font, fill, gap=18):
+            nonlocal y
             if not text:
-                return anchor_y
-            text_id = self.canvas.create_text(
-                margin,
-                anchor_y,
-                text=text,
-                font=font,
-                fill=fill,
-                anchor="sw",
-                width=wrap,
-            )
-            bbox = self.canvas.bbox(text_id)
-            if bbox:
-                anchor_y = bbox[1] - gap
-            return anchor_y
+                return
+            lines = _wrap(draw, text, font, wrap)
+            for line in reversed(lines):
+                asc, desc = font.getmetrics()
+                lh = asc + desc
+                draw.text((margin, y - lh), line, font=font, fill=fill)
+                y -= lh + 4
+            y -= gap - 4
 
-        stack_text(data.get("overview", ""), ("Helvetica", body_size), "#dddddd")
-        misc_line = "    ".join(
-            s for s in (data.get("misc"), data.get("rating")) if s
-        )
-        stack_text(misc_line, ("Helvetica", info_size), "#bbbbbb")
-        stack_text(title, ("Helvetica", title_size, "bold"), "#ffffff", gap=8)
+        stack(overview, _pil_font(body_size), (221, 221, 221))
+        stack("    ".join(s for s in (misc, rating) if s),
+              _pil_font(info_size), (187, 187, 187))
+        stack(title, _pil_font(title_size, bold=True), (255, 255, 255), gap=8)
+
+    def _invalidate(self):
+        if self._app is not None:
+            self._app.invalidate()
 
 
 mirror = DisplayMirror()
