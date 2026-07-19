@@ -57,6 +57,14 @@ class OscBridge:
         self._skip_label = label
         self.playerManager.script_message("shim-jf-osc-skip", label or "")
 
+    def build_state(self):
+        """The full menu/track state blob (tracks with selection,
+        quality, sub style, profiles, SyncPlay, favorite, queue).
+        send_state() pushes this same blob to the lua OSC; the mpvtk
+        playback HUD consumes it directly for its pickers. May raise —
+        callers guard."""
+        return self._build_state()
+
     def send_state(self):
         """Push the current menu/track state to the OSC."""
         # Inert unless the jellyfin OSC script was actually loaded into

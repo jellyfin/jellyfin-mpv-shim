@@ -89,6 +89,41 @@ class _PlayerController:
         from ..player import playerManager
         return playerManager.trickplay_meta
 
+    def hud_menu_state(self):
+        """osc_bridge's menu/track state blob for the HUD's pickers
+        (audio/subtitles with selection, quality, …), or None."""
+        from ..player import playerManager
+        try:
+            return playerManager.osc_bridge.build_state()
+        except Exception:
+            log.debug("hud_menu_state failed", exc_info=True)
+            return None
+
+    def hud_action(self, verb, arg=None):
+        """Route a picker/skip action through the same dispatcher the
+        lua OSC uses (osc_bridge.handle_action), so e.g. selecting a
+        burn-in subtitle restarts the transcode exactly like the OSD
+        menu would."""
+        from ..player import playerManager
+        args = [verb] if arg is None else [verb, str(arg)]
+        playerManager.osc_bridge.handle_action(args)
+
+    def chapters(self):
+        """mpv's chapter list as [{"title", "time"}], [] when none."""
+        from ..player import playerManager
+        try:
+            chapters = playerManager._player.chapter_list or []
+        except Exception:
+            return []
+        out = []
+        for ch in chapters:
+            try:
+                out.append({"title": ch.get("title") or "",
+                            "time": float(ch.get("time") or 0.0)})
+            except Exception:
+                continue
+        return out
+
     def on_browse_leave(self):
         from ..player import playerManager
         # Restore video aspect handling / playback fullscreen, then hand the

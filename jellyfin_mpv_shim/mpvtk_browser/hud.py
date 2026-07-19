@@ -20,6 +20,7 @@ from ..i18n import _
 from ..mpvtk.widgets import (
     Button,
     Column,
+    Dropdown,
     Gradient,
     Image,
     Row,
@@ -93,6 +94,85 @@ def _trickplay_frame(b, secs):
     return entry
 
 
+def _hud_action(b, verb, arg=None):
+    b._ctl(lambda c: c.hud_action(verb, arg))
+
+
+def _option_picker(b, node_id, icon, tip, options, verb):
+    """Icon-trigger dropdown over osc_bridge option dicts
+    ([{id, label, selected}]); selecting routes through hud_action so
+    the change lands exactly like the lua OSC's menus."""
+    sel = next((i for i, o in enumerate(options) if o.get("selected")), 0)
+    return Dropdown(
+        node_id, [o.get("label") or "" for o in options], selected=sel,
+        force=True, trigger_icon=icon, tip=tip,
+        on_select=lambda i, v, opts=options: _hud_action(
+            b, verb, opts[i]["id"]))
+
+
+def _pickers(b, menu_state, pos):
+    """Right-aligned controls: chapters, audio/subtitle tracks, quality
+    — each only when there is a real choice to make."""
+    out = []
+    chapters = []
+    if b.controller is not None and hasattr(b.controller, "chapters"):
+        try:
+            chapters = b.controller.chapters()
+        except Exception:
+            chapters = []
+    if chapters:
+        cur = 0
+        for i, ch in enumerate(chapters):
+            if ch["time"] <= pos:
+                cur = i
+        labels = [
+            "%s  %s" % (_clock(ch["time"]),
+                        ch["title"] or _("Chapter %d") % (i + 1))
+            for i, ch in enumerate(chapters)
+        ]
+        out.append(Dropdown(
+            "hud-chapters", labels, selected=cur, force=True,
+            trigger_icon="bookmark", tip=_("Chapters"),
+            on_select=lambda i, v, chs=chapters: b._ctl(
+                lambda c: c.seek(chs[i]["time"]))))
+    st = menu_state if menu_state and menu_state.get("has_media") else None
+    if st is None:
+        return out
+    audio = st.get("audio") or []
+    if len(audio) > 1:
+        out.append(_option_picker(b, "hud-audio", "audiotrack",
+                                  _("Audio Track"), audio, "set-audio"))
+    subs = st.get("subtitles") or []
+    if len(subs) > 1:  # more than just "None"
+        out.append(_option_picker(b, "hud-sub", "closed_caption",
+                                  _("Subtitle Track"), subs, "set-sub"))
+    quality = st.get("quality") or {}
+    if quality.get("options"):
+        out.append(_option_picker(b, "hud-quality", "hd",
+                                  _("Video Quality"), quality["options"],
+                                  "set-quality"))
+    return out
+
+
+def _skip_float(b, size):
+    """Floating Skip Intro / Skip Credits button above the bar's right
+    edge (jellyfin-web's placement), when the player says a skippable
+    segment is live (playstate skip_label)."""
+    label = (b._hud_state or {}).get("skip_label")
+    if not label:
+        return None
+    rect = None
+    if b.app is not None and hasattr(b.app, "node_rect"):
+        rect = b.app.node_rect("hud-seek")
+    if rect is None:
+        return None
+    return Button(
+        label, id="hud-skip", size=18, bg="eeeeee", fg="111111",
+        hover={"fill": "ffffff"},
+        on_click=lambda: _hud_action(b, "skip-segment"),
+        anchor="ne", dx=-24, dy=rect["y"] - 56)
+
+
 def build_hud(b, size):
     """The summoned HUD scene. ``b`` is the Browser (playstate snapshot,
     scrub state, controller plumbing); returns the full-window tree."""
@@ -118,6 +198,13 @@ def build_hud(b, size):
         on_commit=b._hud_scrub_commit,
         on_cancel=b._hud_scrub_cancel)
 
+    menu_state = None
+    if b.controller is not None and hasattr(b.controller, "hud_menu_state"):
+        try:
+            menu_state = b.controller.hud_menu_state()
+        except Exception:
+            menu_state = None
+
     shown_pos = pos if scrub is None else scrub
     transport = Row(
         [
@@ -133,8 +220,7 @@ def build_hud(b, size):
             Text("%s / %s" % (_clock(shown_pos), _clock(dur)), size=15,
                  color="ffffff" if scrub is not None else "dddddd"),
             Spacer(),
-            # 9.3: audio/subtitle pickers, chapters, quality (osc_bridge)
-        ],
+        ] + _pickers(b, menu_state, pos),
         gap=6, align="center")
 
     bar = Column(
@@ -153,6 +239,10 @@ def build_hud(b, size):
                  h=min(int(h * SCRIM_FRAC), SCRIM_MAX), anchor="sw"),
         bar,
     ]
+
+    skip = _skip_float(b, size)
+    if skip is not None:
+        children.append(skip)
 
     preview = _preview_float(b, scrub, dur, size)
     if preview is not None:

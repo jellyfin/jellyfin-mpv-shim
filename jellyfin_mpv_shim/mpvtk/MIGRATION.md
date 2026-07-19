@@ -1446,9 +1446,32 @@ PER_BACKEND_REAL leg):
   align="stretch" (stretch only sizes children with no fixed cross
   size) — wrap it in an unsized Row and flex inside.
 
-Remaining: 9.3 (pickers/chapters/skip-intro via osc_bridge data,
-chapter ticks/snap, maybe chapter-image preview fallback), 9.4
-(default flip + lua OSC removal).
+**9.3 ✅ (2026-07-19).** Pickers, chapters, skip-intro:
+
+- osc_bridge grows a public `build_state()` (same blob send_state
+  pushes to the lua OSC); the controller exposes it as
+  `hud_menu_state()` plus `hud_action(verb, arg)` — picker selections
+  route through `osc_bridge.handle_action`, so a burn-in subtitle
+  restarts the transcode exactly like the lua OSC's menus, and
+  `chapters()` (mpv chapter-list).
+- HUD right side: chapters / audio / subtitles / quality as
+  icon-trigger Dropdowns (bookmark, audiotrack, closed_caption, hd),
+  each only shown when there's a real choice; chapter select seeks to
+  the chapter start; selection marked via force=True from the blob.
+- Skip Intro/Credits: player.update() stores the promptable segment on
+  `_hud_skip` when the HUD owns playback (same decision logic as the
+  lua OSC's floating button, including skip_*_always auto-skip which
+  stays player-side); push_playstate carries a localized `skip_label`;
+  the HUD floats a white button above the bar's right edge
+  (jellyfin-web placement). PARITY GAP, accepted for field-proving:
+  the lua OSC's skip button appears even with the OSC hidden — the
+  HUD's only while summoned (idle = blank scene + no input sections).
+  Revisit before 9.4 if it grates.
+- Deferred still: chapter ticks on the slider track, chapter-snap
+  while scrubbing, chapter-image preview fallback (videos with
+  chapter thumbs but no trickplay).
+
+Remaining: 9.4 (default flip + lua OSC removal after field-proving).
 
 ## Cross-cutting risks & open questions
 

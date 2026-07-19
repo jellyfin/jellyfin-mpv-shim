@@ -28,9 +28,20 @@ class FakeController:
     def __init__(self):
         self.calls = []
         self.trickplay_meta = None
+        self.menu_state = None
+        self.chapter_list = []
 
     def trickplay(self):
         return self.trickplay_meta
+
+    def hud_menu_state(self):
+        return self.menu_state
+
+    def hud_action(self, verb, arg=None):
+        self.calls.append(("hud_action", verb, arg))
+
+    def chapters(self):
+        return list(self.chapter_list)
 
     def use_hud(self):
         return True
@@ -272,6 +283,64 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertEqual(len(seeks), 1, "cancel must not seek")
         self._wait(lambda: self.app.node_rect("hud-preview") is None,
                    msg="preview never cleared after cancel")
+
+    def test_pickers_chapters_and_skip_button(self):
+        self.ctl.menu_state = {
+            "has_media": True,
+            "audio": [
+                {"id": 1, "label": "English 5.1", "selected": True},
+                {"id": 2, "label": "Commentary", "selected": False},
+            ],
+            "subtitles": [
+                {"id": -1, "label": "None", "selected": True},
+                {"id": 3, "label": "English", "selected": False},
+            ],
+            "quality": {"current": "No Transcode", "options": [
+                {"id": "none", "label": "No Transcode", "selected": True},
+                {"id": 20, "label": "20 Mbps", "selected": False},
+            ]},
+        }
+        self.ctl.chapter_list = [
+            {"title": "Opening", "time": 0.0},
+            {"title": "Part Two", "time": 12.0},
+        ]
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="renderer never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser._hud_shown,
+                          msg="summon failed")
+        for nid in ("hud-audio", "hud-sub", "hud-quality", "hud-chapters"):
+            self._wait(lambda nid=nid: self.app.node_rect(nid) is not None,
+                       msg="picker %s never materialized" % nid)
+
+        # audio picker: open the popup, choose the second track — must
+        # route through osc_bridge's dispatcher verb
+        self.app.debug(cmd="click", id="hud-audio")
+        self._wait(lambda: self._state().get("dd_open") == "hud-audio",
+                   msg="audio popup never opened")
+        self.app.debug(cmd="popup", index=1)
+        self._wait(lambda: ("hud_action", "set-audio", 2) in self.ctl.calls,
+                   msg="audio selection never dispatched: %r"
+                   % self.ctl.calls)
+
+        # chapter picker: choosing a chapter seeks to its start
+        self.app.debug(cmd="click", id="hud-chapters")
+        self._wait(lambda: self._state().get("dd_open") == "hud-chapters",
+                   msg="chapter popup never opened")
+        self.app.debug(cmd="popup", index=1)
+        self._wait(lambda: ("seek", 12.0) in self.ctl.calls,
+                   msg="chapter selection never seeked: %r" % self.ctl.calls)
+
+        # skip button appears with the playstate's skip_label and fires
+        # the skip verb
+        self.browser.on_playstate(dict(VIDEO_STATE,
+                                       skip_label="Skip Intro"))
+        self._wait(lambda: self.app.node_rect("hud-skip") is not None,
+                   msg="skip button never appeared")
+        self.app.debug(cmd="click", id="hud-skip")
+        self._wait(lambda: ("hud_action", "skip-segment", None)
+                   in self.ctl.calls,
+                   msg="skip button never dispatched: %r" % self.ctl.calls)
 
     def test_paused_video_keeps_hud_up(self):
         self._play_video()

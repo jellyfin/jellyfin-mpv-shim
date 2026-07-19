@@ -205,6 +205,10 @@ class PlayerManager(object):
         # playback HUD reads frames straight out of it for scrub previews;
         # the lua OSCs get the same data via shim-trickplay-bif instead.
         self.trickplay_meta = None
+        # Skippable segment the mpvtk playback HUD should offer a button
+        # for (an Intro object, or None). The lua OSC gets the same
+        # prompt via osc_bridge.update_skip_button instead.
+        self._hud_skip = None
         self._osc_script_loaded = False
         self._mpv_alive = False
         # True when mpv was terminated intentionally to save resources while
@@ -889,8 +893,12 @@ class PlayerManager(object):
 
                 # With the jellyfin OSC, "ask" mode shows a floating Skip
                 # Intro/Credits button instead of the seek-to-skip OSD
-                # text prompt.
+                # text prompt. The mpvtk HUD renders its own button from
+                # _hud_skip (visible while the HUD is summoned).
                 jf_skip_button = self.osc_bridge.active()
+                hud_skip_button = (
+                    settings.osc_style == "mpvtk" and self.mpvtk_active
+                )
 
                 if intro is not None:
                     should_prompt = (
@@ -919,6 +927,11 @@ class PlayerManager(object):
                         self.osc_bridge.update_skip_button(
                             intro if should_prompt and not should_skip else None
                         )
+                    elif hud_skip_button:
+                        self._hud_skip = (
+                            intro if should_prompt and not should_skip
+                            else None
+                        )
                     elif (
                         not self.is_in_intro
                         and should_prompt
@@ -938,7 +951,10 @@ class PlayerManager(object):
                 else:
                     if jf_skip_button:
                         self.osc_bridge.update_skip_button(None)
+                    self._hud_skip = None
                     self.is_in_intro = False
+            else:
+                self._hud_skip = None
         except _mpv_errors:
             self._handle_mpv_disconnect()
             return
@@ -1834,10 +1850,16 @@ class PlayerManager(object):
             except _mpv_errors:
                 cb({"stopped": True})
                 return
+            skip = self._hud_skip
             cb({
                 "stopped": False,
                 "is_audio": (item.get("MediaType") == "Audio"
                              or item.get("Type") == "Audio"),
+                "skip_label": (
+                    (_("Skip Credits") if skip.type == "Outro"
+                     else _("Skip Intro"))
+                    if skip is not None else None
+                ),
                 "title": item.get("Name") or "",
                 "artist": ", ".join(item.get("Artists") or []),
                 "album": item.get("Album") or "",
