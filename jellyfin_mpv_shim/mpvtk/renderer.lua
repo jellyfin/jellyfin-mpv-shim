@@ -763,22 +763,57 @@ local function dd_state(node)
     return d
 end
 
--- Vertical fade as stacked translucent ASS bands — bitmaps would
--- cover the controls that sit on it, ASS bands stay underneath them.
-local GRAD_BANDS = 24
-
+-- Vertical fade. Alpha-stepped bands show visible banding (the lua
+-- OSC's jellyfin layout hit exactly this), so instead draw ONE solid
+-- translucent box with a heavily blurred fading edge: the gaussian
+-- edge is a continuous alpha ramp. The box extends well past the node
+-- on the other three sides and is clipped to the node rect, so only
+-- the fade edge shows. ASS (not a bitmap) so ordinary ASS content
+-- still draws on top of it. Constants match the OSC's
+-- add_jf_gradient, which is field-proven not to band.
 local function draw_gradient(ass, node, ex, ey, clip)
-    local bh = node.h / GRAD_BANDS
-    for i = 0, GRAD_BANDS - 1 do
-        local t = (i + 0.5) / GRAD_BANDS
-        local a = (node.a1 or 0) + ((node.a2 or 0) - (node.a1 or 0)) * t
-        if a > 1 then
-            draw_rect(ass, ex, ey + i * bh, node.w, bh + 0.5, {
-                fill = node.c or '000000', a = math.floor(a),
-                clip = clip,
-            })
-        end
+    local a1, a2 = node.a1 or 0, node.a2 or 0
+    local w, h = node.w, node.h
+    if h <= 0 or w <= 0 then return end
+    -- confine everything to the node rect (∩ the scroll clip)
+    local c = { x1 = ex, y1 = ey, x2 = ex + w, y2 = ey + h }
+    if clip then
+        c.x1 = math.max(c.x1, clip.x1)
+        c.y1 = math.max(c.y1, clip.y1)
+        c.x2 = math.min(c.x2, clip.x2)
+        c.y2 = math.min(c.y2, clip.y2)
     end
+    if c.x2 <= c.x1 or c.y2 <= c.y1 then return end
+    local lo = math.min(a1, a2)
+    if lo > 0 then
+        -- uniform base layer; the blurred box adds the delta on top
+        -- (compositing two translucent layers slightly under-shoots
+        -- the dense end's target opacity — fine for a scrim)
+        draw_rect(ass, ex, ey, w, h,
+            { fill = node.c or '000000', a = lo, clip = c })
+    end
+    local hi = math.max(a1, a2)
+    if hi <= lo then return end
+    -- gaussian edge reaches ~full/zero alpha about 2*blur from the
+    -- box edge; place the edge so the ramp spans the node height,
+    -- solid at the dense end
+    local blur = h / 4
+    local over = blur * 4
+    local edge = h / 2.2
+    ass:new_event()
+    ass:append(string.format(
+        '{\\pos(0,0)\\an7\\bord0\\shad0\\blur%.1f\\1c%s\\1a%s%s}',
+        blur, ass_color(node.c or '000000'), ass_alpha(hi - lo),
+        clip_tag(c)))
+    ass:draw_start()
+    if a2 >= a1 then
+        -- dense at the bottom: the box's top edge is the fade
+        ass:rect_cw(ex - over, ey + h - edge, ex + w + over,
+            ey + h + over)
+    else
+        ass:rect_cw(ex - over, ey - over, ex + w + over, ey + edge)
+    end
+    ass:draw_stop()
 end
 
 local function draw_dropdown(ass, node, ex, ey, clip)

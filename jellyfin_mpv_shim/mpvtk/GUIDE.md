@@ -67,9 +67,10 @@ primitive, see §5), `Button` (Box+Text sugar; `repeat=True` refires
 on_click while held — paging arrows; `flat=True` is the
 transparent-over-video style: nothing at rest, translucent hover
 wash), `Checkbox` (Row sugar), `Progress` (determinate bar; `Busy`
-stays the indeterminate spinner), `Gradient` (vertical fade drawn as
-stacked ASS bands so ordinary content still draws on top — the
-playback HUD's bottom scrim). `Dropdown(trigger_icon=…)` swaps the
+stays the indeterminate spinner), `Gradient` (vertical fade — one
+solid ASS box with a gaussian-blurred fading edge, the banding-free
+technique from the lua OSC; ASS, so ordinary content still draws on
+top — the playback HUD's bottom scrim). `Dropdown(trigger_icon=…)` swaps the
 boxed control for a bare icon button; its popup sizes to the items
 and clamps to the screen edges.
 

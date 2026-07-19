@@ -377,11 +377,14 @@ class Form(Grid):
 
 
 class Gradient(Element):
-    """A vertical fade (ASS-banded, so ordinary ASS content still draws
-    on top — a bitmap gradient would cover everything). The playback
-    HUD's bottom scrim: ``Gradient(color="000000", top=0, bottom=200)``
-    fades from transparent at the top edge to mostly-opaque at the
-    bottom. Opacities are 0–255. Non-interactive."""
+    """A vertical fade (ASS, so ordinary ASS content still draws on
+    top — a bitmap gradient would cover everything). Drawn as one
+    solid box with a gaussian-blurred fading edge, not stacked alpha
+    bands (those show visible banding — the lua OSC's gradient learned
+    this the hard way). The playback HUD's bottom scrim:
+    ``Gradient(color="000000", top=0, bottom=200)`` fades from
+    transparent at the top edge to mostly-opaque at the bottom.
+    Opacities are 0–255. Non-interactive."""
 
     def __init__(self, color="000000", top=0, bottom=200, **kw):
         super().__init__(**kw)
