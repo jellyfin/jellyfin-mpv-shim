@@ -17,6 +17,7 @@ Design:
 """
 
 import datetime
+import hashlib
 import logging
 import math
 import random
@@ -236,6 +237,12 @@ class DisplayMirror:
         self._entry = None       # baked {"src","iw","ih"} for the current data
         self._version = 0
         self._visible = True
+        self._stopped = False    # stop() before run(): don't start the loop
+        # Decoded backdrop for the current _data, so a window resize
+        # re-composites from memory instead of re-downloading (and, when idle,
+        # re-rolling the random backdrop mid-drag).
+        self._backdrop = None
+        self._backdrop_key = None
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=2,
                                         thread_name_prefix="mirror")
@@ -247,15 +254,35 @@ class DisplayMirror:
         return self  # exposes hide()/show() for player.py
 
     def hide(self):
-        # Playback started: yield the window to the video.
+        # Playback started: yield the window (and its input) to the video+OSC.
         self._visible = False
+        self._set_active(False)
         self._invalidate()
 
     def show(self):
         self._visible = True
+        self._set_active(True)
         self._invalidate()
 
+    def _set_active(self, active):
+        """Suspend the in-mpv renderer while the picture owns the window, so
+        its forced mouse bindings don't swallow the OSC's clicks."""
+        if self._app is None:
+            return
+        try:
+            self._app.set_active(active)
+            from .player import playerManager
+            from .conf import settings
+
+            playerManager.enable_osc(settings.enable_osc if not active
+                                     else False)
+        except Exception:
+            log.debug("mirror set_active failed", exc_info=True)
+
     def stop(self):
+        # A tray Quit can land before run() has attached (mpv_shim waits on
+        # gui_ready first), so remember it rather than dropping it.
+        self._stopped = True
         if self._app is not None:
             self._app.quit()
 
@@ -281,8 +308,18 @@ class DisplayMirror:
             mem_store=MemoryStore() if self._app.in_process else None,
             cache_dir=None if self._app.in_process
             else cache_dir("mpvtk-mirror-"))
+        if self._stopped:
+            return
         playerManager.mpvtk_active = True
         playerManager.set_browse_window(True)
+        # Casting-screen UX: fullscreen and no OSC over the backdrop. The
+        # browse window itself is deliberately not fullscreen (browser_
+        # fullscreen), so ask for it explicitly here.
+        try:
+            playerManager.set_fullscreen(True)
+        except Exception:
+            log.debug("mirror fullscreen failed", exc_info=True)
+        playerManager.enable_osc(False)
         self._set_data({"idle": True})   # "Ready to cast" on startup
         try:
             self._app.run(self._build)   # blocks: this is the main loop
@@ -317,6 +354,11 @@ class DisplayMirror:
 
     def _set_data(self, data):
         self._data = data
+        # New item -> new backdrop. Dropping the cached one here (and only
+        # here) is what makes a resize re-composite without touching the
+        # network, and keeps the idle screen's random backdrop stable.
+        self._backdrop = None
+        self._backdrop_key = None
         self._recomposite()
 
     def _recomposite(self):
@@ -332,7 +374,12 @@ class DisplayMirror:
                 title = _("Ready to cast")
                 overview = _("Select your media in Jellyfin and play it here.")
                 misc = rating = ""
-                url = _random_backdrop_url()
+                # Only roll the random backdrop when we don't already have one
+                # — otherwise it changes on every resize tick (and queries the
+                # server to do it).
+                with self._lock:
+                    resolved = self._backdrop_key is not None
+                url = None if resolved else _random_backdrop_url()
             else:
                 title = data.get("title") or ""
                 overview = data.get("overview") or ""
@@ -340,20 +387,49 @@ class DisplayMirror:
                 rating = data.get("rating") or ""
                 url = data.get("backdrop_url")
 
-            backdrop = _fetch_image(url) if url else None
+            backdrop = self._get_backdrop(url)
             if backdrop is not None:
                 canvas = _apply_dark_gradient(_scale_to_cover(backdrop, w, h))
             else:
                 canvas = Image.new("RGBA", (w, h), (18, 18, 20, 255))
 
             self._draw_text(canvas, title, misc, rating, overview, w, h)
-            self._version += 1
-            entry = self._store.bitmap("mirror%d" % self._version, canvas)
+            # Content-keyed, not a monotonic counter: a counter is a
+            # guaranteed cache miss, so every resize tick retained another
+            # full-window BGRA buffer (~8 MB at 1080p) until the LRU capped
+            # at 48 of them.
+            key = "mirror-%dx%d-%s" % (
+                w, h,
+                hashlib.sha1(
+                    "\x00".join((title, misc, rating, overview,
+                                 self._backdrop_key or "")).encode("utf-8")
+                ).hexdigest())
+            entry = self._store.bitmap(key, canvas)
             with self._lock:
                 self._entry = entry
             self._invalidate()
         except Exception:
             log.warning("Display mirror composite failed.", exc_info=True)
+
+    def _get_backdrop(self, url):
+        """Decoded backdrop for the current data, fetched at most once.
+
+        The idle screen picks a *random* backdrop, so re-resolving it per
+        composite made the picture change while the user dragged the window;
+        item screens just re-downloaded the same image."""
+        with self._lock:
+            if self._backdrop_key is not None:
+                return self._backdrop
+        if not url:
+            with self._lock:
+                self._backdrop_key = ""
+                self._backdrop = None
+            return None
+        image = _fetch_image(url)
+        with self._lock:
+            self._backdrop = image
+            self._backdrop_key = url
+        return image
 
     def _draw_text(self, canvas, title, misc, rating, overview, cw, ch):
         from PIL import ImageDraw

@@ -54,6 +54,41 @@ class TestMirror(unittest.TestCase):
         node = m._build((800, 600))
         self.assertEqual(node.children, [])   # empty Column -> clears overlays
 
+    def test_backdrop_is_fetched_once_per_data_change(self):
+        """A window resize must re-composite from the cached image, not go
+        back to the network (and, when idle, not re-roll the random
+        backdrop)."""
+        m = self._mirror()
+        calls = []
+
+        def fake_fetch(url, timeout=10):
+            calls.append(url)
+            return None
+        import jellyfin_mpv_shim.display_mirror as dm
+        real, dm._fetch_image = dm._fetch_image, fake_fetch
+        try:
+            data = dict(ITEM_DATA, backdrop_url="http://srv/bd.jpg")
+            m._data = data
+            m._composite(data, (800, 600))
+            m._composite(data, (1024, 768))
+            m._composite(data, (1280, 720))
+            self.assertEqual(len(calls), 1)
+            m._set_data(dict(data, title="Other"))   # new item -> refetch
+            m._composite(m._data, (800, 600))
+            self.assertEqual(len(calls), 2)
+        finally:
+            dm._fetch_image = real
+
+    def test_bitmap_key_is_content_addressed(self):
+        """A monotonic key was a guaranteed cache miss, so each resize tick
+        retained another full-window buffer."""
+        m = self._mirror()
+        m._composite(ITEM_DATA, (800, 600))
+        first = m._entry["src"]
+        m._composite(ITEM_DATA, (800, 600))
+        self.assertEqual(m._entry["src"], first)
+        self.assertEqual(len(m._store._cache), 1)
+
     def test_wrap_breaks_long_text(self):
         from PIL import Image as PILImage, ImageDraw
         from jellyfin_mpv_shim.display_mirror import _pil_font

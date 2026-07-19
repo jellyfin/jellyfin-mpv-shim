@@ -5,6 +5,87 @@ bonus, the display mirror) onto **mpvtk**, the in-mpv UI toolkit. This
 is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 (component gap analysis) and `README.md` (spike log) first.
 
+## Field-test round 1 (2026-07-19) — reported issues
+
+First real session with `browser_ui=mpvtk`. All fixed unless noted.
+
+- [x] **OSC never appeared during playback.** Pushing an empty scene does
+  not yield: `renderer.lua`'s forced `mpvtk_mouse`/`mpvtk_wheel` sections
+  keep eating mbtn/wheel. Added the `mpvtk-active` message
+  (`MpvtkApp.set_active`) which unbinds them and blanks the scene; driven
+  from `enter_browse`/`_yield` and from the mirror's `hide`/`show`.
+- [x] **`shim-menu-select` spam.** `mouse.lua` bound `MOUSE_MOVE` at load,
+  so every mouse move fired a script-message whether or not the OSD menu
+  was open. Now bound only between `shim-menu-enable True`/`False`.
+- [x] **Letterboxed grey background.** The browse background is a 16×16
+  solid PNG; mpv letterboxed it. `keepaspect=no` while browsing;
+  `browse_yield()` restores it before video.
+- [x] **Browser opened fullscreen.** It reused `settings.fullscreen`. New
+  `browser_fullscreen` key (default off); playback fullscreen unchanged.
+- [x] **`q` closed mpv.** With the in-window browser the window *is* the
+  library, so `kb_stop` → `stop_to_browser()`. CLOSE_WIN/STOP still quit.
+- [x] **Tofu for Japanese text.** Text baked into bitmaps goes through
+  Pillow, which does no font fallback (ASS/libass text was always fine).
+  `mpvtk/pilfont.py` picks a face per string's script; used by tile
+  captions and the mirror.
+- [x] **Blank tiles after scrolling back.** A large library emitted a strip
+  per row for *every* row, blowing past both the strip LRU (48) and mpv's
+  63-overlay budget. Grid rows are now virtualized against the scroll
+  offset (`_grid_of(scroll_id=…)`).
+- [x] **No infinite scroll in music.** Every tab is paged on near-end
+  scroll now (`_on_music_scroll`); it was capped at the first 100 items.
+- [x] **Now-playing bar updated every 5s.** It rode the timeline thread's
+  tick; it has its own 1s ticker while the bar is up.
+- [x] **Lost button icons / no search button / no user switcher.**
+  `Button(icon=…)`; search button beside the box; user dropdown in the
+  chrome plus full user management in Settings.
+- [x] **Carousel arrows should be pinned to the screen edges.** Home rows
+  bleed full-width and the arrows sit flush left/right, hidden when the
+  row doesn't overflow. They are *beside* the strip, not floating over it
+  — see "Framework deficits" below for why.
+- [x] **Settings was a flat schema dump.** Now tabs (General / Servers &
+  Users / Downloads / Logs), curated sections + Advanced collapse,
+  friendly labels, enum dropdowns, PIN setup, server removal, a downloads
+  manager that can delete, a log view, and "Open Config Folder".
+- [x] **Playlist editor had no multi-select and no table.** Toggle-select
+  with block moves and bulk remove; #/Title/Type/Runtime columns.
+
+## Framework deficits found while fixing the above
+
+Real mpvtk limitations, not app bugs. Worth fixing in the toolkit.
+
+1. **No way to draw ASS above a bitmap, and no z-order between bitmaps.**
+   `overlay-add` composites above all script ASS (GUIDE §6), and the
+   renderer's overlay *slots* are sticky/arbitrary, so bitmap-over-bitmap
+   ordering isn't controllable either. Consequence: nothing can float over
+   a poster strip — not the carousel arrows, not a hover scrim, not a
+   badge added after the bake. Everything overlaying tiles must be baked
+   into the strip. Possible fix: give the renderer a paint-order slot
+   allocator and re-issue `overlay-add` in scene order when the order
+   changes, which would at least buy bitmap-over-bitmap layering.
+2. **No absolute positioning inside the flow.** `Float` is
+   screen-absolute and never scrolls, so it can't pin anything to a row
+   that scrolls with the page. A `Stack` container (children sharing a
+   rect, per-child anchor) would cover this — but note (1) limits what it
+   could usefully draw over.
+3. **Scroll offsets live only in the renderer.** Virtualization has to
+   round-trip through the debounced `on_scroll` event, so the Python side
+   is always slightly behind and has to over-materialize (±1 screen) to
+   hide the lag. A `scroll` field echoed back in `debug_state`, or a
+   synchronous query, would let the app window tightly.
+4. **No modifier state on click events.** The renderer reports a bare
+   click, so shift/ctrl-click range and additive selection are impossible;
+   the playlist editor uses toggle-select instead. Adding `mods` to the
+   click payload is cheap and would make every table behave normally.
+5. **No hold-repeat on buttons.** The Tk `NavButton` auto-repeated while
+   held; mpvtk buttons fire once per click, so paging a long carousel is
+   one click per page.
+6. **`Text` can't wrap.** Every caller hand-wraps with `_wrap()` +
+   `text_width()`. A `wrap=True` (and `max_lines`) on `Text` would remove
+   that duplication from the browser, the mirror, and the dialogs.
+7. **No table/column primitive.** Columns are hand-laid `Row`s with fixed
+   `w=`, so headers and cells drift apart when one is edited.
+
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 
 Found after the mechanical pass: the initial port rendered every view but
@@ -78,10 +159,130 @@ wire-ups that were skipped. Status updated as each is fixed.
 to the player's mpv; backdrop+gradient+text baked into one full-window
 bitmap; mutually exclusive with the mpvtk browser). `display_mirror.py`.
 
-Confirmed intentionally deferred (not regressions to chase now): user
-switcher, PinSetup dialog, dedicated Servers/Logs/Downloads settings
-*panels* (flat schema editor instead), ClosePreference (N/A in-window),
-keybinding reconciliation, spatial/remote nav (Phase 8).
+Confirmed intentionally deferred (not regressions to chase now):
+ClosePreference (N/A in-window), keybinding reconciliation, spatial/remote
+nav (Phase 8). *(The user switcher, PIN setup and the Servers/Logs/
+Downloads panels were on this list; they shipped in the round-1 fixes
+above.)*
+
+## Second audit (2026-07-19) — full code-level sweep
+
+A subagent diffed every Tk view/dialog against its mpvtk counterpart. The
+checklist above was stale in **both** directions (several `[x]` items were
+only partly done). Everything below is verified against code. Items marked
+✅ were fixed in the round-1 batch; the rest are open, ordered by severity.
+
+### Open — blockers
+
+- [ ] **Offline mode is entirely unwired.** `OfflineLibrarySource`
+  (`repository.py`) and `MpvtkBrowser.set_offline` both exist and *nothing
+  calls either*. `ui.py:_connect` only skips connecting when
+  `work_offline` is set, leaving a permanent spinner with no catalog and
+  no login route. The offline banner (`_banner`) is therefore dead code.
+  The Tk browser had `_enter_offline`/`_exit_offline`/`offline_fallback`/
+  `_show_disconnected`.
+- [ ] **No offline playback fallback.** Tk's `on_play` fell back to the
+  local copy when the client was disconnected (`syncManager.db.is_complete`);
+  `ui.py:play_list` just logs "no connected client" and returns.
+- [ ] **`clientManager.on_servers_changed` / `on_server_connected` are not
+  registered.** A server that reconnects in the background stays invisible
+  until restart. `gui_mgr.py:253-258` wires both.
+- [ ] **Quick Connect is missing entirely** (button, code display, cancel,
+  supersede logic). `views.py:1969-2028`.
+- [ ] **Playlist Play All / Shuffle always pass `audio=True`**, so a video
+  playlist plays behind the browser instead of yielding the window.
+- [ ] **`edit_apis` capability gate missing.** Tk hid playlist/collection
+  edits on jellyfin-apiclient-python < 1.15 and said why; `ui.py:_edit`
+  swallows every failure into a log line with no user feedback. This one
+  violates the project's optional-dependency degradation policy.
+
+### Open — parity gaps
+
+**Grid** — year filter dropdown; Collections (BoxSet) toggle
+(`get_movie_collections` exists, uncalled); the Critic Rating and Parental
+Rating sort modes; load-failure state + click-to-retry; the Random-sort
+single-page cap and the empty-page guard (both prevent bad paging);
+`library_page_size` and `library_image_width` are ignored (hardcoded 100 /
+fixed geoms).
+
+**Detail / Series / Season** — chapters row (`chapter_image_url` exists,
+uncalled); trailer button (`get_trailers`, uncalled); **track-picker
+defaults ignore `language_config` and the source's Default*StreamIndex**,
+so the picker misreports what playback will do; media-info line is missing
+audio codec, channel layout, file size, bitrate and "Ends at"; Series has
+no Shuffle and no More-Like-This; Season has no Play Next Up; season
+watched state reads the season DTO instead of `all(episodes)`; bulk
+watched marks don't refresh child state; the Download button never becomes
+"Remove download".
+
+**Music** — artist/album pages have no backdrop header, overview or
+More-Like-This; tile subtitles (album artists / "%d albums" / track index)
+dropped; `AlbumArtist` item type not routed.
+
+**Playlists** — contents aren't filtered to `PLAYLIST_SUPPORTED_TYPES`;
+music playlists don't render as a track list; clicking an entry opens its
+detail page instead of playing from that position; "Delete Downloads" and
+per-entry "Remove from playlist" missing; no reload-on-failed-edit.
+
+**Downloads / sync** — no persistent download status bar; no live
+per-item progress and no `sync_state`-driven refresh; no offline
+watched-mark queueing; `try_skip_within_queue` fast path missing.
+
+**Dialogs / menus** — collections unsupported everywhere (AddTo is
+playlist-only, no `collection_edit`); AddTo has no private-by-default
+toggle (the API creates public playlists); SyncPlay has no joined-state
+indicator; tile menu is missing "Add to queue" and "Add to collection",
+has no item-type gating (it attaches to libraries and people), and the
+view-contributed actions hook is gone.
+
+**Shell** — `UserInterface.activate` missing (a second launch does
+nothing); `library_last_server` never read or written; no startup update
+check; the `connecting` route is in `CHROME_FREE` but absent from the
+dispatch table, so it falls through to a bare spinner (and has no "work
+offline" escape); no browser crash recovery; responsive chrome collapse,
+chrome tooltips, now-playing album art, and "add current queue to
+playlist" all dropped.
+
+**Queue** — no multi-select, no double-click-to-jump.
+
+**Tray** — `mpvtk_browser.ui` never starts the tray, so Show Console /
+Configure Servers / Application Menu / Show Library Browser / Quit are
+gone, and `start_minimized` / `close_to_tray` / `close_prompt_shown` are
+inert while still editable. ("Open Config Folder" was re-added under
+Settings → Logs.)
+
+### Fixed in round 1 from this audit
+
+✅ Settings sections/labels/enum dropdowns, `sync_path` relocation,
+`language_preference` materialization, `browser_ui` editable again; user
+switching / add / rename / delete / PIN setup; server list + removal;
+downloads manager with delete; log viewer; playlist-editor multi-select,
+columns, delete-playlist and the **unsafe Public toggle** (it never read
+the server's `OpenAccess`); music infinite scroll; carousel arrow
+auto-hide.
+
+### Display mirror regressions (introduced by 8b86473)
+
+- [x] Every window resize refetched the backdrop over the network, and the
+  *idle* screen re-rolled its random backdrop mid-drag. Decoded backdrop is
+  now cached per data change.
+- [x] Unbounded bitmap accumulation — the strip key was a monotonic
+  counter, a guaranteed cache miss, retaining up to 48 full-window BGRA
+  buffers (~400 MB at 1080p). Now content-keyed.
+- [x] Not fullscreen (the core cast-screen UX) — it inherited the browser's
+  non-fullscreen window. Now asks for fullscreen explicitly.
+- [x] OSC was never suppressed while mirroring.
+- [x] `stop()` before `run()` was dropped, hanging the app on a tray Quit
+  during `gui_ready.wait()`.
+- [ ] Closing the mpv window now terminates the whole app; the Tk mirror
+  survived `q` and rebuilt mpv on the next cast. No re-open path exists.
+- [ ] Mouse cursor is no longer hidden (`cursor="none"` in the Tk version).
+- [ ] Pre-existing: the logo image is fetched but never drawn; the idle
+  return path after a `DisplayContent` preview is still unwired (same as
+  Tk, but the webview era did implement it).
+- [ ] Stale docs: `CONTRIBUTING.md:77` still says "tkinter + Pillow";
+  `README.md:165` documents Alt+F4 as mirror-specific; `win_utils.
+  mirror_act` matches a Tk window title that no longer exists.
 
 **Goal.** The library browser and the display mirror render *inside the
 player's own mpv window* — one window that shows the browser when idle

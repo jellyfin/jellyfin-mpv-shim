@@ -406,6 +406,26 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertTrue(self.b._browsing)
         self.assertGreaterEqual(self.ctl.entered, 1)
 
+    def test_yield_suspends_the_renderer(self):
+        """An empty scene is not enough to hand input to the OSC — the
+        renderer's forced mouse/wheel bindings have to be unbound too."""
+        class FakeApp:
+            def __init__(self):
+                self.active = []
+
+            def invalidate(self):
+                pass
+
+            def set_active(self, on):
+                self.active.append(on)
+
+        app = FakeApp()
+        b = MpvtkBrowser(app=app, source=FakeSource(), controller=self.ctl)
+        b._play({"Id": "m1", "Name": "A", "Type": "Movie"}, "srv1")
+        self.assertEqual(app.active[-1], False)
+        b.on_playstate({"stopped": True})
+        self.assertEqual(app.active[-1], True)
+
     def test_set_source_repopulates_and_resets_home(self):
         b = MpvtkBrowser(app=None, source=FakeSource())
         b.navigate({"kind": "grid", "parent_id": "lib1"})
@@ -919,6 +939,80 @@ class TestPlaylistEdit(unittest.TestCase):
         self.assertEqual(len(route["_items"]), 1)
         calls = [c for c in self.ctl.transport if c[0] == "playlist_remove"]
         self.assertEqual(len(calls), 1)
+
+
+class TestVirtualizedGrid(unittest.TestCase):
+    """Long grids must only composite the rows near the viewport: rendering
+    all of them blew past the strip cache and mpv's 63-overlay budget, which
+    showed as tiles that came back blank after scrolling away and back."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        # A library far taller than one screen.
+        self.b.route["_items"] = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
+            for i in range(600)]
+        self.b.route["_total"] = 600
+
+    def _strip_count(self, nodes):
+        return len([n for n in nodes if n["t"] == "img"])
+
+    def test_only_a_window_of_rows_is_composited(self):
+        nodes, _h = build_scene(self.b)
+        n = self._strip_count(nodes)
+        self.assertGreater(n, 0)
+        self.assertLess(n, 40, "should not materialize every row")
+
+    def test_scrolling_moves_the_window(self):
+        build_scene(self.b)
+        top = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.b._on_scroll("grid", 6000, 20000)
+        bottom = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.assertTrue(top and bottom)
+        self.assertNotEqual(top, bottom)
+
+    def test_scrolling_back_re_materializes_the_original_rows(self):
+        first = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.b._on_scroll("grid", 6000, 20000)
+        build_scene(self.b)
+        self.b._on_scroll("grid", 0, 20000)
+        again = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.assertEqual(first, again)
+
+
+class TestMusicPaging(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def test_near_end_scroll_pages_the_tab(self):
+        src = self.b.source
+        page = [{"Id": "al%d" % i, "Name": "Album %d" % i,
+                 "Type": "MusicAlbum"} for i in range(100)]
+        calls = []
+
+        def get_music_albums(server_uuid, parent_id, start_index=0, **kw):
+            calls.append(start_index)
+            return (page if start_index == 0 else page[:20]), 120
+        src.get_music_albums = get_music_albums
+
+        self.b.navigate({"kind": "music", "server": "srv1",
+                         "parent_id": "lib1", "title": "Music"})
+        self.assertEqual(len(self.b.route["_data"]), 100)
+        self.b._on_music_scroll(self.b.route, 9500, 10000)
+        self.assertEqual(calls, [0, 100])
+        self.assertEqual(len(self.b.route["_data"]), 120)
+
+    def test_far_from_the_end_does_not_page(self):
+        self.b.navigate({"kind": "music", "server": "srv1",
+                         "parent_id": "lib1", "title": "Music"})
+        self.b.route["_total"] = 500
+        before = len(self.b.route["_data"])
+        self.b._on_music_scroll(self.b.route, 100, 10000)
+        self.assertEqual(len(self.b.route["_data"]), before)
 
 
 class TestAddToPlaylist(unittest.TestCase):
