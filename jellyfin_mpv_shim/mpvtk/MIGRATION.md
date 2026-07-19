@@ -96,6 +96,95 @@ work — the browser still uses the old patterns.
    ctrl-toggle selection. The demo's hand-rolled track table now uses
    it.
 
+## Framework deficits — round 2 (2026-07-19 layout audit)
+
+From a two-sided audit: what layout machinery the Tk UI actually leans
+on (grid column weights, pack side conventions, Treeview) vs. how the
+mpvtk views approximate it today. The two suspected areas — tabular UI
+and management-panel layout — are exactly where the friction clusters.
+Ordered by impact; `(Tk)` cites what the legacy UI used, `(app)` where
+the mpvtk view compensates today.
+
+**Tabular**
+
+1. [ ] **Table rows aren't virtualized.** Every row is built eagerly on
+   each repaint (app: `_track_list`, playlist editor, queue), which
+   contradicts the windowing story the tile grids use — a
+   several-hundred-track playlist re-lays every row per repaint. (Tk:
+   Treeview virtualizes internally.) Want: a windowed Table (or Table
+   over `scroll_offsets()` with Spacer stand-ins handled internally).
+2. [ ] **No per-row styling override in Table.** Only a `selected`
+   bool; the queue's now-playing highlight is faked by merging it into
+   `selected`, and status coloring (downloads: green watched / amber
+   in-flight / red error text) has nowhere to go. (Tk: Treeview row
+   tags.) Want: per-row `fg`/`bg` (and per-cell color) in the row dict.
+3. [ ] **No double-click event.** The renderer only synthesizes
+   double-click for textboxes; Tk's queue jumped on double-click and
+   AddTo activated on it. Want: `dbl` on clickable nodes (payload like
+   click), then wire queue jump-to-item.
+4. [ ] **No tree/hierarchical rows.** The downloads manager is a
+   3-level tree; the app fakes indentation with `Spacer(w=depth*26)`
+   rows, no disclosure/collapse, no header. (Tk: graduated pack
+   padding + signature-diffed sections.) Want: either an `indent`/
+   disclosure affordance on Table rows or a small Tree list composite;
+   per-side margins (below) would at least make indent declarative.
+
+**Panel / form layout**
+
+5. [ ] **No main-axis justification.** The single most-repeated hack:
+   `Spacer()` sandwiches for centering login/locked/busy cards, footer
+   button right-alignment in every dialog, and the A–Z bar needs a
+   Box-per-glyph workaround (documented in-code at app.py's letter
+   bar). Want: `justify="start|center|end|between"` on Box.
+6. [ ] **No shared column tracks outside Table.** Label+input forms
+   (Settings `w=340`, Login/PIN `w=140`) and management list rows
+   (Servers `w=220/180/120`, Downloads `w=200`) fake column alignment
+   with magic fixed widths — the exact drift Table was built to kill,
+   but Table only fits true header+cells tables. (Tk: grid
+   `columnconfigure(1, weight=1)` and char-width labels.) Want: a
+   `Form`/`Grid` container where sibling rows share column tracks
+   (label track sized to widest label, value track flex), cells
+   hosting arbitrary Elements.
+7. [ ] **`pad` is uniform on both axes.** Table itself fakes
+   horizontal-only padding with `Spacer(w=pad_x, h=1)` margin cells;
+   tree indent (above) is spacers. Want: `pad=(px, py)` at minimum,
+   ideally per-side.
+8. [ ] **No min/max size constraints.** Dialogs are fixed 440–560 px,
+   backdrops clamp via hand math (`min(w-32, 960)`); nothing can say
+   "natural size, but between 380 and 60% of the window". Fixed and
+   natural children also overflow silently (no flex-shrink). Want:
+   `min_w`/`max_w` (+`min_h`/`max_h`) honored by measure/arrange.
+9. [ ] **No overflow/fit feedback at build time.** The app re-derives
+   geometry to know things layout already computed: carousel arrow
+   visibility recomputes `content_w` by hand, virtualized grids feed
+   hand-estimated header heights (`head_h = 40 + 110…`) to the offset
+   math, and the Tk topbar's responsive icon-only collapse (window
+   width thresholds) was dropped entirely for lack of it. Want: either
+   a post-layout query ("laid-out rect of node id X" / "does scroll Y
+   overflow?") or a priority-collapse container.
+10. [ ] **No determinate progress widget.** Downloads rows show
+    "Downloading 43%" as text; the settings folder-move progress is a
+    status string. `Busy` (indeterminate) and `Slider` exist; a
+    filled-Box `Progress(frac)` composite is trivial and recurs.
+11. [ ] **Wrapped Text only pre-sizes in Columns.** A `wrap=True` Text
+    in a Row parent needs an explicit `w=`; callers still compute
+    `w - 32` by hand for paragraphs. Want: rows to assign wrap width
+    from the laid-out slot like columns do.
+12. [ ] **No tooltips.** Tk chrome had hover tooltips; icon-only
+    buttons (and any future responsive collapse, #9) need them. The
+    renderer already owns hover state — a `tip="…"` field drawing a
+    delayed floating label is renderer-local work, no protocol change.
+
+Cosmetic footnotes (not worth primitives yet): `None` children could
+be tolerated instead of `Spacer(h=0)` placeholders; no baseline
+alignment for mixed text sizes on a row (cross-center approximates).
+
+App-side debt recorded while auditing (not framework): the Downloads
+and Servers & Users panels predate `Table`/`Stack` and still hand-roll
+magic-width rows; `_paragraph` callers pass hand-computed widths;
+queue double-click and chrome tooltips/responsive collapse remain
+dropped vs Tk (also listed in the shell gaps above).
+
 ## Field-test round 2 (2026-07-19) — reported issues
 
 - [x] **Playlists showed "N items" and nothing below.** Scroll container
