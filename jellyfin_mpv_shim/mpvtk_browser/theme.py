@@ -7,6 +7,16 @@ bare ``"rrggbb"`` (what mpvtk widget ``bg``/``color`` fields want); use
 """
 
 
+def apply_to_toolkit():
+    """Hand this palette to mpvtk, so the toolkit's own accented bits — a
+    checkbox fill, a hover ring, a focused textbox border, the slider — are
+    the same blue as the app's buttons rather than the toolkit default."""
+    from ..mpvtk import theme as tk
+
+    tk.set_accent(ACCENT, hover=ACCENT_HOVER, soft=ACCENT_SOFT,
+                  on_accent=ACCENT_FG)
+
+
 def rgb(hexstr, alpha=None):
     """``"rrggbb"`` -> ``(r, g, b)``; with ``alpha`` -> ``(r, g, b, a)``."""
     h = hexstr.lstrip("#")

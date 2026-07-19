@@ -2080,12 +2080,20 @@ class TestOneBlue(unittest.TestCase):
         self.b.open_settings("general")
         self._check("settings tabs")
 
-    def test_known_gap_checkbox_still_uses_the_toolkit_blue(self):
-        """Documents the one stray blue the app cannot reach: Checkbox
-        hardcodes its fill in the toolkit. Delete this test when mpvtk takes
-        a themeable accent (MIGRATION.md, "Framework requests")."""
+    def test_toolkit_widgets_take_the_app_accent(self):
+        """The toolkit's own accented widgets (checkbox fill, hover ring,
+        progress) follow the app palette rather than mpvtk's default."""
         from jellyfin_mpv_shim.mpvtk.layout import layout as lay
-        from jellyfin_mpv_shim.mpvtk.widgets import Checkbox
-        nodes, _h = lay(Checkbox("x", True), 200, 50)
-        self.assertEqual(self._blues_in(nodes) - self.ACCENT_FAMILY,
-                         {"7aa2f7"})
+        from jellyfin_mpv_shim.mpvtk.widgets import Checkbox, Progress
+        for widget in (Checkbox("x", True), Progress(0.5)):
+            nodes, _h = lay(widget, 200, 50)
+            self.assertEqual(
+                self._blues_in(nodes) - self.ACCENT_FAMILY, set(),
+                "%s used a blue outside the accent family"
+                % type(widget).__name__)
+
+    def test_checked_checkbox_in_a_real_view(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.b.route["_filters"] = {"unplayed": True, "favorite": True}
+        self._check("grid filter bar with checked boxes")

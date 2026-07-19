@@ -83,6 +83,9 @@ class MpvtkBrowser:
 
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
+        # Before anything is built: the toolkit's accented widgets read the
+        # palette at construction time.
+        theme.apply_to_toolkit()
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
         # Settings accessor (settings_schema/get_settings/set_setting). None ->
@@ -604,7 +607,6 @@ class MpvtkBrowser:
             regions.append(dict(
                 r,
                 id="%s-%s" % (prefix, r["key"]),
-                hover={"bc": theme.ACCENT, "bw": 3},
                 on_click=(lambda i=it: self._open_item(i)),
                 on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
@@ -1920,7 +1922,7 @@ class MpvtkBrowser:
                              else (lambda i=i: on_play(i))),
             })
         return Table(columns, rows, size=17, row_h=34,
-                     selected_bg=theme.ACCENT_SOFT, hover_bg=theme.BUTTON_BG)
+                     hover_bg=theme.BUTTON_BG)
 
     def _play_shuffle(self, ids, server, audio=True):
         import random
@@ -3058,8 +3060,7 @@ class MpvtkBrowser:
             "name": name, "n": st["pending"]}
         row = [Icon("file_download", 20), Text(left, size=16)]
         if pct is not None:
-            row.append(Progress(pct / 100.0, w=160,
-                                fg=theme.ACCENT))
+            row.append(Progress(pct / 100.0, w=160))
             row.append(Text("%d%%" % pct, size=15, w=48,
                             color=theme.SUBTLE_FG))
         row += [
@@ -3191,8 +3192,7 @@ class MpvtkBrowser:
               "on_click": (lambda mods, i=i: self._select_click(
                   route, i, mods))}
              for i, it in enumerate(items)],
-            size=17, row_h=34, selected_bg=theme.ACCENT_SOFT,
-            hover_bg=theme.BUTTON_BG)
+            size=17, row_h=34, hover_bg=theme.BUTTON_BG)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
                      size=26, bold=True), Spacer(h=4), rename_row, toolbar,
                 Spacer(h=2), table]

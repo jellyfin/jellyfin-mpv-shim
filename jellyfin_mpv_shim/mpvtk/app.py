@@ -14,6 +14,7 @@ import queue
 import threading
 import time
 
+from . import theme
 from .layout import layout, set_metrics
 from .metrics import extend_metrics, measure_font
 
@@ -298,6 +299,17 @@ class MpvtkApp:
             "script-message", "mpvtk-metrics", json.dumps(m)
         )
 
+    def push_theme(self):
+        """Forward the accent palette to the renderer.
+
+        Python-side widgets read theme.ACCENT when they're built, but the
+        renderer draws the focused textbox border, the open dropdown border
+        and the slider fill itself, so it needs its own copy. Sent on ready
+        and again by set_accent()."""
+        self.backend.command(
+            "script-message", "mpvtk-theme", json.dumps(theme.palette())
+        )
+
     @staticmethod
     def _scene_texts(nodes):
         texts = []
@@ -380,6 +392,7 @@ class MpvtkApp:
             self._dirty = True
             if t == "ready":
                 self._push_metrics()
+                self.push_theme()
                 self.ready.set()
             return
         if t == "debug_state":
@@ -466,6 +479,13 @@ class MpvtkApp:
 
     def screenshot(self, path):
         self.backend.command("screenshot-to-file", path, "window")
+
+    def set_accent(self, accent, **kw):
+        """Set the toolkit accent and push it to the renderer. Equivalent to
+        ``mpvtk.theme.set_accent`` plus :meth:`push_theme`."""
+        theme.set_accent(accent, **kw)
+        self.push_theme()
+        self.invalidate()
 
     def set_active(self, active):
         """Suspend/resume the in-mpv renderer.

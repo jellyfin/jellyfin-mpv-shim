@@ -10,6 +10,7 @@ positioning — keep them in sync. Real glyph metrics are a known
 limitation of the spike.
 """
 
+from . import theme
 from .widgets import (
     Box,
     Busy,
@@ -450,7 +451,8 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             if reg.get("on_context"):
                 rnode["ctx"] = True
                 _reg(ctx, rid, "context", reg["on_context"])
-            rnode["hover"] = reg.get("hover", {"bc": "7aa2f7", "bw": 3})
+            rnode["hover"] = reg.get(
+                "hover", {"bc": theme.ACCENT, "bw": 3})
             ctx.nodes.append(rnode)
         return
 

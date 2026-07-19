@@ -606,3 +606,87 @@ class TestGridRowSpecs(unittest.TestCase):
         # rows advance past the padded row rect
         r1 = by_id(nodes, "row1")
         self.assertEqual(r1["y"], r0["y"] + r0["h"] + 4)
+
+
+class TestThemeAccent(unittest.TestCase):
+    """The toolkit draws a few things in "the app's colour"; an embedding app
+    sets it once instead of overriding every call site."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk import theme
+        self.theme = theme
+        self._saved = theme.palette()
+        self.addCleanup(lambda: theme.set_accent(
+            self._saved["accent"], hover=self._saved["hover"],
+            soft=self._saved["soft"], on_accent=self._saved["on_accent"]))
+
+    def test_derives_hover_and_soft_from_one_colour(self):
+        p = self.theme.set_accent("00a4dc")
+        self.assertEqual(p["accent"], "00a4dc")
+        # hover is lighter, soft is darker — same hue family, not arbitrary.
+        self.assertGreater(sum(self.theme._rgb(p["hover"])),
+                           sum(self.theme._rgb(p["accent"])))
+        self.assertLess(sum(self.theme._rgb(p["soft"])),
+                        sum(self.theme._rgb(p["accent"])))
+
+    def test_explicit_values_win(self):
+        p = self.theme.set_accent("00a4dc", hover="112233", soft="445566",
+                                  on_accent="000000")
+        self.assertEqual((p["hover"], p["soft"], p["on_accent"]),
+                         ("112233", "445566", "000000"))
+
+    def test_leading_hash_is_tolerated(self):
+        self.assertEqual(self.theme.set_accent("#00a4dc")["accent"], "00a4dc")
+
+    def test_on_accent_picks_a_readable_foreground(self):
+        # Luminance, not a channel average: a saturated blue is much darker
+        # than its mean suggests and needs white.
+        self.assertEqual(self.theme.readable_on("00a4dc"), "ffffff")
+        self.assertEqual(self.theme.readable_on("f2e8a0"), "101010")
+
+    def test_widgets_follow_the_accent(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Checkbox, Progress, Table
+        self.theme.set_accent("00a4dc")
+        box = Checkbox("x", True).children[0]
+        self.assertEqual(box.bg, "00a4dc")
+        self.assertEqual(Progress(0.5).fg, "00a4dc")
+        table = Table([{"label": "A", "flex": 1}],
+                      [{"cells": ["x"], "selected": True, "id": "r0"}])
+        nodes, _h = layout(table, 300, 200)
+        fills = {n.get("fill") for n in nodes if n.get("id") == "r0"}
+        self.assertIn(self.theme.SOFT, fills)
+
+    def test_imagemap_hover_ring_follows_the_accent(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import ImageMap
+        self.theme.set_accent("00a4dc")
+        node = ImageMap("x", 10, 10, regions=[
+            {"x": 0, "y": 0, "w": 5, "h": 5, "on_click": lambda: None}])
+        nodes, _h = layout(node, 50, 50)
+        rings = [n["hover"]["bc"] for n in nodes if n["t"] == "rect"]
+        self.assertEqual(rings, ["00a4dc"])
+
+    def test_explicit_per_call_colours_still_win(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Progress
+        self.theme.set_accent("00a4dc")
+        self.assertEqual(Progress(0.5, fg="ff0000").fg, "ff0000")
+
+    def test_app_pushes_its_palette_to_the_renderer(self):
+        """The renderer draws the focused textbox border, the open dropdown
+        border and the slider itself, so it needs its own copy."""
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        sent = []
+
+        class FakeBackend:
+            def command(self, *args):
+                sent.append(args)
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.backend = FakeBackend()
+        app.invalidate = lambda: None
+        app.set_accent("00a4dc")
+        msgs = [a for a in sent if a[:2] == ("script-message", "mpvtk-theme")]
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("00a4dc", msgs[0][2])

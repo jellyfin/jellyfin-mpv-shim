@@ -387,20 +387,30 @@ which is what lets it through.
   with a test that walks rendered scenes and fails on any blue outside that
   family.
 
-### Framework request: a themeable accent
+### Themeable accent ✅
 
-The toolkit hardcodes `7aa2f7` as its own accent in five places the app
-can't reach — `Checkbox` fill (`widgets.py`), `Progress` default,
-`ImageMap` hover-ring default (`layout.py`), and the textbox-focus,
-dropdown-open and slider-thumb colours in `renderer.lua`. The app passes
-overrides where a parameter exists, but `Checkbox` has none and the
-renderer ones aren't reachable at all.
+The toolkit used to hardcode `7aa2f7` as its own accent in six places the
+app couldn't reach. `mpvtk/theme.py` now holds the palette:
 
-What would fix it: a module-level accent (`mpvtk.set_accent("00a4dc")`)
-that those defaults read from, pushed to the renderer alongside the
-metrics. `tests/test_mpvtk_browser_shell.py::TestOneBlue` has a test
-documenting the remaining `Checkbox` gap — it should be deleted when this
-lands.
+    from jellyfin_mpv_shim.mpvtk import theme
+    theme.set_accent("00a4dc")          # hover/soft/on-accent derived
+
+- `widgets.py` — `Checkbox` fill and tick, `Progress` default fill,
+  `Table` selected-row background resolve at construction, so anything
+  built after `set_accent()` follows it. An explicit per-call colour still
+  wins.
+- `layout.py` — the `ImageMap` hover-ring default.
+- `renderer.lua` — the focused-textbox border, open-dropdown border and
+  slider fill read `state.accent`, pushed by the `mpvtk-theme` message on
+  ready and from `MpvtkApp.set_accent()`.
+
+`on_accent` is chosen by relative luminance, not a channel average: a
+saturated blue is much darker than its mean suggests and needs white on it.
+
+The browser calls `mpvtk_browser.theme.apply_to_toolkit()` in
+`MpvtkBrowser.__init__` — before any widget is built — and its per-call
+overrides are gone. `TestOneBlue` walks rendered scenes and fails on any
+blue outside the accent family; `TestThemeAccent` covers the toolkit side.
 
 ## Parity audit gaps (2026-07-19 code-level Tk→mpvtk diff)
 

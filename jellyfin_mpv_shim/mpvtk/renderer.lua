@@ -51,6 +51,11 @@ local state = {
     nodes = {},
     byid = {},
     w = 0, h = 0,
+    -- Accent palette, replaced by the mpvtk-theme message (see theme.py).
+    -- These are the toolkit defaults; an app with its own palette pushes
+    -- its own so the UI doesn't end up with two unrelated accents.
+    accent = '7aa2f7',
+    accent_soft = '223055',
     active = true,          -- false while yielded to playback (see mpvtk-active)
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
@@ -653,7 +658,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
     local focused = state.focus == node.id
     draw_rect(ass, ex, ey, node.w, node.h, {
         fill = '2a2a2a', radius = 6,
-        bc = focused and '7aa2f7' or '444444',
+        bc = focused and state.accent or '444444',
         bw = focused and 2 or 1, clip = clip,
     })
     local pad = 10
@@ -754,7 +759,7 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local open = state.dd_open == node.id
     draw_rect(ass, ex, ey, node.w, node.h, {
         fill = '2a2a2a', radius = 6,
-        bc = open and '7aa2f7' or '444444', bw = 1, clip = clip,
+        bc = open and state.accent or '444444', bw = 1, clip = clip,
     })
     local label = node.items[d.sel + 1] or ''
     local indent = 0
@@ -924,7 +929,7 @@ local function draw_slider(ass, node, ex, ey, clip)
         { fill = '3a3a3a', radius = 3, clip = clip })
     if frac > 0 then
         draw_rect(ass, tx1, ty - 3, tw * frac, 6,
-            { fill = '7aa2f7', radius = 3, clip = clip })
+            { fill = state.accent, radius = 3, clip = clip })
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
         { fill = 'dddddd', radius = 8, clip = clip })
@@ -2148,6 +2153,14 @@ mp.register_script_message('mpvtk-metrics', function(json)
     kern_table = m.kern
     ui_font = m.font
     if m.mask_w then MASK_W = m.mask_w end
+    request_render()
+end)
+
+mp.register_script_message('mpvtk-theme', function(json)
+    local t = utils.parse_json(json)
+    if not t then return end
+    state.accent = t.accent or state.accent
+    state.accent_soft = t.soft or state.accent_soft
     request_render()
 end)
 

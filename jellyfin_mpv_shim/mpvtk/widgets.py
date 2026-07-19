@@ -12,6 +12,8 @@ Ids: elements get a stable tree-path id automatically. Stateful widgets
 renderer-side state survives structural changes to the tree.
 """
 
+from . import theme
+
 
 class Element:
     """``anchor``/``dx``/``dy``/``occlude`` only apply to direct children
@@ -279,13 +281,14 @@ class Checkbox(Row):
         box = Box(
             w=20,
             h=20,
-            bg="7aa2f7" if checked else "2a2a2a",
+            bg=theme.ACCENT if checked else "2a2a2a",
             border=None if checked else "555555",
             radius=5,
             align="center",
             direction="row",
             children=(
-                [Text("✓", size=15, color="101010", align="center", flex=1)]
+                [Text("✓", size=15, color=theme.ON_ACCENT, align="center",
+                      flex=1)]
                 if checked
                 else []
             ),
@@ -358,12 +361,12 @@ class Progress(Element):
     """Determinate progress bar (composite drawn by layout as two
     rects). ``frac`` in [0, 1]; give it a width or ``flex``."""
 
-    def __init__(self, frac, fg="7aa2f7", bg="2a2a2a", **kw):
+    def __init__(self, frac, fg=None, bg="2a2a2a", **kw):
         kw.setdefault("w", 180)
         kw.setdefault("h", 8)
         super().__init__(**kw)
         self.frac = min(1.0, max(0.0, frac))
-        self.fg = fg
+        self.fg = fg or theme.ACCENT
         self.bg = bg
 
 
@@ -422,13 +425,15 @@ class Table(Column):
         header_size=15,
         header_fg="9a9a9a",
         fg="eeeeee",
-        selected_bg="2f4468",
+        selected_bg=None,
         hover_bg="333333",
         gap=12,
         pad_x=10,
         virtual=None,
         **kw,
     ):
+        selected_bg = selected_bg or theme.SOFT
+
         def cell(col, content, text_size, color):
             if isinstance(content, Element):
                 inner = content
