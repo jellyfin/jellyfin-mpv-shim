@@ -19,6 +19,7 @@ import threading
 
 from ..clients import clientManager
 from ..conf import settings
+from ..i18n import _
 
 log = logging.getLogger("mpvtk_browser.ui")
 
@@ -122,7 +123,10 @@ class _PlayerController:
         self._act(lambda pm: pm.toggle_pause())
 
     def stop(self):
-        self._act(lambda pm: pm.stop_and_close())
+        # The now-playing bar's stop button must not take the window with it:
+        # stop_and_close() drops force_window, which closed the library out
+        # from under the bar that was just clicked.
+        self._act(lambda pm: pm.stop_to_browser())
 
     def next(self):
         self._act(lambda pm: pm.play_next())
@@ -445,32 +449,80 @@ class _PlayerController:
             log.error("mpvtk download enqueue failed", exc_info=True)
 
     def list_downloads(self):
-        """Rows for the downloads manager: ``[{id, name, status, size}]``."""
+        """Downloads grouped for display, mirroring the Tk DownloadsPanel:
+
+            [{"kind": "series"|"movies", "title", "id", "size",
+              "children": [{"kind": "season"|"item", ...}]}]
+
+        Series nest their seasons, seasons nest their episodes, and loose
+        movies/videos land in one flat group — a flat list of 400 episodes
+        was unnavigable and gave no way to delete a whole show."""
         from ..sync.manager import syncManager
         try:
             rows = syncManager.db.list() if syncManager.db else []
         except Exception:
             log.error("mpvtk list_downloads failed", exc_info=True)
             return []
-        out = []
+
+        def entry(r):
+            return {
+                "kind": "item",
+                "id": r.get("item_id"),
+                "title": r.get("name") or r.get("item_id"),
+                "status": r.get("status") or "",
+                "size": r.get("size") or 0,
+                "index": r.get("index_number"),
+            }
+
+        series = {}
+        loose = []
         for r in rows:
-            name = r.get("name") or r.get("item_id")
-            series = r.get("series_name")
-            if series and r.get("index_number") is not None:
-                name = "%s — S%sE%s · %s" % (
-                    series, r.get("parent_index") or "?",
-                    r.get("index_number"), name)
-            elif series:
-                name = "%s — %s" % (series, name)
-            out.append({"id": r.get("item_id"), "name": name,
-                        "status": r.get("status") or "",
-                        "size": r.get("size") or 0})
+            sid = r.get("series_id")
+            if not sid:
+                loose.append(entry(r))
+                continue
+            show = series.setdefault(sid, {
+                "kind": "series", "id": sid,
+                "title": r.get("series_name") or _("Unknown Series"),
+                "size": 0, "children": {},
+            })
+            show["size"] += r.get("size") or 0
+            season_id = r.get("season_id") or sid
+            season = show["children"].setdefault(season_id, {
+                "kind": "season", "id": season_id,
+                "series_id": sid,
+                "title": (r.get("season_name")
+                          or (_("Season %s") % r.get("parent_index")
+                              if r.get("parent_index") is not None
+                              else _("Episodes"))),
+                "size": 0, "children": [],
+            })
+            season["size"] += r.get("size") or 0
+            season["children"].append(entry(r))
+
+        out = []
+        for show in series.values():
+            seasons = sorted(show["children"].values(),
+                             key=lambda s: str(s["title"]))
+            for s in seasons:
+                s["children"].sort(key=lambda e: (e["index"] is None,
+                                                  e["index"], e["title"]))
+            show["children"] = seasons
+            out.append(show)
+        out.sort(key=lambda g: str(g["title"]))
+        if loose:
+            loose.sort(key=lambda e: str(e["title"]))
+            out.append({"kind": "movies", "id": None, "title": _("Movies & Videos"),
+                        "size": sum(e["size"] for e in loose),
+                        "children": loose})
         return out
 
-    def delete_download(self, item_id):
+    def delete_download(self, item_id=None, series_id=None, season_id=None):
+        """Delete one item, a whole season, or a whole series."""
         from ..sync.manager import syncManager
         try:
-            syncManager.delete(item_id=item_id)
+            syncManager.delete(item_id=item_id, series_id=series_id,
+                               season_id=season_id)
         except Exception:
             log.error("mpvtk delete_download failed", exc_info=True)
 

@@ -1029,10 +1029,14 @@ class PlayerManager(object):
             self.stop()
             return
         log.info("Finished waiting for media duration.")
-        if settings.fullscreen and not self.fullscreen_disable:
+        self._video = video
+        # Music has no picture — going fullscreen for it just blanks the
+        # screen (and, with the in-window browser, hides the library the
+        # now-playing bar belongs to).
+        if (settings.fullscreen and not self.fullscreen_disable
+                and not self._current_is_audio()):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
-        self._video = video
         # A new file is actually playing now; any prior end-of-file is stale,
         # and so is the previous file's last known position (it would
         # otherwise satisfy the near-end finish check for a same-length next

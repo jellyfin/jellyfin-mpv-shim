@@ -19,7 +19,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from ..i18n import _
-from ..mpvtk.layout import text_width
 from ..mpvtk.rawimage import cache_dir
 from ..mpvtk.widgets import (
     Box,
@@ -37,12 +36,15 @@ from ..mpvtk.widgets import (
     Row,
     Slider,
     Spacer,
+    Stack,
+    Table,
     Text,
     TextBox,
     VScroll,
 )
 from . import theme
-from .repository import FOLDER_TYPES, PLAYABLE_TYPES, SERIES_TYPES
+from .repository import (FOLDER_TYPES, PLAYABLE_TYPES,
+                         PLAYLIST_SUPPORTED_TYPES, SERIES_TYPES)
 from .strips import (
     LANDSCAPE_GEOM,
     POSTER_GEOM,
@@ -119,9 +121,11 @@ class MpvtkBrowser:
         self._search_box = {"term": ""}
         # Live text of the "new user" box in Settings → Servers & Users.
         self._newuser = {"name": ""}
-        # Scroll offsets reported by the renderer, per scroll-container id.
-        # These drive row virtualization (see _grid_scroll).
+        # Scroll offsets: _live_offsets is the renderer's authoritative
+        # snapshot read once per build; _scroll_off is the throttled
+        # on_scroll copy, used only as a fallback. See _offset().
         self._scroll_off = {}
+        self._live_offsets = None
         # Startup-PIN lock screen state.
         self._pin = {"pin": ""}
         self._pin_error = None
@@ -169,13 +173,26 @@ class MpvtkBrowser:
         if reset:
             self.nav_stack = []
         self.nav_stack.append(route)
+        self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
 
+    def _reset_scroll(self):
+        """Forget recorded scroll offsets on a route change.
+
+        Scroll container ids are per-view ("grid", "playlist", …), not per
+        route, so a deep scroll in one library used to carry into the next
+        view opened under the same id. The renderer clamps its own offset to
+        the new (shorter) content, but our copy didn't — so virtualization
+        windowed rows that were far past the end and the view rendered
+        empty: "7 items" in the header and nothing below it."""
+        self._scroll_off.clear()
+
     def go_back(self):
         if len(self.nav_stack) > 1:
             self.nav_stack.pop()
+            self._reset_scroll()
             self._bump_epoch()
             # Stale-while-revalidate: refresh Home on return (watched/resume
             # state may have changed) while showing the cached view meanwhile.
@@ -609,10 +626,11 @@ class MpvtkBrowser:
         against the window's left and right sides; the title is indented to
         line up with the content instead."""
         geom = geom or self.geom
-        pad = self.CONTENT_PAD if bleed else 0
         heading = Text(title, size=24, bold=True)
-        if pad:
-            heading = Row([Spacer(w=pad + self.ARROW_W), heading])
+        if bleed:
+            # The strip runs edge to edge; indent the heading to line up with
+            # the first tile instead.
+            heading = Row([Spacer(w=self.CONTENT_PAD), heading])
         return Column(
             [
                 heading,
@@ -624,32 +642,34 @@ class MpvtkBrowser:
         )
 
     def _hscroll_row(self, content, row_id, h, count, geom, bleed=False):
-        """An HScroll flanked by ◀ ▶ page buttons (the renderer pages the
-        container by id — see MpvtkApp.scroll).
+        """An HScroll with ◀ ▶ page buttons floating over its edges.
 
-        The arrows are laid out *beside* the strip rather than floating over
-        it: bitmaps composite above all script ASS in mpv, so an ASS arrow
-        drawn on top of a poster strip would simply be invisible (see
-        mpvtk/MIGRATION.md, "Framework deficits"). With ``bleed`` the row
-        spans the full window, which puts them against the screen edges.
-        They are omitted entirely when the row doesn't overflow."""
+        The arrows genuinely overlay the poster strip: a Stack layers them on
+        top, and ``occlude=True`` punches their rect out of the strip bitmap
+        below so the ASS button draws in the hole (bitmaps otherwise composite
+        above all script ASS — GUIDE §6). They hold-repeat while pressed, and
+        are omitted when the row doesn't overflow."""
+        scroll = HScroll(content, id=row_id, h=h, flex=1)
         avail = (self._size[0] if self._size else 1280)
         if not bleed:
             avail -= 2 * self.CONTENT_PAD
         content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
-        if content_w <= avail - 2 * self.ARROW_W:
-            return Row([HScroll(content, id=row_id, h=h, flex=1)], h=h)
+        if content_w <= avail:
+            return Row([scroll], h=h)
 
-        def arrow(icon, node_id, direction):
-            return Box([Icon(icon, 28)], id=node_id, w=self.ARROW_W, h=h,
-                       align="center", direction="row", bg=theme.BUTTON_BG,
+        def arrow(icon, node_id, direction, anchor):
+            return Box([Icon(icon, 28)], id=node_id, w=self.ARROW_W,
+                       h=min(h, 72), align="center", direction="row",
+                       bg=theme.BUTTON_BG, alpha=225,
                        hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
+                       anchor=anchor, occlude=True, repeat=True,
                        on_click=lambda: self._page_row(row_id, direction))
-        return Row([
-            arrow("chevron_left", row_id + "-pl", -1),
-            HScroll(content, id=row_id, h=h, flex=1),
-            arrow("chevron_right", row_id + "-pr", 1),
-        ], gap=0, align="center", h=h)
+
+        return Stack([
+            scroll,
+            arrow("chevron_left", row_id + "-pl", -1, "w"),
+            arrow("chevron_right", row_id + "-pr", 1, "e"),
+        ], h=h)
 
     def _page_row(self, row_id, direction):
         # Ask the renderer to page the horizontal scroll container.
@@ -792,10 +812,12 @@ class MpvtkBrowser:
                 # the windowless state rather than popping the browser up on
                 # a screen the user wasn't looking at.
                 self.minimize()
-            elif not self._browsing:
-                self.enter_browse()
             else:
-                self.invalidate()
+                # Unconditionally, even if we never left browse mode: stopping
+                # music happens *while* browsing, and whatever stopped it may
+                # have dropped force_window and taken the library's window
+                # with it. enter_browse() re-asserts the browse window.
+                self.enter_browse()
             return
         if state.get("is_audio"):
             self._now_playing = state
@@ -871,6 +893,14 @@ class MpvtkBrowser:
     def build(self, size):
         w, h = size
         self._size = size
+        # One synchronous read per frame: the renderer's live scroll offsets,
+        # which virtualization windows against (see _offset).
+        self._live_offsets = None
+        if self.app is not None and hasattr(self.app, "scroll_offsets"):
+            try:
+                self._live_offsets = self.app.scroll_offsets()
+            except Exception:
+                log.debug("scroll_offsets failed", exc_info=True)
         if not self._browsing:
             # Yielded to playback: an empty scene clears our overlays so the
             # video + OSC show through.
@@ -1148,7 +1178,10 @@ class MpvtkBrowser:
         ], gap=10, align="center")
         cur_letter = filters.get("letter")
         letters = Row([
-            Box([Text(ch, size=15,
+            # flex + align="center" centres the glyph horizontally; a bare
+            # Text is packed at the box's left edge (Box only centres on its
+            # cross axis), which left every letter hugging its left border.
+            Box([Text(ch, size=15, align="center", flex=1,
                       color="101010" if cur_letter == ch else theme.SUBTLE_FG)],
                 id="grid-l-" + ch, w=26, h=26, align="center", direction="row",
                 radius=4, bg=theme.ACCENT if cur_letter == ch else None,
@@ -1239,25 +1272,11 @@ class MpvtkBrowser:
             parts.append("★ %.1f" % item["CommunityRating"])
         return "   ·   ".join(parts)
 
-    def _wrap(self, text, size, max_w):
-        lines, cur = [], ""
-        for word in text.split():
-            trial = (cur + " " + word).strip()
-            if not cur or text_width(trial, size) <= max_w:
-                cur = trial
-            else:
-                lines.append(cur)
-                cur = word
-        if cur:
-            lines.append(cur)
-        return lines
-
     def _paragraph(self, text, size, max_w, color=None):
-        return Column(
-            [Text(ln, size=size, color=color or theme.TEXT_FG)
-             for ln in self._wrap(text, size, max_w)],
-            gap=3,
-        )
+        """Wrapped body text (overviews). The layout engine does the kerned
+        wrap now — this used to be a hand-rolled greedy wrap here."""
+        return Text(text, size=size, color=color or theme.TEXT_FG,
+                    wrap=True, w=max_w)
 
     def _sel_source(self, sources, route):
         if not sources:
@@ -1631,7 +1650,7 @@ class MpvtkBrowser:
         if scroll_id is not None:
             rh = geom.strip_h + self.GRID_GAP
             vh = max(240.0, float(size[1]))
-            top = max(0.0, self._scroll_off.get(scroll_id, 0.0) - head_h)
+            top = max(0.0, self._offset(scroll_id) - head_h)
             first = int(max(0.0, top - vh) // rh)
             last = int((top + 2 * vh) // rh)
         for r in range(nrows):
@@ -1646,6 +1665,18 @@ class MpvtkBrowser:
             rows.append(Text(_("Nothing here yet."), size=18,
                              color=theme.SUBTLE_FG))
         return rows
+
+    def _offset(self, scroll_id):
+        """Live scroll offset for a container.
+
+        The renderer owns scroll state and clamps it to the *current* content,
+        so its value is the only one that can't be stale — read it
+        synchronously at build time and fall back to the throttled on_scroll
+        copy only when the property isn't available (mpv < 0.36)."""
+        live = self._live_offsets
+        if live is not None and scroll_id in live:
+            return float(live[scroll_id] or 0.0)
+        return float(self._scroll_off.get(scroll_id, 0.0))
 
     # Re-render once the view has scrolled about this far, so the virtualized
     # window is refreshed well before the user reaches its edge.
@@ -1662,26 +1693,68 @@ class MpvtkBrowser:
         if prev is None or abs(offset - prev) >= self.SCROLL_STEP:
             self.invalidate()
 
-    def _track_list(self, tracks, prefix, on_click):
+    @staticmethod
+    def _duration(item):
+        secs = (item.get("RunTimeTicks") or 0) // 10000000
+        return "%d:%02d" % (secs // 60, secs % 60) if secs else ""
+
+    @staticmethod
+    def _artists(item):
+        return ", ".join(item.get("Artists") or item.get("AlbumArtists") or [])
+
+    def _track_list(self, tracks, prefix, on_play, playing_id=None,
+                    selected=None, on_select=None, album=True):
+        """Tabular track list (album, playlist, queue, search songs).
+
+        Uses the toolkit's Table so header and cells come from one column
+        spec — hand-laid Rows drifted out of alignment as soon as a cell's
+        text width changed.
+
+        With ``on_select`` the row click selects (mods-aware) and the first
+        column becomes a play button, so a selectable list still has a
+        one-click way to jump to a track. Without it, clicking the row plays."""
+        selected = selected or set()
+        columns = [{"label": "#", "w": 46, "align": "right"},
+                   {"label": _("Title"), "flex": 3},
+                   {"label": _("Artist"), "flex": 2}]
+        if album:
+            columns.append({"label": _("Album"), "flex": 2})
+        columns.append({"label": _("Time"), "w": 70, "align": "right"})
+
+        def first_cell(i, tr):
+            if on_select is None:
+                return str(tr.get("IndexNumber") or (i + 1))
+            return Box([Icon("play_arrow", 16,
+                             color=theme.ACCENT if tr.get("Id") == playing_id
+                             else theme.SUBTLE_FG)],
+                       id="%s-play-%d" % (prefix, i), w=40, h=26,
+                       direction="row", align="center", radius=4,
+                       hover={"fill": theme.BUTTON_ACTIVE},
+                       on_click=lambda i=i: on_play(i))
+
         rows = []
         for i, tr in enumerate(tracks):
-            num = tr.get("IndexNumber") or (i + 1)
-            secs = (tr.get("RunTimeTicks") or 0) // 10000000
-            rows.append(Row(
-                [Text(str(num), w=44, size=17, color=theme.SUBTLE_FG),
-                 Text(tr.get("Name", ""), flex=1, size=17),
-                 Text("%d:%02d" % (secs // 60, secs % 60), w=64, size=16,
-                      color=theme.SUBTLE_FG)],
-                id="%s-%d" % (prefix, i), pad=8, radius=6,
-                hover={"fill": theme.BUTTON_BG},
-                on_click=lambda i=i: on_click(i)))
-        return Column(rows, gap=2)
+            playing = playing_id is not None and tr.get("Id") == playing_id
+            cells = [first_cell(i, tr), tr.get("Name", ""), self._artists(tr)]
+            if album:
+                cells.append(tr.get("Album", "") or "")
+            cells.append(self._duration(tr))
+            rows.append({
+                "id": "%s-%d" % (prefix, i),
+                "selected": i in selected or playing,
+                "cells": cells,
+                "on_click": ((lambda mods, i=i: on_select(i, mods))
+                             if on_select is not None
+                             else (lambda i=i: on_play(i))),
+            })
+        return Table(columns, rows, size=17, row_h=34,
+                     selected_bg=theme.PANEL_BG, hover_bg=theme.BUTTON_BG)
 
-    def _play_shuffle(self, ids, server):
+    def _play_shuffle(self, ids, server, audio=True):
         import random
         ids = [i for i in ids if i]
         random.shuffle(ids)
-        self._play_list(ids, server, 0, audio=True)
+        self._play_list(ids, server, 0, audio=audio)
 
     def _queue_items(self, ids, server):
         self._client_call(lambda c: c.queue_items(server, [i for i in ids if i]))
@@ -1875,7 +1948,12 @@ class MpvtkBrowser:
             return self._busy()
         server = route.get("server") or self.server
         pid = route["item_id"]
-        ids = [i.get("Id") for i in data]
+        raw = list(data)
+        # A playlist's declared type and its contents can diverge, so filter
+        # by what's actually playable rather than trusting the container.
+        items = [i for i in raw if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
+        ids = [i.get("Id") for i in items]
+        audio = bool(items) and all(i.get("Type") == "Audio" for i in items)
         pl_item = {"Id": pid, "Type": "Playlist",
                    "Name": route.get("title", "")}
         header = Row([
@@ -1883,18 +1961,33 @@ class MpvtkBrowser:
             Spacer(),
             self._action_btn("play_arrow", _("Play All"), "pl-play",
                              lambda: self._play_list(ids, server, 0,
-                                                     audio=True), on=True),
+                                                     audio=audio), on=True),
             self._action_btn("shuffle", _("Shuffle"), "pl-shuffle",
-                             lambda: self._play_shuffle(ids, server)),
+                             lambda: self._play_shuffle(ids, server,
+                                                        audio=audio)),
             self._action_btn("file_download", _("Download"), "pl-download",
                              lambda: self._open_download(pl_item)),
-            Button(_("Edit"), id="pl-edit", on_click=lambda: self.navigate({
-                "kind": "playlist_edit", "server": server,
-                "item_id": pid, "title": route.get("title", "")})),
+            Button(_("Edit"), id="pl-edit", icon="edit",
+                   on_click=lambda: self.navigate({
+                       "kind": "playlist_edit", "server": server,
+                       "item_id": pid, "title": route.get("title", "")})),
         ], align="center", gap=10)
-        rows = [header] + self._grid_of(data, "pl", size,
-                                        scroll_id="playlist", head_h=70)
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
+        if not items:
+            body = [Text(
+                _("This playlist is empty.") if not raw else
+                _("This playlist has no supported media types."),
+                size=18, color=theme.SUBTLE_FG)]
+        elif audio:
+            # Music playlists read as a track list, like the Tk browser —
+            # a wall of identical album covers tells you nothing.
+            body = [self._track_list(
+                items, "pl",
+                lambda i: self._play_list(ids, server, i, audio=True))]
+        else:
+            body = self._grid_of(data, "pl", size, scroll_id="playlist",
+                                 head_h=70)
+        return VScroll(Column([header] + body, pad=self.CONTENT_PAD,
+                              gap=self.GRID_GAP),
                        id="playlist", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "playlist", off, mx))
@@ -2129,54 +2222,70 @@ class MpvtkBrowser:
     # -- Servers & Users --------------------------------------------------
 
     def _settings_servers(self, route, size):
-        rows = [Text(_("Users"), size=20, bold=True),
-                Text(_("Each user has its own servers and device identity; a "
-                       "locked user needs a PIN to switch to."),
-                     size=14, color=theme.SUBTLE_FG)]
         users = self._users()
-        for i, u in enumerate(users):
-            rows.append(self._user_row(u, i, len(users) > 1))
-        rows.append(Row([
+        user_rows = [self._user_row(u, i, len(users) > 1)
+                     for i, u in enumerate(users)]
+        user_rows.append(Row([
             TextBox("su-newuser", placeholder=_("New user name…"), w=240,
                     on_change=lambda v: self._newuser.__setitem__("name", v),
                     on_submit=self._add_user),
             Button(_("Add User"), id="su-adduser", icon="person_add",
                    on_click=lambda: self._add_user(
                        self._newuser.get("name", ""))),
+            Spacer(),
         ], gap=8, align="center"))
 
-        rows.append(Text(_("Servers"), size=20, bold=True))
         servers = []
         if self.controller is not None:
             try:
                 servers = self.controller.list_servers()
             except Exception:
                 log.debug("list_servers failed", exc_info=True)
+        active = next((u.get("name") for u in users if u.get("active")), None)
+        server_rows = []
         if not servers:
-            rows.append(Text(_("No servers configured yet."), size=15,
-                             color=theme.SUBTLE_FG))
-        for i, s in enumerate(servers):
-            rows.append(Row([
-                Text(s.get("name", "?"), w=260, size=17, bold=True),
-                Text(s.get("username", ""), w=160, size=15,
+            server_rows.append(Text(_("No servers configured yet."), size=15,
+                                    color=theme.SUBTLE_FG))
+        for i, sv in enumerate(servers):
+            connected = sv.get("connected")
+            server_rows.append(Row([
+                Icon("radio", 16,
+                     color=theme.OK_GREEN if connected else theme.FAV_RED),
+                Column([Text(sv.get("name", "?"), size=17, bold=True),
+                        Text(sv.get("address", ""), size=13,
+                             color=theme.SUBTLE_FG)], gap=1, flex=1),
+                Text(sv.get("username", ""), w=180, size=15,
                      color=theme.SUBTLE_FG),
-                Text(_("Connected") if s.get("connected") else _("Offline"),
-                     w=140, size=15,
-                     color=theme.OK_GREEN if s.get("connected")
-                     else theme.FAV_RED),
-                Spacer(),
-                Button(_("Remove"), id="sv-rm-%d" % i, icon="delete",
-                       on_click=lambda u=s.get("uuid"), n=s.get("name"):
+                Text(_("Connected") if connected else _("Offline"), w=120,
+                     size=15,
+                     color=theme.OK_GREEN if connected else theme.FAV_RED),
+                Button(_("Remove"), id="sv-rm-%d" % i, icon="delete", size=15,
+                       on_click=lambda u=sv.get("uuid"), n=sv.get("name"):
                            self._confirm(
                                _("Remove %s and its saved login?") % n,
                                lambda: self._remove_server(u),
                                title=_("Remove Server"), yes=_("Remove"))),
-            ], id="sv-%d" % i, pad=8, gap=10, radius=6, align="center",
+            ], id="sv-%d" % i, pad=8, gap=12, radius=6, align="center",
                bg=theme.PANEL_BG))
-        rows.append(Button(_("Add Server"), id="sv-add", icon="add",
-                           on_click=self.show_login))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
-                       id="settings-servers", flex=1)
+        server_rows.append(Row([
+            Button(_("Add Server"), id="sv-add", icon="add",
+                   on_click=self.show_login),
+            Spacer(),
+        ], gap=8, align="center"))
+
+        return VScroll(Column([
+            self._section(
+                _("Users"), user_rows,
+                subtitle=_("Each user has its own servers and device "
+                           "identity; a locked user needs a PIN to switch "
+                           "to.")),
+            self._section(
+                # Servers are scoped to the active user, so name the section
+                # after them — otherwise removing one looks global.
+                _("Servers for %s") % active if active else _("Servers"),
+                server_rows),
+        ], pad=self.CONTENT_PAD, gap=14, align="stretch"),
+            id="settings-servers", flex=1)
 
     def _user_row(self, u, i, can_delete):
         buttons = []
@@ -2322,39 +2431,111 @@ class MpvtkBrowser:
 
     # -- Downloads --------------------------------------------------------
 
+    def _section(self, title, children, subtitle=None):
+        """A full-width titled card. Settings panels are forms, not tile
+        grids — they should span the pane rather than sit in a ragged
+        left-aligned column."""
+        head = [Text(title, size=20, bold=True)]
+        if subtitle:
+            head.append(Text(subtitle, size=14, color=theme.SUBTLE_FG,
+                             wrap=True))
+        return Column(head + children, pad=14, gap=8, bg=theme.CARD_BG,
+                      radius=10, align="stretch")
+
+    INDENT = 26   # per hierarchy level in the downloads tree
+
     def _settings_downloads(self, route, size):
-        rows = [Text(_("Downloads"), size=20, bold=True)]
-        entries = route.get("_downloads")
-        if entries is None:
+        groups = route.get("_downloads")
+        if groups is None:
             self._load_downloads(route)
             return self._busy()
-        if not entries:
+        total = sum(g.get("size", 0) or 0 for g in groups)
+        count = sum(len(c.get("children", [c]))
+                    if c.get("kind") == "season" else 1
+                    for g in groups for c in g.get("children", []))
+        head = Row([
+            Text(_("Downloads"), size=20, bold=True),
+            Text(_("%(count)d items · %(size)s") % {
+                "count": count, "size": self._human_size(total)},
+                size=15, color=theme.SUBTLE_FG),
+            Spacer(),
+            Button(_("Refresh"), id="dl-refresh", icon="refresh",
+                   on_click=lambda: self._load_downloads(route, force=True)),
+        ], gap=12, align="center")
+        rows = [head]
+        if not groups:
             rows.append(Text(_("Nothing downloaded yet."), size=16,
                              color=theme.SUBTLE_FG))
-        total = sum(e.get("size", 0) or 0 for e in entries)
-        rows.append(Text(_("%(count)d items · %(size)s") % {
-            "count": len(entries), "size": self._human_size(total)},
-            size=15, color=theme.SUBTLE_FG))
-        for i, e in enumerate(entries):
-            rows.append(Row([
-                Text(e.get("name", "?"), flex=1, size=17),
-                Text(e.get("status", ""), w=160, size=14,
-                     color=theme.SUBTLE_FG),
-                Text(self._human_size(e.get("size", 0)), w=100, size=14,
-                     color=theme.SUBTLE_FG),
-                Button(_("Remove"), id="dl-rm-%d" % i, icon="delete",
-                       on_click=lambda it=e: self._confirm(
-                           _("Delete the downloaded copy of %s?")
-                           % it.get("name", ""),
-                           lambda: self._delete_download(route, it),
-                           title=_("Delete Download"), yes=_("Delete"))),
-            ], id="dl-%d" % i, pad=8, gap=10, radius=6, align="center",
-               bg=theme.PANEL_BG))
-        rows.append(Button(_("Refresh"), id="dl-refresh", icon="refresh",
-                           on_click=lambda: self._load_downloads(route,
-                                                                 force=True)))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=6),
-                       id="settings-downloads", flex=1)
+        for gi, group in enumerate(groups):
+            rows.append(self._dl_group(route, group, gi))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=10),
+                       id="settings-downloads", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "settings-downloads", off, mx))
+
+    def _dl_row(self, node_id, title, meta, depth, on_delete, bold=False,
+                icon=None):
+        """One line of the downloads tree. Indentation carries the level;
+        every level gets its own delete so a whole show can go at once."""
+        cells = [Spacer(w=depth * self.INDENT, h=1)]
+        if icon:
+            cells.append(Icon(icon, 16, color=theme.SUBTLE_FG))
+        cells += [
+            Text(title, flex=1, size=17 if bold else 16, bold=bold),
+            Text(meta, w=200, size=14, color=theme.SUBTLE_FG, align="right"),
+            Button(_("Remove"), id=node_id + "-rm", icon="delete", size=15,
+                   on_click=on_delete),
+        ]
+        return Row(cells, id=node_id, pad=6, gap=10, radius=6, align="center",
+                   bg=theme.PANEL_BG if depth == 0 else None)
+
+    def _dl_group(self, route, group, gi):
+        kind = group.get("kind")
+        children = group.get("children") or []
+        rows = [self._dl_row(
+            "dl-g%d" % gi, group.get("title", "?"),
+            self._human_size(group.get("size", 0)), 0,
+            self._dl_delete_cb(route, group, series_id=(
+                group.get("id") if kind == "series" else None)),
+            bold=True, icon="movie" if kind == "movies" else None)]
+        for ci, child in enumerate(children):
+            if child.get("kind") == "season":
+                rows.append(self._dl_row(
+                    "dl-g%d-s%d" % (gi, ci), child.get("title", "?"),
+                    self._human_size(child.get("size", 0)), 1,
+                    self._dl_delete_cb(route, child,
+                                       season_id=child.get("id"))))
+                for ei, ep in enumerate(child.get("children") or []):
+                    rows.append(self._dl_item_row(
+                        route, ep, "dl-g%d-s%d-e%d" % (gi, ci, ei), 2))
+            else:
+                rows.append(self._dl_item_row(
+                    route, child, "dl-g%d-i%d" % (gi, ci), 1))
+        return Column(rows, gap=2, align="stretch")
+
+    def _dl_item_row(self, route, item, node_id, depth):
+        num = item.get("index")
+        title = ("%s. %s" % (num, item.get("title", ""))
+                 if num is not None else item.get("title", ""))
+        status = item.get("status") or ""
+        meta = "   ".join(x for x in (
+            status if status != "complete" else "",
+            self._human_size(item.get("size", 0))) if x)
+        return self._dl_row(node_id, title, meta, depth,
+                            self._dl_delete_cb(route, item,
+                                               item_id=item.get("id")))
+
+    def _dl_delete_cb(self, route, entry, item_id=None, series_id=None,
+                      season_id=None):
+        def go():
+            self._confirm(
+                _("Delete the downloaded copy of %s?")
+                % entry.get("title", ""),
+                lambda: self._delete_download(route, item_id=item_id,
+                                              series_id=series_id,
+                                              season_id=season_id),
+                title=_("Delete Download"), yes=_("Delete"))
+        return go
 
     def _load_downloads(self, route, force=False):
         if self.controller is None:
@@ -2373,10 +2554,12 @@ class MpvtkBrowser:
             route["_dl_loading"] = False
         self.run_async(work, done, ep)
 
-    def _delete_download(self, route, entry):
-        self._client_call(lambda c: c.delete_download(entry.get("id")))
-        rows = route.get("_downloads") or []
-        route["_downloads"] = [e for e in rows if e is not entry]
+    def _delete_download(self, route, item_id=None, series_id=None,
+                         season_id=None):
+        self._client_call(lambda c: c.delete_download(
+            item_id=item_id, series_id=series_id, season_id=season_id))
+        route.pop("_downloads", None)      # re-read the tree from the catalog
+        self._load_downloads(route, force=True)
         self._refresh_downloaded()
         self.invalidate()
 
@@ -2415,71 +2598,96 @@ class MpvtkBrowser:
     # --------------------------------------------------------------- queue
 
     def _render_queue(self, route, size):
+        """The play queue, deliberately the same table + toolbar as the
+        playlist editor: the two do the same job on the same kind of list."""
         data = route.get("_data")
         if data is None:
             return self._busy()
         entries = data.get("entries") or []
         current = data.get("current_id")
-        sel = route.get("_sel")
+        sel = self._pe_sel(route)
+        n = len(entries)
         toolbar = Row([
             Text(_("Play Queue"), size=26, bold=True), Spacer(),
-            Button(_("Top"), id="q-top",
+            Button(_("Top"), id="q-top", icon="vertical_align_top",
                    on_click=lambda: self._queue_move(route, "top")),
-            Button(_("Up"), id="q-up",
+            Button(_("Up"), id="q-up", icon="keyboard_arrow_up",
                    on_click=lambda: self._queue_move(route, "up")),
-            Button(_("Down"), id="q-down",
+            Button(_("Down"), id="q-down", icon="keyboard_arrow_down",
                    on_click=lambda: self._queue_move(route, "down")),
-            Button(_("Bottom"), id="q-bottom",
+            Button(_("Bottom"), id="q-bottom", icon="vertical_align_bottom",
                    on_click=lambda: self._queue_move(route, "bottom")),
+            Text(_("%d selected") % len(sel) if sel else "", size=15,
+                 color=theme.SUBTLE_FG),
+            Button(_("Select All"), id="q-all",
+                   on_click=lambda: self._pe_set_sel(route, set(range(n)))),
+            Button(_("Clear"), id="q-none",
+                   on_click=lambda: self._pe_set_sel(route, set())),
+            Button(_("Remove"), id="q-remove", icon="delete",
+                   on_click=lambda: self._queue_remove_selected(route)),
         ], gap=8, align="center")
         rows = [toolbar]
         if not entries:
             rows.append(Text(_("The queue is empty."), size=18,
                              color=theme.SUBTLE_FG))
-        for i, e in enumerate(entries):
-            item = e["item"]
-            playing = item.get("Id") == current
-            secs = (item.get("RunTimeTicks") or 0) // 10000000
-            rows.append(Row([
-                Box([Icon("play_arrow", 18,
-                          color=theme.ACCENT if playing else "cccccc")],
-                    id="q-play-%d" % i, w=44, h=30, align="center",
-                    direction="row", hover={"fill": theme.BUTTON_ACTIVE},
-                    radius=4,
-                    on_click=lambda pid=e["pid"]: self._queue_skip(pid)),
-                Text(item.get("Name", ""), flex=1, size=17, bold=playing),
-                Text(", ".join(item.get("Artists") or []), w=180, size=14,
-                     color=theme.SUBTLE_FG),
-                Text("%d:%02d" % (secs // 60, secs % 60) if secs else "",
-                     w=56, size=14, color=theme.SUBTLE_FG),
-                Button(_("Remove"), id="q-rm-%d" % i,
-                       on_click=lambda pid=e["pid"]: self._queue_remove(pid)),
-            ], id="q-%d" % i, pad=8, gap=10, radius=6, align="center",
-               bg=(theme.ACCENT if sel == i else
-                   (theme.PANEL_BG if playing else None)),
-               hover=None if sel == i else {"fill": theme.BUTTON_BG},
-               on_click=lambda i=i: self._queue_select(route, i)))
-        return VScroll(Column(rows, pad=16, gap=3), id="queue", flex=1)
+        else:
+            rows.append(self._track_list(
+                [e["item"] for e in entries], "q",
+                lambda i: self._queue_skip(entries[i].get("pid")),
+                playing_id=current, selected=sel,
+                on_select=lambda i, mods: self._select_click(route, i, mods)))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8), id="queue",
+                       flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "queue", off, mx))
 
-    def _queue_select(self, route, i):
-        route["_sel"] = i
+    def _queue_remove_selected(self, route):
+        data = route.get("_data") or {}
+        entries = data.get("entries") or []
+        sel = sorted(self._pe_sel(route))
+        pids = [entries[i].get("pid") for i in sel
+                if i < len(entries) and entries[i].get("pid")]
+        if not pids:
+            return
+        route["_sel"] = set()
+        if self.controller is not None:
+            self._safe(lambda c: c.queue_remove(pids))
+        self.route.pop("_data", None)
+        self._bump_epoch()
+        self._load_route(self.route)
         self.invalidate()
+
+    def _queue_select(self, route, i, mods=None):
+        self._select_click(route, i, mods)
+
+    @staticmethod
+    def _block_move(items, sel, where):
+        """Move the selected indices as one block. Returns (items, new_sel)
+        or None when nothing moves. Shared by the queue and the playlist
+        editor so the two behave identically."""
+        sel = sorted(sel)
+        if not sel or not items:
+            return None
+        n = len(items)
+        target = {"top": 0, "bottom": n - len(sel),
+                  "up": max(0, sel[0] - 1),
+                  "down": min(n - len(sel), sel[0] + 1)}[where]
+        if target == sel[0]:
+            return None
+        block = [items[i] for i in sel]
+        rest = [it for i, it in enumerate(items) if i not in set(sel)]
+        return (rest[:target] + block + rest[target:],
+                set(range(target, target + len(block))))
 
     def _queue_move(self, route, where):
         data = route.get("_data") or {}
         entries = data.get("entries") or []
-        i = route.get("_sel")
-        if i is None or not entries:
+        moved = self._block_move(entries, self._pe_sel(route), where)
+        if moved is None:
             return
-        n = len(entries)
-        j = {"top": 0, "up": max(0, i - 1),
-             "down": min(n - 1, i + 1), "bottom": n - 1}[where]
-        if j == i:
-            return
-        entries.insert(j, entries.pop(i))
-        route["_sel"] = j
+        data["entries"], route["_sel"] = moved
         self._client_call(lambda c: c.queue_reorder(
-            [e["pid"] for e in entries if e.get("pid")]))
+            [e["pid"] for e in data["entries"] if e.get("pid")]))
         self.invalidate()
 
     def _queue_skip(self, pid):
@@ -2605,77 +2813,70 @@ class MpvtkBrowser:
                        lambda: self._pe_delete(route),
                        title=_("Delete Playlist"), yes=_("Delete"))),
         ], gap=10, align="center")
-        # Column header, so the table reads as a table.
-        head = Row([
-            Spacer(w=30), Text("#", w=44, size=14, color=theme.SUBTLE_FG),
-            Text(_("Title"), flex=1, size=14, color=theme.SUBTLE_FG),
-            Text(_("Type"), w=110, size=14, color=theme.SUBTLE_FG),
-            Text(_("Runtime"), w=80, size=14, color=theme.SUBTLE_FG),
-        ], pad=8, gap=8, align="center")
+        table = Table(
+            [{"label": "#", "w": 46, "align": "right"},
+             {"label": _("Title"), "flex": 3},
+             {"label": _("Type"), "w": 120},
+             {"label": _("Time"), "w": 80, "align": "right"}],
+            [{"id": "pe-row-%d" % i,
+              "selected": i in sel,
+              "cells": [str(i + 1), self._pe_title(it),
+                        it.get("Type", ""), self._duration(it)],
+              # A one-parameter handler opts into the click modifiers, which
+              # is what makes shift-range selection possible.
+              "on_click": (lambda mods, i=i: self._select_click(
+                  route, i, mods))}
+             for i, it in enumerate(items)],
+            size=17, row_h=34, selected_bg=theme.PANEL_BG,
+            hover_bg=theme.BUTTON_BG)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
-                     size=26, bold=True), rename_row, toolbar, head]
-        for i, it in enumerate(items):
-            on = i in sel
-            secs = (it.get("RunTimeTicks") or 0) // 10000000
-            rows.append(Row([
-                Icon("check" if on else "add", 16,
-                     color="101010" if on else theme.SUBTLE_FG, w=30),
-                Text(str(i + 1), w=44, size=16,
-                     color="101010" if on else theme.SUBTLE_FG),
-                Text(self._pe_title(it), flex=1, size=17,
-                     color="101010" if on else theme.TEXT_FG),
-                Text(it.get("Type", ""), w=110, size=14,
-                     color="101010" if on else theme.SUBTLE_FG),
-                Text("%d:%02d" % (secs // 60, secs % 60) if secs else "",
-                     w=80, size=14,
-                     color="101010" if on else theme.SUBTLE_FG),
-            ], id="pe-row-%d" % i, pad=8, gap=8, radius=6, align="center",
-               bg=theme.ACCENT if on else (
-                   theme.PANEL_BG if i % 2 else None),
-               hover=None if on else {"fill": theme.BUTTON_BG},
-               on_click=lambda i=i: self._pe_toggle(route, i)))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=3),
+                     size=26, bold=True), rename_row, toolbar, table]
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8),
                        id="playlist-edit", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "playlist-edit", off, mx))
 
-    def _pe_set_sel(self, route, sel):
+    def _pe_set_sel(self, route, sel, anchor=None):
         route["_sel"] = set(sel)
+        if anchor is not None:
+            route["_anchor"] = anchor
         self.invalidate()
 
-    def _pe_toggle(self, route, i):
-        """Click toggles a row in/out of the selection. There is no modifier
-        state to read (the renderer reports a plain click), so toggle-select is
-        how multi-select is expressed here — see MIGRATION.md."""
+    def _select_click(self, route, i, mods):
+        """Standard list selection semantics against ``route["_sel"]``.
+
+        - plain click: select just this row, and make it the anchor
+        - shift-click: select the whole range from the anchor to here, so two
+          clicks pick any run of rows
+        - ctrl-click: toggle this row, keeping the rest
+
+        ``mods`` comes from the renderer's click payload (mpvtk carries
+        shift/ctrl for handlers that declare a parameter)."""
+        mods = mods or {}
         sel = self._pe_sel(route)
-        sel.symmetric_difference_update({i})
-        self._pe_set_sel(route, sel)
+        anchor = route.get("_anchor")
+        if mods.get("shift") and anchor is not None:
+            lo, hi = (anchor, i) if anchor <= i else (i, anchor)
+            self._pe_set_sel(route, set(range(lo, hi + 1)))
+        elif mods.get("ctrl"):
+            sel.symmetric_difference_update({i})
+            self._pe_set_sel(route, sel, anchor=i)
+        else:
+            self._pe_set_sel(route, {i}, anchor=i)
 
     def _pe_move(self, route, where):
         """Move the whole selection as a block, preserving its internal
         order — moving 20 rows should not require 20 clicks."""
         items = route.get("_items") or []
         sel = sorted(self._pe_sel(route))
-        if not sel or not items:
+        moved = self._block_move(items, sel, where)
+        if moved is None:
             return
-        n = len(items)
-        if where == "top":
-            target = 0
-        elif where == "bottom":
-            target = n - len(sel)
-        elif where == "up":
-            target = max(0, sel[0] - 1)
-        else:
-            target = min(n - len(sel), sel[0] + 1)
-        if target == sel[0]:
-            return
-        block = [items[i] for i in sel]
-        rest = [it for i, it in enumerate(items) if i not in set(sel)]
-        route["_items"] = rest[:target] + block + rest[target:]
-        route["_sel"] = set(range(target, target + len(block)))
+        route["_items"], route["_sel"] = moved
+        target = min(route["_sel"])
         server = route.get("server") or self.server
         pid = route["item_id"]
-        for offset, entry in enumerate(block):
+        for offset, entry in enumerate([items[i] for i in sel]):
             self._client_call(
                 lambda c, e=entry, o=offset: c.playlist_move(
                     server, pid, e.get("PlaylistItemId"), target + o))

@@ -694,8 +694,8 @@ class TestTileShapes(unittest.TestCase):
         self.assertIs(g, POSTER_GEOM)
 
     def test_scroll_arrows_appear_only_when_the_row_overflows(self):
-        # One library fits, so no arrows; a long row gets them, pinned to the
-        # window edges.
+        # One library fits, so no arrows; a long row gets them, floating over
+        # the strip's left and right edges.
         self.b.route["_data"] = {"libraries": self.b.source.libraries,
                                  "rows": []}
         nodes, _h = build_scene(self.b)
@@ -705,15 +705,36 @@ class TestTileShapes(unittest.TestCase):
                      Name="Library %d" % i) for i in range(30)]
         self.b.route["_data"] = {"libraries": many, "rows": []}
         nodes, _h = build_scene(self.b)
-        self.assertIn("row-libs-pl", ids(nodes))
-        self.assertIn("row-libs-pr", ids(nodes))
         by_id = {n["id"]: n for n in nodes}
-        self.assertEqual(by_id["row-libs-pl"]["x"], 0.0)
-        # Flush right, inside the vertical scrollbar's gutter.
-        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
-        self.assertAlmostEqual(
-            by_id["row-libs-pr"]["x"] + by_id["row-libs-pr"]["w"],
-            self.b._size[0] - SCROLLBAR_W, places=1)
+        self.assertIn("row-libs-pl", by_id)
+        self.assertIn("row-libs-pr", by_id)
+        strip = by_id["row-libs"]
+        left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+        # Anchored to the scroll container's own edges (they overlay it).
+        self.assertAlmostEqual(left["x"], strip["x"], places=1)
+        self.assertAlmostEqual(right["x"] + right["w"],
+                               strip["x"] + strip["w"], places=1)
+        # Vertically centred on the strip rather than spanning it.
+        self.assertLess(left["h"], strip["h"])
+
+    def test_arrows_punch_through_the_strip_bitmap(self):
+        """An ASS button can't composite over a bitmap; it needs an occluder
+        node so the renderer subtracts its rect from the strip below."""
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        occ = [n for n in nodes if n["t"] == "occ"]
+        self.assertEqual(len(occ), 2, "one occluder per arrow")
+
+    def test_arrows_hold_repeat(self):
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        by_id = {n["id"]: n for n in nodes}
+        self.assertTrue(by_id["row-libs-pl"].get("rpt"))
+        self.assertTrue(by_id["row-libs-pr"].get("rpt"))
 
     def test_downloaded_and_glyph(self):
         self.b._downloaded = {"m1"}
@@ -982,12 +1003,30 @@ class TestPlaylistEdit(unittest.TestCase):
         self.assertIn("playlist_remove",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
 
-    def test_click_toggles_multi_select(self):
+    def test_plain_click_selects_only_that_row(self):
         nodes, h = self._open_edit()
-        h["pe-row-0"]["click"]()
-        h["pe-row-2"]["click"]()
+        h["pe-row-0"]["click"]({})
+        h["pe-row-2"]["click"]({})
+        self.assertEqual(self.b.route["_sel"], {2})
+
+    def test_shift_click_selects_the_range_in_two_clicks(self):
+        nodes, h = self._open_edit()
+        h["pe-row-0"]["click"]({})
+        h["pe-row-2"]["click"]({"shift": True})
+        self.assertEqual(self.b.route["_sel"], {0, 1, 2})
+
+    def test_shift_click_works_upwards_too(self):
+        nodes, h = self._open_edit()
+        h["pe-row-2"]["click"]({})
+        h["pe-row-0"]["click"]({"shift": True})
+        self.assertEqual(self.b.route["_sel"], {0, 1, 2})
+
+    def test_ctrl_click_toggles_additively(self):
+        nodes, h = self._open_edit()
+        h["pe-row-0"]["click"]({})
+        h["pe-row-2"]["click"]({"ctrl": True})
         self.assertEqual(self.b.route["_sel"], {0, 2})
-        h["pe-row-0"]["click"]()          # toggles back off
+        h["pe-row-0"]["click"]({"ctrl": True})
         self.assertEqual(self.b.route["_sel"], {2})
 
     def test_block_move_keeps_selection_contiguous(self):
@@ -1319,7 +1358,9 @@ class TestQueueView(unittest.TestCase):
         nodes, handlers = build_scene(self.b)
         self.assertEqual(self.b.route["kind"], "queue")
         self.assertIn("q-0", ids(nodes))
-        self.assertTrue(any(k.startswith("q-rm-") for k in handlers))
+        # Same toolbar-driven shape as the playlist editor.
+        for nid in ("q-top", "q-up", "q-down", "q-bottom", "q-remove"):
+            self.assertIn(nid, ids(nodes))
 
     def test_queue_row_play_skips(self):
         self.b._open_queue()
@@ -1336,10 +1377,24 @@ class TestQueueView(unittest.TestCase):
         self.assertEqual(route["_data"]["entries"][1]["pid"], first)
         self.assertIn("queue_reorder", [c[0] for c in self.ctl.transport])
 
+    def test_queue_shift_select_then_block_move(self):
+        self.b._open_queue()
+        route = self.b.route
+        pids = [e["pid"] for e in route["_data"]["entries"]]
+        _n, h = build_scene(self.b)
+        h["q-0"]["click"]({})
+        h["q-1"]["click"]({"shift": True})
+        self.assertEqual(route["_sel"], {0, 1})
+        self.b._queue_move(route, "bottom")
+        self.assertEqual([e["pid"] for e in route["_data"]["entries"]],
+                         [pids[2], pids[0], pids[1]])
+
     def test_queue_remove_calls_controller_and_refreshes(self):
         self.b._open_queue()
-        _n, handlers = build_scene(self.b)
-        handlers["q-rm-0"]["click"]()
+        route = self.b.route
+        _n, h = build_scene(self.b)
+        h["q-0"]["click"]({})
+        h["q-remove"]["click"]()
         self.assertIn("queue_remove",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
 
@@ -1526,3 +1581,128 @@ class TestPhase2Views(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DownloadsController(FakeController):
+    """Controller whose downloads catalog has real hierarchy."""
+
+    TREE = [
+        {"kind": "series", "id": "sh1", "title": "The Show", "size": 3000,
+         "children": [
+             {"kind": "season", "id": "se1", "series_id": "sh1",
+              "title": "Season 1", "size": 3000, "children": [
+                  {"kind": "item", "id": "e1", "title": "Pilot",
+                   "status": "complete", "size": 2000, "index": 1},
+                  {"kind": "item", "id": "e2", "title": "Second",
+                   "status": "pending", "size": 1000, "index": 2}]}]},
+        {"kind": "movies", "id": None, "title": "Movies & Videos", "size": 500,
+         "children": [{"kind": "item", "id": "m1", "title": "A Movie",
+                       "status": "complete", "size": 500, "index": None}]},
+    ]
+
+    def __init__(self):
+        super().__init__()
+        self.deleted = []
+
+    def list_downloads(self):
+        import copy
+        return copy.deepcopy(self.TREE)
+
+    def delete_download(self, item_id=None, series_id=None, season_id=None):
+        self.deleted.append((item_id, series_id, season_id))
+
+    def list_users(self):
+        return [{"id": "u1", "name": "Izzie", "locked": False, "active": True},
+                {"id": "u2", "name": "Guest", "locked": True, "active": False}]
+
+    def list_servers(self):
+        return [{"uuid": "srv1", "name": "Home", "address": "http://h",
+                 "username": "izzie", "connected": True},
+                {"uuid": "srv2", "name": "Away", "address": "http://a",
+                 "username": "izzie", "connected": False}]
+
+
+class TestDownloadsPanel(unittest.TestCase):
+    def setUp(self):
+        self.ctl = DownloadsController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl, config=FakeConfig())
+        self.b._pool = _SyncPool()
+        self.b.open_settings("downloads")
+        # First build kicks off the (inline) catalog load and shows a
+        # spinner; the second renders the tree.
+        build_scene(self.b)
+
+    def test_tree_is_indented_by_level(self):
+        """Series > season > episode each start further right."""
+        nodes, _h = build_scene(self.b)
+        text_x = {n["text"]: n["x"] for n in nodes if n["t"] == "text"}
+        self.assertIn("The Show", text_x)
+        self.assertIn("Season 1", text_x)
+        self.assertIn("1. Pilot", text_x)
+        self.assertLess(text_x["The Show"], text_x["Season 1"])
+        self.assertLess(text_x["Season 1"], text_x["1. Pilot"])
+        self.assertEqual(text_x["Season 1"] - text_x["The Show"],
+                         self.b.INDENT)
+
+    def test_every_level_can_be_deleted(self):
+        _n, h = build_scene(self.b)
+        for nid in ("dl-g0-rm", "dl-g0-s0-rm", "dl-g0-s0-e0-rm"):
+            self.assertIn(nid, h, nid)
+
+    def test_deleting_a_series_passes_series_id(self):
+        _n, h = build_scene(self.b)
+        h["dl-g0-rm"]["click"]()          # opens the confirm dialog
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.ctl.deleted, [(None, "sh1", None)])
+
+    def test_deleting_an_episode_passes_item_id(self):
+        _n, h = build_scene(self.b)
+        h["dl-g0-s0-e0-rm"]["click"]()
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.ctl.deleted, [("e1", None, None)])
+
+    def test_loose_movies_group_renders(self):
+        """Items with no series land in one flat group at the end."""
+        nodes, _h = build_scene(self.b)
+        texts = [n["text"] for n in nodes if n["t"] == "text"]
+        self.assertIn("Movies & Videos", texts)
+        self.assertIn("A Movie", texts)
+        self.assertIn("dl-g1-i0-rm", ids(nodes))
+
+    def test_pending_items_show_their_status(self):
+        nodes, _h = build_scene(self.b)
+        texts = [n["text"] for n in nodes if n["t"] == "text"]
+        self.assertTrue(any("pending" in t for t in texts))
+        # A completed item shows only its size, not "complete".
+        self.assertFalse(any("complete" in t for t in texts))
+
+
+class TestServersPanel(unittest.TestCase):
+    def setUp(self):
+        self.ctl = DownloadsController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl, config=FakeConfig())
+        self.b._pool = _SyncPool()
+        self.b.open_settings("servers")
+
+    def test_users_and_servers_both_render(self):
+        nodes, _h = build_scene(self.b)
+        self.assertIn("su-0", ids(nodes))
+        self.assertIn("su-1", ids(nodes))
+        self.assertIn("sv-0", ids(nodes))
+        self.assertIn("sv-1", ids(nodes))
+
+    def test_sections_span_the_pane(self):
+        """Settings panels are forms; their cards should fill the width
+        rather than shrink to their content."""
+        nodes, _h = build_scene(self.b, size=(1280, 720))
+        cards = [n for n in nodes if n["t"] == "rect" and n["w"] > 900]
+        self.assertGreaterEqual(len(cards), 2, "expected two full-width cards")
+
+    def test_locked_user_gets_the_lock_glyph(self):
+        nodes, _h = build_scene(self.b)
+        icons = [n for n in nodes if n["t"] == "icon"]
+        self.assertTrue(icons)
