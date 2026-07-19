@@ -369,7 +369,10 @@ class MpvtkApp:
             "script-message", "mpvtk-scene", json.dumps(scene)
         )
         t3 = time.perf_counter()
-        log.info(
+        # Per-frame timing: useful while the renderer was being built, pure
+        # noise in a normal log now. Debug-level so it can still be turned
+        # on when something is actually slow.
+        log.debug(
             "render: build %.1fms, layout %.1fms, push %.1fms (%d nodes)",
             (t1 - t0) * 1000,
             (t2 - t1) * 1000,

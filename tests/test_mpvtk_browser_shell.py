@@ -3017,3 +3017,92 @@ class TestTrackListArtWindowing(unittest.TestCase):
         self.b._track_list(tracks, "pl", on_play=lambda i: None,
                            art=True, scroll_id="playlist", head_h=70)
         self.assertEqual(len(self.built), 12)
+
+
+def _sub_item(default_sid=None, default_aid=None, subs=(3, 4), audios=(1,)):
+    streams = [{"Type": "Audio", "Index": i, "DisplayTitle": "Audio %d" % i}
+               for i in audios]
+    streams += [{"Type": "Subtitle", "Index": i, "DisplayTitle": "Sub %d" % i}
+                for i in subs]
+    src = {"Id": "src1", "MediaStreams": streams}
+    if default_sid is not None:
+        src["DefaultSubtitleStreamIndex"] = default_sid
+    if default_aid is not None:
+        src["DefaultAudioStreamIndex"] = default_aid
+    return {"Id": "m1", "Name": "Movie", "Type": "Movie",
+            "MediaSources": [src]}
+
+
+class TestTrackDefaults(unittest.TestCase):
+    """The detail page's pickers must show the tracks that will actually
+    play. They showed a hardcoded "None" for subtitles, and because a
+    browser selection is taken as final downstream (explicit_tracks), that
+    lie became the playback behaviour."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.route = {"kind": "detail", "server": "srv1"}
+
+    def test_server_default_subtitle_is_preselected(self):
+        item = _sub_item(default_sid=4)
+        _aid, sid = self.b._effective_tracks(self.route, item)
+        self.assertEqual(sid, 4, "showed None instead of the server default")
+
+    def test_language_config_beats_the_server_default(self):
+        import jellyfin_mpv_shim.language_config as lc
+
+        item = _sub_item(default_sid=4)
+        real, lc.apply = lc.apply, lambda rules, src, it: (None, 3)
+        self.addCleanup(lambda: setattr(lc, "apply", real))
+        _aid, sid = self.b._effective_tracks(self.route, item)
+        self.assertEqual(sid, 3, "language_config must win")
+
+    def test_explicit_none_is_not_overwritten_by_the_default(self):
+        """-1 is a deliberate "no subtitles" and must survive; only an
+        untouched picker (None) falls back to the default."""
+        item = _sub_item(default_sid=4)
+        self.route["_sid"] = -1
+        _aid, sid = self.b._effective_tracks(self.route, item)
+        self.assertEqual(sid, -1)
+
+    def test_picking_audio_still_carries_the_subtitle_default(self):
+        """The poisoning case: touching only Audio marked the play
+        explicit with sid=None, so map_streams returned before applying
+        DefaultSubtitleStreamIndex and subtitles came up off."""
+        item = _sub_item(default_sid=4)
+        self.route["_aid"] = 1
+        aid, sid = self.b._effective_tracks(self.route, item)
+        self.assertEqual((aid, sid), (1, 4))
+
+    def test_no_subtitle_streams_reports_no_choice(self):
+        """An item with no subtitles must not send a spurious index —
+        that would mark the play explicit for no reason."""
+        item = _sub_item(default_sid=None, subs=())
+        _aid, sid = self.b._effective_tracks(self.route, item)
+        self.assertIsNone(sid)
+
+    def test_picker_shows_the_default_not_none(self):
+        item = _sub_item(default_sid=4)
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+
+        rows = self.b._track_pickers(self.route, item)
+        self.assertTrue(rows, "expected pickers")
+        nodes, _h = layout(Column(rows), 1280, 720)
+        dd = [n for n in nodes if n.get("id") == "dt-sub"]
+        self.assertTrue(dd, "no subtitle picker rendered")
+        # options are ["None", "Sub 3", "Sub 4"] -> index 2
+        self.assertEqual(dd[0].get("sel"), 2)
+
+    def test_defaults_are_resolved_once_per_source(self):
+        """_effective_tracks runs from build(), so the language_config
+        walk (which logs on every call) must not run per repaint."""
+        import jellyfin_mpv_shim.language_config as lc
+
+        calls = []
+        item = _sub_item(default_sid=4)
+        real = lc.apply
+        lc.apply = lambda rules, src, it: (calls.append(1), (None, None))[1]
+        self.addCleanup(lambda: setattr(lc, "apply", real))
+        for _ in range(5):
+            self.b._effective_tracks(self.route, item)
+        self.assertEqual(len(calls), 1, "should be cached on the route")

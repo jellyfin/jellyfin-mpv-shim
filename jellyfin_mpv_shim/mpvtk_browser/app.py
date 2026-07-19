@@ -1822,6 +1822,63 @@ class MpvtkBrowser:
         route["_sid"] = None
         self.invalidate()
 
+    def _default_track_indices(self, route, src, item):
+        """``(aid, sid)`` playback will actually choose for ``src``:
+        language_config first, then the server's session default — the same
+        resolution media.map_streams performs.
+
+        The pickers have to show these rather than a bare "None". A browser
+        selection is taken as final downstream (``explicit_tracks``, which
+        makes map_streams skip its own defaulting), so a picker that
+        misreports the default doesn't just look wrong — it makes playback
+        obey the lie, and remember_subtitle_track then pins it for the rest
+        of the queue.
+
+        Cached per media source: this is reached from build(), i.e. once a
+        repaint, and apply() does real work and logs every call."""
+        cache = route.setdefault("_def_tracks", {})
+        key = (src or {}).get("Id")
+        if key in cache:
+            return cache[key]
+        aid = sid = None
+        if src:
+            try:
+                from ..conf import settings
+                from ..language_config import apply as apply_language_config
+
+                aid, sid = apply_language_config(
+                    settings.language_config, src, item)
+            except Exception:
+                log.debug("language_config lookup failed", exc_info=True)
+                aid = sid = None
+            if aid is None:
+                aid = src.get("DefaultAudioStreamIndex")
+            if sid is None:
+                sid = src.get("DefaultSubtitleStreamIndex")
+        cache[key] = (aid, sid)
+        return aid, sid
+
+    def _effective_tracks(self, route, item):
+        """``(aid, sid)`` the pickers display and playback is started with:
+        the user's pick where they made one, otherwise the resolved default.
+
+        Both are sent, not just the one that was touched — mirroring the Tk
+        browser, whose comboboxes are always populated. Sending only the
+        touched one marks the play explicit and map_streams then returns
+        before defaulting the other, which is how picking an audio track
+        silently turned the subtitles off."""
+        src = self._sel_source(item.get("MediaSources") or [], route)
+        streams = (src or {}).get("MediaStreams") or []
+        def_aid, def_sid = self._default_track_indices(route, src, item)
+        aid, sid = route.get("_aid"), route.get("_sid")
+        # Only default a kind that actually has streams, so an item with no
+        # subtitles isn't reported as a deliberate choice.
+        if aid is None and any(s.get("Type") == "Audio" for s in streams):
+            aid = def_aid
+        if sid is None and any(s.get("Type") == "Subtitle" for s in streams):
+            sid = def_sid
+        return aid, sid
+
     def _track_pickers(self, route, item):
         sources = item.get("MediaSources") or []
         controls = []
@@ -1841,19 +1898,21 @@ class MpvtkBrowser:
         def label(s, kind):
             return (s.get("DisplayTitle") or s.get("Language")
                     or "%s %s" % (kind, s.get("Index")))
+        # What the pickers show must be what will play — see _effective_tracks.
+        eff_aid, eff_sid = self._effective_tracks(route, item)
         if audio:
             names = [label(s, _("Audio")) for s in audio]
             cur = next((i for i, s in enumerate(audio)
-                        if s.get("Index") == route.get("_aid")), 0)
+                        if s.get("Index") == eff_aid), 0)
             controls.append(self._picker_row(
                 _("Audio"), "dt-audio", names, cur,
                 lambda i, v: route.__setitem__("_aid", audio[i].get("Index"))))
         if subs:
             names = [_("None")] + [label(s, _("Sub")) for s in subs]
             cur = 0
-            if route.get("_sid") not in (None, -1):
+            if eff_sid not in (None, -1):
                 cur = next((i + 1 for i, s in enumerate(subs)
-                            if s.get("Index") == route.get("_sid")), 0)
+                            if s.get("Index") == eff_sid), 0)
             controls.append(self._picker_row(
                 _("Subtitle"), "dt-sub", names, cur,
                 lambda i, v: route.__setitem__(
@@ -1870,7 +1929,7 @@ class MpvtkBrowser:
         pos = ud.get("PlaybackPositionTicks") or 0
         srcid = (route.get("_srcid")
                  or ((item.get("MediaSources") or [{}])[0]).get("Id"))
-        aid, sid = route.get("_aid"), route.get("_sid")
+        aid, sid = self._effective_tracks(route, item)
         buttons = []
         if pos > 0:
             secs = pos // 10000000

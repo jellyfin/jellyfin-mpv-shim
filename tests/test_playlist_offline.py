@@ -342,5 +342,48 @@ class TestMpvtkOfflineFallback(TmpTest):
         self.assertIsNone(ctl.offline_source())
 
 
+class TestOfflinePlaylistArt(TmpTest):
+    """A playlist tile borrows a member's poster. It used to take member
+    #1 and nothing else, so a playlist whose first item happened not to
+    have poster.jpg on disk showed a bare letter glyph — while its other
+    members' art sat right there."""
+
+    def _catalog(self, art_for):
+        """Two-item playlist; only the items in ``art_for`` get a poster."""
+        path = os.path.join(self.tmp, "catalog.db")
+        db = SyncDB(path)
+        for n, item in enumerate(("m1", "m2")):
+            db.upsert(make_row(item, type="Movie",
+                               file_path="%s/file.mkv" % item))
+            item_dir = os.path.join(self.tmp, item)
+            os.makedirs(item_dir, exist_ok=True)
+            if item in art_for:
+                with open(os.path.join(item_dir, "poster.jpg"), "wb") as fh:
+                    fh.write(b"jpeg")
+        db.upsert_playlist("P", "srv", "uuid", "Mixed")
+        db.replace_playlist_items("P", [("m1", 0, 1), ("m2", 1, 1)])
+        db.close()
+        return path
+
+    def test_falls_back_to_a_later_member_with_art(self):
+        src = OfflineLibrarySource(self._catalog({"m2"}))
+        self.assertIsNotNone(src.image_spec({"Id": "P"}),
+                             "playlist tile went artless with art available")
+
+    def test_uses_the_first_member_when_it_has_art(self):
+        src = OfflineLibrarySource(self._catalog({"m1", "m2"}))
+        spec = src.image_spec({"Id": "P"})
+        self.assertIsNotNone(spec)
+        self.assertTrue(src.image_url("offline", "P", "Primary", "offline", 100)
+                        .endswith(os.path.join("m1", "poster.jpg")))
+
+    def test_no_member_has_art(self):
+        src = OfflineLibrarySource(self._catalog(set()))
+        self.assertIsNone(src.image_spec({"Id": "P"}))
+
+    def test_candidate_scan_is_bounded(self):
+        self.assertLessEqual(OfflineLibrarySource.PLAYLIST_ART_CANDIDATES, 24)
+
+
 if __name__ == "__main__":
     unittest.main()
