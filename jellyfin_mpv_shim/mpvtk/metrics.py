@@ -12,9 +12,16 @@ Non-ASCII glyphs still use the fallback width; a fuller table (or
 shipping a UI font) is the production path.
 """
 
+import json
 import logging
+import os
+import sys
+import tempfile
 
 log = logging.getLogger("mpvtk")
+
+# Bump when the measurement logic changes (invalidates disk caches).
+_METRICS_VERSION = 1
 
 # Candidates per platform; Pillow searches the system font paths.
 _CANDIDATES = [
@@ -66,15 +73,53 @@ def measure_kerning():
         return None
 
 
+def _cache_path():
+    if sys.platform.startswith("win"):
+        base = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser(
+            "~/.cache"
+        )
+    return os.path.join(base, "mpvtk-metrics.json")
+
+
+def _cache_key(font):
+    path = getattr(font, "path", None) or "?"
+    try:
+        mtime = int(os.stat(path).st_mtime)
+    except OSError:
+        mtime = 0
+    try:
+        from PIL import __version__ as pilver
+    except ImportError:
+        pilver = "?"
+    return "%s|%s|%s|%s" % (path, mtime, pilver, _METRICS_VERSION)
+
+
 def measure_font():
-    """Returns {"font": family_name, "widths": {char: fraction}} or None
-    when no measurable font / recent-enough Pillow is available."""
+    """Returns {"font": family_name, "widths": {char: fraction}, ...}
+    or None when no measurable font / recent-enough Pillow is
+    available.
+
+    The full measurement (advances + ~9k kerning pairs) is ~40ms on a
+    fast machine but could reach ~1s on weak hardware, so results are
+    cached to disk keyed on the font file + Pillow version — every
+    launch after the first reads ~6KB of JSON instead."""
     try:
         from PIL import ImageFont
     except ImportError:
         return None
     font = _load_font()
     if font is not None:
+        key = _cache_key(font)
+        try:
+            with open(_cache_path(), "r", encoding="utf-8") as f:
+                obj = json.load(f)
+            if obj.get("key") == key:
+                log.info("mpvtk metrics: disk cache hit")
+                return obj["data"]
+        except (OSError, ValueError, KeyError):
+            pass
         try:
             # libass (VSFilter compat) scales \fs to the font's
             # ascender+descender height, NOT the em size — so a glyph's
@@ -105,10 +150,18 @@ def measure_font():
             family,
             factor,
         )
-        return {
+        data = {
             "font": family,
             "widths": widths,
             "mask_w": round(mask_w, 4),
             "kern": measure_kerning() or {},
         }
+        try:
+            tmp = _cache_path() + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"key": key, "data": data}, f)
+            os.replace(tmp, _cache_path())
+        except OSError:
+            log.debug("mpvtk metrics: cache not written", exc_info=True)
+        return data
     return None
