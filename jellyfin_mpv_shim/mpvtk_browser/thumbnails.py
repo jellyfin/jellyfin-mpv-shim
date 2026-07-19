@@ -109,6 +109,11 @@ class ThumbnailStore:
         # key -> PIL.Image, LRU-evicted by approximate byte size.
         self._mem = MemoryCache(max_mem_mb * 1024 * 1024, _image_bytes)
         self._pending = {}                 # key -> [callback, ...] awaiting load
+        # Keys the server answered "there is no such image" for (4xx). The
+        # caller is told so it can stop asking, rather than retrying a miss
+        # forever. Transient failures (timeout, connection, 5xx) are NOT
+        # recorded here — those must stay retryable.
+        self._gone = set()
         self._lock = threading.Lock()
         self._closed = False
 
@@ -119,6 +124,12 @@ class ThumbnailStore:
     def get_cached(self, key):
         return self._mem.get(key)
 
+    def is_gone(self, key):
+        """True once the server has said this image doesn't exist, so the
+        caller can stop re-requesting it (see ``request``)."""
+        with self._lock:
+            return key in self._gone
+
     def request(self, key, url, box, callback):
         """Fetch image for `key` from `url`, resized to fit `box` (w, h).
 
@@ -126,6 +137,11 @@ class ThumbnailStore:
         decoded ``PIL.Image``. Multiple callers requesting the same key share
         one fetch but each get the image. A synchronous mem-cache hit calls back
         immediately.
+
+        On failure the callback still runs, with ``image=None``, so the caller
+        can release whatever dedup marker it holds and retry later — a fetch
+        that fails silently used to leave the tile blank permanently. Use
+        ``is_gone`` to tell a permanent miss from a retryable one.
         """
         cached = self.get_cached(key)
         if cached is not None:
@@ -177,13 +193,15 @@ class ThumbnailStore:
                 break
             with self._lock:
                 callbacks = self._pending.pop(key, [])
-            if image is None:
-                continue
-            self._mem.put(key, image)
+            if image is not None:
+                self._mem.put(key, image)
             for cb in callbacks:
                 try:
+                    # Failures are delivered too (image=None). Dropping them
+                    # here left every waiter's dedup marker set with nothing
+                    # cached, so the tile never loaded again.
                     cb(image)
-                    delivered = True
+                    delivered = delivered or image is not None
                 except Exception:
                     # Caller likely torn down mid-flight; harmless.
                     log.debug("Thumbnail callback failed", exc_info=True)
@@ -209,9 +227,17 @@ class ThumbnailStore:
                 return
         try:
             image = self._load_image(key, url, box)
-        except Exception:
+        except Exception as e:
             log.debug("Thumbnail load failed: %s", url, exc_info=True)
             image = None
+            # A 4xx means the image isn't there and never will be at this
+            # URL; anything else (timeout, connection reset, 5xx, a
+            # truncated body) is transient and must stay retryable.
+            resp = getattr(e, "response", None)
+            status = getattr(resp, "status_code", None)
+            if status is not None and 400 <= status < 500:
+                with self._lock:
+                    self._gone.add(key)
         self._results.put((key, image))
         if self._notify is not None:
             try:

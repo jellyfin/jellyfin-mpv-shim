@@ -16,6 +16,7 @@ shape end-to-end (strips + async + routing + chrome).
 
 import logging
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from ..i18n import _
@@ -43,6 +44,7 @@ from ..mpvtk.widgets import (
     Text,
     TextBox,
     VScroll,
+    virtual_window,
 )
 from ..mpvtk.layout import natural_size
 from . import theme
@@ -193,6 +195,9 @@ class MpvtkBrowser:
                                         thread_name_prefix="mpvtk-api")
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
+        # thumb key -> (failed attempts, earliest retry time). Only holds
+        # keys whose fetch failed transiently; see _image_done.
+        self._img_retry = {}
         self.status = ""
         self._size = None         # last window size seen by build()
 
@@ -558,17 +563,53 @@ class MpvtkBrowser:
                 return "S%dE%d" % (s, e)
         return str(item.get("ProductionYear") or "")
 
+    # A thumbnail fetch that fails transiently is retried on a later
+    # repaint, but not immediately: a server that is down or slow would
+    # otherwise get a fresh burst on every scroll frame. Attempts are
+    # capped so a permanently broken URL settles instead of retrying for
+    # the life of the session.
+    IMG_RETRY_BACKOFF = 5.0    # seconds, doubled per attempt
+    IMG_MAX_ATTEMPTS = 4
+
     def _request_image(self, key, url, box):
         """Return a cached decoded PIL image for ``key`` (poster/backdrop/…),
         or None while it loads — requesting it once from the thumbnail pool.
         The next repaint (woken by the pool's notify) picks it up."""
         img = self._posters.get(key)
-        if (img is None and self.thumbs is not None
-                and key not in self._requested and url):
-            self._requested.add(key)
-            self.thumbs.request(
-                key, url, box, lambda im, k=key: self._posters.__setitem__(k, im))
-        return img
+        if img is not None or self.thumbs is None or not url:
+            return img
+        if key in self._requested:
+            return None
+        retry_at = self._img_retry.get(key)
+        if retry_at is not None and time.time() < retry_at[1]:
+            return None            # cooling off after a failed attempt
+        self._requested.add(key)
+        self.thumbs.request(key, url, box,
+                            lambda im, k=key: self._image_done(k, im))
+        return None
+
+    def _image_done(self, key, image):
+        """Thumbnail delivery, on the loop thread.
+
+        ``image`` is None when the fetch failed. Releasing the dedup marker
+        is the whole point: it used to be set before dispatch and never
+        cleared, so one timed-out poster stayed blank for the rest of the
+        process — no navigation, scroll or re-open would ask again. A
+        permanent miss (the server says there's no such image) keeps the
+        marker, so it isn't asked for again either."""
+        if image is not None:
+            self._posters[key] = image
+            self._img_retry.pop(key, None)
+            return
+        if self.thumbs is not None and self.thumbs.is_gone(key):
+            return                 # no such image; stop asking
+        attempts = self._img_retry.get(key, (0, 0.0))[0] + 1
+        if attempts > self.IMG_MAX_ATTEMPTS:
+            return                 # give up, keeping the marker set
+        self._img_retry[key] = (
+            attempts,
+            time.time() + self.IMG_RETRY_BACKOFF * (2 ** (attempts - 1)))
+        self._requested.discard(key)
 
     def _poster_for(self, item, geom, image_type="Primary"):
         """Return (PIL image or None, cache tag). Requests the poster once
@@ -598,6 +639,13 @@ class MpvtkBrowser:
             if img is not None:
                 b = self.strips.bitmap(key, img)
                 return Image(b["src"], b["iw"], b["ih"])
+        return self._art_placeholder(size)
+
+    @staticmethod
+    def _art_placeholder(size=28):
+        """Same-sized stand-in for an art cell — while it loads, when the
+        item has none, and for rows outside the virtual window (which must
+        not composite: see _track_list)."""
         return Box(w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4)
 
     def _is_watched(self, item):
@@ -2240,12 +2288,29 @@ class MpvtkBrowser:
                        hover={"fill": theme.BUTTON_ACTIVE},
                        on_click=lambda i=i: on_play(i))
 
+        # Virtualize against the live scroll offset. Not just a repaint
+        # cost: with art=True each visible row is one mpv overlay, and a
+        # few hundred tracks would blow the 63-overlay budget outright.
+        virtual = None
+        if scroll_id is not None and self._size is not None:
+            virtual = {"offset": max(0.0, self._offset(scroll_id) - head_h),
+                       "height": float(self._size[1])}
+        # The window has to be known HERE, not just inside Table: art cells
+        # composite a bitmap into the 48-entry strip LRU as they are built,
+        # so building them for every row of a long playlist evicted (and
+        # freed the backing buffer of) the very rows on screen — they drew
+        # blank, deterministically, on every repaint.
+        art_first, art_last = virtual_window(virtual, self.TRACK_ROW_H,
+                                             len(tracks))
+
         rows = []
         for i, tr in enumerate(tracks):
             playing = playing_id is not None and tr.get("Id") == playing_id
             cells = [first_cell(i, tr), tr.get("Name", ""), self._artists(tr)]
             if art:
-                cells.insert(0, self._art_cell(tr))
+                cells.insert(0, self._art_cell(tr)
+                             if art_first <= i < art_last
+                             else self._art_placeholder())
             if album:
                 cells.append(tr.get("Album", "") or "")
             cells.append(self._duration(tr))
@@ -2257,13 +2322,6 @@ class MpvtkBrowser:
                              if on_select is not None
                              else (lambda i=i: on_play(i))),
             })
-        # Virtualize against the live scroll offset. Not just a repaint
-        # cost: with art=True each visible row is one mpv overlay, and a
-        # few hundred tracks would blow the 63-overlay budget outright.
-        virtual = None
-        if scroll_id is not None and self._size is not None:
-            virtual = {"offset": max(0.0, self._offset(scroll_id) - head_h),
-                       "height": float(self._size[1])}
         return Table(columns, rows, size=17, row_h=self.TRACK_ROW_H,
                      hover_bg=theme.BUTTON_BG, virtual=virtual)
 

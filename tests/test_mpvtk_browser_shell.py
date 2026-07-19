@@ -2879,3 +2879,141 @@ class TestRemoteDisplayContent(unittest.TestCase):
         before = self.b.route["kind"]
         self.b.display_item("srv1", "nope")
         self.assertEqual(self.b.route["kind"], before)
+
+
+class FakeThumbs:
+    """Stands in for ThumbnailStore: records requests and lets the test
+    decide how each one resolves."""
+
+    def __init__(self):
+        self.requests = []          # (key, url)
+        self.gone = set()           # keys the "server" says don't exist
+        self._cbs = {}              # key -> callback
+        self._notify = None
+
+    def get_cached(self, key):
+        return None
+
+    def is_gone(self, key):
+        return key in self.gone
+
+    def request(self, key, url, box, callback):
+        self.requests.append((key, url))
+        self._cbs[key] = callback
+
+    def resolve(self, key, image):
+        """Deliver a result the way pump() does — including failures."""
+        self._cbs.pop(key)(image)
+
+    def pump(self):
+        return False
+
+
+class TestThumbnailRetry(unittest.TestCase):
+    """A fetch that fails must not blank the tile permanently.
+
+    The dedup marker was set before dispatch and never cleared, and the
+    store dropped failed results without calling back — so one timed-out
+    poster stayed a placeholder for the life of the process, through any
+    amount of scrolling, re-navigating or reopening.
+    """
+
+    def setUp(self):
+        self.thumbs = FakeThumbs()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              thumbs=self.thumbs)
+
+    def _ask(self):
+        return self.b._request_image("k1", "http://s/img", (10, 10))
+
+    def test_transient_failure_is_retried_once_the_backoff_passes(self):
+        self.assertIsNone(self._ask())
+        self.assertEqual(len(self.thumbs.requests), 1)
+
+        self.thumbs.resolve("k1", None)          # timeout / 5xx
+        self.assertIsNone(self._ask())
+        self.assertEqual(len(self.thumbs.requests), 1,
+                         "must cool off before retrying")
+
+        # ...and once the backoff elapses, it asks again
+        attempts, _when = self.b._img_retry["k1"]
+        self.b._img_retry["k1"] = (attempts, 0.0)
+        self.assertIsNone(self._ask())
+        self.assertEqual(len(self.thumbs.requests), 2, "never retried")
+
+        self.thumbs.resolve("k1", "IMG")
+        self.assertEqual(self._ask(), "IMG")
+        self.assertEqual(len(self.thumbs.requests), 2)
+        self.assertNotIn("k1", self.b._img_retry)
+
+    def test_a_permanent_miss_is_not_retried(self):
+        """The server saying "no such image" is an answer, not a failure
+        to retry — otherwise every art-less item re-asks forever."""
+        self._ask()
+        self.thumbs.gone.add("k1")
+        self.thumbs.resolve("k1", None)
+        for _ in range(3):
+            self.b._img_retry.pop("k1", None)    # even with no cooldown
+            self.assertIsNone(self._ask())
+        self.assertEqual(len(self.thumbs.requests), 1)
+
+    def test_retries_are_capped(self):
+        self._ask()
+        for _ in range(self.b.IMG_MAX_ATTEMPTS + 3):
+            key = self.thumbs.requests[-1][0]
+            if key in self.thumbs._cbs:
+                self.thumbs.resolve(key, None)
+            self.b._img_retry["k1"] = (self.b._img_retry["k1"][0], 0.0)
+            self._ask()
+        self.assertLessEqual(len(self.thumbs.requests),
+                             self.b.IMG_MAX_ATTEMPTS + 1,
+                             "a dead URL must stop being retried")
+
+    def test_a_successful_image_is_not_refetched(self):
+        self._ask()
+        self.thumbs.resolve("k1", "IMG")
+        for _ in range(3):
+            self.assertEqual(self._ask(), "IMG")
+        self.assertEqual(len(self.thumbs.requests), 1)
+
+
+class TestTrackListArtWindowing(unittest.TestCase):
+    """Art cells composite into the 48-entry strip LRU as they are built,
+    so a long playlist must only build them for the visible window — the
+    unwindowed version evicted (and freed the buffers of) the very rows
+    on screen, which then drew blank on every repaint."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._size = (1280, 720)
+        self.built = []
+        self.b._art_cell = lambda tr, size=28: self.built.append(
+            tr.get("Id")) or self.b._art_placeholder(size)
+
+    def _tracks(self, n):
+        return [{"Id": "t%d" % i, "Name": "Track %d" % i,
+                 "Type": "Audio"} for i in range(n)]
+
+    def test_only_the_visible_window_composites_art(self):
+        tracks = self._tracks(300)
+        self.b._track_list(tracks, "pl", on_play=lambda i: None,
+                           art=True, scroll_id="playlist", head_h=70)
+        self.assertLess(len(self.built), 48,
+                        "must stay under the strip LRU bound")
+        self.assertIn("t0", self.built, "the top rows are visible")
+        self.assertNotIn("t299", self.built, "off-screen rows must not")
+
+    def test_scrolling_moves_the_window(self):
+        tracks = self._tracks(300)
+        self.b._scroll_off["playlist"] = 100 * self.b.TRACK_ROW_H + 70
+        self.b._track_list(tracks, "pl", on_play=lambda i: None,
+                           art=True, scroll_id="playlist", head_h=70)
+        self.assertNotIn("t0", self.built)
+        self.assertIn("t100", self.built, "scrolled-to rows composite")
+        self.assertLess(len(self.built), 48)
+
+    def test_short_lists_are_unaffected(self):
+        tracks = self._tracks(12)
+        self.b._track_list(tracks, "pl", on_play=lambda i: None,
+                           art=True, scroll_id="playlist", head_h=70)
+        self.assertEqual(len(self.built), 12)

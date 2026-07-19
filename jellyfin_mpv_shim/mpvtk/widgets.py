@@ -462,6 +462,26 @@ class Stack(Element):
         self.children = children or []
 
 
+def virtual_window(virtual, row_h, count):
+    """``(first, last)`` row indexes a virtualized table will materialize.
+
+    Public so a caller can window its *cell construction* too, not just the
+    rows it hands over. That matters when a cell costs more than layout —
+    a track list's album art is one composited bitmap and one mpv overlay
+    per row, and building those for every row of a long playlist blew the
+    strip cache and the overlay budget even though only a screenful was
+    ever displayed.
+    """
+    if virtual is None or not count or row_h <= 0:
+        return 0, count
+    over = virtual.get("overscan", 2)
+    off = max(0.0, float(virtual.get("offset", 0)))
+    view = float(virtual.get("height", 0))
+    first = max(0, int(off // row_h) - over)
+    last = min(count, int((off + view) // row_h) + 1 + over)
+    return first, max(first, last)
+
+
 class Table(Column):
     """Header + body rows generated from ONE column spec, so header and
     cell geometry can never drift apart.
@@ -536,16 +556,9 @@ class Table(Column):
             gap=gap,
             align="stretch",
         )
-        first, last = 0, len(rows)
-        lead_h = tail_h = 0
-        if virtual is not None and rows:
-            over = virtual.get("overscan", 2)
-            off = max(0.0, float(virtual.get("offset", 0)))
-            view = float(virtual.get("height", 0))
-            first = max(0, int(off // row_h) - over)
-            last = min(len(rows), int((off + view) // row_h) + 1 + over)
-            lead_h = first * row_h
-            tail_h = (len(rows) - last) * row_h
+        first, last = virtual_window(virtual, row_h, len(rows))
+        lead_h = first * row_h
+        tail_h = (len(rows) - last) * row_h
         body = []
         if lead_h:
             body.append(Spacer(h=lead_h))
