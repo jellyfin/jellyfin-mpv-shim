@@ -501,11 +501,56 @@ class UserInterface:
         self._app = None
         self._browser = None
         self._thread = None
+        self._tray = None
 
     def start(self):
-        # The browser is created in login_servers, once the mpv handle and
-        # saved credentials are available.
-        pass
+        # The tray is the only way to reach the app while the mpv window is
+        # showing video (or is minimized), so it runs regardless of the
+        # browser's state. It lives in its own process — pystray needs its
+        # process's main thread, and pystray + libmpv in one process segfaults
+        # with GNOME AppIndicator. See tray.py.
+        from ..tray import TrayManager
+
+        self._tray = TrayManager({
+            "show": self.activate,
+            "show_preferences": lambda: self._open_settings("servers"),
+            "show_console": lambda: self._open_settings("logs"),
+            "open_player_menu": lambda: self.open_player_menu(),
+            "open_config": self._open_config_folder,
+            "quit": self._quit,
+        })
+        self._tray.start()
+        # The browser itself is created in login_servers, once the mpv handle
+        # and saved credentials are available.
+
+    # -- tray actions -----------------------------------------------------
+
+    def activate(self):
+        """Surface the UI: leave playback, show the browser, raise the window.
+
+        Also what SingleInstance calls when the app is launched a second time
+        (mpv_shim wires ``single.on_activate`` to this)."""
+        from ..player import playerManager
+
+        if self._browser is not None:
+            self._browser.enter_browse()
+        try:
+            playerManager.raise_window()
+        except Exception:
+            log.debug("could not raise the player window", exc_info=True)
+
+    def _open_settings(self, tab):
+        if self._browser is None:
+            return
+        self.activate()
+        self._browser.open_settings(tab)
+
+    def _open_config_folder(self):
+        _PlayerController().open_config_folder()
+
+    def _quit(self):
+        if self.stop_callback is not None:
+            self.stop_callback()
 
     def login_servers(self):
         from ..player import playerManager, is_using_ext_mpv
@@ -587,6 +632,8 @@ class UserInterface:
 
     def stop(self):
         from ..player import playerManager
+        if self._tray is not None:
+            self._tray.stop()
         playerManager.mpvtk_active = False
         if self._app is not None:
             self._app.quit()

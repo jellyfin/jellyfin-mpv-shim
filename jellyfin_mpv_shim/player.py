@@ -2230,6 +2230,24 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
+    def raise_window(self):
+        """Best-effort "bring the player window forward" — the tray's Show
+        action and a second app launch both need it. Windows has a real API
+        for this via pywin32; elsewhere the most we can portably do is
+        un-minimize, since raising is the window manager's call."""
+        if not self._mpv_alive:
+            return
+        if win_utils is not None:
+            try:
+                win_utils.raise_mpv()
+                return
+            except Exception:
+                log.debug("win_utils.raise_mpv failed", exc_info=True)
+        try:
+            self._player.window_minimized = False
+        except Exception:
+            log.debug("could not un-minimize the player window", exc_info=True)
+
     def browse_yield(self):
         """Hand the window from the in-window browser back to playback.
 

@@ -1956,8 +1956,17 @@ class MpvtkBrowser:
         return cfg
 
     def _open_settings(self):
+        self.open_settings()
+
+    def open_settings(self, tab="general"):
+        """Open Settings on ``tab``. Public: the tray's Configure Servers /
+        Show Console entries route here."""
+        if self.route.get("kind") == "settings":
+            self.route["_tab"] = tab   # already there — just switch tabs
+            self.invalidate()
+            return
         self.navigate({"kind": "settings", "server": self.server,
-                       "title": _("Settings")})
+                       "title": _("Settings"), "_tab": tab})
 
     def _set_setting(self, key, value):
         ok = self._config().set_setting(key, value)

@@ -235,8 +235,7 @@ indicator; tile menu is missing "Add to queue" and "Add to collection",
 has no item-type gating (it attaches to libraries and people), and the
 view-contributed actions hook is gone.
 
-**Shell** — `UserInterface.activate` missing (a second launch does
-nothing); `library_last_server` never read or written; no startup update
+**Shell** — `library_last_server` never read or written; no startup update
 check; the `connecting` route is in `CHROME_FREE` but absent from the
 dispatch table, so it falls through to a bare spinner (and has no "work
 offline" escape); no browser crash recovery; responsive chrome collapse,
@@ -245,11 +244,16 @@ playlist" all dropped.
 
 **Queue** — no multi-select, no double-click-to-jump.
 
-**Tray** — `mpvtk_browser.ui` never starts the tray, so Show Console /
-Configure Servers / Application Menu / Show Library Browser / Quit are
-gone, and `start_minimized` / `close_to_tray` / `close_prompt_shown` are
-inert while still editable. ("Open Config Folder" was re-added under
-Settings → Logs.)
+**Tray** — ✅ restored. The tray moved out of `gui_mgr` into
+`jellyfin_mpv_shim/tray.py` so either UI can own one; `mpvtk_browser.ui`
+starts it and maps the menu onto the in-window browser (Show Library
+Browser → `activate()`, Configure Servers / Show Console → the matching
+Settings tab). It stays a separate **process**, not a thread — pystray
+needs its process's main thread and pystray + libmpv in one process
+segfaults with GNOME AppIndicator. `UserInterface.activate` exists now, so
+a second launch surfaces the window instead of doing nothing.
+Still inert: `start_minimized` / `close_to_tray` / `close_prompt_shown`
+(there is no separate window to minimize or close-to-tray).
 
 ### Fixed in round 1 from this audit
 
