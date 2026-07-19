@@ -276,6 +276,13 @@ class MpvtkBrowser:
             def work():
                 return self.source.get_playlist_items(srv, iid)
             self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+        elif kind == "playlist_edit":
+            srv = route.get("server") or self.server
+            iid = route["item_id"]
+
+            def work():
+                return self.source.get_playlist_items(srv, iid)
+            self.run_async(work, lambda d: route.__setitem__("_items", d), ep)
         elif kind == "queue":
             srv = route.get("server") or self.server
 
@@ -403,9 +410,10 @@ class MpvtkBrowser:
             _("Play"),
             _("Mark Unwatched") if watched else _("Mark Watched"),
             _("Remove from Favorites") if fav else _("Add to Favorites"),
+            _("Add to Playlist"),
         ]
         return Menu("tilemenu", labels, m["x"], m["y"],
-                    icons=["play_arrow", "check", "favorite"],
+                    icons=["play_arrow", "check", "favorite", "queue_music"],
                     on_select=self._menu_action, on_dismiss=self._close_menu)
 
     def _menu_action(self, index, value):
@@ -430,6 +438,10 @@ class MpvtkBrowser:
             ud["IsFavorite"] = new
             self._client_call(lambda c: c.set_favorite(
                 server, item.get("Id"), new))
+        elif index == 3:                                 # add to playlist
+            self._close_menu()
+            self._open_add_to(item)
+            return
         self._close_menu()
 
     def _menu_play(self, item, server):
@@ -661,6 +673,7 @@ class MpvtkBrowser:
             "playlist": self._render_playlist,
             "settings": self._render_settings,
             "queue": self._render_queue,
+            "playlist_edit": self._render_playlist_edit,
         }.get(kind)
         if render is None:
             return self._busy()
@@ -1006,6 +1019,9 @@ class MpvtkBrowser:
         header = Row([
             Text(route.get("title", ""), size=28, bold=True),
             Spacer(),
+            Button(_("Edit"), id="pl-edit", on_click=lambda: self.navigate({
+                "kind": "playlist_edit", "server": server,
+                "item_id": route["item_id"], "title": route.get("title", "")})),
             Row([Icon("play_arrow", 20, color="101010"),
                  Text(_("Play All"), size=18, color="101010")],
                 id="pl-play", gap=6, pad=10, bg=theme.ACCENT, radius=6,
@@ -1190,6 +1206,116 @@ class MpvtkBrowser:
     def _retry_connect(self):
         if self.controller is not None:
             self._pool.submit(lambda: self._safe(lambda c: c.retry_connect()))
+
+    # --------------------------------------------------------- playlist edit
+
+    def _render_playlist_edit(self, route, size):
+        items = route.get("_items")
+        if items is None:
+            return self._busy()
+        sel = route.get("_sel")
+        toolbar = Row([
+            Button(_("Top"), id="pe-top",
+                   on_click=lambda: self._pe_move(route, "top")),
+            Button(_("Up"), id="pe-up",
+                   on_click=lambda: self._pe_move(route, "up")),
+            Button(_("Down"), id="pe-down",
+                   on_click=lambda: self._pe_move(route, "down")),
+            Button(_("Bottom"), id="pe-bottom",
+                   on_click=lambda: self._pe_move(route, "bottom")),
+            Spacer(),
+            Button(_("Remove"), id="pe-remove",
+                   on_click=lambda: self._pe_remove(route)),
+        ], gap=8, align="center")
+        rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
+                     size=26, bold=True), toolbar]
+        for i, it in enumerate(items):
+            rows.append(Row([
+                Text(str(i + 1), w=44, size=17, color=theme.SUBTLE_FG),
+                Text(it.get("Name", ""), flex=1, size=17,
+                     bold=(sel == i)),
+            ], id="pe-row-%d" % i, pad=8, gap=8, radius=6, align="center",
+               bg=theme.PANEL_BG if sel == i else None,
+               hover=None if sel == i else {"fill": theme.BUTTON_BG},
+               on_click=lambda i=i: self._pe_select(route, i)))
+        return VScroll(Column(rows, pad=16, gap=3), id="playlist-edit", flex=1)
+
+    def _pe_select(self, route, i):
+        route["_sel"] = i
+        self.invalidate()
+
+    def _pe_move(self, route, where):
+        items = route.get("_items") or []
+        i = route.get("_sel")
+        if i is None or not items:
+            return
+        n = len(items)
+        j = {"top": 0, "up": max(0, i - 1),
+             "down": min(n - 1, i + 1), "bottom": n - 1}[where]
+        if j == i:
+            return
+        entry = items.pop(i)
+        items.insert(j, entry)
+        route["_sel"] = j
+        self._client_call(lambda c: c.playlist_move(
+            route.get("server") or self.server, route["item_id"],
+            entry.get("PlaylistItemId"), j))
+        self.invalidate()
+
+    def _pe_remove(self, route):
+        items = route.get("_items") or []
+        i = route.get("_sel")
+        if i is None or i >= len(items):
+            return
+        entry = items.pop(i)
+        route["_sel"] = None
+        self._client_call(lambda c: c.playlist_remove(
+            route.get("server") or self.server, route["item_id"],
+            [entry.get("PlaylistItemId")]))
+        self.invalidate()
+
+    # ----------------------------------------------------- add to playlist
+
+    def _open_add_to(self, item):
+        server = self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        ep = self._epoch
+
+        def work():
+            try:
+                return self.source.get_playlists(server)
+            except Exception:
+                return []
+        self.run_async(work, lambda pls: self._show_add_to(server, item, pls),
+                       ep)
+
+    def _show_add_to(self, server, item, playlists):
+        item_id = item.get("Id")
+
+        def build():
+            rows = [Text(_("Add to Playlist"), size=22, bold=True)]
+            for i, pl in enumerate(playlists):
+                rows.append(Button(
+                    pl.get("Name", ""), id="add-pl-%d" % i,
+                    on_click=lambda pid=pl.get("Id"): self._add_to(
+                        server, pid, item_id)))
+            if not playlists:
+                rows.append(Text(_("No playlists yet."), size=15,
+                                 color=theme.SUBTLE_FG))
+            rows.append(Row([Spacer(),
+                             Button(_("Close"), id="add-close",
+                                    on_click=self._close_dialog)], gap=10))
+            return Dialog("addto",
+                          self._dialog_shell("addto", rows, w=460),
+                          on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _add_to(self, server, playlist_id, item_id):
+        if playlist_id and item_id:
+            self._client_call(lambda c: c.playlist_add(
+                server, playlist_id, [item_id]))
+        self._close_dialog()
 
     # ------------------------------------------------------------- dialogs
 

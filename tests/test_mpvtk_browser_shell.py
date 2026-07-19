@@ -103,8 +103,12 @@ class FakeSource:
         return ([{"Id": "al2", "Name": "GenreAlbum", "Type": "MusicAlbum"}], 1)
 
     def get_playlist_items(self, server_uuid, playlist_id):
-        return [{"Id": "pi%d" % i, "Name": "Song %d" % i, "Type": "Audio"}
-                for i in range(3)]
+        return [{"Id": "pi%d" % i, "Name": "Song %d" % i, "Type": "Audio",
+                 "PlaylistItemId": "e%d" % i} for i in range(3)]
+
+    def get_playlists(self, server_uuid, limit=300):
+        return [{"Id": "PL1", "Name": "Faves", "Type": "Playlist"},
+                {"Id": "PL2", "Name": "Road Trip", "Type": "Playlist"}]
 
     def get_items_by_ids(self, server_uuid, ids):
         return [{"Id": i, "Name": "Queued " + i, "Type": "Audio"} for i in ids]
@@ -486,6 +490,70 @@ class TestTileContextMenu(unittest.TestCase):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
         self.b._close_menu()
         self.assertIsNone(self.b._menu)
+
+
+class TestPlaylistEdit(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _open_edit(self):
+        self.b.navigate({"kind": "playlist_edit", "server": "srv1",
+                         "item_id": "PL1", "title": "Faves"})
+        return build_scene(self.b)
+
+    def test_edit_renders_rows_and_toolbar(self):
+        nodes, _h = self._open_edit()
+        self.assertIn("pe-top", ids(nodes))
+        self.assertIn("pe-row-0", ids(nodes))
+
+    def test_move_down_reorders_and_calls_api(self):
+        self._open_edit()
+        route = self.b.route
+        first = route["_items"][0]["PlaylistItemId"]
+        self.b._pe_select(route, 0)
+        self.b._pe_move(route, "down")
+        self.assertEqual(route["_items"][1]["PlaylistItemId"], first)
+        self.assertEqual(route["_sel"], 1)
+        self.assertIn("playlist_move",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_remove_drops_row_and_calls_api(self):
+        self._open_edit()
+        route = self.b.route
+        self.b._pe_select(route, 1)
+        n0 = len(route["_items"])
+        self.b._pe_remove(route)
+        self.assertEqual(len(route["_items"]), n0 - 1)
+        self.assertIn("playlist_remove",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+
+class TestAddToPlaylist(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_add_to_dialog_lists_playlists_and_adds(self):
+        self.b._open_add_to({"Id": "m1", "Name": "Movie", "Type": "Movie"})
+        nodes, handlers = build_scene(self.b)
+        self.assertIn("add-pl-0", ids(nodes))
+        self.assertIn("add-pl-1", ids(nodes))
+        handlers["add-pl-0"]["click"]()
+        self.assertIn("playlist_add",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertIsNone(self.b._dialog)
+
+    def test_menu_add_to_playlist_opens_dialog(self):
+        self.b._pool = _SyncPool()
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.b._menu_action(3, None)   # "Add to Playlist"
+        self.assertIsNone(self.b._menu)
+        self.assertIsNotNone(self.b._dialog)
 
 
 class TestDialogs(unittest.TestCase):

@@ -189,6 +189,36 @@ class _PlayerController:
     def sync_leave(self, server_uuid):
         self._sync(server_uuid, lambda jf: jf.leave_sync_play())
 
+    # -- playlist editing -------------------------------------------------
+
+    def _edit(self, server_uuid, fn):
+        client = clientManager.clients.get(server_uuid)
+        if client is None:
+            return
+        try:
+            fn(client.jellyfin)
+        except Exception:
+            log.error("mpvtk playlist edit failed", exc_info=True)
+
+    def playlist_move(self, server_uuid, playlist_id, entry_id, new_index):
+        self._edit(server_uuid,
+                   lambda jf: jf.move_playlist_item(playlist_id, entry_id,
+                                                    new_index))
+
+    def playlist_remove(self, server_uuid, playlist_id, entry_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.remove_playlist_items(playlist_id,
+                                                       list(entry_ids)))
+
+    def playlist_add(self, server_uuid, playlist_id, item_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.add_playlist_items(playlist_id,
+                                                    list(item_ids)))
+
+    def playlist_new(self, server_uuid, name, item_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.new_playlist(name, list(item_ids)))
+
 
 class UserInterface:
     def __init__(self):
