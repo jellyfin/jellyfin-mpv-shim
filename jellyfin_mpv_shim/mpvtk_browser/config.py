@@ -21,7 +21,8 @@ _HIDDEN = {"language_config", "audio_output", "close_prompt_shown"}
 SECTIONS = [
     (_("Interface"), ["player_name", "browser_ui", "browser_fullscreen",
                       "enable_gui", "start_minimized", "close_to_tray",
-                      "fullscreen", "enable_osc", "osc_style", "raise_mpv",
+                      "fullscreen", "enable_osc", "osc_style",
+                      "hud_grab_keys", "hud_wake_key", "raise_mpv",
                       "check_updates", "notify_updates"]),
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
@@ -76,6 +77,15 @@ LABEL_OVERRIDES = {
     "osc_style": _("Player Controls Style"),
     "browser_ui": _("Library Browser UI"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
+    "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
+    "hud_wake_key": _("Player Controls Activation Key"),
+}
+
+# Explanatory line rendered under a setting, for the ones whose default
+# isn't self-explanatory from the label alone.
+NOTES = {
+    "osc_style": _("MPV keybinds are used by default. Press ENTER to drive "
+                   "the player controls by keyboard."),
 }
 
 _ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC",

@@ -964,6 +964,42 @@ class TestSettings(unittest.TestCase):
         self.assertNotIn("set-autoplay", ids(nodes))
         self.assertIn("set-adv", ids(nodes))
 
+    def test_setting_note_renders_under_its_setting(self):
+        """A note explains the default for the settings that follow it,
+        so it has to land between them, not at the end of the group."""
+        self.cfg.NOTES = {"osc_mode": "MPV keybinds are used by default."}
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("MPV keybinds are used by default.", texts)
+        self.assertLess(texts.index("Osc Mode"),
+                        texts.index("MPV keybinds are used by default."))
+        self.assertLess(texts.index("MPV keybinds are used by default."),
+                        texts.index("Lang"))
+
+    def test_hud_key_settings_sit_under_the_keybind_note(self):
+        """The real schema: the two HUD keyboard settings are curated
+        into Interface directly below the note explaining the default,
+        not buried in the auto-generated Advanced list."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        interface = dict(real.sections())["Interface"]
+        self.assertEqual(
+            interface[interface.index("osc_style"):][:3],
+            ["osc_style", "hud_grab_keys", "hud_wake_key"])
+        self.assertIn("osc_style", real.NOTES)
+        advanced = dict(real.sections()).get("Advanced", [])
+        self.assertNotIn("hud_grab_keys", advanced)
+        self.assertNotIn("hud_wake_key", advanced)
+
+    def test_settings_without_notes_still_render(self):
+        """NOTES is optional — a config object without it must not blow
+        up the whole Settings view."""
+        self.assertFalse(hasattr(self.cfg, "NOTES"))
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("set-player_name", ids(nodes))
+
     def test_enum_dropdown_stores_value_not_label(self):
         self.b._open_settings()
         nodes, handlers = build_scene(self.b)

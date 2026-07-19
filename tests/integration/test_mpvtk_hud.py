@@ -447,6 +447,74 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: self.browser._hud_shown,
                    msg="remote summon path failed with grab off")
 
+    def test_mouse_summon_leaves_the_arrows_to_mpv(self):
+        """The HUD coming up under the pointer must not take the seek
+        keys with it. hud_grab_keys off means the arrows stay mpv's
+        whenever the user never asked for keyboard driving — and
+        merely moving the mouse is not asking. The wake key still
+        upgrades a HUD that is already up to keyboard driving."""
+        self.ctl.key_opts = {"grab": False, "key": "ENTER"}
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+
+        # pointer movement raises the HUD, pointer-driven
+        self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
+        self._wait(lambda: self._state().get("phud_shown"),
+                   msg="pointer movement never summoned the HUD")
+        st = self._state()
+        self.assertFalse(st.get("phud_kbd"),
+                         "a mouse summon must not grab the arrows")
+        self.assertIsNone(st.get("nav"),
+                          "no focus ring without keyboard driving")
+
+        # The arrows pass through to mpv. What is asserted here is the
+        # renderer's half — it never bound them — because this harness
+        # spawns mpv with input_default_bindings=no (see _SPAWN_OPTS),
+        # so mpv's own seek cannot fire to be observed; the real player
+        # spawns with them on (player.py). It is a real discriminator
+        # even so: with the arrows bound, RIGHT reaches nav_move, which
+        # anchors focus onto the nearest node when nothing is focused —
+        # exactly the bug, where a mouse summon left the HUD keyboard-
+        # driven.
+        self._keypress("RIGHT")
+        time.sleep(0.5)
+        self.assertIsNone(self._state().get("nav"),
+                          "RIGHT moved HUD focus with grab off")
+
+        # the wake key takes keyboard control of the HUD already up
+        self._press_until("ENTER", lambda: self._state().get("phud_kbd"),
+                          msg="wake key never took keyboard control")
+        self.assertIsNotNone(self._state().get("nav"),
+                             "taking control must land focus")
+
+        # ...and hiding gives the arrows back. That is the escape
+        # hatch: keyboard control lasts for the HUD that is up, not
+        # forever, so it can't quietly keep the seek keys after the
+        # HUD auto-hides.
+        self._press_until("ESC", lambda: not self._state().get("phud_shown"),
+                          msg="could not hide the HUD")
+        self.assertFalse(self._state().get("phud_kbd"),
+                         "keyboard control must not survive the hide")
+        self.app.debug(cmd="phud", action="mousemove", x=210, y=210)
+        self._wait(lambda: self._state().get("phud_shown"),
+                   msg="pointer never re-summoned the HUD")
+        self.assertFalse(self._state().get("phud_kbd"),
+                         "re-summon under the pointer is mouse-driven")
+
+    def test_grab_on_keeps_the_arrows_on_a_mouse_summon(self):
+        """hud_grab_keys is the explicit opt-in, so it applies however
+        the HUD got raised."""
+        self.ctl.key_opts = {"grab": True, "key": "ENTER"}
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
+        self._wait(lambda: self._state().get("phud_shown"),
+                   msg="pointer movement never summoned the HUD")
+        self.assertTrue(self._state().get("phud_kbd"),
+                        "grab opts into the arrows regardless of source")
+
     def test_idle_skip_overlay(self):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),

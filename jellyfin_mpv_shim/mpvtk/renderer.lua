@@ -1021,14 +1021,11 @@ end
 local SLIDER_PAD = 8
 
 local function draw_slider(ass, node, ex, ey, clip)
-    -- always-adjust seek bars read as live under the pointer too:
-    -- accent outline on hover (key focus draws the nav ring instead)
-    if node.aadj and state.hover_id == node.id
-        and state.nav ~= node.id then
-        draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
-            bc = state.accent, bw = 3, radius = 4, clip = clip,
-        })
-    end
+    -- No hover outline: the highlight means "this is what the arrows
+    -- drive", so only keyboard/remote focus draws it (the nav ring).
+    -- Under the pointer the bar is already directly clickable, and
+    -- lighting it up on passing the mouse over read as a mode change
+    -- that hadn't happened. The hover *preview bubble* still fires.
     local s = sl_state(node)
     local rng = (node.max or 100) - (node.min or 0)
     local frac = 0
@@ -2414,6 +2411,20 @@ local function nav_set(node)
     request_render()
 end
 
+-- Land spatial-nav focus on the scene's autofocus node (play/pause).
+-- Used when the first HUD scene arrives after a key summon, and when
+-- the wake key takes keyboard control of a HUD that is already up.
+local function phud_focus_autofocus()
+    for _, node in ipairs(state.nodes or {}) do
+        if node.af then
+            state.phud.want_focus = nil
+            nav_set(node)  -- an aadj seek bar wakes live via nav_set
+            return true
+        end
+    end
+    return false
+end
+
 -- Modality flag for the app: keyboard/remote engaged (hide carousel
 -- arrows, etc). Cleared by any mouse press (see on_mouse_down).
 local function set_nav_mode(on)
@@ -2948,23 +2959,20 @@ mp.register_script_message('mpvtk-scene', function(json)
     if state.phud.shown and state.phud.want_focus then
         -- first HUD scene after a key/remote summon: focus lands on
         -- the autofocus node (play/pause)
-        for _, node in ipairs(state.nodes) do
-            if node.af then
-                state.phud.want_focus = nil
-                nav_set(node)  -- an aadj seek bar wakes live via nav_set
-                break
-            end
-        end
+        phud_focus_autofocus()
     end
     request_render()
 end)
 
 -- Full-UI input ownership, shared by browse (mpvtk-active) and a
 -- summoned playback HUD (mpvtk-hud below).
-local function ui_resume()
+local function ui_resume(no_nav)
     mp.enable_key_bindings('mpvtk_mouse')
     mp.enable_key_bindings('mpvtk_wheel')
-    bind_nav_keys()
+    -- no_nav: the playback HUD came up under the pointer with
+    -- hud_grab_keys off — the mouse drives it and the arrows stay
+    -- mpv's seek keys. Browse always takes the arrows.
+    if not no_nav then bind_nav_keys() end
     mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
         state.hud = not state.hud
         request_render()
@@ -3182,6 +3190,24 @@ function phud_touch()
     if state.phud.mode and state.phud.shown then phud_arm() end
 end
 
+-- Take keyboard control of a HUD that came up under the pointer.
+-- Without this the wake key would do nothing once the mouse had
+-- already raised the HUD, and there'd be no way to reach the arrows
+-- with hud_grab_keys off. Unlike a cold ENTER summon this does NOT
+-- toggle pause: the HUD is already visible and the user is aiming at
+-- it, not blindly waking it.
+local function phud_kbd_take()
+    if state.phud.kbd then return end
+    state.phud.kbd = true
+    mp.remove_key_binding('mpvtk_wake')
+    bind_nav_keys()
+    -- the scene is already up, so focus now instead of waiting for
+    -- the next push to consume want_focus
+    if not phud_focus_autofocus() then state.phud.want_focus = true end
+    phud_touch()
+    request_render()
+end
+
 function phud_summon(src)
     if not state.phud.mode or state.phud.shown then return end
     phud_skip_hide()  -- the full HUD's own skip button takes over
@@ -3190,9 +3216,18 @@ function phud_summon(src)
     -- autofocus node (play/pause) once Python pushes the HUD; a mouse
     -- summon leaves the pointer in charge
     state.phud.want_focus = src ~= 'mouse'
+    -- Who drives the HUD. A mouse summon with hud_grab_keys off is
+    -- the one case that does NOT take the arrows — merely moving the
+    -- pointer must not steal mpv's seek keys.
+    state.phud.kbd = src ~= 'mouse' or state.phud.grab or false
     state.active = true
     phud_unbind_summon()
-    ui_resume()
+    ui_resume(not state.phud.kbd)
+    if not state.phud.kbd then
+        -- the wake key still upgrades to keyboard driving
+        mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
+            phud_kbd_take)
+    end
     -- ESC steps back out one layer at a time: popup -> menu/dialog ->
     -- the HUD itself. (A scene-driven dialog also binds
     -- mpvtk_menu_esc, added later so it wins while it exists.)
@@ -3240,6 +3275,7 @@ function phud_hide()
         state.nav_adjust = nil
     end
     state.phud.shown = false
+    state.phud.kbd = nil
     state.phud.mx, state.phud.my = -1, -1
     phud_disarm()
     state.active = false
@@ -3261,6 +3297,7 @@ function phud_clear()
     state.phud.intro = nil
     state.phud.mode = false
     state.phud.shown = false
+    state.phud.kbd = nil
     state.phud.mx, state.phud.my = -1, -1
     phud_disarm()
     phud_unbind_summon()
@@ -3537,6 +3574,9 @@ mp.register_script_message('mpvtk-debug', function(json)
             phud_shown = state.phud.shown,
             phud_intro = state.phud.intro,
             phud_skip = state.phud.skip_show or false,
+            -- is the HUD taking the arrow keys (keyboard-driven), or
+            -- only the pointer (hud_grab_keys off, mouse summon)?
+            phud_kbd = state.phud.kbd or false,
         })
     elseif cmd.cmd == 'phud' then
         -- drive the playback-HUD lifecycle from tests

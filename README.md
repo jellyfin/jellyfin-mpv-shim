@@ -280,13 +280,17 @@ You can use the config file to enable and disable features.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
-- `hud_grab_keys` - While a video plays with the controls hidden, take over
-  the arrow keys and ENTER to summon/drive them. Default: `false` — mpv's
-  own seek keys keep working and only `hud_wake_key` is taken over.
-  (Jellyfin remotes always work either way.)
+- `hud_grab_keys` - Always take over the arrow keys and ENTER for the
+  on-screen controls while a video plays. Default: `false` — mpv's own seek
+  keys keep working, and only `hud_wake_key` is taken over. With the default,
+  controls raised by mouse motion are driven by the pointer alone and the
+  arrows still seek; pressing `hud_wake_key` then takes keyboard control of
+  the controls already on screen, which reverts as soon as they hide.
+  (Jellyfin remotes always drive the controls either way.)
 - `hud_wake_key` - The key that summons the on-screen controls for keyboard
-  driving while they are hidden (mpv key name syntax). ENTER also toggles
-  pause/play on wake. Default: `ENTER`
+  driving while they are hidden, and that takes keyboard control of controls
+  already showing (mpv key name syntax). ENTER also toggles pause/play when
+  it wakes them. Default: `ENTER`
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `display_mirroring` - Legacy kiosk mode: casting an item from another client shows a static "now casting" backdrop instead of a browsable UI. Default: `false`

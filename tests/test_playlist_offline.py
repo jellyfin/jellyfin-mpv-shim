@@ -249,5 +249,98 @@ class OfflinePlaylistBrowseTest(TmpTest):
                          {l["Id"] for l in src.get_libraries("offline")})
 
 
+class TestMpvtkOfflineFallback(TmpTest):
+    """work_offline has to actually browse the downloads in the mpvtk UI.
+    It used to only skip the connect, which left the browser on a login
+    screen it could never get past."""
+
+    def _controller(self, catalog_path):
+        import jellyfin_mpv_shim.sync.manager as mgr
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        class FakeSync:
+            db = type("DB", (), {"path": catalog_path})()
+
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+        return _PlayerController()
+
+    def _catalog_with_a_movie(self):
+        path = os.path.join(self.tmp, "catalog.db")
+        db = SyncDB(path)
+        db.upsert(make_row("m1", type="Movie"))
+        db.close()
+        return path
+
+    def test_work_offline_falls_back_to_the_catalog(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        ctl = self._controller(self._catalog_with_a_movie())
+        old, settings.work_offline = settings.work_offline, True
+        self.addCleanup(lambda: setattr(settings, "work_offline", old))
+        source = ctl.connect_and_rebuild()
+        self.assertIsInstance(source, OfflineLibrarySource)
+        self.assertEqual([s["uuid"] for s in source.servers()], ["offline"])
+
+    def _patched_start_playback(self, calls):
+        # The app parses sys.argv the first time a module resolves the config
+        # dir, and event_handler pulls that in — under the test runner argv
+        # carries unittest's tokens and argparse exits. Same guard the
+        # integration harness uses.
+        import sys
+
+        saved, sys.argv = sys.argv, [sys.argv[0]]
+        self.addCleanup(lambda: setattr(sys, "argv", saved))
+        import jellyfin_mpv_shim.event_handler as eh
+
+        real = eh.start_playback
+        eh.start_playback = lambda client, ids, **kw: calls.append(
+            (client, list(ids), kw))
+        self.addCleanup(lambda: setattr(eh, "start_playback", real))
+
+    def test_offline_play_goes_to_the_local_file(self):
+        """The pseudo-server "offline" has no client. Bailing on that made
+        every downloaded item unplayable — start_playback takes client=None
+        and resolves the item against the catalog."""
+        import jellyfin_mpv_shim.sync.manager as mgr
+
+        class FakeDB:
+            path = "unused"
+
+            def is_complete(self_inner, item_id):
+                return item_id in ("m1", "m2")
+
+        class FakeSync:
+            db = FakeDB()
+
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        calls = []
+        self._patched_start_playback(calls)
+        ctl = _PlayerController()
+
+        ctl.play_list(["m1", "m2"], "offline", 0)
+        self.assertEqual(len(calls), 1)
+        self.assertIsNone(calls[0][0], "no client offline")
+        self.assertEqual(calls[0][1], ["m1", "m2"])
+
+        # Starting partway in checks *that* item, not item_ids[0].
+        ctl.play_list(["ghost", "m2"], "offline", 1)
+        self.assertEqual(len(calls), 2)
+
+        # Nothing downloaded: still refuses rather than starting a dead play.
+        ctl.play_list(["ghost"], "offline", 0)
+        self.assertEqual(len(calls), 2)
+
+    def test_empty_catalog_yields_no_source(self):
+        """Nothing downloaded: the caller wants None so it can show login,
+        not an empty library that looks like a broken server."""
+        ctl = self._controller(os.path.join(self.tmp, "missing.db"))
+        self.assertIsNone(ctl.offline_source())
+
+
 if __name__ == "__main__":
     unittest.main()

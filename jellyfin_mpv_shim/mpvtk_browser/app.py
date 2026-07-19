@@ -2672,8 +2672,14 @@ class MpvtkBrowser:
                 if not show_adv:
                     continue
             rows.append(Text(title, size=20, bold=True))
+            notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))
+                if key in notes:
+                    # An explanatory line under the setting it belongs to;
+                    # the settings it qualifies follow directly below.
+                    rows.append(Text(notes[key], size=14,
+                                     color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,

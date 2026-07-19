@@ -228,10 +228,24 @@ class _PlayerController:
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
                   srcid=None, aid=None, sid=None):
         from ..event_handler import start_playback
+        from ..sync.manager import syncManager
         client = clientManager.clients.get(server_uuid)
         if client is None:
-            log.warning("mpvtk play: no connected client for %s", server_uuid)
-            return
+            # Offline (server_uuid is the catalog's pseudo-server "offline",
+            # or the real server is simply unreachable): play the local file.
+            # start_playback tolerates client=None — offline_video_factory
+            # resolves each item against the catalog instead. Mirrors
+            # gui_mgr.on_play.
+            item_ids = list(item_ids)
+            # Check the item that will actually start, not item_ids[0]:
+            # starting a playlist partway through is the common case.
+            first = (item_ids[start_index]
+                     if 0 <= start_index < len(item_ids) else None)
+            if not (first and syncManager.db
+                    and syncManager.db.is_complete(first)):
+                log.warning("mpvtk play: no connected client for %s and no "
+                            "local copy of %s", server_uuid, first)
+                return
         try:
             start_playback(
                 client, list(item_ids), start_index=start_index,
