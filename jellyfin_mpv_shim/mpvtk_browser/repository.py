@@ -13,6 +13,8 @@ import logging
 import os
 import random
 
+from concurrent.futures import ThreadPoolExecutor
+
 from jellyfin_apiclient_python import JellyfinClient
 
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
@@ -24,6 +26,12 @@ log = logging.getLogger("mpvtk_browser.repository")
 # Fields requested for grids/rows. Kept lean for speed. Artists is included so
 # music tiles (e.g. tracks in a playlist) can show the performer.
 LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear,Artists"
+
+# Concurrent home-screen fetches. The rows are independent, so this is bounded
+# only to keep a many-library server from opening a burst of connections at
+# once — well above the usual library count, so in practice the whole home
+# screen is two waves: /Views, then everything else.
+HOME_FANOUT = 8
 
 # Fields for music browse (albums/artists/tracks): artist/album labels, track
 # runtime for the tabular list, and counts for artist tiles.
@@ -81,6 +89,9 @@ class ServerConn:
         # We already hold a valid token, so skip authenticate() and just bring up
         # the HTTP session. Browse-only: no websocket, no capability registration.
         client.logged_in = True
+        # keep_alive defaults True, and that default is load-bearing: with it
+        # off the apiclient tears the session down after every request, so
+        # each browse call would pay a fresh TLS handshake. Leave it alone.
         client.start(websocket=False)
 
         self.client = client
@@ -147,29 +158,6 @@ class LibrarySource:
         in avoids a second views fetch when the caller already has it.
         """
         api = self._conn(server_uuid).api
-        rows = []
-
-        try:
-            resume = api.user_items(params={
-                "Recursive": True,
-                "Filters": "IsResumable",
-                "SortBy": "DatePlayed",
-                "SortOrder": "Descending",
-                "IncludeItemTypes": "Movie,Episode,Video",
-                "Limit": 20,
-                "Fields": LIST_FIELDS,
-                "EnableImageTypes": "Primary,Thumb,Backdrop",
-            }) or {}
-            # No CollectionType: these mixed rows keep the item-type heuristic.
-            rows.append((_("Continue Watching"), resume.get("Items", []), None))
-        except Exception:
-            log.warning("Failed to load resume items", exc_info=True)
-
-        try:
-            nextup = api.get_next(limit=20) or {}
-            rows.append((_("Next Up"), nextup.get("Items", []), None))
-        except Exception:
-            log.warning("Failed to load next-up items", exc_info=True)
 
         # Per-library "Latest in X" rows, like jellyfin-web's home screen
         # (replaces the old global Recently Added Movies/Episodes pair).
@@ -180,19 +168,81 @@ class LibrarySource:
                 log.warning("Failed to list libraries for latest rows",
                             exc_info=True)
                 libraries = []
-        for lib in libraries:
-            if lib.get("CollectionType") == "playlists":
-                continue
-            try:
-                latest = api.get_recently_added(parent_id=lib.get("Id"),
-                                                limit=16) or []
-                # get_recently_added returns a bare list, not an Items dict.
-                items = latest.get("Items", []) if isinstance(latest, dict) else latest
-                rows.append((_("Latest %s") % lib.get("Name", ""), items,
-                             lib.get("CollectionType")))
-            except Exception:
-                log.warning("Failed to load latest for %s", lib.get("Name"),
-                            exc_info=True)
+
+        def resume_row():
+            resume = api.user_items(params={
+                "Recursive": True,
+                "Filters": "IsResumable",
+                "SortBy": "DatePlayed",
+                "SortOrder": "Descending",
+                "IncludeItemTypes": "Movie,Episode,Video",
+                "Limit": 20,
+                "Fields": LIST_FIELDS,
+                "EnableImageTypes": "Primary,Thumb,Backdrop",
+                # One tag per image type: without it every backdrop tag comes
+                # back, and items routinely carry five to ten.
+                "ImageTypeLimit": 1,
+                # The row is capped at 20 anyway, so the server's separate
+                # COUNT(*) over the whole library is pure waste (jellyfin-web
+                # passes this on all three home queries).
+                "EnableTotalRecordCount": False,
+            }) or {}
+            # No CollectionType: these mixed rows keep the item-type heuristic.
+            return (_("Continue Watching"), resume.get("Items", []), None)
+
+        def next_up_row():
+            nextup = api.get_next(
+                limit=20, fields=LIST_FIELDS,
+                enable_image_types="Primary,Thumb,Backdrop") or {}
+            return (_("Next Up"), nextup.get("Items", []), None)
+
+        def latest_row(lib):
+            def fetch():
+                # NOT api.get_recently_added: that helper hardcodes
+                # Fields=info(), a 28-field payload including MediaSources,
+                # People, Studios and RecursiveItemCount. MediaSources forces
+                # per-item media-source resolution and the rest add joins —
+                # for 16 items times every library, none of which this row
+                # renders. LIST_FIELDS is what the other browse calls use.
+                latest = api.user_items("/Latest", {
+                    "ParentId": lib.get("Id"),
+                    "Limit": 16,
+                    "Fields": LIST_FIELDS,
+                    "EnableImageTypes": "Primary,Thumb,Backdrop",
+                    "ImageTypeLimit": 1,
+                    "EnableTotalRecordCount": False,
+                })
+                # /Latest answers with a bare list, not an Items dict.
+                items = (latest.get("Items", []) if isinstance(latest, dict)
+                         else (latest or []))
+                return (_("Latest %s") % lib.get("Name", ""), items,
+                        lib.get("CollectionType"))
+            return fetch
+
+        tasks = [resume_row, next_up_row]
+        tasks += [latest_row(lib) for lib in libraries
+                  if lib.get("CollectionType") != "playlists"]
+
+        # Fanned out, not walked. These were strictly serial, so the home
+        # screen cost (2 + one per library) round trips end to end before it
+        # could draw anything — six libraries meant eight sequential waits.
+        # jellyfin-web issues the same set concurrently, which is most of why
+        # it felt faster. Ordering is preserved by collecting in submit order,
+        # so the rows do not shuffle by whichever server call wins.
+        #
+        # One requests.Session per server is shared across these; that is the
+        # same pattern ThumbnailStore already uses for its own worker pool.
+        rows = []
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, max(1, len(tasks))),
+                thread_name_prefix="home") as pool:
+            futures = [pool.submit(task) for task in tasks]
+            for future in futures:
+                try:
+                    rows.append(future.result())
+                except Exception:
+                    # One dead row must not cost the whole home screen.
+                    log.warning("Failed to load a home row", exc_info=True)
 
         # Carry each row's CollectionType so the home view can pick poster vs
         # landscape by library kind — a TV "Latest" row mixes Series and stray

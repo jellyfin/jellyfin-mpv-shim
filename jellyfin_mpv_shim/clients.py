@@ -17,6 +17,7 @@ import threading
 
 import socket
 import ipaddress
+from collections import OrderedDict
 from urllib.parse import urlparse
 
 
@@ -374,20 +375,98 @@ class ClientManager(object):
         # Sort creds list by local-first priority
         sorted_credentials = sorted(self.credentials, key=connection_priority)
 
-        # Array to stash server Ids, to avoid double-connecting to servers
-        # and avoid clobbering the preferred connection
-        connected_servers = []
-
+        # Group by server Id, preserving the priority order within each group.
+        # Different servers connect CONCURRENTLY; the addresses for one server
+        # stay a serial fallback chain, because the sort put the most local
+        # address first and racing them would let a worse route win.
+        chains = OrderedDict()
         for server in sorted_credentials:
-            # Test if we've connected to this server already
-            if server["Id"] in connected_servers:
-                # If so, skip connecting
-                continue
-            if self.connect_client(server):
-                is_logged_in = True
+            chains.setdefault(server["Id"], []).append(server)
+        chains = list(chains.values())
+        if not chains:
+            return False
 
-                # If valid connection, add Id of server to array
-                connected_servers.append(server["Id"])
+        # The server the UI wants to open on. If it comes up we can render
+        # immediately and let the rest arrive behind the homepage; only if it
+        # is unreachable do we wait for the others.
+        prefer_uuid = None
+        try:
+            prefer_uuid = userManager.get_last_server()
+        except Exception:
+            log.debug("Could not read the remembered server.", exc_info=True)
+        # None = no preference, in which case the FIRST server to answer
+        # releases the UI. Defaulting to chain 0 instead would have recreated
+        # the original problem for anyone who has not switched servers yet:
+        # if chain 0 is the dead one, we would wait out its timeout again.
+        preferred = None
+        if prefer_uuid:
+            for index, chain in enumerate(chains):
+                if any(s.get("uuid") == prefer_uuid for s in chain):
+                    preferred = index
+                    break
+
+        ready = threading.Event()      # UI may render
+        done = threading.Event()       # every chain has finished
+        state = {"connected": 0, "finished": 0}
+        lock = threading.Lock()
+
+        def run(index, chain):
+            ok = False
+            try:
+                for server in chain:
+                    if self.is_stopping:
+                        break
+                    if self.connect_client(server):
+                        ok = True
+                        break
+            except Exception:
+                log.error("Connecting to server failed.", exc_info=True)
+            with lock:
+                if ok:
+                    state["connected"] += 1
+                state["finished"] += 1
+                all_done = state["finished"] == len(chains)
+                # Late = the UI has already rendered without this server, so
+                # it has to be told to pick it up.
+                late = ok and ready.is_set()
+                # With a remembered server we hold for that one specifically,
+                # so the library does not open on whichever server happened to
+                # answer first and then jump when the right one arrives.
+                # Without one, any success will do.
+                release = ok if preferred is None else (ok and index == preferred)
+                if release or all_done:
+                    ready.set()
+                if all_done:
+                    done.set()
+            if late:
+                try:
+                    self.on_server_connected()
+                except Exception:
+                    log.debug("Late-connect notification failed.",
+                              exc_info=True)
+
+        threads = []
+        for index, chain in enumerate(chains):
+            # Daemon: connect_all returns as soon as the UI can render, so
+            # these outlive it, and a server stuck in authenticate's timeout
+            # must never hold up process exit.
+            thread = threading.Thread(
+                target=run, args=(index, chain), daemon=True,
+                name="connect-%d" % index)
+            threads.append(thread)
+            thread.start()
+
+        # Unblocks on the preferred server connecting, or on every chain
+        # finishing. Waiting for ALL of them was the old behaviour by
+        # accident: authenticate carries a 10s+ timeout, so one server being
+        # down delayed the library by that much before anything rendered.
+        ready.wait()
+        with lock:
+            is_logged_in = state["connected"] > 0
+            pending = len(chains) - state["finished"]
+        if pending > 0:
+            log.info("Rendering with the preferred server; %d still connecting.",
+                     pending)
         return is_logged_in
 
     def load_credentials(self):

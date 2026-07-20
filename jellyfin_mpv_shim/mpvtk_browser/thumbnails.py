@@ -34,6 +34,10 @@ log = logging.getLogger("mpvtk_browser.thumbnails")
 # count) so a mix of small posters and large backdrops can't balloon memory.
 DEFAULT_MEM_MB = 128
 
+# Distinct hosts we keep pools for. Small on purpose: this store talks to the
+# logged-in Jellyfin servers and nothing else.
+THUMB_POOL_HOSTS = 4
+
 
 def make_key(item_id, image_type, tag, width, height=None):
     raw = "%s:%s:%s:%s:%s" % (item_id, image_type, tag, width, height)
@@ -103,6 +107,22 @@ class ThumbnailStore:
         self._notify = notify
 
         self._session = requests.Session()
+        # Size the connection pool to the worker count and BLOCK on exhaustion.
+        # urllib3 defaults to pool_maxsize=10 with pool_block=False, which does
+        # not queue an over-limit request — it opens a fresh connection and
+        # then discards it instead of returning it to the pool. With these
+        # workers plus the trickplay tile fetch hitting the same host, that
+        # meant a churn of one-shot TLS handshakes exactly while mpv was
+        # opening the stream, which is a very good fit for the intermittent
+        # "tls: Error decoding the received TLS packet" seen in the field.
+        # Blocking makes a busy pool wait for a free connection instead.
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=THUMB_POOL_HOSTS,
+            pool_maxsize=workers,
+            pool_block=True,
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="thumb")
         self._results = queue.Queue()
