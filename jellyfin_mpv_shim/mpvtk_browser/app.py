@@ -27,6 +27,14 @@ The mixins are a partition, not a layering: they all operate on the same
 it. No name may be defined by two of them — MRO would silently pick a
 winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
 
+**Adding a view** is one edit: declare the route kind in the owning mixin's
+``ROUTES`` table as ``kind: (loader, renderer)``, and write those two
+methods next to it. ``_routes()`` merges the tables across the MRO;
+``_load_route`` and ``_render_route`` here are lookups. ``ROUTES`` is the
+one name every mixin is meant to define — that merge is explicit, so the
+usual override hazard doesn't apply, but a kind claimed twice is still a
+test failure.
+
 Three invariants hold the whole thing together:
 
 **The thread contract.** Renderer event handlers and ``build()`` run on the
@@ -529,222 +537,41 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._load_route(route)
         self.invalidate()
 
+    _ROUTES_CACHE = None
+
+    @classmethod
+    def _routes(cls):
+        """The merged kind -> (loader, renderer) table.
+
+        Each mixin declares the kinds it owns in its own ROUTES, so a view is
+        added in one place next to the code that draws it. Reading
+        ``self.ROUTES`` would only ever see the first mixin in the MRO, so
+        walk it and merge; a kind claimed twice is a bug, not a silent
+        override (see tests/test_mpvtk_browser_mixins.py).
+        """
+        if cls._ROUTES_CACHE is None:
+            merged = {}
+            for base in cls.__mro__:
+                for kind, pair in (base.__dict__.get("ROUTES") or {}).items():
+                    merged.setdefault(kind, pair)
+            cls._ROUTES_CACHE = merged
+        return cls._ROUTES_CACHE
+
     def _load_route(self, route):
-        kind = route["kind"]
+        """Dispatch to the route kind's loader, if it has one.
+
+        Kinds are declared in each mixin's ROUTES table alongside their
+        renderer, so adding a view is one edit in one place — this used to
+        be a 215-line elif chain here and a dict a thousand lines away.
+        """
         if self.server is None:
             return
         route.pop("_error", None)
-        ep = self._epoch
-        if kind == "home":
-            def work():
-                server = route.get("server") or self.server
-                libs = self.source.get_libraries(server)
-                rows = self.source.get_home_rows(server, libs)
-                return {"libraries": libs, "rows": rows}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "grid":
-            srv = route.get("server") or self.server
-            parent = route["parent_id"]
-            _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
-            filters = route.get("_filters") or {}
-
-            collections = bool(route.get("_collections"))
-
-            def work():
-                if collections:
-                    # Collections are server-wide and recursive (a BoxSet
-                    # can gather items from several libraries), so this is a
-                    # different query, not a filter on the library.
-                    items, total = self.source.get_movie_collections(
-                        srv, sort_by=sort_by, sort_order=sort_order,
-                        filters=filters)
-                else:
-                    items, total = self.source.get_library_items(
-                        srv, parent, sort_by=sort_by, sort_order=sort_order,
-                        filters=filters)
-                vals = route.get("_filtervals")
-                if vals is None:
-                    try:
-                        vals = self.source.get_filter_values(srv, parent)
-                    except Exception:
-                        vals = {"genres": [], "years": []}
-                return items, total, vals
-
-            def done(res):
-                route["_items"], route["_total"], route["_filtervals"] = res
-                # The toggle only makes sense on a movies library, and only
-                # when the source can answer it (the offline catalog can't).
-                route["_collection_capable"] = (
-                    route.get("collection_type") == "movies"
-                    and hasattr(self.source, "get_movie_collections"))
-            self._route_async(route, work, done, ep)
-        elif kind == "detail":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                item = self.source.get_item(srv, iid)
-                similar = []
-                try:
-                    similar = self.source.get_similar(srv, iid)
-                except Exception:
-                    pass
-                trailers = []
-                if (item or {}).get("Type") in ("Movie", "Series"):
-                    try:
-                        trailers = self.source.get_trailers(srv, iid) or []
-                    except Exception:
-                        pass  # older servers / no trailers: just no button
-                return {"item": item, "similar": similar,
-                        "trailers": trailers}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "series":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                similar = []
-                try:
-                    similar = self.source.get_similar(srv, iid) or []
-                except Exception:
-                    pass   # offline / older server: just no row
-                return {
-                    "item": self.source.get_item(srv, iid),
-                    "seasons": self.source.get_seasons(srv, iid),
-                    "similar": similar,
-                }
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "season":
-            srv = route.get("server") or self.server
-
-            def work():
-                return {
-                    "episodes": self.source.get_episodes(
-                        srv, route.get("series_id"), route["item_id"]),
-                    "seasons": self.source.get_seasons(
-                        srv, route.get("series_id")),
-                }
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "search":
-            srv = route.get("server") or self.server
-            term = route.get("term", "")
-
-            def work():
-                if not term:
-                    return {"items": [], "people": []}
-                items = self.source.search(srv, term)
-                people = []
-                try:
-                    people = self.source.search_people(srv, term)
-                except Exception:
-                    pass
-                return {"items": items, "people": people}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "music":
-            def done(res):
-                items, total = res
-                route["_data"], route["_total"] = items, total
-                route["_loading"] = False
-            fetch = self._music_fetch(route)     # bind the tab here, not later
-            self._route_async(route, lambda: fetch(0), done, ep)
-        elif kind == "album":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                return {"item": self.source.get_item(srv, iid),
-                        "tracks": self.source.get_album_tracks(srv, iid)}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "artist":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                songs, similar = [], []
-                try:
-                    songs = self.source.get_artist_songs(srv, iid)
-                except Exception:
-                    pass
-                try:
-                    similar = self.source.get_similar(srv, iid) or []
-                except Exception:
-                    pass   # offline / older server: just no row
-                return {"albums": self.source.get_artist_albums(srv, iid),
-                        "songs": songs, "similar": similar}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "music_genre":
-            srv = route.get("server") or self.server
-
-            def work():
-                songs = []
-                try:
-                    songs = self.source.get_genre_songs(
-                        srv, route.get("parent_id"), route["item_id"])
-                except Exception:
-                    pass
-                albums, total = self.source.get_genre_albums(
-                    srv, route.get("parent_id"), route["item_id"])
-                return {"albums": albums, "songs": songs, "total": total}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "playlist":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                return self.source.get_playlist_items(srv, iid)
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
-        elif kind == "person":
-            srv = route.get("server") or self.server
-
-            def work():
-                return self.source.get_person_items(srv, route["person_id"])
-
-            def done(res):
-                route["_items"], route["_total"] = res
-            self._route_async(route, work, done, ep)
-        elif kind == "playlist_edit":
-            srv = route.get("server") or self.server
-            iid = route["item_id"]
-
-            def work():
-                meta = {}
-                try:
-                    meta = self.source.get_playlist(srv, iid) or {}
-                except Exception:
-                    pass
-                return self.source.get_playlist_items(srv, iid), meta
-
-            def done(res):
-                items, meta = res
-                route["_items"] = items
-                # Read the *server's* visibility before offering the toggle;
-                # assuming private meant the first click could flip a public
-                # playlist's visibility based on a value we never read.
-                if "OpenAccess" in meta:
-                    route["_public"] = bool(meta.get("OpenAccess"))
-                    route["_public_known"] = True
-            self._route_async(route, work, done, ep)
-        elif kind == "queue":
-            srv = route.get("server") or self.server
-
-            def work():
-                q = ({"items": [], "current_id": None} if self.controller is None
-                     else self.controller.get_queue())
-                ids = [e["id"] for e in q.get("items", []) if e.get("id")]
-                by_id = {}
-                if ids:
-                    try:
-                        for it in self.source.get_items_by_ids(srv, ids):
-                            by_id[it.get("Id")] = it
-                    except Exception:
-                        pass
-                entries = [
-                    {"item": by_id.get(e["id"], {"Id": e["id"],
-                                                 "Name": e["id"]}),
-                     "pid": e.get("playlist_item_id")}
-                    for e in q.get("items", [])]
-                return {"entries": entries, "current_id": q.get("current_id")}
-            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+        loader = (self._routes().get(route["kind"]) or (None, None))[0]
+        if loader is not None:
+            # ep is read here, on the loop thread, and handed down: a loader
+            # that read it later would be racing the navigation it guards.
+            getattr(self, loader)(route, self._epoch)
 
     def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
@@ -1495,27 +1322,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                        "title": _("Queue")})
 
     def _render_route(self, route, size):
-        kind = route["kind"]
-        render = {
-            "home": self._render_home,
-            "grid": self._render_grid,
-            "detail": self._render_detail,
-            "series": self._render_series,
-            "season": self._render_season,
-            "search": self._render_search,
-            "music": self._render_music,
-            "album": self._render_album,
-            "artist": self._render_artist,
-            "music_genre": self._render_music_genre,
-            "playlist": self._render_playlist,
-            "settings": self._render_settings,
-            "queue": self._render_queue,
-            "playlist_edit": self._render_playlist_edit,
-            "login": self._render_login,
-            "locked": self._render_locked,
-            "person": self._render_grid,
-        }.get(kind)
-        if render is None:
+        renderer = (self._routes().get(route["kind"]) or (None, None))[1]
+        if renderer is None:
             return self._busy()
         # A load that failed with nothing to show says so and offers a
         # retry. Without this the route's data stayed None and the view
@@ -1524,7 +1332,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 and route.get("_data") is None
                 and not route.get("_items")):
             return self._error_retry(route)
-        return render(route, size)
+        return getattr(self, renderer)(route, size)
 
     def _error_retry(self, route):
         return Box([

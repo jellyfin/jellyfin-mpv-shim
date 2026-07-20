@@ -28,6 +28,13 @@ from . import theme
 
 class QueueEditMixin:
 
+    # kind -> (loader, renderer) method names. Merged into
+    # one dispatch table by core's _routes().
+    ROUTES = {
+        "playlist_edit": ("_load_playlist_edit", "_render_playlist_edit"),
+        "queue": ("_load_queue", "_render_queue"),
+    }
+
     # --------------------------------------------------------------- queue
 
     def _render_queue(self, route, size):
@@ -364,3 +371,50 @@ class QueueEditMixin:
             lambda c: c.playlist_update(server, route["item_id"],
                                         is_public=route["_public"]),
             on_error=lambda: route.__setitem__("_public", was))
+
+    # ---------------------------------------- route loaders
+
+    def _load_playlist_edit(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            meta = {}
+            try:
+                meta = self.source.get_playlist(srv, iid) or {}
+            except Exception:
+                pass
+            return self.source.get_playlist_items(srv, iid), meta
+
+        def done(res):
+            items, meta = res
+            route["_items"] = items
+            # Read the *server's* visibility before offering the toggle;
+            # assuming private meant the first click could flip a public
+            # playlist's visibility based on a value we never read.
+            if "OpenAccess" in meta:
+                route["_public"] = bool(meta.get("OpenAccess"))
+                route["_public_known"] = True
+        self._route_async(route, work, done, ep)
+
+    def _load_queue(self, route, ep):
+        srv = route.get("server") or self.server
+
+        def work():
+            q = ({"items": [], "current_id": None} if self.controller is None
+                 else self.controller.get_queue())
+            ids = [e["id"] for e in q.get("items", []) if e.get("id")]
+            by_id = {}
+            if ids:
+                try:
+                    for it in self.source.get_items_by_ids(srv, ids):
+                        by_id[it.get("Id")] = it
+                except Exception:
+                    pass
+            entries = [
+                {"item": by_id.get(e["id"], {"Id": e["id"],
+                                             "Name": e["id"]}),
+                 "pid": e.get("playlist_item_id")}
+                for e in q.get("items", [])]
+            return {"entries": entries, "current_id": q.get("current_id")}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)

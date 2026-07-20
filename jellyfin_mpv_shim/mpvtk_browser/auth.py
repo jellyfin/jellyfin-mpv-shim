@@ -33,6 +33,13 @@ log = logging.getLogger("mpvtk_browser.auth")
 
 class AuthMixin:
 
+    # kind -> (loader, renderer) method names. Merged into
+    # one dispatch table by core's _routes().
+    ROUTES = {
+        "locked": (None, "_render_locked"),
+        "login": (None, "_render_login"),
+    }
+
     # ------------------------------------------------------------ users
 
     def _users(self):

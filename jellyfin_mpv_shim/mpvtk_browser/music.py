@@ -27,6 +27,16 @@ from .repository import PLAYLIST_SUPPORTED_TYPES
 
 class MusicMixin:
 
+    # kind -> (loader, renderer) method names. Merged into
+    # one dispatch table by core's _routes().
+    ROUTES = {
+        "album": ("_load_album", "_render_album"),
+        "artist": ("_load_artist", "_render_artist"),
+        "music": ("_load_music", "_render_music"),
+        "music_genre": ("_load_music_genre", "_render_music_genre"),
+        "playlist": ("_load_playlist", "_render_playlist"),
+    }
+
     @staticmethod
     def _duration(item):
         secs = (item.get("RunTimeTicks") or 0) // 10000000
@@ -393,3 +403,63 @@ class MusicMixin:
                 tbtn("queue_music", "np-queue", self._open_queue),
             ],
             pad=10, gap=10, align="center", h=64, bg=theme.PANEL_BG)
+
+    # ---------------------------------------- route loaders
+
+    def _load_music(self, route, ep):
+        def done(res):
+            items, total = res
+            route["_data"], route["_total"] = items, total
+            route["_loading"] = False
+        fetch = self._music_fetch(route)     # bind the tab here, not later
+        self._route_async(route, lambda: fetch(0), done, ep)
+
+    def _load_album(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            return {"item": self.source.get_item(srv, iid),
+                    "tracks": self.source.get_album_tracks(srv, iid)}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_artist(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            songs, similar = [], []
+            try:
+                songs = self.source.get_artist_songs(srv, iid)
+            except Exception:
+                pass
+            try:
+                similar = self.source.get_similar(srv, iid) or []
+            except Exception:
+                pass   # offline / older server: just no row
+            return {"albums": self.source.get_artist_albums(srv, iid),
+                    "songs": songs, "similar": similar}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_music_genre(self, route, ep):
+        srv = route.get("server") or self.server
+
+        def work():
+            songs = []
+            try:
+                songs = self.source.get_genre_songs(
+                    srv, route.get("parent_id"), route["item_id"])
+            except Exception:
+                pass
+            albums, total = self.source.get_genre_albums(
+                srv, route.get("parent_id"), route["item_id"])
+            return {"albums": albums, "songs": songs, "total": total}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_playlist(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            return self.source.get_playlist_items(srv, iid)
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)

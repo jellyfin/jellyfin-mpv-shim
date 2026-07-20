@@ -47,6 +47,18 @@ _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class ViewsMixin:
 
+    # kind -> (loader, renderer) method names. Merged into
+    # one dispatch table by core's _routes().
+    ROUTES = {
+        "detail": ("_load_detail", "_render_detail"),
+        "grid": ("_load_grid", "_render_grid"),
+        "home": ("_load_home", "_render_home"),
+        "person": ("_load_person", "_render_grid"),
+        "search": ("_load_search", "_render_search"),
+        "season": ("_load_season", "_render_season"),
+        "series": ("_load_series", "_render_series"),
+    }
+
     def _render_home(self, route, size):
         if self.server is None:
             return Box(
@@ -914,3 +926,126 @@ class ViewsMixin:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=12,
                               align="stretch"), id="search", flex=1)
+
+    # ---------------------------------------- route loaders
+
+    def _load_home(self, route, ep):
+        def work():
+            server = route.get("server") or self.server
+            libs = self.source.get_libraries(server)
+            rows = self.source.get_home_rows(server, libs)
+            return {"libraries": libs, "rows": rows}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_grid(self, route, ep):
+        srv = route.get("server") or self.server
+        parent = route["parent_id"]
+        _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        filters = route.get("_filters") or {}
+
+        collections = bool(route.get("_collections"))
+
+        def work():
+            if collections:
+                # Collections are server-wide and recursive (a BoxSet
+                # can gather items from several libraries), so this is a
+                # different query, not a filter on the library.
+                items, total = self.source.get_movie_collections(
+                    srv, sort_by=sort_by, sort_order=sort_order,
+                    filters=filters)
+            else:
+                items, total = self.source.get_library_items(
+                    srv, parent, sort_by=sort_by, sort_order=sort_order,
+                    filters=filters)
+            vals = route.get("_filtervals")
+            if vals is None:
+                try:
+                    vals = self.source.get_filter_values(srv, parent)
+                except Exception:
+                    vals = {"genres": [], "years": []}
+            return items, total, vals
+
+        def done(res):
+            route["_items"], route["_total"], route["_filtervals"] = res
+            # The toggle only makes sense on a movies library, and only
+            # when the source can answer it (the offline catalog can't).
+            route["_collection_capable"] = (
+                route.get("collection_type") == "movies"
+                and hasattr(self.source, "get_movie_collections"))
+        self._route_async(route, work, done, ep)
+
+    def _load_detail(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            item = self.source.get_item(srv, iid)
+            similar = []
+            try:
+                similar = self.source.get_similar(srv, iid)
+            except Exception:
+                pass
+            trailers = []
+            if (item or {}).get("Type") in ("Movie", "Series"):
+                try:
+                    trailers = self.source.get_trailers(srv, iid) or []
+                except Exception:
+                    pass  # older servers / no trailers: just no button
+            return {"item": item, "similar": similar,
+                    "trailers": trailers}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_series(self, route, ep):
+        srv = route.get("server") or self.server
+        iid = route["item_id"]
+
+        def work():
+            similar = []
+            try:
+                similar = self.source.get_similar(srv, iid) or []
+            except Exception:
+                pass   # offline / older server: just no row
+            return {
+                "item": self.source.get_item(srv, iid),
+                "seasons": self.source.get_seasons(srv, iid),
+                "similar": similar,
+            }
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_season(self, route, ep):
+        srv = route.get("server") or self.server
+
+        def work():
+            return {
+                "episodes": self.source.get_episodes(
+                    srv, route.get("series_id"), route["item_id"]),
+                "seasons": self.source.get_seasons(
+                    srv, route.get("series_id")),
+            }
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_search(self, route, ep):
+        srv = route.get("server") or self.server
+        term = route.get("term", "")
+
+        def work():
+            if not term:
+                return {"items": [], "people": []}
+            items = self.source.search(srv, term)
+            people = []
+            try:
+                people = self.source.search_people(srv, term)
+            except Exception:
+                pass
+            return {"items": items, "people": people}
+        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    def _load_person(self, route, ep):
+        srv = route.get("server") or self.server
+
+        def work():
+            return self.source.get_person_items(srv, route["person_id"])
+
+        def done(res):
+            route["_items"], route["_total"] = res
+        self._route_async(route, work, done, ep)

@@ -37,6 +37,12 @@ log = logging.getLogger("mpvtk_browser.settings")
 
 class SettingsMixin:
 
+    # kind -> (loader, renderer) method names. Merged into
+    # one dispatch table by core's _routes().
+    ROUTES = {
+        "settings": (None, "_render_settings"),
+    }
+
     # ------------------------------------------------------------- settings
 
     def _config(self):
