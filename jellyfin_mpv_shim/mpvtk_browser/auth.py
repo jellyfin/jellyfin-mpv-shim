@@ -461,6 +461,18 @@ class AuthMixin:
         return Box([Spacer(), Row([Spacer(), card, Spacer()]), Spacer()],
                    flex=1, direction="column", align="stretch")
 
+    def _saved_servers(self):
+        """Has this user already added a server? Distinguishes "your server
+        is down" (offer Retry) from "you have not signed in yet" (offer the
+        login form)."""
+        if self.controller is None:
+            return False
+        try:
+            return bool(self.controller.known_servers())
+        except Exception:
+            log.debug("known_servers failed", exc_info=True)
+            return False
+
     def _have_downloads(self):
         if self.controller is None:
             return False
@@ -567,8 +579,18 @@ class AuthMixin:
             self._pin_error = None
             self._pin["pin"] = ""
             if source is None:
+                # Correct PIN, but nothing could be built. If there ARE saved
+                # servers this is a failed connect, not a missing account —
+                # the connecting screen says so and offers Retry / Work
+                # Offline. Dropping straight to the login form (which is what
+                # happened) told a user with a temporarily-down server to
+                # sign in again, and lost the offline library.
                 self._locked = False
-                self.show_login()
+                if self._saved_servers():
+                    self.show_connecting()
+                    self.connect_failed()
+                else:
+                    self.show_login()
                 return
             self.set_source(source)
         self.run_async(work, done, ep)

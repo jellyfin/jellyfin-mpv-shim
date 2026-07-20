@@ -729,6 +729,16 @@ class _PlayerController:
             client = sp.client
             uuid = next((u for u, c in clientManager.clients.items()
                          if c is client), None)
+            if uuid is None:
+                # The identity lookup missed — a reconnect can replace the
+                # client object while syncplay still holds the old one.
+                # Reporting the group with server_uuid=None made the dialog
+                # fall back to the BROWSER's selected server, which is the
+                # wrong-server bug this whole thing exists to fix. Better to
+                # admit we do not know which server it is on.
+                log.debug("syncplay client is not a known server; "
+                          "reporting no group")
+                return None
             return {"group_id": sp.current_group, "server_uuid": uuid}
         except Exception:
             log.debug("sync_state failed", exc_info=True)
@@ -1239,9 +1249,11 @@ class UserInterface:
             app.quit()
         # Wait for the render loop to actually stop before anything else
         # touches the caches it reads. quit() only enqueues.
-        thread, self._thread = self._thread, None
-        if thread is not None and thread.is_alive():
-            thread.join(timeout=2)
+        # Deliberately NOT cleared when the join times out: on_mpv_recreated
+        # joins it again rather than starting a second loop alongside it.
+        # build() is not reentrant (it writes _size, _live_offsets, the
+        # poster caches, and starts pollers), so two of them is corruption.
+        self._join_render_loop()
         if self._browser is not None:
             self._browser.app = None
 
@@ -1274,6 +1286,13 @@ class UserInterface:
             log.error("could not re-attach the mpvtk UI to the new mpv",
                       exc_info=True)
             return
+        # Belt and braces: on_mpv_gone joins the old loop, but its join is
+        # bounded. Starting a second one alongside a survivor would have two
+        # threads calling the non-reentrant build().
+        if not self._join_render_loop():
+            # The old loop is wedged. A second one would race it inside
+            # build(), which is worse than not re-attaching.
+            return
         self._app = app
         # set_app (not a bare assignment): the fresh app needs the
         # browser's nav/HUD callbacks re-wired or its events go nowhere.
@@ -1286,6 +1305,26 @@ class UserInterface:
         # (browse / HUD-idle for a video in flight / fully out of the way).
         self._browser.reassert_window_state()
         self._browser.invalidate()
+
+    RENDER_LOOP_JOIN = 2.0
+
+    def _join_render_loop(self):
+        """Stop tracking the render loop once it has actually exited.
+
+        Returns True if it is gone. A survivor is kept in ``_thread`` so the
+        next attach joins it again instead of racing it."""
+        thread = self._thread
+        if thread is None or not thread.is_alive():
+            self._thread = None
+            return True
+        thread.join(timeout=self.RENDER_LOOP_JOIN)
+        if thread.is_alive():
+            log.warning("mpvtk render loop did not stop within %.0fs; "
+                        "not starting another alongside it",
+                        self.RENDER_LOOP_JOIN)
+            return False
+        self._thread = None
+        return True
 
     def _run(self):
         app = self._app
@@ -1300,7 +1339,12 @@ class UserInterface:
                 self.stop_callback()
 
     def _on_server_connected(self, *_a):
-        """A server came up after startup — rebuild so it appears."""
+        """A server came up after startup — rebuild so it appears.
+
+        keep_place: this fires from the websocket redial loop, the
+        cast-recovery path and the periodic health check, so it lands at
+        arbitrary moments mid-session. Resetting to Home threw the user out
+        of whatever they were reading every time a flaky server bounced."""
         if self._browser is None:
             return
         try:
@@ -1309,7 +1353,8 @@ class UserInterface:
             log.debug("rebuild after connect failed", exc_info=True)
             return
         if source is not None:
-            self._browser.set_source(source, server_uuid=self._browser.server)
+            self._browser.set_source(source, server_uuid=self._browser.server,
+                                     keep_place=True)
 
     def _connect(self):
         from .repository import LibrarySource
@@ -1356,9 +1401,7 @@ class UserInterface:
             app.quit()
             # quit() only enqueues; wait for the loop to stop pushing scenes
             # before anything frees what those scenes reference.
-            thread, self._thread = self._thread, None
-            if thread is not None and thread.is_alive():
-                thread.join(timeout=2)
+            self._join_render_loop()
         if self._browser is not None:
             # free_bitmaps=False: mpv may still be alive here (the caller is
             # on its way to terminating it), and on libmpv it composites the

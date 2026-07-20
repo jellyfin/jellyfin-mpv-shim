@@ -499,30 +499,40 @@ class MpvtkApp:
     def run(self, build):
         """Blocks until mpv quits (window closed / quit())."""
         self._build = build
-        while True:
-            try:
-                kind, evt = self._queue.get(timeout=0.5)
-            except queue.Empty:
-                continue
-            except KeyboardInterrupt:
-                break
-            if kind == "__quit":
-                break
-            if kind == "evt":
-                self._dispatch(evt)
-            # coalesce whatever else is queued before re-rendering
+        # try/finally, not a stop() after the loop: the coalescing drain
+        # below used to `return` on __quit, skipping backend.stop() entirely
+        # and leaking the backend's observers/socket. Which of the two reads
+        # the __quit is a pure race, so the leak was intermittent.
+        try:
             while True:
                 try:
-                    kind, evt = self._queue.get_nowait()
+                    kind, evt = self._queue.get(timeout=0.5)
                 except queue.Empty:
+                    continue
+                except KeyboardInterrupt:
                     break
                 if kind == "__quit":
-                    return
+                    break
                 if kind == "evt":
                     self._dispatch(evt)
-            if self._dirty:
-                self._render()
-        self.backend.stop()
+                # coalesce whatever else is queued before re-rendering
+                quitting = False
+                while True:
+                    try:
+                        kind, evt = self._queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    if kind == "__quit":
+                        quitting = True
+                        break
+                    if kind == "evt":
+                        self._dispatch(evt)
+                if quitting:
+                    break
+                if self._dirty:
+                    self._render()
+        finally:
+            self.backend.stop()
 
     def quit(self):
         self._queue.put(("__quit", None))

@@ -1206,6 +1206,53 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertEqual(b.route["kind"], "home")
         self.assertEqual(len(b.nav_stack), 1)
 
+    def test_a_reconnect_does_not_yank_you_back_to_home(self):
+        """on_server_connected fires from the websocket redial loop, the
+        cast-recovery path and the periodic health check — arbitrary moments
+        mid-session. Resetting the nav stack there threw the user out of
+        whatever they were reading every time a flaky server bounced."""
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        b.set_source(FakeSource(), server_uuid="srv1", keep_place=True)
+        self.assertEqual(b.route["kind"], "grid",
+                         "a reconnect reset the user to Home")
+        self.assertEqual(b.route.get("parent_id"), "lib1")
+
+    def test_a_reconnect_still_refreshes_the_page_it_kept(self):
+        """Keeping your place is only useful if the page re-reads from the
+        new source — otherwise it shows whatever the dead one returned."""
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        b.route.pop("_items", None)
+        b.set_source(FakeSource(), server_uuid="srv1", keep_place=True)
+        self.assertIsNotNone(b.route.get("_items"),
+                             "the kept page was never reloaded")
+
+    def test_keeping_your_place_falls_back_when_the_server_is_gone(self):
+        """The page belongs to a server the new source does not have — the
+        only sane destination is Home."""
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "gone", "parent_id": "lib1"})
+        b.set_source(FakeSource(), server_uuid="srv1", keep_place=True)
+        self.assertEqual(b.route["kind"], "home")
+
+    def test_a_deliberate_switch_still_resets(self):
+        """Signing in, unlocking or going offline are user actions; those
+        should land on Home."""
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        b.set_source(FakeSource(), server_uuid="srv1")
+        self.assertEqual(b.route["kind"], "home")
+
 
 class FakeConfig:
     # Mirrors the real mpvtk_browser.config surface the Settings view uses:
@@ -1585,6 +1632,54 @@ class TestDetailActions(unittest.TestCase):
         self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
         self.assertEqual(self.b.source.person_sorts[-1],
                          ("SortName", "Ascending"))
+
+    def test_the_filmography_sort_survives_paging(self):
+        """The sort was read in _on_grid_scroll and then not passed to
+        get_person_items, so page 1 honoured the dropdown and every page
+        after it reverted to SortName — the two orderings interleave into
+        duplicates and skips."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "PremiereDate")
+        h["person-sort"]["select"](want, SORTS[want][0])
+
+        self.b.route["_total"] = 500          # more to page in
+        self.b._on_grid_scroll(self.b.route, 100000, 100001)
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("PremiereDate", "Descending"),
+                         "page 2 reverted to the default sort")
+
+    def test_a_random_filmography_is_capped_to_one_page(self):
+        """Random reshuffles per request, so paging it yields duplicates and
+        skips. The grid caps for exactly this reason; the person route
+        assigned the raw total and had the corruption the cap prevents."""
+        # The server reports far more than it returned in this page — that
+        # gap is what the pager uses to decide there is more to fetch, and
+        # what the cap has to close.
+        self.b.source.get_person_items = (
+            lambda srv, pid, start_index=0, **kw:
+            ([{"Id": "pf%d" % i, "Name": "F%d" % i, "Type": "Movie"}
+              for i in range(20)], 500))
+
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        rnd = next(i for i, s in enumerate(SORTS) if s[1] == "Random")
+        h["person-sort"]["select"](rnd, SORTS[rnd][0])
+        route = self.b.route
+        self.assertEqual(route["_total"], len(route["_items"]),
+                         "a Random filmography still advertises more pages")
+
+    def test_a_non_random_filmography_still_pages(self):
+        """The cap must be Random-only — capping everything would silently
+        truncate every long credit list at one page."""
+        self.b.source.get_person_items = (
+            lambda srv, pid, start_index=0, **kw:
+            ([{"Id": "pf%d" % i, "Name": "F%d" % i, "Type": "Movie"}
+              for i in range(20)], 500))
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.route["_total"], 500)
 
     def test_a_filmography_has_no_genre_or_year_filters(self):
         """They would be filtering one person's credits by genre, and the
@@ -2167,8 +2262,11 @@ class TestLocked(unittest.TestCase):
     def test_correct_pin_with_no_source_is_not_a_bad_pin(self):
         """work_offline (or an unreachable server) leaves nothing to build a
         source from. Reporting that as a wrong PIN locked the client out for
-        good — the PIN was right, so land on login instead."""
+        good — the PIN was right, so land somewhere usable instead.
+
+        With no saved server that is the login form."""
         self.ctl.connect_and_rebuild = lambda: None
+        self.ctl.known_servers = lambda: []
         self.b.show_locked()
         _n, handlers = build_scene(self.b)
         handlers["lock-pin"]["change"]("1234")
@@ -2176,6 +2274,23 @@ class TestLocked(unittest.TestCase):
         self.assertIsNone(self.b._pin_error)
         self.assertEqual(self.b.route["kind"], "login")
         self.assertFalse(self.b._locked)
+
+    def test_a_correct_pin_with_a_down_server_offers_retry_not_login(self):
+        """The user HAS a server; it just did not answer. Sending them to
+        the login form told them to sign in again and lost the offline
+        library — the same case the connecting screen was built for."""
+        self.ctl.connect_and_rebuild = lambda: None
+        self.ctl.known_servers = lambda: [{"address": "http://srv",
+                                           "name": "Home"}]
+        self.b.show_locked()
+        _n, handlers = build_scene(self.b)
+        handlers["lock-pin"]["change"]("1234")
+        handlers["lock-unlock"]["click"]()
+        self.assertIsNone(self.b._pin_error)
+        self.assertEqual(self.b.route["kind"], "connecting")
+        self.assertFalse(self.b._locked)
+        nodes, h = build_scene(self.b)
+        self.assertIn("conn-retry", h, "no way to retry the connection")
 
     def test_relock_gates_the_ui_again_on_reopen(self):
         """Unlocking covers that reopen, not the rest of the process's life:
@@ -2684,6 +2799,41 @@ class TestNowPlaying(unittest.TestCase):
         self.assertNotIn("seek", [c[0] for c in self.ctl.transport],
                          "a cancelled drag seeked anyway")
 
+    def test_a_drag_survives_the_one_second_ticker(self):
+        """The now-playing ticker pushes a playstate every second. Clearing
+        the pending drag on any playstate would cancel it a second in."""
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                             "title": "S", "position": 10, "duration": 600})
+        _nodes, h = build_scene(self.b)
+        h["np-seek"]["change"](305)
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                             "title": "S", "position": 11, "duration": 600})
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "5:05",
+                         "a ticker update cancelled the drag")
+
+    def test_a_drag_does_not_outlive_its_track(self):
+        """The renderer sends no cancel when a dragged slider just leaves
+        the scene (queue ended, window yielded), so the pending value stuck
+        and pinned the clock for every later track."""
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                             "title": "S", "position": 10, "duration": 600})
+        _nodes, h = build_scene(self.b)
+        h["np-seek"]["change"](305)
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "t2",
+                             "title": "Next", "position": 3, "duration": 400})
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "0:03",
+                         "the next track's clock was stuck on the old drag")
+
+    def test_a_drag_does_not_outlive_playback(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                             "title": "S", "position": 10, "duration": 600})
+        _nodes, h = build_scene(self.b)
+        h["np-seek"]["change"](305)
+        self.b.on_playstate({"stopped": True})
+        self.assertIsNone(self.b._np_scrub)
+
     def test_every_control_in_the_bar_names_itself(self):
         """The bar is icon-only end to end, and had no tooltips at all —
         the playback HUD has had them since it shipped."""
@@ -2965,6 +3115,24 @@ class TestChromePolish(unittest.TestCase):
                               controller=Users())
         self.b._pool = _SyncPool()
         self.assertNotIn("Settings", self._labels(at))    # switcher present
+
+    def test_the_chrome_queries_each_list_once_per_frame(self):
+        """The bar is built twice — a fit probe, then the real one — and
+        each build asked the source and the controller for the server and
+        user lists. Two round trips per frame on the loop thread, for data
+        that cannot change between the two calls."""
+        calls = []
+        ctl = FakeController()
+        ctl.list_users = lambda: (calls.append("users") or [])
+        b = MpvtkBrowser(app=None, source=MultiServerSource(), controller=ctl)
+        b._pool = _SyncPool()
+        real_servers = b.source.servers
+        b.source.servers = lambda: (calls.append("servers") or real_servers())
+        build_scene(b, size=(1280, 720))
+        self.assertEqual(calls.count("servers"), 1,
+                         "servers() called %d times" % calls.count("servers"))
+        self.assertEqual(calls.count("users"), 1,
+                         "list_users() called %d times" % calls.count("users"))
 
     def test_a_collapsed_button_still_says_what_it_is(self):
         """Compact mode is exactly when a button stops carrying its label,

@@ -1045,6 +1045,19 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         state and the now-playing bar. Audio keeps the browser visible (bar +
         browsing); video stays yielded to the picture + OSC."""
         self._sync_queue_highlight(state)
+        # A pending seek-drag belongs to the track it started on. The
+        # renderer fires no cancel when a dragged slider simply leaves the
+        # scene (the queue ended, or we yielded the window), so the pending
+        # value stuck and pinned the elapsed clock to it for every later
+        # track while the slider itself kept moving.
+        #
+        # Keyed on the track CHANGING, not on any playstate: the now-playing
+        # ticker pushes one every second, and clearing on those would cancel
+        # the drag a second after it began.
+        now_id = (state or {}).get("id")
+        if not state or state.get("stopped") \
+                or now_id != (self._now_playing or {}).get("id"):
+            self._np_scrub = None
         if not state or state.get("stopped"):
             self._now_playing = None
             self._hud_state = None
@@ -1217,13 +1230,22 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
         self._start_daemon("_np_thread", "mpvtk-np-tick", tick)
 
-    def set_source(self, source, server_uuid=None):
+    def set_source(self, source, server_uuid=None, keep_place=False):
         """Swap in a live data source once servers connect (the browser opens
         immediately on a spinner and populates when the network settles).
 
         A catalog-backed source raises the offline banner: every path that
         can land offline goes through here, so deriving the banner from the
-        source is what keeps the two from drifting apart."""
+        source is what keeps the two from drifting apart.
+
+        ``keep_place=True`` refreshes in place instead of resetting to Home.
+        Use it for anything that is not a deliberate user action. A *reconnect*
+        arrives from the websocket redial loop, the cast-recovery path and the
+        periodic health check — i.e. at arbitrary moments mid-session — and
+        resetting the nav stack there threw the user out of whatever they were
+        reading, with no interaction on their part, every time a flaky server
+        bounced.
+        """
         from .repository import OfflineLibrarySource
 
         # Through set_offline, so _offline has one writer. It used to be
@@ -1236,8 +1258,17 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             servers = source.servers()
         except Exception:
             servers = []
-        self.server = server_uuid or (servers[0]["uuid"] if servers else None)
-        self.nav_stack = [{"kind": "home", "server": self.server}]
+        server = server_uuid or (servers[0]["uuid"] if servers else None)
+        # Keeping your place only makes sense if the page you are on still
+        # belongs to a server this source has. Otherwise fall back to Home.
+        known = {s.get("uuid") for s in servers}
+        stay = (keep_place and self.nav_stack
+                and self.server == server
+                and all(r.get("server") in known or r.get("server") is None
+                        for r in self.nav_stack))
+        self.server = server
+        if not stay:
+            self.nav_stack = [{"kind": "home", "server": self.server}]
         self._bump_epoch()
         self._load_route(self.route)
         self._refresh_downloaded()
@@ -1372,11 +1403,27 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # icon-only exactly when the labelled version wouldn't leave
         # the title its minimum room at this window width — however
         # many switchers/buttons this session happens to show.
-        probe = self._chrome_bar(compact=False, probe=True)
+        #
+        # The probe and the real bar are built from one snapshot of the
+        # servers and users. Building the bar twice per frame asked the
+        # source and the controller for both lists twice, on the loop
+        # thread — cheap today, but it is a list_users() and a servers()
+        # round the render path that nothing forced to be cheap.
+        servers, users = self._chrome_lists()
+        probe = self._chrome_bar(compact=False, probe=True,
+                                 servers=servers, users=users)
         compact = natural_size(probe)[0] + self.TITLE_MIN_W > w
-        return self._chrome_bar(compact=compact)
+        return self._chrome_bar(compact=compact, servers=servers, users=users)
 
-    def _chrome_bar(self, compact, probe=False):
+    def _chrome_lists(self):
+        try:
+            servers = self.source.servers()
+        except Exception:
+            servers = []
+        return servers, self._users()
+
+    def _chrome_bar(self, compact, probe=False, servers=None,
+                    users=None):
         title = "" if probe else (self.route.get("title") or _("Home"))
 
         def nav_button(label, node_id, icon, cb):
@@ -1398,10 +1445,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                                   reset=True)))
 
         right = []
-        try:
-            servers = self.source.servers()
-        except Exception:
-            servers = []
+        if servers is None:
+            servers = self._chrome_lists()[0]
         if len(servers) > 1:
             cur = next((i for i, s in enumerate(servers)
                         if s["uuid"] == self.server), 0)
@@ -1412,7 +1457,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 selected=cur, min_w=110, tip=_("Server"),
                 max_w=150 if compact else 260,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
-        users = self._users()
+        if users is None:
+            users = self._users()
         # Not while offline: switching user reconnects, which cannot work
         # with no server, and Tk gated it for that reason.
         if len(users) > 1 and not self._offline:

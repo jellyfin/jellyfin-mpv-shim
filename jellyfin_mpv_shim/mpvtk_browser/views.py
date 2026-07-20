@@ -277,8 +277,13 @@ class ViewsMixin:
         def fetch(start):
             srv = route.get("server") or self.server
             if person:
-                return self.source.get_person_items(srv, person,
-                                                    start_index=start)
+                # Sort here too. It was read three lines up and then not
+                # passed, so page 1 honoured the dropdown and every page
+                # after it silently reverted to SortName — duplicates and
+                # skips as the two orderings interleave.
+                return self.source.get_person_items(
+                    srv, person, start_index=start,
+                    sort_by=sort_by, sort_order=sort_order)
             if route.get("_collections"):
                 return self.source.get_movie_collections(
                     srv, start_index=start, sort_by=sort_by,
@@ -1148,5 +1153,11 @@ class ViewsMixin:
                 sort_by=sort_by, sort_order=sort_order)
 
         def done(res):
-            route["_items"], route["_total"] = res
+            items, total = res
+            route["_items"] = items
+            # Random reshuffles server-side per request, so paging it yields
+            # duplicates and skips. Cap at the first page, as the grid does
+            # and as Tk did — the cap lived only in _load_grid, so the
+            # filmography had the corruption the cap exists to prevent.
+            route["_total"] = len(items) if sort_by == "Random" else total
         self._route_async(route, work, done, ep)

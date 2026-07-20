@@ -1018,3 +1018,59 @@ class TestInvalidateIsNotLost(unittest.TestCase):
         self._run(app, build)
         self.assertIn(True, self.builds,
                       "state written during a failed build was stranded")
+
+
+class TestRunLoopAlwaysStopsTheBackend(unittest.TestCase):
+    """`run()` had two exits. The outer one fell through to
+    `backend.stop()`; the inner coalescing drain did a bare `return`, so a
+    __quit read by the drain leaked the backend's observers and socket.
+    Which of the two sees it is a pure race, so the leak was intermittent.
+    """
+
+    def _app(self):
+        import queue as _queue
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        self.stopped = []
+
+        class FakeBackend:
+            def command(_s, *a):
+                pass
+
+            def stop(_s):
+                self.stopped.append(1)
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.backend = FakeBackend()
+        app.in_process = True
+        app.size = (1280, 720)
+        app._queue = _queue.Queue()
+        app._handlers = {}
+        app._nodes = None
+        app._dirty = False
+        app._build = None
+        app._extend_metrics = lambda texts: False
+        app._scene_texts = lambda nodes: []
+        return app
+
+    @staticmethod
+    def _build(size):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+        return Column([Text("x")])
+
+    def test_quit_seen_by_the_outer_loop_stops_the_backend(self):
+        app = self._app()
+        app.quit()
+        app.run(self._build)
+        self.assertEqual(self.stopped, [1])
+
+    def test_quit_seen_by_the_coalescing_drain_stops_the_backend(self):
+        """Queue an event first so the drain runs, then a __quit behind it —
+        that is the path that used to `return` without stopping."""
+        app = self._app()
+        app._queue.put(("wake", None))
+        app._queue.put(("wake", None))
+        app._queue.put(("__quit", None))
+        app.run(self._build)
+        self.assertEqual(self.stopped, [1],
+                         "the backend was never stopped on this exit path")
