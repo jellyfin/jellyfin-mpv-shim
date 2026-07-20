@@ -890,19 +890,44 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     ass:draw_stop()
 end
 
+-- Longest popup that fits on screen, in items. A year filter or a big
+-- track picker has more entries than the window is tall; without this the
+-- overflow simply drew past the bottom edge, unreachable.
+local function popup_max_items(ih)
+    return math.max(1, math.floor((state.h - 16) / ih))
+end
+
 local function popup_geometry(node)
     local ex, ey = eff(node)
     -- icon triggers size the popup to the items (pw), not the control
     local w = node.pw or node.w
     local ih = node.pw and math.floor(node.size * 1.9) or node.h
-    local n = #node.items
+    local count = #node.items
+    local n = math.min(count, popup_max_items(ih))
+    local off = math.max(0, math.min(state.dd_scroll or 0, count - n))
     local total = n * ih
     local px = math.max(0, math.min(ex, state.w - w - 4))
     local py = ey + node.h + 4
     if py + total > state.h and ey - 4 - total >= 0 then
         py = ey - 4 - total
     end
-    return { x = px, y = py, w = w, ih = ih, n = n }
+    -- a clamped popup may still not fit below/above: keep it on screen
+    py = math.max(8, math.min(py, state.h - total - 8))
+    return { x = px, y = py, w = w, ih = ih, n = n,
+             count = count, off = off }
+end
+
+-- Scrollbar thumb of a clipped popup, or nil when the whole list fits.
+-- One definition for drawing and hit-testing, so the grab rect can't
+-- drift from what is on screen.
+function popup_thumb(g)
+    local count = g.count or g.n
+    if not g or count <= g.n then return nil end
+    local track_y, track_h = g.y + 4, g.n * g.ih - 8
+    local th = math.max(18, track_h * g.n / count)
+    local ty = track_y + (track_h - th) * ((g.off or 0) / (count - g.n))
+    return { x = g.x + g.w - 8, y = ty, w = 5, h = th,
+             track_y = track_y, track_h = track_h }
 end
 
 -- Generic floating list (dropdown popups, context menus). sel may be
@@ -914,8 +939,13 @@ local function draw_list(ass, g, items, sel, size, icons)
     })
     local isz = math.floor(size * 1.1)
     local indent = icons and (isz + 10) or 0
-    for i, item in ipairs(items) do
-        local iy = g.y + (i - 1) * g.ih
+    local off = g.off or 0
+    local count = g.count or #items
+    for vis = 1, g.n do
+        local i = vis + off
+        local item = items[i]
+        if item == nil then break end
+        local iy = g.y + (vis - 1) * g.ih
         local hovered = state.mouse.x >= g.x and
             state.mouse.x <= g.x + g.w and
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
@@ -932,6 +962,15 @@ local function draw_list(ass, g, items, sel, size, icons)
                         align = 'left' }
         draw_text(ass, tnode, g.x + 10 + indent, iy, nil,
             ellipsize(item, size, false, tnode.w), 'eeeeee')
+    end
+    if count > g.n then
+        -- a thumb, so a clipped list doesn't look like the whole list
+        local t = popup_thumb(g)
+        if t then
+            draw_rect(ass, t.x, t.y, t.w, t.h,
+                      { fill = state.dd_bar_drag and 'bbbbbb' or '888888',
+                        radius = 3 })
+        end
     end
 end
 
@@ -1588,7 +1627,34 @@ local function popup_item_at(x, y)
     if x < g.x or x >= g.x + g.w or y < g.y or y >= g.y + g.n * g.ih then
         return nil
     end
-    return math.floor((y - g.y) / g.ih)
+    -- + off: the popup shows a window into the item list, not all of it
+    return math.floor((y - g.y) / g.ih) + (g.off or 0)
+end
+
+-- Put the thumb's centre at pointer ``y``: turns a track click or a drag
+-- into a scroll offset.
+function popup_scroll_to_y(y, t, g)
+    local count = g.count or g.n
+    local span = t.track_h - t.h
+    if span <= 0 then return end
+    local frac = ((y - t.h / 2) - t.track_y) / span
+    frac = math.max(0, math.min(1, frac))
+    state.dd_scroll = math.floor(frac * (count - g.n) + 0.5)
+    request_render()
+end
+
+-- Scroll an open popup, keeping ``keep`` (an item index) visible when
+-- given — keyboard navigation must not walk off the drawn window.
+function popup_scroll(delta, keep)
+    local g = state.dd_geo
+    if not g or g.count <= g.n then return end
+    local off = (state.dd_scroll or 0) + (delta or 0)
+    if keep ~= nil then
+        off = math.min(off, keep)
+        off = math.max(off, keep - g.n + 1)
+    end
+    state.dd_scroll = math.max(0, math.min(off, g.count - g.n))
+    request_render()
 end
 
 -- ---------------------------------------------------------- text editing
@@ -1958,6 +2024,14 @@ local function on_mouse_move(x, y)
         end
         return
     end
+    if state.dd_bar_drag then
+        local g = state.dd_geo
+        local t = g and popup_thumb(g)
+        if t then
+            popup_scroll_to_y(y - state.dd_bar_drag.grab + t.h / 2, t, g)
+        end
+        return
+    end
     if state.drag then
         local node = state.byid[state.drag.sc]
         local b = state.bars[state.drag.sc]
@@ -1972,6 +2046,12 @@ local function on_mouse_move(x, y)
         return
     end
     local node = node_at(x, y)
+    -- A popup floats above the page and eats the click, so the page must
+    -- not light up under it either — tiles were hover-ringing through an
+    -- open dropdown, which read as though they were still clickable.
+    if state.dd_open or active_menu() or state.tb_menu then
+        node = nil
+    end
     update_slider_hover(node)
     local id = node and node.id or nil
     if id ~= state.hover_id then
@@ -2085,6 +2165,20 @@ local function on_mouse_down()
     end
     -- open popup eats the click first
     if state.dd_open then
+        -- the scrollbar takes precedence over the row under it
+        local g = state.dd_geo
+        local t = g and popup_thumb(g)
+        if t and x >= t.x - 4 and x <= t.x + t.w + 4
+            and y >= g.y and y < g.y + g.n * g.ih then
+            if y < t.y or y >= t.y + t.h then
+                -- clicking the track jumps the thumb to the pointer
+                popup_scroll_to_y(y, t, g)
+                t = popup_thumb(g)
+            end
+            state.dd_bar_drag = { grab = y - t.y }
+            request_render()
+            return
+        end
         local idx = popup_item_at(x, y)
         local node = state.byid[state.dd_open]
         state.dd_open = nil
@@ -2164,6 +2258,9 @@ local function on_mouse_down()
     end
     if node.t == 'dropdown' then
         state.dd_open = node.id
+        -- start the window on the current selection: opening a 50-year
+        -- picker at the top hides whatever is already chosen
+        state.dd_scroll = dd_state(node).sel or 0
         request_render()
         return
     end
@@ -2178,6 +2275,11 @@ local function on_mouse_down()
 end
 
 local function on_mouse_up()
+    if state.dd_bar_drag then
+        state.dd_bar_drag = nil
+        request_render()
+        return       -- releasing the thumb must not select a row
+    end
     if state.tb_drag then
         state.tb_drag = nil  -- selection (if any) stays
         return
@@ -2220,6 +2322,12 @@ local function on_wheel(dir, axis, e)
     local scale = (e and e.scale) or 1
     if scale <= 0 then scale = 1 end
     if state.hud then request_render() end
+    -- An open popup takes the wheel: it floats over the page, so scrolling
+    -- the page under it is never what was meant.
+    if state.dd_open and axis == 'y' then
+        popup_scroll(dir > 0 and 3 or -3)
+        return
+    end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
     local locked = false
     if node then
@@ -2573,6 +2681,8 @@ local function nav_move(dx, dy)
             local cur = state.nav_pidx
             if cur == nil and node then cur = dd_state(node).sel end
             state.nav_pidx = clamp((cur or 0) + dy, 0, n - 1)
+            -- follow the highlight: it must not walk off the drawn window
+            popup_scroll(0, state.nav_pidx)
             request_render()
         end
         return
@@ -2708,6 +2818,7 @@ local function nav_activate()
     elseif node.t == 'dropdown' then
         state.dd_open = node.id
         state.nav_pidx = dd_state(node).sel
+        state.dd_scroll = dd_state(node).sel or 0
         request_render()
     elseif node.t == 'slider' then
         if state.nav_adjust then
@@ -3451,13 +3562,19 @@ mp.register_script_message('mpvtk-debug', function(json)
             if v then nav_move(v[1], v[2]) end
         end
     elseif cmd.cmd == 'down' or cmd.cmd == 'up' then
-        -- separate press/release (hold-repeat tests)
-        local x, y = center_of(cmd.id)
+        -- separate press/release (hold-repeat tests). Raw x/y instead of
+        -- an id, for things with no node of their own (a scrollbar thumb).
+        local x, y = cmd.x, cmd.y
+        if x == nil then x, y = center_of(cmd.id) end
         if x then
             on_mouse_move(x, y)
             if cmd.cmd == 'down' then on_mouse_down()
             else on_mouse_up() end
         end
+    elseif cmd.cmd == 'moveto' then
+        local x, y = cmd.x, cmd.y
+        if x == nil and cmd.id then x, y = center_of(cmd.id) end
+        if x then on_mouse_move(x, y) end
     elseif cmd.cmd == 'hud' then
         state.hud = not state.hud
         request_render()
@@ -3538,11 +3655,16 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_up()
         end
     elseif cmd.cmd == 'popup' then
-        -- click item #index (0-based) of the open dropdown popup
+        -- click item #index (0-based) of the open dropdown popup. The
+        -- popup shows a window into the list, so scroll the target into
+        -- view first and click its VISIBLE row.
+        local idx = cmd.index or 0
+        popup_scroll(0, idx)
+        render()
         local g = state.dd_geo
         if g then
             local x = g.x + g.w / 2
-            local y = g.y + ((cmd.index or 0) + 0.5) * g.ih
+            local y = g.y + (idx - (g.off or 0) + 0.5) * g.ih
             on_mouse_move(x, y)
             on_mouse_down()
             on_mouse_up()
@@ -3576,6 +3698,12 @@ mp.register_script_message('mpvtk-debug', function(json)
             tip = state.tip_geo and state.tip_geo.text or nil,
             nav = state.nav,
             nav_pidx = state.nav_pidx,
+            dd_geo = state.dd_geo and {
+                x = state.dd_geo.x, w = state.dd_geo.w,
+                y = state.dd_geo.y, ih = state.dd_geo.ih,
+                n = state.dd_geo.n, count = state.dd_geo.count,
+                off = state.dd_geo.off,
+            } or nil,
             tb = state.tb,
             active = state.active,
             phud_mode = state.phud.mode,

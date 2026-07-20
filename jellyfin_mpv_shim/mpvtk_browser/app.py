@@ -468,7 +468,14 @@ class MpvtkBrowser:
                     similar = self.source.get_similar(srv, iid)
                 except Exception:
                     pass
-                return {"item": item, "similar": similar}
+                trailers = []
+                if (item or {}).get("Type") in ("Movie", "Series"):
+                    try:
+                        trailers = self.source.get_trailers(srv, iid) or []
+                    except Exception:
+                        pass  # older servers / no trailers: just no button
+                return {"item": item, "similar": similar,
+                        "trailers": trailers}
             self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "series":
             srv = route.get("server") or self.server
@@ -610,6 +617,8 @@ class MpvtkBrowser:
     # -------------------------------------------------------- tile helpers
 
     def _subtitle(self, item):
+        if item.get("_subtitle") is not None:
+            return item["_subtitle"]      # pseudo-items (chapters)
         if item.get("Type") == "Episode":
             s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
             if s is not None and e is not None:
@@ -667,6 +676,15 @@ class MpvtkBrowser:
     def _poster_for(self, item, geom, image_type="Primary"):
         """Return (PIL image or None, cache tag). Requests the poster once
         if absent; the strip recomposites when it arrives (tag changes)."""
+        w, h = geom.tile_w, geom.tile_h
+        if "_image_url" in item:
+            # A pseudo-item (a chapter) carrying its own spec+url: chapter
+            # art is indexed, so it isn't addressable through image_spec.
+            spec, url = item.get("_image_spec"), item.get("_image_url")
+            if not spec or not url:
+                return None, ""
+            key = make_key(spec[0], spec[1], spec[2], w, h)
+            return self._request_image(key, url, (w, h)), key
         spec = self.source.image_spec(item, image_type, geom.tile_w)
         if not spec or self.server is None:
             return None, ""
@@ -1063,7 +1081,7 @@ class MpvtkBrowser:
     RING_PAD = 5
 
     def _tile_row(self, title, items, row_id, geom=None, image_type="Primary",
-                  bleed=False):
+                  bleed=False, on_click=None):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so the page arrows sit flush
@@ -1079,7 +1097,8 @@ class MpvtkBrowser:
             [
                 heading,
                 self._hscroll_row(
-                    self._image_map(items, row_id, geom, image_type),
+                    self._image_map(items, row_id, geom, image_type,
+                                    on_click=on_click),
                     row_id, geom.strip_h + 2 * self.RING_PAD,
                     len(items), geom, bleed),
             ],
@@ -2208,7 +2227,16 @@ class MpvtkBrowser:
                     Dropdown(node_id, names, selected=selected, w=300,
                              on_select=on_select)], gap=8, align="center")
 
-    def _play_buttons(self, route, item, server):
+    @staticmethod
+    def _fmt_ticks(ticks):
+        """h:mm:ss / m:ss — a bare minutes:seconds rendered a 1h20m resume
+        offset as "80:00"."""
+        secs = int((ticks or 0) // 10000000)
+        h, m, sec = secs // 3600, (secs % 3600) // 60, secs % 60
+        return ("%d:%02d:%02d" % (h, m, sec) if h
+                else "%d:%02d" % (m, sec))
+
+    def _play_buttons(self, route, item, server, trailers=None):
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
         srcid = (route.get("_srcid")
@@ -2216,10 +2244,8 @@ class MpvtkBrowser:
         aid, sid = self._effective_tracks(route, item)
         buttons = []
         if pos > 0:
-            secs = pos // 10000000
             buttons.append(self._action_btn(
-                "play_arrow", _("Resume") + "  %d:%02d" % (secs // 60,
-                                                           secs % 60),
+                "play_arrow", _("Resume") + "  " + self._fmt_ticks(pos),
                 "btn-resume",
                 lambda: self._play(item, server, offset_ticks=pos,
                                    srcid=srcid, aid=aid, sid=sid),
@@ -2228,7 +2254,46 @@ class MpvtkBrowser:
             "play_arrow", _("Play"), "btn-play",
             lambda: self._play(item, server, srcid=srcid, aid=aid, sid=sid),
             primary=(pos <= 0), size=18))
+        tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
+        if tids:
+            buttons.append(self._action_btn(
+                "movie", _("Trailer"), "btn-trailer",
+                lambda: self._play_list(tids, server, 0), size=18))
         return Row(buttons, gap=10)
+
+    def _scenes_row(self, item, server):
+        """The chapter carousel ("Scenes"), each tile seeking to its start.
+
+        Chapter art is indexed rather than tagged, so the tiles carry a
+        ready-made image spec+url (see _poster_for) — image_spec can't
+        address it."""
+        chapters = item.get("Chapters") or []
+        if len(chapters) < 2:
+            return None          # a single chapter is just the start
+        iid = item.get("Id")
+        tiles = []
+        for i, ch in enumerate(chapters):
+            url = None
+            try:
+                url = self.source.chapter_image_url(server, iid, i, ch,
+                                                    width=self.geom_wide.tile_w)
+            except Exception:
+                log.debug("chapter art failed", exc_info=True)
+            start = ch.get("StartPositionTicks") or 0
+            tiles.append({
+                "Id": "%s#ch%d" % (iid, i),
+                "Name": ch.get("Name") or _("Chapter %d") % (i + 1),
+                "Type": "Chapter",
+                "_start_ticks": start,
+                "_subtitle": self._fmt_ticks(start),
+                "_image_spec": ((iid, "Chapter%d" % i,
+                                 ch.get("ImageTag") or "none") if url else None),
+                "_image_url": url,
+            })
+        return self._tile_row(
+            _("Scenes"), tiles, "detail-scenes", geom=self.geom_wide,
+            on_click=lambda t: self._play(
+                item, server, offset_ticks=t.get("_start_ticks") or 0))
 
     def _action_btn(self, icon, text, node_id, cb, on=False, primary=False,
                     size=16):
@@ -2390,7 +2455,8 @@ class MpvtkBrowser:
         info = self._media_info_line(item, route)
         if info:
             blocks.append(Text(info, size=15, color=theme.SUBTLE_FG))
-        blocks.append(self._play_buttons(route, item, server))
+        blocks.append(self._play_buttons(route, item, server,
+                                         trailers=data.get("trailers")))
         blocks.append(self._detail_actions(item, server))
         blocks.extend(self._track_pickers(route, item))
         if item.get("Overview"):

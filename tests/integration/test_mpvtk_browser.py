@@ -140,3 +140,123 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@h.require_real_mpv
+class TestLongDropdownScroll(unittest.TestCase):
+    """A picker with more entries than the window is tall (a year filter on
+    a big library) drew its overflow past the bottom edge, unreachable.
+    The popup now shows a scrollable window into the list."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import (Button, Column,
+                                                     Dropdown, Spacer)
+
+        self.handle, ext = _spawn_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        self.picked = []
+        # 80 entries at ~34px each is far taller than a 720px window
+        self.items = ["Item %d" % i for i in range(80)]
+        self.dd = Dropdown("long-dd", self.items, selected=0, w=220,
+                           on_select=lambda i, v: self.picked.append((i, v)))
+        # something hoverable low on the page, under where the popup opens
+        self.under = Button("Under", id="under-btn", on_click=lambda: None)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(
+                lambda size: Column([self.dd, Spacer(h=300), self.under])),
+            daemon=True)
+        self._thread.start()
+
+    def tearDown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _open(self):
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.5)
+        self.app.debug(cmd="click", id="long-dd")
+        time.sleep(0.5)
+
+    def test_the_popup_is_clamped_to_the_window(self):
+        """The drawn popup must fit on screen. Unclamped, 80 entries drew
+        ~2700px of list into a 720px window — everything past the fold was
+        painted off the bottom edge and could never be seen or hovered."""
+        self._open()
+        st = self.app.debug_state()
+        self.assertTrue(st, "no debug state")
+        self.assertTrue(st.get("dd_open"), "popup did not open")
+        g = st.get("dd_geo")
+        self.assertTrue(g, "no popup geometry reported")
+        self.assertEqual(g["count"], len(self.items))
+        self.assertLess(g["n"], g["count"],
+                        "popup was not clipped at all")
+        bottom = g["y"] + g["n"] * g["ih"]
+        self.assertLessEqual(bottom, st["h"],
+                             "popup draws past the bottom of the window")
+
+    def test_an_item_past_the_fold_can_be_selected(self):
+        """Item 60 is well below the window; selecting it is the whole
+        point of the scroll window."""
+        self._open()
+        self.app.debug(cmd="popup", index=60)
+        deadline = time.time() + 4
+        while time.time() < deadline and not self.picked:
+            time.sleep(0.2)
+        self.assertEqual(self.picked, [(60, "Item 60")],
+                         "could not reach an item past the fold")
+
+    def test_a_visible_item_still_selects(self):
+        self._open()
+        self.app.debug(cmd="popup", index=1)
+        deadline = time.time() + 4
+        while time.time() < deadline and not self.picked:
+            time.sleep(0.2)
+        self.assertEqual(self.picked, [(1, "Item 1")])
+
+    def _geo(self):
+        st = self.app.debug_state()
+        self.assertTrue(st and st.get("dd_geo"), "no popup geometry")
+        return st, st["dd_geo"]
+
+    def test_the_scrollbar_thumb_can_be_dragged(self):
+        self._open()
+        st, g = self._geo()
+        self.assertEqual(g["off"], 0, "expected to start at the top")
+        # thumb geometry mirrors popup_thumb(): right edge, proportional
+        track_y, track_h = g["y"] + 4, g["n"] * g["ih"] - 8
+        th = max(18, track_h * g["n"] / g["count"])
+        x = g["x"] + g["w"] - 6      # popup_thumb(): x + w - 8, width 5
+        # grab the thumb and drag it to the bottom of the track
+        self.app.debug(cmd="down", x=x, y=track_y + th / 2)
+        self.app.debug(cmd="moveto", x=x, y=track_y + track_h)
+        time.sleep(0.4)
+        _st2, g2 = self._geo()
+        self.app.debug(cmd="up", x=x, y=track_y + track_h)
+        self.assertGreater(g2["off"], 0, "dragging the thumb did not scroll")
+        self.assertEqual(self.picked, [],
+                         "releasing the thumb selected a row")
+
+    def test_hover_is_blocked_under_an_open_popup(self):
+        """A popup floats over the page and eats the click, so the page
+        must not light up under it either."""
+        # the button hovers normally with no popup open
+        self.assertTrue(self.app.ready.wait(15))
+        time.sleep(0.5)
+        self.app.debug(cmd="moveto", id="under-btn")
+        time.sleep(0.3)
+        self.assertEqual(self.app.debug_state().get("hover"), "under-btn",
+                         "fixture is wrong: the button never hovers")
+        # ...and stops once a popup is over the page
+        self.app.debug(cmd="click", id="long-dd")
+        time.sleep(0.4)
+        self.app.debug(cmd="moveto", id="under-btn")
+        time.sleep(0.3)
+        self.assertIsNone(self.app.debug_state().get("hover"),
+                          "page hovered through an open popup")

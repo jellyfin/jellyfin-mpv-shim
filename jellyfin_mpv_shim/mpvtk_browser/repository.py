@@ -472,8 +472,17 @@ class LibrarySource:
         if hasattr(api, "get_filters"):
             try:
                 result = api.get_filters(parent_id) or {}
+                # Newest first, deduped, ints — the server returns them in
+                # its own order, and the offline source compares against
+                # ProductionYear directly.
+                years = set()
+                for y in result.get("Years") or []:
+                    try:
+                        years.add(int(y))
+                    except (TypeError, ValueError):
+                        continue
                 return {"genres": result.get("Genres") or [],
-                        "years": result.get("Years") or []}
+                        "years": sorted(years, reverse=True)}
             except Exception:
                 log.warning("Items/Filters failed; falling back to genres",
                             exc_info=True)
