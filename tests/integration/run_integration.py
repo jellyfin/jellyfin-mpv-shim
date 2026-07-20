@@ -75,6 +75,10 @@ PER_BACKEND_REAL = [
     # focus/keystroke path — the half a unit test calling _do_unlock()
     # cannot cover. Replaces the Tk browser's 12 equivalents.
     "tests.integration.test_mpvtk_auth",
+    # No mocks below the network: real testsrc media, a real catalog on
+    # disk, the real offline source, real keys, and the database checked
+    # afterwards.
+    "tests.integration.test_e2e_offline",
 ]
 
 # Backend-agnostic, run once. The harness's own contract: the fake mpv
