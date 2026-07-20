@@ -354,7 +354,18 @@ class MpvtkApp:
         if self.size is None or self._build is None:
             return
         t0 = time.perf_counter()
-        tree = self._build(self.size)
+        try:
+            tree = self._build(self.size)
+        except Exception:
+            # Event handlers are already guarded; builds were not, so one
+            # exception in any view killed the whole UI loop. Views index
+            # into route state populated asynchronously, so this is not
+            # theoretical. Keep the last good scene up rather than going
+            # black, and let the next invalidate retry.
+            log.error("scene build failed; keeping the previous frame",
+                      exc_info=True)
+            self._dirty = False
+            return
         t1 = time.perf_counter()
         nodes, handlers = layout(tree, *self.size)
         if self._extend_metrics(self._scene_texts(nodes)):

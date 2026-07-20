@@ -29,6 +29,7 @@ from ..mpvtk.widgets import (
     Column,
     Dialog,
     Dropdown,
+    Float,
     Grid,
     HScroll,
     Icon,
@@ -76,6 +77,8 @@ SORTS = [
     (_("Date Played"), "DatePlayed", "Descending"),
     (_("Play Count"), "PlayCount", "Descending"),
     (_("Runtime"), "Runtime", "Ascending"),
+    (_("Critic Rating"), "CriticRating", "Descending"),
+    (_("Parental Rating"), "OfficialRating", "Ascending"),
     (_("Random"), "Random", "Ascending"),
 ]
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -173,6 +176,7 @@ class MpvtkBrowser:
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         self._downloaded = set()
         self._downloaded_series = set()
+        self._downloaded_playlists = set()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
         self.strips = strips or StripStore(
@@ -205,6 +209,10 @@ class MpvtkBrowser:
         self._addcol_name = None
         # ids the add-to dialog will post (a container resolves to many)
         self._addto_ids = None
+        self._addto_explicit_ids = None
+        # transient status message + when it was set (see _toast_node)
+        self._status_at = 0.0
+        self._toast_timer = None
         # live text of the download-folder field
         self._sync_path = {}
         self.status = ""
@@ -785,10 +793,15 @@ class MpvtkBrowser:
         return False
 
     def _is_downloaded(self, item):
-        if item.get("Id") in self._downloaded:
+        iid, t = item.get("Id"), item.get("Type")
+        if iid in self._downloaded:
             return True
-        return (item.get("Type") == "Series"
-                and item.get("Id") in self._downloaded_series)
+        if t == "Series":
+            return iid in self._downloaded_series
+        # A playlist's own id is never a downloads row — it lives in the
+        # playlists table, so without this the playlist page could never
+        # offer Remove Download.
+        return t == "Playlist" and iid in self._downloaded_playlists
 
     @staticmethod
     def _glyph(item):
@@ -1007,7 +1020,7 @@ class MpvtkBrowser:
         if t in self.MENU_FAVORITE:
             out.append((_("Remove from Favorites") if fav
                         else _("Add to Favorites"), "favorite", "favorite"))
-        if t in self.MENU_ADD_TO and not self._offline:
+        if t in self.MENU_ADD_TO and not self._offline and self._edit_apis():
             out.append((_("Add to Playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
             out.append((_("Download"), "file_download", "download"))
@@ -1025,11 +1038,18 @@ class MpvtkBrowser:
         return out
 
     def _edit_apis(self):
+        """Whether the apiclient can edit playlists/collections.
+
+        Fails OPEN: only a probe that positively answers False hides the
+        affordances. An inconclusive probe (a controller without the
+        method) hiding every edit control is a worse failure than showing
+        one that errors — and the API call is the real check anyway."""
         if self._edit_apis_ok is None:
             try:
-                self._edit_apis_ok = bool(self.controller.edit_apis())
+                answer = self.controller.edit_apis()
             except Exception:
-                self._edit_apis_ok = False
+                answer = None
+            self._edit_apis_ok = answer is not False
         return self._edit_apis_ok
 
     def _tile_menu_node(self):
@@ -1113,7 +1133,7 @@ class MpvtkBrowser:
             self._load_route(route)
 
         def failed(_exc):
-            self.status = _("The change could not be applied.")
+            self.set_status(_("The change could not be applied."))
         self.run_async(work, done, ep, on_error=failed)
 
     def _do_remove_from_playlist(self, server, playlist_id, entry_id):
@@ -1126,7 +1146,10 @@ class MpvtkBrowser:
         def done(items):
             self.route["_data"] = items
             self.invalidate()
-        self.run_async(work, done, ep)
+
+        def failed(_exc):
+            self.set_status(_("The change could not be applied."))
+        self.run_async(work, done, ep, on_error=failed)
 
     def _menu_queue(self, item, server):
         """Append to the playing queue. A music container is resolved to its
@@ -1222,8 +1245,7 @@ class MpvtkBrowser:
         def failed(_exc):
             if on_error is not None:
                 on_error()
-            self.status = msg
-            self.invalidate()
+            self.set_status(msg)
         self.run_async(work, done, ep, on_error=failed)
 
     def _client_call(self, fn):
@@ -1366,7 +1388,7 @@ class MpvtkBrowser:
                                parent_type=t,
                                collection_type=item.get("CollectionType")))
         else:
-            self.status = _("Selected: %s") % item.get("Name", "")
+            self.set_status(_("Selected: %s") % item.get("Name", ""))
             self.invalidate()
 
     def _set_renderer_active(self, active):
@@ -1773,6 +1795,14 @@ class MpvtkBrowser:
         self._refresh_downloaded()
         self.invalidate()
 
+    def on_downloads_changed(self):
+        """Sync-manager push: the catalog changed. Runs on the download
+        worker's thread, so it only schedules the refresh."""
+        try:
+            self._refresh_downloaded()
+        except Exception:
+            log.debug("download refresh failed", exc_info=True)
+
     def _refresh_downloaded(self):
         """Refresh the downloaded-id sets for tile badges (from the sync db)."""
         if self.controller is None:
@@ -1780,10 +1810,11 @@ class MpvtkBrowser:
 
         def work():
             try:
-                items, series = self.controller.downloaded_ids()
+                items, series, playlists = self.controller.downloaded_ids()
             except Exception:
                 return
-            self._downloaded, self._downloaded_series = items, series
+            (self._downloaded, self._downloaded_series,
+             self._downloaded_playlists) = items, series, playlists
             self.invalidate()
         self._pool.submit(work)
 
@@ -1831,7 +1862,58 @@ class MpvtkBrowser:
                 children.append(menu)
         if self._dialog is not None:
             children.append(self._dialog())
+        toast = self._toast_node(w, h)
+        if toast is not None:
+            children.append(toast)
         return Column(children, w=w, h=h, align="stretch")
+
+    # How long a status message stays on screen.
+    TOAST_SECS = 6.0
+
+    def _toast_node(self, w, h):
+        """Status messages as a floating toast, on every screen.
+
+        ``status`` used to be rendered in exactly one place — the Settings
+        tab — while being written from fourteen, including _edit_call's
+        "the change could not be applied". So a rejected Add to Playlist
+        from the home screen wrote its error to a field that never reached
+        a pixel, which is the very thing _edit_call exists to prevent."""
+        if not self.status:
+            return None
+        left = self.TOAST_SECS - (time.time() - (self._status_at or 0))
+        if left <= 0:
+            self.status = ""
+            return None
+        self._arm_toast_clear(left)
+        tw = min(max(320, len(self.status) * 9), max(360, w - 80))
+        return Float(
+            Box([Text(self.status, size=16, wrap=True, w=tw - 32)],
+                pad=16, bg=theme.CARD_BG, radius=10, border=theme.BORDER,
+                align="stretch"),
+            x=(w - tw) / 2, y=max(20, h - 140), w=tw)
+
+    def _arm_toast_clear(self, delay):
+        """Repaint once the toast has expired — nothing else would."""
+        if self._toast_timer is not None:
+            return
+
+        def clear():
+            try:
+                self._np_stop.wait(delay)
+            finally:
+                self._toast_timer = None
+            self.invalidate()
+
+        self._toast_timer = threading.Thread(target=clear, daemon=True,
+                                             name="mpvtk-toast")
+        self._toast_timer.start()
+
+    def set_status(self, text):
+        """Show a transient message. Use this rather than assigning to
+        ``status``, so the toast's timer starts."""
+        self.status = text or ""
+        self._status_at = time.time()
+        self.invalidate()
 
     # Minimum room the page title keeps in the top bar before the
     # buttons drop their labels (~a "Continue Watching" at 22px bold).
@@ -2282,7 +2364,7 @@ class MpvtkBrowser:
             # _loading is set before dispatch: leaving it set on a failed
             # page stopped this grid from ever paging again.
             route["_loading"] = False
-            self.status = _("Could not load more items.")
+            self.set_status(_("Could not load more items."))
 
         self.run_async(work, done, ep, on_error=failed)
 
@@ -2599,7 +2681,10 @@ class MpvtkBrowser:
 
         def done(_ok):
             self._refresh_downloaded()
-        self.run_async(work, done, ep)
+
+        def failed(_exc):
+            self.set_status(_("The download could not be removed."))
+        self.run_async(work, done, ep, on_error=failed)
 
     def _detail_actions(self, item, server):
         btns = self._common_actions(item, server, "act")
@@ -3360,7 +3445,10 @@ class MpvtkBrowser:
                              lambda: self.navigate({
                                  "kind": "playlist_edit", "server": server,
                                  "item_id": pid,
-                                 "title": route.get("title", "")})),
+                                 "title": route.get("title", "")}))
+            # Offline (or on an apiclient that can't edit) every control on
+            # that page fails; don't offer the door.
+            if not self._offline and self._edit_apis() else None,
         ], align="center", gap=10)
         if not items:
             body = [Text(
@@ -3493,8 +3581,8 @@ class MpvtkBrowser:
 
     def _set_setting(self, key, value):
         ok = self._config().set_setting(key, value)
-        self.status = ((_("Saved: %s") if ok else _("Invalid value: %s"))
-                       % key)
+        self.set_status((_("Saved: %s") if ok else _("Invalid value: %s"))
+                        % key)
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         self.invalidate()
@@ -3515,9 +3603,9 @@ class MpvtkBrowser:
 
         def done(source):
             if source is None:
-                self.status = (_("Nothing downloaded to browse offline.")
-                               if offline else
-                               _("Could not reach a server."))
+                self.set_status(_("Nothing downloaded to browse offline.")
+                                if offline else
+                                _("Could not reach a server."))
                 return
             self.set_source(source)
         self.run_async(work, done, ep)
@@ -3541,10 +3629,6 @@ class MpvtkBrowser:
             "logs": self._settings_logs,
         }.get(tab, self._settings_general)(route, size)
         head = [Row([tabs], pad=12)]
-        if self.status:
-            head.append(Row([Spacer(w=self.CONTENT_PAD),
-                             Text(self.status, size=15,
-                                  color=theme.SUBTLE_FG)]))
         return Column(head + [body], flex=1, align="stretch")
 
     def _set_settings_tab(self, route, tab):
@@ -3648,30 +3732,30 @@ class MpvtkBrowser:
         """Relocating the download store copies files (possibly across drives),
         so it runs on the pool and reports progress into the status line."""
         if path is None:
-            self.status = _("Press Enter in the folder field to move.")
+            self.set_status(
+                _("Press Enter in the folder field to move."))
             self.invalidate()
             return
         cfg = self._config()
         if not hasattr(cfg, "relocate_downloads"):
             self._set_setting("sync_path", path)
             return
-        self.status = _("Moving downloads…")
+        self.set_status(_("Moving downloads…"))
         self.invalidate()
 
         def work():
             def progress(copied, total):
                 pct = 100 if not total else min(100, int(copied * 100 / total))
-                self.status = _("Moving downloads… %d%%") % pct
+                self.set_status(_("Moving downloads… %d%%") % pct)
                 self.invalidate()
             try:
                 ok, message = cfg.relocate_downloads(path, progress=progress)
             except Exception:
                 log.error("download folder move failed", exc_info=True)
                 ok, message = False, _("Moving the downloads failed.")
-            self.status = (message or (
+            self.set_status(message or (
                 _("Download folder moved. Restart to finish switching.")
                 if ok else _("Moving the downloads failed.")))
-            self.invalidate()
         self._pool.submit(work)
 
     # -- Servers & Users --------------------------------------------------
@@ -3886,13 +3970,18 @@ class MpvtkBrowser:
             if self.controller is None:
                 return self._close_dialog()
             if u.get("locked"):
+                # Fail CLOSED: an exception here used to fall through and
+                # apply the new PIN (or Remove PIN) without the current one
+                # ever being confirmed.
                 try:
-                    if not self.controller.unlock_user(u.get("id"),
-                                                       state["cur"]):
-                        state["error"] = _("Current PIN is incorrect.")
-                        return self._show_dialog(build)
+                    ok = self.controller.unlock_user(u.get("id"),
+                                                     state["cur"])
                 except Exception:
                     log.debug("pin verify failed", exc_info=True)
+                    ok = False
+                if not ok:
+                    state["error"] = _("Current PIN is incorrect.")
+                    return self._show_dialog(build)
             if not remove and not state["new"]:
                 # Empty new+confirm compared equal and fell through to
                 # set_pin(None), i.e. Save on a "Set PIN" dialog quietly
@@ -4621,7 +4710,7 @@ class MpvtkBrowser:
 
         def failed(_exc):
             # Don't leave the optimistic order lying: re-read the truth.
-            self.status = _("The playlist could not be reordered.")
+            self.set_status(_("The playlist could not be reordered."))
             route.pop("_items", None)
             self._load_route(route)
         self.run_async(work, done, ep, on_error=failed)
@@ -4662,7 +4751,7 @@ class MpvtkBrowser:
             self.after_playlist_deleted(pid)
 
         def failed(_exc):
-            self.status = _("The playlist could not be deleted.")
+            self.set_status(_("The playlist could not be deleted."))
         self.run_async(work, done, ep, on_error=failed)
 
     def _pe_rename(self, route):
@@ -4706,6 +4795,9 @@ class MpvtkBrowser:
         # A music container is not itself a playlist entry — Tk resolves
         # album/artist/genre to their track ids before offering the dialog.
         self._addto_ids = None
+        # ids the caller supplied outright (the play queue), as opposed to
+        # ones resolved from a container
+        self._addto_explicit_ids = item.get("_ids")
         parent = self.route.get("parent_id")
 
         def work():
@@ -4853,7 +4945,12 @@ class MpvtkBrowser:
 
     def _collection_ids(self, item_id):
         """A collection holds the album, not its 300 tracks — only a
-        playlist wants the resolved ids (Tk resolves for playlists only)."""
+        playlist wants the resolved ids (Tk resolves for playlists only).
+
+        The queue is the exception: it is a set of items with no container
+        of its own, so it carries an explicit id list."""
+        if self._addto_explicit_ids:
+            return list(self._addto_explicit_ids)
         return [item_id] if item_id else []
 
     def _add_to_col(self, server, collection_id, item_id):

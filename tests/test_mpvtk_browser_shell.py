@@ -5,6 +5,7 @@ tree is turned into a scene with the real layout engine and asserted on.
 """
 
 import threading
+import time
 import unittest
 
 from jellyfin_mpv_shim.mpvtk.layout import layout
@@ -382,6 +383,9 @@ class FakeController:
 
     def unlock(self, pin):
         return pin == "1234"
+
+    def edit_apis(self):
+        return True
 
     def connect_and_rebuild(self):
         return FakeSource()
@@ -5073,3 +5077,162 @@ class TestGenreResolutionIsNotRacy(unittest.TestCase):
         body = src.split('"""')[2] if src.count('"""') >= 2 else src
         self.assertNotIn("self.route", body,
                          "still reads live route state off the loop thread")
+
+
+class TestStatusReachesTheScreen(unittest.TestCase):
+    """status was rendered in ONE place — the Settings tab — while being
+    written from fourteen, including _edit_call's "the change could not be
+    applied". A rejected Add to Playlist from the home screen wrote its
+    error to a field that never reached a pixel, which is the exact thing
+    _edit_call exists to prevent. Assert it renders, not that it is set."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def _texts(self):
+        nodes, _h = build_scene(self.b)
+        return " ".join(n.get("text", "") for n in nodes if n.get("text"))
+
+    def test_a_message_shows_on_the_home_screen(self):
+        self.b.set_status("Something went wrong")
+        self.assertIn("Something went wrong", self._texts())
+
+    def test_a_message_shows_on_a_grid(self):
+        self.b.nav_stack = [{"kind": "grid", "server": "srv1",
+                             "parent_id": "lib1", "_items": []}]
+        self.b.set_status("Nope")
+        self.assertIn("Nope", self._texts())
+
+    def test_a_rejected_edit_is_visible_where_it_happened(self):
+        """The end-to-end case: an add-to rejected from a non-settings
+        route must say so on that route."""
+        ctl = FakeController()
+
+        def boom(srv, pid, ids):
+            raise RuntimeError("rejected")
+
+        ctl.playlist_add = boom
+        src = FakeSource()
+        src.get_playlists = lambda srv: [{"Id": "p1", "Name": "Mix"}]
+        b = MpvtkBrowser(app=None, source=src, controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(b)
+        h["add-pl-0"]["click"]()
+        nodes, _h = build_scene(b)
+        texts = " ".join(n.get("text", "") for n in nodes if n.get("text"))
+        self.assertIn("could not be applied", texts)
+
+    def test_it_clears_once_it_has_expired(self):
+        self.b.set_status("Transient")
+        self.b._status_at = time.time() - (self.b.TOAST_SECS + 1)
+        self.assertNotIn("Transient", self._texts())
+
+    def test_no_message_no_toast(self):
+        nodes, _h = build_scene(self.b)
+        self.assertFalse([n for n in nodes if n["t"] == "float"])
+
+
+class TestDownloadStateAndPush(unittest.TestCase):
+    """A playlist's id is never a downloads row, and nothing refreshed the
+    badges when a download finished while browsing."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_a_downloaded_playlist_reads_as_downloaded(self):
+        self.b._downloaded_playlists = {"P"}
+        self.assertTrue(self.b._is_downloaded({"Id": "P",
+                                               "Type": "Playlist"}))
+
+    def test_an_undownloaded_playlist_does_not(self):
+        self.assertFalse(self.b._is_downloaded({"Id": "P",
+                                                "Type": "Playlist"}))
+
+    def test_the_push_hook_refreshes_the_badges(self):
+        self.ctl.downloaded_ids = lambda: ({"m1"}, set(), {"P"})
+        self.b.on_downloads_changed()
+        self.assertEqual(self.b._downloaded, {"m1"})
+        self.assertEqual(self.b._downloaded_playlists, {"P"})
+
+    def test_the_controller_reports_playlists(self):
+        import jellyfin_mpv_shim.sync.manager as mgr
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        class FakeDB:
+            def list_playlists(self):
+                return [{"playlist_id": "P"}]
+
+        class FakeSync:
+            db = FakeDB()
+
+            @staticmethod
+            def downloaded_item_ids():
+                return {"m1"}
+
+            @staticmethod
+            def downloaded_series_ids():
+                return {"sh1"}
+
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+        items, series, playlists = _PlayerController().downloaded_ids()
+        self.assertEqual((items, series, playlists),
+                         ({"m1"}, {"sh1"}, {"P"}))
+
+
+class TestPinFailsClosed(unittest.TestCase):
+    """A raising PIN check used to fall through and apply the new PIN
+    without the current one ever being confirmed."""
+
+    def test_a_raising_verify_does_not_apply_the_change(self):
+        saved = []
+        ctl = FakeController()
+        ctl.set_user_pin = lambda uid, pin, require_startup=False: saved.append(
+            pin)
+
+        def boom(uid, pin):
+            raise OSError("user store unreadable")
+
+        ctl.unlock_user = boom
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._open_pin_setup({"id": "u1", "name": "Kid", "locked": True})
+        _n, h = build_scene(b)
+        h["ps-new"]["change"]("9999")
+        h["ps-confirm"]["change"]("9999")
+        h["ps-ok"]["click"]()
+        self.assertEqual(saved, [], "changed the PIN without verifying")
+
+
+class TestRenderErrorBoundary(unittest.TestCase):
+    """One exception in any view used to kill the whole UI loop."""
+
+    def test_a_failing_build_does_not_kill_the_loop(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.size = (1280, 720)
+        app._dirty = True
+
+        def boom(_size):
+            raise RuntimeError("view blew up")
+
+        app._build = boom
+        app._render()          # must not raise
+        self.assertFalse(app._dirty)
+
+
+class TestSortModes(unittest.TestCase):
+    def test_critic_and_parental_rating_are_offered(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import SORTS
+
+        labels = [s[0] for s in SORTS]
+        self.assertIn("Critic Rating", labels)
+        self.assertIn("Parental Rating", labels)

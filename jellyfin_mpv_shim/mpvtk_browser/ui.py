@@ -1018,12 +1018,30 @@ class _PlayerController:
             log.error("could not open config folder %s", path, exc_info=True)
 
     def downloaded_ids(self):
+        """(item ids, series ids, playlist ids). Playlists live in their
+        own table — their id is never in downloads.item_id, so without the
+        third set a downloaded playlist never reads as downloaded."""
         from ..sync.manager import syncManager
         try:
+            db = getattr(syncManager, "db", None)
+            playlists = set()
+            if db is not None:
+                playlists = {p["playlist_id"] for p in db.list_playlists()}
             return (set(syncManager.downloaded_item_ids()),
-                    set(syncManager.downloaded_series_ids()))
+                    set(syncManager.downloaded_series_ids()),
+                    playlists)
         except Exception:
-            return (set(), set())
+            return (set(), set(), set())
+
+    def on_downloads_changed(self, callback):
+        """Subscribe to catalog changes. The browser polled a status blob
+        and never refreshed its badges from it; syncManager has had a push
+        hook all along (the Tk browser used it)."""
+        from ..sync.manager import syncManager
+        try:
+            syncManager.on_change = callback
+        except Exception:
+            log.debug("could not subscribe to sync changes", exc_info=True)
 
 
 class UserInterface:
@@ -1157,6 +1175,13 @@ class UserInterface:
         playerManager.notify_update = browser.notify_update
 
         playerManager.on_window_closed = self.on_window_closed
+        # A server that was down at startup must appear once it answers,
+        # rather than staying invisible until a manual retry or restart.
+        clientManager.on_server_connected = self._on_server_connected
+        # Refresh download badges the moment the catalog changes, rather
+        # than only when Settings -> Downloads is opened. The push hook has
+        # always existed; the browser just never subscribed.
+        _PlayerController().on_downloads_changed(browser.on_downloads_changed)
         # mpv is torn down and rebuilt across idle-quit and crash recovery;
         # the renderer is bound to a specific handle, so follow it.
         playerManager.on_mpv_gone = self.on_mpv_gone
@@ -1263,6 +1288,18 @@ class UserInterface:
             # is expected — only a real window close should stop the app.
             if not self._detaching and self.stop_callback is not None:
                 self.stop_callback()
+
+    def _on_server_connected(self, *_a):
+        """A server came up after startup — rebuild so it appears."""
+        if self._browser is None:
+            return
+        try:
+            source = _PlayerController().rebuild_source()
+        except Exception:
+            log.debug("rebuild after connect failed", exc_info=True)
+            return
+        if source is not None:
+            self._browser.set_source(source, server_uuid=self._browser.server)
 
     def _connect(self):
         from .repository import LibrarySource
