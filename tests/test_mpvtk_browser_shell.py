@@ -3832,3 +3832,34 @@ class TestCollections(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertNotIn("add-col-0", ids(nodes))
         self.assertIn("add-newname", ids(nodes))
+
+
+class TestRightClickCrash(unittest.TestCase):
+    """Right-clicking an item with no applicable menu entries (a cast
+    member) built a None menu node, appended it to the scene tree, and
+    took down the whole browser render loop."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def test_right_clicking_a_person_does_not_crash(self):
+        self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
+        build_scene(self.b)          # would raise before the fix
+
+    def test_no_menu_opens_for_a_person(self):
+        self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
+        self.assertIsNone(self.b._menu, "opened an empty menu")
+
+    def test_a_movie_still_opens_its_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.assertIsNotNone(self.b._menu)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("tilemenu", ids(nodes))
+
+    def test_a_stale_empty_menu_still_renders(self):
+        """Belt and braces: even if _menu is set to something with no
+        entries by another path, the build must survive."""
+        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+                        "server": "srv1", "x": 5, "y": 5}
+        build_scene(self.b)

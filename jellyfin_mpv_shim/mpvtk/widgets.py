@@ -72,7 +72,11 @@ class Box(Element):
         **kw,
     ):
         super().__init__(**kw)
-        self.children = children or []
+        # Drop None children. Trees are built with conditional children
+        # (`x if cond else None`), and one that slipped through crashed the
+        # whole render loop on a right-click. Filtered here rather than in
+        # layout so measure and arrange both see a clean list.
+        self.children = [c for c in (children or []) if c is not None]
         self.direction = direction
         self.pad = pad
         self.gap = gap
@@ -459,7 +463,7 @@ class Stack(Element):
 
     def __init__(self, children=None, **kw):
         super().__init__(**kw)
-        self.children = children or []
+        self.children = [c for c in (children or []) if c is not None]
 
 
 def virtual_window(virtual, row_h, count):

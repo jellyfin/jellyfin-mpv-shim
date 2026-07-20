@@ -281,3 +281,36 @@ class TestVirtualTableWidth(unittest.TestCase):
         self.assertTrue(cells, "no long cell rendered")
         for c in cells:
             self.assertTrue(c.endswith("…"), "cell not ellipsized: %r" % c)
+
+
+class TestNoneChildren(unittest.TestCase):
+    """A conditional child that evaluates to None must not take down the
+    render loop — one did, on a right-click that produced an empty menu."""
+
+    def test_a_none_child_is_dropped(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Row, Text
+
+        for cls in (Column, Row):
+            box = cls([Text("a"), None, Text("b")])
+            self.assertEqual(len(box.children), 2)
+
+    def test_a_tree_with_none_children_lays_out(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Row, Text
+
+        tree = Column([Text("top"), None, Row([None, Text("in")]), None])
+        nodes, _h = layout(tree, 800, 600)
+        texts = sorted(n["text"] for n in nodes if n["t"] == "text")
+        self.assertEqual(texts, ["in", "top"])
+
+    def test_a_stack_drops_none_too(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Stack, Text
+
+        self.assertEqual(len(Stack([Text("a"), None]).children), 1)
+
+    def test_all_none_is_an_empty_box(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+
+        nodes, _h = layout(Column([None, None]), 400, 300)
+        self.assertEqual([n for n in nodes if n["t"] == "text"], [])

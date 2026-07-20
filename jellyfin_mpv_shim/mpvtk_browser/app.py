@@ -929,6 +929,10 @@ class MpvtkBrowser:
     # ------------------------------------------------------ tile context menu
 
     def _open_tile_menu(self, item, x, y):
+        # Nothing on offer for this type (a cast member): no menu at all,
+        # rather than an empty one.
+        if not self._tile_menu_entries(item):
+            return
         self._menu = {"item": item,
                       "server": self.route.get("server") or self.server,
                       "x": x, "y": y}
@@ -1649,7 +1653,9 @@ class MpvtkBrowser:
         if self._now_playing is not None and route["kind"] not in CHROME_FREE:
             children.append(self._now_playing_bar(w))
         if self._menu is not None:
-            children.append(self._tile_menu_node())
+            menu = self._tile_menu_node()
+            if menu is not None:
+                children.append(menu)
         if self._dialog is not None:
             children.append(self._dialog())
         return Column(children, w=w, h=h, align="stretch")
