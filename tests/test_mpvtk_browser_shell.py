@@ -176,6 +176,26 @@ class _SyncPool:
         pass
 
 
+class _DeferredPool:
+    """Holds submitted work until drain(), so a test can move the epoch
+    (navigate) while a call is "in flight" — the window _SyncPool closes by
+    running everything inline."""
+
+    def __init__(self):
+        self.queued = []
+
+    def submit(self, fn, *a, **k):
+        self.queued.append((fn, a, k))
+
+    def drain(self):
+        while self.queued:
+            fn, a, k = self.queued.pop(0)
+            fn(*a, **k)
+
+    def shutdown(self, *a, **k):
+        pass
+
+
 class _NeverPool:
     """Swallows submitted work, so async results never land — for testing
     the "still loading" state of a view."""
@@ -5047,6 +5067,94 @@ class TestOptimisticRollback(unittest.TestCase):
         b.nav_stack = [route]
         b._pe_rename(route)
         self.assertEqual(route["title"], "New")
+
+
+class TestRollbackSurvivesNavigation(unittest.TestCase):
+    """A rollback must land even if the user navigated away while the edit
+    was in flight.
+
+    run_async used to epoch-gate on_error the same way it gates on_done, so
+    walking off the screen dropped the rollback: the route dict kept the
+    change the server had refused, and coming back showed it. The whole
+    TestOptimisticRollback suite above missed this because _SyncPool runs
+    the work inline, which never gives the epoch a chance to move.
+    """
+
+    def _browser(self, **ctl_attrs):
+        ctl = FakeController()
+        for k, v in ctl_attrs.items():
+            setattr(ctl, k, v)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _DeferredPool()
+        return b
+
+    @staticmethod
+    def _boom(*a, **k):
+        raise RuntimeError("server refused")
+
+    @staticmethod
+    def _edit_route():
+        return {"kind": "playlist_edit", "server": "srv1", "item_id": "PL1",
+                "title": "Faves",
+                "_items": [{"Id": "a", "Name": "Alpha", "PlaylistItemId": "e1"},
+                           {"Id": "b", "Name": "Beta", "PlaylistItemId": "e2"}],
+                "_sel": {0}}
+
+    def test_rollback_lands_after_navigating_away(self):
+        b = self._browser(playlist_remove=self._boom)
+        route = self._edit_route()
+        b.nav_stack = [route]
+        b._pe_remove(route)
+        self.assertEqual([i["Id"] for i in route["_items"]], ["b"])
+        # walk away -> the epoch moves -> only *then* does the call fail
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._pool.drain()
+        self.assertEqual([i["Id"] for i in route["_items"]], ["a", "b"],
+                         "rollback was dropped because the epoch moved")
+
+    def test_the_refused_row_is_back_on_screen_when_you_return(self):
+        """The dict assertion above is only worth having next to this one:
+        what matters is that the user does not come back to a playlist
+        showing an entry the server refused to remove."""
+        b = self._browser(playlist_remove=self._boom)
+        route = self._edit_route()
+        b.nav_stack = [route]
+        b._pe_remove(route)
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._pool.drain()
+        b.go_back()
+        nodes, _h = build_scene(b)
+        labels = [n.get("text") for n in nodes if n.get("text")]
+        self.assertTrue(any("Alpha" in t for t in labels),
+                        "returned to a playlist missing a row the server kept")
+
+    def test_a_stale_success_is_still_discarded(self):
+        """Only on_error is ungated. A *successful* late reply must still be
+        dropped, or a slow load lands on top of the screen you moved to."""
+        b = self._browser()
+        route = {"kind": "playlist", "server": "srv1", "item_id": "P",
+                 "title": "Mix"}
+        b.nav_stack = [route]
+        b._load_route(route)
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._pool.drain()
+        self.assertIsNone(route.get("_data"),
+                          "a superseded load applied its result anyway")
+
+    def test_a_failed_page_can_page_again_after_navigating(self):
+        """_loading is cleared by on_error. Dropping that left the grid
+        unable to request another page for the rest of the session."""
+        b = self._browser()
+        b.source.get_library_items = self._boom
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "_items": [{"Id": "x"}], "_total": 99}
+        b.nav_stack = [route]
+        b._on_grid_scroll(route, 10_000, 10_000)
+        self.assertTrue(route["_loading"], "the page was never dispatched")
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._pool.drain()
+        self.assertFalse(route.get("_loading"),
+                         "the paging guard survived a failure")
 
 
 class TestGenreResolutionIsNotRacy(unittest.TestCase):

@@ -396,9 +396,17 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if the epoch still matches (the user hasn't navigated away). ``on_done``
         mutates state under the lock, then the loop is woken to rebuild.
 
-        ``on_error(exc)`` runs the same way when ``work()`` raises. Without
-        one a failure only logs, which left the route's data at None and the
-        view spinning forever — an unreachable server looked like a hang."""
+        ``on_error(exc)`` runs when ``work()`` raises. Without one a failure
+        only logs, which left the route's data at None and the view spinning
+        forever — an unreachable server looked like a hang.
+
+        **``on_error`` is deliberately not epoch-gated.** It is a rollback,
+        not a render: it undoes an optimistic edit in the *route dict it
+        captured*, clears a paging guard, or puts the failure in the status
+        bar — none of which are claims about what is currently on screen.
+        Gating it meant navigating away before the failure landed dropped
+        the rollback, so the route dict kept a change the server had refused
+        and showed it again on the way back."""
         def task():
             try:
                 result = work()
@@ -407,8 +415,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 if on_error is None:
                     return
                 with self._lock:
-                    if epoch != self._epoch:
-                        return
                     try:
                         on_error(exc)
                     except Exception:
