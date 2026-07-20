@@ -343,46 +343,133 @@ class TestMpvtkOfflineFallback(TmpTest):
 
 
 class TestOfflinePlaylistArt(TmpTest):
-    """A playlist tile borrows a member's poster. It used to take member
-    #1 and nothing else, so a playlist whose first item happened not to
-    have poster.jpg on disk showed a bare letter glyph — while its other
-    members' art sat right there."""
+    """A playlist tile uses the playlist's OWN poster, cached at download
+    time. It used to borrow a member's, so a playlist whose first member
+    had no poster.jpg on disk showed a bare letter glyph."""
 
-    def _catalog(self, art_for):
-        """Two-item playlist; only the items in ``art_for`` get a poster."""
+    def _catalog(self, playlist_art=False, member_art=True):
         path = os.path.join(self.tmp, "catalog.db")
         db = SyncDB(path)
-        for n, item in enumerate(("m1", "m2")):
-            db.upsert(make_row(item, type="Movie",
+        for item in ("m1", "m2"):
+            db.upsert(make_row(item, type="Movie", server_id="srv",
                                file_path="%s/file.mkv" % item))
             item_dir = os.path.join(self.tmp, item)
             os.makedirs(item_dir, exist_ok=True)
-            if item in art_for:
+            if member_art:
                 with open(os.path.join(item_dir, "poster.jpg"), "wb") as fh:
                     fh.write(b"jpeg")
-        db.upsert_playlist("P", "srv", "uuid", "Mixed")
+        db.upsert_playlist("P", "srv", "uuid", "Mine")
         db.replace_playlist_items("P", [("m1", 0, 1), ("m2", 1, 1)])
         db.close()
+        if playlist_art:
+            pl_dir = os.path.join(self.tmp, "srv", "playlist", "P")
+            os.makedirs(pl_dir, exist_ok=True)
+            with open(os.path.join(pl_dir, "poster.jpg"), "wb") as fh:
+                fh.write(b"jpeg")
         return path
 
-    def test_falls_back_to_a_later_member_with_art(self):
-        src = OfflineLibrarySource(self._catalog({"m2"}))
-        self.assertIsNotNone(src.image_spec({"Id": "P"}),
-                             "playlist tile went artless with art available")
+    def test_uses_the_playlists_own_poster(self):
+        src = OfflineLibrarySource(self._catalog(playlist_art=True))
+        self.assertIsNotNone(src.image_spec({"Id": "P", "Type": "Playlist"}))
+        self.assertTrue(
+            src.image_url("offline", "P", "Primary", "offline", 100)
+            .endswith(os.path.join("srv", "playlist", "P", "poster.jpg")))
 
-    def test_uses_the_first_member_when_it_has_art(self):
-        src = OfflineLibrarySource(self._catalog({"m1", "m2"}))
-        spec = src.image_spec({"Id": "P"})
-        self.assertIsNotNone(spec)
-        self.assertTrue(src.image_url("offline", "P", "Primary", "offline", 100)
-                        .endswith(os.path.join("m1", "poster.jpg")))
+    def test_does_not_borrow_a_members_poster(self):
+        """Members have art, the playlist doesn't: the tile shows its glyph
+        rather than pretending a member's poster is the playlist's."""
+        src = OfflineLibrarySource(self._catalog(playlist_art=False,
+                                                 member_art=True))
+        self.assertIsNone(src.image_spec({"Id": "P", "Type": "Playlist"}))
 
-    def test_no_member_has_art(self):
-        src = OfflineLibrarySource(self._catalog(set()))
-        self.assertIsNone(src.image_spec({"Id": "P"}))
+    def test_playlists_library_tile_uses_a_playlist_poster(self):
+        src = OfflineLibrarySource(self._catalog(playlist_art=True))
+        self.assertIsNotNone(
+            src.image_spec({"Id": "offline:playlists", "Type": "UserView"}))
 
-    def test_candidate_scan_is_bounded(self):
-        self.assertLessEqual(OfflineLibrarySource.PLAYLIST_ART_CANDIDATES, 24)
+
+class TestOnlinePlaylistArt(unittest.TestCase):
+    """Online, a playlist's image comes from its own item id — asked for
+    even when the DTO carries no tag, since the server generates it."""
+
+    def test_playlist_resolves_to_its_own_primary(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+
+        src = LibrarySource.__new__(LibrarySource)
+        item = {"Id": "P1", "Type": "Playlist", "ImageTags": {}}
+        self.assertEqual(src.image_spec(item), ("P1", "Primary", "playlist"))
+
+    def test_a_tagged_playlist_keeps_its_tag(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+
+        src = LibrarySource.__new__(LibrarySource)
+        item = {"Id": "P1", "Type": "Playlist", "ImageTags": {"Primary": "t9"}}
+        self.assertEqual(src.image_spec(item), ("P1", "Primary", "t9"))
+
+    def test_a_playlist_never_borrows_series_or_album_art(self):
+        """The playlist branch must come before the parent fallbacks, or a
+        playlist DTO carrying SeriesId/AlbumId would show that instead."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+
+        src = LibrarySource.__new__(LibrarySource)
+        item = {"Id": "P1", "Type": "Playlist", "ImageTags": {},
+                "AlbumId": "A1", "AlbumPrimaryImageTag": "at"}
+        self.assertEqual(src.image_spec(item)[0], "P1")
+
+
+class TestPlaylistArtDownload(TmpTest):
+    """Playlist art is fetched at download time so the offline tile has
+    the playlist's own poster to show."""
+
+    def _manager(self, fetched, status=200):
+        import jellyfin_mpv_shim.sync.manager as mgr
+
+        class FakeResp:
+            status_code = status
+            content = b"jpeg"
+
+            def raise_for_status(self):
+                if status >= 400:
+                    raise RuntimeError("HTTP %d" % status)
+
+        def fake_get(url, **kw):
+            fetched.append(url)
+            return FakeResp()
+
+        real, mgr.requests = mgr.requests, type(
+            "R", (), {"get": staticmethod(fake_get)})
+        self.addCleanup(lambda: setattr(mgr, "requests", real))
+
+        jf = FakeJellyfin([])
+        jf.artwork = lambda item_id, kind, size: "http://s/%s/%s" % (item_id,
+                                                                    kind)
+        m = make_manager(self.tmp, jf)
+        self.addCleanup(m.db.close)
+        return m
+
+    def _poster(self):
+        return os.path.join(self.tmp, "srv", "playlist", "P", "poster.jpg")
+
+    def test_downloads_the_playlists_own_primary(self):
+        fetched = []
+        m = self._manager(fetched)
+        m._download_playlist_art(m.get_client("uuid"), "srv", "P")
+        self.assertEqual(fetched, ["http://s/P/Primary"])
+        self.assertTrue(os.path.exists(self._poster()))
+
+    def test_is_skipped_when_already_cached(self):
+        fetched = []
+        m = self._manager(fetched)
+        m._download_playlist_art(m.get_client("uuid"), "srv", "P")
+        m._download_playlist_art(m.get_client("uuid"), "srv", "P")
+        self.assertEqual(len(fetched), 1, "re-fetched a cached poster")
+
+    def test_a_playlist_without_art_is_not_fatal(self):
+        """Most playlists have no image; that must not fail the download."""
+        fetched = []
+        m = self._manager(fetched, status=404)
+        m._download_playlist_art(m.get_client("uuid"), "srv", "P")
+        self.assertFalse(os.path.exists(self._poster()))
 
 
 if __name__ == "__main__":

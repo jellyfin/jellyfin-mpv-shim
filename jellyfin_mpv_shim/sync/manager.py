@@ -374,6 +374,12 @@ class SyncManager:
             entries.append((iid, len(entries), owned))
         self.db.upsert_playlist(playlist_id, server_id, server_uuid, name)
         self.db.replace_playlist_items(playlist_id, entries)
+        try:
+            self._download_playlist_art(
+                self.get_client(server_uuid), server_id, playlist_id)
+        except Exception:
+            log.debug("Could not cache playlist art for %s", playlist_id,
+                      exc_info=True)
 
     def _cancel_if_active(self, item_id):
         """If the worker is downloading `item_id`, flag it for cancellation and
@@ -925,6 +931,30 @@ class SyncManager:
                     fh.write(resp.content)
             except Exception:
                 log.debug("Series art failed: %s", url, exc_info=True)
+
+    def _download_playlist_art(self, client, server_id, playlist_id):
+        """Cache the playlist's own poster so its offline tile has artwork.
+
+        A playlist carries its own image; the tile used to borrow a member's
+        poster, which meant a playlist whose first member had no art on disk
+        showed a bare glyph."""
+        pl_dir = os.path.join(self.root, server_id or "server", "playlist",
+                              playlist_id)
+        poster = os.path.join(pl_dir, "poster.jpg")
+        if os.path.exists(poster):
+            return
+        os.makedirs(pl_dir, exist_ok=True)
+        url = client.jellyfin.artwork(playlist_id, "Primary", 600)
+        try:
+            resp = requests.get(url, timeout=(10, 30),
+                                verify=not settings.ignore_ssl_cert)
+            resp.raise_for_status()
+            with open(poster, "wb") as fh:
+                fh.write(resp.content)
+        except Exception:
+            # Playlists without an image are normal — the tile falls back to
+            # its glyph, same as online.
+            log.debug("Playlist art failed: %s", url, exc_info=True)
 
     def _playback_source(self, client, item_id, row):
         """Resolve the full MediaSource via PlaybackInfo (metadata only)."""

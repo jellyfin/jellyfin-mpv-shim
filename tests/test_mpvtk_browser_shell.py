@@ -3106,3 +3106,47 @@ class TestTrackDefaults(unittest.TestCase):
         for _ in range(5):
             self.b._effective_tracks(self.route, item)
         self.assertEqual(len(calls), 1, "should be cached on the route")
+
+
+class TestPlaylistTileShape(unittest.TestCase):
+    """A Jellyfin playlist's own Primary image is square; rendering it in
+    the 2:3 poster frame pillarboxes it."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_all_playlist_grid_is_square(self):
+        items = [{"Id": "p1", "Type": "Playlist"},
+                 {"Id": "p2", "Type": "Playlist"}]
+        self.assertIs(self.b._square_geom(items), self.b.geom_square)
+
+    def test_music_stays_square(self):
+        self.assertIs(
+            self.b._square_geom([{"Id": "a1", "Type": "MusicAlbum"}]),
+            self.b.geom_square)
+
+    def test_a_mixed_grid_keeps_posters(self):
+        """One strip is composited at a single tile size, so a grid that
+        mixes shapes has to pick the default rather than square everything."""
+        items = [{"Id": "p1", "Type": "Playlist"},
+                 {"Id": "m1", "Type": "Movie"}]
+        self.assertIsNone(self.b._square_geom(items))
+
+    def test_movies_are_not_square(self):
+        self.assertIsNone(self.b._square_geom([{"Id": "m1", "Type": "Movie"}]))
+
+    def test_empty_grid_keeps_the_default(self):
+        self.assertIsNone(self.b._square_geom([]))
+
+    def test_playlists_home_row_is_square(self):
+        geom, itype = self.b._row_shape(
+            {"collection_type": "playlists", "items": [
+                {"Id": "p1", "Type": "Playlist"}]})
+        self.assertIs(geom, self.b.geom_square)
+        self.assertEqual(itype, "Primary")
+
+    def test_an_untyped_playlist_row_is_still_square(self):
+        geom, _t = self.b._row_shape(
+            {"collection_type": None,
+             "items": [{"Id": "p1", "Type": "Playlist"}]})
+        self.assertIs(geom, self.b.geom_square)

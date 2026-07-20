@@ -1624,16 +1624,36 @@ class MpvtkBrowser:
         # arrows sit flush against them (see _hscroll_row).
         return VScroll(Column(rows, gap=20), id="home", flex=1)
 
+    # Item types whose artwork is square, not a 2:3 poster: music, and
+    # playlists (whose own Primary image is a square). Rendering them in a
+    # poster frame pillarboxes the art.
+    SQUARE_TYPES = {"Playlist", "MusicAlbum", "MusicArtist", "Audio",
+                    "MusicGenre"}
+
+    def _square_geom(self, items):
+        """``geom_square`` when every item's art is square, else None.
+
+        A strip is composited at one tile size, so this is a per-grid
+        decision, not per-tile — hence "every item"."""
+        types = {i.get("Type") for i in items or ()}
+        if types and types <= self.SQUARE_TYPES:
+            return self.geom_square
+        return None
+
     def _row_shape(self, hr):
         """(geom, image_type) for a home row, classified like the Tk browser:
-        movies/tv/boxsets -> poster; music -> square; home-video/misc or
-        episode-bearing rows -> landscape Thumb."""
+        movies/tv/boxsets -> poster; music/playlists -> square; home-video/misc
+        or episode-bearing rows -> landscape Thumb."""
         ctype = hr.get("collection_type")
-        has_episode = any(it.get("Type") == "Episode"
-                          for it in hr.get("items", []))
+        items = hr.get("items", [])
+        has_episode = any(it.get("Type") == "Episode" for it in items)
         if ctype in ("movies", "tvshows", "boxsets"):
             return self.geom, "Primary"
-        if ctype == "music":
+        if ctype in ("music", "playlists"):
+            return self.geom_square, "Primary"
+        # An untyped row of playlists/music (offline, the mixed rows) still
+        # gets square art.
+        if self._square_geom(items):
             return self.geom_square, "Primary"
         if ctype:
             return self.geom_wide, ("Thumb" if has_episode else "Primary")
@@ -1656,8 +1676,8 @@ class MpvtkBrowser:
         # virtualizer can map a scroll offset onto a tile row.
         head_h = 40 + (110 if route["kind"] == "grid" else 0)
         rows = header + self._grid_of(
-            items, "grid", size, geom=self.geom, scroll_id="grid",
-            head_h=head_h)
+            items, "grid", size, geom=self._square_geom(items) or self.geom,
+            scroll_id="grid", head_h=head_h)
         return VScroll(
             Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP,
                    align="stretch"), id="grid",

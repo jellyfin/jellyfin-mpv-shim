@@ -621,6 +621,14 @@ class LibrarySource:
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
 
+        if item.get("Type") == "Playlist":
+            # A playlist has its own (square) Primary image — ask the server
+            # for it directly rather than borrowing a member's poster. Asked
+            # for even with no tag in the DTO, since the server generates
+            # playlist art; a genuine miss is a 404 that the thumbnail store
+            # records and stops retrying.
+            return item["Id"], "Primary", tags.get("Primary") or "playlist"
+
         if image_type == "Thumb":
             # Fall back to a primary image, then the series thumb/primary.
             if "Primary" in tags:
@@ -702,7 +710,7 @@ class _OfflineSnapshot:
 
     def __init__(self, rows=None, items=None, series_server=None,
                  season_server=None, season_series=None, playlists=None,
-                 playlist_items=None, playlist_art=None):
+                 playlist_items=None, playlist_server=None):
         self.rows = rows or {}
         self.items = items or []
         self.series_server = series_server or {}
@@ -710,7 +718,7 @@ class _OfflineSnapshot:
         self.season_series = season_series or {}
         self.playlists = playlists or []
         self.playlist_items = playlist_items or {}
-        self.playlist_art = playlist_art or {}
+        self.playlist_server = playlist_server or {}
         self.art_cache = {}
 
 
@@ -721,12 +729,6 @@ class OfflineLibrarySource:
     episodes) filtered to downloaded content, with artwork from local files.
     Reads the catalog read-only and caches rows in memory.
     """
-
-    # How many of a playlist's members to try for its tile artwork before
-    # giving up. Each probe is several os.path.exists against what may be a
-    # network share, so this is bounded rather than "scan until something
-    # turns up".
-    PLAYLIST_ART_CANDIDATES = 12
 
     def __init__(self, catalog_path):
         self.catalog_path = catalog_path
@@ -776,7 +778,7 @@ class OfflineLibrarySource:
                     season_series.setdefault(row["season_id"], row["series_id"])
         # Playlist DTOs + their ordered downloaded items (drop empties defensively;
         # list_playlists already requires ≥1 complete item).
-        playlist_dtos, playlist_items, playlist_art = [], {}, {}
+        playlist_dtos, playlist_items, playlist_server = [], {}, {}
         for pl in playlists:
             pid = pl["playlist_id"]
             pl_items = [self._item_from_row(r) for r in playlist_rows.get(pid, [])]
@@ -786,19 +788,12 @@ class OfflineLibrarySource:
             playlist_dtos.append({"Id": pid, "Name": pl.get("name") or _("Playlist"),
                                   "Type": "Playlist", "ImageTags": {}})
             playlist_items[pid] = pl_items
-            # Candidates for the playlist's tile art, in order. Not just
-            # item 0: whether *that* item's poster.jpg made it to disk is
-            # incidental, and when it didn't the whole playlist fell back
-            # to a letter glyph even though its other members had art.
-            # Bounded — each probe is several os.path.exists on what may be
-            # a network share.
-            playlist_art[pid] = [i.get("Id") for i in
-                                 pl_items[:self.PLAYLIST_ART_CANDIDATES]]
+            playlist_server[pid] = pl.get("server_id")
         self._snap = _OfflineSnapshot(
             rows=by_id, items=items, series_server=series_server,
             season_server=season_server, season_series=season_series,
             playlists=playlist_dtos, playlist_items=playlist_items,
-            playlist_art=playlist_art)
+            playlist_server=playlist_server)
 
     def stop(self):
         pass
@@ -1168,15 +1163,13 @@ class OfflineLibrarySource:
             if series_id:
                 return self._art_path(series_id, image_type, snap)
             return None
-        # Playlist tile artwork borrows a member's poster — the first that
-        # actually has one, not strictly member #1 (whose art may simply not
-        # have been downloaded, which used to blank the whole tile).
-        for member in snap.playlist_art.get(item_id) or ():
-            path = self._art_path(member, image_type, snap)
-            if path:
-                return path
-        if item_id in snap.playlist_art:
-            return None
+        # A playlist's own poster, cached at download time (a playlist has
+        # its own image; borrowing a member's meant one member without art
+        # blanked the whole tile).
+        if item_id in snap.playlist_server:
+            return self._in_dir(os.path.join(
+                self.root, snap.playlist_server[item_id] or "server",
+                "playlist", item_id), name)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
             return self._representative(("Movie",), snap)
@@ -1189,7 +1182,7 @@ class OfflineLibrarySource:
                     return path
             return self._representative(("Episode",), snap)
         if item_id == "offline:playlists":
-            for pid in snap.playlist_art:
+            for pid in snap.playlist_server:
                 path = self._art_path(pid, image_type, snap)
                 if path:
                     return path
