@@ -147,3 +147,50 @@ class TestTheHudRendersWhatThePlayerSends(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheServerTheItemCameFrom(unittest.TestCase):
+    """The headless cast screen fetches the playing item to show it, and
+    the browser's *selected* server is not necessarily where that item
+    lives. Guessing it fetches the wrong thing, or nothing, on a
+    multi-server setup — so the payload carries the real one.
+
+    Asserted on the PRODUCER. The consumer tests feed a payload in by hand,
+    so deleting this key upstream leaves them all green while the cast
+    screen quietly stops updating."""
+
+    def _snapshot_with_client(self, client, clients):
+        import jellyfin_mpv_shim.clients as clients_mod
+
+        real = clients_mod.clientManager
+        fake = type("CM", (), {"clients": clients})()
+        clients_mod.clientManager = fake
+        self.addCleanup(lambda: setattr(clients_mod, "clientManager", real))
+
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        video = _Video(MOVIE)
+        video.client = client
+        pm._video = video
+        pm._player = _Player()
+        pm._hud_skip = None
+        pm.repeat_mode = "none"
+        PlayerManager.push_playstate(pm)
+        return got[0]
+
+    def test_it_reports_the_uuid_of_the_playing_item_s_server(self):
+        client = object()
+        state = self._snapshot_with_client(
+            client, {"srv-a": object(), "srv-b": client})
+        self.assertEqual(state["server_uuid"], "srv-b")
+
+    def test_an_unknown_client_is_none_rather_than_a_wrong_guess(self):
+        state = self._snapshot_with_client(object(), {"srv-a": object()})
+        self.assertIsNone(state["server_uuid"])
+
+    def test_the_key_is_always_present(self):
+        """The consumer reads it with .get(), but a key that comes and goes
+        is how "it works on my machine" starts."""
+        state = self._snapshot_with_client(object(), {})
+        self.assertIn("server_uuid", state)

@@ -258,3 +258,88 @@ class TestTheCastScreenLeavesRoomForTheBar(unittest.TestCase):
         b = self._browser()
         b._render_cast({"kind": "cast"}, (1280, 720))
         self.assertEqual(b._cast_size, (1280, 720))
+
+
+class TestFetchImageItself(unittest.TestCase):
+    """The one function every other cast test stubs out.
+
+    That is exactly why a NameError in it shipped: the "backdrop path" tests
+    replace `_fetch_image` wholesale, so they proved the compositing around
+    it worked while the function itself could not run at all. It had lost
+    `from io import BytesIO` when its imports were moved, and every test
+    passed.
+
+    So these drive the real body. Still no network — `requests.get` is
+    replaced, but everything after it is the production code path.
+    """
+
+    def _response(self, fmt="PNG", size=(64, 48)):
+        from io import BytesIO
+        from PIL import Image as PILImage
+
+        buf = BytesIO()
+        PILImage.new("RGB", size, (10, 20, 30)).save(buf, fmt)
+        payload = buf.getvalue()
+
+        class Resp:
+            status_code = 200
+            content = payload
+
+            def raise_for_status(self):
+                pass
+
+        return Resp()
+
+    def _patch_get(self, fn):
+        import requests
+        real = requests.get
+        self.addCleanup(lambda: setattr(requests, "get", real))
+        requests.get = fn
+
+    def test_it_decodes_a_real_response(self):
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+        self._patch_get(lambda *a, **k: self._response())
+        img = cast_mod._fetch_image("http://srv/bd.png")
+        self.assertIsNotNone(img, "the backdrop did not decode")
+        self.assertEqual(img.size, (64, 48))
+        self.assertEqual(img.mode, "RGBA",
+                         "the compositor needs an alpha channel")
+
+    def test_a_jpeg_works_too(self):
+        """Jellyfin serves JPEG backdrops; RGB->RGBA is a real conversion."""
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+        self._patch_get(lambda *a, **k: self._response(fmt="JPEG"))
+        img = cast_mod._fetch_image("http://srv/bd.jpg")
+        self.assertIsNotNone(img)
+        self.assertEqual(img.mode, "RGBA")
+
+    def test_no_url_is_none_without_calling_out(self):
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        def boom(*a, **k):
+            raise AssertionError("fetched with no url")
+
+        self._patch_get(boom)
+        self.assertIsNone(cast_mod._fetch_image(None))
+
+    def test_a_network_error_is_none_rather_than_a_crash(self):
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        def boom(*a, **k):
+            raise OSError("no route to host")
+
+        self._patch_get(boom)
+        self.assertIsNone(cast_mod._fetch_image("http://srv/bd.jpg"))
+
+    def test_garbage_bytes_are_none_rather_than_a_crash(self):
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        class Resp:
+            status_code = 200
+            content = b"this is not an image"
+
+            def raise_for_status(self):
+                pass
+
+        self._patch_get(lambda *a, **k: Resp())
+        self.assertIsNone(cast_mod._fetch_image("http://srv/bd.jpg"))

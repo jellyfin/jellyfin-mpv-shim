@@ -92,6 +92,11 @@ from .cast import CastMixin
 
 log = logging.getLogger("mpvtk_browser.app")
 
+
+def now_id_of(state):
+    """The playing item's id, if the payload carries one."""
+    return (state or {}).get("id")
+
 # Routes that take over the whole surface (no nav chrome), like the Tk
 # browser's login/locked/connecting screens.
 # "cast" is chrome-free for two reasons: it is a full-bleed backdrop
@@ -1143,9 +1148,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # ticker pushes one every second, and clearing on those would cancel
         # the drag a second after it began.
         now_id = (state or {}).get("id")
-        if not state or state.get("stopped") \
-                or now_id != (self._now_playing or {}).get("id"):
+        track_changed = now_id != (self._now_playing or {}).get("id")
+        if not state or state.get("stopped") or track_changed:
             self._np_scrub = None
+        # Headless: the cast screen is the backdrop behind the now-playing
+        # bar, so it has to follow what is PLAYING. It kept showing whatever
+        # a phone last cast, so starting a playlist left an unrelated film
+        # on screen for the whole album.
+        if self.headless:
+            self._follow_cast_to_playback(state, track_changed)
         if not state or state.get("stopped"):
             self._now_playing = None
             self._hud_state = None
@@ -1371,6 +1382,24 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 and (self._cast or {}).get("idle")):
             self.show_cast_idle()
         self.invalidate()
+
+    def _follow_cast_to_playback(self, state, track_changed):
+        """Keep the headless cast screen showing the current track.
+
+        Stopping goes back to "Ready to cast" rather than leaving the last
+        thing played on screen, which reads as though it is still playing.
+        """
+        if not state or state.get("stopped"):
+            if not (self._cast or {}).get("idle"):
+                self.show_cast_idle()
+            return
+        if not (state.get("is_audio") and track_changed and now_id_of(state)):
+            # Video takes the whole window, so the cast screen is not
+            # visible and there is nothing to update.
+            return
+        server = state.get("server_uuid") or self.server
+        if server is not None:
+            self.display_cast_item(server, now_id_of(state))
 
     def on_downloads_changed(self):
         """Sync-manager push: the catalog changed. Runs on the download

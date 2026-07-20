@@ -120,6 +120,7 @@ class TestTheDoorsAreShut(HeadlessBase):
         """The queue is a normal route and normal routes render the nav
         chrome, so this button was a two-click path to the whole library."""
         b = self._browser()
+        b.display_cast_item = lambda srv, iid: None   # no real item fetch
         b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
                         "title": "Song", "position": 1, "duration": 10})
         nodes, _h = build_scene(b)
@@ -128,6 +129,7 @@ class TestTheDoorsAreShut(HeadlessBase):
     def test_music_transport_still_works(self):
         """Locking the library must not cost you playback control."""
         b = self._browser()
+        b.display_cast_item = lambda srv, iid: None
         b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
                         "title": "Song", "position": 1, "duration": 10})
         nodes, h = build_scene(b)
@@ -326,3 +328,123 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheCastScreenFollowsPlayback(HeadlessBase):
+    """The cast screen sits behind the now-playing bar, so it has to show
+    what is PLAYING. It kept showing whatever a phone last cast, so starting
+    a playlist left an unrelated film on screen for the whole album."""
+
+    def _browser_with_cast_spy(self):
+        b = self._browser()
+        self.shown = []
+
+        def spy(srv, iid):
+            # Mirror what the real one does to the state the code reads,
+            # or "is it still idle?" never becomes false and the stop path
+            # looks like a no-op for the wrong reason.
+            self.shown.append((srv, iid))
+            b._cast = {"idle": False, "title": iid}
+
+        b.display_cast_item = spy
+        self.idled = []
+        real_idle = b.show_cast_idle
+        b.show_cast_idle = lambda: (self.idled.append(1) or real_idle())
+        return b
+
+    def _play(self, b, track_id, **kw):
+        payload = {"stopped": False, "is_audio": True, "id": track_id,
+                   "title": "Track %s" % track_id, "position": 1,
+                   "duration": 100}
+        payload.update(kw)
+        b.on_playstate(payload)
+
+    def test_starting_a_track_shows_that_track(self):
+        b = self._browser_with_cast_spy()
+        self._play(b, "t1")
+        self.assertEqual(self.shown, [("srv1", "t1")])
+
+    def test_each_track_in_a_playlist_updates_the_screen(self):
+        b = self._browser_with_cast_spy()
+        self._play(b, "t1")
+        self._play(b, "t2")
+        self._play(b, "t3")
+        self.assertEqual([i for _s, i in self.shown], ["t1", "t2", "t3"])
+
+    def test_the_ticker_does_not_refetch_the_same_track(self):
+        """The now-playing ticker pushes a playstate every second. Refetching
+        the item each time would be one API call per second, forever."""
+        b = self._browser_with_cast_spy()
+        self._play(b, "t1")
+        for _ in range(5):
+            self._play(b, "t1")     # same track, later positions
+        self.assertEqual(len(self.shown), 1,
+                         "the cast screen refetched on every tick")
+
+    def test_stopping_returns_to_ready_to_cast(self):
+        """Leaving the last thing played on screen reads as though it is
+        still playing."""
+        b = self._browser_with_cast_spy()
+        self._play(b, "t1")
+        b.on_playstate({"stopped": True})
+        self.assertTrue(self.idled, "stopping left the last track on screen")
+
+    def test_a_phones_cast_is_replaced_by_what_actually_plays(self):
+        """The reported bug, in order: cast an item, then play something
+        unrelated."""
+        b = self._browser_with_cast_spy()
+        b.display_item("srv1", "film1")
+        self.assertEqual(self.shown, [("srv1", "film1")])
+        self._play(b, "song9")
+        self.assertEqual(self.shown[-1], ("srv1", "song9"),
+                         "the cast screen kept showing the old item")
+
+    def test_video_does_not_touch_the_cast_screen(self):
+        """Video takes the whole window; the cast screen is not visible, so
+        fetching an item for it is pure waste."""
+        b = self._browser_with_cast_spy()
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "v1",
+                        "title": "Film", "position": 1, "duration": 100})
+        self.assertEqual(self.shown, [])
+
+
+class TestWithoutTheFlagPlaybackDoesNotTouchTheCastScreen(HeadlessBase):
+    HEADLESS = False
+
+    def test_playing_audio_leaves_the_cast_screen_alone(self):
+        b = self._browser()
+        shown = []
+        b.display_cast_item = lambda srv, iid: shown.append(iid)
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "Song", "position": 1, "duration": 100})
+        self.assertEqual(shown, [],
+                         "a normal browser fetched for a screen it never shows")
+
+
+class TestTheCastScreenUsesThePlayingItemsServer(HeadlessBase):
+    """self.server is the server the BROWSER has selected, which is not
+    necessarily where the playing item lives. Guessing it would fetch the
+    wrong item, or nothing, on a multi-server setup — so the playstate
+    carries the real one."""
+
+    def test_the_playstate_server_wins_over_the_selected_one(self):
+        b = self._browser()
+        b.server = "srv1"
+        shown = []
+        b.display_cast_item = lambda srv, iid: shown.append(srv)
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "server_uuid": "srv2", "title": "S",
+                        "position": 1, "duration": 10})
+        self.assertEqual(shown, ["srv2"],
+                         "fetched from the browser's server, not the "
+                         "playing item's")
+
+    def test_it_falls_back_to_the_selected_server(self):
+        """Older payloads (and the fake player in tests) carry no uuid."""
+        b = self._browser()
+        b.server = "srv1"
+        shown = []
+        b.display_cast_item = lambda srv, iid: shown.append(srv)
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "S", "position": 1, "duration": 10})
+        self.assertEqual(shown, ["srv1"])

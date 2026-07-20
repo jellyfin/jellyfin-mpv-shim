@@ -164,6 +164,8 @@ def _random_backdrop_url() -> Optional[str]:
 def _fetch_image(url: Optional[str], timeout: int = 10):
     if not url:
         return None
+    from io import BytesIO
+
     import requests
     from PIL import Image
 

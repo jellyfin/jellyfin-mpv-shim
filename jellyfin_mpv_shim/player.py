@@ -136,6 +136,22 @@ def _rank_stream(prev_source, prev_index, streams, stream_type):
 
 
 # noinspection PyUnresolvedReferences
+def _server_uuid_of(video):
+    """The uuid of the server a playing item came from, or None."""
+    try:
+        from .clients import clientManager
+        client = getattr(video, "client", None)
+        if client is None:
+            return None
+        for uuid, candidate in clientManager.clients.items():
+            if candidate is client:
+                return uuid
+    except Exception:
+        log.debug("could not resolve the playing item's server",
+                  exc_info=True)
+    return None
+
+
 class PlayerManager(object):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -1888,6 +1904,11 @@ class PlayerManager(object):
                 # Which queue entry this is, so the browser's queue view
                 # can move its now-playing highlight without refetching.
                 "id": getattr(video, "item_id", None),
+                # Which server it came from. The headless cast screen fetches
+                # the playing item to show it, and defaulting to the
+                # browser's *selected* server would fetch the wrong thing —
+                # or nothing — whenever they differ.
+                "server_uuid": _server_uuid_of(video),
                 "title": item.get("Name") or "",
                 # Where an episode came from. The title alone is a lot less
                 # useful than it looks ("Pilot", "Part One"), so the video
@@ -2478,7 +2499,14 @@ class PlayerManager(object):
                 # Browsing is a desktop-UI activity: only go fullscreen if the
                 # user explicitly asked for a fullscreen browser. settings.
                 # fullscreen still applies when playback starts.
-                if settings.browser_fullscreen:
+                #
+                # headless is a kiosk: the cast screen IS the display, so it
+                # stays fullscreen throughout. Without this, stopping
+                # playback dropped a cast-target box back to a window
+                # whenever browser_fullscreen was off — and browser_
+                # fullscreen is about the library, which headless does not
+                # even have.
+                if settings.browser_fullscreen or settings.headless:
                     self._player.fs = True
                 elif not self._video:
                     self._player.fs = False
