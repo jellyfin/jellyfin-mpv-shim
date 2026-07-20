@@ -140,17 +140,17 @@ Not in the accepted-losses list. Roughly by value.
 - [x] Non-contiguous multi-select collapses on Up/Down (`queue_edit.py:117`);
   also no-ops for the whole selection when the first row is already at the top.
 - [x] "Play All" on a playlist loses resume (`music.py:285` omits `items=`).
-- [ ] Download button offered while offline on the playlist page (`music.py:292`).
+- [x] Download button offered while offline on the playlist page (`music.py:292`).
 - [ ] "Add to Favorites" offered on MusicGenre tiles (`tiles.py:364`); Tk
   excluded it — will hit the server with a non-favoritable id.
-- [ ] Music tabs refetch on every switch (`music.py:91`); Tk cached per tab.
-- [ ] Queue removal failures swallowed — `_safe` (`queue_edit.py:111`) where
+- [x] Music tabs refetch on every switch (`music.py:91`); Tk cached per tab.
+- [x] Queue removal failures swallowed — `_safe` (`queue_edit.py:111`) where
   every other edit uses `_edit_call`. `_pe_remove` restores `_items` but not
   `_sel`.
 - [x] Media-info loses codec+resolution when `DisplayTitle` is absent
   (`views.py:706`): `HEVC 1920x1080` → `1080p`.
-- [ ] Version picker no longer dedups same-named sources (`views.py:402`).
-- [ ] User switcher offered while offline (`app.py:1270`); Tk gated it because
+- [x] Version picker no longer dedups same-named sources (`views.py:402`).
+- [x] User switcher offered while offline (`app.py:1270`); Tk gated it because
   a switch reconnects.
 - [ ] Offline banner is one fixed string (`app.py:1404`) — cannot distinguish
   an outage from the `work_offline` setting; Retry failure gives no feedback.
@@ -159,10 +159,11 @@ Not in the accepted-losses list. Roughly by value.
 - [x] Dead buttons: playlist header renders Play All/Shuffle before the empty
   check (`music.py:282`); artist action bar renders with `ids=[]` if the song
   fetch failed (`music.py:430`).
-- [ ] Cast tiles square not portrait (`views.py:748`); runtime as `112 min` not
-  `1:52:00`; Songs tab loses per-row art (`music.py:160`); volume slider live
-  rather than commit-on-release (`music.py:402`); seek time frozen during scrub
-  (`music.py:374`); add-to name boxes and the login form lack Enter-to-submit.
+- [x] Runtime now reads `1:52:00` rather than `112 min`.
+- [ ] Cast tiles square not portrait (`views.py:748`); Songs tab loses per-row
+  art (`music.py:160`); volume slider live rather than commit-on-release
+  (`music.py:402`); seek time frozen during scrub (`music.py:374`); add-to name
+  boxes and the login form lack Enter-to-submit.
 
 ## 6. P4 — dead / half-finished
 
