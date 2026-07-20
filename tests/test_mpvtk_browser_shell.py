@@ -1595,6 +1595,54 @@ class TestPlaylistEdit(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
 
+class TestSearchSongsAllRender(unittest.TestCase):
+    """Every song in a search result must be on screen.
+
+    The Songs table was virtualized against scroll_id="search", but its
+    VScroll had no on_scroll, so nothing ever re-rendered — the window
+    computed at offset 0 was the only one materialized and every row past
+    the first screenful drew blank, permanently. head_h was a fixed 120
+    against a header that is a People row plus up to six carousels.
+    """
+
+    def _search(self, n_songs):
+        src = FakeSource()
+        src.search = lambda srv, term, limit=60: (
+            [{"Id": "m1", "Name": "A Movie", "Type": "Movie"}]
+            + [{"Id": "s%d" % i, "Name": "Song %d" % i, "Type": "Audio",
+                "RunTimeTicks": 1200000000}
+               for i in range(n_songs)])
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        return build_scene(b, (1280, 720))
+
+    def test_a_song_far_past_the_fold_still_renders(self):
+        nodes, _h = self._search(60)
+        texts = [n.get("text") or "" for n in nodes]
+        for name in ("Song 0", "Song 30", "Song 59"):
+            self.assertIn(name, texts, "%s never reached the scene" % name)
+
+    def test_every_song_row_is_clickable(self):
+        """A blank virtualized row is a spacer with no handler, so the rows
+        being present is not enough — they have to be live."""
+        nodes, handlers = self._search(40)
+        for i in (0, 20, 39):
+            self.assertIn("search-song-%d" % i, handlers,
+                          "row %d has no click handler" % i)
+
+    def test_the_carousels_above_the_table_are_still_there(self):
+        """The songs table sits under the tile rows; dropping virtualization
+        must not have cost the rest of the page. (Tile *names* are baked into
+        the strip bitmap, so assert on the heading and the row node.)"""
+        nodes, _h = self._search(30)
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertIn("Movies", texts)
+        self.assertIn("People", texts)
+        self.assertIn("search-Movies", ids(nodes))
+
+
 class TestVirtualizedGrid(unittest.TestCase):
     """Long grids must only composite the rows near the viewport: rendering
     all of them blew past the strip cache and mpv's 63-overlay budget, which

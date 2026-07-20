@@ -914,10 +914,19 @@ class ViewsMixin:
             server = route.get("server") or self.server
             ids = [s.get("Id") for s in songs]
             rows.append(Text(_("Songs"), size=24, bold=True))
+            # Deliberately NOT virtualized. Virtualizing needs head_h — the
+            # height of everything above the table — to map a scroll offset
+            # onto a row, and here that is the People row plus up to six
+            # carousels, i.e. not knowable at build time. The old fixed 120
+            # was out by roughly 10x, and the VScroll had no on_scroll at all,
+            # so the window computed at offset 0 was the only one ever
+            # materialized: every song past the first screenful drew blank,
+            # permanently. Search is capped at 60 results across all types and
+            # this table has no art cells, so there is nothing to virtualize
+            # away — no overlays, just text rows.
             rows.append(self._track_list(
                 songs, "search-song",
-                lambda i: self._play_list(ids, server, i, audio=True),
-                scroll_id="search", head_h=120))
+                lambda i: self._play_list(ids, server, i, audio=True)))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]
         if other:
