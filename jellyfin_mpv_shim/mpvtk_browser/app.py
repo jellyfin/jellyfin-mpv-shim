@@ -120,7 +120,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
         self._np_thread = None
-        self._np_stop = threading.Event()
+        # Set once, by shutdown(), and never cleared: it is the sleep every
+        # background thread waits on, so clearing it would be a way to kill
+        # them all. Guards the now-playing ticker, both download pollers and
+        # the toast timer. (It was _np_stop, which read like the ticker's
+        # own flag.)
+        self._shutdown_evt = threading.Event()
+        # Serialises the poller starters below. They are reachable from the
+        # loop thread and from foreign ones, and "if the thread is None,
+        # start it" is not atomic.
+        self._poller_lock = threading.Lock()
         # Playback HUD (video, osc_style "mpvtk"): the renderer owns the
         # summon/auto-hide lifecycle and reports it via on_hud; True while
         # the HUD scene should be on screen. _hud_state is the latest video
@@ -1166,6 +1175,40 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             data["current_id"] = new
             self.invalidate()
 
+    def _start_daemon(self, attr, name, body):
+        """Run ``body`` on a daemon thread, at most one per ``attr``.
+
+        The check and the assignment have to be atomic. Every caller used to
+        write ``if self._x_thread is not None: return`` and then assign, but
+        they are reachable from the loop thread *and* from foreign ones
+        (``on_playstate``, ``on_downloads_changed``), so two callers could
+        both see None and both start a thread. Doubling a poller is only a
+        wasted refresh today, which is exactly why it would have gone
+        unnoticed.
+
+        ``attr`` is cleared when the thread exits, so the next call starts a
+        fresh one.
+        """
+        with self._poller_lock:
+            if getattr(self, attr) is not None:
+                return
+
+            def run():
+                try:
+                    body()
+                finally:
+                    # Compare-and-clear: a body that released its own slot
+                    # early (see _arm_toast_clear) may already have been
+                    # replaced, and an exiting thread must not unregister its
+                    # successor.
+                    with self._poller_lock:
+                        if getattr(self, attr) is thread:
+                            setattr(self, attr, None)
+
+            thread = threading.Thread(target=run, daemon=True, name=name)
+            setattr(self, attr, thread)
+        thread.start()
+
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.
 
@@ -1173,25 +1216,20 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         server, so speeding it up is not free). While the bar is on screen we
         ask the player for a fresh snapshot once a second instead; the thread
         exits as soon as the bar goes away."""
-        if self.controller is None or self._np_thread is not None:
+        if self.controller is None:
             return
 
         def tick():
-            try:
-                while not self._np_stop.wait(1.0):
-                    bar = self._now_playing is not None and self._browsing
-                    if not bar and not self._hud_shown:
-                        break
-                    try:
-                        self.controller.refresh_playstate()
-                    except Exception:
-                        log.debug("playstate refresh failed", exc_info=True)
-            finally:
-                self._np_thread = None
+            while not self._shutdown_evt.wait(1.0):
+                bar = self._now_playing is not None and self._browsing
+                if not bar and not self._hud_shown:
+                    break
+                try:
+                    self.controller.refresh_playstate()
+                except Exception:
+                    log.debug("playstate refresh failed", exc_info=True)
 
-        self._np_thread = threading.Thread(target=tick, daemon=True,
-                                           name="mpvtk-np-tick")
-        self._np_thread.start()
+        self._start_daemon("_np_thread", "mpvtk-np-tick", tick)
 
     def set_source(self, source, server_uuid=None):
         """Swap in a live data source once servers connect (the browser opens
@@ -1315,19 +1353,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def _arm_toast_clear(self, delay):
         """Repaint once the toast has expired — nothing else would."""
-        if self._toast_timer is not None:
-            return
-
         def clear():
-            try:
-                self._np_stop.wait(delay)
-            finally:
+            self._shutdown_evt.wait(delay)
+            # Release the slot *before* repainting: the rebuild this wakes
+            # may want to arm the next toast, and it would be dropped if we
+            # were still registered.
+            with self._poller_lock:
                 self._toast_timer = None
             self.invalidate()
 
-        self._toast_timer = threading.Thread(target=clear, daemon=True,
-                                             name="mpvtk-toast")
-        self._toast_timer.start()
+        self._start_daemon("_toast_timer", "mpvtk-toast", clear)
 
     def set_status(self, text):
         """Show a transient message. Use this rather than assigning to
@@ -1584,25 +1619,20 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         """Keep the status bar current. The sync manager has no push hook the
         browser can subscribe to, so poll it — cheaply, and only while there
         is something to report or the browser is on screen."""
-        if self.controller is None or self._dlbar_thread is not None:
+        if self.controller is None:
             return
 
         def tick():
-            try:
-                while not self._np_stop.wait(2.0):
-                    if not self._browsing:
-                        continue
-                    try:
-                        st = self.controller.download_status()
-                    except Exception:
-                        break
-                    self.set_download_status(st)
-            finally:
-                self._dlbar_thread = None
+            while not self._shutdown_evt.wait(2.0):
+                if not self._browsing:
+                    continue
+                try:
+                    st = self.controller.download_status()
+                except Exception:
+                    break
+                self.set_download_status(st)
 
-        self._dlbar_thread = threading.Thread(target=tick, daemon=True,
-                                              name="mpvtk-dlbar")
-        self._dlbar_thread.start()
+        self._start_daemon("_dlbar_thread", "mpvtk-dlbar", tick)
 
     def _dismiss_update(self):
         self._update = None
@@ -1644,7 +1674,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.app.run(self.build)
 
     def shutdown(self):
-        self._np_stop.set()   # also stops the downloads poller
+        self._shutdown_evt.set()   # also stops the downloads poller
         self._pool.shutdown(wait=False, cancel_futures=True)
         if self.thumbs is not None:
             self.thumbs.shutdown()

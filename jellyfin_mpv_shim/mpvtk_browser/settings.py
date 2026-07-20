@@ -6,14 +6,13 @@ the downloads panel with its progress poller.
 
 State on ``self``: ``_config_obj`` (the settings accessor; None means the
 real config module, tests inject a fake), ``_sync_path`` (download-folder
-field mirror) and ``_dl_thread`` (the poller). The poller runs on a foreign
-thread, so it writes then calls ``invalidate()``; it exits on ``_np_stop``,
-which is only ever set at shutdown.
+field mirror) and ``_dl_thread`` (the poller, started via core's
+``_start_daemon``). The poller runs on a foreign thread, so it writes then
+calls ``invalidate()``; it exits on ``_shutdown_evt``, which is only ever
+set at shutdown.
 """
 
 import logging
-
-import threading
 
 from ..i18n import _
 from ..mpvtk.widgets import (
@@ -620,29 +619,24 @@ class SettingsMixin:
     DL_POLL_SECS = 3.0
 
     def _poll_downloads(self, route):
-        if self.controller is None or self._dl_thread is not None:
+        if self.controller is None:
             return
 
         def tick():
-            try:
-                while not self._np_stop.wait(self.DL_POLL_SECS):
-                    if (self.route is not route
-                            or route.get("_tab") != "downloads"
-                            or not self._browsing):
-                        break
-                    try:
-                        pending, _total = self.controller.download_activity()
-                    except Exception:
-                        break
-                    if not pending:
-                        break     # nothing in flight; the list can't change
-                    self._load_downloads(route, force=True)
-            finally:
-                self._dl_thread = None
+            while not self._shutdown_evt.wait(self.DL_POLL_SECS):
+                if (self.route is not route
+                        or route.get("_tab") != "downloads"
+                        or not self._browsing):
+                    break
+                try:
+                    pending, _total = self.controller.download_activity()
+                except Exception:
+                    break
+                if not pending:
+                    break     # nothing in flight; the list can't change
+                self._load_downloads(route, force=True)
 
-        self._dl_thread = threading.Thread(target=tick, daemon=True,
-                                           name="mpvtk-dl-poll")
-        self._dl_thread.start()
+        self._start_daemon("_dl_thread", "mpvtk-dl-poll", tick)
 
     def _load_downloads(self, route, force=False):
         if self.controller is None:

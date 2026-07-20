@@ -4,8 +4,8 @@ The music tabs (albums / artists / songs / genres / playlists), the album,
 artist, genre and playlist views, and the persistent audio bar.
 
 State on ``self``: ``_now_playing`` (the latest playstate snapshot, written
-from a foreign thread by core's ``on_playstate``) and ``_np_thread`` /
-``_np_stop`` (the 1s ticker that keeps the bar's clock moving). Paging
+from a foreign thread by core's ``on_playstate``) and ``_np_thread`` (the
+1s ticker that keeps the bar's clock moving). Paging
 state lives in the route dict.
 """
 
