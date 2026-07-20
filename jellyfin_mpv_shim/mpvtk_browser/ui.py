@@ -392,13 +392,18 @@ class _PlayerController:
             return False
 
     def set_favorite(self, server_uuid, item_id, favorite):
+        """Returns True when the change was recorded. Favorites have no
+        offline queue, so offline this is a refusal, not a silent no-op —
+        the caller rolls its optimistic heart back."""
         client = clientManager.clients.get(server_uuid)
         if client is None or not item_id:
-            return
+            return False
         try:
             client.jellyfin.favorite(item_id, bool(favorite))
+            return True
         except Exception:
             log.error("mpvtk set_favorite failed", exc_info=True)
+            return False
 
     def list_servers(self):
         """Saved servers with a connection badge, for the Settings panel —
@@ -630,6 +635,15 @@ class _PlayerController:
 
     def queue_reorder(self, ordered_playlist_item_ids):
         self._act(lambda pm: pm.queue_reorder(list(ordered_playlist_item_ids)))
+
+    def get_queue_ids(self):
+        """Item ids of the playing queue, for "add queue to a playlist"."""
+        from ..player import playerManager
+        try:
+            return list(playerManager.get_queue_ids())
+        except Exception:
+            log.error("mpvtk get_queue_ids failed", exc_info=True)
+            return []
 
     def queue_items(self, server_uuid, item_ids):
         """Append items to the playing queue; if nothing plays, start them."""

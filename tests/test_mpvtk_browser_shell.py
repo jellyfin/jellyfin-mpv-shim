@@ -4617,3 +4617,235 @@ class TestPinStartupSeeding(unittest.TestCase):
         self.addCleanup(lambda: setattr(users_mod, "userManager", real))
         got = _PlayerController().list_users()
         self.assertTrue(got[0]["require_startup"])
+
+
+class TestCollectionEditing(unittest.TestCase):
+    """collection_remove and collection_new existed on the controller with
+    zero call sites — written, committed, unreachable."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.removed, self.created = [], []
+        self.ctl.collection_remove = lambda s, c, i: self.removed.append(
+            (c, list(i)))
+        self.ctl.collection_new = lambda s, n, i: self.created.append(
+            (n, list(i)))
+        self.ctl.edit_apis = lambda: True
+        self.src = FakeSource()
+        self.src.get_collections = lambda srv: [{"Id": "c1", "Name": "Set"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_remove_is_offered_inside_a_boxset(self):
+        self.b.nav_stack = [{"kind": "grid", "server": "srv1",
+                             "parent_id": "c1", "parent_type": "BoxSet"}]
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "m1", "Type": "Movie"})]
+        self.assertIn("uncollect", acts)
+
+    def test_remove_is_not_offered_elsewhere(self):
+        self.b.nav_stack = [{"kind": "grid", "server": "srv1",
+                             "parent_id": "lib1"}]
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "m1", "Type": "Movie"})]
+        self.assertNotIn("uncollect", acts)
+
+    def test_removing_calls_the_api_and_refetches(self):
+        self.b.nav_stack = [{"kind": "grid", "server": "srv1",
+                             "parent_id": "c1", "parent_type": "BoxSet",
+                             "_items": [{"Id": "m1"}]}]
+        self.b._remove_from_collection({"Id": "m1", "Name": "A"})
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.removed, [("c1", ["m1"])])
+
+    def test_the_create_box_reaches_the_collection_dialog(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-collections"]["click"]()
+        nodes, h = build_scene(self.b)
+        self.assertIn("addcol-newname", ids(nodes), "no create box")
+        h["addcol-newname"]["change"]("Marathon")
+        h["addcol-create"]["click"]()
+        self.assertEqual(self.created, [("Marathon", ["m1"])])
+
+
+class TestAddToResolvesContainers(unittest.TestCase):
+    """A music container is not itself a playlist entry — posting its own
+    id does nothing. Tk resolves album/artist/genre to track ids first."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.added = []
+        self.ctl.playlist_add = lambda s, p, ids: self.added.append(list(ids))
+        self.src = FakeSource()
+        self.src.get_playlists = lambda srv: [{"Id": "p1", "Name": "Mix"}]
+        self.src.get_album_tracks = lambda srv, aid: [{"Id": "t1"},
+                                                      {"Id": "t2"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_an_album_is_added_as_its_tracks(self):
+        self.b._open_add_to({"Id": "a1", "Type": "MusicAlbum"})
+        _n, h = build_scene(self.b)
+        h["add-pl-0"]["click"]()
+        self.assertEqual(self.added, [["t1", "t2"]])
+
+    def test_a_movie_is_added_as_itself(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-pl-0"]["click"]()
+        self.assertEqual(self.added, [["m1"]])
+
+    def test_music_containers_are_offered_the_action(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "a1", "Type": "MusicAlbum"})]
+        self.assertIn("addto", acts)
+
+
+class TestQueueToPlaylist(unittest.TestCase):
+    def test_the_button_saves_the_whole_queue(self):
+        ctl = FakeController()
+        added = []
+        ctl.playlist_add = lambda s, p, ids: added.append(list(ids))
+        src = FakeSource()
+        src.get_playlists = lambda srv: [{"Id": "p1", "Name": "Mix"}]
+        b = MpvtkBrowser(app=None, source=src, controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.nav_stack = [{"kind": "queue", "server": "srv1", "_data": {
+            "entries": [{"item": {"Id": "a"}, "pid": "p1"},
+                        {"item": {"Id": "b"}, "pid": "p2"}],
+            "current_id": "a"}}]
+        nodes, h = build_scene(b)
+        self.assertIn("q-toplaylist", ids(nodes), "no way to save the queue")
+        h["q-toplaylist"]["click"]()
+        _n, h = build_scene(b)
+        h["add-pl-0"]["click"]()
+        self.assertEqual(added, [["a", "b"]])
+
+
+class TestSeriesExtras(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play_list = lambda ids, s, i, **kw: self.played.append(
+            sorted(ids))
+        self.src = FakeSource()
+        self.src.get_similar = lambda srv, iid, **kw: [
+            {"Id": "s2", "Name": "Other", "Type": "Series"}]
+        self.src.get_series_queue = lambda srv, sid, **kw: [
+            {"Id": "e1"}, {"Id": "e2"}, {"Id": "e3"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_shuffle_plays_the_whole_show(self):
+        self.b._shuffle_series("sh1", "srv1")
+        self.assertEqual(self.played, [["e1", "e2", "e3"]])
+
+    def test_more_like_this_reaches_the_series_page(self):
+        self.b.nav_stack = [{"kind": "series", "server": "srv1",
+                             "item_id": "sh1", "title": "Show"}]
+        self.b._load_route(self.b.route)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("More Like This",
+                      [n.get("text") for n in nodes if n.get("text")])
+
+    def test_the_shuffle_button_is_on_the_page(self):
+        row = self.b._series_actions({"Id": "sh1", "Type": "Series"},
+                                     "srv1", "sh1")
+        nodes, _h = layout(row, 1280, 720)
+        self.assertIn("sa-shuffle", ids(nodes))
+
+
+class TestLatentFixes(unittest.TestCase):
+    """Items that were wrong regardless of Tk."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_favorite_rolls_back_when_nothing_recorded_it(self):
+        self.ctl.set_favorite = lambda s, i, f: False
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"IsFavorite": False}}
+        self.b._act_favorite(item, "srv1")
+        self.assertFalse(item["UserData"]["IsFavorite"],
+                         "heart kept for a change that never happened")
+
+    def test_favorite_sticks_when_it_worked(self):
+        self.ctl.set_favorite = lambda s, i, f: True
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"IsFavorite": False}}
+        self.b._act_favorite(item, "srv1")
+        self.assertTrue(item["UserData"]["IsFavorite"])
+
+    def test_the_move_button_moves_what_is_in_the_field(self):
+        """It passed None, whose only effect was a status line telling you
+        to press Enter — a button that could never do its own job."""
+        moved = []
+        self.b._move_downloads = lambda p: moved.append(p)
+        cfg = FakeConfig()
+        cfg.schema["sync_path"] = "str"
+        cfg.values["sync_path"] = "/old"
+        self.b._config_obj = cfg
+        row = self.b._setting_row(cfg, cfg.settings_schema(),
+                                  cfg.get_settings(), "sync_path")
+        _n, h = layout(row, 1280, 720)
+        h["set-sync_path"]["change"]("/new/path")
+        h["set-sync-move"]["click"]()
+        self.assertEqual(moved, ["/new/path"])
+
+    def test_an_update_notice_shows_while_offline(self):
+        """The offline banner is persistent, so checking it first meant an
+        update was never surfaced offline."""
+        self.b._offline = True
+        self.b.notify_update("2.0", "http://x")
+        nodes, _h = build_scene(self.b)
+        texts = " ".join(n.get("text", "") for n in nodes if n.get("text"))
+        self.assertIn("Update available", texts)
+
+    def test_a_mixed_playlist_reads_as_a_track_list(self):
+        route = {"kind": "playlist", "server": "srv1", "item_id": "P",
+                 "title": "Mix", "_data": [
+                     {"Id": "a", "Type": "Audio", "Name": "Song"},
+                     {"Id": "m", "Type": "Movie", "Name": "Film"}]}
+        self.b.nav_stack = [route]
+        nodes, _h = build_scene(self.b)
+        self.assertIn("pl-0", ids(nodes), "rendered as a grid, not a list")
+
+
+class TestEditorExitReload(unittest.TestCase):
+    """Leaving the playlist editor left the page underneath showing the
+    order and membership from before the edits."""
+
+    def setUp(self):
+        self.src = FakeSource()
+        self.src.get_playlist_items = lambda srv, pid: [{"Id": "fresh"}]
+        self.b = MpvtkBrowser(app=None, source=self.src,
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_going_back_refetches_the_playlist(self):
+        self.b.nav_stack = [
+            {"kind": "playlist", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_data": [{"Id": "stale"}]},
+            {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_items": []},
+        ]
+        self.b.go_back()
+        self.assertEqual([i["Id"] for i in self.b.route["_data"]], ["fresh"])
+
+    def test_other_pages_are_not_refetched(self):
+        self.b.nav_stack = [
+            {"kind": "detail", "server": "srv1", "item_id": "m1",
+             "_data": {"item": {"Id": "m1"}}},
+            {"kind": "playlist", "server": "srv1", "item_id": "P",
+             "_data": []},
+        ]
+        self.b.go_back()
+        self.assertIsNotNone(self.b.route.get("_data"))

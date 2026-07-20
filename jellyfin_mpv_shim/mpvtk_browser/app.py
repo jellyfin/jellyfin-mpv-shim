@@ -202,6 +202,11 @@ class MpvtkBrowser:
         self._edit_apis_ok = None
         # rebuilder for the add-to dialog (re-shown from its sub-dialog)
         self._addto_build = None
+        self._addcol_name = None
+        # ids the add-to dialog will post (a container resolves to many)
+        self._addto_ids = None
+        # live text of the download-folder field
+        self._sync_path = {}
         self.status = ""
         self._size = None         # last window size seen by build()
 
@@ -236,12 +241,20 @@ class MpvtkBrowser:
 
     def go_back(self):
         if len(self.nav_stack) > 1:
-            self.nav_stack.pop()
+            left = self.nav_stack.pop()
             self._reset_scroll()
             self._bump_epoch()
             # Stale-while-revalidate: refresh Home on return (watched/resume
             # state may have changed) while showing the cached view meanwhile.
             if self.route.get("kind") == "home":
+                self._load_route(self.route)
+            # Coming out of the playlist editor, whatever is underneath is
+            # showing the order and membership from before the edits.
+            elif (left.get("kind") == "playlist_edit"
+                  and self.route.get("kind") in ("playlist", "grid")):
+                self.route.pop("_data", None)
+                self.route.pop("_items", None)
+                self.route.pop("_loading", None)
                 self._load_route(self.route)
             self.invalidate()
 
@@ -511,9 +524,15 @@ class MpvtkBrowser:
             iid = route["item_id"]
 
             def work():
+                similar = []
+                try:
+                    similar = self.source.get_similar(srv, iid) or []
+                except Exception:
+                    pass   # offline / older server: just no row
                 return {
                     "item": self.source.get_item(srv, iid),
                     "seasons": self.source.get_seasons(srv, iid),
+                    "similar": similar,
                 }
             self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "season":
@@ -964,10 +983,12 @@ class MpvtkBrowser:
     # shown for every item, so right-clicking a cast member offered to
     # play, download and mark a Person watched.
     MENU_PLAYABLE = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
-                                      "Series", "Season", "Playlist"}
+                                      "MusicGenre", "Series", "Season",
+                                      "Playlist"}
     MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
     MENU_FAVORITE = MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}
-    MENU_ADD_TO = PLAYABLE_TYPES | {"Audio"}
+    MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
+                                    "MusicGenre"}
     MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "Series", "Season", "Playlist"}
 
     def _tile_menu_entries(self, item):
@@ -997,6 +1018,10 @@ class MpvtkBrowser:
                 and item.get("PlaylistItemId") and not self._offline
                 and self._edit_apis()):
             out.append((_("Remove from Playlist"), "delete", "unplaylist"))
+        if (self.route.get("parent_type") == "BoxSet"
+                and item.get("Id") and not self._offline
+                and self._edit_apis()):
+            out.append((_("Remove from Collection"), "delete", "uncollect"))
         return out
 
     def _edit_apis(self):
@@ -1045,6 +1070,10 @@ class MpvtkBrowser:
             self._close_menu()
             self._remove_from_playlist(item)
             return
+        elif action == "uncollect":
+            self._close_menu()
+            self._remove_from_collection(item)
+            return
         self._close_menu()
 
     def _remove_from_playlist(self, item):
@@ -1057,6 +1086,35 @@ class MpvtkBrowser:
             _("Remove %s from this playlist?") % item.get("Name", ""),
             lambda: self._do_remove_from_playlist(server, pid, entry),
             title=_("Remove from Playlist"), yes=_("Remove"))
+
+    def _remove_from_collection(self, item):
+        cid = self.route.get("parent_id")
+        server = self.route.get("server") or self.server
+        iid = item.get("Id")
+        if not (cid and iid):
+            return
+        self._confirm(
+            _("Remove %s from this collection?") % item.get("Name", ""),
+            lambda: self._do_remove_from_collection(server, cid, iid),
+            title=_("Remove from Collection"), yes=_("Remove"))
+
+    def _do_remove_from_collection(self, server, collection_id, item_id):
+        route = self.route
+        ep = self._epoch
+
+        def work():
+            self.controller.collection_remove(server, collection_id,
+                                              [item_id])
+
+        def done(_ok):
+            # Re-read: the grid still lists what was just removed.
+            route.pop("_items", None)
+            route.pop("_loading", None)
+            self._load_route(route)
+
+        def failed(_exc):
+            self.status = _("The change could not be applied.")
+        self.run_async(work, done, ep, on_error=failed)
 
     def _do_remove_from_playlist(self, server, playlist_id, entry_id):
         ep = self._epoch
@@ -1104,6 +1162,9 @@ class MpvtkBrowser:
                 return [i.get("Id") for i in
                         self.source.get_playlist_items(server, iid)
                         if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
+            if t == "MusicGenre":
+                return [i.get("Id") for i in self.source.get_genre_songs(
+                    server, self.route.get("parent_id"), iid)]
             if t in ("Series", "Season"):
                 return [i.get("Id") for i in
                         self.source.get_series_queue(server, iid)]
@@ -1123,7 +1184,7 @@ class MpvtkBrowser:
         # A container: resolve it to its items and play those, rather than
         # navigating (a "Play" that browses instead is just a lie).
         ep = self._epoch
-        audio = t in ("MusicAlbum", "MusicArtist")
+        audio = t in ("MusicAlbum", "MusicArtist", "MusicGenre")
 
         def work():
             return self._resolve_play_ids(item, server)
@@ -1269,7 +1330,10 @@ class MpvtkBrowser:
         elif t in FOLDER_TYPES or item.get("CollectionType"):
             # collection_type rides along so the grid knows whether to offer
             # the Collections toggle (movies libraries only).
+            # parent_type as well as collection_type: inside a BoxSet the
+            # tile menu can offer "Remove from Collection".
             self.navigate(dict(base, kind="grid", parent_id=item.get("Id"),
+                               parent_type=t,
                                collection_type=item.get("CollectionType")))
         else:
             self.status = _("Selected: %s") % item.get("Name", "")
@@ -2543,9 +2607,27 @@ class MpvtkBrowser:
     def _series_actions(self, item, server, series_id):
         btns = [self._action_btn(
             "play_arrow", _("Next Up"), "sa-nextup",
-            lambda: self._play_next_up(series_id, server), primary=True)]
+            lambda: self._play_next_up(series_id, server), primary=True),
+            self._action_btn(
+                "shuffle", _("Shuffle"), "sa-shuffle",
+                lambda: self._shuffle_series(series_id, server))]
         btns += self._common_actions(item, server, "sa")
         return Row(btns, gap=8, align="center")
+
+    def _shuffle_series(self, series_id, server):
+        """Shuffle the whole show, like Tk's series-page Shuffle."""
+        ep = self._epoch
+
+        def work():
+            return [e.get("Id") for e in
+                    self.source.get_series_queue(server, series_id,
+                                                 limit=200)
+                    if e.get("Id")]
+
+        def done(ids):
+            if ids:
+                self._play_shuffle(ids, server, audio=False)
+        self.run_async(work, done, ep)
 
     def _act_watched(self, item, server):
         ud = item.setdefault("UserData", {})
@@ -2573,9 +2655,18 @@ class MpvtkBrowser:
 
     def _act_favorite(self, item, server):
         ud = item.setdefault("UserData", {})
-        new = not bool(ud.get("IsFavorite"))
+        was = ud.get("IsFavorite")
+        new = not bool(was)
         ud["IsFavorite"] = new
-        self._client_call(lambda c: c.set_favorite(server, item.get("Id"), new))
+
+        def work():
+            # Roll back when nothing recorded it, as _act_watched does —
+            # offline the heart used to lie until the next reload.
+            if self.controller.set_favorite(server, item.get("Id"),
+                                            new) is False:
+                ud["IsFavorite"] = was
+                self.invalidate()
+        self._pool.submit(lambda: self._safe(lambda _c: work()))
         self.invalidate()
 
     def _media_info_line(self, item, route):
@@ -2704,6 +2795,9 @@ class MpvtkBrowser:
         people_row = self._people_row(item.get("People") or [], server)
         if people_row is not None:
             blocks.append(people_row)
+        if data.get("similar"):
+            blocks.append(self._tile_row(
+                _("More Like This"), data["similar"], "series-similar"))
         return VScroll(Column(blocks, pad=16, gap=16), id="series", flex=1)
 
     def _render_season(self, route, size):
@@ -3216,7 +3310,9 @@ class MpvtkBrowser:
         # by what's actually playable rather than trusting the container.
         items = [i for i in raw if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
         ids = [i.get("Id") for i in items]
-        audio = bool(items) and all(i.get("Type") == "Audio" for i in items)
+        # any(), like Tk: a playlist with any music in it reads better as a
+        # track list than as a grid of mismatched artwork.
+        audio = any(i.get("Type") == "Audio" for i in items)
         pl_item = {"Id": pid, "Type": "Playlist",
                    "Name": route.get("title", "")}
         header = Row([
@@ -3502,9 +3598,15 @@ class MpvtkBrowser:
             widget = Row([
                 TextBox("set-" + key, text="" if val is None else str(val),
                         w=250,
+                        on_change=lambda v: self._sync_path.__setitem__(
+                            "path", v),
                         on_submit=lambda v: self._move_downloads(v)),
+                # Moves what is in the field. It used to pass None, whose
+                # only effect was a status line telling you to press Enter
+                # — a button that could never do its own job.
                 Button(_("Move"), id="set-sync-move",
-                       on_click=lambda: self._move_downloads(None)),
+                       on_click=lambda: self._move_downloads(
+                           self._sync_path.get("path") or val)),
             ], gap=8, align="center")
         else:
             widget = TextBox("set-" + key,
@@ -4031,6 +4133,8 @@ class MpvtkBrowser:
         def done(rows):
             route["_downloads"] = rows or []
             route["_dl_loading"] = False
+            # badges elsewhere in the UI are keyed off the same catalog
+            self._refresh_downloaded()
         self.run_async(work, done, ep)
 
     def _delete_download(self, route, item_id=None, series_id=None,
@@ -4062,6 +4166,8 @@ class MpvtkBrowser:
         def done(rows):
             route["_downloads"] = rows or []
             route["_dl_loading"] = False
+            # badges elsewhere in the UI are keyed off the same catalog
+            self._refresh_downloaded()
         self.run_async(work, done, ep)
         self._refresh_downloaded()
 
@@ -4125,6 +4231,8 @@ class MpvtkBrowser:
                    on_click=lambda: self._pe_set_sel(route, set(range(n)))),
             Button(_("Clear"), id="q-none",
                    on_click=lambda: self._pe_set_sel(route, set())),
+            Button(_("To Playlist"), id="q-toplaylist", icon="queue_music",
+                   on_click=lambda: self._queue_to_playlist(route)),
             Button(_("Remove"), id="q-remove", icon="delete",
                    on_click=lambda: self._queue_remove_selected(route)),
         ], gap=8, align="center")
@@ -4144,6 +4252,19 @@ class MpvtkBrowser:
                        flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "queue", off, mx))
+
+    def _queue_to_playlist(self, route):
+        """Save the playing queue as / into a playlist (Tk's playbar
+        button). The add-to dialog does the rest."""
+        entries = (route.get("_data") or {}).get("entries") or []
+        ids = [e["item"].get("Id") for e in entries if e.get("item")]
+        ids = [i for i in ids if i]
+        if not ids:
+            return
+        server = route.get("server") or self.server
+        self._open_add_to({"Id": ids[0], "Type": "Audio",
+                           "Name": _("Play Queue"), "_ids": ids},
+                          server=server)
 
     def _queue_remove_selected(self, route):
         data = route.get("_data") or {}
@@ -4221,15 +4342,8 @@ class MpvtkBrowser:
             self.invalidate()
 
     def _banner(self):
-        if self._offline:
-            return Row([
-                Text(_("Offline — showing what's available."), size=16),
-                Spacer(),
-                Button(_("Configure Servers"), id="banner-servers",
-                       on_click=self.show_login),
-                Button(_("Retry"), id="banner-retry",
-                       on_click=self._retry_connect),
-            ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")
+        # Update first: the offline banner is persistent, so checking it
+        # first meant an update notice was never seen while offline.
         if self._update:
             return Row([
                 Text(_("Update available: %s") % self._update["version"],
@@ -4240,6 +4354,15 @@ class MpvtkBrowser:
                 Button(_("Dismiss"), id="banner-dismiss",
                        on_click=self._dismiss_update),
             ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
+        if self._offline:
+            return Row([
+                Text(_("Offline — showing what's available."), size=16),
+                Spacer(),
+                Button(_("Configure Servers"), id="banner-servers",
+                       on_click=self.show_login),
+                Button(_("Retry"), id="banner-retry",
+                       on_click=self._retry_connect),
+            ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")
         return None
 
     # -- download status bar ----------------------------------------------
@@ -4541,11 +4664,14 @@ class MpvtkBrowser:
 
     # ----------------------------------------------------- add to playlist
 
-    def _open_add_to(self, item):
-        server = self.route.get("server") or self.server
+    def _open_add_to(self, item, server=None):
+        server = server or self.route.get("server") or self.server
         if self.controller is None or server is None:
             return
         ep = self._epoch
+        # A music container is not itself a playlist entry — Tk resolves
+        # album/artist/genre to their track ids before offering the dialog.
+        self._addto_ids = None
 
         def work():
             def fetch(fn):
@@ -4555,9 +4681,11 @@ class MpvtkBrowser:
                     return []
             return (fetch(self.source.get_playlists),
                     fetch(getattr(self.source, "get_collections",
-                                  lambda _s: [])))
+                                  lambda _s: [])),
+                    item.get("_ids") or self._resolve_play_ids(item, server))
         self.run_async(
-            work, lambda r: self._show_add_to(server, item, r[0], r[1]), ep)
+            work, lambda r: self._show_add_to(server, item, r[0], r[1], r[2]),
+            ep)
 
     # Height of a picker list inside a dialog before it scrolls. Enough to
     # show several entries without the dialog growing past the window.
@@ -4577,8 +4705,10 @@ class MpvtkBrowser:
         return VScroll(Column(rows, gap=6, align="stretch"),
                        id=node_id, h=self.PICKER_H)
 
-    def _show_add_to(self, server, item, playlists, collections=()):
+    def _show_add_to(self, server, item, playlists, collections=(),
+                     item_ids=None):
         item_id = item.get("Id")
+        self._addto_ids = [i for i in (item_ids or [item_id]) if i]
         # Private by default, matching the Tk browser: the server creates
         # playlists public unless told otherwise.
         self._addto_name = {"name": "", "private": True}
@@ -4635,6 +4765,7 @@ class MpvtkBrowser:
         """Collections get their own window: two long lists stacked in one
         dialog was the crowding."""
         item_id = item.get("Id")
+        self._addcol_name = {"name": ""}
 
         def build():
             rows = [
@@ -4643,6 +4774,15 @@ class MpvtkBrowser:
                     "add-col", collections,
                     lambda cid: self._add_to_col(server, cid, item_id),
                     _("No collections yet.")),
+                Row([
+                    TextBox("addcol-newname",
+                            placeholder=_("New collection name…"), w=280,
+                            on_change=lambda v: self._addcol_name.__setitem__(
+                                "name", v)),
+                    Button(_("Create"), id="addcol-create",
+                           on_click=lambda: self._add_to_new_col(
+                               server, item_id)),
+                ], gap=10, align="center"),
                 self._dialog_buttons([
                     Button(_("Back"), id="addcol-back",
                            on_click=lambda: self._show_dialog(
@@ -4658,22 +4798,32 @@ class MpvtkBrowser:
     def _add_to_new(self, server, item_id):
         state = self._addto_name or {}
         name = state.get("name", "").strip()
-        if name and item_id:
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if name and ids:
             private = bool(state.get("private", True))
             self._client_call(lambda c: c.playlist_new(
-                server, name, [item_id], is_public=not private))
+                server, name, ids, is_public=not private))
+        self._close_dialog()
+
+    def _add_to_new_col(self, server, item_id):
+        name = (self._addcol_name or {}).get("name", "").strip()
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if name and ids:
+            self._client_call(lambda c: c.collection_new(server, name, ids))
         self._close_dialog()
 
     def _add_to_col(self, server, collection_id, item_id):
-        if collection_id and item_id:
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if collection_id and ids:
             self._client_call(lambda c: c.collection_add(
-                server, collection_id, [item_id]))
+                server, collection_id, ids))
         self._close_dialog()
 
     def _add_to(self, server, playlist_id, item_id):
-        if playlist_id and item_id:
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if playlist_id and ids:
             self._client_call(lambda c: c.playlist_add(
-                server, playlist_id, [item_id]))
+                server, playlist_id, ids))
         self._close_dialog()
 
     # -------------------------------------------------------- downloads
