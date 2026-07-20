@@ -10,8 +10,10 @@ is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 > end — current state, accepted losses, and the deletion steps. The rest
 > of this file is the historical execution log.
 >
-> **Splitting `mpvtk_browser/app.py`?** See `SPLIT_PLAN.md` next to this
-> file (temporary; delete once the split lands).
+> **Editing `mpvtk_browser/`?** `app.py` is one mixin per feature area —
+> its module docstring has the map and the three invariants (thread
+> contract, epoch discipline, the unlocked `build()`). Queued cleanups are
+> in [Deferred cleanups](#deferred-cleanups-in-mpvtk_browser) at the end.
 
 ## Field-test round 1 (2026-07-19) — reported issues
 
@@ -1815,3 +1817,82 @@ instances in one process, not a product bug. It makes
 whole-run gate; run the modules in groups until it is fixed. Worth
 fixing before the cutover commit, so the deletion can be validated by a
 green full run.
+
+# Deferred cleanups in `mpvtk_browser/`
+
+Carried over from `SPLIT_PLAN.md` when `app.py` was split into mixins
+(`app.py` + `dialogs`/`auth`/`settings`/`queue_edit`/`music`/`views`/
+`tiles`). Roughly in value order; none of them block the cutover.
+
+- **Epoch drops rollbacks.** `run_async` discards `on_error` as well as
+  `on_done` when the epoch has moved. Optimistic edits (`_pe_remove`,
+  `_pe_move`, `_queue_move`, `_pe_toggle_public`) rely on `on_error` to
+  restore state. Navigate away before the failure lands and the rollback is
+  dropped — the route dict keeps the rejected state, and returning to that
+  route can show an edit the server refused. Fix by running `on_error`
+  regardless of epoch (it targets a dict, not the screen), or by clearing
+  `_items` on the departed route. *This is a real bug, not a tidy-up.*
+- **Deduplicate the three infinite-scroll pagers.** `_on_grid_scroll`,
+  `_on_music_scroll` and `_on_genre_scroll` each reimplement the same
+  invariants (route-identity guard, `_loading` flag, near-bottom threshold,
+  "an empty in-range page ends the list", "`_loading` must not survive a
+  failure"). Each copy learned those separately — the comments prove it.
+  One `_page_more(route, fetch, get_items, set_items)` helper.
+- **Rename `_np_stop` → `_shutdown_evt`.** Three pollers share it
+  (`_start_np_ticker`, `_poll_downloads`, `_poll_download_status`). It works
+  only because it is set at shutdown and never cleared; the name invites
+  someone to clear it and silently kill the download pollers.
+- **One dispatch table for views.** `_load_route` is a 215-line elif chain
+  in `app.py`; `_render_route` is a dict in the same file but a world away
+  in intent, and the renderers now live in six modules. Adding a view means
+  editing two distant points. `VIEWS = {"grid": (loader, renderer), …}`,
+  populated per mixin.
+- **Pool starvation.** One 4-worker pool serves route loads, client
+  mutations *and* `_move_downloads`' multi-GB file copy. Give long jobs
+  their own thread.
+- **Check-then-act in the poller starters.** `_start_np_ticker` (and the
+  `_dl_thread` / `_dlbar_thread` guards) are reachable from two threads, so
+  two tickers can start. Harmless today (a doubled refresh), but fix with a
+  small lock or by starting them only from the loop thread.
+- **`_compose_banner` imports privates from `display_mirror`**
+  (`_apply_dark_gradient`, `_pil_font`, `_scale_to_cover`) — an optional,
+  Pillow-gated module. When Tk dies and someone tidies `display_mirror`, the
+  detail banner breaks. Move them to a shared `imageutil`.
+- **`self.thumbs._notify = self.invalidate`** pokes a private. Make it a
+  constructor argument or a `set_notify()`.
+- **Constants kept in sync across Python and Lua with no cross-check.** The
+  heuristic char-width table (`layout.py` ↔ `renderer.lua`) and `hud.py`'s
+  `_SLIDER_PAD` ↔ the renderer's `SLIDER_PAD`. A test that greps both and
+  compares would make the contract enforced rather than commented.
+- **`list_downloads()` / `download_status()` are view logic in `ui.py`** —
+  ~110 lines of display-tree grouping sitting in the player bridge. Move
+  them into `settings.py` or into the repository layer.
+
+## Testing discipline this UI keeps punishing
+
+Five times during the parity work, code existed, was committed, was
+described as done — and never reached the screen, with the suite green
+throughout: `_scenes_row` was never called from `_render_detail`;
+`collection_remove` / `collection_new` had zero call sites; create-collection
+was reachable only from a button gated on already *having* collections;
+playlist "Remove Download" was wired to a predicate that could never return
+True for a playlist; and `self.status` was written from 14 places but
+rendered in 1, so edit-failure messages were invisible on every screen where
+edits happen.
+
+The shape is always the same: **assert on the helper, stub the layer
+beneath, never assert on what a user would see.** So:
+
+> A test for a helper is only worth having alongside a build-to-scene test
+> proving the helper is wired.
+
+Related: a fix's error path can be **inert** because a lower layer swallows.
+`_edit()` logged-and-returned, which silently defeated every caller's
+`on_error` — including a delete-rollback whose test passed because it
+stubbed the controller and bypassed `_edit` entirely. `_edit`,
+`queue_reorder` and `playlist_move_many` now raise deliberately; the
+comments say why.
+
+**Revert-check every fix.** After making a change and adding tests, revert
+the change and confirm the new tests fail. That caught several tests which
+passed against broken code, and found more real problems than the suite did.
