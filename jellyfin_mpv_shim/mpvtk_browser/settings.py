@@ -652,9 +652,9 @@ class SettingsMixin:
         num = item.get("index")
         title = ("%s. %s" % (num, item.get("title", ""))
                  if num is not None else item.get("title", ""))
-        status = item.get("status") or ""
+        from .downloads import status_text
         meta = "   ".join(x for x in (
-            status if status != "complete" else "",
+            status_text(item),
             self._human_size(item.get("size", 0))) if x)
         return self._dl_row(node_id, title, meta, depth,
                             self._dl_delete_cb(route, item,

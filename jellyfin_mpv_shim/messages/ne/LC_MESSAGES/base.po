@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 01:38-0400\n"
+"POT-Creation-Date: 2026-07-20 01:40-0400\n"
 "PO-Revision-Date: 2023-12-04 03:30+0000\n"
 "Last-Translator: Kristopher Roller <akjroller@gmail.com>\n"
 "Language-Team: Nepali <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1331,13 +1331,13 @@ msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2969
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:92
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:121
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:797
 msgid "Playlist"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3011
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:140
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:169
 msgid "Movies & Videos"
 msgstr ""
 
@@ -1377,14 +1377,17 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3162
 #: jellyfin_mpv_shim/library_browser/views.py:3174
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:79
 msgid "Downloading %d%%"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3164
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:82
 msgid "Queued"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3166
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:84
 #, fuzzy
 #| msgid "Fail"
 msgid "Failed"
@@ -2214,7 +2217,13 @@ msgstr ""
 msgid "Season %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:109
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:80
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Downloading"
+msgstr "सर्भर हटाउनुहोस्"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:138
 msgid "Unknown Series"
 msgstr ""
 

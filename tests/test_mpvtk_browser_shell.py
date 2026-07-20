@@ -2401,10 +2401,17 @@ class TestDownloadsPanel(unittest.TestCase):
         self.assertIn("A Movie", texts)
         self.assertIn("dl-g2-i0-rm", ids(nodes))
 
-    def test_pending_items_show_their_status(self):
+    def test_pending_items_show_their_status_in_words(self):
+        """The raw catalog values were rendered verbatim and untranslated —
+        "pending", "downloading". Tk turned them into "Queued" and
+        "Downloading 42%", which is the difference between a status column
+        and a debug dump."""
         nodes, _h = build_scene(self.b)
         texts = [n["text"] for n in nodes if n["t"] == "text"]
-        self.assertTrue(any("pending" in t for t in texts))
+        self.assertTrue(any("Queued" in t for t in texts),
+                        "no friendly status: %r" % texts)
+        self.assertFalse(any("pending" in t for t in texts),
+                         "raw catalog value on screen")
         # A completed item shows only its size, not "complete".
         self.assertFalse(any("complete" in t for t in texts))
 

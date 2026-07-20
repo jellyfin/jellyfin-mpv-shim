@@ -53,7 +53,36 @@ def _entry(row):
         "status": row.get("status") or "",
         "size": row_size(row),
         "index": row.get("index_number"),
+        # Kept apart from "size" so the view can show a percentage: size is
+        # whichever of the two is meaningful, these are the raw pair.
+        "done": row.get("downloaded_bytes") or 0,
+        "total": row.get("size_bytes") or 0,
     }
+
+
+def status_text(entry):
+    """What to show next to a downloading item.
+
+    The raw catalog values ("pending", "downloading") were rendered verbatim
+    and untranslated. Tk turned them into "Queued" / "Downloading 42%", which
+    is the difference between a status column and a debug dump.
+    """
+    from ..sync.db import (STATUS_COMPLETE, STATUS_DOWNLOADING,
+                           STATUS_ERROR, STATUS_PENDING)
+    status = entry.get("status") or ""
+    if status == STATUS_COMPLETE:
+        return ""                      # the size says it; no label needed
+    if status == STATUS_DOWNLOADING:
+        total = entry.get("total") or 0
+        done = entry.get("done") or 0
+        if total:
+            return _("Downloading %d%%") % int(done * 100 / total)
+        return _("Downloading")
+    if status == STATUS_PENDING:
+        return _("Queued")
+    if status == STATUS_ERROR:
+        return _("Failed")
+    return status
 
 
 def group_downloads(rows, playlists, playlist_items, owned):

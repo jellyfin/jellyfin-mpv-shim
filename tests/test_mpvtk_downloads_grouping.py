@@ -14,7 +14,7 @@ import unittest
 sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 
 from jellyfin_mpv_shim.mpvtk_browser.downloads import (  # noqa: E402
-    group_downloads, progress_summary, row_size, season_title)
+    group_downloads, progress_summary, row_size, season_title, status_text)
 
 
 def row(item_id, name="Item", **kw):
@@ -147,6 +147,39 @@ class TestSeasonTitle(unittest.TestCase):
     def test_unparsable_json_falls_back_rather_than_raising(self):
         self.assertEqual(season_title({"item_json": "{{{", "parent_index": 2}),
                          "Season 2")
+
+
+class TestStatusText(unittest.TestCase):
+    """Raw catalog values were rendered verbatim and untranslated."""
+
+    def test_a_download_in_flight_reports_a_percentage(self):
+        self.assertEqual(
+            status_text({"status": "downloading", "done": 42, "total": 100}),
+            "Downloading 42%")
+
+    def test_an_unprobed_size_drops_the_percentage_rather_than_showing_zero(self):
+        self.assertEqual(
+            status_text({"status": "downloading", "done": 10, "total": 0}),
+            "Downloading")
+
+    def test_queued_and_failed_are_words(self):
+        self.assertEqual(status_text({"status": "pending"}), "Queued")
+        self.assertEqual(status_text({"status": "error"}), "Failed")
+
+    def test_complete_says_nothing_because_the_size_already_does(self):
+        self.assertEqual(status_text({"status": "complete"}), "")
+
+    def test_an_unknown_status_falls_through_rather_than_vanishing(self):
+        self.assertEqual(status_text({"status": "weird"}), "weird")
+
+    def test_the_entry_carries_the_raw_byte_pair(self):
+        """`size` is whichever of the two is meaningful; the view needs both
+        to compute a percentage."""
+        tree = group_downloads(
+            [row("m1", "M", downloaded_bytes=5, size_bytes=9)], [],
+            lambda pid: [], {})
+        entry = tree[0]["children"][0]
+        self.assertEqual((entry["done"], entry["total"]), (5, 9))
 
 
 class TestProgressSummary(unittest.TestCase):
