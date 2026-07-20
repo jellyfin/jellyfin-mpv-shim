@@ -9,9 +9,43 @@ Tk browser: a route-dict nav stack (``navigate``/``go_back``), background
 API calls with epoch-guarded staleness, and full-scene rebuilds driven by
 ``invalidate()`` (renderer-local state — scroll, focus — survives).
 
-Views are ``build()`` branches on the route ``kind``; Phase 1 fills them
-in. This module ships the shell plus enough of Home/Grid to prove the
-shape end-to-end (strips + async + routing + chrome).
+This module is the *core*: ``__init__``, the nav stack, the epoch and
+``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome,
+the browse<->playback lifecycle and HUD glue, and ``shutdown``. Everything
+else is a mixin, one per feature area:
+
+    dialogs.py     modal shell, add-to picker, download + SyncPlay dialogs
+    auth.py        login / Quick Connect, lock screen, user switching
+    settings.py    the Settings route and the downloads panel
+    queue_edit.py  the play queue and the playlist editor
+    music.py       music browsing and the now-playing bar
+    views.py       home / grid / detail / series / season / search
+    tiles.py       tile art, rows and grids, the tile context menu
+
+The mixins are a partition, not a layering: they all operate on the same
+``self``, so the split makes the shared state visible rather than reducing
+it. No name may be defined by two of them — MRO would silently pick a
+winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
+
+Three invariants hold the whole thing together:
+
+**The thread contract.** Renderer event handlers and ``build()`` run on the
+loop thread. ``on_playstate``, ``notify_update``, ``set_download_status``,
+``display_item`` and ``on_downloads_changed`` are called from foreign
+threads, as are the pool workers behind ``run_async`` — everything they
+touch must be write-then-``invalidate()``, never a direct scene change.
+
+**Epoch discipline.** ``_epoch`` and ``_lock`` live *only* here.
+Dispatchers read ``ep = self._epoch`` on the loop thread and hand it to
+``run_async``, which drops the result if navigation has moved on since.
+Caching an ``ep`` and passing it across a module boundary reads fine and is
+subtly wrong.
+
+**``_lock`` protects writers from each other, not from the reader.**
+``build()`` reads route data unlocked. That is deliberate and safe only
+because every writer ends with ``invalidate()``, so a torn read is a
+one-frame glitch that the next build heals. Don't "fix" it by locking
+``build()``.
 """
 
 import logging
@@ -52,7 +86,6 @@ log = logging.getLogger("mpvtk_browser.app")
 # Routes that take over the whole surface (no nav chrome), like the Tk
 # browser's login/locked/connecting screens.
 CHROME_FREE = {"login", "locked", "connecting"}
-
 
 
 class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
