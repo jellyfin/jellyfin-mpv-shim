@@ -300,8 +300,19 @@ class StripStore:
     def _store(self, img):
         if self.mem is not None:
             return self.mem.add(img)
-        self._counter += 1
-        src = os.path.join(self.dir, "strip%d.bgra" % self._counter)
+        # Under the lock even though the composite around it deliberately is
+        # not: `+= 1` is a read-modify-write, and this runs on the pool
+        # workers (the cast compositor) as well as the loop thread. Two
+        # threads landing on the same value produced two live cache entries
+        # sharing one path with DIFFERENT iw/ih — and the renderer bounds its
+        # crop by iw/ih, so the entry describing the larger image would read
+        # past the end of the smaller file. That is the SIGBUS the renderer's
+        # own comment warns about. Evicting either entry also unlinked the
+        # file still referenced by the other.
+        with self._lock:
+            self._counter += 1
+            counter = self._counter
+        src = os.path.join(self.dir, "strip%d.bgra" % counter)
         w, h = write_bgra(img, src)
         return src, w, h
 

@@ -38,6 +38,16 @@ def main():
     if settings.sanitize_output:
         enable_sanitization()
 
+    # Trickplay frame files are named per generation and unlinked on the way
+    # out; a crash or a kill leaves them behind, and nothing else collects
+    # them. Cheap, and it runs before any player exists.
+    try:
+        from .trickplay import cleanup_stale_files
+
+        cleanup_stale_files()
+    except Exception:
+        pass
+
     app_log_level = "debug" if args.debug else settings.mpv_log_level
     configure_log(sys.stdout, app_log_level)
     if settings.write_logs:
