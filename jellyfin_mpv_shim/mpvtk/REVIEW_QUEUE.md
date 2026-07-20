@@ -74,23 +74,23 @@ Status key: `[x]` done · `[ ]` open · `[~]` deliberately declined
   the removed server stays in the dropdown and browsable but playback refuses
   (`ui.py:226`). Tk rebuilt the source (`gui_mgr.py:783`).
 
-## 2. P2 — inert error paths
+## 2. P2 — inert error paths  ✅ all cleared
 
 The project has been bitten by these repeatedly: a handler exists, is wired,
 and can never fire because a lower layer swallows.
 
-- [ ] **`views.py:597`'s "The download could not be removed." is
+- [x] **`views.py:597`'s "The download could not be removed." is
   unreachable** — `ui.py:818` `delete_download` catches and logs, returning
   `None`, so `on_error` never fires.
-- [ ] **`settings.py:685` double-swallows the same call** (inner `try/except`
+- [x] **`settings.py:685` double-swallows the same call** (inner `try/except`
   plus `ui.py`'s) with no `on_error`. A failed delete says nothing.
-- [ ] **PIN set/remove failure reports success.** `auth.py:171` — `ui.py:529`
+- [x] **PIN set/remove failure reports success.** `auth.py:171` — `ui.py:529`
   returns True/False, `_safe` discards both return and exception, and
   `_close_dialog()` + `_after_users_changed()` run unconditionally. The user
   believes their account is locked when it is not.
-- [ ] **`add_user`/`rename_user` swallow twice** (`settings.py:389,423`). A
+- [x] **`add_user`/`rename_user` swallow twice** (`settings.py:389,423`). A
   duplicate name clears the field and changes nothing.
-- [ ] **Download enqueue and SyncPlay join/new/leave route through
+- [x] **Download enqueue and SyncPlay join/new/leave route through
   `_client_call`→`_safe`** (`dialogs.py:305,413`). Deliberate per `_edit`'s
   docstring, but these are button presses whose failure the user should see.
 
@@ -105,10 +105,10 @@ and can never fire because a lower layer swallows.
 
 Not in the accepted-losses list. Roughly by value.
 
-- [ ] **Context menu on track-list rows** (`Table` never gets `on_context`,
+- [x] **Context menu on track-list rows** (`Table` never gets `on_context`,
   `tiles.py:734`). Loses Play/Queue/Favorite/Download and per-track "Remove
   from Playlist" on every music playlist — only the bulk editor remains.
-- [ ] **Play Next Up on the season page** — `_play_next_up` exists but is only
+- [x] **Play Next Up on the season page** — `_play_next_up` exists but is only
   called from the *series* page (`views.py:636`).
 - [ ] **Album/artist detail header** — no backdrop, cover, metadata line,
   Overview or "Albums" heading (`music.py:191,212`).
@@ -117,17 +117,17 @@ Not in the accepted-losses list. Roughly by value.
   destructive but often deletes nothing silently.
 - [ ] **Live log tailing** — one-shot snapshot only (`settings.py:709`), and
   500 of 2000 lines (`settings.py:728`).
-- [ ] **Series name on episode tiles** — bare `S1E1` (`tiles.py:47`), so
+- [x] **Series name on episode tiles** — bare `S1E1` (`tiles.py:47`), so
   Continue Watching / Next Up no longer say which show.
-- [ ] **Crew job labels** — `Role or ""` (`views.py:743`) vs Tk's
+- [x] **Crew job labels** — `Role or ""` (`views.py:743`) vs Tk's
   `Role or Type`, so every Director/Writer tile is captioned blank.
-- [ ] **Genres in the metadata line** — dropped (`views.py:284`) though
+- [x] **Genres in the metadata line** — dropped (`views.py:284`) though
   `Genres` is still fetched.
 - [ ] **SyncPlay across servers, and joined-state** — single server only
   (`dialogs.py:372`), never marks which group you are in, Leave always shown.
 - [ ] **Sort control on a person's filmography** — the filter bar is gated on
   `kind == "grid"` (`views.py:138`) and person routes are `"person"`.
-- [ ] **Zero-item guard on the Download dialog** (`dialogs.py:283`) — dead click.
+- [x] **Zero-item guard on the Download dialog** (`dialogs.py:283`) — dead click.
 - [ ] **Tooltips** in browser chrome and the now-playing bar. `tip=` exists and
   the HUD uses it; in compact mode `nav-*` buttons are unlabelled *and*
   untipped.
@@ -137,9 +137,9 @@ Not in the accepted-losses list. Roughly by value.
 
 ## 5. P3 — degraded behaviour
 
-- [ ] Non-contiguous multi-select collapses on Up/Down (`queue_edit.py:117`);
+- [x] Non-contiguous multi-select collapses on Up/Down (`queue_edit.py:117`);
   also no-ops for the whole selection when the first row is already at the top.
-- [ ] "Play All" on a playlist loses resume (`music.py:285` omits `items=`).
+- [x] "Play All" on a playlist loses resume (`music.py:285` omits `items=`).
 - [ ] Download button offered while offline on the playlist page (`music.py:292`).
 - [ ] "Add to Favorites" offered on MusicGenre tiles (`tiles.py:364`); Tk
   excluded it — will hit the server with a non-favoritable id.
@@ -147,16 +147,16 @@ Not in the accepted-losses list. Roughly by value.
 - [ ] Queue removal failures swallowed — `_safe` (`queue_edit.py:111`) where
   every other edit uses `_edit_call`. `_pe_remove` restores `_items` but not
   `_sel`.
-- [ ] Media-info loses codec+resolution when `DisplayTitle` is absent
+- [x] Media-info loses codec+resolution when `DisplayTitle` is absent
   (`views.py:706`): `HEVC 1920x1080` → `1080p`.
 - [ ] Version picker no longer dedups same-named sources (`views.py:402`).
 - [ ] User switcher offered while offline (`app.py:1270`); Tk gated it because
   a switch reconnects.
 - [ ] Offline banner is one fixed string (`app.py:1404`) — cannot distinguish
   an outage from the `work_offline` setting; Retry failure gives no feedback.
-- [ ] Download status text raw and untranslated (`settings.py:594`):
+- [x] Download status text raw and untranslated (`settings.py:594`):
   `pending`/`downloading` verbatim vs Tk's "Queued"/"Downloading 42%".
-- [ ] Dead buttons: playlist header renders Play All/Shuffle before the empty
+- [x] Dead buttons: playlist header renders Play All/Shuffle before the empty
   check (`music.py:282`); artist action bar renders with `ids=[]` if the song
   fetch failed (`music.py:430`).
 - [ ] Cast tiles square not portrait (`views.py:748`); runtime as `112 min` not
