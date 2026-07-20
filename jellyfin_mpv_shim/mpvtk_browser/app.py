@@ -2375,7 +2375,7 @@ class MpvtkBrowser:
                 lambda: self._play_list(tids, server, 0), size=18))
         return Row(buttons, gap=10)
 
-    def _scenes_row(self, item, server):
+    def _scenes_row(self, route, item, server):
         """The chapter carousel ("Scenes"), each tile seeking to its start.
 
         Chapter art is indexed rather than tagged, so the tiles carry a
@@ -2404,10 +2404,17 @@ class MpvtkBrowser:
                                  ch.get("ImageTag") or "none") if url else None),
                 "_image_url": url,
             })
+        # Starting at a chapter has to carry the same version and tracks
+        # the Play button would — Tk's chapter click routes through the
+        # detail view's own _play for exactly that reason.
+        srcid = (route.get("_srcid")
+                 or ((item.get("MediaSources") or [{}])[0]).get("Id"))
+        aid, sid = self._effective_tracks(route, item)
         return self._tile_row(
             _("Scenes"), tiles, "detail-scenes", geom=self.geom_wide,
             on_click=lambda t: self._play(
-                item, server, offset_ticks=t.get("_start_ticks") or 0))
+                item, server, offset_ticks=t.get("_start_ticks") or 0,
+                srcid=srcid, aid=aid, sid=sid))
 
     def _action_btn(self, icon, text, node_id, cb, on=False, primary=False,
                     size=16):
@@ -2601,6 +2608,9 @@ class MpvtkBrowser:
         blocks.extend(self._track_pickers(route, item))
         if item.get("Overview"):
             blocks.append(self._paragraph(item["Overview"], 18, self._body_w(w)))
+        scenes = self._scenes_row(route, item, server)
+        if scenes is not None:
+            blocks.append(scenes)
         people_row = self._people_row(item.get("People") or [], server)
         if people_row is not None:
             blocks.append(people_row)

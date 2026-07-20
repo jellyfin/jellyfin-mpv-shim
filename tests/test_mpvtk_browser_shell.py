@@ -4198,3 +4198,70 @@ class TestPlaylistDeleteNavigation(unittest.TestCase):
     def test_unrelated_routes_survive(self):
         self.b.after_playlist_deleted("OTHER")
         self.assertEqual(len(self.b.nav_stack), 3)
+
+
+class TestScenesRow(unittest.TestCase):
+    """Chapter navigation. The row builder existed but nothing called it,
+    and the whole suite stayed green — asserting the builder in isolation
+    proves nothing; the assertion has to be that it REACHES the page."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play = lambda item, srv, **kw: self.played.append(kw)
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+        self.item = {
+            "Id": "m1", "Name": "Movie", "Type": "Movie",
+            "MediaSources": [{"Id": "src1", "MediaStreams": []}],
+            "Chapters": [
+                {"Name": "Opening", "StartPositionTicks": 0},
+                {"Name": "The Middle", "StartPositionTicks": 6000000000},
+                {"Name": "The End", "StartPositionTicks": 12000000000},
+            ]}
+        self.b.nav_stack = [{"kind": "detail", "server": "srv1",
+                             "item_id": "m1", "title": "Movie",
+                             "_data": {"item": self.item, "similar": []}}]
+
+    def test_the_scenes_row_is_on_the_detail_page(self):
+        nodes, _h = build_scene(self.b)
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("Scenes", texts, "chapter row never reached the page")
+
+    def test_a_chapter_click_seeks_to_its_start(self):
+        row = self.b._scenes_row(self.b.route, self.item, "srv1")
+        self.assertIsNotNone(row)
+        nodes, handlers = layout(row, 1280, 720)
+        rects = [n for n in nodes
+                 if n["t"] == "rect" and "detail-scenes" in str(n.get("id"))]
+        self.assertTrue(rects, "no clickable chapter regions")
+        handlers[rects[1]["id"]]["click"]()
+        self.assertEqual(self.played[0].get("offset_ticks"), 6000000000)
+
+    def test_a_chapter_carries_the_selected_tracks(self):
+        """Starting at a chapter must use the same version/tracks the Play
+        button would, not the server's defaults."""
+        self.b.route["_srcid"] = "src1"
+        self.b.route["_aid"] = 3
+        self.b.route["_sid"] = 4
+        row = self.b._scenes_row(self.b.route, self.item, "srv1")
+        nodes, handlers = layout(row, 1280, 720)
+        rects = [n for n in nodes
+                 if n["t"] == "rect" and "detail-scenes" in str(n.get("id"))]
+        handlers[rects[0]["id"]]["click"]()
+        self.assertEqual(
+            (self.played[0].get("srcid"), self.played[0].get("aid"),
+             self.played[0].get("sid")), ("src1", 3, 4))
+
+    def test_a_single_chapter_is_not_a_row(self):
+        self.item["Chapters"] = [{"Name": "All", "StartPositionTicks": 0}]
+        self.assertIsNone(self.b._scenes_row(self.b.route, self.item, "srv1"))
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("Scenes",
+                         [n.get("text") for n in nodes if n.get("text")])
+
+    def test_no_chapters_is_not_a_row(self):
+        self.item.pop("Chapters")
+        self.assertIsNone(self.b._scenes_row(self.b.route, self.item, "srv1"))
