@@ -201,6 +201,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         self._downloaded = set()
         self._downloaded_series = set()
+        self._downloaded_seasons = set()
         self._downloaded_playlists = set()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -1164,11 +1165,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
         def work():
             try:
-                items, series, playlists = self.controller.downloaded_ids()
+                # The unpack stays inside the guard: a controller that cannot
+                # answer (no sync db, or a stub) returns None, and that must
+                # leave the badges alone rather than raise on a pool thread.
+                (self._downloaded, self._downloaded_series,
+                 self._downloaded_seasons,
+                 self._downloaded_playlists) = self.controller.downloaded_ids()
             except Exception:
                 return
-            (self._downloaded, self._downloaded_series,
-             self._downloaded_playlists) = items, series, playlists
             self.invalidate()
         self._pool.submit(work)
 

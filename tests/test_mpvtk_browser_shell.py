@@ -5826,10 +5826,44 @@ class TestDownloadStateAndPush(unittest.TestCase):
         self.assertFalse(self.b._is_downloaded({"Id": "P",
                                                 "Type": "Playlist"}))
 
+    def test_a_downloaded_season_reads_as_downloaded(self):
+        """A season is never itself a downloads row — manager.download
+        expands it into its episodes — so _is_downloaded had no branch that
+        could ever return True for one."""
+        self.b._downloaded_seasons = {"sea1"}
+        self.assertTrue(self.b._is_downloaded({"Id": "sea1",
+                                               "Type": "Season"}))
+
+    def test_an_undownloaded_season_does_not(self):
+        self.assertFalse(self.b._is_downloaded({"Id": "sea1",
+                                                "Type": "Season"}))
+
+    def test_a_downloaded_season_offers_remove_not_download(self):
+        """The visible consequence: se-undownload was unrenderable, so a
+        fully downloaded season showed "Download" forever."""
+        self.b._downloaded_seasons = {"sea1"}
+        item = {"Id": "sea1", "Type": "Season", "SeriesId": "sh1"}
+        btn = self.b._download_btn(item, "srv1", "se")
+        _n, h = layout(btn, 1280, 720)
+        self.assertIn("se-undownload", h,
+                      "a downloaded season still offers Download")
+
+    def test_removing_a_season_download_passes_both_ids(self):
+        """The Season branch of _remove_download was unreachable, so this
+        call had never once been made."""
+        got = {}
+        self.ctl.delete_download = lambda **kw: got.update(kw)
+        self.b._downloaded_seasons = {"sea1"}
+        self.b.nav_stack = [{"kind": "season", "server": "srv1"}]
+        self.b._remove_download({"Id": "sea1", "Type": "Season",
+                                 "SeriesId": "sh1"})
+        self.assertEqual(got, {"series_id": "sh1", "season_id": "sea1"})
+
     def test_the_push_hook_refreshes_the_badges(self):
-        self.ctl.downloaded_ids = lambda: ({"m1"}, set(), {"P"})
+        self.ctl.downloaded_ids = lambda: ({"m1"}, set(), {"sea1"}, {"P"})
         self.b.on_downloads_changed()
         self.assertEqual(self.b._downloaded, {"m1"})
+        self.assertEqual(self.b._downloaded_seasons, {"sea1"})
         self.assertEqual(self.b._downloaded_playlists, {"P"})
 
     def test_the_controller_reports_playlists(self):
@@ -5851,11 +5885,14 @@ class TestDownloadStateAndPush(unittest.TestCase):
             def downloaded_series_ids():
                 return {"sh1"}
 
+            @staticmethod
+            def downloaded_season_ids():
+                return {"sea1"}
+
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        items, series, playlists = _PlayerController().downloaded_ids()
-        self.assertEqual((items, series, playlists),
-                         ({"m1"}, {"sh1"}, {"P"}))
+        got = _PlayerController().downloaded_ids()
+        self.assertEqual(got, ({"m1"}, {"sh1"}, {"sea1"}, {"P"}))
 
 
 class TestPinFailsClosed(unittest.TestCase):

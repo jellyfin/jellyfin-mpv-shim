@@ -164,9 +164,14 @@ class TilesMixin:
             return True
         if t == "Series":
             return iid in self._downloaded_series
-        # A playlist's own id is never a downloads row — it lives in the
-        # playlists table, so without this the playlist page could never
-        # offer Remove Download.
+        # Neither a season nor a playlist is ever itself a downloads row: a
+        # season is expanded into its episodes, and a playlist lives in its
+        # own table. Without these two a downloaded season showed "Download"
+        # forever, never got the tile badge, and the Season branch of
+        # _remove_download was unreachable — the same shape as the playlist
+        # bug this line was added for.
+        if t == "Season":
+            return iid in self._downloaded_seasons
         return t == "Playlist" and iid in self._downloaded_playlists
 
     @staticmethod

@@ -276,6 +276,9 @@ class SyncManager:
     def downloaded_series_ids(self):
         return self.db.downloaded_series_ids() if self.db else set()
 
+    def downloaded_season_ids(self):
+        return self.db.downloaded_season_ids() if self.db else set()
+
     def state(self):
         """Snapshot the browser caches for indicators + the status bar."""
         if not self.db:

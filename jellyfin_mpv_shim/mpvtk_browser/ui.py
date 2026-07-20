@@ -924,9 +924,12 @@ class _PlayerController:
             log.error("could not open config folder %s", path, exc_info=True)
 
     def downloaded_ids(self):
-        """(item ids, series ids, playlist ids). Playlists live in their
-        own table — their id is never in downloads.item_id, so without the
-        third set a downloaded playlist never reads as downloaded."""
+        """(item ids, series ids, season ids, playlist ids).
+
+        Neither a playlist nor a season is ever itself a downloads row —
+        playlists live in their own table, and a season is expanded into its
+        episodes — so without the last two sets a fully downloaded playlist
+        or season could never read as downloaded."""
         from ..sync.manager import syncManager
         try:
             db = getattr(syncManager, "db", None)
@@ -935,9 +938,10 @@ class _PlayerController:
                 playlists = {p["playlist_id"] for p in db.list_playlists()}
             return (set(syncManager.downloaded_item_ids()),
                     set(syncManager.downloaded_series_ids()),
+                    set(syncManager.downloaded_season_ids()),
                     playlists)
         except Exception:
-            return (set(), set(), set())
+            return (set(), set(), set(), set())
 
     def on_downloads_changed(self, callback):
         """Subscribe to catalog changes. The browser polled a status blob

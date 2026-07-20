@@ -420,6 +420,18 @@ class SyncDB:
                             "WHERE status=? AND series_id IS NOT NULL",
                             (STATUS_COMPLETE,))}
 
+    def downloaded_season_ids(self):
+        """Seasons with at least one completed episode.
+
+        A Season is never itself a downloads row — manager.download expands it
+        into its episodes — so without this a fully downloaded season could
+        never read as downloaded anywhere in the UI.
+        """
+        return {r["season_id"] for r in
+                self._query("SELECT DISTINCT season_id FROM downloads "
+                            "WHERE status=? AND season_id IS NOT NULL",
+                            (STATUS_COMPLETE,))}
+
     def total_size(self):
         rows = self._query("SELECT COALESCE(SUM(downloaded_bytes),0) AS s FROM downloads")
         return rows[0]["s"] if rows else 0
