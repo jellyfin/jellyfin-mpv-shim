@@ -672,18 +672,57 @@ class _PlayerController:
 
     # -- SyncPlay ---------------------------------------------------------
 
-    def get_sync_groups(self, server_uuid):
-        client = clientManager.clients.get(server_uuid)
-        if client is None:
-            return []
+    def get_sync_groups(self, server_uuid=None):
+        """Active SyncPlay groups, tagged with the server they live on.
+
+        ``server_uuid=None`` asks every connected server. A group belongs to
+        one server, and the dialog used to list only the selected one's — so
+        with two servers signed in, half your groups were invisible and the
+        only way to reach them was to switch servers first.
+        """
+        if server_uuid is not None:
+            targets = [(server_uuid, clientManager.clients.get(server_uuid))]
+        else:
+            targets = list(clientManager.clients.items())
+        names = {c.get("uuid"): (c.get("Name") or c.get("address"))
+                 for c in list(clientManager.credentials)}
+        out = []
+        for uuid, client in targets:
+            if client is None:
+                continue
+            try:
+                groups = client.jellyfin.get_sync_play() or []
+            except Exception:
+                # One unreachable server must not hide the others' groups.
+                log.error("mpvtk get_sync_groups failed for %s", uuid,
+                          exc_info=True)
+                continue
+            for g in groups:
+                out.append({"id": g.get("GroupId"),
+                            "name": g.get("GroupName") or "Group",
+                            "participants": g.get("Participants") or [],
+                            "server_uuid": uuid,
+                            "server_name": names.get(uuid) or ""})
+        return out
+
+    def sync_state(self):
+        """The joined group as ``{"group_id", "server_uuid"}``, or None.
+
+        The dialog had no idea which group you were in: every group looked
+        joinable and Leave was always offered, including when there was
+        nothing to leave."""
+        from ..player import playerManager
         try:
-            return [{"id": g.get("GroupId"),
-                     "name": g.get("GroupName") or "Group",
-                     "participants": g.get("Participants") or []}
-                    for g in (client.jellyfin.get_sync_play() or [])]
+            sp = playerManager.syncplay
+            if not sp.is_enabled():
+                return None
+            client = sp.client
+            uuid = next((u for u, c in clientManager.clients.items()
+                         if c is client), None)
+            return {"group_id": sp.current_group, "server_uuid": uuid}
         except Exception:
-            log.error("mpvtk get_sync_groups failed", exc_info=True)
-            return []
+            log.debug("sync_state failed", exc_info=True)
+            return None
 
     def _sync(self, server_uuid, fn):
         client = clientManager.clients.get(server_uuid)

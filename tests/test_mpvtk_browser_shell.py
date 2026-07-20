@@ -412,8 +412,12 @@ class FakeController:
         return {"items": [{"id": "q%d" % i, "playlist_item_id": "p%d" % i}
                           for i in range(3)], "current_id": "q1"}
 
-    def get_sync_groups(self, server_uuid):
-        return [{"id": "g1", "name": "Group 1"}]
+    def get_sync_groups(self, server_uuid=None):
+        return [{"id": "g1", "name": "Group 1", "server_uuid": "srv1",
+                 "server_name": "Home"}]
+
+    def sync_state(self):
+        return None
 
     def download_estimate(self, server, item_id, item_type):
         return {"count": 3, "total_bytes": 5 * 1024 * 1024,
@@ -2151,6 +2155,137 @@ class TestDialogs(unittest.TestCase):
         self.assertIsNone(self.b._dialog)   # closes on join
 
 
+class TestDoubleClickToPlay(unittest.TestCase):
+    """In a selectable list the row click selects, so the only way to play
+    was the small arrow in the first column. Double-click is what every
+    media app does — and Table has carried an unused on_dbl since it was
+    written."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b._size = (1280, 720)
+
+    def _queue(self):
+        self.b._open_queue()
+        return build_scene(self.b)
+
+    def test_double_clicking_a_queue_row_jumps_to_it(self):
+        _nodes, h = self._queue()
+        self.assertIn("dbl", h["q-1"], "no double-click on a queue row")
+        h["q-1"]["dbl"]()
+        self.assertIn("skip_to", [c[0] for c in self.ctl.transport])
+
+    def test_a_single_click_still_only_selects(self):
+        """Double-click must not come at the cost of the selection model —
+        the toolbar's move/remove all work off it."""
+        _nodes, h = self._queue()
+        h["q-1"]["click"]({"shift": False, "ctrl": False})
+        self.assertNotIn("skip_to", [c[0] for c in self.ctl.transport])
+        self.assertTrue(self.b._pe_sel(self.b.route), "the click did not select")
+
+    def test_a_non_selectable_list_is_unchanged(self):
+        """There the row click already plays; adding a double-click would
+        play it twice."""
+        node = self.b._track_list(
+            [{"Id": "t1", "Name": "T"}], "t", lambda i: None)
+        _nodes, h = layout(node, 1280, 720)
+        self.assertNotIn("dbl", h.get("t-0", {}))
+
+
+class TestSyncPlayAcrossServers(unittest.TestCase):
+    """The dialog asked one server for groups and showed no idea which one
+    you were in: with two accounts signed in half your groups were
+    invisible, every group looked equally joinable, and Leave was offered
+    even with nothing to leave."""
+
+    GROUPS = [
+        {"id": "g1", "name": "Movie Night", "server_uuid": "srv1",
+         "server_name": "Home", "participants": ["izzie"]},
+        {"id": "g2", "name": "Remote Watch", "server_uuid": "srv2",
+         "server_name": "Cabin", "participants": []},
+    ]
+
+    def _browser(self, joined=None, groups=None):
+        ctl = FakeController()
+        self.asked = []
+        groups = self.GROUPS if groups is None else groups
+        ctl.get_sync_groups = lambda srv=None: (self.asked.append(srv)
+                                                or list(groups))
+        ctl.sync_state = lambda: joined
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        self.ctl = b.controller
+        b._open_syncplay()
+        return b
+
+    def _nodes(self, b):
+        return layout(b._dialog(), 1280, 720)
+
+    def test_it_asks_every_server_not_just_the_selected_one(self):
+        self._browser()
+        self.assertEqual(self.asked, [None],
+                         "groups were fetched for one server only")
+
+    def test_groups_from_other_servers_are_listed(self):
+        b = self._browser()
+        nodes, _h = self._nodes(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertIn("Movie Night", texts)
+        self.assertIn("Remote Watch", texts)
+
+    def test_a_group_says_which_server_it_is_on(self):
+        b = self._browser()
+        nodes, _h = self._nodes(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertIn("Cabin", texts)
+
+    def test_one_server_does_not_label_every_row(self):
+        """Noise when it disambiguates nothing."""
+        b = self._browser(groups=[self.GROUPS[0]])
+        nodes, _h = self._nodes(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertNotIn("Home", texts)
+
+    def test_joining_a_remote_group_uses_that_groups_server(self):
+        """The click handler passed self.server for every row, so joining a
+        group on the other server sent the join to the wrong one."""
+        b = self._browser()
+        _nodes, h = self._nodes(b)
+        h["sp-join-1"]["click"]()
+        joins = [c for c in self.ctl.transport if c[0] == "sync_join"]
+        self.assertEqual(joins[-1][1][0], "srv2")
+
+    def test_the_joined_group_is_marked(self):
+        b = self._browser(joined={"group_id": "g2", "server_uuid": "srv2"})
+        nodes, _h = self._nodes(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertIn("joined", texts.lower())
+
+    def test_clicking_the_joined_group_does_not_rejoin(self):
+        b = self._browser(joined={"group_id": "g2", "server_uuid": "srv2"})
+        _nodes, h = self._nodes(b)
+        h["sp-join-1"]["click"]()
+        self.assertEqual([c for c in self.ctl.transport
+                          if c[0] == "sync_join"], [])
+
+    def test_leave_is_offered_only_when_there_is_something_to_leave(self):
+        b = self._browser()
+        self.assertNotIn("sp-leave", ids(self._nodes(b)[0]))
+        b = self._browser(joined={"group_id": "g1", "server_uuid": "srv1"})
+        self.assertIn("sp-leave", ids(self._nodes(b)[0]))
+
+    def test_leave_goes_to_the_server_the_group_is_on(self):
+        b = self._browser(joined={"group_id": "g2", "server_uuid": "srv2"})
+        _nodes, h = self._nodes(b)
+        h["sp-leave"]["click"]()
+        leaves = [c for c in self.ctl.transport if c[0] == "sync_leave"]
+        self.assertEqual(leaves[-1][1][0], "srv2")
+
+
 class TestQueueView(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
@@ -2304,9 +2439,13 @@ class TestNowPlaying(unittest.TestCase):
             self.assertIn(nid, ids(nodes))
         # seek is commit-only (fires when the drag gesture ends); volume
         # stays live on change
+        # Dragging must not seek. Asserted by driving the drag, not by the
+        # absence of a change handler — there is one now, and it only moves
+        # the elapsed clock.
+        h["np-seek"]["change"](42)
+        self.assertNotIn("seek", [c[0] for c in self.ctl.transport],
+                         "np-seek live-seeks while dragging")
         h["np-seek"]["commit"](42)
-        self.assertNotIn("change", h["np-seek"],
-                         "np-seek must not live-seek while dragging")
         h["np-vol"]["change"](30)
         h["np-repeat"]["click"]()
         h["np-fav"]["click"]()
@@ -2334,6 +2473,48 @@ class TestNowPlaying(unittest.TestCase):
                     if c[0] == "set_volume" and c[2].get("notify") is not False]
         self.assertEqual(len(released), 1,
                          "releasing the slider did not notify exactly once")
+
+    def _elapsed(self, nodes):
+        """The elapsed-time text, left of the seek bar."""
+        seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+        clocks = [n for n in nodes if n["t"] == "text"
+                  and ":" in (n.get("text") or "")
+                  and n["x"] < seek["x"]]
+        self.assertTrue(clocks, "no elapsed clock")
+        return clocks[-1]["text"]
+
+    def test_the_clock_follows_the_handle_while_scrubbing(self):
+        """It sat frozen at the playhead for the whole gesture — the one
+        moment it is actually being read."""
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 600})
+        nodes, h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "0:10")
+        h["np-seek"]["change"](305)
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "5:05",
+                         "the clock ignored the drag")
+
+    def test_releasing_hands_the_clock_back_to_the_playhead(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 600})
+        _nodes, h = build_scene(self.b)
+        h["np-seek"]["change"](305)
+        h["np-seek"]["commit"](305)
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "0:10",
+                         "the clock stayed stuck on the drag target")
+
+    def test_cancelling_a_drag_also_hands_it_back(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 600})
+        _nodes, h = build_scene(self.b)
+        h["np-seek"]["change"](305)
+        h["np-seek"]["cancel"]()
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._elapsed(nodes), "0:10")
+        self.assertNotIn("seek", [c[0] for c in self.ctl.transport],
+                         "a cancelled drag seeked anyway")
 
     def test_every_control_in_the_bar_names_itself(self):
         """The bar is icon-only end to end, and had no tooltips at all —
@@ -2873,6 +3054,19 @@ class TestAddServer(unittest.TestCase):
         self.assertIn("login-known-0", ids(nodes))
         h["login-known-0"]["click"]()
         self.assertEqual(self.b._login["server"], "http://old.example")
+
+    def test_a_known_server_can_go_straight_to_quick_connect(self):
+        """"Use" only filled the URL box, so the passwordless path still
+        meant finding the other button and starting over — on the one
+        screen whose whole point is not typing anything."""
+        self.b.show_login()
+        self.ctl.route_ref = self.b.route
+        _n, h = build_scene(self.b)
+        self.assertIn("login-known-qc-0", h, "no per-server Quick Connect")
+        h["login-known-qc-0"]["click"]()
+        self.assertEqual(self.b._login["server"], "http://old.example")
+        self.assertEqual(self.ctl.qc_calls, ["http://old.example"],
+                         "Quick Connect did not start for that server")
 
     def test_quick_connect_needs_a_server_url(self):
         self.b.show_login()
@@ -4110,6 +4304,16 @@ class TestTileMenuGating(unittest.TestCase):
         acts = self._actions({"Id": "g1", "Type": "MusicGenre"})
         self.assertNotIn("watched", acts)
         self.assertNotIn("download", acts)
+
+    def test_a_music_genre_cannot_be_favorited(self):
+        """A genre is not a library item — favoriting one posts a
+        non-favoritable id that the server rejects. Tk excluded it."""
+        self.assertNotIn("favorite",
+                         self._actions({"Id": "g1", "Type": "MusicGenre"}))
+        # ...but the types either side of it in MENU_PLAYABLE still can be,
+        # so the exclusion is targeted rather than a blanket loss.
+        for t in ("MusicAlbum", "MusicArtist"):
+            self.assertIn("favorite", self._actions({"Id": "x", "Type": t}), t)
 
     def test_an_album_can_be_played_and_queued(self):
         acts = self._actions({"Id": "a1", "Type": "MusicAlbum"})

@@ -128,6 +128,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
         self._np_thread = None
+        # Pending drag target on the now-playing bar's seek slider, in
+        # seconds (None when not scrubbing) — the elapsed clock reads this
+        # instead of the playhead. See MusicMixin._np_scrub_change.
+        self._np_scrub = None
         # Set once, by shutdown(), and never cleared: it is the sleep every
         # background thread waits on, so clearing it would be a way to kill
         # them all. Guards the now-playing ticker, both download pollers and

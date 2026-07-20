@@ -1,7 +1,9 @@
 # Review queue — findings from the 2026-07-20 multi-angle audit
 
-**Temporary.** Delete once the queue is empty; fold anything still open into
-`MIGRATION.md`.
+**The queue is empty.** Every item below is `[x]` done or `[~]` deliberately
+declined. Keep this file until the mpvtk browser has had real use — it is the
+record of what was broken and why each decision went the way it did — then
+fold the declined items into `MIGRATION.md` and delete it.
 
 Five parallel review agents went over the mixin split and its follow-ups
 (parity vs the Tk browser, concurrency, dead/unreachable UI, test quality,
@@ -126,8 +128,11 @@ Not in the accepted-losses list. Roughly by value.
   `Role or Type`, so every Director/Writer tile is captioned blank.
 - [x] **Genres in the metadata line** — dropped (`views.py:284`) though
   `Genres` is still fetched.
-- [ ] **SyncPlay across servers, and joined-state** — single server only
-  (`dialogs.py:372`), never marks which group you are in, Leave always shown.
+- [x] **SyncPlay across servers, and joined-state** — the dialog now asks
+  every connected server, labels rows with the server when that
+  disambiguates, marks the joined group, joins/leaves against the group's
+  OWN server (it used to send every join to `self.server`), and offers
+  Leave only when there is something to leave.
 - [x] **Sort control on a person's filmography** — the filter bar is gated on
   `kind == "grid"` (`views.py:138`) and person routes are `"person"`. Added a
   sort-only bar; the repository has always taken sort_by/sort_order and
@@ -136,7 +141,9 @@ Not in the accepted-losses list. Roughly by value.
 - [x] **Tooltips** in browser chrome and the now-playing bar. Chrome buttons
   are tipped exactly when compact drops their label; the search button and
   the whole (icon-only) now-playing bar are tipped always.
-- [ ] **Per-known-server Quick Connect** — fills the URL only (`auth.py:229`).
+- [x] **Per-known-server Quick Connect** — fills the URL only (`auth.py:229`).
+  Each known server now has its own Quick Connect button that fills the URL
+  and starts the flow in one step.
 - [x] **"Work offline" on the connecting screen** — the `connecting` route
   now exists (chrome-free), with Work Offline gated on having downloads, and
   Retry / Sign In once the connect has actually given up. Startup opens on
@@ -150,8 +157,10 @@ Not in the accepted-losses list. Roughly by value.
   also no-ops for the whole selection when the first row is already at the top.
 - [x] "Play All" on a playlist loses resume (`music.py:285` omits `items=`).
 - [x] Download button offered while offline on the playlist page (`music.py:292`).
-- [ ] "Add to Favorites" offered on MusicGenre tiles (`tiles.py:364`); Tk
-  excluded it — will hit the server with a non-favoritable id.
+- [x] "Add to Favorites" offered on MusicGenre tiles (`tiles.py:364`); Tk
+  excluded it — will hit the server with a non-favoritable id. **This was
+  already fixed** by the `MENU_FAVORITE` change in the P4 section; the entry
+  was stale. Now pinned by a test.
 - [x] Music tabs refetch on every switch (`music.py:91`); Tk cached per tab.
 - [x] Queue removal failures swallowed — `_safe` (`queue_edit.py:111`) where
   every other edit uses `_edit_call`. `_pe_remove` restores `_items` but not
@@ -180,7 +189,10 @@ Not in the accepted-losses list. Roughly by value.
   thread, which posts to the *server*, so one drag was a burst of round
   trips.
 - [x] Add-to name boxes and the login form lack Enter-to-submit.
-- [ ] Seek time frozen during scrub (`music.py:374`).
+- [x] Seek time frozen during scrub (`music.py:374`) — the clock follows the
+  handle during the drag and hands back to the playhead on release or
+  cancel. No pause, unlike the video HUD: pausing to inspect a frame makes
+  sense, pausing a song because you touched the seek bar does not.
 
 ## 6. P4 — dead / half-finished
 
@@ -191,15 +203,21 @@ Not in the accepted-losses list. Roughly by value.
 - [x] Trailer fetch for `Series` (`views.py:989`) can never surface — series
   route to `_render_series`, which has no Trailer button. One wasted API call
   per series load.
-- [ ] `_grid_of(heading=…)` (`tiles.py:699`) — never passed by any caller.
+- [x] `_grid_of(heading=…)` (`tiles.py:699`) — never passed by any caller.
+  Removed. The one page that wants a heading over its grid draws it itself,
+  outside the scroll, which is also what keeps `head_h` honest.
 - [x] `MENU_FAVORITE` (`tiles.py:370`) reads as widening `MENU_PLAYABLE` but is
   a no-op; both names are already in it.
 - [x] `config.py:17` `_HIDDEN` doesn't cover `client_uuid` — an editable
   free-text row that rewrites the device identity the server tracks sessions by.
-- [ ] `_render_album` has no `on_scroll` (`music.py:202`); its virtualized table
+- [x] `_render_album` has no `on_scroll` (`music.py:202`); its virtualized table
   relies on live offsets, so it windows wrong on the mpv < 0.36 fallback path.
-- [ ] `Table`'s `on_dbl` (`mpvtk/widgets.py:590`) is unused browser-wide — the
-  natural home for the missing queue double-click-to-jump.
+  Wired — and `tests/test_mpvtk_virtualized_scrolls.py` now reads the source
+  and fails on the *next* one, since no unit test can exercise that path.
+- [x] `Table`'s `on_dbl` (`mpvtk/widgets.py:590`) is unused browser-wide — the
+  natural home for the missing queue double-click-to-jump. Done: in a
+  selectable list the row click selects, so the play arrow was the only way
+  to start a track.
 
 ---
 

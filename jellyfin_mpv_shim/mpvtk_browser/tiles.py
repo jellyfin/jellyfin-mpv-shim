@@ -711,7 +711,7 @@ class TilesMixin:
 
     GRID_GAP = 12
 
-    def _grid_of(self, items, prefix, size, heading=None, geom=None,
+    def _grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
                  on_click=None):
         """Tile rows for a vertical grid.
@@ -723,7 +723,10 @@ class TilesMixin:
         after scrolling away and back."""
         geom = geom or self.geom
         cols = self._cols(size[0], geom)
-        rows = [Text(heading, size=26, bold=True)] if heading else []
+        # (There was a `heading` parameter here that no caller ever passed.
+        # The one page that wants a heading over its grid draws it itself,
+        # outside the scroll, which is also what keeps head_h honest.)
+        rows = []
         nrows = (len(items) + cols - 1) // cols
         first, last = 0, nrows - 1
         if scroll_id is not None:
@@ -821,6 +824,12 @@ class TilesMixin:
                              if on_select is not None
                              else (lambda i=i: on_play(i))),
             }
+            if on_select is not None:
+                # A selectable list's row click SELECTS, so the only way to
+                # play was the little arrow in the first column. Double-click
+                # is what every media app does, and Table has carried on_dbl
+                # unused since it was written.
+                row["on_dbl"] = lambda i=i: on_play(i)
             if menu:
                 # Right-click a track for the same menu a tile gets. Tiles
                 # have had this all along; a Table row never asked for it, so

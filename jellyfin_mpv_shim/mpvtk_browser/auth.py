@@ -249,6 +249,15 @@ class AuthMixin:
                     Text(k.get("name") or addr, size=16, flex=1),
                     Button(_("Use"), id="login-known-%d" % i, size=15,
                            on_click=lambda a=addr: self._use_known_server(a)),
+                    # Straight into Quick Connect for THIS server. "Use"
+                    # only filled the URL box, so the actual passwordless
+                    # path still meant finding the button below and
+                    # starting over — on the one screen where the point is
+                    # not to type anything.
+                    Button(_("Quick Connect"), id="login-known-qc-%d" % i,
+                           size=15, icon="radio",
+                           on_click=lambda a=addr: self._quick_connect_to(
+                               route, a)),
                 ], id="login-known-row-%d" % i, pad=8, gap=10, radius=6,
                    align="center", bg=theme.PANEL_BG))
 
@@ -298,6 +307,11 @@ class AuthMixin:
     def _use_known_server(self, address):
         self._login["server"] = address
         self.invalidate()
+
+    def _quick_connect_to(self, route, address):
+        """Fill the URL and start Quick Connect against it in one step."""
+        self._login["server"] = address
+        self._start_quick_connect(route)
 
     def _start_quick_connect(self, route):
         server = (self._login.get("server") or "").strip()

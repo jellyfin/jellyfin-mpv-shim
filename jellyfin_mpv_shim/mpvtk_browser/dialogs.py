@@ -385,41 +385,73 @@ class DialogsMixin:
         ep = self._epoch
 
         def work():
-            return self.controller.get_sync_groups(server)
+            # None: every connected server, not just the selected one. A
+            # group belongs to one server, so filtering to self.server made
+            # half of them invisible with two accounts signed in.
+            return (self.controller.get_sync_groups(None),
+                    self.controller.sync_state())
 
-        def done(groups):
-            self._show_syncplay(server, groups)
+        def done(res):
+            groups, state = res
+            self._show_syncplay(server, groups, state)
 
         # Fetch groups off-thread, then show the dialog on the loop.
         self.run_async(work, done, ep)
 
-    def _show_syncplay(self, server, groups):
+    def _show_syncplay(self, server, groups, state=None):
+        joined = (state or {}).get("group_id")
+        multi = len({g.get("server_uuid") for g in groups}) > 1
+
         def build():
             rows = [Text(_("SyncPlay"), size=22, bold=True)]
             if groups:
                 for i, g in enumerate(groups):
+                    gid = g.get("id")
+                    here = joined is not None and gid == joined
                     who = ", ".join(g.get("participants") or [])
+                    # Which server, but only when it disambiguates — a
+                    # single-server session does not need it on every row.
+                    if multi and g.get("server_name"):
+                        who = ("%s · %s" % (g["server_name"], who) if who
+                               else g["server_name"])
                     rows.append(Column([
-                        Button(g.get("name") or _("Group"),
-                               id="sp-join-%d" % i,
-                               on_click=lambda gid=g.get("id"):
-                                   self._sync_join(server, gid)),
+                        Button(
+                            # The joined group is not a join button; it says
+                            # where you are. Every group used to look
+                            # equally joinable.
+                            (_("%s (joined)") % g.get("name")) if here
+                            else (g.get("name") or _("Group")),
+                            id="sp-join-%d" % i,
+                            bg=theme.ACCENT if here else None,
+                            fg=theme.ACCENT_FG if here else "eeeeee",
+                            on_click=(self._close_dialog if here else
+                                      (lambda gid=gid, srv=g.get("server_uuid"):
+                                       self._sync_join(srv or server, gid)))),
                         Text(who, size=13, color=theme.SUBTLE_FG)
                         if who else Spacer(h=0),
                     ], gap=2))
             else:
                 rows.append(Text(_("No active groups."), size=15,
                                  color=theme.SUBTLE_FG))
-            rows.append(Row([
+            buttons = [
                 Button(_("New Group"), id="sp-new",
                        on_click=lambda: self._sync_new(server)),
-                Button(_("Leave"), id="sp-leave",
-                       on_click=lambda: self._sync_leave(server)),
+            ]
+            if joined is not None:
+                # Only when there is something to leave. It used to render
+                # unconditionally, so the one control that changes state was
+                # offered when it could do nothing.
+                buttons.append(Button(
+                    _("Leave"), id="sp-leave",
+                    on_click=lambda srv=(state or {}).get("server_uuid"):
+                        self._sync_leave(srv or server)))
+            buttons += [
                 Button(_("Refresh"), id="sp-refresh",
                        on_click=lambda: self._open_syncplay()),
                 Spacer(),
                 Button(_("Close"), id="sp-close", on_click=self._close_dialog),
-            ], gap=10, align="center"))
+            ]
+            rows.append(Row(buttons, gap=10, align="center"))
             return Dialog("syncplay", self._dialog_shell("syncplay", rows,
                                                          w=480),
                           on_dismiss=self._close_dialog)

@@ -253,9 +253,16 @@ class MusicMixin:
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True),
             scroll_id="album", head_h=110, menu=True)
+        # on_scroll, like every other virtualized list. _offset prefers the
+        # renderer's live property, so this looked fine — but on mpv < 0.36
+        # that property does not exist and the throttled on_scroll copy is
+        # the ONLY source. Without it the window stayed at offset 0 and
+        # everything past the first screenful drew blank.
         return VScroll(Column([header, body], pad=self.CONTENT_PAD, gap=12,
                               align="stretch"),
-                       id="album", flex=1)
+                       id="album", flex=1,
+                       on_scroll=lambda off, mx: self._on_scroll(
+                           "album", off, mx))
 
     def _render_artist(self, route, size):
         data = route.get("_data")
@@ -432,9 +439,32 @@ class MusicMixin:
         self._ctl(lambda c: c.toggle_favorite())
         self.invalidate()
 
+    def _np_scrub_change(self, v):
+        """Track the drag so the elapsed clock follows the handle.
+
+        No pause, unlike the video HUD: pausing to inspect a frame makes
+        sense; pausing a song because you touched the seek bar does not.
+        The seek itself still only fires on release."""
+        self._np_scrub = float(v)
+        self.invalidate()
+
+    def _np_scrub_commit(self, v):
+        self._np_scrub = None
+        self._ctl(lambda c: c.seek(float(v)))
+        self.invalidate()
+
+    def _np_scrub_cancel(self):
+        self._np_scrub = None
+        self.invalidate()
+
     def _now_playing_bar(self, w):
         np = self._now_playing
         pos = np.get("position", 0) or 0
+        # While dragging, show where the handle IS, not where playback is.
+        # The clock sat frozen at the old position for the whole gesture,
+        # which is the one moment it is actually being read.
+        scrub = self._np_scrub
+        shown = pos if scrub is None else scrub
         dur = np.get("duration", 0) or 0
         pp = "play_arrow" if np.get("paused") else "pause"
         repeat = np.get("repeat", "none")
@@ -451,7 +481,9 @@ class MusicMixin:
         # commit-only: dragging shouldn't spam absolute seeks mid-gesture
         seek = Slider("np-seek", value=pos, min=0, max=max(1, dur),
                       force=True, flex=1,
-                      on_commit=lambda v: self._ctl(lambda c: c.seek(v)))
+                      on_change=self._np_scrub_change,
+                      on_commit=self._np_scrub_commit,
+                      on_cancel=self._np_scrub_cancel)
         title = np.get("title", "")
         sub = np.get("artist") or np.get("album") or ""
         return Row(
@@ -468,7 +500,8 @@ class MusicMixin:
                      lambda: self._ctl(lambda c: c.next()), tip=_("Next")),
                 tbtn("stop", "np-stop", lambda: self._ctl(lambda c: c.stop()),
                      tip=_("Stop")),
-                Text(self._fmt(pos), size=14, w=48, color=theme.SUBTLE_FG),
+                Text(self._fmt(shown), size=14, w=48,
+                     color=theme.SUBTLE_FG),
                 seek,
                 Text(self._fmt(dur), size=14, w=48, color=theme.SUBTLE_FG),
                 tbtn("favorite" if np.get("favorite") else "favorite_border",
