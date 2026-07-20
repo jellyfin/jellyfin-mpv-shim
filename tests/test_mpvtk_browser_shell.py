@@ -3460,3 +3460,115 @@ class TestGridPaging(unittest.TestCase):
         b._on_grid_scroll(route, 0, 100)
         self.assertEqual(len(route["_items"]), 21)
         self.assertEqual(route["_total"], 100)
+
+
+class TestPlaylistQueueing(unittest.TestCase):
+    """Clicking an entry in a video playlist must play the PLAYLIST from
+    that point. It went through _open_item, so Play on the detail page
+    queued the item's series instead — silently abandoning the playlist."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.plays = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: self.plays.append(
+            (list(ids), i, kw.get("offset_ticks")))
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _items(self):
+        return [
+            {"Id": "m1", "Type": "Movie", "Name": "One"},
+            {"Id": "e1", "Type": "Episode", "Name": "Two",
+             "UserData": {"PlaybackPositionTicks": 90000000}},
+            {"Id": "m2", "Type": "Movie", "Name": "Three"},
+        ]
+
+    def test_clicking_an_entry_queues_the_playlist_from_there(self):
+        items = self._items()
+        ids = [i["Id"] for i in items]
+        self.b._play_list(ids, "srv1", 1, items=items)
+        played_ids, start, _off = self.plays[0]
+        self.assertEqual(played_ids, ids, "queued something other than "
+                         "the playlist")
+        self.assertEqual(start, 1)
+
+    def test_the_clicked_entry_resumes(self):
+        items = self._items()
+        self.b._play_list([i["Id"] for i in items], "srv1", 1, items=items)
+        self.assertEqual(self.plays[0][2], 90000000, "resume offset lost")
+
+    def test_an_entry_without_progress_starts_from_zero(self):
+        items = self._items()
+        self.b._play_list([i["Id"] for i in items], "srv1", 0, items=items)
+        self.assertIsNone(self.plays[0][2])
+
+    def test_a_missing_id_does_not_shift_the_queue(self):
+        """Filtering empties out before using the caller's index moved the
+        queue out from under the entry that was clicked."""
+        items = [{"Id": None, "Type": "Movie"},
+                 {"Id": "m2", "Type": "Movie"},
+                 {"Id": "m3", "Type": "Movie"}]
+        ids = [i["Id"] for i in items]
+        self.b._play_list(ids, "srv1", 2, items=items)
+        played_ids, start, _off = self.plays[0]
+        self.assertEqual(played_ids[start], "m3",
+                         "started the wrong entry")
+
+    def test_an_out_of_range_index_falls_back_to_the_start(self):
+        self.b._play_list(["m1", "m2"], "srv1", 9)
+        self.assertEqual(self.plays[0][1], 0)
+
+    def test_video_playlists_render_only_supported_types(self):
+        route = {"kind": "playlist", "server": "srv1", "item_id": "P",
+                 "title": "Mix", "_data": self._items() + [
+                     {"Id": "x1", "Type": "Photo", "Name": "Nope"}]}
+        self.b.nav_stack = [route]
+        nodes, _h = build_scene(self.b)
+        rendered = " ".join(str(n.get("id", "")) for n in nodes)
+        self.assertNotIn("x1", rendered, "unsupported entry rendered a tile")
+        self.assertIn("m1", rendered)
+
+
+class TestWorkOfflineToggle(unittest.TestCase):
+    """work_offline was persisted and then ignored until the next launch —
+    the classic "setting written but not applied"."""
+
+    def _browser(self, offline_source=None, live_source=None):
+        ctl = FakeController()
+        ctl.offline_source = lambda: offline_source
+        ctl.connect_and_rebuild = lambda: live_source
+        cfg = FakeConfig()
+        cfg.schema["work_offline"] = "bool"
+        cfg.values["work_offline"] = False
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=cfg)
+        b._pool = _SyncPool()
+        return b
+
+    def test_turning_it_on_swaps_to_the_downloads(self):
+        offline = FakeSource()
+        b = self._browser(offline_source=offline)
+        b._set_setting("work_offline", True)
+        self.assertIs(b.source, offline, "still on the live source")
+
+    def test_turning_it_off_reconnects(self):
+        live = FakeSource()
+        b = self._browser(offline_source=FakeSource(), live_source=live)
+        b._set_setting("work_offline", True)
+        b._offline = True
+        b._set_setting("work_offline", False)
+        self.assertIs(b.source, live)
+
+    def test_nothing_downloaded_reports_instead_of_blanking(self):
+        b = self._browser(offline_source=None)
+        before = b.source
+        b._set_setting("work_offline", True)
+        self.assertIs(b.source, before, "swapped to an empty source")
+        self.assertIn("Nothing downloaded", b.status)
+
+    def test_other_settings_do_not_touch_the_source(self):
+        b = self._browser(offline_source=FakeSource())
+        before = b.source
+        b._set_setting("player_name", "Bud")
+        self.assertIs(b.source, before)

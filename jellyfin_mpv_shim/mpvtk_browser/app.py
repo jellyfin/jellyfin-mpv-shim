@@ -877,16 +877,18 @@ class MpvtkBrowser:
             downloaded=self._is_downloaded(item),
         )
 
-    def _image_map(self, items, prefix, geom=None, image_type="Primary"):
+    def _image_map(self, items, prefix, geom=None, image_type="Primary",
+                   on_click=None):
         geom = geom or self.geom
         tiles = [self._tile(it, geom, image_type) for it in items]
         s = self.strips.strip(tiles, geom)
         regions = []
+        act = on_click or self._open_item
         for r, it in zip(s["regions"], items):
             regions.append(dict(
                 r,
                 id="%s-%s" % (prefix, r["key"]),
-                on_click=(lambda i=it: self._open_item(i)),
+                on_click=(lambda i=it: act(i)),
                 on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
@@ -1314,14 +1316,32 @@ class MpvtkBrowser:
             self.controller.play(item, server, offset_ticks=offset_ticks,
                                  srcid=srcid, aid=aid, sid=sid)
 
-    def _play_list(self, ids, server, start_index=0, audio=False):
-        """Play a whole list from ``start_index`` (album/playlist/song)."""
+    def _play_list(self, ids, server, start_index=0, audio=False,
+                   items=None):
+        """Play a whole list from ``start_index`` (album/playlist/song).
+
+        ``items`` (the DTOs behind ``ids``) supplies the resume offset for
+        the entry actually being started, as the Tk browser does —
+        without it, clicking a half-watched entry restarted it from zero.
+
+        The chosen entry is re-located by id after dropping empty ones:
+        filtering first and trusting the caller's index shifted the queue
+        out from under the entry that was clicked."""
+        start_id = ids[start_index] if 0 <= start_index < len(ids) else None
+        offset = None
+        if items is not None and 0 <= start_index < len(items):
+            offset = ((items[start_index].get("UserData") or {})
+                      .get("PlaybackPositionTicks")) or None
         ids = [i for i in ids if i]
         if not ids:
             return
+        try:
+            pos = ids.index(start_id)
+        except ValueError:
+            pos = 0
         self._start(audio=audio)
         if self.controller is not None:
-            self.controller.play_list(ids, server, start_index)
+            self.controller.play_list(ids, server, pos, offset_ticks=offset)
 
     # ------------------------------------------------- browse <-> playback
 
@@ -2440,7 +2460,8 @@ class MpvtkBrowser:
     GRID_GAP = 12
 
     def _grid_of(self, items, prefix, size, heading=None, geom=None,
-                 image_type="Primary", scroll_id=None, head_h=0):
+                 image_type="Primary", scroll_id=None, head_h=0,
+                 on_click=None):
         """Tile rows for a vertical grid.
 
         With ``scroll_id`` the rows are **virtualized**: only those within a
@@ -2464,7 +2485,8 @@ class MpvtkBrowser:
                 start = r * cols
                 rows.append(self._image_map(items[start:start + cols],
                                             "%s-%d" % (prefix, start),
-                                            geom, image_type))
+                                            geom, image_type,
+                                            on_click=on_click))
             else:
                 rows.append(Spacer(h=geom.strip_h))
         if not items:
@@ -2824,11 +2846,19 @@ class MpvtkBrowser:
             # art earns its column here though: albums differ per row.
             body = [self._track_list(
                 items, "pl",
-                lambda i: self._play_list(ids, server, i, audio=True),
+                lambda i: self._play_list(ids, server, i, audio=True,
+                                          items=items),
                 art=True, scroll_id="playlist", head_h=70)]
         else:
-            body = self._grid_of(data, "pl", size, scroll_id="playlist",
-                                 head_h=70)
+            # `items`, not `data`: unsupported entries were rendering as
+            # tiles whose click did something unrelated. And a click plays
+            # the PLAYLIST from that point — going through _open_item meant
+            # Play on the detail page queued the item's series instead,
+            # silently abandoning the playlist the user was in.
+            body = self._grid_of(
+                items, "pl", size, scroll_id="playlist", head_h=70,
+                on_click=lambda it: self._play_list(
+                    ids, server, items.index(it), audio=False, items=items))
         return VScroll(Column([header, Spacer(h=2)] + body,
                               pad=self.CONTENT_PAD, gap=self.GRID_GAP,
                               align="stretch"),
@@ -2938,7 +2968,32 @@ class MpvtkBrowser:
         ok = self._config().set_setting(key, value)
         self.status = ((_("Saved: %s") if ok else _("Invalid value: %s"))
                        % key)
+        if ok and key == "work_offline":
+            self._apply_work_offline(bool(value))
         self.invalidate()
+
+    def _apply_work_offline(self, offline):
+        """Swap the data source when the setting is toggled, rather than
+        persisting a key that does nothing until the next launch. Tk
+        applies it live too."""
+        if self.controller is None or offline == self._offline:
+            return
+
+        ep = self._epoch
+
+        def work():
+            if offline:
+                return self.controller.offline_source()
+            return self.controller.connect_and_rebuild()
+
+        def done(source):
+            if source is None:
+                self.status = (_("Nothing downloaded to browse offline.")
+                               if offline else
+                               _("Could not reach a server."))
+                return
+            self.set_source(source)
+        self.run_async(work, done, ep)
 
     SETTINGS_TABS = ("general", "servers", "downloads", "logs")
 
