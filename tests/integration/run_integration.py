@@ -34,6 +34,7 @@ is unmissable.
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -123,12 +124,61 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     print("\n" + "=" * 72)
     print("RUN: %s" % label)
     print("=" * 72, flush=True)
-    rc = subprocess.call(cmd, cwd=REPO_ROOT, env=env)
-    return label, rc
+    # Tee rather than subprocess.call: we want the live output AND the
+    # counts, because "rc == 0" alone cannot tell a leg that passed from one
+    # that skipped everything (see --strict).
+    proc = subprocess.Popen(cmd, cwd=REPO_ROOT, env=env,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True)
+    captured = []
+    for line in proc.stdout:
+        sys.stdout.write(line)
+        captured.append(line)
+    sys.stdout.flush()
+    rc = proc.wait()
+    return label, rc, _counts("".join(captured))
+
+
+_RAN_RE = re.compile(r"^Ran (\d+) tests? in ", re.M)
+_SKIP_RE = re.compile(r"\bskipped=(\d+)")
+
+
+def _counts(output):
+    """(ran, skipped) as unittest reported them, or (None, None)."""
+    ran = _RAN_RE.search(output)
+    if ran is None:
+        return None, None
+    skipped = sum(int(m.group(1)) for m in _SKIP_RE.finditer(output))
+    return int(ran.group(1)), skipped
+
+
+def leg_status(rc, ran, skipped):
+    """(text, failed, hollow) for one leg.
+
+    A leg where EVERY test skipped is not a pass in any useful sense: a
+    container missing mpv/ffmpeg/a display printed a fully green matrix
+    having asserted nothing at all. Split out from main() so it can be
+    tested — see tests/test_integration_runner.py."""
+    if rc != 0:
+        status, failed = "FAIL (rc=%d)" % rc, 1
+    else:
+        status, failed = "PASS", 0
+    hollow = 0
+    if ran is not None:
+        executed = ran - (skipped or 0)
+        status += "  [%d run, %d skipped]" % (executed, skipped or 0)
+        if rc == 0 and ran and executed == 0:
+            hollow = 1
+            status += "  <- nothing ran"
+    return status, failed, hollow
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--strict", action="store_true",
+                    help="fail if a leg skipped every one of its tests "
+                         "(a container with no mpv/ffmpeg/display otherwise "
+                         "prints a green matrix having asserted nothing)")
     ap.add_argument("--backend", choices=BACKENDS,
                     help="only run this backend's legs (default: both)")
     ap.add_argument("--list", action="store_true",
@@ -191,16 +241,23 @@ def main():
     print("INTEGRATION MATRIX SUMMARY")
     print("=" * 72)
     failed = 0
-    for label, rc in results:
-        status = "PASS" if rc == 0 else "FAIL (rc=%d)" % rc
-        if rc != 0:
-            failed += 1
+    hollow = 0
+    for label, rc, (ran, skipped) in results:
+        status, is_failed, is_hollow = leg_status(rc, ran, skipped)
+        failed += is_failed
+        hollow += is_hollow
         print("  %-52s %s" % (label, status))
     print("=" * 72)
     if failed:
         print("%d leg(s) FAILED." % failed)
         return 1
-    print("All legs passed (skips count as pass).")
+    if hollow and args.strict:
+        print("%d leg(s) skipped EVERY test (--strict)." % hollow)
+        return 1
+    if hollow:
+        print("%d leg(s) skipped every test; they assert nothing here. "
+              "Use --strict to treat that as failure." % hollow)
+    print("All legs passed.")
     return 0
 
 

@@ -30,6 +30,10 @@ class FakeSource:
             {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
             for i in range(30)
         ]
+        # What the view actually asked the source for. See
+        # get_library_items — a fake that swallows its arguments turns every
+        # test above it into a proxy assertion.
+        self.queries = []
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -41,7 +45,18 @@ class FakeSource:
         return list(self.home_rows)
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,
-                          **kw):
+                          sort_by="SortName", sort_order="Ascending",
+                          limit=100, filters=None):
+        # Recorded, not swallowed. This took **kw and discarded sort/filters
+        # entirely, so every filter, sort, unplayed-toggle and letter-jump
+        # test asserted only on the browser's own scratch dict — if the view
+        # stopped passing filters= to the source, all of them stayed green
+        # and every filter in the app silently did nothing.
+        self.queries.append({
+            "parent_id": parent_id, "start_index": start_index,
+            "sort_by": sort_by, "sort_order": sort_order,
+            "filters": dict(filters or {}),
+        })
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
@@ -1803,6 +1818,65 @@ class TestGridFilters(unittest.TestCase):
         self.assertTrue(self.ctl.played)
         ids_, _srv, _s = self.ctl.played[-1]
         self.assertEqual(ids_, ["g0", "g5", "g9"])
+
+    # The tests above assert the browser recorded the choice. These assert
+    # the choice reaches the SOURCE — without them the view could stop
+    # passing filters= entirely and every one of them stays green while no
+    # filter in the app does anything.
+
+    def _last_query(self):
+        self.assertTrue(self.b.source.queries, "the source was never queried")
+        return self.b.source.queries[-1]
+
+    def test_the_sort_reaches_the_source(self):
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        _n, h = self._grid()
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "CommunityRating")
+        h["grid-sort"]["select"](want, SORTS[want][0])
+        q = self._last_query()
+        self.assertEqual((q["sort_by"], q["sort_order"]),
+                         ("CommunityRating", "Descending"))
+
+    def test_the_genre_filter_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
+
+    def test_the_unplayed_toggle_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-unplayed"]["click"]()
+        self.assertTrue(self._last_query()["filters"].get("unplayed"))
+
+    def test_the_letter_jump_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-l-M"]["click"]()
+        self.assertEqual(self._last_query()["filters"].get("letter"), "M")
+
+    def test_the_year_filter_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-year"]["select"](1, "2020")
+        self.assertEqual(self._last_query()["filters"].get("year"), 2020)
+
+    def test_filters_accumulate_rather_than_replace(self):
+        """Picking a genre then a year must send both — dropping the first
+        would silently widen the result set."""
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        _n, h = build_scene(self.b)
+        h["grid-unplayed"]["click"]()
+        f = self._last_query()["filters"]
+        self.assertEqual(f.get("genre"), "Action")
+        self.assertTrue(f.get("unplayed"))
+
+    def test_paging_carries_the_filters(self):
+        """Page 2 losing them is how the person route shipped: the two
+        result sets interleave into duplicates and skips."""
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        self.b._on_grid_scroll(self.b.route, 100000, 100001)
+        self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
+        self.assertGreater(self._last_query()["start_index"], 0,
+                           "no second page was actually fetched")
 
 
 class TestTileContextMenu(unittest.TestCase):
