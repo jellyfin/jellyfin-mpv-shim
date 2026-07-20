@@ -175,6 +175,17 @@ class _SyncPool:
         pass
 
 
+class _NeverPool:
+    """Swallows submitted work, so async results never land — for testing
+    the "still loading" state of a view."""
+
+    def submit(self, fn, *a, **k):
+        pass
+
+    def shutdown(self, *a, **k):
+        pass
+
+
 def build_scene(browser, size=(1280, 720)):
     nodes, handlers = layout(browser.build(size), *size)
     return nodes, handlers
@@ -1436,7 +1447,7 @@ class TestPlaylistEdit(unittest.TestCase):
         self.b._pe_move(route, "down")
         self.assertEqual(route["_items"][1]["PlaylistItemId"], first)
         self.assertEqual(route["_sel"], {1})
-        self.assertIn("playlist_move",
+        self.assertIn("playlist_move_many",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
 
     def test_remove_drops_row_and_calls_api(self):
@@ -1774,18 +1785,39 @@ class TestDownloadDialog(unittest.TestCase):
         self.b._open_download({"Id": "m1", "Name": "Movie", "Type": "Movie"})
         nodes, handlers = build_scene(self.b)
         self.assertIn("dl-ok", ids(nodes))
-        self.assertIn("dl-watched", ids(nodes))
         self.assertEqual(self.b._dl["est"]["count"], 3)   # estimate fetched
         handlers["dl-ok"]["click"]()
         self.assertIn("download_enqueue",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
         self.assertIsNone(self.b._dl)
 
-    def test_download_include_watched_toggles(self):
+    def test_a_single_item_never_filters_out_watched(self):
+        """include_watched is a container filter. Applied to one item it
+        means "enqueue nothing" whenever that item is already played —
+        which it did, silently."""
         self.b._open_download({"Id": "m1", "Type": "Movie"})
+        self.assertTrue(self.b._dl["watched"])
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("dl-watched", ids(nodes),
+                         "offered a filter that can only break the download")
+
+    def test_a_container_offers_the_filter(self):
+        self.b._open_download({"Id": "s1", "Type": "Series"})
+        nodes, _h = build_scene(self.b)
+        self.assertIn("dl-watched", ids(nodes))
+
+    def test_download_include_watched_toggles(self):
+        self.b._open_download({"Id": "s1", "Type": "Series"})
         self.assertFalse(self.b._dl["watched"])
         self.b._dl_toggle_watched()
         self.assertTrue(self.b._dl["watched"])
+
+    def test_confirm_is_withheld_until_the_estimate_lands(self):
+        """Confirming during "Estimating…" loses the audio_only default."""
+        self.b._pool = _NeverPool()
+        self.b._open_download({"Id": "s1", "Type": "Series"})
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("dl-ok", ids(nodes))
 
     def test_download_cancel_clears_state(self):
         self.b._open_download({"Id": "m1", "Type": "Movie"})
@@ -4265,3 +4297,323 @@ class TestScenesRow(unittest.TestCase):
     def test_no_chapters_is_not_a_row(self):
         self.item.pop("Chapters")
         self.assertIsNone(self.b._scenes_row(self.b.route, self.item, "srv1"))
+
+
+class TestNextUp(unittest.TestCase):
+    """Next Up was a dead button on a series nobody had started, and
+    restarted a part-watched episode from zero."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: self.played.append(
+            (list(ids), kw.get("offset_ticks")))
+        self.ctl.play = lambda item, srv, **kw: self.played.append(
+            ([item.get("Id")], kw.get("offset_ticks")))
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _ep(self, **kw):
+        base = {"Id": "e1", "Type": "Episode", "Name": "Pilot"}
+        base.update(kw)
+        return base
+
+    def test_it_resumes_a_part_watched_episode(self):
+        self.src.get_next_up = lambda srv, sid: self._ep(
+            UserData={"PlaybackPositionTicks": 55000000})
+        self.b._play_next_up("sh1", "srv1")
+        self.assertEqual(self.played[0][1], 55000000, "restarted from zero")
+
+    def test_an_unwatched_episode_starts_at_the_beginning(self):
+        self.src.get_next_up = lambda srv, sid: self._ep()
+        self.b._play_next_up("sh1", "srv1")
+        self.assertIsNone(self.played[0][1])
+
+    def test_a_series_with_no_next_up_starts_at_episode_one(self):
+        """An unstarted series returns no NextUp; the button did nothing."""
+        self.src.get_next_up = lambda srv, sid: None
+        self.src.get_series_queue = lambda srv, sid, **kw: [self._ep(Id="s1e1")]
+        self.b._play_next_up("sh1", "srv1")
+        self.assertTrue(self.played, "Next Up did nothing")
+        self.assertIn("s1e1", self.played[0][0])
+
+    def test_a_genuinely_empty_series_is_a_no_op(self):
+        self.src.get_next_up = lambda srv, sid: None
+        self.src.get_series_queue = lambda srv, sid, **kw: []
+        self.b._play_next_up("sh1", "srv1")
+        self.assertEqual(self.played, [])
+
+
+class TestPlaylistReorderBatch(unittest.TestCase):
+    """A move is an absolute-index operation, so a multi-row move only
+    composes if each lands before the next. They were submitted as N
+    concurrent tasks on a 4-worker pool, landing in arbitrary order."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.batches = []
+        self.ctl.playlist_move_many = lambda srv, pid, moves: (
+            self.batches.append(list(moves)))
+        self.src = FakeSource()
+        self.entries = [{"Id": "i%d" % i, "Name": "Track %d" % i,
+                         "PlaylistItemId": "e%d" % i} for i in range(5)]
+        self.src.get_playlist_items = lambda srv, pid: list(self.entries)
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.nav_stack = [{"kind": "playlist_edit", "server": "srv1",
+                             "item_id": "P", "title": "Mix",
+                             "_items": list(self.entries)}]
+
+    def test_a_multi_row_move_is_one_ordered_batch(self):
+        route = self.b.route
+        self.b._pe_set_sel(route, {0, 1})
+        self.b._pe_move(route, "down")
+        self.assertEqual(len(self.batches), 1, "not a single batch")
+        moves = self.batches[0]
+        self.assertEqual([m[0] for m in moves], ["e0", "e1"],
+                         "selection order not preserved")
+        self.assertEqual([m[1] for m in moves], sorted(m[1] for m in moves),
+                         "target indexes are not ascending")
+
+    def test_the_batch_targets_the_shown_positions(self):
+        route = self.b.route
+        self.b._pe_set_sel(route, {3})
+        self.b._pe_move(route, "top")
+        self.assertEqual(self.batches[0], [("e3", 0)])
+
+    def test_a_failed_reorder_resyncs_instead_of_lying(self):
+        def boom(srv, pid, moves):
+            raise OSError("server refused")
+
+        self.ctl.playlist_move_many = boom
+        route = self.b.route
+        self.b._pe_set_sel(route, {0})
+        self.b._pe_move(route, "down")
+        self.assertIn("could not be reordered", self.b.status)
+        self.assertEqual([i["PlaylistItemId"] for i in route["_items"]],
+                         ["e0", "e1", "e2", "e3", "e4"],
+                         "left the optimistic order after a failure")
+
+    def test_entries_without_an_id_are_skipped(self):
+        self.entries[1].pop("PlaylistItemId")
+        self.b.route["_items"] = list(self.entries)
+        self.b._pe_set_sel(self.b.route, {0, 1})
+        self.b._pe_move(self.b.route, "down")
+        self.assertEqual([m[0] for m in self.batches[0]], ["e0"])
+
+
+class TestOrphanedDownloadOwnership(unittest.TestCase):
+    """An ownership row can outlive its playlist. Skipping owned rows
+    unconditionally made those downloads invisible AND undeletable —
+    disk used with no UI path to reclaim it."""
+
+    def _controller(self, rows, playlists=(), owned=None):
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        class FakeDB:
+            def list(self_inner):
+                return list(rows)
+
+            def list_playlists(self_inner):
+                return list(playlists)
+
+            def playlist_item_rows(self_inner, pid):
+                return [r for r in rows if r.get("_pl") == pid]
+
+            def playlist_ownership(self_inner):
+                return dict(owned or {})
+
+        class FakeSync:
+            db = FakeDB()
+
+        import jellyfin_mpv_shim.sync.manager as mgr
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+        return _PlayerController()
+
+    def test_an_orphaned_row_still_appears(self):
+        rows = [{"item_id": "m1", "name": "A Movie", "type": "Movie",
+                 "status": "complete", "downloaded_bytes": 100}]
+        ctl = self._controller(rows, playlists=[],
+                               owned={"m1": "GONE"})
+        groups = ctl.list_downloads()
+        titles = [c.get("title") for g in groups
+                  for c in (g.get("children") or [])]
+        self.assertIn("A Movie", titles,
+                      "download vanished with its playlist record")
+
+    def test_a_live_playlist_still_owns_its_rows(self):
+        rows = [{"item_id": "t1", "name": "Track", "type": "Audio",
+                 "status": "complete", "downloaded_bytes": 100,
+                 "_pl": "PL1"}]
+        ctl = self._controller(
+            rows, playlists=[{"playlist_id": "PL1", "name": "Mix"}],
+            owned={"t1": "PL1"})
+        groups = ctl.list_downloads()
+        self.assertEqual([g["kind"] for g in groups], ["playlist"],
+                         "owned row also listed loose")
+
+
+class TestSeasonTitles(unittest.TestCase):
+    def _title(self, **row):
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _season_title
+
+        return _season_title(row)
+
+    def test_season_zero_is_specials(self):
+        self.assertEqual(self._title(parent_index=0), "Specials")
+
+    def test_a_normal_season(self):
+        self.assertEqual(self._title(parent_index=2), "Season 2")
+
+    def test_the_stored_name_wins(self):
+        self.assertEqual(
+            self._title(parent_index=1,
+                        item_json='{"SeasonName": "Book One"}'),
+            "Book One")
+
+    def test_no_index_is_episodes(self):
+        self.assertEqual(self._title(), "Episodes")
+
+    def test_bad_json_falls_back(self):
+        self.assertEqual(self._title(parent_index=3, item_json="{bad"),
+                         "Season 3")
+
+
+class TestServerSwitchLeavesSyncPlay(unittest.TestCase):
+    """SyncPlay is deliberately scoped to the selected server, so leaving
+    that server has to leave the group — otherwise it stays joined with no
+    way to reach it from this UI."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.left = []
+        self.ctl.sync_leave = lambda srv: self.left.append(srv)
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_switching_leaves_the_group_on_the_old_server(self):
+        self.ctl.sync_active = lambda: True
+        self.b._switch_server("srv2")
+        self.assertEqual(self.left, ["srv1"])
+        self.assertEqual(self.b.server, "srv2")
+
+    def test_no_group_means_no_leave(self):
+        self.ctl.sync_active = lambda: False
+        self.b._switch_server("srv2")
+        self.assertEqual(self.left, [])
+
+    def test_reselecting_the_same_server_is_a_no_op(self):
+        self.ctl.sync_active = lambda: True
+        self.b._switch_server("srv1")
+        self.assertEqual(self.left, [])
+
+    def test_a_failing_check_does_not_block_the_switch(self):
+        def boom():
+            raise OSError("player gone")
+
+        self.ctl.sync_active = boom
+        self.b._switch_server("srv2")
+        self.assertEqual(self.b.server, "srv2")
+
+
+class TestRemoveDownloadButton(unittest.TestCase):
+    """The action row always said "Download", so pressing it on a complete
+    item did nothing visible and there was no way to reclaim the space
+    outside Settings -> Downloads."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.deleted = []
+        self.ctl.delete_download = lambda **kw: self.deleted.append(kw)
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _btns(self, item):
+        from jellyfin_mpv_shim.mpvtk.widgets import Row
+
+        row = self.b._common_actions(item, "srv1", "act")
+        nodes, handlers = layout(Row(row), 1280, 720)
+        return ids(nodes), handlers
+
+    def test_an_undownloaded_item_offers_download(self):
+        node_ids, _h = self._btns({"Id": "m1", "Type": "Movie"})
+        self.assertIn("act-download", node_ids)
+        self.assertNotIn("act-undownload", node_ids)
+
+    def test_a_downloaded_item_offers_removal(self):
+        self.b._downloaded = {"m1"}
+        node_ids, _h = self._btns({"Id": "m1", "Type": "Movie"})
+        self.assertIn("act-undownload", node_ids)
+        self.assertNotIn("act-download", node_ids)
+
+    def test_removing_deletes_by_item_id(self):
+        self.b._downloaded = {"m1"}
+        _n, h = self._btns({"Id": "m1", "Name": "A", "Type": "Movie"})
+        h["act-undownload"]["click"]()
+        _n2, h2 = build_scene(self.b)
+        h2["dlg-ok"]["click"]()
+        self.assertEqual(self.deleted, [{"item_id": "m1"}])
+
+    def test_removing_a_series_deletes_by_series_id(self):
+        self.b._downloaded_series = {"sh1"}
+        _n, h = self._btns({"Id": "sh1", "Name": "Show", "Type": "Series"})
+        h["act-undownload"]["click"]()
+        _n2, h2 = build_scene(self.b)
+        h2["dlg-ok"]["click"]()
+        self.assertEqual(self.deleted, [{"series_id": "sh1"}])
+
+
+class TestPinStartupSeeding(unittest.TestCase):
+    """Changing a PIN silently cleared "require at startup": the dialog
+    always opened with the box unticked and saved that back."""
+
+    def test_the_checkbox_reflects_the_stored_setting(self):
+        ctl = FakeController()
+        ctl.set_user_pin = lambda uid, pin, require_startup=False: True
+        ctl.unlock_user = lambda uid, pin: True
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._open_pin_setup({"id": "u1", "name": "Kid", "locked": True,
+                           "require_startup": True})
+        nodes, _h = build_scene(b)
+        self.assertIn("ps-startup", ids(nodes))
+        # A Checkbox is composite sugar; the tick glyph is the state.
+        self.assertIn("✓", [n.get("text") for n in nodes if n.get("text")],
+                      "startup requirement shown as off")
+
+    def test_it_is_off_when_not_required(self):
+        ctl = FakeController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._open_pin_setup({"id": "u1", "name": "Kid", "locked": True,
+                           "require_startup": False})
+        nodes, _h = build_scene(b)
+        self.assertIn("ps-startup", ids(nodes))
+        self.assertNotIn("✓",
+                         [n.get("text") for n in nodes if n.get("text")])
+
+    def test_list_users_exposes_it(self):
+        """The dialog can only seed what the controller reports."""
+        import jellyfin_mpv_shim.users as users_mod
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        class FakeUM:
+            active_id = "u1"
+
+            def public_users(self):
+                return [{"id": "u1", "name": "A", "locked": True,
+                         "default": True, "require_startup": True}]
+
+            def is_locked(self, uid):
+                return True
+
+        real, users_mod.userManager = users_mod.userManager, FakeUM()
+        self.addCleanup(lambda: setattr(users_mod, "userManager", real))
+        got = _PlayerController().list_users()
+        self.assertTrue(got[0]["require_startup"])

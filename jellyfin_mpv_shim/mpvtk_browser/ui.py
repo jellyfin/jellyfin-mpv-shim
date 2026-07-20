@@ -13,6 +13,7 @@ window to playback + the OSC; when playback stops (``on_playstate``) the
 browser takes the window back.
 """
 
+import json
 import logging
 import os
 import threading
@@ -29,6 +30,21 @@ log = logging.getLogger("mpvtk_browser.ui")
 # or unrecognized type must stay collapsed rather than risk unfolding a
 # few-hundred-track music playlist.
 _VIDEO_TYPES = ("Movie", "Episode", "Video")
+
+
+def _season_title(row):
+    """Display name for a downloaded episode's season."""
+    try:
+        name = (json.loads(row.get("item_json") or "{}")
+                .get("SeasonName") or "").strip()
+    except (ValueError, TypeError):
+        name = ""
+    if name:
+        return name
+    idx = row.get("parent_index")
+    if idx is None:
+        return _("Episodes")
+    return _("Specials") if idx == 0 else _("Season %s") % idx
 
 
 def _collect_servers():
@@ -475,6 +491,7 @@ class _PlayerController:
             active = userManager.active_id
             return [{"id": u["id"], "name": u.get("name", "?"),
                      "locked": bool(userManager.is_locked(u["id"])),
+                     "require_startup": bool(u.get("require_startup")),
                      "active": u["id"] == active}
                     for u in userManager.public_users()]
         except Exception:
@@ -664,6 +681,14 @@ class _PlayerController:
     def sync_leave(self, server_uuid):
         self._sync(server_uuid, lambda jf: jf.leave_sync_play())
 
+    def sync_active(self):
+        """True when a SyncPlay group is currently joined."""
+        from ..player import playerManager
+        try:
+            return bool(playerManager.syncplay.is_enabled())
+        except Exception:
+            return False
+
     # -- playlist editing -------------------------------------------------
 
     def _edit(self, server_uuid, fn):
@@ -679,6 +704,20 @@ class _PlayerController:
         self._edit(server_uuid,
                    lambda jf: jf.move_playlist_item(playlist_id, entry_id,
                                                     new_index))
+
+    def playlist_move_many(self, server_uuid, playlist_id, moves):
+        """Apply ``[(entry_id, new_index), ...]`` IN ORDER.
+
+        A move is an absolute-index operation, so a batch only composes if
+        each one lands before the next is computed. Firing them
+        concurrently (one task each on a 4-worker pool) landed a different
+        order on the server than the one shown. Raises on the first
+        failure so the caller can resync."""
+        client = clientManager.clients.get(server_uuid)
+        if client is None:
+            raise RuntimeError("no server connection")
+        for entry_id, index in moves:
+            client.jellyfin.move_playlist_item(playlist_id, entry_id, index)
 
     def playlist_remove(self, server_uuid, playlist_id, entry_ids):
         self._edit(server_uuid,
@@ -794,6 +833,13 @@ class _PlayerController:
                 "index": r.get("index_number"),
             }
 
+        # Playlists that still exist as records. An ownership row can
+        # outlive its playlist (deleted, or its members all removed), and
+        # skipping those rows unconditionally made the downloads invisible
+        # AND undeletable — disk used with no way to reclaim it. Only skip
+        # what a LIVE playlist group will actually show.
+        live = {pl["playlist_id"] for pl in playlists}
+
         out = []
         for pl in playlists:
             try:
@@ -817,7 +863,7 @@ class _PlayerController:
         series = {}
         loose = []
         for r in rows:
-            if r.get("item_id") in owned:
+            if owned.get(r.get("item_id")) in live:
                 continue             # counted under its playlist
             sid = r.get("series_id")
             if not sid:
@@ -833,9 +879,9 @@ class _PlayerController:
             season_id = r.get("season_id") or sid
             season = show["children"].setdefault(season_id, {
                 "kind": "season", "id": season_id, "series_id": sid,
-                "title": (_("Season %s") % r.get("parent_index")
-                          if r.get("parent_index") is not None
-                          else _("Episodes")),
+                # Season 0 is Specials, not "Season 0"; the catalog's
+                # stored SeasonName is better than either when present.
+                "title": _season_title(r),
                 "size": 0, "count": 0, "children": [],
             })
             season["size"] += size_of(r)

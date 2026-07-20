@@ -1888,6 +1888,18 @@ class MpvtkBrowser:
     def _switch_server(self, uuid):
         if uuid == self.server:
             return
+        # A SyncPlay group belongs to the server it was joined on, and this
+        # UI only ever talks to the selected one — so leaving the server
+        # means leaving the group, or it stays joined with no way to reach
+        # it from here.
+        old = self.server
+        if old and self.controller is not None:
+            try:
+                if self.controller.sync_active():
+                    self._client_call(lambda c: c.sync_leave(old))
+            except Exception:
+                log.debug("syncplay leave on server switch failed",
+                          exc_info=True)
         self.server = uuid
         self.navigate({"kind": "home", "server": uuid}, reset=True)
 
@@ -2454,10 +2466,46 @@ class MpvtkBrowser:
                 "favorite", _("Favorite"), prefix + "-fav",
                 lambda: self._act_favorite(item, server),
                 on=bool(ud.get("IsFavorite"))),
-            self._action_btn(
-                "file_download", _("Download"), prefix + "-download",
-                lambda: self._open_download(item)),
+            self._download_btn(item, server, prefix),
         ]
+
+    def _download_btn(self, item, server, prefix):
+        """Download, or Remove when it's already downloaded.
+
+        The button used to always say Download, so pressing it on a
+        complete item did nothing visible and there was no way to reclaim
+        the space outside Settings -> Downloads."""
+        if not self._is_downloaded(item):
+            return self._action_btn(
+                "file_download", _("Download"), prefix + "-download",
+                lambda: self._open_download(item))
+        return self._action_btn(
+            "delete", _("Remove Download"), prefix + "-undownload",
+            lambda: self._confirm(
+                _("Delete the downloaded copy of %s?")
+                % item.get("Name", ""),
+                lambda: self._remove_download(item),
+                title=_("Delete Download"), yes=_("Delete")))
+
+    def _remove_download(self, item):
+        """Delete this item's download, then refresh the badges."""
+        iid, t = item.get("Id"), item.get("Type")
+        ep = self._epoch
+
+        def work():
+            if t == "Series":
+                self.controller.delete_download(series_id=iid)
+            elif t == "Season":
+                self.controller.delete_download(
+                    series_id=item.get("SeriesId"), season_id=iid)
+            elif t == "Playlist":
+                self.controller.delete_download(playlist_id=iid)
+            else:
+                self.controller.delete_download(item_id=iid)
+
+        def done(_ok):
+            self._refresh_downloaded()
+        self.run_async(work, done, ep)
 
     def _detail_actions(self, item, server):
         btns = self._common_actions(item, server, "act")
@@ -2474,11 +2522,22 @@ class MpvtkBrowser:
         ep = self._epoch
 
         def work():
-            return self.source.get_next_up(server, series_id)
+            item = self.source.get_next_up(server, series_id)
+            if item is None:
+                # A series nobody has started has no "next up" — the button
+                # did nothing at all. Start at the beginning, as Tk does.
+                first = self.source.get_series_queue(server, series_id,
+                                                     limit=1)
+                item = first[0] if first else None
+            return item
 
         def done(item):
             if item:
-                self._play(item, server)
+                # Resume where it was left: Next Up on a part-watched
+                # episode restarted it from zero.
+                offset = ((item.get("UserData") or {})
+                          .get("PlaybackPositionTicks")) or None
+                self._play(item, server, offset_ticks=offset)
         self.run_async(work, done, ep)
 
     def _series_actions(self, item, server, series_id):
@@ -3657,8 +3716,10 @@ class MpvtkBrowser:
         self._show_dialog(build)
 
     def _open_pin_setup(self, u):
-        state = {"cur": "", "new": "", "confirm": "", "startup": False,
-                 "error": None}
+        # Seeded, not defaulted off: saving a changed PIN used to clear
+        # the user's startup requirement without saying so.
+        state = {"cur": "", "new": "", "confirm": "",
+                 "startup": bool(u.get("require_startup")), "error": None}
 
         def build():
             rows = [Text(_("Set PIN for %s") % u.get("name", ""), size=22,
@@ -4397,11 +4458,28 @@ class MpvtkBrowser:
         target = min(route["_sel"])
         server = route.get("server") or self.server
         pid = route["item_id"]
-        for offset, entry in enumerate([items[i] for i in sel]):
-            self._client_call(
-                lambda c, e=entry, o=offset: c.playlist_move(
-                    server, pid, e.get("PlaylistItemId"), target + o))
+        picked = [items[i] for i in sel]
+        batch = [(e.get("PlaylistItemId"), target + o)
+                 for o, e in enumerate(picked) if e.get("PlaylistItemId")]
         self.invalidate()
+        if not batch:
+            return
+        ep = self._epoch
+
+        def work():
+            # One ordered batch, not N concurrent tasks: moves are
+            # absolute-index operations that only compose in order.
+            self.controller.playlist_move_many(server, pid, batch)
+
+        def done(_ok):
+            pass   # the optimistic order is what we just asked for
+
+        def failed(_exc):
+            # Don't leave the optimistic order lying: re-read the truth.
+            self.status = _("The playlist could not be reordered.")
+            route.pop("_items", None)
+            self._load_route(route)
+        self.run_async(work, done, ep, on_error=failed)
 
     def _pe_remove(self, route):
         items = route.get("_items") or []
@@ -4613,8 +4691,14 @@ class MpvtkBrowser:
         server = self.route.get("server") or self.server
         if self.controller is None or server is None:
             return
+        # The include-watched filter is only meaningful for a container.
+        # For a single item it must be True, or Download on something you
+        # have already watched enqueues nothing at all, silently.
+        container = item.get("Type") in ("Series", "Season", "Playlist",
+                                         "MusicAlbum", "MusicArtist",
+                                         "BoxSet")
         self._dl = {"server": server, "item": item, "est": None,
-                    "watched": False}
+                    "container": container, "watched": not container}
         ep = self._epoch
 
         def work():
@@ -4624,7 +4708,8 @@ class MpvtkBrowser:
         def done(est):
             if self._dl is not None:
                 self._dl["est"] = est
-                self._dl["watched"] = bool((est or {}).get("audio_only"))
+                if self._dl["container"]:
+                    self._dl["watched"] = bool((est or {}).get("audio_only"))
             self._show_download()
         self.run_async(work, done, ep)
         self._show_download()   # show immediately with an "estimating" state
@@ -4655,13 +4740,20 @@ class MpvtkBrowser:
                 Text(_("Download"), size=22, bold=True),
                 Text(dl["item"].get("Name", ""), size=17),
                 info,
-                Checkbox(_("Include watched"), dl["watched"],
-                         id="dl-watched", on_toggle=self._dl_toggle_watched),
+            ] + ([Checkbox(_("Include watched"), dl["watched"],
+                           id="dl-watched",
+                           on_toggle=self._dl_toggle_watched)]
+                 if dl["container"] else []) + [
                 self._dialog_buttons([
                     Button(_("Cancel"), id="dl-cancel",
                            on_click=self._close_download),
+                    # Confirming before the estimate lands loses the
+                    # audio_only default and skips played tracks.
                     Button(_("Download"), id="dl-ok",
-                           on_click=self._dl_confirm)]),
+                           on_click=self._dl_confirm)
+                    if est is not None else
+                    Text(_("Estimating…"), size=15,
+                         color=theme.SUBTLE_FG)]),
             ], w=460), on_dismiss=self._close_download)
         self._show_dialog(build)
 

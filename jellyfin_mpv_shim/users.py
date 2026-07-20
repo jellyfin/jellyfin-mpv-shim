@@ -220,7 +220,11 @@ class UserManager:
         """User list safe to hand to the UI process — no hashes/credentials."""
         return [
             {"id": u["id"], "name": u["name"], "locked": bool(u.get("pin_hash")),
-             "default": bool(u.get("default"))}
+             "default": bool(u.get("default")),
+             # Exposed so the PIN dialog can seed its checkbox. Without it
+             # the dialog always showed "off" and saving a new PIN silently
+             # cleared the startup requirement.
+             "require_startup": bool(u.get("require_pin_startup"))}
             for u in self.users
         ]
 
