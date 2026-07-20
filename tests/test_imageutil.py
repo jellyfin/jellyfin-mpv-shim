@@ -51,7 +51,22 @@ class TestHelpers(unittest.TestCase):
 
 
 class TestTheCouplingIsGone(unittest.TestCase):
-    def test_the_browser_does_not_import_display_mirror(self):
+    """These guarded a dependency on the old optional `display_mirror`
+    module. That module is gone — its screen is a browser route now
+    (mpvtk_browser/cast.py) — so the original assertions would pass
+    vacuously. The invariant underneath them is still real and still worth
+    holding: importing the browser must not drag in heavyweight or
+    optional third-party packages at module scope.
+    """
+
+    # PIL is required for the mpvtk browser (mpv_shim probes it before
+    # loading the UI), but the package still defers it, so importing a view
+    # to read its ROUTES table does not pay for Pillow — and a build without
+    # it fails at the probe with a clear message rather than at a random
+    # import. requests likewise.
+    DEFERRED = {"PIL", "requests", "numpy"}
+
+    def test_no_browser_module_imports_them_at_module_scope(self):
         from jellyfin_mpv_shim import mpvtk_browser
         pkg = os.path.dirname(inspect.getfile(mpvtk_browser))
         offenders = []
@@ -60,31 +75,40 @@ class TestTheCouplingIsGone(unittest.TestCase):
                 continue
             with open(os.path.join(pkg, name)) as fh:
                 tree = ast.parse(fh.read())
-            for node in ast.walk(tree):
-                mod = getattr(node, "module", None)
-                if isinstance(node, ast.ImportFrom) and mod == "display_mirror":
-                    offenders.append(f"{name}:{node.lineno}")
+            for node in tree.body:      # module scope only, not ast.walk
+                mods = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    mods = [node.module]
+                elif isinstance(node, ast.Import):
+                    mods = [a.name for a in node.names]
+                for mod in mods:
+                    if mod.split(".")[0] in self.DEFERRED:
+                        offenders.append("%s:%d %s"
+                                         % (name, node.lineno, mod))
+        # thumbnails.py is the documented exception: it is only imported
+        # from ui.login_servers, after the Pillow probe.
+        offenders = [o for o in offenders if not o.startswith("thumbnails.py")]
         self.assertEqual(offenders, [],
-                         "a browser view depends on the optional mirror")
+                         "module-scope optional imports: %s" % offenders)
 
-    def test_the_banner_composites_without_display_mirror(self):
-        """The proof that matters: block the module outright and draw one."""
+    def test_the_banner_composites_from_the_shared_helpers(self):
+        """The reason imageutil exists: the banner is composited by the
+        browser using helpers that no longer live in a feature module."""
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
-        blocked = {}
-        for key in [k for k in sys.modules
-                    if k.endswith("display_mirror")]:
-            blocked[key] = sys.modules.pop(key)
-        sys.modules["jellyfin_mpv_shim.display_mirror"] = None  # ImportError
-        try:
-            out = MpvtkBrowser._compose_banner(
-                Image.new("RGBA", (400, 200), (10, 20, 30, 255)),
-                (300, 120), title="A Title", meta="2020",
-                context="The Show")
-            self.assertEqual(out.size, (300, 120))
-        finally:
-            del sys.modules["jellyfin_mpv_shim.display_mirror"]
-            sys.modules.update(blocked)
+        out = MpvtkBrowser._compose_banner(
+            Image.new("RGBA", (400, 200), (10, 20, 30, 255)),
+            (300, 120), title="A Title", meta="2020",
+            context="The Show")
+        self.assertEqual(out.size, (300, 120))
+
+    def test_the_cast_screen_uses_the_same_helpers(self):
+        """Both composite paths share imageutil rather than each carrying a
+        private copy — which is what let the mirror become a route without
+        duplicating any of it."""
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast
+        for name in ("apply_dark_gradient", "scale_to_cover", "pil_font"):
+            self.assertTrue(hasattr(cast, name), name)
 
 
 if __name__ == "__main__":

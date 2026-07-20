@@ -1,19 +1,24 @@
-"""In-mpv-window "ready to cast" / item-preview mirror (mpvtk).
+"""The cast screen — "Ready to cast" and the remote-selected item preview.
 
-Renders inside the player's own mpv window via mpvtk, replacing the earlier
-Tk+Pillow fullscreen window (which itself replaced a pywebview+Jinja2 one).
-Same public surface as before (run/stop/display_content/get_webview), so the
-rest of the app is unchanged.
+This was ``display_mirror.py``, a whole second UI that attached its OWN
+MpvtkApp to the player's mpv window and ran its own loop. Two owners of one
+window cannot coexist, which is why ``display_mirroring`` had to fall back
+to the Tk browser and why it was the last thing keeping Tk alive.
 
-Design:
-- Attach mpvtk to playerManager's mpv (no separate window/process).
-- Backdrop fetched via requests, scaled to cover, composited with a vertical
-  dark gradient, then the title / misc / overview text is baked into the SAME
-  bitmap with Pillow (bitmaps composite above ASS, so text must be baked, not
-  drawn as an overlay — see mpvtk GUIDE §6). The whole thing is one
-  full-window Image node.
-- ``display_content`` (websocket thread) and playback hide/show marshal onto
-  the mpvtk loop via ``invalidate()``; compositing runs on a worker pool.
+It is a route now. The compositing and metadata formatting are unchanged —
+that is most of this file, and it is why the screen still looks the same —
+but the lifecycle is gone: ``run``/``stop``/``get_webview``/``hide``/``show``
+and a hand-rolled ``_set_active`` that was a worse copy of the browser's
+``_yield()``/``enter_browse()``.
+
+Backdrop + gradient + text are baked into ONE full-window bitmap. That is not
+stylistic: mpv composites overlay bitmaps ABOVE all script ASS (see mpvtk
+GUIDE §6), so text drawn as an overlay node would be hidden behind the
+backdrop. Bake it in, or it does not render.
+
+``headless`` (conf.py) makes this the only page: see MpvtkBrowser.headless
+and CastMixin.navigate's refusal. The screen itself is the same either way —
+without the flag it is simply what a DisplayContent from a phone shows.
 """
 
 import datetime
@@ -23,23 +28,19 @@ import math
 import random
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from io import BytesIO
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
-import requests
-from PIL import Image
+from ..clients import clientManager
+from ..i18n import _
+from ..imageutil import apply_dark_gradient, pil_font, scale_to_cover
 
-from .clients import clientManager
-from .imageutil import apply_dark_gradient, pil_font, scale_to_cover
-from .i18n import _
+# PIL and requests are imported inside the functions that need them, as
+# strips.py does. Nothing here runs before mpv_shim has probed Pillow, but
+# keeping `import mpvtk_browser.app` free of optional heavyweight imports is
+# the pattern this package follows and the one tests/test_imageutil.py
+# guards.
 
-log = logging.getLogger("display_mirror")
-
-if TYPE_CHECKING:
-    from jellyfin_apiclient_python import client as client_type
-
-
-# ---- URL builders (ported from the old display_mirror.helpers) ---------
+log = logging.getLogger("mpvtk_browser.cast")
 
 def _server_url(server: str, path: str) -> str:
     return f"{server.rstrip('/')}/{path.lstrip('/')}"
@@ -160,9 +161,12 @@ def _random_backdrop_url() -> Optional[str]:
 
 # ---- Image processing ---------------------------------------------------
 
-def _fetch_image(url: Optional[str], timeout: int = 10) -> Optional["Image.Image"]:
+def _fetch_image(url: Optional[str], timeout: int = 10):
     if not url:
         return None
+    import requests
+    from PIL import Image
+
     try:
         r = requests.get(url, timeout=timeout)
         r.raise_for_status()
@@ -189,107 +193,84 @@ def _wrap(draw, text, font, max_w):
     return lines
 
 
-class DisplayMirror:
-    def __init__(self):
-        self._app = None
-        self._store = None
-        self._size = None
-        self._data = {"idle": True}
-        self._entry = None       # baked {"src","iw","ih"} for the current data
-        self._version = 0
-        self._visible = True
-        self._stopped = False    # stop() before run(): don't start the loop
-        # Decoded backdrop for the current _data, so a window resize
-        # re-composites from memory instead of re-downloading (and, when idle,
-        # re-rolling the random backdrop mid-drag).
-        self._backdrop = None
-        self._backdrop_key = None
-        self._lock = threading.Lock()
-        self._pool = ThreadPoolExecutor(max_workers=2,
-                                        thread_name_prefix="mirror")
-        self.stop_callback = None
+class CastMixin:
+    """The cast/idle screen as a route.
 
-    # --- public API matching the previous DisplayMirror -----------------
+    State on ``self``: ``_cast`` (the item data being shown), ``_cast_entry``
+    (the baked bitmap), ``_cast_backdrop`` (decoded, so a resize
+    re-composites without re-downloading — and without re-rolling the random
+    idle backdrop mid-drag), and ``_cast_lock``.
 
-    def get_webview(self):
-        return self  # exposes hide()/show() for player.py
+    Compositing runs on the shared pool and writes then ``invalidate()``s,
+    like every other foreign-thread producer in this package.
+    """
 
-    def hide(self):
-        # Playback started: yield the window (and its input) to the video+OSC.
-        self._visible = False
-        self._set_active(False)
-        self._invalidate()
+    ROUTES = {"cast": (None, "_render_cast")}
 
-    def show(self):
-        self._visible = True
-        self._set_active(True)
-        self._invalidate()
+    def show_cast(self, reset=True):
+        """Make the cast screen the current page."""
+        self.navigate({"kind": "cast"}, reset=reset, force=True)
 
-    def _set_active(self, active):
-        """Suspend the in-mpv renderer while the picture owns the window, so
-        its forced mouse bindings don't swallow the OSC's clicks."""
-        if self._app is None:
+    def _render_cast(self, route, size):
+        from ..mpvtk.widgets import Column, Image as ImageNode
+
+        if self._cast_size != size:
+            self._cast_size = size
+            self._recomposite_cast()
+        entry = self._cast_entry
+        if entry is None:
+            # Nothing baked yet: a plain dark field rather than a flash of
+            # whatever was behind us.
+            return Column([], w=size[0], h=size[1])
+        return ImageNode(entry["src"], entry["iw"], entry["ih"],
+                         w=size[0], h=size[1])
+
+    def display_cast_item(self, server_uuid, item_id):
+        """A remote picked something: show it.
+
+        Called from the websocket thread, so the client lookup and the fetch
+        both happen on the pool — the lookup is cheap but it is not this
+        thread's business, and doing it here means one place handles "that
+        server is gone" rather than two."""
+        ep = self._epoch
+
+        def work():
+            from ..clients import clientManager
+            client = clientManager.clients.get(server_uuid)
+            if client is None:
+                raise LookupError("no client for server %r" % server_uuid)
+            item = client.jellyfin.get_item(item_id)
+            server = client.config.data["auth.server"]
+            return self._build_item_data(item, server)
+
+        def done(data):
+            self._set_cast_data(data)
+
+        def failed(_exc):
+            log.warning("could not fetch the item to display", exc_info=True)
+
+        # Not epoch-gated in effect: the cast screen is the only page in
+        # headless, so there is nothing to navigate away to.
+        self.run_async(work, done, ep, on_error=failed)
+
+    def show_cast_idle(self):
+        self._set_cast_data({"idle": True})
+
+    def _set_cast_data(self, data):
+        self._cast = data
+        # New item -> new backdrop. Dropped here and only here, so a resize
+        # re-composites from memory and the idle screen's random backdrop
+        # stays put.
+        with self._cast_lock:
+            self._cast_backdrop = None
+            self._cast_backdrop_key = None
+        self._recomposite_cast()
+
+    def _recomposite_cast(self):
+        if self._cast_size is None or self.strips is None:
             return
-        try:
-            self._app.set_active(active)
-            from .player import playerManager
-            from .conf import settings
-
-            playerManager.enable_osc(settings.enable_osc if not active
-                                     else False)
-        except Exception:
-            log.debug("mirror set_active failed", exc_info=True)
-
-    def stop(self):
-        # A tray Quit can land before run() has attached (mpv_shim waits on
-        # gui_ready first), so remember it rather than dropping it.
-        self._stopped = True
-        if self._app is not None:
-            self._app.quit()
-
-    def display_content(self, client: "client_type", arguments: dict):
-        # Websocket thread: fetch the item, then recomposite on a worker.
-        try:
-            item = client.jellyfin.get_item(arguments["Arguments"]["ItemId"])
-        except Exception:
-            log.warning("Could not fetch item for display.", exc_info=True)
-            return
-        server = client.config.data["auth.server"]
-        self._set_data(self._build_item_data(item, server))
-
-    def run(self):
-        from .player import playerManager, is_using_ext_mpv
-        from .mpvtk.app import MpvtkApp
-        from .mpvtk.rawimage import MemoryStore, cache_dir
-        from .mpvtk_browser.strips import StripStore
-
-        self._app = MpvtkApp.attach(playerManager.get_mpv(),
-                                    ext=is_using_ext_mpv)
-        self._store = StripStore(
-            mem_store=MemoryStore() if self._app.in_process else None,
-            cache_dir=None if self._app.in_process
-            else cache_dir("mpvtk-mirror-"))
-        if self._stopped:
-            return
-        playerManager.mpvtk_active = True
-        playerManager.set_browse_window(True)
-        # Casting-screen UX: fullscreen and no OSC over the backdrop. The
-        # browse window itself is deliberately not fullscreen (browser_
-        # fullscreen), so ask for it explicitly here.
-        try:
-            playerManager.set_fullscreen(True)
-        except Exception:
-            log.debug("mirror fullscreen failed", exc_info=True)
-        playerManager.enable_osc(False)
-        self._set_data({"idle": True})   # "Ready to cast" on startup
-        try:
-            self._app.run(self._build)   # blocks: this is the main loop
-        finally:
-            playerManager.mpvtk_active = False
-            if self.stop_callback is not None:
-                self.stop_callback()
-
-    # --- internals ------------------------------------------------------
+        data, size = self._cast, self._cast_size
+        self._pool.submit(lambda: self._composite(data, size))
 
     @staticmethod
     def _build_item_data(item: dict, server: str) -> dict:
@@ -302,33 +283,9 @@ class DisplayMirror:
             "logo_url": _logo_url(item, server),
         }
 
-    def _build(self, size):
-        from .mpvtk.widgets import Column, Image as ImageNode
-
-        if self._size != size:
-            self._size = size
-            self._recomposite()   # window size changed -> rebuild the bitmap
-        e = self._entry
-        if not self._visible or e is None:
-            return Column([], w=size[0], h=size[1])
-        return ImageNode(e["src"], e["iw"], e["ih"], w=size[0], h=size[1])
-
-    def _set_data(self, data):
-        self._data = data
-        # New item -> new backdrop. Dropping the cached one here (and only
-        # here) is what makes a resize re-composite without touching the
-        # network, and keeps the idle screen's random backdrop stable.
-        self._backdrop = None
-        self._backdrop_key = None
-        self._recomposite()
-
-    def _recomposite(self):
-        if self._size is None or self._store is None:
-            return
-        data, size = self._data, self._size
-        self._pool.submit(lambda: self._composite(data, size))
-
     def _composite(self, data, size):
+        from PIL import Image
+
         try:
             w, h = size
             if data.get("idle"):
@@ -338,8 +295,8 @@ class DisplayMirror:
                 # Only roll the random backdrop when we don't already have one
                 # — otherwise it changes on every resize tick (and queries the
                 # server to do it).
-                with self._lock:
-                    resolved = self._backdrop_key is not None
+                with self._cast_lock:
+                    resolved = self._cast_backdrop_key is not None
                 url = None if resolved else _random_backdrop_url()
             else:
                 title = data.get("title") or ""
@@ -363,12 +320,12 @@ class DisplayMirror:
                 w, h,
                 hashlib.sha1(
                     "\x00".join((title, misc, rating, overview,
-                                 self._backdrop_key or "")).encode("utf-8")
+                                 self._cast_backdrop_key or "")).encode("utf-8")
                 ).hexdigest())
-            entry = self._store.bitmap(key, canvas)
-            with self._lock:
-                self._entry = entry
-            self._invalidate()
+            entry = self.strips.bitmap(key, canvas)
+            with self._cast_lock:
+                self._cast_entry = entry
+            self.invalidate()
         except Exception:
             log.warning("Display mirror composite failed.", exc_info=True)
 
@@ -378,18 +335,18 @@ class DisplayMirror:
         The idle screen picks a *random* backdrop, so re-resolving it per
         composite made the picture change while the user dragged the window;
         item screens just re-downloaded the same image."""
-        with self._lock:
-            if self._backdrop_key is not None:
-                return self._backdrop
+        with self._cast_lock:
+            if self._cast_backdrop_key is not None:
+                return self._cast_backdrop
         if not url:
-            with self._lock:
-                self._backdrop_key = ""
-                self._backdrop = None
+            with self._cast_lock:
+                self._cast_backdrop_key = ""
+                self._cast_backdrop = None
             return None
         image = _fetch_image(url)
-        with self._lock:
-            self._backdrop = image
-            self._backdrop_key = url
+        with self._cast_lock:
+            self._cast_backdrop = image
+            self._cast_backdrop_key = url
         return image
 
     def _draw_text(self, canvas, title, misc, rating, overview, cw, ch):
@@ -425,10 +382,3 @@ class DisplayMirror:
         stack(info, pil_font(info_size, text=info), (187, 187, 187))
         stack(title, pil_font(title_size, bold=True, text=title),
               (255, 255, 255), gap=8)
-
-    def _invalidate(self):
-        if self._app is not None:
-            self._app.invalidate()
-
-
-mirror = DisplayMirror()

@@ -20,7 +20,7 @@ features which set it apart from other multimedia clients:
 - Optionally share your media activity with friends using Discord Rich Presence.
 - Most features, as well as MPV itself, [can be extensively configured](https://github.com/jellyfin/jellyfin-mpv-shim#configuration).
 - You can configure the player to use an [external MPV player](https://github.com/jellyfin/jellyfin-mpv-shim#external-mpv) of your choice.
-- Enable a chromecast-like experience with [Display Mirroring](https://github.com/jellyfin/jellyfin-mpv-shim#display-mirroring).
+- Chromecast-like [Display Mirroring](https://github.com/jellyfin/jellyfin-mpv-shim#display-mirroring), on by default.
 - You can [trigger commands to run](https://github.com/jellyfin/jellyfin-mpv-shim#shell-command-triggers) when certain events happen.
 
 To learn more, keep reading. This README explains everything, including [configuration](https://github.com/jellyfin/jellyfin-mpv-shim#configuration), [tips & tricks](https://github.com/jellyfin/jellyfin-mpv-shim#tips-and-tricks), and [development information](https://github.com/jellyfin/jellyfin-mpv-shim#development).
@@ -155,16 +155,23 @@ instructions for instructions on how to enable it.
 
 ### Display Mirroring
 
-This feature allows media previews to show on your display before you cast the media,
-similar to Chromecast. It is not enabled by default. To enable it, do one of the following:
+Casting an item from another Jellyfin client shows it on your display before you play it,
+similar to Chromecast. **This is on by default and needs no configuration** — the item's page
+opens in the library browser, and you can drive it from there with the remote's arrow keys.
+Casting never starts or interrupts playback; it only navigates.
 
-- Using the systray icon, click "Application Menu". Go to preferences and enable display mirroring.
-  - Use the arrow keys, escape, and enter to navigate the menu.
-- Cast media to the player and press `c`. Go to preferences and enable display mirroring.
-- In the config file (see below), change `display_mirroring` to `true`.
+### Cast-target mode (`headless`)
 
-Then restart the application for the change to take effect. To quit the application on Windows with
-display mirroring enabled, press Alt+F4.
+For a box that should *only* be a cast target — a TV in a shared space, say — set `headless`
+to `true` in the config file. The player then shows a "Ready to cast" backdrop instead of the
+library, and the library cannot be reached from the machine itself: no browsing, no search, no
+settings, and no queue view. Casting, playback and the player controls all work normally,
+including transport controls for music.
+
+**This is not a security feature.** It stops someone plugging in a mouse and playing random
+things from your library, which is what it is for. It does not stop anyone with real access to
+the machine: the config file is editable, and the systray menu still reaches Settings and the
+log viewer. If you need the box genuinely locked down, use the operating system for that.
 
 ### Keyboard Shortcuts
 
@@ -293,8 +300,9 @@ You can use the config file to enable and disable features.
   it wakes them. Default: `ENTER`
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
-- `display_mirroring` - Legacy kiosk mode: casting an item from another client shows a static "now casting" backdrop instead of a browsable UI. Default: `false`
-  - With the default `browser_ui: mpvtk` you don't need this — casting an item from another Jellyfin client opens its page in the library browser, which you can then drive with the remote's arrow keys. Casting never starts or interrupts playback; it only navigates.
+- `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
+  - Not a security boundary — see [Cast-target mode](#cast-target-mode-headless).
+  - (Replaces `display_mirroring`. Mirroring itself is now always on and needs no setting; a stale `display_mirroring` entry in your config is ignored.)
 - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
 - `check_updates` - Check for updates via GitHub. Default: `true`
   - This requests the GitHub releases page and checks for a new version.

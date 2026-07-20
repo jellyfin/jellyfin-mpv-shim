@@ -1,0 +1,222 @@
+"""Headless mode: the cast screen is the only page.
+
+The point of the flag is that plugging a mouse into a cast-target box does
+not let someone browse and play the library. That is a claim about EVERY way
+in, not about the obvious one — so these tests enumerate the doors found by
+reading the code and check each is shut:
+
+    playback ends -> enter_browse()          app.py
+    a tile / any view calling navigate()     app.py
+    remote GoHome / GoToSettings             app.py on_nav_command
+    a phone's DisplayContent                 app.py display_item
+    the now-playing bar's Queue button       music.py
+    tray "Show Library Browser"              ui.py -> enter_browse()
+
+A half-enforced lockdown is worse than none, because the operator believes
+the box is locked. If a new route or entry point appears, the catch-all at
+the bottom is what fails.
+
+NOT a security boundary, and the tests do not pretend otherwise: anyone who
+can attach input can usually edit config.json, and the tray deliberately
+still reaches Settings (a documented choice). This stops accidents and
+casual misuse, which is what it is for.
+"""
+
+import sys
+import unittest
+
+sys.argv = [sys.argv[0]]
+
+from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
+
+from tests.test_mpvtk_browser_shell import (  # noqa: E402
+    FakeController, FakeSource, _SyncPool, build_scene, ids)
+
+
+class HeadlessBase(unittest.TestCase):
+    HEADLESS = True
+
+    def _browser(self, **ctl):
+        c = FakeController()
+        for k, v in ctl.items():
+            setattr(c, k, v)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=c)
+        b._pool = _SyncPool()
+        b.headless = self.HEADLESS
+        b.server = "srv1"
+        self.ctl = c
+        if self.HEADLESS:
+            b.show_cast()
+        else:
+            b.navigate({"kind": "home", "server": "srv1"}, reset=True)
+        return b
+
+
+class TestTheDoorsAreShut(HeadlessBase):
+    def test_it_starts_on_the_cast_screen(self):
+        b = self._browser()
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_navigating_to_a_library_page_is_refused(self):
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        self.assertEqual(b.route["kind"], "cast",
+                         "a library page was reachable in headless mode")
+
+    def test_opening_an_item_is_refused(self):
+        b = self._browser()
+        b._open_item({"Id": "m1", "Name": "A Movie", "Type": "Movie"})
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_settings_is_refused(self):
+        """Settings holds the server list and the headless flag itself."""
+        b = self._browser()
+        b._open_settings()
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_the_queue_view_is_refused(self):
+        b = self._browser()
+        b._open_queue()
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_a_remote_declines_home_and_settings(self):
+        """Declining lets the player fall back to its own OSD menu, which is
+        transport-only — rather than opening a page here."""
+        b = self._browser()
+        self.assertFalse(b.on_nav_command("home"))
+        self.assertFalse(b.on_nav_command("settings"))
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_playback_ending_returns_to_the_cast_screen(self):
+        b = self._browser()
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "v1",
+                        "title": "Film", "position": 1, "duration": 10})
+        b.on_playstate({"stopped": True})
+        self.assertEqual(b.route["kind"], "cast",
+                         "playback ending dropped us into the library")
+
+    def test_enter_browse_lands_on_the_cast_screen(self):
+        """The tray's "Show Library Browser" goes through here."""
+        b = self._browser()
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        b.enter_browse()
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_a_phone_showing_an_item_paints_it_rather_than_opening_it(self):
+        """Asserts the item is PAINTED, not merely that navigation was
+        refused — those are different, and checking only the route passes
+        even when display_item does nothing at all, because navigate()
+        would have blocked it regardless."""
+        b = self._browser()
+        shown = []
+        b.display_cast_item = lambda srv, item_id: shown.append(item_id)
+        b.display_item("srv1", "m1")
+        self.assertEqual(shown, ["m1"],
+                         "DisplayContent did not reach the cast screen")
+        self.assertEqual(b.route["kind"], "cast",
+                         "DisplayContent opened a browsable page")
+
+    def test_the_now_playing_bar_has_no_queue_button(self):
+        """The queue is a normal route and normal routes render the nav
+        chrome, so this button was a two-click path to the whole library."""
+        b = self._browser()
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "Song", "position": 1, "duration": 10})
+        nodes, _h = build_scene(b)
+        self.assertNotIn("np-queue", ids(nodes))
+
+    def test_music_transport_still_works(self):
+        """Locking the library must not cost you playback control."""
+        b = self._browser()
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "Song", "position": 1, "duration": 10})
+        nodes, h = build_scene(b)
+        for nid in ("np-pp", "np-next", "np-prev", "np-seek", "np-vol"):
+            self.assertIn(nid, ids(nodes), "%s went missing" % nid)
+        h["np-pp"]["click"]()
+        self.assertIn("toggle_pause", [c[0] for c in self.ctl.transport])
+
+    def test_the_cast_screen_shows_no_nav_chrome(self):
+        b = self._browser()
+        nodes, _h = build_scene(b)
+        for nid in ("nav-home", "nav-search", "nav-settings", "nav-syncplay"):
+            self.assertNotIn(nid, ids(nodes),
+                             "%s is on screen in headless mode" % nid)
+
+    def test_the_screens_headless_needs_are_still_reachable(self):
+        """The lock must not brick startup: connecting and the PIN gate have
+        to work, or a headless box with a slow server has no way forward."""
+        b = self._browser()
+        b.show_connecting()
+        self.assertEqual(b.route["kind"], "connecting")
+        b.show_locked()
+        self.assertEqual(b.route["kind"], "locked")
+
+
+class TestWithoutTheFlagNothingChanges(HeadlessBase):
+    HEADLESS = False
+
+    def test_the_library_is_reachable(self):
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        self.assertEqual(b.route["kind"], "grid")
+
+    def test_the_queue_button_is_present(self):
+        b = self._browser()
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "Song", "position": 1, "duration": 10})
+        nodes, _h = build_scene(b)
+        self.assertIn("np-queue", ids(nodes))
+
+    def test_a_remote_still_opens_home(self):
+        b = self._browser()
+        self.assertTrue(b.on_nav_command("home"))
+        self.assertEqual(b.route["kind"], "home")
+
+    def test_a_phone_still_opens_the_item_page(self):
+        b = self._browser()
+        b.display_item("srv1", "m1")
+        self.assertEqual(b.route["kind"], "detail",
+                         "DisplayContent no longer opens the item")
+
+
+class TestNoRouteEscapesTheLockdown(unittest.TestCase):
+    """The catch-all. Every route kind the browser declares must either be
+    on the headless allow-list or be refused by navigate(). A new route
+    added later is refused by default — this asserts that stays true, so
+    the failure mode is a locked box, never an open one."""
+
+    def test_every_declared_route_is_either_allowed_or_refused(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.headless = True
+        b.server = "srv1"
+        b.show_cast()
+
+        leaked = []
+        for kind in b._routes():
+            if kind in b.HEADLESS_ROUTES:
+                continue
+            b.nav_stack = [{"kind": "cast"}]
+            b.navigate({"kind": kind, "server": "srv1", "parent_id": "lib1",
+                        "item_id": "m1", "person_id": "p1"})
+            if b.route["kind"] != "cast":
+                leaked.append(kind)
+        self.assertEqual(leaked, [],
+                         "these routes are reachable in headless mode: %s"
+                         % leaked)
+
+    def test_the_allow_list_is_only_what_headless_needs(self):
+        """Guards the other direction: something added to HEADLESS_ROUTES
+        for convenience would silently widen the lock."""
+        self.assertEqual(set(MpvtkBrowser.HEADLESS_ROUTES),
+                         {"cast", "connecting", "locked"})
+
+    def test_the_scan_saw_the_routes(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        self.assertGreater(len(b._routes()), 10)
+
+
+if __name__ == "__main__":
+    unittest.main()

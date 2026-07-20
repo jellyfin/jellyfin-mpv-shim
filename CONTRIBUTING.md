@@ -74,7 +74,7 @@ Current Dependencies:
  - `utils.py` - Contains the playback profile and various utilities for other modules.
  - `video_profile.py` - Implements support for shader pack option profiles and related menu items.
  - `win_utils.py` - Implements window management workarounds for Windows.
- - `display_mirror.py` - Implements the "ready to cast" display mirror inside the player's own mpv window, using mpvtk + Pillow.
+ - `mpvtk_browser/cast.py` - The "ready to cast" screen: a browser route that bakes backdrop + gradient + text into one full-window bitmap (mpvtk + Pillow). Was `display_mirror.py`, which owned the mpv window itself and so could not coexist with the browser.
  - `integration` - This contains the appstream metadata, icons, and desktop files used in the Flatpak version.
  - `default_shader_pack` - This is where the `gen_pkg.sh` script installs the [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 

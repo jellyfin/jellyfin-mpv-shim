@@ -173,7 +173,6 @@ class _IdleMixin:
         pm._video = None
         pm.menu.is_menu_shown = False
         pm.syncplay._enabled = False
-        pm.get_webview = lambda: None
         if with_trickplay:
             pm.trickplay = FakeTrickPlay()
         return pm
@@ -213,8 +212,8 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
     """idle_quit() is hard-gated: it fires on both libmpv and a *managed*
     external mpv (the re-open re-creates the player and drains the outgoing
     instance's stale tasks), but never while a video, an open menu, an active
-    SyncPlay group, a display-mirror webview, or a *user-launched* external mpv
-    (``mpv_ext_start`` False) is in play. Backend globals are patched so both
+    SyncPlay group, an on-screen in-window UI, or a *user-launched* external
+    mpv (``mpv_ext_start`` False) is in play. Backend globals are patched so both
     fake legs exercise both branches deterministically (no real spawn)."""
 
     def test_noop_when_mpv_not_alive(self):
@@ -238,14 +237,11 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
         pm.syncplay._enabled = True
         self._assert_gated_noop(pm)
 
-    def test_noop_when_webview_present(self):
-        pm = self._idle_player()
-        pm.get_webview = lambda: object()
-        self._assert_gated_noop(pm)
-
     def test_noop_when_mpvtk_browser_active(self):
-        # The in-window mpvtk browser owns the window while browsing; idle_quit
-        # must not tear it down (same guarantee as the display-mirror webview).
+        # The in-window mpvtk browser owns the window while browsing — and,
+        # in headless mode, while the cast screen is up. idle_quit must not
+        # tear it down. This subsumes the old get_webview() gate, which
+        # guarded the display mirror back when it was a separate UI.
         pm = self._idle_player()
         pm.mpvtk_active = True
         self._assert_gated_noop(pm)

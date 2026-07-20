@@ -88,16 +88,28 @@ from .queue_edit import QueueEditMixin
 from .music import MusicMixin
 from .views import ViewsMixin, SORTS
 from .tiles import TilesMixin
+from .cast import CastMixin
 
 log = logging.getLogger("mpvtk_browser.app")
 
 # Routes that take over the whole surface (no nav chrome), like the Tk
 # browser's login/locked/connecting screens.
-CHROME_FREE = {"login", "locked", "connecting"}
+# "cast" is chrome-free for two reasons: it is a full-bleed backdrop
+# (chrome over it would look wrong), and in headless mode the chrome IS
+# the way into the library.
+CHROME_FREE = {"login", "locked", "connecting", "cast"}
+
+# Where the now-playing bar must NOT appear. Deliberately not CHROME_FREE:
+# the cast screen is chrome-free but IS where audio playback lives in
+# headless mode, and suppressing the bar there would leave a cast-target box
+# playing music with no transport controls at all — worse than the library
+# access it was meant to deny. The other three are pre-library screens where
+# nothing can be playing.
+NO_NOW_PLAYING = {"login", "locked", "connecting"}
 
 
 class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
-                   MusicMixin, ViewsMixin, TilesMixin):
+                   MusicMixin, ViewsMixin, TilesMixin, CastMixin):
 
     # Horizontal padding of ordinary page content.
     CONTENT_PAD = 16
@@ -159,6 +171,19 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._hud_scrub = None
         # Open settings-menu level in the HUD ("root", "speed", …) or None.
         self._hud_menu = None
+        # Cast/idle screen state (see cast.py). Present whether or not
+        # headless is set — without it, this is what a DisplayContent from a
+        # phone renders.
+        self._cast = {"idle": True}
+        self._cast_entry = None
+        self._cast_backdrop = None
+        self._cast_backdrop_key = None
+        self._cast_size = None
+        self._cast_lock = threading.Lock()
+        # Locked-down cast-target mode: the cast screen is the ONLY page.
+        # See navigate() and mpvtk/HEADLESS.md for what this does and does
+        # not protect against.
+        self.headless = bool(self._cfg_headless())
         # Wires on_hud/on_hud_skip (and re-wires on_nav) on the app —
         # shared with mpv re-creation, which attaches a fresh app.
         self.set_app(app)
@@ -264,7 +289,25 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
     def route(self):
         return self.nav_stack[-1]
 
-    def navigate(self, route, reset=False):
+    # Routes headless mode still allows. Everything else is the library.
+    HEADLESS_ROUTES = {"cast", "connecting", "locked"}
+
+    def navigate(self, route, reset=False, force=False):
+        """Go to ``route``.
+
+        In headless mode this is the single choke point for the lockdown:
+        every way into the library ends up here (a tile click, the tray's
+        "Show Library Browser", a remote's GoHome, the now-playing bar's
+        Queue button, a DisplayContent from a phone), so refusing here is
+        what makes the mode mean something rather than hiding one entry
+        point and leaving five others open.
+
+        ``force`` is for the screens headless itself needs to reach.
+        """
+        if (self.headless and not force
+                and route.get("kind") not in self.HEADLESS_ROUTES):
+            log.debug("headless: refusing navigation to %r", route.get("kind"))
+            return
         if reset:
             self.nav_stack = []
         self.nav_stack.append(route)
@@ -272,6 +315,21 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
+
+    def _cfg_headless(self):
+        """Read the headless flag. Tolerates a config object without it (the
+        test fakes hand-build a small schema)."""
+        cfg = self._config_obj
+        if cfg is None:
+            try:
+                from ..conf import settings
+                return getattr(settings, "headless", False)
+            except Exception:
+                return False
+        try:
+            return bool((cfg.get_settings() or {}).get("headless", False))
+        except Exception:
+            return False
 
     def _reset_scroll(self):
         """Forget recorded scroll offsets on a route change.
@@ -324,6 +382,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.invalidate()
 
     def display_item(self, server_uuid, item_id):
+        if self.headless:
+            # Same gesture, different answer: paint it on the cast screen
+            # rather than opening a page the user could then browse from.
+            self.display_cast_item(server_uuid, item_id)
+            return
+        return self._display_item(server_uuid, item_id)
+
+    def _display_item(self, server_uuid, item_id):
         """Open an item's page because a remote asked us to (Jellyfin's
         DisplayContent — "show me this" from a phone or web client).
 
@@ -381,6 +447,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         """Remote menu commands that map onto real pages here (GoHome /
         GoToSettings). Returns True when handled; the OSD menu has no such
         pages, so for every other path both still just open the menu."""
+        if self.headless:
+            # A remote is input like any other. Declining here lets the
+            # player fall back to its own OSD menu, which is transport-only.
+            return False
         if name == "settings":
             self.open_settings()
             return True
@@ -1014,6 +1084,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self._pool.submit(lambda: self._safe(lambda c: c.check_updates()))
 
     def enter_browse(self):
+        if self.headless and self.route.get("kind") not in self.HEADLESS_ROUTES:
+            # Playback ended and something is putting us back on a library
+            # page. In headless the only page to come back to is the cast
+            # screen.
+            self.show_cast()
         """Show the browser: take the window + hide the OSC, then render.
         mpvtk-active yes also drops the renderer out of HUD mode."""
         self._browsing = True
@@ -1336,7 +1411,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             if dlbar is not None:
                 children.append(dlbar)
         children.append(content)
-        if self._now_playing is not None and route["kind"] not in CHROME_FREE:
+        if (self._now_playing is not None
+                and route["kind"] not in NO_NOW_PLAYING):
             children.append(self._now_playing_bar(w))
         if self._menu is not None:
             menu = self._tile_menu_node()

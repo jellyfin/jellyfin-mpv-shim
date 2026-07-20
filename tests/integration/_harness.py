@@ -396,7 +396,6 @@ def build_player(player_module, video=None):
     pm.url = None
     pm.last_update = Timer()
     pm._jf_settings = None
-    pm.get_webview = lambda: None
     pm.pause_ignore = None
     pm.do_not_handle_pause = False
     pm._last_offline_record = float("-inf")

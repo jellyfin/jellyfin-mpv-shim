@@ -113,7 +113,14 @@ class Settings(SettingsBase):
     mpv_ext_no_ovr: bool = False
     enable_osc: bool = True
     use_web_seek: bool = False
-    display_mirroring: bool = False
+    # Locked-down cast-target mode: the cast screen is the only page, and
+    # the library cannot be reached from the machine itself. Replaces
+    # display_mirroring, which was a *second* UI rather than a page and so
+    # could not coexist with the browser. NOT a security boundary — anyone
+    # who can attach input can usually also edit this file, and the tray
+    # still reaches Settings. It stops a plugged-in mouse from playing the
+    # library, which is what it is for.
+    headless: bool = False
     log_decisions: bool = False
     mpv_log_level: str = "info"
     idle_when_paused: bool = False

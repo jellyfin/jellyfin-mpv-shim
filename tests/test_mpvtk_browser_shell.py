@@ -3799,7 +3799,8 @@ class TestNavBack(unittest.TestCase):
 class TestRemoteDisplayContent(unittest.TestCase):
     """Jellyfin's DisplayContent ("show me this" from a phone) opens the
     item's page in the browser, which the remote's arrows can then drive.
-    The legacy display_mirroring kiosk shows a static backdrop instead."""
+    In headless mode it paints the item on the cast screen instead — see
+    tests/test_mpvtk_headless.py."""
 
     def setUp(self):
         self.ctl = FakeController()

@@ -153,14 +153,11 @@ class EventHandler(object):
             # "Show me this" from a phone or web client. If you have an idle
             # command set, this will delay it.
             timelineManager.delay_idle()
-            if self.mirror:
-                # display_mirroring=true is the legacy kiosk mode: a static
-                # backdrop preview instead of a browsable UI.
-                self.mirror.display_content(client, arguments)
-            elif self.display_content:
-                # The in-window browser navigates to the item's page, which
-                # is the useful version of the same gesture — you can then
-                # drive it with the remote's arrows.
+            if self.display_content:
+                # One path now. The browser either opens the item's page
+                # (you can then drive it with the remote's arrows) or, in
+                # headless mode, renders it on the cast screen — it decides,
+                # because it is the only thing that owns the window.
                 try:
                     self.display_content(
                         client, arguments["Arguments"]["ItemId"])

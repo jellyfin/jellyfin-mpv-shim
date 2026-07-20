@@ -161,7 +161,6 @@ class PlayerManager(object):
         self._finished_lock = Lock()
         self.last_update = Timer()
         self._jf_settings = None
-        self.get_webview = lambda: None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
@@ -226,8 +225,8 @@ class PlayerManager(object):
         # plain attribute so the player has no hard dependency on the GUI.
         self.on_playstate = None
         # Set True while the in-window mpvtk browser owns the window (browse
-        # mode). Guards idle_quit so browsing never tears the window down, the
-        # same way get_webview() guards it for the display mirror.
+        # mode, and the cast screen). Guards idle_quit so an on-screen UI
+        # never has the window torn out from under it.
         self.mpvtk_active = False
         # True while the in-window browser's solid background image is the
         # loaded file. Guards against reloading it on top of itself, which
@@ -1066,10 +1065,6 @@ class PlayerManager(object):
 
         if settings.log_decisions:
             log.info("Playing: {0}".format(url))
-        if self.get_webview() is not None and settings.display_mirroring:
-            # noinspection PyUnresolvedReferences
-            self.get_webview().hide()
-
         # Expose the source path so external-mpv profiles can auto-apply (see 986ceae).
         # Use the real `set` input command, not `set_property`: the latter is a
         # JSON-IPC-only verb and crashes libmpv ("Command 'set_property' not found",
@@ -2128,9 +2123,6 @@ class PlayerManager(object):
         if options is not None and client is not None:
             client.jellyfin.session_stop(options)
 
-        if self.get_webview() is not None and settings.display_mirroring:
-            self.get_webview().show()
-
         if discord_presence:
             try:
                 clear_presence()
@@ -2179,8 +2171,6 @@ class PlayerManager(object):
         if not self._mpv_alive or self._video is not None:
             return
         if self.menu.is_menu_shown or self.syncplay.is_enabled():
-            return
-        if self.get_webview() is not None:
             return
         if self.mpvtk_active:
             # The in-window browser is on screen; keep the window alive. Note

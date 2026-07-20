@@ -1201,6 +1201,15 @@ class UserInterface:
                 log.info("start_minimized ignored: no system tray to "
                          "restore the window from.")
             browser.enter_browse()  # take the window + hide the OSC
+        if browser.headless:
+            # Cast-target UX: the backdrop wants the whole screen, and the
+            # browse window deliberately is not fullscreen (browser_
+            # fullscreen), so ask explicitly — as the old mirror did.
+            browser.show_cast()
+            try:
+                playerManager.set_fullscreen(True)
+            except Exception:
+                log.debug("headless fullscreen failed", exc_info=True)
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="mpvtk-browser")
         self._thread.start()
@@ -1209,12 +1218,12 @@ class UserInterface:
         # "back" to ESC when the in-window UI owns input).
         playerManager.on_nav_back = browser.on_back
         playerManager.on_nav_command = browser.on_nav_command
-        # "Show me this" from a phone/web client opens the item's page here,
-        # unless the legacy kiosk mirror is on (it owns the window instead).
-        if not settings.display_mirroring:
-            from ..event_handler import eventHandler
+        # "Show me this" from a phone/web client. Always ours now — the
+        # browser either opens the item's page or, in headless mode, paints
+        # it on the cast screen.
+        from ..event_handler import eventHandler
 
-            eventHandler.display_content = self._display_content
+        eventHandler.display_content = self._display_content
         # A startup PIN gates connection: show the lock screen and let the
         # unlock drive the connect. Otherwise connect in the background.
         from ..users import userManager

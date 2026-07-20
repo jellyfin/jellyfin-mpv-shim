@@ -584,7 +584,6 @@ class OSDMenu(object):
                 self.get_settings_toggle(_("Auto Fullscreen"), "fullscreen"),
                 self.get_settings_toggle(_("Media Key Seek"), "media_key_seek"),
                 self.get_settings_toggle(_("Use Web Seek Pref"), "use_web_seek"),
-                self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
                 self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
                 self.get_settings_toggle(_("Check for Updates"), "check_updates"),
                 self.get_settings_toggle(

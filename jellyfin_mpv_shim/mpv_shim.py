@@ -70,14 +70,10 @@ def main():
         return
 
     user_interface = None
-    mirror = None
     use_gui = False
     gui_ready = None
-    get_webview = lambda: None
     if settings.enable_gui:
-        # The mpvtk browser and the mpvtk display mirror both own the player's
-        # mpv window, so they're mutually exclusive — mirroring wins.
-        if settings.browser_ui == "mpvtk" and not settings.display_mirroring:
+        if settings.browser_ui == "mpvtk":
             try:
                 # The mpvtk browser rasterizes tiles with Pillow; probe it so
                 # a missing optional dep falls back cleanly.
@@ -106,15 +102,6 @@ def main():
                     exc_info=True,
                 )
 
-    if settings.display_mirroring:
-        try:
-            from .display_mirror import mirror
-
-            get_webview = mirror.get_webview
-        except ImportError:
-            mirror = None
-            log.warning("Cannot load display mirror.", exc_info=True)
-
     if not user_interface:
         from .cli_mgr import user_interface
 
@@ -133,12 +120,10 @@ def main():
     playerManager.timeline_trigger = timelineManager.trigger
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
-    playerManager.get_webview = get_webview
     # Resolve the menu at call time: even though the OSDMenu now survives mpv
     # re-creation, binding through playerManager keeps this correct if that
     # ever changes.
     user_interface.open_player_menu = lambda: playerManager.menu.show_menu()
-    eventHandler.mirror = mirror
     syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
     user_interface.start()
     single.on_activate = getattr(user_interface, "activate", lambda: None)
@@ -149,23 +134,14 @@ def main():
         log.info("Tip: Open the JSON file in VS Code to see what is wrong.")
 
     try:
-        if mirror:
-            user_interface.stop_callback = mirror.stop
-            # If the webview runs before the systray icon, it fails.
-            # gui_ready is only set for the Tk GUI path; the mpvtk browser
-            # doesn't use it (and doesn't combine with the mirror).
-            if use_gui and gui_ready is not None:
-                gui_ready.wait()
-            mirror.run()
-        else:
-            halt = Event()
-            user_interface.stop_callback = halt.set
-            try:
-                while not halt.wait(timeout=1):
-                    pass
-            except KeyboardInterrupt:
-                print("")
-                log.info("Stopping services...")
+        halt = Event()
+        user_interface.stop_callback = halt.set
+        try:
+            while not halt.wait(timeout=1):
+                pass
+        except KeyboardInterrupt:
+            print("")
+            log.info("Stopping services...")
     finally:
         playerManager.terminate()
         timelineManager.stop()

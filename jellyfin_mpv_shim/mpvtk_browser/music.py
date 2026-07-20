@@ -529,8 +529,15 @@ class MusicMixin:
                            lambda c: c.set_volume(v, notify=False)),
                        on_commit=lambda v: self._ctl(
                            lambda c: c.set_volume(v))),
+            ] + ([] if self.headless else [
+                # Dropped in headless: the queue is a normal route, and
+                # normal routes render the nav chrome — so casting a song to
+                # a locked box would otherwise hand over the whole library
+                # in two clicks. Queue PLAYBACK still works; only the view
+                # is unreachable.
                 tbtn("queue_music", "np-queue", self._open_queue,
                      tip=_("Queue")),
+            ]) + [
             ],
             pad=10, gap=10, align="center", h=64, bg=theme.PANEL_BG)
 

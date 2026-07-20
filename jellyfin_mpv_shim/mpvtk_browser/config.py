@@ -23,6 +23,7 @@ _HIDDEN = {"language_config", "audio_output", "close_prompt_shown",
 # under "Advanced".
 SECTIONS = [
     (_("Interface"), ["player_name", "browser_ui", "browser_fullscreen",
+                      "headless",
                       "enable_gui", "start_minimized", "close_to_tray",
                       "fullscreen", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
@@ -78,6 +79,7 @@ LABEL_OVERRIDES = {
     "close_to_tray": _("Close to Tray (keep running)"),
     "osc_style": _("Player Controls Style"),
     "browser_ui": _("Library Browser UI"),
+    "headless": _("Cast-target mode (no library browsing)"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
