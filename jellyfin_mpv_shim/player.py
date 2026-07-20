@@ -1865,9 +1865,17 @@ class PlayerManager(object):
                 # HUD shows these above it — the audio bar has its own
                 # artist/album lines and ignores them. Raw fields, not a
                 # formatted string: the view decides how to lay them out.
-                "series_name": item.get("SeriesName") or "",
-                "season": item.get("ParentIndexNumber"),
-                "episode": item.get("IndexNumber"),
+                #
+                # Only for a real Episode: ParentIndexNumber/IndexNumber are
+                # generic ordinals. A MusicVideo carries disc and track there
+                # and is MediaType Video, so it reaches the HUD — and would
+                # have been labelled "S1E3".
+                "series_name": (item.get("SeriesName") or ""
+                                if item.get("Type") == "Episode" else ""),
+                "season": (item.get("ParentIndexNumber")
+                           if item.get("Type") == "Episode" else None),
+                "episode": (item.get("IndexNumber")
+                            if item.get("Type") == "Episode" else None),
                 "artist": ", ".join(item.get("Artists") or []),
                 "album": item.get("Album") or "",
                 "position": float(pos) if pos is not None else 0.0,

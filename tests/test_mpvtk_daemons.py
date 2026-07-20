@@ -109,9 +109,11 @@ class TestSingleStart(unittest.TestCase):
 
 
 class TestShutdownStopsEverything(unittest.TestCase):
-    def test_every_daemon_waits_on_the_shared_event(self):
-        """_shutdown_evt is set once, by shutdown(), and never cleared. All
-        four background threads sleep on it, so setting it wakes them all."""
+    def test_shutdown_wakes_a_body_sleeping_on_the_event(self):
+        """Narrow by construction: the bodies here are written by the test, so
+        this only proves shutdown() sets the event and _start_daemon runs what
+        it is given. That the *production* pollers sleep on that same event is
+        a separate claim — see test_the_real_pollers_sleep_on_it."""
         b = _browser()
         woke = []
 
@@ -154,6 +156,70 @@ class TestShutdownStopsEverything(unittest.TestCase):
                         and node.func.value.attr == "_shutdown_evt"):
                     offenders.append(f"{mod}:{node.lineno}")
         self.assertEqual(offenders, [])
+
+
+class TestTheContractIsInTheCode(unittest.TestCase):
+    """Two properties a behavioural test cannot pin here, checked structurally.
+
+    Ideally these would be behavioural. They are not, for honest reasons: the
+    check-then-act window in _start_daemon is closed by the GIL under normal
+    scheduling (a behavioural test only fails if you widen it artificially),
+    and "this loop sleeps on _shutdown_evt" is invisible from outside if the
+    loop simply sleeps on something else instead — a swap that leaves the
+    whole suite green.
+    """
+
+    @staticmethod
+    def _fn(name):
+        import ast
+        import inspect
+        import os
+        from jellyfin_mpv_shim.mpvtk_browser import app as app_mod
+        pkg = os.path.dirname(inspect.getfile(app_mod))
+        for mod in ("app", "settings"):
+            with open(os.path.join(pkg, mod + ".py")) as fh:
+                tree = ast.parse(fh.read())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name == name:
+                    return node
+        raise AssertionError("no such method: %s" % name)
+
+    def test_the_real_pollers_sleep_on_the_shutdown_event(self):
+        """A poller that waited on anything else would never stop, and no
+        behavioural test would notice — shutdown() would still return."""
+        import ast
+        for name in ("_start_np_ticker", "_poll_downloads",
+                     "_poll_download_status", "_arm_toast_clear"):
+            with self.subTest(starter=name):
+                waits = [
+                    n for n in ast.walk(self._fn(name))
+                    if isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "wait"
+                    and isinstance(n.func.value, ast.Attribute)
+                    and n.func.value.attr == "_shutdown_evt"
+                ]
+                self.assertTrue(waits, "%s does not sleep on _shutdown_evt" % name)
+
+    def test_start_daemon_checks_and_assigns_under_the_lock(self):
+        """The whole point of _start_daemon. Both halves must be inside the
+        same `with self._poller_lock`, or it is check-then-act again."""
+        import ast
+        fn = self._fn("_start_daemon")
+        guarded = []
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.With):
+                continue
+            if not any(isinstance(i.context_expr, ast.Attribute)
+                       and i.context_expr.attr == "_poller_lock"
+                       for i in node.items):
+                continue
+            body = ast.dump(ast.Module(body=node.body, type_ignores=[]))
+            guarded.append(("getattr" in body, "setattr" in body))
+        self.assertIn(
+            (True, True), guarded,
+            "the slot check and the slot assignment are not both inside one "
+            "`with self._poller_lock` — that is the race this exists to close")
 
 
 if __name__ == "__main__":

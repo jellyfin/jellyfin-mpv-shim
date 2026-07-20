@@ -665,10 +665,16 @@ class SettingsMixin:
 
         def done(rows):
             route["_downloads"] = rows or []
-            route["_dl_loading"] = False
             # badges elsewhere in the UI are keyed off the same catalog
             self._refresh_downloaded()
-        self.run_async(work, done, ep)
+
+        # `always`, not part of done: a load dropped for being stale runs
+        # neither callback, and a stuck _dl_loading makes every later render
+        # of this panel return early — the list freezes until something calls
+        # with force=True. There was no on_error either, so a failed load did
+        # the same.
+        self.run_async(work, done, ep,
+                       always=lambda: route.__setitem__("_dl_loading", False))
 
     def _delete_download(self, route, item_id=None, series_id=None,
                          season_id=None, playlist_id=None, item_ids=None,
@@ -698,10 +704,10 @@ class SettingsMixin:
 
         def done(rows):
             route["_downloads"] = rows or []
-            route["_dl_loading"] = False
             # badges elsewhere in the UI are keyed off the same catalog
             self._refresh_downloaded()
-        self.run_async(work, done, ep)
+        self.run_async(work, done, ep,
+                       always=lambda: route.__setitem__("_dl_loading", False))
         self._refresh_downloaded()
 
     # -- Logs -------------------------------------------------------------

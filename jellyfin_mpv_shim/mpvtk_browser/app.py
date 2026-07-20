@@ -410,7 +410,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if self.app is not None:
             self.app.invalidate()
 
-    def run_async(self, work, on_done, epoch, on_error=None):
+    def run_async(self, work, on_done, epoch, on_error=None, always=None):
         """Run ``work()`` off the loop thread; apply ``on_done(result)`` only
         if the epoch still matches (the user hasn't navigated away). ``on_done``
         mutates state under the lock, then the loop is woken to rebuild.
@@ -419,35 +419,57 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         only logs, which left the route's data at None and the view spinning
         forever — an unreachable server looked like a hang.
 
-        **``on_error`` is deliberately not epoch-gated.** It is a rollback,
-        not a render: it undoes an optimistic edit in the *route dict it
-        captured*, clears a paging guard, or puts the failure in the status
-        bar — none of which are claims about what is currently on screen.
-        Gating it meant navigating away before the failure landed dropped
-        the rollback, so the route dict kept a change the server had refused
-        and showed it again on the way back."""
+        **``on_error`` is deliberately not epoch-gated.** A rollback undoes an
+        optimistic edit in the *route dict it captured*, or clears a paging
+        guard — neither is a claim about what is currently on screen. Gating
+        it meant navigating away before the failure landed dropped the
+        rollback, so the route dict kept a change the server had refused and
+        showed it again on the way back.
+
+        That puts the burden on the handler: **anything in an ``on_error``
+        that touches the live screen must check for itself.** Two do, both by
+        testing ``route is self.route`` — ``_route_async`` before the offline
+        fallback (``set_source`` discards the nav stack) and ``_page_more``
+        before its toast. ``_edit_call``'s toast is deliberately unguarded:
+        the user pressed a button and the server refused, so they should be
+        told wherever they now are.
+
+        ``always()`` runs after every outcome — success, failure, *and a
+        result dropped because the epoch moved*. Use it for a guard that must
+        not outlive the call. ``on_error`` alone is not enough: a stale
+        success calls neither callback, so a flag cleared only in ``on_done``
+        stays set forever (that was ``_page_more``'s ``_loading``, which
+        silently killed infinite scroll for a route once you paged and then
+        clicked into an item)."""
         def task():
             try:
-                result = work()
-            except Exception as exc:
-                log.warning("async work failed", exc_info=True)
-                if on_error is None:
+                try:
+                    result = work()
+                except Exception as exc:
+                    log.warning("async work failed", exc_info=True)
+                    if on_error is None:
+                        return
+                    with self._lock:
+                        try:
+                            on_error(exc)
+                        except Exception:
+                            log.warning("async on_error failed", exc_info=True)
                     return
                 with self._lock:
+                    if epoch != self._epoch:
+                        return  # superseded by a newer navigation
                     try:
-                        on_error(exc)
+                        on_done(result)
                     except Exception:
-                        log.warning("async on_error failed", exc_info=True)
+                        log.warning("async on_done failed", exc_info=True)
+            finally:
+                if always is not None:
+                    with self._lock:
+                        try:
+                            always()
+                        except Exception:
+                            log.warning("async always failed", exc_info=True)
                 self.invalidate()
-                return
-            with self._lock:
-                if epoch != self._epoch:
-                    return  # superseded by a newer navigation
-                try:
-                    on_done(result)
-                except Exception:
-                    log.warning("async on_done failed", exc_info=True)
-            self.invalidate()
 
         self._pool.submit(task)
 
@@ -460,7 +482,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             # requesting anything for the rest of the session.
             route.pop("_loading", None)
             log.info("route %r failed to load: %s", route.get("kind"), exc)
-            self._offline_fallback(route)
+            # Everything above is a rollback on this route's own dict, so it
+            # runs whenever the failure lands. The fallback is not: set_source
+            # throws the nav stack away and drops the user on the offline
+            # home. Only do that while this route is still the screen —
+            # against a server that hangs rather than refuses, the failure can
+            # arrive tens of seconds after the user has moved on, and yanking
+            # them out of Settings mid-edit is worse than the error they
+            # never saw.
+            if route is self.route:
+                self._offline_fallback(route)
         self.run_async(work, on_done, ep, on_error=failed)
 
     # How close to the bottom of a scroller a page request is triggered.
@@ -503,13 +534,24 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             cur, _t = get(route)
             merged = list(cur) + list(new)
             put(route, merged, total2 if new else len(merged))
-            route["_loading"] = False
 
         def failed(_exc):
-            route["_loading"] = False
-            self.set_status(error or _("Could not load more items."))
+            # The toast is about a list. Nobody asked for this page — it was
+            # triggered by scrolling — so reporting it over whatever screen
+            # the user moved to is noise. (An edit the user *pressed a button*
+            # for is the opposite case; see _edit_call.)
+            if route is self.route:
+                self.set_status(error or _("Could not load more items."))
 
-        self.run_async(lambda: fetch(start), done, ep, on_error=failed)
+        def clear_guard():
+            route["_loading"] = False
+
+        # clear_guard is `always`, not part of done/failed: a page dropped for
+        # being stale runs neither, and a _loading left set means this route
+        # never pages again — scroll to the bottom, click a tile, come back,
+        # and the list is silently capped for the rest of the session.
+        self.run_async(lambda: fetch(start), done, ep, on_error=failed,
+                       always=clear_guard)
 
     def _offline_fallback(self, route):
         """A failed *home* load with downloads present drops to the offline
@@ -549,7 +591,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         walk it and merge; a kind claimed twice is a bug, not a silent
         override (see tests/test_mpvtk_browser_mixins.py).
         """
-        if cls._ROUTES_CACHE is None:
+        # __dict__, not attribute lookup: a plain `cls._ROUTES_CACHE` resolves
+        # through the MRO, so a subclass would find the parent's populated
+        # cache and return it — silently dropping its own ROUTES, which is the
+        # exact failure this table exists to prevent.
+        if cls.__dict__.get("_ROUTES_CACHE") is None:
             merged = {}
             for base in cls.__mro__:
                 for kind, pair in (base.__dict__.get("ROUTES") or {}).items():

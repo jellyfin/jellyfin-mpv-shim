@@ -90,6 +90,32 @@ class TestEpisodeContext(unittest.TestCase):
         self.assertEqual(snapshot(item)["season"], 0)
 
 
+class TestOnlyEpisodesGetEpisodeContext(unittest.TestCase):
+    """ParentIndexNumber/IndexNumber are generic ordinals. A MusicVideo puts
+    disc and track there and is MediaType Video, so it reaches the HUD —
+    and would have been captioned "S1E3"."""
+
+    def test_a_music_video_is_not_labelled_like_an_episode(self):
+        from jellyfin_mpv_shim.mpvtk_browser.hud import _episode_context
+        st = snapshot({"Name": "The Video", "Type": "MusicVideo",
+                       "MediaType": "Video", "ParentIndexNumber": 1,
+                       "IndexNumber": 3, "Album": "An Album"})
+        self.assertIsNone(st["season"])
+        self.assertIsNone(st["episode"])
+        self.assertEqual(_episode_context(st), "")
+
+    def test_a_plain_video_with_ordinals_is_not_labelled_either(self):
+        from jellyfin_mpv_shim.mpvtk_browser.hud import _episode_context
+        st = snapshot({"Name": "Clip", "Type": "Video", "MediaType": "Video",
+                       "ParentIndexNumber": 2, "IndexNumber": 7})
+        self.assertEqual(_episode_context(st), "")
+
+    def test_a_real_episode_still_is(self):
+        from jellyfin_mpv_shim.mpvtk_browser.hud import _episode_context
+        self.assertEqual(_episode_context(snapshot(EPISODE)),
+                         "The Show   ·   S1E2")
+
+
 class TestTheAudioBarIsUnaffected(unittest.TestCase):
     """The now-playing bar shares this payload and shows artist/album under
     the title, so the new keys must not disturb what it reads."""

@@ -5342,6 +5342,30 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         b._pool = _DeferredPool()
         return b
 
+    def _pagers(self):
+        """(name, route, scroll_fn) for each of the three infinite scrolls."""
+        items = [{"Id": "i%d" % i, "Name": "N%d" % i} for i in range(20)]
+        b = self.b
+        return [
+            ("grid",
+             {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+              "_items": list(items), "_total": 99},
+             lambda r: b._on_grid_scroll(r, 0, 100)),
+            ("music",
+             {"kind": "music", "server": "srv1", "parent_id": "lib1",
+              "_tab": "albums", "_data": list(items), "_total": 99},
+             lambda r: b._on_music_scroll(r, 0, 100)),
+            ("genre",
+             {"kind": "music_genre", "server": "srv1", "parent_id": "lib1",
+              "item_id": "g1",
+              "_data": {"albums": list(items), "total": 99}},
+             lambda r: b._on_genre_scroll(r, 0, 100)),
+        ]
+
+    def setUp(self):
+        self.b = self._browser()
+        self.b.server = "srv1"
+
     @staticmethod
     def _boom(*a, **k):
         raise RuntimeError("server refused")
@@ -5381,6 +5405,88 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         labels = [n.get("text") for n in nodes if n.get("text")]
         self.assertTrue(any("Alpha" in t for t in labels),
                         "returned to a playlist missing a row the server kept")
+
+    def test_a_dropped_page_still_clears_the_paging_guard(self):
+        """_loading is set before dispatch and used to be cleared only in
+        on_done — which run_async skips wholesale when the epoch moved. Scroll
+        to the bottom, click into an item, come back, and the list could never
+        page again for the rest of the session."""
+        for view, route, scroll in self._pagers():
+            with self.subTest(view=view):
+                b = self.b
+                b.nav_stack = [route]
+                scroll(route)
+                self.assertTrue(route["_loading"], "no page was dispatched")
+                b.navigate({"kind": "home", "server": "srv1"})
+                b._pool.drain()          # the page lands, stale, and is dropped
+                self.assertFalse(route.get("_loading"),
+                                 "the paging guard survived a stale page")
+
+    def test_a_dropped_downloads_load_clears_its_guard_too(self):
+        """Same shape in the downloads panel, where a stuck _dl_loading makes
+        every later render of the tab return early."""
+        b = self._browser()
+        b.controller.list_downloads = lambda: [{"kind": "movies", "id": None,
+                                                "title": "M", "size": 0,
+                                                "count": 0, "children": []}]
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads"}
+        b.nav_stack = [route]
+        b._load_downloads(route)
+        self.assertTrue(route["_dl_loading"])
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._pool.drain()
+        self.assertFalse(route.get("_dl_loading"),
+                         "the downloads panel can never reload itself again")
+
+    def test_a_stale_home_failure_does_not_yank_you_offline(self):
+        """The rollback half of on_error is ungated on purpose, but
+        _offline_fallback is not a rollback: set_source() throws the nav stack
+        away and drops you on the offline home. Against a server that hangs
+        rather than refuses, that failure can land tens of seconds after the
+        user has moved on."""
+        b = self._browser()
+        b.source.get_libraries = self._boom
+        offline = FakeSource()
+        b.controller.offline_source = lambda: offline
+        home = {"kind": "home", "server": "srv1"}
+        b.nav_stack = [home]
+        b._load_route(home)
+        b.navigate({"kind": "settings", "server": "srv1", "_tab": "general"})
+        b._pool.drain()
+        self.assertEqual([r["kind"] for r in b.nav_stack],
+                         ["home", "settings"],
+                         "a stale home failure discarded the nav stack")
+        self.assertIsNot(b.source, offline,
+                         "swapped the data source behind the user's back")
+        self.assertIsNotNone(home.get("_error"),
+                             "the error was not recorded on the home route")
+
+    def test_the_fallback_still_fires_while_home_is_on_screen(self):
+        """The guard must not defeat the feature it guards."""
+        b = self._browser()
+        b.source.get_libraries = self._boom
+        offline = FakeSource()
+        b.controller.offline_source = lambda: offline
+        home = {"kind": "home", "server": "srv1"}
+        b.nav_stack = [home]
+        b._load_route(home)
+        b._pool.drain()
+        self.assertIs(b.source, offline, "never fell back to the downloads")
+
+    def test_a_stale_page_failure_does_not_toast_over_another_screen(self):
+        b = self._browser()
+        b.source.get_library_items = self._boom
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "_items": [{"Id": "x"}], "_total": 99}
+        b.nav_stack = [route]
+        b._on_grid_scroll(route, 0, 100)
+        b.navigate({"kind": "settings", "server": "srv1", "_tab": "general"})
+        b.status = ""
+        b._pool.drain()
+        self.assertEqual(b.status, "",
+                         "toasted about a list the user had left")
+        self.assertFalse(route.get("_loading"),
+                         "the guard must still be cleared")
 
     def test_a_stale_success_is_still_discarded(self):
         """Only on_error is ungated. A *successful* late reply must still be

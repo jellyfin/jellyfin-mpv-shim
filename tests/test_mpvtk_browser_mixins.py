@@ -161,6 +161,21 @@ class TestRouteTable(unittest.TestCase):
                     orphans.append(f"{mod}.{name}")
         self.assertEqual(orphans, [], "a renderer no route reaches")
 
+    def test_a_subclass_gets_its_own_routes_not_the_parents_cache(self):
+        """_ROUTES_CACHE resolves through the MRO, so a subclass would find
+        the base's populated cache and return it — silently dropping its own
+        ROUTES, which is the exact silent-loss this table exists to prevent."""
+        MpvtkBrowser._routes()          # populate the base's cache first
+
+        class Sub(MpvtkBrowser):
+            ROUTES = {"a-new-kind": (None, "_render_home")}
+
+        self.assertIn("a-new-kind", Sub._routes(),
+                      "the subclass inherited the base's cached table")
+        self.assertIn("home", Sub._routes(), "the base's kinds were lost")
+        self.assertNotIn("a-new-kind", MpvtkBrowser._routes(),
+                         "the subclass leaked into the base's table")
+
     def test_the_merged_table_matches_what_the_mixins_declare(self):
         merged = MpvtkBrowser._routes()
         self.assertEqual(len(merged), len(self._declared()))
