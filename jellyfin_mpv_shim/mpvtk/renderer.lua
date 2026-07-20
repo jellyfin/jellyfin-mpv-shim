@@ -1863,6 +1863,17 @@ end
 
 local text_key_names = {}
 
+-- The any_unicode handler, hoisted out of the binding so the debug hook
+-- (mpvtk-debug cmd=text) drives the same code a real keypress does. They
+-- were separate, which made every "type into a box" test pass against a
+-- renderer that had stopped delivering keystrokes entirely.
+function tb_key_text(e)
+    if not e or e.event == 'up' then return end
+    local t = e.key_text
+    if not t or t == '' or t:byte(1) < 0x20 then return end
+    tb_insert(t)
+end
+
 local function bind_text_keys()
     if text_keys_bound then return end
     text_keys_bound = true
@@ -1876,12 +1887,8 @@ local function bind_text_keys()
     -- full unicode range, including IME-committed strings on backends
     -- where mpv receives them (Wayland text-input-v3, Windows IME).
     mp.add_forced_key_binding('any_unicode', 'mpvtk_text',
-        function(e)
-            if not e or e.event == 'up' then return end
-            local t = e.key_text
-            if not t or t == '' or t:byte(1) < 0x20 then return end
-            tb_insert(t)
-        end, { repeatable = true, complex = true })
+        function(e) tb_key_text(e) end,
+        { repeatable = true, complex = true })
     text_key_names[#text_key_names + 1] = 'mpvtk_text'
     -- editing keys: mpv key -> tb_key op (binding names derive from
     -- the KEY so e.g. ctrl+HOME can share the HOME action)
@@ -3738,7 +3745,11 @@ mp.register_script_message('mpvtk-debug', function(json)
             on_mouse_up()
         end
     elseif cmd.cmd == 'text' then
-        for c in tostring(cmd.s):gmatch('.') do tb_insert(c) end
+        -- Through the real any_unicode handler, not tb_insert: the point of
+        -- a debug hook is to stand in for the input it simulates.
+        for c in tostring(cmd.s):gmatch('.') do
+            tb_key_text({ event = 'down', key_text = c })
+        end
     elseif cmd.cmd == 'key' then
         tb_key(cmd.name)
     elseif cmd.cmd == 'state' then

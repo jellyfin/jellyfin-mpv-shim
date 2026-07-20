@@ -157,8 +157,6 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
         self.assertEqual(self.browser.route["parent_id"], "lib1")
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 @h.require_real_mpv
@@ -427,3 +425,7 @@ class TestTableRowContextMenu(unittest.TestCase):
         time.sleep(0.6)
         self.assertIn(("click", 3), self.events)
         self.assertNotIn(("context", 3), self.events)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -145,6 +145,28 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
             time.sleep(0.15)
         self.fail(msg or "condition never became true")
 
+    def _click_when_hittable(self, node_id, timeout=6):
+        """Click a node once the RENDERER can hit-test it.
+
+        node_rect() reads the last scene PYTHON pushed, but debug(cmd=click)
+        resolves the id through the renderer's own state.byid. Those are not
+        the same instant: the renderer processes scenes asynchronously, so
+        under load a click can land before reconcile and center_of() returns
+        nil — the click is silently dropped and the test fails somewhere
+        unrelated, reporting only that the action never happened.
+
+        Hovering proves the renderer has the node, because hover and click
+        share center_of().
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            self.app.debug(cmd="hover", id=node_id)
+            if (self._state() or {}).get("hover") == node_id:
+                self.app.debug(cmd="click", id=node_id)
+                return
+            time.sleep(0.15)
+        self.fail("%s never became hit-testable in the renderer" % node_id)
+
     def _keypress(self, key):
         self.handle.command("keypress", key)
 
@@ -356,7 +378,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                                        skip_label="Skip Intro"))
         self._wait(lambda: self.app.node_rect("hud-skip") is not None,
                    msg="skip button never appeared")
-        self.app.debug(cmd="click", id="hud-skip")
+        self._click_when_hittable("hud-skip")
         self._wait(lambda: ("hud_action", "skip-segment", None)
                    in self.ctl.calls,
                    msg="skip button never dispatched: %r" % self.ctl.calls)

@@ -71,6 +71,10 @@ PER_BACKEND_REAL = [
     "tests.integration.test_mpvtk_browser",
     # playback-HUD lifecycle (mpvtk-hud) over real video per backend.
     "tests.integration.test_mpvtk_hud",
+    # The PIN gate and user switching, driven through the renderer's real
+    # focus/keystroke path — the half a unit test calling _do_unlock()
+    # cannot cover. Replaces the Tk browser's 12 equivalents.
+    "tests.integration.test_mpvtk_auth",
 ]
 
 # Tk browser UI under a display -> backend-agnostic (never imports player.py),
