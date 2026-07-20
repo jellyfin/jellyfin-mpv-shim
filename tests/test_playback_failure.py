@@ -374,6 +374,30 @@ class BrowseWindowMustNotAbortALoadTest(unittest.TestCase):
         pm.set_browse_window(True)
         self.assertNotIn(("stop",), commands)
 
+    def test_a_skipped_stop_is_deferred_not_dropped(self):
+        """Skipping it silently left _showing_browse_bg saying "no browse
+        background" while the window went on to show one — the flag stopped
+        describing the window."""
+        pm, _commands = self._manager()
+        pm._browse_bg_deferred = False
+        pm._loading = True
+        pm.set_browse_window(True)
+        self.assertTrue(pm._browse_bg_deferred,
+                        "the deferred browse background was forgotten")
+        self.assertFalse(pm._showing_browse_bg)
+
+    def test_aborting_the_start_applies_the_deferred_background(self):
+        pm, commands = self._manager()
+        pm._loading = True
+        pm.set_browse_window(True)      # defers
+        pm._loading = False
+        pm._abort_load()                # the start did not end up playing
+        self.assertEqual(commands.count(("stop",)), 1,
+                         "the deferred stop was issued a second time")
+        self.assertTrue(pm._showing_browse_bg,
+                        "the flag still disagrees with the window")
+        self.assertFalse(pm._browse_bg_deferred)
+
 
 class AbortedStartActuallyStopsMpvTest(unittest.TestCase):
     """Cancelling (or failing) a start has to tell mpv to drop the file.
@@ -391,6 +415,10 @@ class AbortedStartActuallyStopsMpvTest(unittest.TestCase):
         pm = PlayerManager.__new__(PlayerManager)
         pm._mpv_alive = True
         pm._video = None
+        pm._showing_browse_bg = False
+        # A browse window that deferred its stop while this start was in
+        # flight; _abort_load applies it once mpv is actually stopped.
+        pm._browse_bg_deferred = False
         commands = []
 
         class FakeMpv:

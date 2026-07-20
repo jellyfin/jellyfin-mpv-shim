@@ -38,7 +38,8 @@ def _make_source():
         def get_libraries(self, server_uuid):
             return list(self.libraries)
 
-        def get_home_rows(self, server_uuid, libraries=None):
+        def get_home_rows(self, server_uuid, libraries=None,
+                              sections=None):
             return list(self.rows)
 
         def get_library_items(self, server_uuid, parent_id, start_index=0,

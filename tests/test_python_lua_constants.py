@@ -99,5 +99,32 @@ class TestSliderPad(unittest.TestCase):
                          "drift puts the seek off where the user clicked")
 
 
+class TestStripCacheHoldsAWholeScene(unittest.TestCase):
+    """strips.py's MAX_ENTRIES vs renderer.lua's MAX_OVERLAYS.
+
+    Not a "must be equal" pair like the two above — an inequality, and the
+    direction is the whole point. Freeing an evicted buffer is only safe
+    because an LRU whose recency tracks the current build never drops
+    anything visible: whatever is on screen was just requested. That argument
+    collapses if a single scene can reference more bitmaps than the cache
+    holds, because then a dense scene evicts entries it is still using — and
+    on the libmpv path eviction FREES the buffer mpv reads by address.
+
+    These were 48 and 63, i.e. the wrong way round.
+    """
+
+    def test_the_cache_can_hold_every_overlay_a_scene_may_use(self):
+        strips = _read(os.path.join(PKG, "mpvtk_browser", "strips.py"))
+        entries = int(_one(r"^    MAX_ENTRIES = (\d+)$", strips,
+                           "MAX_ENTRIES"))
+        overlays = int(_one(r"^local MAX_OVERLAYS = (\d+)$", _read(RENDERER),
+                            "lua MAX_OVERLAYS"))
+        self.assertGreater(
+            entries, overlays,
+            "a scene may reference %d bitmaps but the cache holds %d, so "
+            "building one evicts buffers it is still displaying"
+            % (overlays, entries))
+
+
 if __name__ == "__main__":
     unittest.main()

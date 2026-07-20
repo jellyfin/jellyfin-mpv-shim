@@ -93,7 +93,18 @@ class Tile:
 
 
 class StripStore:
-    MAX_ENTRIES = 48  # bounded footprint; evictions only hit off-window strips
+    # Must stay ABOVE renderer.lua's MAX_OVERLAYS (63), which bounds how many
+    # bitmaps one scene may reference.
+    #
+    # The safety argument for freeing an evicted buffer is that an LRU whose
+    # recency tracks the current build never drops anything visible — anything
+    # on screen was just requested. That holds only while a scene fits in the
+    # cache. At 48 it did not: a scene is allowed 63 overlays, so a dense one
+    # evicted (and, on the libmpv path, FREED) buffers it was itself still
+    # using, which is a read of freed memory by mpv rather than a missing
+    # picture. tests/test_python_lua_constants.py pins the relationship so it
+    # cannot drift back.
+    MAX_ENTRIES = 80
 
     def __init__(self, cache_dir=None, mem_store=None, geom=None):
         self.dir = cache_dir

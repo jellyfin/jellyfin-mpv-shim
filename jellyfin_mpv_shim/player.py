@@ -325,6 +325,9 @@ class PlayerManager(object):
         self._load_generation = 0
         self._loading = False
         self._load_cancelled = False
+        # A browse-window setup that had to skip its `stop` because a start
+        # was in flight; applied by _abort_load if that start never plays.
+        self._browse_bg_deferred = False
         # True for the whole of a start, including the PlaybackInfo round trip
         # that precedes _loading. This is what Cancel is gated on.
         self._start_in_progress = False
@@ -1289,6 +1292,8 @@ class PlayerManager(object):
         self.do_not_handle_pause = True
         self.url = url
         self._showing_browse_bg = False   # real media replaces the backdrop
+        # A start supersedes any browse background a previous one deferred.
+        self._browse_bg_deferred = False
         self.menu.hide_menu()
 
         if self.trickplay:
@@ -1999,9 +2004,18 @@ class PlayerManager(object):
             self._player.command("stop")
         except _mpv_errors:
             self._handle_mpv_disconnect()
+            return
         except Exception:
             log.debug("Could not stop mpv after an aborted start.",
                       exc_info=True)
+            return
+        # mpv has nothing loaded now, which is exactly the state a browse
+        # window deferred while this start was in flight. Record it rather
+        # than issuing that stop a second time, so the flag matches the
+        # window instead of drifting out of sync with it.
+        if self._browse_bg_deferred:
+            self._browse_bg_deferred = False
+            self._showing_browse_bg = True
 
     def cancel_load(self):
         """Abandon a playback start that is still in flight.
@@ -2903,10 +2917,19 @@ class PlayerManager(object):
                 # torn down mid-read — which is what made these look like
                 # random TLS/network faults rather than us aborting our own
                 # playback.
-                if (self._video is None and not self._loading
-                        and not self._showing_browse_bg):
-                    self._player.command("stop")
-                    self._showing_browse_bg = True
+                if self._video is None and not self._showing_browse_bg:
+                    if self._loading:
+                        # Deferred, not skipped. Stopping here is what used to
+                        # abort our own in-flight open; but simply dropping it
+                        # left the flag saying "no browse background" while
+                        # the window went on to show one, so the state no
+                        # longer described the window. _abort_load applies
+                        # this if the start does not end up playing.
+                        self._browse_bg_deferred = True
+                    else:
+                        self._player.command("stop")
+                        self._showing_browse_bg = True
+                        self._browse_bg_deferred = False
                 # Browsing is a desktop-UI activity: only go fullscreen if the
                 # user explicitly asked for a fullscreen browser. settings.
                 # fullscreen still applies when playback starts.

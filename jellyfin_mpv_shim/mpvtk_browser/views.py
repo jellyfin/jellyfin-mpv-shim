@@ -1017,11 +1017,29 @@ class ViewsMixin:
     # ---------------------------------------- route loaders
 
     def _load_home(self, route, ep):
+        """Two batches: draw the top of the page, then fill in Latest.
+
+        The Latest rows are one request per library and sit below the fold,
+        so waiting for them gated first paint on content nobody has scrolled
+        to yet. Libraries + Continue Watching + Next Up now publish as soon as
+        they land, and the Latest rows replace that partial data when they
+        arrive.
+        """
         def work():
             server = route.get("server") or self.server
             libs = self.source.get_libraries(server)
-            rows = self.source.get_home_rows(server, libs)
-            return {"libraries": libs, "rows": rows}
+            primary = self.source.get_home_rows(server, libs,
+                                                sections=("primary",))
+            # Epoch-checked by hand: this publishes mid-flight, so it is not
+            # covered by the run_async gate that protects the final result.
+            # Without it, navigating away mid-load would repaint the home
+            # screen the user just left.
+            if self._epoch == ep:
+                route["_data"] = {"libraries": libs, "rows": primary}
+                self.invalidate()
+            latest = self.source.get_home_rows(server, libs,
+                                               sections=("latest",))
+            return {"libraries": libs, "rows": primary + latest}
         self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 
     def _load_grid(self, route, ep):

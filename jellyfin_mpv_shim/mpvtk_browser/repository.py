@@ -149,14 +149,27 @@ class LibrarySource:
             out.append(item)
         return out
 
-    def get_home_rows(self, server_uuid, libraries=None):
+    #: Row groups get_home_rows can fetch. "primary" is Continue Watching and
+    #: Next Up — the above-the-fold rows; "latest" is the per-library Latest
+    #: rows, which sit below the fold and are the slow part (one call each).
+    HOME_SECTIONS = ("primary", "latest")
+
+    def get_home_rows(self, server_uuid, libraries=None, sections=None):
         """Return the ordered rows shown on the home screen.
 
         Each row is ``{"title": str, "items": [DTO, ...]}``; empty rows are
         dropped so the home screen only shows what exists. ``libraries`` (the
         get_libraries result) drives the per-library "Latest" rows; passing it
         in avoids a second views fetch when the caller already has it.
+
+        ``sections`` limits which groups are fetched (see HOME_SECTIONS), so
+        the caller can draw the above-the-fold rows without waiting on the
+        Latest fan-out. Defaults to everything.
         """
+        # `is None`, not `or`: an explicitly empty selection means "fetch
+        # nothing", which the falsy test would have turned into "fetch
+        # everything" — the opposite of what the caller asked for.
+        sections = tuple(self.HOME_SECTIONS if sections is None else sections)
         api = self._conn(server_uuid).api
 
         # Per-library "Latest in X" rows, like jellyfin-web's home screen
@@ -219,9 +232,14 @@ class LibrarySource:
                         lib.get("CollectionType"))
             return fetch
 
-        tasks = [resume_row, next_up_row]
-        tasks += [latest_row(lib) for lib in libraries
-                  if lib.get("CollectionType") != "playlists"]
+        tasks = []
+        if "primary" in sections:
+            tasks += [resume_row, next_up_row]
+        if "latest" in sections:
+            tasks += [latest_row(lib) for lib in libraries
+                      if lib.get("CollectionType") != "playlists"]
+        if not tasks:
+            return []
 
         # Fanned out, not walked. These were strictly serial, so the home
         # screen cost (2 + one per library) round trips end to end before it
@@ -914,7 +932,22 @@ class OfflineLibrarySource:
                  "UserData": self._aggregate_userdata(episodes_by_series[sid])}
                 for sid in order]
 
-    def get_home_rows(self, server_uuid, libraries=None):
+    def get_home_rows(self, server_uuid, libraries=None, sections=None):
+        """Offline home rows.
+
+        ``sections`` is accepted for signature parity with LibrarySource, and
+        must stay that way: _load_home fetches in two batches, and the offline
+        source is what the failure path falls back TO. A TypeError here would
+        fail that fallback, which re-triggers the fallback, which fails
+        again — an unbounded retry loop rather than a degraded screen.
+
+        Everything is local, so there is nothing to stagger: the whole set is
+        returned for the primary batch and the latest batch adds nothing.
+        """
+        sections = tuple(LibrarySource.HOME_SECTIONS
+                         if sections is None else sections)
+        if "primary" not in sections:
+            return []
         snap = self._snap
         rows = []
         movies = [i for i in snap.items if i.get("Type") == "Movie"]

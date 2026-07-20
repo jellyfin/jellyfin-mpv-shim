@@ -29,7 +29,8 @@ class FakeSource:
     def get_libraries(self, server_uuid):
         return []
 
-    def get_home_rows(self, server_uuid, libraries=None):
+    def get_home_rows(self, server_uuid, libraries=None,
+                          sections=None):
         return []
 
 

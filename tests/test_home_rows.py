@@ -192,3 +192,64 @@ class LeanFieldsTest(HomeRowsHarness):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SectionsTest(HomeRowsHarness):
+    """_load_home fetches in two batches so first paint is not gated on the
+    per-library Latest rows, which are one request each and below the fold."""
+
+    def test_primary_fetches_only_the_above_the_fold_rows(self):
+        api = FakeApi()
+        rows = self._source(api).get_home_rows("srv", libraries=LIBS,
+                                               sections=("primary",))
+        self.assertEqual([r["title"] for r in rows],
+                         ["Continue Watching", "Next Up"])
+        self.assertNotIn("user_items/Latest", api.calls,
+                         "the first batch waited on the Latest fan-out")
+
+    def test_latest_fetches_only_the_library_rows(self):
+        api = FakeApi()
+        rows = self._source(api).get_home_rows("srv", libraries=LIBS,
+                                               sections=("latest",))
+        self.assertTrue(all("Latest" in r["title"] for r in rows))
+        self.assertNotIn("get_next", api.calls)
+
+    def test_the_two_batches_reconstruct_the_whole_page(self):
+        api = FakeApi()
+        src = self._source(api)
+        both = [r["title"] for r in src.get_home_rows("srv", libraries=LIBS)]
+        split = [r["title"] for r in
+                 src.get_home_rows("srv", LIBS, sections=("primary",))]
+        split += [r["title"] for r in
+                  src.get_home_rows("srv", LIBS, sections=("latest",))]
+        self.assertEqual(both, split,
+                         "splitting the fetch changed the page")
+
+    def test_an_unknown_section_asks_for_nothing(self):
+        api = FakeApi()
+        self.assertEqual(
+            self._source(api).get_home_rows("srv", LIBS, sections=()),
+            [])
+        self.assertEqual(api.calls, [])
+
+
+class OfflineSignatureParityTest(unittest.TestCase):
+    """The offline source is what a failed home load falls back TO.
+
+    If it cannot accept the same call _load_home makes, the fallback itself
+    raises — and the offline home screen never loads at all. Signature parity
+    is load-bearing, not tidiness.
+    """
+
+    def test_offline_accepts_the_same_call_as_the_live_source(self):
+        import inspect
+
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            LibrarySource, OfflineLibrarySource)
+
+        live = inspect.signature(LibrarySource.get_home_rows).parameters
+        offline = inspect.signature(
+            OfflineLibrarySource.get_home_rows).parameters
+        self.assertEqual(set(live), set(offline),
+                         "the offline fallback cannot answer the call "
+                         "_load_home makes")
