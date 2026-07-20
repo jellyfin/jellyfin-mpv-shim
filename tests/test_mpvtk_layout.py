@@ -183,3 +183,45 @@ class TestWrapMargin(unittest.TestCase):
 
         for w in (0, 0.5, 1, 2):
             self.assertTrue(wrap_text("hello world", 18, False, w))
+
+
+class TestAssWrapStyle(unittest.TestCase):
+    """The layout engine breaks text into lines; libass must not then
+    apply its own smart wrapping on top. Two wrappers disagreeing by a
+    fraction of a pixel made long text jump to an extra line at random,
+    because our break was never authoritative. Every ASS event that
+    carries text has to set \\q2 (wrap only on explicit \\N).
+
+    Checked statically: the renderer runs inside mpv, so there is no way
+    to assert on the emitted ASS from a unit test — but a new text
+    emitter added without \\q2 is exactly the regression to catch.
+    """
+
+    def _renderer(self):
+        import os
+
+        import jellyfin_mpv_shim
+
+        path = os.path.join(os.path.dirname(jellyfin_mpv_shim.__file__),
+                            "mpvtk", "renderer.lua")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_every_text_event_disables_libass_wrapping(self):
+        src = self._renderer()
+        # A text-bearing ASS event is one that sets a font size (\fs).
+        # Drawings (\p1) and rects carry no text and are exempt.
+        missing = []
+        for chunk in src.split("ass:append("):
+            head = chunk[:400]
+            if "\\\\fs%d" not in head:
+                continue
+            if "\\\\q2" not in head:
+                missing.append(head.split("\n")[0].strip()[:70])
+        self.assertEqual(missing, [],
+                         "ASS text events without \\q2: %r" % (missing,))
+
+    def test_the_tag_is_present_at_all(self):
+        """Guards the guard: if the pattern above stops matching, the
+        first test would pass vacuously."""
+        self.assertGreaterEqual(self._renderer().count("\\\\q2"), 2)

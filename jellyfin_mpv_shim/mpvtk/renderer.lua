@@ -349,8 +349,16 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
     if an == 5 then px = ex + node.w / 2 end
     if an == 6 then px = ex + node.w end
     ass:new_event()
+    -- \q2: WrapStyle "no word wrapping, \N only". The layout engine has
+    -- already broken this text into lines; without \q2 libass applies its
+    -- own smart wrapping on top, re-flowing any line it considers too wide
+    -- for the play area. Two wrappers disagreeing by a fraction of a pixel
+    -- is what made long text jump to an extra line seemingly at random —
+    -- our break was never authoritative. With \q2 a slightly-too-long line
+    -- simply extends (and is clipped) instead of reflowing.
     ass:append(string.format(
-        '{\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s\\1a&H00&%s%s%s%s}',
+        '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
+        '\\1c%s\\1a&H00&%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
         ass_color(color), node.bold and '\\b1' or '',
         ui_font and ('\\fn' .. ui_font) or '',
@@ -1475,7 +1483,7 @@ render = function()
             { fill = 'eeeeee', a = 255, radius = 6 })
         ass:new_event()
         ass:append(string.format(
-            '{\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
+            '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
             '\\1a&H00&\\b1%s}',
             x1 + bw / 2, y1 + bh / 2, fs, ass_color('111111'),
             ui_font and ('\\fn' .. ui_font) or ''))
