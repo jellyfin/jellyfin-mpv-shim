@@ -224,7 +224,10 @@ You can adjust the basic transcoder settings via the menu.
       requirements. There is nothing I can do on my end to disable this, but you can reduce
       the bandwidth setting to force a transcode.
 - `transcode_hdr` - Force transcode HDR videos to SDR. Default: `false`
-- `transcode_dolby_vision` - Force transcode Dolby Vision videos to SDR. Default: `true`
+- `transcode_dolby_vision` - Force transcode Dolby Vision videos to SDR. Default: `false`
+  - MPV plays Dolby Vision natively now, so this is off by default. Existing configs are
+    migrated off it once, on the first launch after upgrading; re-enable it if your setup
+    still needs the SDR transcode.
   - If your computer can handle it, you can get tone mapping to work for this using `vo=gpu-next`.
   - Note that `vo=gpu-next` is considered experimental by MPV at this time.
 - `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`

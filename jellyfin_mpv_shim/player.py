@@ -8,7 +8,7 @@ import platform
 
 from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
@@ -85,11 +85,106 @@ mpv_log_levels = {
 }
 
 
+# Recent error-level lines from mpv, so a failed load can tell the user *why*
+# it failed. The end-file event carries only a coarse reason ("error"); the
+# actual cause ("tls: Error decoding the received TLS packet", "Failed to open
+# ...") arrives solely through mpv's log. deque append/clear are atomic, which
+# matters because mpv's event thread writes this while a pool worker reads it.
+_recent_mpv_errors = deque(maxlen=8)
+
+
+def clear_mpv_errors():
+    """Drop stale errors so a failed load can't report the previous file's."""
+    _recent_mpv_errors.clear()
+
+
+def last_mpv_error():
+    """The most recent error line mpv logged, or None."""
+    try:
+        return _recent_mpv_errors[-1]
+    except IndexError:
+        return None
+
+
 def mpv_log_handler(level: str, prefix: str, text: str):
+    message = "{0}: {1}".format(prefix, text)
+    if level in ("fatal", "error"):
+        _recent_mpv_errors.append(message.strip())
     if level in mpv_log_levels:
-        mpv_log_levels[level]("{0}: {1}".format(prefix, text))
+        mpv_log_levels[level](message)
     else:
-        mpv_log.debug("{0}: {1}".format(prefix, text))
+        mpv_log.debug(message)
+
+
+# MPV_END_FILE_REASON_*, for backends that deliver the reason as a raw int.
+_END_FILE_REASONS = {0: "eof", 2: "stop", 3: "quit", 4: "error", 5: "redirect"}
+
+
+def _decode_reason(value):
+    """Coerce an end-file reason to a lowercase string, or None if unreadable.
+
+    The value's shape depends on the backend and the python-mpv release: a
+    str, bytes, an int, or a Reason enum. Returning None (rather than
+    guessing) matters — the caller only acts on a confident "error", so an
+    unrecognized shape must degrade to the timeout path, never to aborting a
+    load that is actually fine.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8", "replace").lower()
+        except Exception:
+            return None
+    if isinstance(value, str):
+        return value.lower()
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return _END_FILE_REASONS.get(value)
+    # Enum (python-mpv's MpvEventEndFile.Reason): prefer the name, fall back
+    # to the numeric value.
+    name = getattr(value, "name", None)
+    if isinstance(name, str):
+        return name.lower()
+    return _decode_reason(getattr(value, "value", None))
+
+
+def end_file_info(event):
+    """(reason, detail) for an mpv end-file event, normalized across backends.
+
+    libmpv delivers an event object whose layout has shifted across
+    python-mpv releases; external mpv delivers a plain dict. Never raises:
+    this runs on mpv's event thread, where an exception would take out every
+    other observer with it.
+    """
+    reason = detail = None
+    try:
+        data = event.as_dict() if hasattr(event, "as_dict") else event
+        if isinstance(data, dict):
+            # Some shapes nest the payload under "event", others are flat.
+            inner = data.get("event")
+            if not isinstance(inner, dict):
+                inner = data
+            reason = _decode_reason(inner.get("reason", data.get("reason")))
+            detail = (inner.get("file_error") or inner.get("error")
+                      or data.get("file_error") or data.get("error"))
+        else:
+            payload = getattr(event, "data", None)
+            reason = _decode_reason(getattr(payload, "reason", None))
+            detail = getattr(payload, "error", None)
+        if isinstance(detail, bytes):
+            detail = detail.decode("utf-8", "replace")
+        elif not isinstance(detail, str):
+            # The struct path reports `error` as a raw libmpv error code, and
+            # showing the user "-13" is worse than showing nothing — the line
+            # mpv logged (last_mpv_error) is the readable source, and the
+            # caller falls back to it when this is None.
+            detail = None
+    except Exception:
+        log.debug("Could not decode end-file event.", exc_info=True)
+        return None, None
+    return reason, detail
 
 
 win_utils = None
@@ -220,6 +315,30 @@ class PlayerManager(object):
         # Queued finished-callbacks carry the epoch they were created under
         # and no-op if playback moved on before they ran.
         self._play_epoch = 0
+        # Load-failure detection. mpv signals an unloadable file with an
+        # end-file event, but the duration wait that gates playback startup
+        # would otherwise sit out its full timeout waiting for a value that
+        # can never arrive — the load generation lets the handler ignore an
+        # end-file belonging to the file we just replaced.
+        self._load_failed = Event()
+        self._load_error_detail = None
+        self._load_generation = 0
+        self._loading = False
+        self._load_cancelled = False
+        # True for the whole of a start, including the PlaybackInfo round trip
+        # that precedes _loading. This is what Cancel is gated on.
+        self._start_in_progress = False
+        # Set when a video starts; the action thread fires the trickplay tile
+        # fetch off it once playback is live (see _pump_trickplay).
+        self._trickplay_pending = False
+        # (video, offset) of the last failed start, so the UI's error dialog
+        # can retry it. Cleared once a retry is dispatched or a play succeeds.
+        self._failed_playback = None
+        # Called with a dict when a load starts / fails, so the UI can show a
+        # loading screen and then an error with retry options. Set by the
+        # browser; None in CLI mode, where the log is the only surface.
+        self.on_load_start = None
+        self.on_load_error = None
         # True only when mpv reported a genuine end-of-file (eof-reached).
         # playback-abort fires on ANY abort — including decode/network failure —
         # so this flag is what distinguishes "watched to the end" from "the
@@ -751,6 +870,30 @@ class PlayerManager(object):
                         self.syncplay.play_request()
                         self.set_paused(True, True)
 
+        @self._player.event_callback("end-file")
+        def handle_end_file(event):
+            # Only interesting while a load is in flight: this is purely a
+            # shortcut out of the duration wait. Normal end-of-playback stays
+            # with the eof-reached / playback-abort observers, which own the
+            # queue-advance logic.
+            generation = self._load_generation
+            if not self._loading:
+                return
+            reason, detail = end_file_info(event)
+            # Strictly "error". A file being replaced mid-playback ends with
+            # "stop"/"redirect", and treating either as a failure would abort
+            # a perfectly good load; anything unrecognized decodes to None and
+            # falls through to the timeout, which is the safe direction.
+            if reason != "error":
+                return
+            # Re-check the generation after the (slow-ish) decode: a stale
+            # end-file from the outgoing file must not fail the incoming one.
+            if generation != self._load_generation or not self._loading:
+                return
+            log.error("mpv reported a load error: %s", detail or "no detail")
+            self._load_error_detail = detail
+            self._load_failed.set()
+
         @self._player.event_callback("shutdown")
         def handle_shutdown(event):
             # We quit mpv ourselves to save resources — idle_quit already tore
@@ -856,6 +999,34 @@ class PlayerManager(object):
         has_lock = self._finished_lock.acquire(False)
         self.put_task(self.finished_callback, has_lock, self._play_epoch)
 
+    def run_action(self, func):
+        """Run a UI-originated player action without ever blocking the caller.
+
+        ``_lock`` is held for the whole of a playback start — the mpv load
+        plus the duration wait, which is bounded only by playback_timeout
+        (30s by default) and is routinely the full timeout when a stream
+        fails to open. UI actions run inline on the browser's loop thread, so
+        calling a @synchronous method straight through froze the entire
+        window for that whole stretch: the loading screen painted, and then
+        the first press of pause/seek/stop wedged it.
+
+        Fast path is unchanged — if the lock is free the action runs inline
+        and synchronously, so normal transport control keeps its exact
+        current behaviour. Only when something else holds the lock does the
+        action defer onto the action thread, applying once that work
+        finishes. ``func`` takes the PlayerManager.
+        """
+        if self._lock.acquire(blocking=False):
+            try:
+                return func(self)
+            finally:
+                self._lock.release()
+        # Almost always a playback start in progress. Deferring beats both
+        # blocking the caller and dropping the user's input.
+        log.debug("Player is busy; deferring UI action to the action thread.")
+        self.put_task(func, self)
+        return None
+
     # Put a task to the event queue.
     # This ensures the task executes outside
     # of an event handler, which causes a crash.
@@ -887,6 +1058,39 @@ class PlayerManager(object):
         self._last_intro_msg_time = time.time()
 
     @synchronous("_lock")
+    def _pump_trickplay(self):
+        """Start the trickplay tile fetch once playback is actually running.
+
+        Deferred off the playback-start path on purpose: the fetch is dozens
+        of serial HTTP requests to the same host mpv is streaming from, and
+        issuing them while the demuxer is still opening the file competed for
+        connections with the open itself.
+
+        "core-idle false" is the signal — mpv is decoding and presenting
+        frames, so the open is done and the demuxer has what it needs. Falls
+        back to a positive playback_time for backends that don't expose
+        core-idle. Runs on the action thread, once per playback.
+        """
+        if not self._trickplay_pending or self.trickplay is None:
+            return
+        try:
+            idle = self._player.core_idle
+            if idle is None:
+                live = (self._player.playback_time or 0) > 0
+            else:
+                live = not idle
+        except _mpv_errors:
+            return          # mpv went away; the next play re-arms this
+        except Exception:
+            log.debug("Could not read playback state for trickplay.",
+                      exc_info=True)
+            return
+        if not live:
+            return
+        self._trickplay_pending = False
+        log.debug("Playback is live; starting the trickplay fetch.")
+        self.trickplay.fetch_thumbnails()
+
     def update(self):
         # Drain queued tasks first, and never let one abort the drain: this
         # loop is pumped by the action thread, and an exception escaping here
@@ -903,6 +1107,7 @@ class PlayerManager(object):
                 log.exception(
                     "Queued task %s failed.", getattr(func, "__name__", func)
                 )
+        self._pump_trickplay()
         prev_hud_skip = self._hud_skip
         try:
             if (
@@ -1051,13 +1256,22 @@ class PlayerManager(object):
             return
         self.should_send_timeline = False
         self.start_time = time.time()
-        url = video.get_playback_url()
-        if not url:
-            log.error("PlayerManager::play no URL found")
-            return
-
-        self._play_media(video, url, offset, no_initial_timeline, is_initial_play,
-                         apply_memory)
+        # A start begins HERE, not when mpv is handed the url: resolving it is
+        # a PlaybackInfo round trip, and the UI has had a spinner up since the
+        # click. Cancel used to be gated on _loading, which only covers the
+        # mpv-side wait, so cancelling during this round trip was silently
+        # dropped and the video played anyway.
+        self._load_cancelled = False
+        self._start_in_progress = True
+        try:
+            url = video.get_playback_url()
+            if not url:
+                log.error("PlayerManager::play no URL found")
+                return
+            self._play_media(video, url, offset, no_initial_timeline,
+                             is_initial_play, apply_memory)
+        finally:
+            self._start_in_progress = False
 
     @synchronous("_lock")
     def _play_media(
@@ -1103,19 +1317,80 @@ class PlayerManager(object):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
-        self._player.play(self.url)
-        if not wait_property(
-            self._player,
-            "duration",
-            lambda x: x is not None,
-            settings.playback_timeout,
-            skip_initial=True,
-        ):
-            # Playback attempt timed out (settings.playback_timeout seconds).
-            log.error("Timeout when waiting for media duration. Stopping playback!")
+        # Arm load-failure detection before play(): mpv can report the file
+        # unloadable before the duration wait below even starts.
+        self._load_generation += 1
+        self._load_failed.clear()
+        self._load_error_detail = None
+        clear_mpv_errors()
+        self._loading = True
+        # Tell the UI a load is in flight. Until this existed the window just
+        # went blank for however long the load took (up to playback_timeout),
+        # with nothing to distinguish "still loading" from "silently failed".
+        self._notify_load_start(video)
+        try:
+            if self._load_cancelled:
+                # Cancelled while the url was still being resolved — don't
+                # hand mpv a file only to stop it a moment later.
+                loaded = False
+            else:
+                self._player.play(self.url)
+                loaded = wait_property(
+                    self._player,
+                    "duration",
+                    lambda x: x is not None,
+                    settings.playback_timeout,
+                    skip_initial=True,
+                    abort=self._load_failed,
+                )
+        finally:
+            self._loading = False
+        if not loaded:
+            cancelled, self._load_cancelled = self._load_cancelled, False
+            if cancelled:
+                # The user abandoned the start. Nothing to report and nothing
+                # to retry — they already moved on.
+                log.info("Playback start cancelled.")
+                self._failed_playback = None
+                self._abort_load()      # stop() alone would not; see there
+                self.stop()
+                return
+            # Two distinct failures: mpv said the file is unloadable (fast,
+            # with a cause), or nothing arrived within playback_timeout.
+            errored = self._load_failed.is_set()
+            detail = self._load_error_detail or last_mpv_error()
+            if errored:
+                log.error("Could not load media: %s", detail or "unknown error")
+            else:
+                log.error("Timeout when waiting for media duration. Stopping playback!")
+            # Stash before stop(): the retry offered below replays this exact
+            # video, and stop() is what clears the rest of the play state.
+            self._failed_playback = (video, offset)
+            # BEFORE stop(), which pushes a stopped playstate that sends the
+            # browser back to the library. Reporting after it meant the UI had
+            # already returned to browse by the time the error arrived, so it
+            # was classified as a non-playback failure and downgraded to a
+            # toast — a failed load looked like an unexplained bounce back to
+            # the library.
+            self._notify_load_error(video, detail, timed_out=not errored)
+            # Before stop(), which early-returns here: the half-open file has
+            # to be dropped or it keeps loading and eventually plays itself.
+            self._abort_load()
             self.stop()
             return
         log.info("Finished waiting for media duration.")
+        if self._load_cancelled:
+            # Cancelled in the gap between duration arriving and the start
+            # finishing. Small window, but without this check the cancel is
+            # swallowed and the video the user just dismissed plays anyway.
+            log.info("Playback start cancelled just as it completed.")
+            self._load_cancelled = False
+            self._failed_playback = None
+            self._abort_load()
+            self.stop()
+            return
+        # A start that got this far succeeded; nothing is left to retry.
+        self._failed_playback = None
         self._video = video
         # Music has no picture — going fullscreen for it just blanks the
         # screen (and, with the in-window browser, hides the library the
@@ -1167,8 +1442,15 @@ class PlayerManager(object):
 
         # Trickplay (scrubbing thumbnails) is video-only — skip the fetch for
         # audio so switching songs isn't slowed by a pointless request.
-        if self.trickplay and not v_audio:
-            self.trickplay.fetch_thumbnails()
+        #
+        # Armed, not fired: the fetch pulls dozens of tile JPEGs serially from
+        # the same host mpv is streaming from, and duration arrives while the
+        # demuxer is still seeking around the file opening fresh connections
+        # per seek. Racing those against each other starved the stream open —
+        # the field symptom being intermittent TLS errors and opens dragging
+        # out to tens of seconds. update() fires this once playback is
+        # genuinely live (see _pump_trickplay).
+        self._trickplay_pending = bool(self.trickplay and not v_audio)
 
         self.should_send_timeline = True
         # Fresh offline-record throttle window for each newly playing item.
@@ -1660,6 +1942,120 @@ class PlayerManager(object):
             log.error("Failed to toggle favorite for %s", video.item_id,
                       exc_info=True)
         self.push_playstate()
+
+    @staticmethod
+    def _safe_title(video):
+        try:
+            return video.get_proper_title()
+        except Exception:
+            return ""
+
+    def _notify_load_start(self, video):
+        """Tell the UI a load is in flight. Best-effort and never fatal — a
+        broken UI hook must not stop playback from starting."""
+        cb = self.on_load_start
+        if cb is None:
+            return
+        try:
+            cb({"title": self._safe_title(video)})
+        except Exception:
+            log.error("on_load_start handler failed.", exc_info=True)
+
+    def _notify_load_error(self, video, detail, timed_out: bool):
+        """Report a failed start to the UI, with what a retry could change.
+
+        ``can_transcode`` gates the "retry with transcode" option: it's only
+        worth offering when we did NOT already transcode, since re-requesting
+        the same transcode would just fail the same way.
+        """
+        cb = self.on_load_error
+        if cb is None:
+            return
+        try:
+            already_transcoding = bool(getattr(video, "is_transcode", False))
+            cb({
+                "title": self._safe_title(video),
+                "detail": detail,
+                "timed_out": timed_out,
+                "can_transcode": not already_transcoding,
+            })
+        except Exception:
+            log.error("on_load_error handler failed.", exc_info=True)
+
+    def _abort_load(self):
+        """Tell mpv to drop a start that never completed.
+
+        stop() cannot do this: it is written for stopping a PLAYING item and
+        early-returns on `not self._video` — and _video is only assigned once
+        the duration wait SUCCEEDS. So on a cancelled or failed start it
+        returned without ever issuing `stop` to mpv, leaving the file to
+        finish loading and start playing on its own. With the browse window's
+        force_window/keep_open already applied, that surfaced as the video
+        playing *behind the library*.
+        """
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.command("stop")
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            log.debug("Could not stop mpv after an aborted start.",
+                      exc_info=True)
+
+    def cancel_load(self):
+        """Abandon a playback start that is still in flight.
+
+        Reuses the abort the end-file handler sets, so the duration wait
+        gives up within a poll interval instead of running out
+        playback_timeout — which is the whole point, since the case worth
+        cancelling is the one where mpv sits on a stalled stream for 30s.
+        The cancelled flag keeps the failure path silent: the user asked for
+        this, so there is nothing to report and nothing to retry.
+
+        Deliberately takes no lock, so it is safe to call straight from the
+        UI thread while _play_media holds one. Returns whether a start was
+        actually in flight.
+
+        Gated on _start_in_progress rather than _loading: _loading only covers
+        the mpv-side duration wait, but the start begins one PlaybackInfo
+        round trip earlier — and the UI has shown a spinner (with this Cancel
+        on it) since the click. Gating on _loading made the button do nothing
+        for that whole window.
+        """
+        if not self._start_in_progress:
+            return False
+        log.info("Cancelling playback start.")
+        self._load_cancelled = True
+        self._load_failed.set()
+        return True
+
+    def retry_failed_playback(self, force_transcode: bool = False):
+        """Re-attempt the start that just failed. Returns whether one was queued.
+
+        Safe to call from the UI thread: the replay is queued onto the action
+        thread rather than run here, because play() takes _lock and blocks for
+        the whole load — doing that on the browser's loop thread would freeze
+        the very dialog the user just clicked.
+        """
+        failed = self._failed_playback
+        if failed is None:
+            log.warning("Retry requested with no failed playback to retry.")
+            return False
+        video, offset = failed
+        self._failed_playback = None
+        if force_transcode:
+            try:
+                # Forces the server to transcode instead of direct streaming:
+                # the usual fix when the source plays on the server but not
+                # over the wire to us.
+                video.set_trs_override(None, True)
+            except Exception:
+                log.error("Could not force transcode for retry.", exc_info=True)
+        # apply_memory=False: this is a re-attempt of one specific item, so
+        # keep the tracks it was already resolved with.
+        self.put_task(lambda: self.play(video, offset, apply_memory=False))
+        return True
 
     @synchronous("_lock")
     def restart_playback(self):
@@ -2494,7 +2890,21 @@ class PlayerManager(object):
                 # Idempotent — stopping playback reaches here twice, once
                 # from the stopped-playstate callback and once from the
                 # caller.
-                if self._video is None and not self._showing_browse_bg:
+                #
+                # `_loading` is part of the guard, not decoration. _video is
+                # only assigned once the duration wait SUCCEEDS, so during a
+                # start it is still None while mpv is mid-open — and
+                # _play_media clears _showing_browse_bg before playing. Both
+                # guards therefore passed, and any path that re-entered browse
+                # during a load fired `stop` straight into the open. mpv
+                # reported it as "Opening failed or was aborted" + "finished
+                # playback, success (reason 2)", with ffmpeg logging "tls:
+                # Error decoding the received TLS packet" as the socket was
+                # torn down mid-read — which is what made these look like
+                # random TLS/network faults rather than us aborting our own
+                # playback.
+                if (self._video is None and not self._loading
+                        and not self._showing_browse_bg):
                     self._player.command("stop")
                     self._showing_browse_bg = True
                 # Browsing is a desktop-UI activity: only go fullscreen if the
@@ -2519,7 +2929,11 @@ class PlayerManager(object):
                 self._showing_browse_bg = False
                 self._player.image_display_duration = 1
                 self._player.keep_open = False
-                if not self._video:
+                # Same _loading guard as the enable branch above: _video is
+                # not set until the duration wait succeeds, so without it
+                # leaving browse mode during a start would drop force_window
+                # and `stop` the open that is still in flight.
+                if not self._video and not self._loading:
                     self._set_force_window(False)
                     self._player.command("stop")
         except _mpv_errors:

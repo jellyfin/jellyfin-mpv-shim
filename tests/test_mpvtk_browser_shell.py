@@ -1098,12 +1098,28 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertEqual(self.b.route["item_id"], "m1")
         self.assertTrue(self.b._browsing, "opening detail must not yield")
 
-    def test_play_yields_and_starts(self):
+    def test_play_holds_the_window_then_yields_once_playback_reports(self):
+        """The yield is deferred to the first playstate.
+
+        It used to happen at play intent, but yielding blanks our scene (HUD
+        mode is attached-but-idle *with a blank scene*), so the whole load —
+        seconds normally, up to playback_timeout when a stream stalls —
+        rendered as an empty window with no way to tell loading from failed.
+        The window is now held for the spinner and handed over once there is
+        a picture to hand it to.
+        """
         item = {"Id": "m1", "Name": "Alpha", "Type": "Movie"}
         self.b._play(item, "srv1", offset_ticks=123)
-        self.assertFalse(self.b._browsing, "browser should yield to playback")
-        self.assertEqual(self.ctl.left, 1)     # OSC handed back
+        self.assertFalse(self.b._browsing, "browser should leave browse mode")
+        self.assertIsNotNone(self.b._starting, "no loading state to render")
+        self.assertEqual(self.ctl.left, 0,
+                         "the window was handed over before there was a "
+                         "picture to hand it to")
         self.assertEqual(self.ctl.played, [("m1", "srv1", 123)])
+
+        self.b.on_playstate({"stopped": False, "position": 0, "duration": 10})
+        self.assertIsNone(self.b._starting)
+        self.assertEqual(self.ctl.left, 1)     # OSC handed back, now
 
     def test_yielded_build_is_empty(self):
         self.b._browsing = False
@@ -1209,6 +1225,10 @@ class TestPlaybackLifecycle(unittest.TestCase):
         app = FakeApp()
         b = MpvtkBrowser(app=app, source=FakeSource(), controller=self.ctl)
         b._play({"Id": "m1", "Name": "A", "Type": "Movie"}, "srv1")
+        # Suspension waits for the handoff: while the load is in flight the
+        # renderer must stay up, because it is drawing the spinner.
+        self.assertEqual(app.active, [])
+        b.on_playstate({"stopped": False, "position": 0, "duration": 10})
         self.assertEqual(app.active[-1], False)
         b.on_playstate({"stopped": True})
         self.assertEqual(app.active[-1], True)

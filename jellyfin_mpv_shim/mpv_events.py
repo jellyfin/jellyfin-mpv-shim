@@ -13,6 +13,7 @@ def wait_property(
     cond=lambda x: True,
     timeout: Optional[int] = None,
     skip_initial: bool = False,
+    abort: Optional[Event] = None,
 ):
     """Block until MPV property ``name`` reports a value satisfying ``cond``.
 
@@ -57,8 +58,19 @@ def wait_property(
     python-mpv-jsonipc), so polling on the waiting thread would let a wedged
     mpv stretch the caller's deadline by minutes. This way ``timeout`` stays a
     hard bound; a poller blocked on a wedged read just exits late, alone.
+
+    ``abort`` is an Event the caller may set to give up before the timeout —
+    used when mpv reports the file failed to load, where waiting out the full
+    ``timeout`` for a duration that can never arrive just freezes the UI. It
+    is observed by the poll thread, so it takes effect within one poll
+    interval rather than instantly; that turns a 30s hang into a sub-second
+    one, which is the point. An aborted wait returns False, exactly like a
+    timed-out one.
     """
     event = Event()
+    # Set only by a genuine cond() match, so the abort and timeout paths both
+    # report failure without needing to re-check the property afterwards.
+    satisfied = False
 
     # Sample before registering the observer so the handler (which may fire on
     # the mpv event thread the moment we register) never races this write.
@@ -72,7 +84,7 @@ def wait_property(
             skip = False
 
     def handler(_name, value):
-        nonlocal skip
+        nonlocal skip, satisfied
         if skip:
             skip = False
             # Only drop a re-delivery of the sampled stale value; a value
@@ -80,6 +92,7 @@ def wait_property(
             if value == stale_value:
                 return
         if cond(value):
+            satisfied = True
             event.set()
 
     # Discriminate on the class, not the instance: libmpv's __getattr__ turns
@@ -97,7 +110,13 @@ def wait_property(
     stop_poll = Event()
 
     def poller():
+        nonlocal satisfied
         while not stop_poll.wait(POLL_INTERVAL_SECS):
+            # Checked before the read: once the caller has given up, a
+            # property read on a wedged mpv could block for minutes.
+            if abort is not None and abort.is_set():
+                event.set()  # satisfied stays False -> wait_property returns False
+                return
             try:
                 value = getattr(instance, name)
             except Exception:
@@ -106,6 +125,7 @@ def wait_property(
             # state still in place, so only the observer (which sees the
             # actual change sequence) may accept it.
             if cond(value) and not (skip_initial and value == stale_value):
+                satisfied = True
                 event.set()
                 return
 
@@ -115,11 +135,13 @@ def wait_property(
 
     # Event.wait(None) blocks indefinitely and returns True, so one wait
     # covers both the bounded and unbounded cases.
-    success = event.wait(timeout=timeout)
+    event.wait(timeout=timeout)
     stop_poll.set()
 
     if use_ext_mpv:
         instance.unbind_property_observer(observer_id)
     else:
         instance.unobserve_property(name, handler)
-    return success
+    # Not event.is_set(): the abort path sets it to wake this thread without
+    # the property ever having satisfied cond().
+    return satisfied

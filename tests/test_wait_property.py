@@ -206,3 +206,57 @@ class WaitPropertyPollFallbackTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WaitPropertyAbortTest(unittest.TestCase):
+    """A load mpv has already declared dead must not burn the full timeout.
+
+    The abort Event is what turns a failed start from `playback_timeout`
+    seconds of frozen UI into a sub-second one.
+    """
+
+    def test_abort_already_set_returns_false_quickly(self):
+        import threading
+        import time
+
+        abort = threading.Event()
+        abort.set()
+        # Never satisfies cond: without abort this would wait out the timeout.
+        player = FakeLibmpv(None, [])
+        started = time.time()
+        with mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01):
+            result = wait_property(player, "duration", not_none, 5,
+                                   abort=abort)
+        self.assertFalse(result)
+        self.assertLess(time.time() - started, 2,
+                        "abort did not cut the wait short")
+        self.assertTrue(player.unobserved, "observer leaked on the abort path")
+
+    def test_abort_set_while_waiting_returns_false(self):
+        import threading
+        import time
+
+        abort = threading.Event()
+        threading.Timer(0.05, abort.set).start()
+        player = FakeLibmpv(None, [])
+        started = time.time()
+        with mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01):
+            result = wait_property(player, "duration", not_none, 5,
+                                   abort=abort)
+        self.assertFalse(result)
+        self.assertLess(time.time() - started, 2)
+
+    def test_a_satisfied_wait_still_reports_success_with_abort_armed(self):
+        """The abort path must not turn a genuine success into a failure —
+        the return value is now a flag, not `event.is_set()`."""
+        import threading
+
+        abort = threading.Event()
+        player = FakeLibmpv(None, [42])
+        self.assertTrue(
+            wait_property(player, "duration", not_none, 5, abort=abort))
+
+    def test_abort_is_optional(self):
+        """Every existing caller passes no abort; that must be unchanged."""
+        player = FakeLibmpv(None, [7])
+        self.assertTrue(wait_property(player, "duration", not_none, 5))

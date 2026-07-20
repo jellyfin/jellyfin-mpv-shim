@@ -92,6 +92,45 @@ class _PlayerController:
         playerManager.enable_osc(settings.enable_osc)
         playerManager.set_browse_window(False)
 
+    def cancel_load(self):
+        """Abandon a playback start still in flight. Takes no player lock, so
+        it is safe from the loop thread while the load holds one."""
+        from ..player import playerManager
+        try:
+            return playerManager.cancel_load()
+        except Exception:
+            log.error("could not cancel the load", exc_info=True)
+            return False
+
+    def retry_playback(self, force_transcode=False):
+        """Re-attempt the start that just failed, optionally forcing the
+        server to transcode. Returns immediately — the player queues the
+        replay onto the action thread rather than loading here."""
+        from ..player import playerManager
+        return playerManager.retry_failed_playback(force_transcode)
+
+    def get_last_server(self):
+        """uuid of the server the active user last browsed, or None.
+
+        Only a hint — the server may have been removed or failed to connect
+        since, so the browser falls back when it isn't in the live list.
+        """
+        from ..users import userManager
+        try:
+            return userManager.get_last_server()
+        except Exception:
+            log.debug("could not read last server", exc_info=True)
+            return None
+
+    def set_last_server(self, server_uuid):
+        """Remember the browsed server for the active user. Best-effort:
+        failing to persist a preference must never break navigation."""
+        from ..users import userManager
+        try:
+            userManager.set_last_server(server_uuid)
+        except Exception:
+            log.debug("could not persist last server", exc_info=True)
+
     def use_hud(self):
         """Whether video playback uses the in-window playback HUD.
         Reads the player's RESOLVED style (settings may hold the legacy
@@ -266,9 +305,16 @@ class _PlayerController:
 
     @staticmethod
     def _act(fn):
+        """Every transport action the browser performs goes through here.
+
+        run_action, not a direct call: these run on the browser's loop
+        thread, and the player's lock is held for the whole of a playback
+        start. Calling through would freeze the window until the load
+        finished or timed out — see PlayerManager.run_action.
+        """
         from ..player import playerManager
         try:
-            fn(playerManager)
+            playerManager.run_action(fn)
         except Exception:
             log.error("mpvtk player action failed", exc_info=True)
 
@@ -1171,6 +1217,10 @@ class UserInterface:
         self._browser = browser
         playerManager.mpvtk_active = True
         playerManager.on_playstate = browser.on_playstate
+        # Loading screen + failure/retry UI. Without these a failed start was
+        # a blank window for the whole playback_timeout and then nothing.
+        playerManager.on_load_start = browser.on_load_start
+        playerManager.on_load_error = browser.on_load_error
         # Update notices surface in the browser banner (not the MPV OSD).
         playerManager.notify_update = browser.notify_update
 

@@ -202,6 +202,8 @@ PLAYER_CALLBACKS = [
     "on_hud_menu",
     "on_nav_back",
     "on_nav_command",
+    "on_load_start",
+    "on_load_error",
 ]
 
 
@@ -267,6 +269,25 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
         self.player.on_nav_back()
         self.assertLess(len(browser.nav_stack), depth,
                         "BACK from a remote does not reach the browser")
+
+    def test_a_load_starting_reaches_the_loading_screen(self):
+        browser = self._login()
+        self.player.on_load_start({"title": "Some Movie"})
+        self.assertEqual((browser._starting or {}).get("title"), "Some Movie",
+                         "on_load_start is not bound to this browser")
+
+    def test_a_failed_load_reaches_the_error_screen(self):
+        browser = self._login()
+        # Video: the load owns the window, so it gets the full-screen error.
+        # An audio failure keeps the library up and toasts instead.
+        browser._browsing = False
+        self.player.on_load_error({"title": "Some Movie", "detail": "tls",
+                                   "timed_out": False, "can_transcode": True})
+        self.assertEqual((browser._load_error or {}).get("detail"), "tls",
+                         "on_load_error is not bound to this browser")
+        # A failure must also clear any in-flight loading state, or both
+        # screens are live at once and build() picks by precedence alone.
+        self.assertIsNone(browser._starting)
 
     def test_mpv_teardown_reaches_this_ui(self):
         self._login()

@@ -15,7 +15,9 @@ from ..i18n import _
 # internal bookkeeping. Everything else is editable.
 # client_uuid is the device identity the server keys sessions on; editing it
 # free-text orphans every session and playstate the server has recorded.
-_HIDDEN = {"language_config", "audio_output", "client_uuid"}
+# config_version is migration bookkeeping; editing it re-runs or skips
+# one-time upgrades.
+_HIDDEN = {"language_config", "audio_output", "client_uuid", "config_version"}
 
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".

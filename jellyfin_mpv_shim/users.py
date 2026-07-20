@@ -77,6 +77,10 @@ class UserManager:
             "pin_hash": None,
             "pin_salt": None,
             "require_pin_startup": False,
+            # uuid of the server the library was last browsing, so the next
+            # launch lands where this user left off instead of on whichever
+            # server happened to connect first. None until they pick one.
+            "last_server": None,
             "credentials": list(credentials or []),
         }
 
@@ -158,6 +162,7 @@ class UserManager:
             "pin_hash": u.get("pin_hash"),
             "pin_salt": u.get("pin_salt"),
             "require_pin_startup": bool(u.get("require_pin_startup")),
+            "last_server": u.get("last_server"),
             "credentials": list(u.get("credentials") or []),
         }
 
@@ -269,6 +274,32 @@ class UserManager:
             if u is None:
                 return
             u["credentials"] = [dict(c) for c in credentials]
+        self.save()
+
+    # -- last browsed server ----------------------------------------------
+
+    def get_last_server(self):
+        """The uuid of the server the active user was last browsing, or None.
+
+        The caller must treat this as a hint: the server may since have been
+        removed or failed to connect, so it is only usable if it is still in
+        the live server list.
+        """
+        with self._lock:
+            u = self.active_user
+            return u.get("last_server") if u else None
+
+    def set_last_server(self, server_uuid):
+        """Remember which server the active user is browsing.
+
+        Called on every server switch, so it no-ops when unchanged rather than
+        rewriting users.json (which holds every user's tokens) on each nav.
+        """
+        with self._lock:
+            u = self.active_user
+            if u is None or u.get("last_server") == server_uuid:
+                return
+            u["last_server"] = server_uuid
         self.save()
 
     def append_credentials_for(self, user_id, credential):

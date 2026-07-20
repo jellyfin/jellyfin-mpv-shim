@@ -19,6 +19,11 @@ object_types[Optional[List[LanguageRule]]] = parse_language_config
 log = logging.getLogger("conf")
 config_path = None
 
+# Bump when a default changes in a way existing installs must pick up, and add
+# the corresponding step to Settings._migrate().
+#   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
+CONFIG_VERSION = 1
+
 # Serializes writers of the config file. save() is reachable from the UI
 # action loop and from background workers (e.g. the download-folder move);
 # unsynchronized truncate+rewrite writers can interleave into invalid JSON,
@@ -38,6 +43,10 @@ def get_default_sdir():
 
 
 class Settings(SettingsBase):
+    # Schema revision of the config on disk, used to apply one-time migrations
+    # when a default changes in a way that should reach existing installs.
+    # A config written before this key existed loads as 0. See _migrate().
+    config_version: int = 0
     player_name: str = socket.gethostname()
     audio_output: str = "hdmi"
     client_uuid: str = str(uuid.uuid4())
@@ -69,7 +78,10 @@ class Settings(SettingsBase):
     transcode_hevc: bool = False
     transcode_av1: bool = False
     transcode_4k: bool = False
-    transcode_dolby_vision: bool = True
+    # Off by default: mpv handles Dolby Vision natively now, so force-
+    # transcoding it to SDR costs server CPU and loses the HDR presentation
+    # for no benefit. CONFIG_VERSION 1 migrates existing configs off it.
+    transcode_dolby_vision: bool = False
     allow_transcode_to_h265: bool = False
     prefer_transcode_to_h265: bool = False
     remote_kbps: int = 10000
@@ -214,6 +226,34 @@ class Settings(SettingsBase):
     tls_server_ca: Optional[str] = None
     language_config: Optional[List[LanguageRule]] = None
 
+    def _migrate(self):
+        """Apply one-time upgrades for configs written by older versions.
+
+        Every key is written to disk on save (see SettingsBase.dict), so a
+        changed default alone never reaches an existing install -- the old
+        value is already recorded. Migrations here bring those installs
+        forward. Returns whether anything changed (the caller saves).
+
+        Only migrate a default whose old value is actively harmful; a setting
+        the user may have deliberately chosen cannot be distinguished from an
+        inherited default, so each step here silently overrides a real choice.
+        """
+        changed = False
+        if self.config_version < 1:
+            # mpv plays Dolby Vision natively now, so the old default of
+            # force-transcoding it to SDR just burns server CPU and throws
+            # away the HDR presentation.
+            if self.transcode_dolby_vision:
+                log.info(
+                    "Config migration: disabling transcode_dolby_vision "
+                    "(mpv now supports Dolby Vision natively)."
+                )
+                self.transcode_dolby_vision = False
+        if self.config_version != CONFIG_VERSION:
+            self.config_version = CONFIG_VERSION
+            changed = True
+        return changed
+
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
 
@@ -239,6 +279,11 @@ class Settings(SettingsBase):
         global config_path  # Don't want in model.
         fh, created = self.__get_file(path, "r", create)
         config_path = path
+        if created:
+            # A config written from the current defaults is already current;
+            # stamp it so _migrate() never re-runs against a fresh install.
+            self.config_version = CONFIG_VERSION
+            self.save()
         if not created:
             try:
                 data = json.load(fh)
@@ -262,7 +307,8 @@ class Settings(SettingsBase):
                         )
 
                 log.info("Loaded settings from json: %s" % path)
-                if input_params < len(self.__fields__):
+                migrated = self._migrate()
+                if migrated or input_params < len(self.__fields__):
                     log.info("Saving back due to schema change.")
                     self.save()
             except Exception as e:
