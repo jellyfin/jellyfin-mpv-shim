@@ -57,3 +57,6 @@ jellyfin_mpv_shim = [
     "default_shader_pack/**/*",
     "integration/**/*",
 ]
+# mpvtk loads renderer.lua relative to its own __file__, so it has to land in
+# the subpackage directory — the top-level "*.lua" glob does not reach here.
+"jellyfin_mpv_shim.mpvtk" = ["*.lua"]
