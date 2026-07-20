@@ -447,7 +447,7 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_hud_skip handler failed")
             return
-        if t in ("change", "submit"):
+        if t in ("change", "submit", "commit"):
             # typed text may contain glyphs we've never measured; the
             # metrics push makes the renderer re-render with real widths
             v = evt.get("value")

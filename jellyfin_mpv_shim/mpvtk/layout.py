@@ -532,6 +532,7 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             node["force"] = True
         _reg(ctx, node["id"], "change", el.on_change)
         _reg(ctx, node["id"], "submit", el.on_submit)
+        _reg(ctx, node["id"], "commit", el.on_commit)
         ctx.nodes.append(node)
         return
 

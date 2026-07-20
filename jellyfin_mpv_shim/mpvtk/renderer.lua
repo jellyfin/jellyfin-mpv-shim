@@ -1669,6 +1669,10 @@ local function tb_state(node)
                shift = 0 }
         state.tb[node.id] = tb
     end
+    -- The value this box last agreed with the app on. blur() compares
+    -- against it so leaving a field commits an edit instead of dropping it,
+    -- and so an untouched field stays silent.
+    if tb.committed == nil then tb.committed = tb.text end
     return tb
 end
 
@@ -1836,11 +1840,17 @@ local function tb_key(name)
         tb_fix_shift(node, tb); request_render()
     elseif name == 'ENTER' then
         send({ t = 'submit', id = node.id, value = tb.text })
+        tb.committed = tb.text
     elseif name == 'ESC' then
         if state.tb_menu then
             state.tb_menu = nil
             request_render()
         else
+            -- ESC is a cancel: put back what the field held on focus, so
+            -- the blur below has nothing to commit.
+            tb.text = tb.committed
+            tb.cursor = #tb.text
+            tb_fix_shift(node, tb)
             blur()  -- luacheck: ignore (fwd-declared below)
         end
     elseif name == 'PASTE' then
@@ -1907,6 +1917,15 @@ end
 
 function blur()
     if not state.focus then return end
+    -- Leaving a text field commits it. Without this the only way to save was
+    -- ENTER, and clicking away silently discarded what you typed — across 65
+    -- settings rows, with nothing on screen saying so.
+    local node = state.byid[state.focus]
+    local tb = node and state.tb[state.focus]
+    if tb and tb.committed ~= nil and tb.text ~= tb.committed then
+        tb.committed = tb.text
+        send({ t = 'commit', id = state.focus, value = tb.text })
+    end
     state.focus = nil
     unbind_text_keys()
     if state.blink_timer then

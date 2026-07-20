@@ -265,6 +265,10 @@ class TextBox(Element):
         mask=False,  # password entry: render bullets, value unchanged
         on_change=None,
         on_submit=None,
+        # Fired when the box loses focus with a value different from the one
+        # it was focused with. ENTER sends ``submit`` and marks the value
+        # agreed, so it does not also fire; ESC reverts and stays silent.
+        on_commit=None,
         force=False,  # override renderer-local edit state with ``text``
         **kw,
     ):
@@ -276,6 +280,7 @@ class TextBox(Element):
         self.mask = mask
         self.on_change = on_change
         self.on_submit = on_submit
+        self.on_commit = on_commit
         self.force = force
 
 

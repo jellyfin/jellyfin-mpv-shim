@@ -210,9 +210,15 @@ class SettingsMixin:
                            self._sync_path.get("path") or val)),
             ], gap=8, align="center")
         else:
+            # on_commit as well as on_submit: ENTER is not the only way people
+            # leave a field. Wired only here, so typing then clicking the next
+            # row silently threw the edit away on 65 rows, with no toast and
+            # no dirty marker. The sync_path row above already had a Move
+            # button for the same reason; this generalizes it.
             widget = TextBox("set-" + key,
                              text="" if val is None else str(val), w=340,
-                             on_submit=lambda v, k=key: self._set_setting(k, v))
+                             on_submit=lambda v, k=key: self._set_setting(k, v),
+                             on_commit=lambda v, k=key: self._set_setting(k, v))
         return Row([Text(label, w=340, size=17, color=theme.SUBTLE_FG),
                     widget], gap=12, align="center")
 
