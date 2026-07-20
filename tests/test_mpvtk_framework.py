@@ -894,3 +894,127 @@ class TestOscPrimitives(unittest.TestCase):
         n = by_id(nodes, "dd")
         self.assertNotIn("ticon", n)
         self.assertNotIn("pw", n)
+
+
+class TestInvalidateIsNotLost(unittest.TestCase):
+    """A wake-up that lands DURING a render must still earn a frame.
+
+    `_render` used to clear `_dirty` after pushing the scene, so an
+    `invalidate()` from a foreign thread mid-build was clobbered by the very
+    frame that predated its write. The loop then saw a clean flag and drew
+    nothing until something unrelated invalidated.
+
+    This is the primitive `mpvtk_browser`'s entire write-then-invalidate()
+    contract is expressed in, so every call site was correct on its own terms
+    and could still silently not repaint. In practice it was the intermittent
+    thumbnails: six decode workers call `invalidate()` (ThumbnailStore's
+    notify) against a `build()` that drains them at the top, so a decode
+    finishing mid-frame lost its wake-up and the tile stayed a placeholder.
+    """
+
+    def _app(self, build):
+        import queue as _queue
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        class FakeBackend:
+            def command(self, *a):
+                pass
+
+            def stop(self):
+                pass
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.backend = FakeBackend()
+        app.in_process = True
+        app.size = (1280, 720)
+        app._queue = _queue.Queue()
+        app._handlers = {}
+        app._nodes = None
+        app._dirty = False
+        app._build = build
+        app._extend_metrics = lambda texts: False
+        app._scene_texts = lambda nodes: []
+        return app
+
+    def _run(self, app, build):
+        import threading
+        import time as _time
+
+        app.invalidate()
+        loop = threading.Thread(target=app.run, args=(build,), daemon=True)
+        loop.start()
+        deadline = _time.time() + 5
+        while _time.time() < deadline and len(self.builds) < 2:
+            _time.sleep(0.01)
+        app.quit()
+        loop.join(timeout=5)
+
+    def test_a_write_during_a_build_still_gets_drawn(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+        import threading
+
+        self.builds = []
+        state = {"poster": None}
+
+        def build(size):
+            self.builds.append(state["poster"])
+            if len(self.builds) == 1:
+                # A decode worker finishing inside this very build: it writes
+                # its result and wakes the loop, exactly as ThumbnailStore
+                # does from one of its six threads.
+                def worker():
+                    state["poster"] = "decoded"
+                    app.invalidate()
+                t = threading.Thread(target=worker)
+                t.start()
+                t.join()
+            return Column([Text(str(state["poster"]))])
+
+        app = self._app(build)
+        self._run(app, build)
+
+        self.assertIn(
+            "decoded", self.builds,
+            "the poster decoded mid-frame was never drawn: %r" % (self.builds,))
+
+    def test_the_flag_is_clear_once_the_work_is_drawn(self):
+        """The complement: a quiet loop must settle, not spin re-rendering."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+
+        self.builds = []
+
+        def build(size):
+            self.builds.append(1)
+            return Column([Text("x")])
+
+        app = self._app(build)
+        app.invalidate()
+        app._render()
+        self.assertFalse(app._dirty, "a settled loop kept re-rendering")
+        self.assertEqual(len(self.builds), 1)
+
+    def test_a_write_during_a_FAILED_build_is_not_lost_either(self):
+        """The exception path cleared the flag too. A view that throws once
+        while data lands would strand the recovered state."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+        import threading
+
+        self.builds = []
+        state = {"ok": False}
+
+        def build(size):
+            self.builds.append(state["ok"])
+            if len(self.builds) == 1:
+                def worker():
+                    state["ok"] = True
+                    app.invalidate()
+                t = threading.Thread(target=worker)
+                t.start()
+                t.join()
+                raise RuntimeError("view blew up mid-frame")
+            return Column([Text("recovered")])
+
+        app = self._app(build)
+        self._run(app, build)
+        self.assertIn(True, self.builds,
+                      "state written during a failed build was stranded")

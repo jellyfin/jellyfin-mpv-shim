@@ -112,6 +112,61 @@ eq(offset("plain"), 0, "a non-follow container still opens at the top")
 scene({ vscroll("plain", 100, 900) })
 eq(offset("plain"), 0, "and does not follow growth")
 
+-- ------------------------------------------------ follow tells Python
+
+-- The renderer moving the offset by itself is only half the job. Python
+-- windowed its virtualized rows against the offset it knew when it BUILT
+-- the scene, so a snap performed here invalidates that window. Publishing
+-- the property is not enough -- it wakes nobody. Without the event the logs
+-- panel opened BLANK: rows 0-57 materialized for offset 0, renderer drawn
+-- at the bottom, tail spacer with nothing in it.
+--
+-- The original tests here asserted the offset was right and passed happily
+-- while this was broken: right behaviour, wrong layer.
+
+local function scroll_events()
+    local out = {}
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and e.t == "scroll" then out[#out + 1] = e end
+    end
+    return out
+end
+
+scene({})                      -- drop any prior state
+fake.reset_events()
+scene({ vscroll("logs", 100, 500, { follow = true }) })
+local evs = scroll_events()
+ok(#evs > 0, "opening at the end reported nothing to the app")
+if #evs > 0 then
+    eq(evs[#evs].id, "logs", "the scroll event names the container")
+    eq(evs[#evs].offset, 400, "the event carries the snapped offset")
+end
+
+-- Riding the tail as content grows must report too: each snap re-windows.
+fake.reset_events()
+scene({ vscroll("logs", 100, 900, { follow = true }) })
+eq(#scroll_events(), 1, "following growth did not report the new offset")
+
+-- A snap that does not actually move must NOT spam the app: an unchanged
+-- offset means Python's window is still valid.
+fake.reset_events()
+scene({ vscroll("logs", 100, 900, { follow = true }) })
+eq(#scroll_events(), 0, "a no-op snap reported anyway")
+
+-- A container that fits needs no scrolling, so nothing to report.
+fake.reset_events()
+scene({})
+scene({ vscroll("small", 100, 60, { follow = true }) })
+eq(#scroll_events(), 0, "content shorter than the viewport reported a snap")
+
+-- And a reader who scrolled away is neither moved nor notified.
+scene({})
+scene({ vscroll("logs", 100, 900, { follow = true }) })
+fake.send("mpvtk-scroll", fake.token({ id = "logs", dir = -1 }))
+fake.reset_events()
+scene({ vscroll("logs", 100, 1300, { follow = true }) })
+eq(#scroll_events(), 0, "a parked reader was sent a snap event")
+
 -- ==================================================== textbox commit
 
 -- The settings screen has 65 rows that were losing the edit unless the

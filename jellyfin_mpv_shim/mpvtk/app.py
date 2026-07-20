@@ -353,6 +353,23 @@ class MpvtkApp:
     def _render(self):
         if self.size is None or self._build is None:
             return
+        # Cleared BEFORE the build, never after.
+        #
+        # A foreign thread that writes state and calls invalidate() while we
+        # are inside _build/layout/push has produced state this frame has
+        # not read. Clearing the flag afterwards discarded that wake-up: the
+        # loop returned to `if self._dirty` and saw False, so the write was
+        # not drawn until something unrelated invalidated again. Clearing
+        # first means such a write always leaves the flag set and earns its
+        # own frame; the cost is at worst one redundant render.
+        #
+        # This is the primitive the whole write-then-invalidate() contract in
+        # mpvtk_browser rests on, so every call site was correct and could
+        # still silently not repaint. It showed up as thumbnails that stayed
+        # placeholders until you jogged the mouse — six decode workers call
+        # invalidate() (thumbnails.py set_notify) against a build that drains
+        # them at the top, so the window was being hit constantly.
+        self._dirty = False
         t0 = time.perf_counter()
         try:
             tree = self._build(self.size)
@@ -364,7 +381,6 @@ class MpvtkApp:
             # black, and let the next invalidate retry.
             log.error("scene build failed; keeping the previous frame",
                       exc_info=True)
-            self._dirty = False
             return
         t1 = time.perf_counter()
         nodes, handlers = layout(tree, *self.size)
@@ -390,7 +406,6 @@ class MpvtkApp:
             (t3 - t2) * 1000,
             len(nodes),
         )
-        self._dirty = False
 
     @staticmethod
     def _wants_mods(fn):

@@ -2978,6 +2978,14 @@ local function reconcile()
     for _, node in ipairs(state.nodes) do
         state.byid[node.id] = node
     end
+    -- Follow containers we move ourselves. Python windowed its virtualized
+    -- rows against the offset it knew about when it BUILT this scene, so a
+    -- snap performed here invalidates that window and it has to be told —
+    -- publish_scroll() alone only updates the property, it wakes nobody.
+    -- Without this the logs panel opened blank: Python materialized rows
+    -- 0-57 for offset 0, we jumped to the bottom, and the renderer drew the
+    -- tail spacer with nothing in it until an unrelated rebuild happened.
+    local snapped = {}
     -- clamp scroll offsets; drop state for vanished ids
     for id, off in pairs(state.scroll) do
         local node = state.byid[id]
@@ -2991,6 +2999,7 @@ local function reconcile()
             if node.follow and was and was.t == 'scroll'
                     and off >= scroll_max(was) - FOLLOW_SLACK then
                 state.scroll[id] = max
+                if max ~= off then snapped[#snapped + 1] = id end
             else
                 state.scroll[id] = clamp(off, 0, max)
             end
@@ -3003,9 +3012,24 @@ local function reconcile()
     for _, node in ipairs(state.nodes) do
         if node.t == 'scroll' and node.follow and not state.scroll[node.id] then
             state.scroll[node.id] = scroll_max(node)
+            if state.scroll[node.id] ~= 0 then
+                snapped[#snapped + 1] = node.id
+            end
         end
     end
     publish_scroll()
+    for _, id in ipairs(snapped) do
+        -- fire_scroll, not notify_scroll: the latter throttles to
+        -- SCROLL_NOTIFY_INTERVAL, and a snap is a rare one-shot whose whole
+        -- point is to re-window immediately. Waiting 150ms for it would show
+        -- the blank frame we are trying to avoid.
+        --
+        -- This only has an effect if the app registered an on_scroll for
+        -- this container (that is what routes the event back into a
+        -- rebuild), so `follow` requires one. Enforced by
+        -- tests/test_mpvtk_virtualized_scrolls.py.
+        fire_scroll(id)
+    end
     for id in pairs(state.tb) do
         local node = state.byid[id]
         if not node or node.t ~= 'textbox' then state.tb[id] = nil end
