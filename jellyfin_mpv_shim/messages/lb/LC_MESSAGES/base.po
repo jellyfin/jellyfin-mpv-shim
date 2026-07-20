@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 01:15-0400\n"
+"POT-Creation-Date: 2026-07-20 01:19-0400\n"
 "PO-Revision-Date: 2026-01-06 14:42+0000\n"
 "Last-Translator: pn8z5qjdf7-tech <pn8z5qjdf7@privaterelay.appleid.com>\n"
 "Language-Team: Luxembourgish <https://translate.jellyfin.org/projects/"
@@ -197,7 +197,7 @@ msgid "Application Menu"
 msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:1352
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:744 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:780 jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr ""
 
@@ -607,7 +607,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:2745
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:207
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:346
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:434
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:464
 msgid "Rename"
 msgstr ""
 
@@ -903,7 +903,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:262
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:280
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:356
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:432
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:462
 msgid "Cancel"
 msgstr ""
 
@@ -1056,8 +1056,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2452
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:403
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:476
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:506
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:778
 msgid "Refresh"
 msgstr ""
 
@@ -1168,7 +1168,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:200
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:386
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:392
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:532
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:562
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:483
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:494
 msgid "Remove"
@@ -1204,7 +1204,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:216
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:350
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:355
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:643
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:673
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:575
 msgid "Delete"
 msgstr ""
@@ -1222,7 +1222,7 @@ msgid "Add User"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2771
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:427
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:457
 msgid "Rename User"
 msgstr ""
 
@@ -1231,7 +1231,7 @@ msgid "Downloads — %s used"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2958
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:481
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:511
 msgid "Nothing downloaded yet."
 msgstr ""
 
@@ -1325,7 +1325,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:3489
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:44
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:106
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:471
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:501
 msgid "Downloads"
 msgstr ""
 
@@ -1445,7 +1445,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3491
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:106
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:739
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:775
 msgid "Logs"
 msgstr ""
 
@@ -1993,7 +1993,7 @@ msgid "Estimating…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:259
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:472
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:502
 msgid "%(count)d items · %(size)s"
 msgstr ""
 
@@ -2296,50 +2296,54 @@ msgstr ""
 msgid "Remove Server"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:517
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:428
+msgid "The server could not be removed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:547
 msgid "%d items"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:528
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:558
 msgid "Remove Watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:634
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:664
 msgid "Delete the watched downloads in %s?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:635
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:665
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:572
 msgid "Delete the downloaded copy of %s?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:643
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:673
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:575
 msgid "Delete Download"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:776
 msgid "Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:749
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:785
 msgid "No log output captured yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:771
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:807
 msgid "There is nothing to copy yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:782
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:790
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:818
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:826
 msgid "Could not copy the log."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:784
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:820
 msgid "No clipboard available — saved to %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:787
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:823
 msgid "Copied %d log lines."
 msgstr ""
 

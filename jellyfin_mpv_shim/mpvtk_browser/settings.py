@@ -394,10 +394,40 @@ class SettingsMixin:
         }
 
     def _remove_server(self, uuid):
+        """Remove a server and rebuild the data source.
+
+        Dropping the credential is not enough. LibrarySource holds its own
+        connection per server, built once at construction, so the removed
+        server stayed in the switcher and stayed browsable — while playback
+        refused it, because that path re-checks the credentials. Tk rebuilt
+        (gui_mgr.refresh_servers); this is the equivalent.
+        """
         if self.controller is None:
             return
-        self._pool.submit(lambda: self._safe(
-            lambda c: (c.remove_server(uuid), self._after_users_changed())))
+        ep = self._epoch
+
+        def work():
+            if self.controller.remove_server(uuid) is False:
+                raise RuntimeError("remove_server refused")
+            return self.controller.rebuild_source()
+
+        def done(source):
+            if source is None:
+                # That was the last server. Nothing to browse: the offline
+                # catalog if there is one, otherwise back to login.
+                source = self.controller.offline_source()
+                if source is None:
+                    self.show_login()
+                    return
+            self.set_source(source)
+            # set_source lands on Home; the user was in Settings and almost
+            # certainly wants to keep managing servers.
+            self.open_settings("servers")
+
+        def failed(_exc):
+            self.set_status(_("The server could not be removed."))
+
+        self.run_async(work, done, ep, on_error=failed)
 
     def _add_user(self, name):
         name = (name or "").strip()

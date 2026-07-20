@@ -5133,6 +5133,59 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestRemovingAServerRebuildsTheSource(unittest.TestCase):
+    """Dropping the credential is not enough: LibrarySource holds its own
+    connection per server, built once, so the removed server stayed in the
+    switcher and stayed browsable — while playback refused it."""
+
+    def _browser(self, removed_ok=True, rebuilt=None, offline=None):
+        ctl = FakeController()
+        self.calls = []
+        ctl.remove_server = lambda uuid: (self.calls.append(uuid)
+                                          or removed_ok)
+        ctl.rebuild_source = lambda: rebuilt
+        ctl.offline_source = lambda: offline
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        b.nav_stack = [{"kind": "settings", "server": "srv1",
+                        "_tab": "servers"}]
+        return b
+
+    def test_the_source_is_rebuilt_without_the_removed_server(self):
+        fresh = FakeSource()
+        b = self._browser(rebuilt=fresh)
+        b._remove_server("srv1")
+        self.assertEqual(self.calls, ["srv1"])
+        self.assertIs(b.source, fresh, "still browsing the removed server")
+
+    def test_it_leaves_you_where_you_were(self):
+        """set_source lands on Home; someone managing servers wants to keep
+        managing servers."""
+        b = self._browser(rebuilt=FakeSource())
+        b._remove_server("srv1")
+        self.assertEqual(b.route["kind"], "settings")
+        self.assertEqual(b.route.get("_tab"), "servers")
+
+    def test_removing_the_last_server_falls_back_to_the_downloads(self):
+        offline = FakeSource()
+        b = self._browser(rebuilt=None, offline=offline)
+        b._remove_server("srv1")
+        self.assertIs(b.source, offline)
+
+    def test_the_last_server_with_nothing_downloaded_goes_to_login(self):
+        b = self._browser(rebuilt=None, offline=None)
+        b._remove_server("srv1")
+        self.assertEqual(b.route["kind"], "login")
+
+    def test_a_refused_removal_says_so(self):
+        b = self._browser(removed_ok=False)
+        before = b.source
+        b._remove_server("srv1")
+        self.assertIs(b.source, before, "rebuilt after a failed removal")
+        self.assertTrue(b.status, "the failure was silent")
+
+
 class TestDownloadsPollerShowsCompletion(unittest.TestCase):
     """The poller stopped as soon as nothing was pending — without reading
     the catalog one last time. The transition that took pending to zero is
