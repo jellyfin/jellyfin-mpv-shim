@@ -201,7 +201,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.thumbs = thumbs      # ThumbnailStore (optional; None -> no art)
         if self.thumbs is not None:
             # Wake our loop when a decoded poster lands, so build() can pump it.
-            self.thumbs._notify = self.invalidate
+            self.thumbs.set_notify(self.invalidate)
 
         servers = []
         try:

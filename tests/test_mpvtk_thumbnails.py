@@ -113,6 +113,20 @@ class TestThumbnailStore(unittest.TestCase):
         self.assertTrue(woke.wait(2.0), "notify() should wake the owner")
         store.pump()
 
+    def test_set_notify_attaches_after_construction(self):
+        """The store is usually built before its owner exists — the browser
+        is handed a ready-made one — so the constructor argument alone isn't
+        enough. It used to reach in and assign _notify directly."""
+        woke = threading.Event()
+        store = ThumbnailStore(os.path.join(self.tmp, "cache"))
+        self.addCleanup(store.shutdown)
+        store.set_notify(woke.set)
+        path = self._make_local_png()
+        store.request(make_key("i", "P", "t", 60), path, (60, 60),
+                      lambda img: None)
+        self.assertTrue(woke.wait(2.0), "a late-attached notify never fired")
+        store.pump()
+
     def test_cancel_before_worker_skips_callback(self):
         store = ThumbnailStore(os.path.join(self.tmp, "cache"))
         self.addCleanup(store.shutdown)

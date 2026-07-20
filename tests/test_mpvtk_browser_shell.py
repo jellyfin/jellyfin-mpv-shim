@@ -2978,6 +2978,9 @@ class FakeThumbs:
         self._cbs = {}              # key -> callback
         self._notify = None
 
+    def set_notify(self, notify):
+        self._notify = notify
+
     def get_cached(self, key):
         return None
 

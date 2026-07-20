@@ -99,6 +99,7 @@ class ThumbnailStore:
         self.max_disk_bytes = max_disk_mb * 1024 * 1024
         # Called (thread-safe, no args) when a result is enqueued, so the
         # owner can wake its render loop; it then drains via pump().
+        # Use set_notify() to attach one after construction.
         self._notify = notify
 
         self._session = requests.Session()
@@ -120,6 +121,19 @@ class ThumbnailStore:
         self._prune_disk()
 
     # -- public API (loop thread) -----------------------------------------
+
+    def set_notify(self, notify):
+        """Attach the wake-up callback after construction.
+
+        The store outlives any one owner and is usually built before the
+        thing that wants waking — the browser is handed a ready-made store —
+        so the constructor argument alone isn't enough, and the browser used
+        to reach in and assign ``_notify`` directly.
+
+        A plain assignment: worker threads only ever read it, and swapping
+        one callable for another is atomic.
+        """
+        self._notify = notify
 
     def get_cached(self, key):
         return self._mem.get(key)
