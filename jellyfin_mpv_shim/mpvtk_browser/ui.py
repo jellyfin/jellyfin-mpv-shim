@@ -504,18 +504,15 @@ class _PlayerController:
         return self.rebuild_source() or self.offline_source()
 
     def add_user(self, name):
+        """Raises on failure (a duplicate name, most often). Catching here
+        made the field clear and nothing happen."""
         from ..users import userManager
-        try:
-            userManager.add_user(name)
-        except Exception:
-            log.error("mpvtk add_user failed", exc_info=True)
+        userManager.add_user(name)
 
     def rename_user(self, user_id, name):
+        """Raises on failure — see add_user."""
         from ..users import userManager
-        try:
-            userManager.rename_user(user_id, name)
-        except Exception:
-            log.error("mpvtk rename_user failed", exc_info=True)
+        userManager.rename_user(user_id, name)
 
     def delete_user(self, user_id):
         """Returns (ok, error) — the active user and the last user can't go."""
@@ -667,6 +664,7 @@ class _PlayerController:
             fn(client.jellyfin)
         except Exception:
             log.error("mpvtk syncplay action failed", exc_info=True)
+            raise
 
     def sync_join(self, server_uuid, group_id):
         self._sync(server_uuid, lambda jf: jf.join_sync_play(group_id))
@@ -780,12 +778,12 @@ class _PlayerController:
 
     def download_enqueue(self, server_uuid, item_id, item_type,
                          include_watched=False):
+        """Raises on failure. "Download" is a button press whose failure the
+        user has to see — swallowed, a rejected enqueue looked exactly like a
+        queued one and the item simply never appeared."""
         from ..sync.manager import syncManager
-        try:
-            syncManager.enqueue(server_uuid, item_id, item_type,
-                                include_watched=include_watched)
-        except Exception:
-            log.error("mpvtk download enqueue failed", exc_info=True)
+        syncManager.enqueue(server_uuid, item_id, item_type,
+                            include_watched=include_watched)
 
     def list_downloads(self):
         """The downloads manager's display tree. Reaching the sync db is this
@@ -820,14 +818,17 @@ class _PlayerController:
         """Delete one item, a season, a series, or a playlist's downloads.
 
         ``watched_only`` keeps unwatched items — the "reclaim space on a
-        finished show" gesture the Tk browser has."""
+        finished show" gesture the Tk browser has.
+
+        Raises on failure. It used to catch-and-log, which silently defeated
+        every caller's on_error — including views.py's "The download could not
+        be removed.", an error message that could never be shown. Same reason
+        _edit, queue_reorder and playlist_move_many raise.
+        """
         from ..sync.manager import syncManager
-        try:
-            syncManager.delete(item_id=item_id, series_id=series_id,
-                               season_id=season_id, playlist_id=playlist_id,
-                               watched_only=watched_only)
-        except Exception:
-            log.error("mpvtk delete_download failed", exc_info=True)
+        syncManager.delete(item_id=item_id, series_id=series_id,
+                           season_id=season_id, playlist_id=playlist_id,
+                           watched_only=watched_only)
 
     def check_updates(self):
         """One-shot update check at startup.

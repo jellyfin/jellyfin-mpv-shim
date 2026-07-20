@@ -300,13 +300,18 @@ class DialogsMixin:
 
     def _dl_confirm(self):
         dl = self._dl
-        if dl is not None:
-            item = dl["item"]
-            self._client_call(lambda c: c.download_enqueue(
-                dl["server"], item.get("Id"), item.get("Type"),
-                dl["watched"]))
         self._close_download()
-        self._refresh_downloaded()
+        if dl is None:
+            return
+        item = dl["item"]
+        # _edit_call, not _client_call: the latter swallows, so a rejected
+        # download looked exactly like a queued one and the item just never
+        # turned up.
+        self._edit_call(
+            lambda c: c.download_enqueue(dl["server"], item.get("Id"),
+                                         item.get("Type"), dl["watched"]),
+            on_ok=self._refresh_downloaded,
+            error=_("The download could not be started."))
 
     # ------------------------------------------------------------- dialogs
 
@@ -410,14 +415,21 @@ class DialogsMixin:
                           on_dismiss=self._close_dialog)
         self._show_dialog(build)
 
+    # Joining, creating and leaving are all button presses, so a failure has
+    # to reach the user; _client_call swallows. The dialog closes first —
+    # these are round trips, and holding it open until they land reads as a
+    # hang — so the report lands on the status line behind it.
     def _sync_join(self, server, group_id):
-        self._client_call(lambda c: c.sync_join(server, group_id))
         self._close_dialog()
+        self._edit_call(lambda c: c.sync_join(server, group_id),
+                        error=_("Could not join the SyncPlay group."))
 
     def _sync_new(self, server):
-        self._client_call(lambda c: c.sync_new(server))
         self._close_dialog()
+        self._edit_call(lambda c: c.sync_new(server),
+                        error=_("Could not create the SyncPlay group."))
 
     def _sync_leave(self, server):
-        self._client_call(lambda c: c.sync_leave(server))
         self._close_dialog()
+        self._edit_call(lambda c: c.sync_leave(server),
+                        error=_("Could not leave the SyncPlay group."))

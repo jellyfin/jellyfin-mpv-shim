@@ -168,9 +168,21 @@ class AuthMixin:
             if not remove and state["new"] != state["confirm"]:
                 state["error"] = _("The PINs don't match.")
                 return self._show_dialog(build)
-            self._safe(lambda c: c.set_user_pin(
-                u.get("id"), None if remove else state["new"],
-                require_startup=state["startup"]))
+            # set_user_pin returns False on failure, and _safe discarded
+            # both that and any exception — so the dialog closed and the user
+            # was told nothing, believing their account was now locked (or
+            # unlocked) when it was not. Report it in the dialog instead.
+            try:
+                ok = self.controller.set_user_pin(
+                    u.get("id"), None if remove else state["new"],
+                    require_startup=state["startup"])
+            except Exception:
+                log.error("set_user_pin failed", exc_info=True)
+                ok = False
+            if not ok:
+                state["error"] = (_("The PIN could not be removed.") if remove
+                                  else _("The PIN could not be saved."))
+                return self._show_dialog(build)
             self._close_dialog()
             self._after_users_changed()
         self._show_dialog(build)

@@ -5133,6 +5133,197 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestFailuresAreVisible(unittest.TestCase):
+    """Error paths that existed, were wired, and could never fire.
+
+    A lower layer caught the exception and logged it, which silently defeated
+    the caller's on_error. The project made _edit, queue_reorder and
+    playlist_move_many raise for exactly this reason; these are the ones that
+    were missed.
+    """
+
+    def _browser(self, **ctl):
+        c = FakeController()
+        for k, v in ctl.items():
+            setattr(c, k, v)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=c,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        return b
+
+    @staticmethod
+    def _boom(*a, **k):
+        raise RuntimeError("nope")
+
+    def test_a_failed_download_removal_says_so(self):
+        b = self._browser(delete_download=self._boom)
+        b.nav_stack = [{"kind": "detail", "server": "srv1"}]
+        b._downloaded = {"m1"}
+        b._remove_download({"Id": "m1", "Type": "Movie"})
+        self.assertIn("could not be removed", b.status.lower())
+
+    def test_a_failed_delete_in_the_downloads_panel_says_so(self):
+        b = self._browser(delete_download=self._boom)
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads"}
+        b.nav_stack = [route]
+        b._delete_download(route, item_id="m1")
+        self.assertIn("could not be removed", b.status.lower())
+
+    def test_a_duplicate_user_name_is_reported_and_kept(self):
+        """It went through _safe, so the field cleared and nothing happened
+        — the box looked like it had accepted the name."""
+        b = self._browser(add_user=self._boom)
+        b._newuser["name"] = "Bud"
+        b._add_user("Bud")
+        self.assertIn("could not be added", b.status.lower())
+        self.assertEqual(b._newuser["name"], "Bud",
+                         "the name was cleared as though it had worked")
+
+    def test_a_successful_add_still_clears_the_field(self):
+        b = self._browser(add_user=lambda name: None)
+        b._newuser["name"] = "Bud"
+        b._add_user("Bud")
+        self.assertEqual(b._newuser["name"], "")
+
+    def test_a_failed_rename_says_so(self):
+        b = self._browser(rename_user=self._boom)
+        b._open_rename_user({"id": "u1", "name": "Old"})
+        _n, h = build_scene(b)
+        h["ru-ok"]["click"]()
+        self.assertIn("could not be renamed", b.status.lower())
+
+    def test_a_failed_pin_save_keeps_the_dialog_open_with_an_error(self):
+        """set_user_pin returns False on failure and _safe discarded it, so
+        the dialog closed and the user believed their account was locked."""
+        b = self._browser(set_user_pin=lambda *a, **k: False)
+        b._open_pin_setup({"id": "u1", "name": "Bud", "locked": False})
+        _n, h = build_scene(b)
+        h["ps-new"]["change"]("1234")
+        h["ps-confirm"]["change"]("1234")
+        h["ps-ok"]["click"]()
+        nodes, _h2 = build_scene(b)
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertIsNotNone(b._dialog, "the dialog closed on a failed save")
+        self.assertTrue(any("could not be saved" in t.lower() for t in texts),
+                        "no error shown: %r" % texts)
+
+    def test_a_failed_download_start_says_so(self):
+        b = self._browser(download_enqueue=self._boom)
+        b._dl = {"server": "srv1", "item": {"Id": "m1", "Type": "Movie"},
+                 "est": 0, "watched": False}
+        b._dl_confirm()
+        self.assertIn("could not be started", b.status.lower())
+        self.assertIsNone(b._dl, "the dialog stayed up")
+
+    def test_a_failed_syncplay_join_says_so(self):
+        b = self._browser(sync_join=self._boom)
+        b._sync_join("srv1", "g1")
+        self.assertIn("could not join", b.status.lower())
+
+    def test_a_failed_syncplay_leave_says_so(self):
+        b = self._browser(sync_leave=self._boom)
+        b._sync_leave("srv1")
+        self.assertIn("could not leave", b.status.lower())
+
+    def test_a_successful_download_start_is_silent(self):
+        started = []
+        b = self._browser(download_enqueue=lambda *a, **k: started.append(a))
+        b._dl = {"server": "srv1", "item": {"Id": "m1", "Type": "Movie"},
+                 "est": 0, "watched": False}
+        b._dl_confirm()
+        self.assertEqual(len(started), 1)
+        self.assertNotIn("could not", b.status.lower())
+
+    def test_a_successful_pin_save_closes_the_dialog(self):
+        b = self._browser(set_user_pin=lambda *a, **k: True)
+        b._open_pin_setup({"id": "u1", "name": "Bud", "locked": False})
+        _n, h = build_scene(b)
+        h["ps-new"]["change"]("1234")
+        h["ps-confirm"]["change"]("1234")
+        h["ps-ok"]["click"]()
+        self.assertIsNone(b._dialog)
+
+
+class TestTheControllerDoesNotSwallow(unittest.TestCase):
+    """The other half of TestFailuresAreVisible, and the half that matters.
+
+    Those tests stub FakeController, so they prove the *browser* reacts to a
+    raising controller — and nothing at all about whether the real controller
+    raises. Restoring the swallows in ui.py leaves every one of them green.
+    That is precisely the shape MIGRATION.md records: "a delete-rollback whose
+    test passed because it stubbed the controller and bypassed _edit
+    entirely." These drive the real _PlayerController.
+    """
+
+    def _controller(self):
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        return _PlayerController()
+
+    def _patch(self, module_path, name, obj):
+        import importlib
+        mod = importlib.import_module(module_path)
+        real = getattr(mod, name)
+        setattr(mod, name, obj)
+        self.addCleanup(lambda: setattr(mod, name, real))
+
+    @staticmethod
+    def _boom(*a, **k):
+        raise RuntimeError("server refused")
+
+    def test_delete_download_propagates(self):
+        self._patch("jellyfin_mpv_shim.sync.manager", "syncManager",
+                    type("S", (), {"delete": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().delete_download(item_id="m1")
+
+    def test_download_enqueue_propagates(self):
+        self._patch("jellyfin_mpv_shim.sync.manager", "syncManager",
+                    type("S", (), {"enqueue": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().download_enqueue("srv1", "m1", "Movie")
+
+    def test_add_user_propagates(self):
+        self._patch("jellyfin_mpv_shim.users", "userManager",
+                    type("U", (), {"add_user": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().add_user("Bud")
+
+    def test_rename_user_propagates(self):
+        self._patch("jellyfin_mpv_shim.users", "userManager",
+                    type("U", (), {"rename_user": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().rename_user("u1", "New")
+
+    def test_syncplay_actions_propagate(self):
+        class Client:
+            jellyfin = type("J", (), {
+                "join_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
+                "new_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
+                "leave_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
+            })()
+
+        # ui.py binds clientManager at module scope (`from ..clients import
+        # clientManager`), so patching jellyfin_mpv_shim.clients would not
+        # reach it. syncManager and userManager are imported inside their
+        # methods, so those patch at the source module.
+        self._patch("jellyfin_mpv_shim.mpvtk_browser.ui", "clientManager",
+                    type("C", (), {"clients": {"srv1": Client()}})())
+        ctl = self._controller()
+        for call in (lambda: ctl.sync_join("srv1", "g1"),
+                     lambda: ctl.sync_new("srv1"),
+                     lambda: ctl.sync_leave("srv1")):
+            with self.subTest(call=call):
+                with self.assertRaises(RuntimeError):
+                    call()
+
+    def test_set_user_pin_still_reports_false_rather_than_raising(self):
+        """This one deliberately does NOT raise — it returns a bool, and the
+        PIN dialog checks it. The contract just has to be honest."""
+        self._patch("jellyfin_mpv_shim.users", "userManager",
+                    type("U", (), {"set_pin": staticmethod(self._boom)})())
+        self.assertFalse(self._controller().set_user_pin("u1", "1234"))
+
+
 class TestRemovingAServerRebuildsTheSource(unittest.TestCase):
     """Dropping the credential is not enough: LibrarySource holds its own
     connection per server, built once, so the removed server stayed in the

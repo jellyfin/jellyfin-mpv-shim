@@ -430,12 +430,21 @@ class SettingsMixin:
         self.run_async(work, done, ep, on_error=failed)
 
     def _add_user(self, name):
+        """Add a local user, and say so if it did not work.
+
+        This used to go through _safe, which logs and returns — so a
+        duplicate name cleared the field and changed nothing, with the box
+        looking like it had accepted the input."""
         name = (name or "").strip()
         if not name or self.controller is None:
             return
-        self._safe(lambda c: c.add_user(name))
-        self._newuser["name"] = ""
-        self._after_users_changed()
+
+        def ok():
+            self._newuser["name"] = ""
+            self._after_users_changed()
+
+        self._edit_call(lambda c: c.add_user(name), on_ok=ok,
+                        error=_("That user could not be added."))
 
     def _delete_user(self, u):
         if self.controller is None:
@@ -466,10 +475,16 @@ class SettingsMixin:
 
         def save():
             name = (state["name"] or "").strip()
-            if name:
-                self._safe(lambda c: c.rename_user(u.get("id"), name))
+            if not name:
+                self._close_dialog()
+                return
+            # Close first: the rename is a round trip, and leaving the dialog
+            # up until it lands reads as a hang. A failure reports on the
+            # status line behind it.
             self._close_dialog()
-            self._after_users_changed()
+            self._edit_call(lambda c: c.rename_user(u.get("id"), name),
+                            on_ok=self._after_users_changed,
+                            error=_("That user could not be renamed."))
         self._show_dialog(build)
 
     def _after_users_changed(self):
@@ -742,24 +757,28 @@ class SettingsMixin:
         ep = self._epoch
 
         def work():
-            try:
-                if item_ids is not None and not watched_only:
-                    for one in item_ids:
-                        self.controller.delete_download(item_id=one)
-                else:
-                    self.controller.delete_download(
-                        item_id=item_id, series_id=series_id,
-                        season_id=season_id, playlist_id=playlist_id,
-                        watched_only=watched_only)
-            except Exception:
-                log.error("delete_download failed", exc_info=True)
+            # No try/except here: the controller raises now, and swallowing
+            # it a second time is what made a failed delete silent. The list
+            # is re-read on the same worker so the reload cannot run before
+            # the delete has touched the catalog.
+            if item_ids is not None and not watched_only:
+                for one in item_ids:
+                    self.controller.delete_download(item_id=one)
+            else:
+                self.controller.delete_download(
+                    item_id=item_id, series_id=series_id,
+                    season_id=season_id, playlist_id=playlist_id,
+                    watched_only=watched_only)
             return self.controller.list_downloads()
 
         def done(rows):
             route["_downloads"] = rows or []
             # badges elsewhere in the UI are keyed off the same catalog
             self._refresh_downloaded()
-        self.run_async(work, done, ep,
+
+        def failed(_exc):
+            self.set_status(_("The download could not be removed."))
+        self.run_async(work, done, ep, on_error=failed,
                        always=lambda: route.__setitem__("_dl_loading", False))
         self._refresh_downloaded()
 
