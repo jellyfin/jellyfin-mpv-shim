@@ -45,6 +45,25 @@ SCRIM_FRAC = 0.55
 SCRIM_MAX = 380
 
 
+def _episode_context(st):
+    """``"Series   ·   S1E2"`` for an episode, ``""`` for anything else.
+
+    The old lua OSC got this free from mpv's media-title, which the shim
+    sets to ``Media.get_proper_title()`` ("Show - s1e02 - Name"). The mpvtk
+    HUD reads the playstate instead, which carried only the item's own name
+    — so an episode showed "Pilot" with no clue which show it belonged to.
+
+    Either part alone is still worth showing: a season/episode number with
+    no series, or a series whose numbering the server doesn't have.
+    """
+    if not st:
+        return ""
+    season, episode = st.get("season"), st.get("episode")
+    se = ("S%sE%s" % (season, episode)
+          if season is not None and episode is not None else "")
+    return "   ·   ".join(p for p in (st.get("series_name"), se) if p)
+
+
 def _clock(secs):
     secs = int(secs or 0)
     if secs >= 3600:
@@ -495,7 +514,7 @@ def build_hud(b, size):
             end_part = _clock(dur)
         controls.append(Box(
             [Text("%s / %s" % (_clock(shown_pos), end_part),
-                  size=sz(15),
+                  size=sz(17),
                   color="ffffff" if scrub is not None else "dddddd")],
             id="hud-clock", pad=4, align="center", direction="row",
             on_click=lambda: _toggle_tc(b)))
@@ -505,7 +524,7 @@ def build_hud(b, size):
             "%H:%M",
             time.localtime(time.time() + max(0.0, dur - pos) / speed))
         controls.append(Text(_("Ends at {0}").format(ends),
-                             size=sz(14), color="aaaaaa"))
+                             size=sz(16), color="aaaaaa"))
     controls.append(Spacer())
 
     right = []
@@ -552,10 +571,21 @@ def build_hud(b, size):
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.
+    heading = Text(st.get("title") or "", size=sz(20), bold=True, flex=1)
+    context = _episode_context(st)
+    if context:
+        # Series and SxEy go on their own line above the episode title,
+        # not joined into one string. The detail banner learned this the
+        # hard way ("Clannad · S1E1 · On the Hillside Pa"), and the top bar
+        # is tighter still — a back button one side, SyncPlay the other.
+        heading = Column(
+            [Text(context, size=sz(15), color="bbbbbb"),
+             Text(st.get("title") or "", size=sz(20), bold=True)],
+            gap=sz(1), flex=1, align="stretch")
     top_items = [
         tbtn("arrow_back", "hud-back",
              lambda: b._ctl(lambda c: c.stop()), tip=_("Back")),
-        Text(st.get("title") or "", size=sz(18), bold=True, flex=1),
+        heading,
     ]
     st_menu = (menu_state
                if menu_state and menu_state.get("has_media") else {})

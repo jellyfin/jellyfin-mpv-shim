@@ -511,6 +511,59 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertEqual(seek.get("marks"), [0.4, 0.8],
                          "chapter slits should be the interior chapters")
 
+    def _episode(self, b, **kw):
+        st = dict(b._hud_state)
+        st.update({"title": "Pilot", "series_name": "The Show",
+                   "season": 1, "episode": 2})
+        st.update(kw)
+        b._hud_state = st
+        return b
+
+    def test_an_episode_shows_its_series_and_number(self):
+        """The old lua OSC got this from mpv's media-title ("Show - s01e02 -
+        Pilot"); the HUD read only the item's own name, so an episode called
+        "Pilot" gave no clue which show it belonged to."""
+        b, _ctl = self._browser()
+        self._episode(b)
+        nodes, _h = build_scene(b, (1280, 720))
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertTrue(any("The Show" in t for t in texts),
+                        "the series name is not on screen")
+        self.assertTrue(any("S1E2" in t for t in texts),
+                        "the season/episode number is not on screen")
+        self.assertIn("Pilot", texts, "the episode title was lost")
+
+    def test_the_context_is_a_separate_line_not_a_joined_title(self):
+        """Joined, a long name runs off the end and is cut mid-word — the
+        detail banner learned this, and the top bar is tighter still."""
+        b, _ctl = self._browser()
+        self._episode(b)
+        nodes, _h = build_scene(b, (1280, 720))
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertNotIn("The Show   ·   S1E2   ·   Pilot", texts)
+        self.assertIn("The Show   ·   S1E2", texts)
+
+    def test_a_movie_shows_only_its_title(self):
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertIn("Movie", texts)
+        self.assertFalse(any("·" in t for t in texts),
+                         "a movie grew an empty context line")
+
+    def test_a_series_with_no_numbering_still_names_the_show(self):
+        """Either half is worth showing on its own."""
+        b, _ctl = self._browser()
+        self._episode(b, season=None, episode=None)
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertIn("The Show", [n.get("text") or "" for n in nodes])
+
+    def test_a_number_with_no_series_name_still_shows(self):
+        b, _ctl = self._browser()
+        self._episode(b, series_name="")
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertIn("S1E2", [n.get("text") or "" for n in nodes])
+
     def test_narrow_viewport_drops_optional_controls(self):
         b, _ctl = self._browser()
         nodes, _h = build_scene(b, (460, 640))
