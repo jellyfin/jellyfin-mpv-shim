@@ -1,0 +1,423 @@
+"""Modal dialogs.
+
+The generic shell (``_show_dialog`` / ``_close_dialog`` / ``_message`` /
+``_confirm``), the add-to playlist/collection picker, the download dialog
+and the SyncPlay group dialog.
+
+State on ``self``: ``_dialog`` — a builder callable or None — is the single
+modal slot, rendered by core's ``build()``. Also ``_addto_build``,
+``_addto_ids``, ``_addto_explicit_ids`` and ``_addcol_name`` (add-to
+dialog), and ``_dl`` (download dialog). All are loop-thread only.
+"""
+
+from ..i18n import _
+from ..mpvtk.widgets import (
+    Button,
+    Checkbox,
+    Column,
+    Dialog,
+    Row,
+    Spacer,
+    Text,
+    TextBox,
+    VScroll,
+)
+from . import theme
+
+
+class DialogsMixin:
+
+    # ----------------------------------------------------- add to playlist
+
+    def _open_add_to(self, item, server=None):
+        server = server or self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        ep = self._epoch
+        # A music container is not itself a playlist entry — Tk resolves
+        # album/artist/genre to their track ids before offering the dialog.
+        self._addto_ids = None
+        # ids the caller supplied outright (the play queue), as opposed to
+        # ones resolved from a container
+        self._addto_explicit_ids = item.get("_ids")
+        parent = self.route.get("parent_id")
+
+        def work():
+            def fetch(fn):
+                try:
+                    return fn(server)
+                except Exception:
+                    return []
+            return (fetch(self.source.get_playlists),
+                    fetch(getattr(self.source, "get_collections",
+                                  lambda _s: [])),
+                    item.get("_ids")
+                    or self._resolve_play_ids(item, server, parent))
+        self.run_async(
+            work, lambda r: self._show_add_to(server, item, r[0], r[1], r[2]),
+            ep)
+
+    # Height of a picker list inside a dialog before it scrolls. Enough to
+    # show several entries without the dialog growing past the window.
+    PICKER_H = 240
+
+    def _picker_list(self, node_id, entries, on_pick, empty_text):
+        """Scrollable list of {Id, Name} buttons for a dialog.
+
+        Scrollable, not a dropdown: these are the primary choice in the
+        dialog, and a flat list of every playlist made it unusably tall.
+        """
+        if not entries:
+            return Text(empty_text, size=15, color=theme.SUBTLE_FG)
+        rows = [Button(e.get("Name", ""), id="%s-%d" % (node_id, i),
+                       on_click=lambda eid=e.get("Id"): on_pick(eid))
+                for i, e in enumerate(entries)]
+        return VScroll(Column(rows, gap=6, align="stretch"),
+                       id=node_id, h=self.PICKER_H)
+
+    def _show_add_to(self, server, item, playlists, collections=(),
+                     item_ids=None):
+        item_id = item.get("Id")
+        self._addto_ids = [i for i in (item_ids or [item_id]) if i]
+        # Private by default, matching the Tk browser: the server creates
+        # playlists public unless told otherwise.
+        self._addto_name = {"name": "", "private": True}
+
+        def build():
+            named = bool((self._addto_name.get("name") or "").strip())
+            rows = [
+                Text(_("Add to Playlist"), size=22, bold=True),
+                self._picker_list(
+                    "add-pl", playlists,
+                    lambda pid: self._add_to(server, pid, item_id),
+                    _("No playlists yet.")),
+                Row([
+                    TextBox("add-newname", placeholder=_("New playlist name…"),
+                            w=280,
+                            on_change=lambda v: self._addto_name_changed(v)),
+                    Button(_("Create"), id="add-create",
+                           on_click=lambda: self._add_to_new(server, item_id)),
+                ], gap=10, align="center"),
+            ]
+            if named:
+                # Only meaningful once there's a playlist to be private:
+                # an always-on checkbox above an empty name box is noise.
+                rows.append(Checkbox(
+                    _("Private (only you can see it)"),
+                    bool(self._addto_name.get("private")), id="add-private",
+                    on_toggle=lambda: self._addto_name.__setitem__(
+                        "private", not self._addto_name.get("private"))))
+            buttons = []
+            # Gated on whether the SOURCE does collections, not on whether
+            # any exist — gating on the latter meant you could never create
+            # your first one. The offline catalog has none either way.
+            if hasattr(self.source, "get_collections") and not self._offline:
+                buttons.append(Button(
+                    _("Collections…"), id="add-collections",
+                    on_click=lambda: self._show_add_to_collection(
+                        server, item, collections)))
+            buttons.append(Button(_("Close"), id="add-close",
+                                  on_click=self._close_dialog))
+            rows.append(self._dialog_buttons(buttons))
+            return Dialog("addto",
+                          self._dialog_shell("addto", rows, w=460),
+                          on_dismiss=self._close_dialog)
+        self._addto_build = build
+        self._show_dialog(build)
+
+    def _addto_name_changed(self, value):
+        """Rebuild only when the name crosses empty <-> non-empty, which is
+        what shows or hides the Private checkbox. Rebuilding on every
+        keystroke would be pointless churn."""
+        was = bool((self._addto_name.get("name") or "").strip())
+        self._addto_name["name"] = value
+        if bool((value or "").strip()) != was and self._addto_build:
+            self._show_dialog(self._addto_build)
+
+    def _show_add_to_collection(self, server, item, collections):
+        """Collections get their own window: two long lists stacked in one
+        dialog was the crowding."""
+        item_id = item.get("Id")
+        self._addcol_name = {"name": ""}
+
+        def build():
+            rows = [
+                Text(_("Add to Collection"), size=22, bold=True),
+                self._picker_list(
+                    "add-col", collections,
+                    lambda cid: self._add_to_col(server, cid, item_id),
+                    _("No collections yet.")),
+                Row([
+                    TextBox("addcol-newname",
+                            placeholder=_("New collection name…"), w=280,
+                            on_change=lambda v: self._addcol_name.__setitem__(
+                                "name", v)),
+                    Button(_("Create"), id="addcol-create",
+                           on_click=lambda: self._add_to_new_col(
+                               server, item_id)),
+                ], gap=10, align="center"),
+                self._dialog_buttons([
+                    Button(_("Back"), id="addcol-back",
+                           on_click=lambda: self._show_dialog(
+                               self._addto_build)),
+                    Button(_("Close"), id="addcol-close",
+                           on_click=self._close_dialog)]),
+            ]
+            return Dialog("addtocol",
+                          self._dialog_shell("addtocol", rows, w=460),
+                          on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _add_to_new(self, server, item_id):
+        state = self._addto_name or {}
+        name = state.get("name", "").strip()
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if name and ids:
+            private = bool(state.get("private", True))
+            self._edit_call(lambda c: c.playlist_new(
+                server, name, ids, is_public=not private))
+        self._close_dialog()
+
+    def _add_to_new_col(self, server, item_id):
+        name = (self._addcol_name or {}).get("name", "").strip()
+        ids = self._collection_ids(item_id)
+        if name and ids:
+            self._edit_call(lambda c: c.collection_new(server, name, ids))
+        self._close_dialog()
+
+    def _collection_ids(self, item_id):
+        """A collection holds the album, not its 300 tracks — only a
+        playlist wants the resolved ids (Tk resolves for playlists only).
+
+        The queue is the exception: it is a set of items with no container
+        of its own, so it carries an explicit id list."""
+        if self._addto_explicit_ids:
+            return list(self._addto_explicit_ids)
+        return [item_id] if item_id else []
+
+    def _add_to_col(self, server, collection_id, item_id):
+        ids = self._collection_ids(item_id)
+        if collection_id and ids:
+            self._edit_call(lambda c: c.collection_add(
+                server, collection_id, ids))
+        self._close_dialog()
+
+    def _add_to(self, server, playlist_id, item_id):
+        ids = self._addto_ids or ([item_id] if item_id else [])
+        if playlist_id and ids:
+            self._edit_call(lambda c: c.playlist_add(server, playlist_id, ids))
+        self._close_dialog()
+
+    # -------------------------------------------------------- downloads
+
+    @staticmethod
+    def _human_size(n):
+        n = float(n or 0)
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if n < 1024 or unit == "TB":
+                return ("%d %s" % (n, unit) if unit == "B"
+                        else "%.1f %s" % (n, unit))
+            n /= 1024
+
+    def _open_download(self, item):
+        server = self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        # The include-watched filter is only meaningful for a container.
+        # For a single item it must be True, or Download on something you
+        # have already watched enqueues nothing at all, silently.
+        container = item.get("Type") in ("Series", "Season", "Playlist",
+                                         "MusicAlbum", "MusicArtist",
+                                         "BoxSet")
+        self._dl = {"server": server, "item": item, "est": None,
+                    "container": container, "watched": not container}
+        ep = self._epoch
+
+        def work():
+            return self.controller.download_estimate(
+                server, item.get("Id"), item.get("Type"))
+
+        def done(est):
+            if self._dl is not None:
+                self._dl["est"] = est
+                if self._dl["container"]:
+                    self._dl["watched"] = bool((est or {}).get("audio_only"))
+            self._show_download()
+        self.run_async(work, done, ep)
+        self._show_download()   # show immediately with an "estimating" state
+
+    def _show_download(self):
+        dl = self._dl
+        if dl is None:
+            return
+
+        def build():
+            est = dl["est"]
+            if est is None:
+                info = Text(_("Estimating…"), size=15, color=theme.SUBTLE_FG)
+            else:
+                line = _("%(count)d items · %(size)s") % {
+                    "count": est.get("count", 0),
+                    "size": self._human_size(est.get("total_bytes", 0))}
+                extra = []
+                if est.get("already_count"):
+                    extra.append(_("%d already downloaded")
+                                 % est["already_count"])
+                if est.get("watched_count"):
+                    extra.append(_("%d watched") % est["watched_count"])
+                if extra:
+                    line += "   (" + ", ".join(extra) + ")"
+                info = Text(line, size=15, color=theme.SUBTLE_FG)
+            return Dialog("download", self._dialog_shell("download", [
+                Text(_("Download"), size=22, bold=True),
+                Text(dl["item"].get("Name", ""), size=17),
+                info,
+            ] + ([Checkbox(_("Include watched"), dl["watched"],
+                           id="dl-watched",
+                           on_toggle=self._dl_toggle_watched)]
+                 if dl["container"] else []) + [
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="dl-cancel",
+                           on_click=self._close_download),
+                    # Confirming before the estimate lands loses the
+                    # audio_only default and skips played tracks.
+                    Button(_("Download"), id="dl-ok",
+                           on_click=self._dl_confirm)
+                    if est is not None else
+                    Text(_("Estimating…"), size=15,
+                         color=theme.SUBTLE_FG)]),
+            ], w=460), on_dismiss=self._close_download)
+        self._show_dialog(build)
+
+    def _dl_toggle_watched(self):
+        if self._dl is not None:
+            self._dl["watched"] = not self._dl["watched"]
+            self._show_download()
+
+    def _close_download(self):
+        self._dl = None
+        self._close_dialog()
+
+    def _dl_confirm(self):
+        dl = self._dl
+        if dl is not None:
+            item = dl["item"]
+            self._client_call(lambda c: c.download_enqueue(
+                dl["server"], item.get("Id"), item.get("Type"),
+                dl["watched"]))
+        self._close_download()
+        self._refresh_downloaded()
+
+    # ------------------------------------------------------------- dialogs
+
+    def _show_dialog(self, builder):
+        self._dialog = builder
+        self.invalidate()
+
+    def _close_dialog(self):
+        self._dialog = None
+        self.invalidate()
+
+    @staticmethod
+    def _dialog_shell(node_id, children, w=440):
+        # align="stretch" so button rows fill the shell's width; without it
+        # they take their natural width and a trailing flex Spacer has no
+        # leftover to absorb, which left the buttons hugging the left edge.
+        return Column(children, pad=24, gap=16, bg="1e1e1e", radius=12,
+                      border="555555", w=w, align="stretch")
+
+    @staticmethod
+    def _dialog_buttons(children):
+        """Dialog action row: always trailing-aligned."""
+        return Row(children, gap=10, justify="end")
+
+    def _message(self, text, title=None):
+        title = title or _("Notice")
+
+        def build():
+            return Dialog("msg", self._dialog_shell("msg", [
+                Text(title, size=22, bold=True),
+                Text(text, size=16, color=theme.SUBTLE_FG),
+                self._dialog_buttons([
+                    Button(_("OK"), id="dlg-ok",
+                           on_click=self._close_dialog)]),
+            ]), on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _confirm(self, text, on_yes, title=None, yes=None):
+        title = title or _("Confirm")
+        yes = yes or _("OK")
+
+        def build():
+            return Dialog("confirm", self._dialog_shell("confirm", [
+                Text(title, size=22, bold=True),
+                Text(text, size=16, color=theme.SUBTLE_FG),
+                self._dialog_buttons([
+                    Button(_("Cancel"), id="dlg-cancel",
+                           on_click=self._close_dialog),
+                    Button(yes, id="dlg-ok",
+                           on_click=lambda: (self._close_dialog(),
+                                             on_yes()))]),
+            ]), on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    # -- SyncPlay ---------------------------------------------------------
+
+    def _open_syncplay(self):
+        server = self.server
+        if self.controller is None or server is None:
+            return
+        ep = self._epoch
+
+        def work():
+            return self.controller.get_sync_groups(server)
+
+        def done(groups):
+            self._show_syncplay(server, groups)
+
+        # Fetch groups off-thread, then show the dialog on the loop.
+        self.run_async(work, done, ep)
+
+    def _show_syncplay(self, server, groups):
+        def build():
+            rows = [Text(_("SyncPlay"), size=22, bold=True)]
+            if groups:
+                for i, g in enumerate(groups):
+                    who = ", ".join(g.get("participants") or [])
+                    rows.append(Column([
+                        Button(g.get("name") or _("Group"),
+                               id="sp-join-%d" % i,
+                               on_click=lambda gid=g.get("id"):
+                                   self._sync_join(server, gid)),
+                        Text(who, size=13, color=theme.SUBTLE_FG)
+                        if who else Spacer(h=0),
+                    ], gap=2))
+            else:
+                rows.append(Text(_("No active groups."), size=15,
+                                 color=theme.SUBTLE_FG))
+            rows.append(Row([
+                Button(_("New Group"), id="sp-new",
+                       on_click=lambda: self._sync_new(server)),
+                Button(_("Leave"), id="sp-leave",
+                       on_click=lambda: self._sync_leave(server)),
+                Button(_("Refresh"), id="sp-refresh",
+                       on_click=lambda: self._open_syncplay()),
+                Spacer(),
+                Button(_("Close"), id="sp-close", on_click=self._close_dialog),
+            ], gap=10, align="center"))
+            return Dialog("syncplay", self._dialog_shell("syncplay", rows,
+                                                         w=480),
+                          on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    def _sync_join(self, server, group_id):
+        self._client_call(lambda c: c.sync_join(server, group_id))
+        self._close_dialog()
+
+    def _sync_new(self, server):
+        self._client_call(lambda c: c.sync_new(server))
+        self._close_dialog()
+
+    def _sync_leave(self, server):
+        self._client_call(lambda c: c.sync_leave(server))
+        self._close_dialog()
