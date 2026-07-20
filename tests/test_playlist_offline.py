@@ -502,5 +502,59 @@ class TestDeleteScope(TmpTest):
         self.assertEqual(len(m.db.list()), 3, "no scope, no sweep")
 
 
+class TestOfflineWatchedQueue(TmpTest):
+    """Marking watched offline used to return silently while the UI showed
+    an optimistic tick — it reverted on reload and never reached the
+    server. It now queues into the catalog for later replay."""
+
+    def _controller(self, catalog_path):
+        import jellyfin_mpv_shim.sync.manager as mgr
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        db = SyncDB(catalog_path)
+        self.addCleanup(db.close)
+
+        class FakeSync:
+            pass
+
+        FakeSync.db = db
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+        return _PlayerController(), db
+
+    def _catalog(self):
+        path = os.path.join(self.tmp, "catalog.db")
+        db = SyncDB(path)
+        db.upsert(make_row("e1", type="Episode", series_id="sh1",
+                           season_id="s1", server_uuid="uuid"))
+        db.upsert(make_row("e2", type="Episode", series_id="sh1",
+                           season_id="s1", server_uuid="uuid"))
+        db.close()
+        return path
+
+    def test_marking_an_item_watched_offline_is_queued(self):
+        ctl, db = self._controller(self._catalog())
+        self.assertTrue(ctl.set_watched("offline", "e1", True))
+        self.assertTrue(json.loads(db.get("e1")["userdata_json"])["Played"])
+
+    def test_a_series_fans_out_to_its_downloaded_episodes(self):
+        ctl, db = self._controller(self._catalog())
+        self.assertTrue(ctl.set_watched("offline", "sh1", True))
+        for eid in ("e1", "e2"):
+            self.assertTrue(
+                json.loads(db.get(eid)["userdata_json"])["Played"],
+                "%s not marked" % eid)
+
+    def test_unwatching_offline_is_refused_rather_than_half_applied(self):
+        """The pending queue is advance-only, so un-watching can't be
+        represented — say so instead of pretending it worked."""
+        ctl, db = self._controller(self._catalog())
+        self.assertFalse(ctl.set_watched("offline", "e1", False))
+
+    def test_an_item_with_nothing_downloaded_reports_failure(self):
+        ctl, _db = self._controller(self._catalog())
+        self.assertFalse(ctl.set_watched("offline", "nope", True))
+
+
 if __name__ == "__main__":
     unittest.main()

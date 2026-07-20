@@ -3221,3 +3221,118 @@ class TestBodyWidth(unittest.TestCase):
             self.assertLessEqual(
                 used, self.b._body_w(w),
                 "%d columns don't fit at w=%d" % (cols, w))
+
+
+class TestWatchedState(unittest.TestCase):
+    """`(count or 0) == 0` reads a MISSING unplayed count as "nothing
+    unplayed", i.e. fully watched — so a Series without UserData showed a
+    watched tick and the toggle then marked an unwatched show unwatched."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_a_series_without_userdata_is_not_watched(self):
+        self.assertFalse(self.b._is_watched({"Id": "s1", "Type": "Series"}))
+
+    def test_a_series_with_no_unplayed_count_is_not_watched(self):
+        self.assertFalse(self.b._is_watched(
+            {"Id": "s1", "Type": "Series", "UserData": {}}))
+
+    def test_zero_unplayed_is_watched(self):
+        self.assertTrue(self.b._is_watched(
+            {"Id": "s1", "Type": "Series",
+             "UserData": {"UnplayedItemCount": 0}}))
+
+    def test_remaining_episodes_are_not_watched(self):
+        self.assertFalse(self.b._is_watched(
+            {"Id": "s1", "Type": "Series",
+             "UserData": {"UnplayedItemCount": 3}}))
+
+    def test_played_flag_still_wins_for_movies(self):
+        self.assertTrue(self.b._is_watched(
+            {"Id": "m1", "Type": "Movie", "UserData": {"Played": True}}))
+
+    def test_toggling_an_untouched_series_marks_it_watched(self):
+        """The consequence of the bug: the first click was a no-op."""
+        calls = []
+        ctl = FakeController()
+        ctl.set_watched = lambda srv, iid, w: calls.append(w) or True
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._act_watched({"Id": "s1", "Type": "Series"}, "srv1")
+        self.assertEqual(calls, [True], "first click must mark it WATCHED")
+
+    def test_a_failed_write_rolls_the_optimistic_flip_back(self):
+        ctl = FakeController()
+        ctl.set_watched = lambda srv, iid, w: False
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"Played": False}}
+        b._act_watched(item, "srv1")
+        self.assertFalse(item["UserData"]["Played"],
+                         "UI kept a tick for a change that never happened")
+
+
+class TestNewPlaylistPrivacy(unittest.TestCase):
+    """The server creates playlists PUBLIC unless told otherwise, so
+    omitting the flag published every playlist to the whole server."""
+
+    def test_new_playlists_default_to_private(self):
+        calls = []
+        ctl = FakeController()
+        ctl.playlist_new = lambda *a, **kw: calls.append((a, kw))
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._addto_name = {"name": "Road Trip", "private": True}
+        b._add_to_new("srv1", "m1")
+        self.assertEqual(calls[0][1].get("is_public"), False)
+
+    def test_unticking_private_creates_a_public_playlist(self):
+        calls = []
+        ctl = FakeController()
+        ctl.playlist_new = lambda *a, **kw: calls.append((a, kw))
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._addto_name = {"name": "Shared", "private": False}
+        b._add_to_new("srv1", "m1")
+        self.assertEqual(calls[0][1].get("is_public"), True)
+
+
+class TestPinSetup(unittest.TestCase):
+    """Blank new+confirm compared equal and fell through to set_pin(None),
+    so Save on a "Set PIN" dialog quietly REMOVED the lock."""
+
+    def _dialog(self, locked=False):
+        calls = []
+        ctl = FakeController()
+        ctl.set_user_pin = lambda uid, pin, require_startup=False: (
+            calls.append((uid, pin, require_startup)) or True)
+        ctl.unlock_user = lambda uid, pin: True
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._open_pin_setup({"id": "u1", "name": "Kid", "locked": locked})
+        _n, handlers = build_scene(b)
+        return b, handlers, calls
+
+    def test_saving_with_blank_fields_does_not_clear_the_pin(self):
+        b, handlers, calls = self._dialog(locked=True)
+        handlers["ps-ok"]["click"]()
+        self.assertEqual(calls, [], "blank Save removed the lock")
+        # the dialog stays open reporting why
+        nodes, _h = build_scene(b)
+        texts = " ".join(n.get("text", "") for n in nodes if n.get("text"))
+        self.assertIn("new PIN", texts)
+
+    def test_a_matching_pin_is_saved(self):
+        b, handlers, calls = self._dialog()
+        handlers["ps-new"]["change"]("1234")
+        handlers["ps-confirm"]["change"]("1234")
+        handlers["ps-ok"]["click"]()
+        self.assertEqual([c[1] for c in calls], ["1234"])
+
+    def test_mismatched_pins_are_refused(self):
+        _b, handlers, calls = self._dialog()
+        handlers["ps-new"]["change"]("1234")
+        handlers["ps-confirm"]["change"]("9999")
+        handlers["ps-ok"]["click"]()
+        self.assertEqual(calls, [])

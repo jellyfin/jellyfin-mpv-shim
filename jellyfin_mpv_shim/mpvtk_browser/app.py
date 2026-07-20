@@ -653,7 +653,12 @@ class MpvtkBrowser:
         if ud.get("Played"):
             return True
         if item.get("Type") in ("Series", "Season"):
-            return (ud.get("UnplayedItemCount") or 0) == 0
+            # `or 0` would read a MISSING count as zero-unplayed, i.e.
+            # fully watched — so a Series DTO without UserData (search
+            # results, the synthesized season fallback) showed a watched
+            # check, and the toggle computed `not watched` and marked an
+            # unwatched show unwatched: a no-op that reads as a dead button.
+            return ud.get("UnplayedItemCount") == 0
         return False
 
     def _is_downloaded(self, item):
@@ -2111,11 +2116,26 @@ class MpvtkBrowser:
 
     def _act_watched(self, item, server):
         ud = item.setdefault("UserData", {})
+        was_played, was_count = ud.get("Played"), ud.get("UnplayedItemCount")
         new = not self._is_watched(item)
         ud["Played"] = new
         if item.get("Type") in ("Series", "Season"):
             ud["UnplayedItemCount"] = 0 if new else 1
-        self._client_call(lambda c: c.set_watched(server, item.get("Id"), new))
+
+        def work():
+            # Roll the optimistic flip back if nothing recorded it (offline
+            # un-watching, or nothing downloaded to queue against). Leaving
+            # the tick up meant the UI claimed a change that never happened
+            # and quietly reverted on the next reload.
+            ok = self.controller.set_watched(server, item.get("Id"), new)
+            if ok is False:
+                ud["Played"] = was_played
+                if was_count is None:
+                    ud.pop("UnplayedItemCount", None)
+                else:
+                    ud["UnplayedItemCount"] = was_count
+                self.invalidate()
+        self._pool.submit(lambda: self._safe(lambda _c: work()))
         self.invalidate()
 
     def _act_favorite(self, item, server):
@@ -3187,6 +3207,12 @@ class MpvtkBrowser:
                         return self._show_dialog(build)
                 except Exception:
                     log.debug("pin verify failed", exc_info=True)
+            if not remove and not state["new"]:
+                # Empty new+confirm compared equal and fell through to
+                # set_pin(None), i.e. Save on a "Set PIN" dialog quietly
+                # removed the lock.
+                state["error"] = _("Enter a new PIN.")
+                return self._show_dialog(build)
             if not remove and state["new"] != state["confirm"]:
                 state["error"] = _("The PINs don't match.")
                 return self._show_dialog(build)
@@ -3925,7 +3951,9 @@ class MpvtkBrowser:
 
     def _show_add_to(self, server, item, playlists):
         item_id = item.get("Id")
-        self._addto_name = {"name": ""}
+        # Private by default, matching the Tk browser: the server creates
+        # playlists public unless told otherwise.
+        self._addto_name = {"name": "", "private": True}
 
         def build():
             rows = [Text(_("Add to Playlist"), size=22, bold=True)]
@@ -3945,6 +3973,11 @@ class MpvtkBrowser:
                 Button(_("Create"), id="add-create",
                        on_click=lambda: self._add_to_new(server, item_id)),
             ], gap=10, align="center"))
+            rows.append(Checkbox(
+                _("Private (only you can see it)"),
+                bool(self._addto_name.get("private")), id="add-private",
+                on_toggle=lambda: self._addto_name.__setitem__(
+                    "private", not self._addto_name.get("private"))))
             rows.append(self._dialog_buttons([
                 Button(_("Close"), id="add-close",
                        on_click=self._close_dialog)]))
@@ -3954,9 +3987,12 @@ class MpvtkBrowser:
         self._show_dialog(build)
 
     def _add_to_new(self, server, item_id):
-        name = (self._addto_name or {}).get("name", "").strip()
+        state = self._addto_name or {}
+        name = state.get("name", "").strip()
         if name and item_id:
-            self._client_call(lambda c: c.playlist_new(server, name, [item_id]))
+            private = bool(state.get("private", True))
+            self._client_call(lambda c: c.playlist_new(
+                server, name, [item_id], is_public=not private))
         self._close_dialog()
 
     def _add_to(self, server, playlist_id, item_id):

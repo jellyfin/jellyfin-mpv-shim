@@ -320,13 +320,60 @@ class _PlayerController:
     # -- tile actions (watched / favorite) --------------------------------
 
     def set_watched(self, server_uuid, item_id, watched):
+        """Mark played/unplayed, queueing it when there's no server.
+
+        Returns True if the change was recorded somewhere. Offline the mark
+        goes into the sync catalog for later replay — returning silently
+        left the UI showing an optimistic tick that reverted on the next
+        reload and never reached the server."""
+        if not item_id:
+            return False
         client = clientManager.clients.get(server_uuid)
-        if client is None or not item_id:
-            return
+        if client is not None:
+            try:
+                client.jellyfin.item_played(item_id, bool(watched))
+                return True
+            except Exception:
+                log.error("mpvtk set_watched failed", exc_info=True)
+                return False
+        return self._queue_offline_watched(server_uuid, item_id, watched)
+
+    @staticmethod
+    def _queue_offline_watched(server_uuid, item_id, watched):
+        """Queue an offline watched mark (mirrors gui_mgr's offline branch).
+
+        Only "watched" is representable: the pending queue is advance-only,
+        so un-watching offline is dropped rather than silently half-applied.
+        A series/season id fans out to its downloaded episodes."""
+        from ..sync.db import STATUS_COMPLETE
+        from ..sync.manager import syncManager
+
+        db = getattr(syncManager, "db", None)
+        if db is None or not watched:
+            log.warning("Cannot change watched state for %s while offline.",
+                        item_id)
+            return False
         try:
-            client.jellyfin.item_played(item_id, bool(watched))
+            if db.is_complete(item_id):
+                targets = [(item_id, server_uuid)]
+            else:
+                targets = [(r["item_id"], r["server_uuid"] or server_uuid)
+                           for r in db.list(status=STATUS_COMPLETE)
+                           if item_id in (r["series_id"], r["season_id"])]
+            for target_id, target_server in targets:
+                db.upsert_playstate(target_server, target_id, played=True)
+                # The browser overlay and the watched-based delete read
+                # userdata_json, not the pending queue — without this the
+                # mark is invisible until the server syncs.
+                db.update_userdata(target_id, played=True)
+            if not targets:
+                log.warning("Nothing downloaded matches %s; watched mark "
+                            "not queued.", item_id)
+            return bool(targets)
         except Exception:
-            log.error("mpvtk set_watched failed", exc_info=True)
+            log.error("Failed to queue offline watched mark for %s",
+                      item_id, exc_info=True)
+            return False
 
     def set_favorite(self, server_uuid, item_id, favorite):
         client = clientManager.clients.get(server_uuid)
@@ -643,9 +690,13 @@ class _PlayerController:
                    lambda jf: jf.add_playlist_items(playlist_id,
                                                     list(item_ids)))
 
-    def playlist_new(self, server_uuid, name, item_ids):
+    def playlist_new(self, server_uuid, name, item_ids, is_public=False):
+        """Create a playlist. Private by default, as the Tk browser does —
+        the server's own default is public, so omitting the flag published
+        every playlist the user made to everyone on the server."""
         self._edit(server_uuid,
-                   lambda jf: jf.new_playlist(name, list(item_ids)))
+                   lambda jf: jf.new_playlist(name, list(item_ids),
+                                              is_public=bool(is_public)))
 
     def playlist_delete(self, server_uuid, playlist_id):
         self._edit(server_uuid, lambda jf: jf.delete_item(playlist_id))
