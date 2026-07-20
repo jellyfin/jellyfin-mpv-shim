@@ -280,10 +280,23 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.status = ""
         self._size = None         # last window size seen by build()
 
-        self.nav_stack = [{"kind": "home", "server": self.server}]
+        self.nav_stack = [self._default_route()]
         self._load_route(self.route)
 
     # ------------------------------------------------------------ routing
+
+    def _default_route(self):
+        """Where the browser lands when it has nowhere specific to go.
+
+        Every direct ``nav_stack`` assignment must come through here.
+        ``navigate()`` enforces the headless lockdown, but assigning the
+        stack bypasses it entirely — which is exactly how a successful
+        connect put a headless box on the library: ``set_source`` reset the
+        stack to home itself, and the refusal never ran.
+        """
+        if self.headless:
+            return {"kind": "cast"}
+        return {"kind": "home", "server": self.server}
 
     @property
     def route(self):
@@ -372,7 +385,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.nav_stack = [
             r for r in self.nav_stack
             if playlist_id not in (r.get("item_id"), r.get("parent_id"))
-        ] or [{"kind": "home", "server": self.server}]
+        ] or [self._default_route()]
         route = self.route
         route.pop("_data", None)
         route.pop("_items", None)
@@ -1343,10 +1356,20 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                         for r in self.nav_stack))
         self.server = server
         if not stay:
-            self.nav_stack = [{"kind": "home", "server": self.server}]
+            self.nav_stack = [self._default_route()]
         self._bump_epoch()
         self._load_route(self.route)
         self._refresh_downloaded()
+        # The idle cast backdrop is picked from a random library item, so it
+        # needs a reachable server. At startup the cast screen composites
+        # before the connect finishes, finds no clients, and caches "no
+        # backdrop" — permanently, because that cache is what stops the
+        # picture re-rolling on every window resize. Re-roll now that there
+        # is something to ask. Only when it is actually showing the idle
+        # screen: a DisplayContent item must not be thrown away.
+        if (self.route.get("kind") == "cast"
+                and (self._cast or {}).get("idle")):
+            self.show_cast_idle()
         self.invalidate()
 
     def on_downloads_changed(self):

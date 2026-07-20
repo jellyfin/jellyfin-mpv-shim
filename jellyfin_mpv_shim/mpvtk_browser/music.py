@@ -25,6 +25,13 @@ from . import theme
 from .repository import PLAYLIST_SUPPORTED_TYPES
 
 
+# Height of the now-playing bar. Shared, because the cast screen has to
+# leave room for it — a full-bleed page that sizes itself to the whole
+# window pushes the bar off the bottom of the screen, which is exactly what
+# happened: casting music to a headless box showed no transport at all.
+NOW_PLAYING_BAR_H = 64
+
+
 class MusicMixin:
 
     # kind -> (loader, renderer) method names. Merged into
@@ -539,7 +546,8 @@ class MusicMixin:
                      tip=_("Queue")),
             ]) + [
             ],
-            pad=10, gap=10, align="center", h=64, bg=theme.PANEL_BG)
+            pad=10, gap=10, align="center", h=NOW_PLAYING_BAR_H,
+            bg=theme.PANEL_BG)
 
     # ---------------------------------------- route loaders
 

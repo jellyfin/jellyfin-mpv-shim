@@ -180,6 +180,68 @@ class TestWithoutTheFlagNothingChanges(HeadlessBase):
                          "DisplayContent no longer opens the item")
 
 
+class TestThePathsThatBypassNavigate(HeadlessBase):
+    """navigate() is the choke point, but three places assign nav_stack
+    DIRECTLY and so never reach it. That is not hypothetical: it shipped.
+    Setting headless=true fullscreened the window and then landed on the
+    library anyway, because a successful connect calls set_source, which
+    resets the stack to home itself.
+
+    The catch-all below only exercised navigate(), so it could not see this.
+    These drive the real entry points instead.
+    """
+
+    def test_a_successful_connect_does_not_land_on_the_library(self):
+        """The reported bug, exactly."""
+        b = self._browser()
+        b.set_source(FakeSource(), server_uuid="srv1")
+        self.assertEqual(b.route["kind"], "cast",
+                         "connecting dropped a headless box on the library")
+
+    def test_a_reconnect_does_not_either(self):
+        b = self._browser()
+        b.set_source(FakeSource(), server_uuid="srv1", keep_place=True)
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_a_fresh_browser_starts_on_the_cast_screen(self):
+        """Before anything calls show_cast(): the initial stack is assigned
+        in __init__, which is another bypass."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController(), config=_HeadlessConfig())
+        b._pool = _SyncPool()
+        self.assertTrue(b.headless, "the flag was not read from config")
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_deleting_a_playlist_falls_back_to_the_cast_screen(self):
+        """The third bypass: pruning the stack falls back to a default."""
+        b = self._browser()
+        b.nav_stack = [{"kind": "playlist", "server": "srv1",
+                        "item_id": "pl1"}]
+        b.after_playlist_deleted("pl1")
+        self.assertEqual(b.route["kind"], "cast")
+
+    def test_the_offline_fallback_does_not_open_the_library(self):
+        b = self._browser()
+        b.set_source(FakeSource(), server_uuid="srv1")
+        self.assertEqual(b.route["kind"], "cast")
+
+
+class _HeadlessConfig:
+    """Minimal settings accessor with headless on."""
+
+    @staticmethod
+    def get_settings():
+        return {"headless": True}
+
+    @staticmethod
+    def settings_schema():
+        return []
+
+    @staticmethod
+    def sections():
+        return []
+
+
 class TestNoRouteEscapesTheLockdown(unittest.TestCase):
     """The catch-all. Every route kind the browser declares must either be
     on the headless allow-list or be refused by navigate(). A new route
@@ -216,6 +278,50 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
     def test_the_scan_saw_the_routes(self):
         b = MpvtkBrowser(app=None, source=FakeSource())
         self.assertGreater(len(b._routes()), 10)
+
+    def test_no_new_code_path_assigns_nav_stack_behind_navigate(self):
+        """navigate() is where the lockdown lives, so anything assigning
+        nav_stack directly is outside it. That is not theoretical — a
+        successful connect did exactly this and put a headless box on the
+        library while every navigate()-based test stayed green.
+
+        Every such assignment must land on _default_route(), which is
+        headless-aware. Read the source rather than trusting a behavioural
+        sweep, because the whole failure mode is a path no test drives.
+        """
+        import ast
+        import inspect
+        import os
+        from jellyfin_mpv_shim import mpvtk_browser
+
+        pkg = os.path.dirname(inspect.getfile(mpvtk_browser))
+        offenders = []
+        for name in sorted(os.listdir(pkg)):
+            if not name.endswith(".py"):
+                continue
+            with open(os.path.join(pkg, name)) as fh:
+                src = fh.read()
+            tree = ast.parse(src)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Assign):
+                    continue
+                for t in node.targets:
+                    if not (isinstance(t, ast.Attribute)
+                            and t.attr == "nav_stack"):
+                        continue
+                    seg = ast.get_source_segment(src, node) or ""
+                    # An empty stack is navigate(reset=True) clearing before
+                    # it appends; that one IS inside navigate.
+                    if seg.rstrip().endswith("= []"):
+                        continue
+                    if "_default_route()" not in seg:
+                        offenders.append("%s:%d %s"
+                                         % (name, node.lineno,
+                                            " ".join(seg.split())[:70]))
+        self.assertEqual(
+            offenders, [],
+            "these assign nav_stack without _default_route(), so they "
+            "bypass the headless lockdown: %s" % offenders)
 
 
 if __name__ == "__main__":

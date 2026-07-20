@@ -213,6 +213,17 @@ class CastMixin:
 
     def _render_cast(self, route, size):
         from ..mpvtk.widgets import Column, Image as ImageNode
+        from .music import NOW_PLAYING_BAR_H
+
+        # Full-bleed, so unlike every other view this sizes itself rather
+        # than flexing — which means it has to account for the now-playing
+        # bar itself. Claiming the whole window laid the bar out BELOW the
+        # screen: casting music to a headless box showed no transport at
+        # all, on a page that is the only page there is.
+        w, h = size
+        if self._now_playing is not None:
+            h = max(1, h - NOW_PLAYING_BAR_H)
+        size = (w, h)
 
         if self._cast_size != size:
             self._cast_size = size

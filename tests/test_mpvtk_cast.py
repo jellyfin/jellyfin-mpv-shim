@@ -22,7 +22,8 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.cast import _wrap  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore  # noqa: E402
 
-from tests.test_mpvtk_browser_shell import FakeSource, _SyncPool  # noqa: E402
+from tests.test_mpvtk_browser_shell import (  # noqa: E402
+    FakeController, FakeSource, _SyncPool)
 
 
 ITEM_DATA = {"title": "The Movie", "overview": "A long overview. " * 20,
@@ -113,3 +114,147 @@ class TestCastScreen(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheBackdropActuallyRenders(unittest.TestCase):
+    """Every test above uses backdrop_url=None, so the entire fetch-and-
+    composite-onto-an-image path was untested — and it broke: the cast
+    screen showed white text on black with no picture.
+
+    The cause was ordering, not compositing. The idle screen picks a random
+    backdrop from a library item, so it needs a connected server; at startup
+    it composites BEFORE the connect finishes, finds no clients, and caches
+    "no backdrop". That cache is deliberate (it stops the picture re-rolling
+    on every resize tick) so it never retried.
+    """
+
+    def setUp(self):
+        """No test in this file may touch the network. One leaked patch
+        already let a real HTTP request escape — slow, flaky, and exactly
+        what a headless unit suite must not do."""
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        def forbidden(*a, **k):
+            raise AssertionError("a cast test tried to reach the network")
+
+        for name in ("_fetch_image", "_random_backdrop_url"):
+            real = getattr(cast_mod, name)
+            self.addCleanup(lambda n=name, r=real: setattr(cast_mod, n, r))
+            setattr(cast_mod, name, forbidden)
+
+    def _browser(self, fetched=None):
+        from PIL import Image as PILImage
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        self.fetches = []
+
+        def fake_fetch(url, timeout=10):
+            self.fetches.append(url)
+            return PILImage.new("RGBA", (1920, 1080), (200, 60, 60, 255))
+
+        real, cast_mod._fetch_image = cast_mod._fetch_image, fake_fetch
+        self.addCleanup(lambda: setattr(cast_mod, "_fetch_image", real))
+
+        b = MpvtkBrowser(
+            app=None, source=FakeSource(), controller=None,
+            strips=StripStore(cache_dir=cache_dir("mpvtk-cast-bd-")))
+        b._pool = _SyncPool()
+        # Headless: the cast screen is only ever the current page there, and
+        # set_source would otherwise reset a normal browser to home — which
+        # is correct for it, and would make this assert nothing.
+        b.headless = True
+        b.server = "srv1"
+        b._cast_size = (800, 600)
+        return b
+
+    def test_a_backdrop_is_composited_when_one_is_available(self):
+        b = self._browser()
+        b._composite(dict(ITEM_DATA, backdrop_url="http://srv/bd.jpg"),
+                     (800, 600))
+        self.assertEqual(self.fetches, ["http://srv/bd.jpg"])
+        self.assertIsNotNone(b._cast_entry)
+        self.assertIsNotNone(b._cast_backdrop,
+                             "the decoded backdrop was not retained")
+
+    def test_the_idle_screen_retries_once_a_server_is_reachable(self):
+        """The reported bug: composited at startup with no clients, then
+        stuck on a blank background for the rest of the session."""
+        import jellyfin_mpv_shim.mpvtk_browser.cast as cast_mod
+
+        b = self._browser()
+        b.show_cast()
+
+        # No servers yet — exactly the startup state.
+        rolls = []
+        real_roll = cast_mod._random_backdrop_url
+        self.addCleanup(
+            lambda: setattr(cast_mod, "_random_backdrop_url", real_roll))
+        cast_mod._random_backdrop_url = lambda: (
+            rolls.append(1) or (None if len(rolls) == 1
+                                else "http://srv/random.jpg"))
+        b._composite({"idle": True}, (800, 600))
+        self.assertEqual(self.fetches, [], "fetched with no server available")
+        self.assertEqual(b._cast_backdrop_key, "",
+                         "the no-backdrop result was not cached")
+
+        # The connect lands. The screen must ask again.
+        b.set_source(FakeSource(), server_uuid="srv1")
+        self.assertEqual(self.fetches, ["http://srv/random.jpg"],
+                         "the idle backdrop never retried after connecting")
+
+    def test_a_displayed_item_is_not_thrown_away_by_a_reconnect(self):
+        """The re-roll must be gated on actually being idle, or a
+        reconnect would wipe whatever a phone just cast."""
+        b = self._browser()
+        b.show_cast()
+        b._set_cast_data(dict(ITEM_DATA, backdrop_url="http://srv/item.jpg"))
+        b.set_source(FakeSource(), server_uuid="srv1")
+        self.assertFalse((b._cast or {}).get("idle"),
+                         "a reconnect reset the cast screen to idle")
+
+
+class TestTheCastScreenLeavesRoomForTheBar(unittest.TestCase):
+    """The cast page is full-bleed: unlike every other view it sizes itself
+    to the window rather than flexing. So it has to account for the
+    now-playing bar, and it did not — the bar was laid out BELOW the visible
+    area, so casting music to a headless box showed no transport at all on
+    the only page there is."""
+
+    def _browser(self):
+        b = MpvtkBrowser(
+            app=None, source=FakeSource(), controller=FakeController(),
+            strips=StripStore(cache_dir=cache_dir("mpvtk-cast-bar-")))
+        b._pool = _SyncPool()
+        b.headless = True
+        b.server = "srv1"
+        b.show_cast()
+        return b
+
+    def _play_audio(self, b):
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "t1",
+                        "title": "Song", "position": 1, "duration": 100})
+
+    def test_the_transport_is_on_screen(self):
+        from tests.test_mpvtk_browser_shell import build_scene
+        b = self._browser()
+        self._play_audio(b)
+        nodes, _h = build_scene(b, size=(1280, 720))
+        bar = [n for n in nodes if n.get("id") == "np-pp"]
+        self.assertTrue(bar, "no transport button at all")
+        node = bar[0]
+        self.assertLessEqual(
+            node["y"] + node["h"], 720,
+            "the now-playing bar is off the bottom of the screen (y=%s)"
+            % node["y"])
+
+    def test_the_backdrop_shrinks_rather_than_overlapping(self):
+        b = self._browser()
+        from jellyfin_mpv_shim.mpvtk_browser.music import NOW_PLAYING_BAR_H
+        self._play_audio(b)
+        b._render_cast({"kind": "cast"}, (1280, 720))
+        self.assertEqual(b._cast_size, (1280, 720 - NOW_PLAYING_BAR_H))
+
+    def test_with_nothing_playing_it_uses_the_whole_window(self):
+        b = self._browser()
+        b._render_cast({"kind": "cast"}, (1280, 720))
+        self.assertEqual(b._cast_size, (1280, 720))
