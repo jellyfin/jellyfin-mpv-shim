@@ -149,6 +149,54 @@ class TestSeasonTitle(unittest.TestCase):
                          "Season 2")
 
 
+class TestWatchedRollup(unittest.TestCase):
+    """The catalog stores the server's UserData blob verbatim and nothing was
+    reading Played out of it, so the panel could neither mark a watched item
+    nor tell whether "Remove Watched" would delete anything."""
+
+    @staticmethod
+    def _row(item_id, played, **kw):
+        import json as _json
+        return row(item_id, userdata_json=_json.dumps({"Played": played}),
+                   **kw)
+
+    def test_an_item_carries_its_watched_flag(self):
+        tree = group_downloads([self._row("m1", True)], [],
+                               lambda pid: [], {})
+        self.assertTrue(tree[0]["children"][0]["watched"])
+
+    def test_unparsable_userdata_is_unwatched_rather_than_a_crash(self):
+        tree = group_downloads([row("m1", userdata_json="{{{")], [],
+                               lambda pid: [], {})
+        self.assertFalse(tree[0]["children"][0]["watched"])
+
+    def test_a_series_counts_its_watched_episodes(self):
+        rows = [self._row("e1", True, series_id="s1", series_name="S",
+                          season_id="a", parent_index=1, index_number=1),
+                self._row("e2", False, series_id="s1", series_name="S",
+                          season_id="a", parent_index=1, index_number=2)]
+        tree = group_downloads(rows, [], lambda pid: [], {})
+        self.assertEqual(tree[0]["watched_count"], 1)
+        self.assertEqual(tree[0]["children"][0]["watched_count"], 1)
+
+    def test_a_group_with_nothing_watched_reports_zero(self):
+        tree = group_downloads([self._row("m1", False)], [],
+                               lambda pid: [], {})
+        self.assertEqual(tree[0]["watched_count"], 0)
+
+    def test_every_group_carries_the_key(self):
+        """The view gates a button on it, so it must never be missing."""
+        rows = [self._row("e1", True, series_id="s1", series_name="S",
+                          season_id="a", parent_index=1),
+                self._row("m1", False)]
+        pls = [{"playlist_id": "p1", "name": "Mix"}]
+        tree = group_downloads(rows, pls,
+                               lambda pid: [self._row("t1", True,
+                                                      type="Movie")], {})
+        for g in tree:
+            self.assertIn("watched_count", g, g["kind"])
+
+
 class TestStatusText(unittest.TestCase):
     """Raw catalog values were rendered verbatim and untranslated."""
 

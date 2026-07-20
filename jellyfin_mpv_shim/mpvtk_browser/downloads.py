@@ -45,6 +45,19 @@ def row_size(row):
     return (row.get("downloaded_bytes") or 0) or (row.get("size_bytes") or 0)
 
 
+def row_watched(row):
+    """Whether a downloaded item has been played.
+
+    The catalog stores the server's UserData blob verbatim; nothing was
+    reading Played out of it, so the downloads panel could neither mark a
+    watched item nor tell whether "Remove Watched" would delete anything.
+    """
+    try:
+        return bool(json.loads(row.get("userdata_json") or "{}").get("Played"))
+    except (ValueError, TypeError):
+        return False
+
+
 def _entry(row):
     return {
         "kind": "item",
@@ -57,6 +70,7 @@ def _entry(row):
         # whichever of the two is meaningful, these are the raw pair.
         "done": row.get("downloaded_bytes") or 0,
         "total": row.get("size_bytes") or 0,
+        "watched": row_watched(row),
     }
 
 
@@ -121,6 +135,7 @@ def group_downloads(rows, playlists, playlist_items, owned):
             "title": pl.get("name") or _("Playlist"),
             "size": sum(row_size(r) for r in items),
             "count": len(items),
+            "watched_count": sum(1 for r in items if row_watched(r)),
             "children": [_entry(r) for r in items] if video else [],
         })
 
@@ -136,20 +151,24 @@ def group_downloads(rows, playlists, playlist_items, owned):
         show = series.setdefault(sid, {
             "kind": "series", "id": sid,
             "title": r.get("series_name") or _("Unknown Series"),
-            "size": 0, "count": 0, "children": {},
+            "size": 0, "count": 0, "watched_count": 0, "children": {},
         })
         show["size"] += row_size(r)
         show["count"] += 1
+        show["watched_count"] = show.get("watched_count", 0) + (
+            1 if row_watched(r) else 0)
         season_id = r.get("season_id") or sid
         season = show["children"].setdefault(season_id, {
             "kind": "season", "id": season_id, "series_id": sid,
             # Season 0 is Specials, not "Season 0"; the catalog's stored
             # SeasonName is better than either when present.
             "title": season_title(r),
-            "size": 0, "count": 0, "children": [],
+            "size": 0, "count": 0, "watched_count": 0, "children": [],
         })
         season["size"] += row_size(r)
         season["count"] += 1
+        season["watched_count"] = season.get("watched_count", 0) + (
+            1 if row_watched(r) else 0)
         season["children"].append(_entry(r))
 
     shows = []
@@ -168,7 +187,9 @@ def group_downloads(rows, playlists, playlist_items, owned):
         out.append({"kind": "movies", "id": None,
                     "title": _("Movies & Videos"),
                     "size": sum(e["size"] for e in loose),
-                    "count": len(loose), "children": loose})
+                    "count": len(loose),
+                    "watched_count": sum(1 for e in loose if e["watched"]),
+                    "children": loose})
     return out
 
 

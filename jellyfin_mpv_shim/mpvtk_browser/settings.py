@@ -624,7 +624,8 @@ class SettingsMixin:
                                  else None),
                     item_ids=(None if kind in ("series", "playlist")
                               else self._dl_group_item_ids(group)))
-                if kind in ("series", "playlist") else None))]
+                if kind in ("series", "playlist")
+                and group.get("watched_count") else None))]
         for ci, child in enumerate(children if g_open else []):
             if child.get("kind") == "season":
                 skey = self._dl_key(child, "%d.%d" % (gi, ci))
@@ -653,7 +654,11 @@ class SettingsMixin:
         title = ("%s. %s" % (num, item.get("title", ""))
                  if num is not None else item.get("title", ""))
         from .downloads import status_text
+        # The watched marker is why "Remove Watched" is offered at all; with
+        # no way to see which rows it means, the button read as a destructive
+        # guess.
         meta = "   ".join(x for x in (
+            _("watched") if item.get("watched") else "",
             status_text(item),
             self._human_size(item.get("size", 0))) if x)
         return self._dl_row(node_id, title, meta, depth,

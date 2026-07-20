@@ -5150,6 +5150,61 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestDownloadsWatchedMarker(unittest.TestCase):
+    """"Remove Watched" rendered unconditionally, and no row said which items
+    it meant — so it read as a destructive guess, and on a show with nothing
+    watched it silently deleted nothing."""
+
+    def _panel(self, tree):
+        ctl = FakeController()
+        ctl.list_downloads = lambda: tree
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads",
+                 "_dl_open": {"g0"}}
+        b.nav_stack = [route]
+        b._load_downloads(route)
+        return build_scene(b)
+
+    @staticmethod
+    def _series(watched_count, children_watched):
+        return [{"kind": "series", "id": "s1", "title": "Show", "size": 10,
+                 "count": len(children_watched),
+                 "watched_count": watched_count,
+                 "children": [{"kind": "season", "id": "a", "series_id": "s1",
+                               "title": "Season 1", "size": 10,
+                               "count": len(children_watched),
+                               "watched_count": watched_count,
+                               "children": [
+                                   {"kind": "item", "id": "e%d" % i,
+                                    "title": "Ep %d" % i, "status": "complete",
+                                    "size": 5, "index": i, "done": 5,
+                                    "total": 5, "watched": w}
+                                   for i, w in enumerate(children_watched)]}]}]
+
+    def test_a_watched_row_is_marked(self):
+        nodes, _h = self._panel(self._series(1, [True, False]))
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertTrue(any("watched" in t for t in texts),
+                        "no watched marker: %r" % texts)
+
+    def test_remove_watched_is_offered_when_something_is_watched(self):
+        nodes, _h = self._panel(self._series(1, [True, False]))
+        self.assertTrue(any(i.endswith("-rmw") for i in ids(nodes)),
+                        "no Remove Watched despite a watched episode")
+
+    def test_it_is_not_offered_when_nothing_is_watched(self):
+        """It would delete nothing, silently."""
+        nodes, _h = self._panel(self._series(0, [False, False]))
+        self.assertFalse(any(i.endswith("-rmw") for i in ids(nodes)),
+                         "Remove Watched offered with nothing to remove")
+
+    def test_plain_remove_is_always_there(self):
+        nodes, _h = self._panel(self._series(0, [False]))
+        self.assertTrue(any(i.endswith("-rm") for i in ids(nodes)))
+
+
 class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
     def test_a_series_with_trailers_offers_the_button(self):
         """The detail loader had always fetched trailers for a Series, but a
