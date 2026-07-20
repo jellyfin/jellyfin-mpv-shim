@@ -66,20 +66,32 @@ class MusicMixin:
                             audio=True)
         self.run_async(work, done, ep)
 
-    def _music_action_bar(self, server, ids, seed_id, prefix="ma"):
-        return Row([
-            self._action_btn("play_arrow", _("Play"), prefix + "-play",
-                             lambda: self._play_list(ids, server, 0,
-                                                     audio=True),
-                             primary=True),
-            self._action_btn("shuffle", _("Shuffle"), prefix + "-shuffle",
-                             lambda: self._play_shuffle(ids, server)),
-            self._action_btn("playlist_add", _("Add to Queue"),
-                             prefix + "-queue",
-                             lambda: self._queue_items(ids, server)),
-            self._action_btn("queue_music", _("Instant Mix"), prefix + "-mix",
-                             lambda: self._instant_mix(seed_id, server)),
-        ], gap=8, align="center")
+    def _music_action_bar(self, server, ids, seed_id, prefix="ma", items=None):
+        """Play / Shuffle / Queue / Instant Mix for a set of track ids.
+
+        The first three are dropped when there are no ids: the artist page
+        renders this bar even when the song fetch failed, and _play_list
+        returns silently on an empty list, so they were dead clicks. Instant
+        Mix stays — it seeds from the container, not the tracks."""
+        btns = []
+        if ids:
+            btns += [
+                self._action_btn("play_arrow", _("Play"), prefix + "-play",
+                                 lambda: self._play_list(ids, server, 0,
+                                                         audio=True,
+                                                         items=items),
+                                 primary=True),
+                self._action_btn("shuffle", _("Shuffle"), prefix + "-shuffle",
+                                 lambda: self._play_shuffle(ids, server)),
+                self._action_btn("playlist_add", _("Add to Queue"),
+                                 prefix + "-queue",
+                                 lambda: self._queue_items(ids, server)),
+            ]
+        if seed_id:
+            btns.append(self._action_btn(
+                "queue_music", _("Instant Mix"), prefix + "-mix",
+                lambda: self._instant_mix(seed_id, server)))
+        return Row(btns, gap=8, align="center")
 
     def _music_tab(self, route, label, tab):
         active = route.get("_tab", "albums") == tab
@@ -191,7 +203,8 @@ class MusicMixin:
         header = Column([
             Text(item.get("Name") or route.get("title", ""), size=28,
                  bold=True),
-            self._music_action_bar(server, ids, route["item_id"], "album"),
+            self._music_action_bar(server, ids, route["item_id"], "album",
+                                   items=tracks),
         ], gap=14)
         body = self._track_list(
             tracks, "trk",
@@ -282,13 +295,17 @@ class MusicMixin:
         header = Row([
             Text(route.get("title", ""), size=28, bold=True),
             Spacer(),
+            # Play All / Shuffle only when there is something to play — they
+            # rendered above the empty check, so an empty playlist offered
+            # two buttons that called _play_list with no ids and returned.
             self._action_btn("play_arrow", _("Play All"), "pl-play",
                              lambda: self._play_list(ids, server, 0,
-                                                     audio=audio),
-                             primary=True),
+                                                     audio=audio, items=items),
+                             primary=True) if ids else None,
             self._action_btn("shuffle", _("Shuffle"), "pl-shuffle",
                              lambda: self._play_shuffle(ids, server,
-                                                        audio=audio)),
+                                                        audio=audio))
+            if ids else None,
             self._download_btn(pl_item, server, "pl"),
             self._action_btn("edit", _("Edit"), "pl-edit",
                              lambda: self.navigate({

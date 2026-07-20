@@ -713,8 +713,18 @@ class ViewsMixin:
         if video:
             if video.get("DisplayTitle"):
                 parts.append(video["DisplayTitle"])
-            elif video.get("Height"):
-                parts.append("%dp" % video["Height"])
+            else:
+                # Codec as well as resolution. "1080p" alone drops the one
+                # thing that decides whether it will direct-play; Tk showed
+                # both when the server had no DisplayTitle to give.
+                bits = [(video.get("Codec") or "").upper()]
+                if video.get("Width") and video.get("Height"):
+                    bits.append("%dx%d" % (video["Width"], video["Height"]))
+                elif video.get("Height"):
+                    bits.append("%dp" % video["Height"])
+                joined = " ".join(b for b in bits if b)
+                if joined:
+                    parts.append(joined)
             # VideoRangeType first: VideoRange only says HDR, not which.
             vrange = video.get("VideoRangeType") or video.get("VideoRange")
             if vrange and vrange != "SDR":

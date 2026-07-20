@@ -5133,6 +5133,95 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestMediaInfoKeepsTheCodec(unittest.TestCase):
+    """Without a DisplayTitle the line collapsed to "1080p", dropping the
+    one thing that decides whether it will direct-play."""
+
+    def _line(self, video):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        item = {"MediaSources": [{"Id": "s1", "MediaStreams": [
+            dict(video, Type="Video")]}]}
+        return b._media_info_line(item, {"kind": "detail"})
+
+    def test_codec_and_resolution_when_the_server_gives_no_title(self):
+        line = self._line({"Codec": "hevc", "Width": 1920, "Height": 1080})
+        self.assertIn("HEVC", line)
+        self.assertIn("1920x1080", line)
+
+    def test_height_alone_still_works(self):
+        self.assertIn("1080p", self._line({"Codec": "h264", "Height": 1080}))
+
+    def test_a_display_title_still_wins(self):
+        line = self._line({"DisplayTitle": "4K HEVC", "Height": 2160})
+        self.assertIn("4K HEVC", line)
+        self.assertNotIn("2160p", line)
+
+
+class TestNoDeadButtons(unittest.TestCase):
+    """Controls that rendered regardless of whether they could do anything."""
+
+    def _browser(self, src=None):
+        b = MpvtkBrowser(app=None, source=src or FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        return b
+
+    def test_an_empty_playlist_offers_no_play_all(self):
+        src = FakeSource()
+        src.get_playlist_items = lambda srv, pid: []
+        b = self._browser(src)
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        nodes, _h = build_scene(b)
+        present = ids(nodes)
+        self.assertNotIn("pl-play", present, "Play All on an empty playlist")
+        self.assertNotIn("pl-shuffle", present)
+
+    def test_a_playlist_with_tracks_still_offers_them(self):
+        b = self._browser()
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        present = ids(build_scene(b)[0])
+        self.assertIn("pl-play", present)
+        self.assertIn("pl-shuffle", present)
+
+    def test_the_artist_bar_drops_play_when_the_songs_failed_to_load(self):
+        b = self._browser()
+        bar = b._music_action_bar("srv1", [], "art1", "art")
+        present = ids(layout(bar, 1280, 720)[0])
+        for dead in ("art-play", "art-shuffle", "art-queue"):
+            self.assertNotIn(dead, present, "%s is a dead click" % dead)
+        self.assertIn("art-mix", present,
+                      "Instant Mix seeds from the container, not the tracks")
+
+    def test_play_all_on_an_album_carries_the_dtos_so_it_can_resume(self):
+        """_play_list needs the DTOs for the resume offset; without them a
+        half-played track restarts from zero."""
+        b = self._browser()
+        got = {}
+        b._play_list = lambda ids_, srv, i, **kw: got.update(kw)
+        b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                    "title": "Album"})
+        _n, handlers = build_scene(b)
+        handlers["album-play"]["click"]()
+        self.assertIsNotNone(got.get("items"), "no DTOs passed: %r" % got)
+
+    def test_a_music_genre_is_not_offered_as_a_favorite(self):
+        """A genre is not a library item — favoriting one posts an id the
+        server rejects."""
+        b = self._browser()
+        labels = [e[0] for e in b._tile_menu_entries(
+            {"Id": "g1", "Type": "MusicGenre", "Name": "Rock"})]
+        self.assertNotIn("Add to Favorites", labels)
+
+    def test_an_album_is_still_favoritable(self):
+        b = self._browser()
+        labels = [e[0] for e in b._tile_menu_entries(
+            {"Id": "al1", "Type": "MusicAlbum", "Name": "Album"})]
+        self.assertIn("Add to Favorites", labels)
+
+
 class TestNonContiguousMoves(unittest.TestCase):
     """Up/Down move each selected row one step, against a floor/ceiling, so
     a scattered selection keeps its gaps. Treating it as one block silently

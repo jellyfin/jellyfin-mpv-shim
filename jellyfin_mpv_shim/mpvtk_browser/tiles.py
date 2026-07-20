@@ -378,7 +378,11 @@ class TilesMixin:
 
     MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
 
-    MENU_FAVORITE = MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}
+    # MENU_PLAYABLE minus MusicGenre: a genre is not a library item, so
+    # favoriting one posts a non-favoritable id and the server rejects it.
+    # (The old `MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}` read as
+    # widening but was a no-op — both names were already in the set.)
+    MENU_FAVORITE = MENU_PLAYABLE - {"MusicGenre"}
 
     MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
                                     "MusicGenre", "Series", "Season"}
