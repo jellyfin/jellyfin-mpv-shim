@@ -67,6 +67,9 @@ class Box(Element):
         border_w=1,
         on_click=None,
         on_dbl=None,  # double-click activation (fires after the clicks)
+        # right-click; receives (x, y). ImageMap regions have always had
+        # this — a Box/Row could not, so a Table row could not either.
+        on_context=None,
         hover=None,  # style overrides while hovered, e.g. {"fill": "334455"}
         repeat=False,  # hold-repeat: on_click refires while held down
         **kw,
@@ -89,6 +92,7 @@ class Box(Element):
         self.border_w = border_w
         self.on_click = on_click
         self.on_dbl = on_dbl
+        self.on_context = on_context
         self.hover = hover
         self.repeat = repeat
 
@@ -502,7 +506,8 @@ class Table(Column):
     ``rows``: list of dicts —
     ``{"cells": [str | Element, ...], "id": optional, "selected": bool,
     "fg": row text color, "bg": row background (selected wins),
-    "on_click": fn, "on_dbl": fn}``. ``on_click`` may declare one
+    "on_click": fn, "on_dbl": fn, "on_context": fn}``. ``on_click`` may
+    declare one
     required parameter to receive the click modifier dict
     ``{"shift": bool, "ctrl": bool}`` for range/additive selection (see
     MpvtkApp click dispatch); zero-arg callables keep the bare call.
@@ -593,6 +598,7 @@ class Table(Column):
                     hover={"fill": hover_bg} if row.get("on_click") else None,
                     on_click=row.get("on_click"),
                     on_dbl=row.get("on_dbl"),
+                    on_context=row.get("on_context"),
                     radius=4,
                 )
             )

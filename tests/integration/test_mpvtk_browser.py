@@ -371,3 +371,59 @@ class TestTextBoxCommitsOnBlur(unittest.TestCase):
         self._settle()
         self.assertEqual([e for e in self.events if e[0] == "commit"], [],
                          "ESC committed the edit it was meant to cancel")
+
+
+@h.require_real_mpv
+class TestTableRowContextMenu(unittest.TestCase):
+    """Right-clicking a table row must reach its handler on a real renderer.
+
+    ImageMap regions have always carried on_context; a Box/Row could not, so
+    a Table row could not either — every music playlist lost the track menu.
+    node_at() returns the topmost node under the cursor, which for a row is
+    the *cell* rather than the row, so whether the row's ctx flag is actually
+    found is a renderer question a headless layout test cannot answer.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import Table
+
+        self.handle, ext = _spawn_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        self.events = []
+        rows = [{"id": "row-%d" % i,
+                 "cells": ["%d" % i, "Track %d" % i, "An Artist"],
+                 "on_click": (lambda i=i: self.events.append(("click", i))),
+                 "on_context": (lambda x, y, i=i:
+                                self.events.append(("context", i)))}
+                for i in range(6)]
+        cols = [{"label": "#", "w": 40}, {"label": "Title", "flex": 1},
+                {"label": "Artist", "flex": 1}]
+        self.table = Table(cols, rows, row_h=34)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(lambda size: self.table), daemon=True)
+        self._thread.start()
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.5)
+
+    def tearDown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def test_right_click_reaches_the_row(self):
+        self.app.debug(cmd="rclick", id="row-2")
+        time.sleep(0.6)
+        self.assertIn(("context", 2), self.events,
+                      "right-click never reached the row: %r" % self.events)
+
+    def test_left_click_still_activates(self):
+        self.app.debug(cmd="click", id="row-3")
+        time.sleep(0.6)
+        self.assertIn(("click", 3), self.events)
+        self.assertNotIn(("context", 3), self.events)

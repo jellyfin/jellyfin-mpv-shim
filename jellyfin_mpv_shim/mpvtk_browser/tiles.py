@@ -744,7 +744,7 @@ class TilesMixin:
 
     def _track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
-                    art=False, scroll_id=None, head_h=0):
+                    art=False, scroll_id=None, head_h=0, menu=False):
         """Tabular track list (album, playlist, queue, search songs).
 
         Uses the toolkit's Table so header and cells come from one column
@@ -809,13 +809,22 @@ class TilesMixin:
             if album:
                 cells.append(tr.get("Album", "") or "")
             cells.append(self._duration(tr))
-            rows.append({
+            row = {
                 "id": "%s-%d" % (prefix, i),
                 "selected": i in selected or playing,
                 "cells": cells,
                 "on_click": ((lambda mods, i=i: on_select(i, mods))
                              if on_select is not None
                              else (lambda i=i: on_play(i))),
-            })
+            }
+            if menu:
+                # Right-click a track for the same menu a tile gets. Tiles
+                # have had this all along; a Table row never asked for it, so
+                # every music playlist lost Play/Queue/Favorite/Download —
+                # and per-track "Remove from Playlist" entirely, leaving only
+                # the bulk editor.
+                row["on_context"] = (
+                    lambda x, y, tr=tr: self._open_tile_menu(tr, x, y))
+            rows.append(row)
         return Table(columns, rows, size=17, row_h=self.TRACK_ROW_H,
                      hover_bg=theme.BUTTON_BG, virtual=virtual)

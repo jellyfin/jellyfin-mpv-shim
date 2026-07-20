@@ -946,7 +946,8 @@ class ViewsMixin:
             # away — no overlays, just text rows.
             rows.append(self._track_list(
                 songs, "search-song",
-                lambda i: self._play_list(ids, server, i, audio=True)))
+                lambda i: self._play_list(ids, server, i, audio=True),
+                menu=True))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]
         if other:

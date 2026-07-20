@@ -841,6 +841,9 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             if el.on_dbl:
                 node["dbl"] = True
                 _reg(ctx, node["id"], "dbl", el.on_dbl)
+            if getattr(el, "on_context", None):
+                node["ctx"] = True
+                _reg(ctx, node["id"], "context", el.on_context)
             if el.hover:
                 node["hover"] = el.hover
             ctx.nodes.append(node)

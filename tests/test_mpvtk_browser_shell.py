@@ -5133,6 +5133,61 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestTrackRowsHaveAContextMenu(unittest.TestCase):
+    """Tiles have had a right-click menu all along; Table rows never asked
+    for one. Every music playlist therefore lost Play / Add to Queue /
+    Favorite / Download — and per-track "Remove from Playlist" entirely,
+    leaving only the bulk editor. The toolkit already supported it."""
+
+    def _playlist(self):
+        src = FakeSource()
+        tracks = [{"Id": "t%d" % i, "Name": "Track %d" % i, "Type": "Audio",
+                   "PlaylistItemId": "e%d" % i} for i in range(3)]
+        src.get_playlist_items = lambda srv, pid: list(tracks)
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        return b
+
+    def test_a_playlist_row_opens_the_menu(self):
+        b = self._playlist()
+        _n, handlers = build_scene(b)
+        self.assertIn("context", handlers.get("pl-0", {}),
+                      "no context menu on a track row")
+        handlers["pl-0"]["context"](100, 100)
+        self.assertIsNotNone(b._menu, "the menu did not open")
+        self.assertEqual(b._menu["item"]["Id"], "t0")
+
+    def test_the_menu_offers_remove_from_playlist(self):
+        """The entry that was unreachable by any route."""
+        b = self._playlist()
+        _n, handlers = build_scene(b)
+        handlers["pl-1"]["context"](100, 100)
+        labels = [e[0] for e in b._tile_menu_entries(b._menu["item"])]
+        self.assertIn("Remove from Playlist", labels)
+        self.assertIn("Play", labels)
+        self.assertIn("Add to Queue", labels)
+
+    def test_it_opens_the_menu_for_the_row_you_clicked(self):
+        b = self._playlist()
+        _n, handlers = build_scene(b)
+        handlers["pl-2"]["context"](10, 20)
+        self.assertEqual(b._menu["item"]["Id"], "t2")
+
+    def test_the_playlist_editor_rows_do_not_get_one(self):
+        """The editor is a multi-select surface with its own gestures; a
+        context menu there would fight the selection."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.navigate({"kind": "playlist_edit", "server": "srv1",
+                    "item_id": "PL1", "title": "Faves"})
+        _n, handlers = build_scene(b)
+        self.assertNotIn("context", handlers.get("pe-row-0", {}))
+
+
 class TestDownloadDialogGuardsAnEmptyEstimate(unittest.TestCase):
     """An estimate of nothing means everything is already downloaded, so
     offering Download is a dead click. Tk guarded on the count."""

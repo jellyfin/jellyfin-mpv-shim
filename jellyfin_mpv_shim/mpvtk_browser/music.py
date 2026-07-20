@@ -160,7 +160,7 @@ class MusicMixin:
             body = VScroll(Column([self._track_list(
                 data, "song",
                 lambda i: self._play_list(ids, server, i, audio=True),
-                scroll_id="music-songs")],
+                scroll_id="music-songs", menu=True)],
                 pad=self.CONTENT_PAD, align="stretch"),
                 id="music-songs", flex=1,
                 on_scroll=lambda off, mx: self._on_scroll(
@@ -196,7 +196,7 @@ class MusicMixin:
         body = self._track_list(
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True),
-            scroll_id="album", head_h=110)
+            scroll_id="album", head_h=110, menu=True)
         return VScroll(Column([header, body], pad=self.CONTENT_PAD, gap=12,
                               align="stretch"),
                        id="album", flex=1)
@@ -312,7 +312,7 @@ class MusicMixin:
                 items, "pl",
                 lambda i: self._play_list(ids, server, i, audio=True,
                                           items=items),
-                art=True, scroll_id="playlist", head_h=70)]
+                art=True, scroll_id="playlist", head_h=70, menu=True)]
         else:
             # `items`, not `data`: unsupported entries were rendering as
             # tiles whose click did something unrelated. And a click plays
