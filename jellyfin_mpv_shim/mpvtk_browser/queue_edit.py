@@ -109,9 +109,18 @@ class QueueEditMixin:
         route["_sel"] = set()
 
         def reload():
-            self.route.pop("_data", None)
+            # Guarded, and against the CAPTURED route rather than
+            # self.route. on_error is deliberately not epoch-gated (see
+            # run_async), so this can land after the user has navigated
+            # somewhere else entirely — and it used to wipe _data, bump the
+            # epoch and re-issue the load for whatever page they were now
+            # on, flashing an unrelated view back to a spinner and killing
+            # its in-flight load.
+            if route is not self.route:
+                return
+            route.pop("_data", None)
             self._bump_epoch()
-            self._load_route(self.route)
+            self._load_route(route)
             self.invalidate()
 
         if self.controller is None:

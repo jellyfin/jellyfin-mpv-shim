@@ -548,7 +548,17 @@ class TilesMixin:
         def done(ids):
             if ids:
                 self._queue_items(ids, server)
-        self.run_async(work, done, ep)
+            else:
+                # A container that resolved to nothing: say so rather than
+                # having the menu entry appear to do nothing at all.
+                self.set_status(_("There is nothing here to queue."))
+                self.invalidate()
+
+        def failed(_exc):
+            self.set_status(_("Those items could not be added to the queue."))
+            self.invalidate()
+
+        self.run_async(work, done, ep, on_error=failed)
 
     def _resolve_play_ids(self, item, server, parent_id=None):
         """The item ids "Play"/"Add to Queue" should act on.

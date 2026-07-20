@@ -53,7 +53,13 @@ class MusicMixin:
         self._play_list(ids, server, 0, audio=audio)
 
     def _queue_items(self, ids, server):
-        self._client_call(lambda c: c.queue_items(server, [i for i in ids if i]))
+        # _edit_call, not _client_call: this is a button press, and
+        # _client_call swallows, so a rejected "Add to Queue" looked exactly
+        # like one that worked (the controller swallowed too — both halves
+        # are fixed).
+        self._edit_call(
+            lambda c: c.queue_items(server, [i for i in ids if i]),
+            error=_("Those items could not be added to the queue."))
 
     def _instant_mix(self, seed_id, server):
         ep = self._epoch

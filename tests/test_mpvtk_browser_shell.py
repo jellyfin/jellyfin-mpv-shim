@@ -327,6 +327,82 @@ class TestAsyncStaleness(unittest.TestCase):
         self.assertEqual(applied, ["value"])
 
 
+class TestNavigationSurvivesAConcurrentBump(unittest.TestCase):
+    """A navigation is `_bump_epoch()` then `_load_route()`, and those two
+    statements are not atomic. Foreign threads do bump in between — the
+    connect thread and the clientManager health check via `set_source`,
+    `display_item`'s handler, `_work_offline`, `_do_unlock`.
+
+    A review read that as a race that strands the route on a spinner, and
+    the obvious fix is to thread the navigation's epoch down into the
+    loader instead of letting it re-read `self._epoch`. **That fix is
+    wrong and these tests exist to stop it being applied again.**
+
+    Re-reading yields the NEWEST epoch, so a loader can never capture one
+    that is already superseded. Threading the value down is what creates
+    the stranding: an interloping bump makes the captured epoch stale,
+    `run_async` drops the `on_done`, and since no `_error` is set the view
+    spins forever with no retry. These tests fail against that version.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=None)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        return b
+
+    def test_a_route_still_loads_when_something_bumps_mid_navigation(self):
+        b = self._browser()
+
+        # Bump from "another thread" in the window between the navigation's
+        # bump and the loader reading the epoch. Re-reading absorbs this;
+        # a threaded-down epoch would be stale and the load discarded.
+        real_load = b._load_route
+
+        def racing_load(route, epoch=None):
+            b._bump_epoch()          # the interloper
+            return real_load(route, epoch)
+
+        b._load_route = racing_load
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+
+        self.assertIsNotNone(
+            b.route.get("_items"),
+            "the page never loaded — a concurrent bump stranded it")
+
+    def test_the_user_sees_content_not_a_spinner(self):
+        """The consequence, asserted on the scene rather than route state."""
+        b = self._browser()
+        real_load = b._load_route
+
+        def racing_load(route, epoch=None):
+            b._bump_epoch()
+            return real_load(route, epoch)
+
+        b._load_route = racing_load
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        nodes, _h = build_scene(b)
+        self.assertNotIn("busy", types(nodes),
+                         "the view is still spinning after its data landed")
+
+    def test_a_genuinely_stale_result_is_still_dropped(self):
+        """The guard must keep working — this is not a licence to apply
+        everything."""
+        b = self._browser()
+        applied = []
+        ep = b._bump_epoch()
+        b._bump_epoch()                      # navigation moved on again
+        b.run_async(lambda: "value", lambda r: applied.append(r), epoch=ep)
+        self.assertEqual(applied, [])
+
+    def test_bump_epoch_reports_the_value_it_installed(self):
+        b = self._browser()
+        got = b._bump_epoch()
+        self.assertEqual(got, b._epoch)
+
+
 class TestBuild(unittest.TestCase):
     def setUp(self):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
@@ -6250,6 +6326,33 @@ class TestFailuresAreVisible(unittest.TestCase):
         b._delete_download(route, item_id="m1")
         self.assertIn("could not be removed", b.status.lower())
 
+    def test_a_failed_add_to_queue_says_so(self):
+        b = self._browser(queue_items=self._boom)
+        b.nav_stack = [{"kind": "detail", "server": "srv1"}]
+        b._queue_items(["m1"], "srv1")
+        self.assertIn("queue", b.status.lower())
+        self.assertTrue(b.status, "a rejected queue-add was silent")
+
+    def test_a_failed_add_to_queue_from_the_tile_menu_says_so(self):
+        """The menu path resolves ids first, so it has its own on_error."""
+        b = self._browser(queue_items=self._boom)
+        b.nav_stack = [{"kind": "grid", "server": "srv1"}]
+        b._menu_queue({"Id": "m1", "Type": "Movie"}, "srv1")
+        self.assertIn("queue", b.status.lower())
+
+    def test_a_failed_download_estimate_does_not_claim_nothing_to_do(self):
+        """It returned a zero estimate, which the dialog renders as
+        "Nothing left to download." — the failure read as success and the
+        Download button was withheld."""
+        b = self._browser(download_estimate=self._boom)
+        b.nav_stack = [{"kind": "detail", "server": "srv1"}]
+        b._open_download({"Id": "m1", "Name": "A Movie", "Type": "Movie"})
+        nodes, _h = layout(b._dialog(), 1280, 720)
+        texts = " ".join(n.get("text") or "" for n in nodes).lower()
+        self.assertNotIn("nothing left", texts,
+                         "a failed estimate claimed there was nothing to do")
+        self.assertIn("could not check", texts)
+
     def test_a_duplicate_user_name_is_reported_and_kept(self):
         """It went through _safe, so the field cleared and nothing happened
         — the box looked like it had accepted the name."""
@@ -6396,6 +6499,51 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
             with self.subTest(call=call):
                 with self.assertRaises(RuntimeError):
                     call()
+
+    def test_queue_remove_propagates(self):
+        """The queue view passes an on_error and renders a message, and that
+        path could never fire: queue_remove went through _act, which logs and
+        returns. The call site was "fixed" last round without touching the
+        controller, so the failure stayed invisible AND the test stayed
+        green — this is the test that would have caught that."""
+        # Importing jellyfin_mpv_shim.player reaches args.get_args(), which
+        # parses sys.argv — under `-m unittest <dotted.path>` that argv is a
+        # test name argparse rejects with SystemExit(2). Same guard the
+        # Media tests use above.
+        import sys
+        real_argv = sys.argv
+        sys.argv = [sys.argv[0]]
+        self.addCleanup(lambda: setattr(sys, "argv", real_argv))
+
+        self._patch("jellyfin_mpv_shim.player", "playerManager",
+                    type("P", (), {
+                        "queue_remove_many": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().queue_remove(["p1"])
+
+    def test_queue_items_propagates(self):
+        """"Add to Queue" swallowed twice — here AND in _client_call at the
+        call site — so a rejected add was doubly invisible."""
+        import sys
+        real_argv = sys.argv
+        sys.argv = [sys.argv[0]]
+        self.addCleanup(lambda: setattr(sys, "argv", real_argv))
+
+        self._patch("jellyfin_mpv_shim.player", "playerManager",
+                    type("P", (), {
+                        "has_video": staticmethod(lambda: True),
+                        "get_video": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().queue_items("srv1", ["m1"])
+
+    def test_download_estimate_propagates(self):
+        """It returned a ZERO estimate on failure, which the dialog renders
+        as "Nothing left to download." — a server error reported to the user
+        as "already on disk", with the Download button withheld."""
+        self._patch("jellyfin_mpv_shim.sync.manager", "syncManager",
+                    type("S", (), {"estimate": staticmethod(self._boom)})())
+        with self.assertRaises(RuntimeError):
+            self._controller().download_estimate("srv1", "m1", "Movie")
 
     def test_set_user_pin_still_reports_false_rather_than_raising(self):
         """This one deliberately does NOT raise — it returns a bool, and the
@@ -6691,13 +6839,22 @@ class TestLiveLogTail(unittest.TestCase):
 
         It is *meant* to run until you leave the tab, so a plain join would
         hang; the tests that assert it exits on its own change the condition
-        first and pass ticks=0."""
+        first and pass ticks=0.
+
+        Records `self.ticked` — invalidations seen while the poller was
+        actually ticking. A departing restartable poller invalidates once on
+        its way out (that is what re-arms the view after a fast
+        leave-and-return), so counting every invalidation would attribute
+        teardown to the tick loop.
+        """
         b._poll_logs(b.route)
         t = b._log_thread
+        self.ticked = 0
         if t is not None:
             if ticks:
                 time.sleep(b.LOG_POLL_SECS * (ticks + 1))
-                b._shutdown_evt.set()
+            self.ticked = len(self.invalidated)
+            b._shutdown_evt.set()
             t.join(5)
             self.assertFalse(t.is_alive(), "the tail poller never stopped")
 
@@ -6762,7 +6919,7 @@ class TestLiveLogTail(unittest.TestCase):
         b._settings_logs(b.route, (1280, 720))    # record what was drawn
         lines.append("two")                       # something logged
         self._tail(b)
-        self.assertTrue(self.invalidated, "a new log line did not redraw")
+        self.assertTrue(self.ticked, "a new log line did not redraw")
 
     def test_a_quiet_log_does_not_redraw(self):
         """An idle app logs nothing for minutes. Rebuilding a 2000-row
@@ -6770,7 +6927,8 @@ class TestLiveLogTail(unittest.TestCase):
         b = self._browser(["one", "two"])
         b._settings_logs(b.route, (1280, 720))
         self._tail(b)
-        self.assertEqual(self.invalidated, [])
+        self.assertEqual(self.ticked, 0,
+                         "an idle log redrew %d times" % self.ticked)
 
     def test_a_full_ring_still_redraws(self):
         """Once the ring is full every new line also drops one, so the
@@ -6782,7 +6940,7 @@ class TestLiveLogTail(unittest.TestCase):
         lines.pop(0)                 # ring rolled: same length, new content
         lines.append("newest")
         self._tail(b)
-        self.assertTrue(self.invalidated, "a rolled ring did not redraw")
+        self.assertTrue(self.ticked, "a rolled ring did not redraw")
 
     def test_it_stops_when_you_leave_the_tab(self):
         b = self._browser(["one"])
@@ -6799,6 +6957,39 @@ class TestLiveLogTail(unittest.TestCase):
         b._browsing = False
         self._tail(b, ticks=0)
         self.assertIsNone(b._log_thread)
+
+    def test_leaving_and_returning_inside_one_tick_still_leaves_a_poller(self):
+        """A poller only notices its route went stale on its NEXT tick. Leave
+        the tab and come straight back inside that window and the sequence
+        was: the view asks for a poller, _start_daemon refuses because the
+        old thread is still registered, then the old thread wakes, sees a
+        stale route and clears the slot. Nobody polling, and only the render
+        path starts one — so the log froze until something else rebuilt it.
+
+        The departing thread now invalidates once the slot is free, which
+        re-runs the view and lets it start a fresh poller.
+        """
+        b = self._browser(["one"])
+        first = dict(b.route)
+        b._settings_logs(b.route, (1280, 720))       # poller for route A
+        self.assertIsNotNone(b._log_thread)
+
+        # Navigate away and back to a NEW route dict, before A's poller has
+        # ticked. Its request is refused.
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        b.nav_stack = [dict(first)]
+        b._poll_logs(b.route)      # refused: A's thread still holds the slot
+
+        # A's thread now wakes, finds its route stale, exits, releases the
+        # slot and wakes the loop.
+        self.invalidated.clear()
+        deadline = time.time() + 5
+        while time.time() < deadline and not self.invalidated:
+            time.sleep(0.01)
+        self.addCleanup(b._shutdown_evt.set)
+        self.assertTrue(
+            self.invalidated,
+            "the departing poller left the slot empty and woke nobody")
 
     def test_an_empty_log_still_renders_its_buttons(self):
         b = self._browser([])

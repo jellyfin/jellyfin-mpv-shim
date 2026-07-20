@@ -249,7 +249,19 @@ class DialogsMixin:
                 if self._dl["container"]:
                     self._dl["watched"] = bool((est or {}).get("audio_only"))
             self._show_download()
-        self.run_async(work, done, ep)
+
+        def failed(_exc):
+            # Say the estimate failed rather than leaving the dialog on its
+            # "estimating…" state forever. The controller used to return a
+            # zero estimate here, which the dialog rendered as "Nothing left
+            # to download." — a server error reported as success, with the
+            # Download button withheld.
+            if self._dl is not None:
+                self._dl["error"] = _("Could not check what needs "
+                                      "downloading.")
+            self._show_download()
+
+        self.run_async(work, done, ep, on_error=failed)
         self._show_download()   # show immediately with an "estimating" state
 
     def _show_download(self):
@@ -259,7 +271,9 @@ class DialogsMixin:
 
         def build():
             est = dl["est"]
-            if est is None:
+            if dl.get("error"):
+                info = Text(dl["error"], size=15, color=theme.FAV_RED)
+            elif est is None:
                 info = Text(_("Estimating…"), size=15, color=theme.SUBTLE_FG)
             else:
                 line = _("%(count)d items · %(size)s") % {

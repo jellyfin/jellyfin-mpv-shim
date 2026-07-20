@@ -724,7 +724,8 @@ class SettingsMixin:
                     break
                 self._load_downloads(route, force=True)
 
-        self._start_daemon("_dl_thread", "mpvtk-dl-poll", tick)
+        self._start_daemon("_dl_thread", "mpvtk-dl-poll", tick,
+                           restartable=True)
 
     def _load_downloads(self, route, force=False):
         if self.controller is None:
@@ -878,7 +879,8 @@ class SettingsMixin:
                         or last != route.get("_log_last")):
                     self.invalidate()
 
-        self._start_daemon("_log_thread", "mpvtk-log-tail", tick)
+        self._start_daemon("_log_thread", "mpvtk-log-tail", tick,
+                           restartable=True)
 
     def _copy_logs(self, lines):
         """Put the captured log on the clipboard.

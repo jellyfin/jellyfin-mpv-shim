@@ -635,7 +635,16 @@ class _PlayerController:
         self._act(lambda pm: pm.skip_to(playlist_item_id))
 
     def queue_remove(self, playlist_item_ids):
-        self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
+        """Remove from the playing queue. RAISES on failure.
+
+        Not via _act, which logs and returns: the queue view passes an
+        on_error and shows a message, and that path could never fire while
+        this swallowed. The call site was "fixed" once without touching
+        this, which is exactly why the failure stayed invisible — same
+        reasoning as queue_reorder below."""
+        from ..player import playerManager
+
+        playerManager.queue_remove_many(list(playlist_item_ids))
 
     def queue_reorder(self, ordered_playlist_item_ids):
         """Reorder the playing queue. RAISES on failure — the queue view
@@ -659,16 +668,17 @@ class _PlayerController:
         item_ids = list(item_ids)
         if not item_ids:
             return
-        try:
-            if not playerManager.has_video():
-                self.play_list(item_ids, server_uuid, 0)
-                return
-            video = playerManager.get_video()
-            if video is not None:
-                video.parent.insert_items(item_ids, append=True)
-                playerManager.upd_player_hide()
-        except Exception:
-            log.error("mpvtk queue_items failed", exc_info=True)
+        # RAISES on failure. "Add to Queue" is a button press, so its
+        # failure has to reach the user; this used to swallow AND the caller
+        # wrapped it in _client_call -> _safe, so a rejected queue-add was
+        # doubly invisible. Same reasoning as download_enqueue below.
+        if not playerManager.has_video():
+            self.play_list(item_ids, server_uuid, 0)
+            return
+        video = playerManager.get_video()
+        if video is not None:
+            video.parent.insert_items(item_ids, append=True)
+            playerManager.upd_player_hide()
 
     # -- SyncPlay ---------------------------------------------------------
 
@@ -838,11 +848,12 @@ class _PlayerController:
 
     def download_estimate(self, server_uuid, item_id, item_type):
         from ..sync.manager import syncManager
-        try:
-            return syncManager.estimate(server_uuid, item_id, item_type)
-        except Exception:
-            log.error("mpvtk download estimate failed", exc_info=True)
-            return {"count": 0, "total_bytes": 0}
+        # RAISES. Returning a zero estimate made a *failure* indistinguishable
+        # from "already fully downloaded": the dialog gates its Download
+        # button on count and rendered "Nothing left to download." instead,
+        # so a server error told the user the item was already on disk and
+        # withheld the one control that would have retried.
+        return syncManager.estimate(server_uuid, item_id, item_type)
 
     def download_enqueue(self, server_uuid, item_id, item_type,
                          include_watched=False):

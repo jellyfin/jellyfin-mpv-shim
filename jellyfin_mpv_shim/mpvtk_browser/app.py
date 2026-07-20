@@ -408,8 +408,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self.invalidate()
 
     def _bump_epoch(self):
+        """Invalidate every in-flight async result. Returns the new epoch."""
         with self._lock:
             self._epoch += 1
+            return self._epoch
 
     # -------------------------------------------------------- async model
 
@@ -610,12 +612,33 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             cls._ROUTES_CACHE = merged
         return cls._ROUTES_CACHE
 
-    def _load_route(self, route):
+    def _load_route(self, route, epoch=None):
         """Dispatch to the route kind's loader, if it has one.
 
         Kinds are declared in each mixin's ROUTES table alongside their
         renderer, so adding a view is one edit in one place — this used to
         be a 215-line elif chain here and a dict a thousand lines away.
+
+        The epoch is re-read here rather than threaded down from the
+        ``_bump_epoch()`` that every caller performs immediately above.
+        **That is deliberate and it is not the race it looks like.**
+
+        A review flagged the two statements as non-atomic and concluded a
+        foreign bump in between would strand the route. It is the other way
+        round: re-reading yields the *newest* epoch, so a loader can never
+        capture one that is already superseded. Threading the navigation's
+        value down is what breaks it — an interloping bump then makes the
+        captured epoch stale, ``run_async`` drops the ``on_done``, and
+        because no ``_error`` is set the view spins forever with no retry.
+        That was tried, and ``TestNavigationSurvivesAConcurrentBump``
+        (tests/test_mpvtk_browser_shell.py) is what caught it.
+
+        The residue is benign: if a foreign thread bumps *and* navigates in
+        between, this load applies into a route dict that is no longer on
+        screen. A wasted write, not a wrong one.
+
+        ``epoch`` therefore exists only for callers that genuinely have their
+        own (none today). Leave it None.
         """
         if self.server is None:
             return
@@ -624,7 +647,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if loader is not None:
             # ep is read here, on the loop thread, and handed down: a loader
             # that read it later would be racing the navigation it guards.
-            getattr(self, loader)(route, self._epoch)
+            ep = self._epoch if epoch is None else epoch
+            getattr(self, loader)(route, ep)
 
     def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
@@ -1057,7 +1081,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             data["current_id"] = new
             self.invalidate()
 
-    def _start_daemon(self, attr, name, body):
+    def _start_daemon(self, attr, name, body, restartable=False):
         """Run ``body`` on a daemon thread, at most one per ``attr``.
 
         The check and the assignment have to be atomic. Every caller used to
@@ -1072,6 +1096,23 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         fresh one. Returns True if this call started the thread, False if one
         was already running — callers driven by a *user action* should say so
         rather than appear to do nothing.
+
+        ``restartable=True`` closes a gap that bit the logs tail. A poller
+        decides to exit by noticing the route it was started for is no longer
+        current, but it only notices on its next tick — up to a full poll
+        interval later. Leave the tab and come straight back inside that
+        window and the sequence is: the view starts a poller for the new
+        route, this returns False because the old thread is still registered,
+        then the old thread wakes, sees a stale route, exits and clears the
+        slot. Nobody is left polling, and since only the render path starts
+        one, the panel is frozen until something else rebuilds it.
+
+        ``restartable`` makes the departing thread ``invalidate()`` once it
+        has released the slot. That re-runs the view, which starts a poller
+        iff it still wants one — no queued body to re-arm, so a request that
+        has itself gone stale simply isn't honoured. Opt-in because
+        ``_arm_toast_clear`` releases its slot early by design and would
+        invalidate on a timer that is still live.
         """
         with self._poller_lock:
             if getattr(self, attr) is not None:
@@ -1085,9 +1126,17 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                     # early (see _arm_toast_clear) may already have been
                     # replaced, and an exiting thread must not unregister its
                     # successor.
+                    released = False
                     with self._poller_lock:
                         if getattr(self, attr) is thread:
                             setattr(self, attr, None)
+                            released = True
+                    if released and restartable:
+                        # Wake the loop now that the slot is free: a request
+                        # refused while we were on our way out would
+                        # otherwise leave nobody polling. The rebuild starts
+                        # a fresh poller only if the view still wants one.
+                        self.invalidate()
 
             thread = threading.Thread(target=run, daemon=True, name=name)
             setattr(self, attr, thread)
