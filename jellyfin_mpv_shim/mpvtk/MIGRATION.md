@@ -9,6 +9,9 @@ is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 > [Cutover checklist](#cutover-checklist--deleting-the-tk-browser) at the
 > end — current state, accepted losses, and the deletion steps. The rest
 > of this file is the historical execution log.
+>
+> **Splitting `mpvtk_browser/app.py`?** See `SPLIT_PLAN.md` next to this
+> file (temporary; delete once the split lands).
 
 ## Field-test round 1 (2026-07-19) — reported issues
 
