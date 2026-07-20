@@ -10,6 +10,10 @@ is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 > end — current state, accepted losses, and the deletion steps. The rest
 > of this file is the historical execution log.
 >
+> **Parity / open bugs?** `REVIEW_QUEUE.md` next to this file holds the
+> 2026-07-20 multi-angle audit: the parity claim below is **not** currently
+> true, and the P1 list there should be cleared before the Tk deletion.
+>
 > **Editing `mpvtk_browser/`?** `app.py` is one mixin per feature area —
 > its module docstring has the map, the three invariants (thread contract,
 > epoch discipline, the unlocked `build()`), and how to add a view. The
