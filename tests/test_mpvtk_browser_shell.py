@@ -5133,6 +5133,64 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestCopyLogsButton(unittest.TestCase):
+    """The Copy button on Settings -> Logs. A helper test alone would not
+    prove it is on screen or wired, which is how five features in this UI
+    shipped unreachable."""
+
+    def _browser(self, lines=("line one", "line two"), result=None):
+        ctl = FakeController()
+        ctl.recent_logs = lambda: list(lines)
+        self.copied = []
+        ctl.copy_text = lambda text: (self.copied.append(text)
+                                      or (result or (True, "xclip", None)))
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        b.nav_stack = [{"kind": "settings", "server": "srv1", "_tab": "logs"}]
+        return b
+
+    def test_the_button_is_on_the_logs_tab(self):
+        b = self._browser()
+        nodes, handlers = build_scene(b)
+        self.assertIn("log-copy", ids(nodes), "no Copy button on screen")
+        self.assertIn("log-copy", handlers, "the Copy button does nothing")
+
+    def test_clicking_it_copies_every_captured_line(self):
+        b = self._browser(lines=["a", "b", "c"])
+        _nodes, handlers = build_scene(b)
+        handlers["log-copy"]["click"]()
+        self.assertEqual(self.copied, ["a\nb\nc"])
+        self.assertIn("3", b.status)
+
+    def test_it_copies_more_than_the_view_draws(self):
+        """The view caps at 500 rendered rows; the point of copying is to
+        hand over the whole thing."""
+        b = self._browser(lines=["l%d" % i for i in range(900)])
+        _nodes, handlers = build_scene(b)
+        handlers["log-copy"]["click"]()
+        self.assertEqual(len(self.copied[0].splitlines()), 900)
+
+    def test_no_clipboard_reports_where_it_put_the_text(self):
+        b = self._browser(result=(True, "file", "/tmp/copied-logs.txt"))
+        _nodes, handlers = build_scene(b)
+        handlers["log-copy"]["click"]()
+        self.assertIn("/tmp/copied-logs.txt", b.status)
+
+    def test_a_failure_says_so(self):
+        b = self._browser(result=(False, None, None))
+        _nodes, handlers = build_scene(b)
+        handlers["log-copy"]["click"]()
+        self.assertIn("not copy", b.status.lower())
+
+    def test_an_empty_log_says_so_instead_of_copying_nothing(self):
+        b = self._browser(lines=[])
+        _nodes, handlers = build_scene(b)
+        handlers["log-copy"]["click"]()
+        self.assertEqual(self.copied, [])
+        self.assertIn("nothing", b.status.lower())
+
+
 class TestEmptyDownloadFolderAsksFirst(unittest.TestCase):
     """Clearing the folder field and pressing Enter used to relocate the
     whole download store to the default location, silently — no confirm, and

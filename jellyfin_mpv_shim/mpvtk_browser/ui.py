@@ -879,6 +879,30 @@ class _PlayerController:
         from ..log_utils import recent_log_lines
         return recent_log_lines()
 
+    def config_dir(self):
+        """The config directory, for messages and for the copy-to-file
+        fallback."""
+        from .. import conffile
+        from ..constants import APP_NAME
+        return os.path.dirname(conffile.get(APP_NAME, "conf.json"))
+
+    def copy_text(self, text):
+        """Copy to the system clipboard, falling back to a file.
+
+        Returns ``(ok, method, path)``. mpv is offered first: it is
+        in-process, so a box with none of wl-copy/xclip/xsel installed still
+        works. See jellyfin_mpv_shim.clipboard."""
+        from ..clipboard import copy_or_save
+        player = None
+        try:
+            from ..player import playerManager
+            player = playerManager._player
+        except Exception:
+            log.debug("no mpv handle for the clipboard", exc_info=True)
+        return copy_or_save(
+            text, os.path.join(self.config_dir(), "copied-logs.txt"),
+            player=player)
+
     def open_config_folder(self):
         """Reveal the config directory. The tray menu used to be the only way
         to reach it, and the mpvtk browser has no tray."""

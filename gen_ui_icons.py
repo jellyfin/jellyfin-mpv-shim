@@ -91,6 +91,7 @@ ICON_NAMES = [
     # settings panels
     "refresh",
     "folder",
+    "content_copy",
 ]
 
 SVG_URL = (

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 01:06-0400\n"
+"POT-Creation-Date: 2026-07-20 01:10-0400\n"
 "PO-Revision-Date: 2026-01-25 04:25+0000\n"
 "Last-Translator: ldmheaye <lhydeema@outlook.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://"
@@ -214,7 +214,7 @@ msgid "Application Menu"
 msgstr "應用程式選單"
 
 #: jellyfin_mpv_shim/gui_mgr.py:1352
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:744 jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "開啟設置資料夾"
 
@@ -1134,7 +1134,7 @@ msgstr "關閉"
 #: jellyfin_mpv_shim/library_browser/views.py:2452
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:403
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:476
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742
 msgid "Refresh"
 msgstr ""
 
@@ -2497,8 +2497,35 @@ msgstr "刪除伺服器"
 msgid "Delete Download"
 msgstr "刪除伺服器"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:747
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
+msgid "Copy"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:749
 msgid "No log output captured yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:771
+msgid "There is nothing to copy yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:782
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:790
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not copy the log."
+msgstr ""
+"無法添加伺服器。\n"
+"請檢查您的連接資訊。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:784
+msgid "No clipboard available — saved to %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:787
+msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:388

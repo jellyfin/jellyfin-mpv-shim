@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 01:06-0400\n"
+"POT-Creation-Date: 2026-07-20 01:10-0400\n"
 "PO-Revision-Date: 2025-06-17 02:01+0000\n"
 "Last-Translator: Daniel Szente <szentedaniel25@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -214,7 +214,7 @@ msgid "Application Menu"
 msgstr "Alkalmazásmenü"
 
 #: jellyfin_mpv_shim/gui_mgr.py:1352
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:744 jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "Konfigurációs mappa megnyitása"
 
@@ -1134,7 +1134,7 @@ msgstr "Bezárás"
 #: jellyfin_mpv_shim/library_browser/views.py:2452
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:403
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:476
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742
 msgid "Refresh"
 msgstr ""
 
@@ -2497,8 +2497,35 @@ msgstr "Kiszolgáló eltávolítása"
 msgid "Delete Download"
 msgstr "Kiszolgáló eltávolítása"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:747
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
+msgid "Copy"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:749
 msgid "No log output captured yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:771
+msgid "There is nothing to copy yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:782
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:790
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not copy the log."
+msgstr ""
+"Nem sikerült a kiszolgáló hozzáadása.\n"
+"Ellenőrizze a kapcsolódási információkat."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:784
+msgid "No clipboard available — saved to %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:787
+msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:388

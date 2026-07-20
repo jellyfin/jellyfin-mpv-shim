@@ -737,6 +737,8 @@ class SettingsMixin:
             except Exception:
                 log.debug("recent_logs failed", exc_info=True)
         rows = [Row([Text(_("Logs"), size=20, bold=True), Spacer(),
+                     Button(_("Copy"), id="log-copy", icon="content_copy",
+                            on_click=lambda: self._copy_logs(lines)),
                      Button(_("Refresh"), id="log-refresh", icon="refresh",
                             on_click=self.invalidate),
                      Button(_("Open Config Folder"), id="log-conf",
@@ -755,6 +757,41 @@ class SettingsMixin:
                        id="settings-logs", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
                            "settings-logs", off, mx))
+
+    def _copy_logs(self, lines):
+        """Put the captured log on the clipboard.
+
+        Copies *everything* the ring holds, not the 500 lines the view draws
+        — the point is to hand the whole thing to someone else. Falls back to
+        writing a file when there is no clipboard at all (a headless box, or
+        one with none of wl-copy/xclip/xsel), because a button that silently
+        does nothing is worse than one that tells you where it put the text.
+        """
+        if self.controller is None or not lines:
+            self.set_status(_("There is nothing to copy yet."))
+            self.invalidate()
+            return
+        text = "\n".join(lines)
+
+        def work():
+            return self.controller.copy_text(text)
+
+        def done(res):
+            ok, _method, path = res
+            if not ok:
+                self.set_status(_("Could not copy the log."))
+            elif path:
+                self.set_status(_("No clipboard available — saved to %s")
+                                % path)
+            else:
+                self.set_status(_("Copied %d log lines.") % len(lines))
+
+        def failed(_exc):
+            self.set_status(_("Could not copy the log."))
+
+        # Off the loop thread: a clipboard helper is a subprocess, and on a
+        # wedged one the 10s timeout would otherwise freeze the UI.
+        self.run_async(work, done, self._epoch, on_error=failed)
 
     def _open_config_folder(self):
         self._client_call(lambda c: c.open_config_folder())
