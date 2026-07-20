@@ -32,20 +32,20 @@ Status key: `[x]` done · `[ ]` open · `[~]` deliberately declined
 
 ---
 
-## 1. P1 — broken and user-visible
+## 1. P1 — broken and user-visible  ✅ all cleared
 
-- [ ] **Search "Songs" renders blank rows past the first screenful.**
+- [x] **Search "Songs" renders blank rows past the first screenful.**
   `views.py:920` passes `scroll_id="search"` so the table virtualizes, but the
   `VScroll` at `views.py:928` has no `on_scroll`, so nothing ever calls
   `invalidate()` and the window computed at offset 0 is the only one
   materialized. Sole outlier among 11 virtualized lists. `head_h=120` is also
   wrong by ~10x — the table sits below the People row and up to six carousels.
-- [ ] **Random sort corrupts the grid.** The server reshuffles per request, so
+- [x] **Random sort corrupts the grid.** The server reshuffles per request, so
   paging yields duplicates and skips. Tk capped a Random grid to its first page
   for exactly this reason (`library_browser/views.py:619`). `_page_more` only
   stops on an *empty* page, which a reshuffle never returns.
   **Decision: cap at one page, as Tk did.**
-- [ ] **65 settings rows discard the edit unless you press Enter.**
+- [x] **65 settings rows discard the edit unless you press Enter.**
   `settings.py:213` wires `on_submit` only; `renderer.lua`'s `blur()` emits
   nothing. Type a value, click the next row, it is gone — no toast, no dirty
   marker. The `sync_path` row one branch above already learned this and its
@@ -53,7 +53,7 @@ Status key: `[x]` done · `[ ]` open · `[~]` deliberately declined
   **Decision: add a semantic `blur`/commit event to the renderer protocol** —
   additive, and the alternative (a Tk-style batched Save button) is a much
   bigger UX change.
-- [ ] **Season "Remove Download" is structurally impossible.**
+- [x] **Season "Remove Download" is structurally impossible.**
   `tiles.py:161` `_is_downloaded` has branches for plain items, `Series` and
   `Playlist` — no `Season`. `sync/db.py` has no `downloaded_season_ids`, and
   `sync/manager.py:477` expands a Season into episodes, so only episode ids are
@@ -61,15 +61,15 @@ Status key: `[x]` done · `[ ]` open · `[~]` deliberately declined
   the `Season` branch of `_remove_download` (`views.py:586`) is dead; a fully
   downloaded season tile never shows the badge. This is the documented playlist
   `_is_downloaded` bug, one item type over.
-- [ ] **`_move_downloads` with an empty field resets the store to the default
+- [x] **`_move_downloads` with an empty field resets the store to the default
   location.** `settings.py:225`'s on-screen advice tells you to press Enter,
   which passes `""` → `relocate(None)` → `config.py:208` resets. Destructive
   and mislabelled.
-- [ ] **Downloads manager never shows completion.** `settings.py:645` — the
+- [x] **Downloads manager never shows completion.** `settings.py:645` — the
   poller breaks when `pending` hits 0 without a final reload, and the sync push
   hook only refreshes tile badges. The finished item reads `downloading` until
   a manual Refresh.
-- [ ] **Removing a server leaves inconsistent state.** `settings.py:379` calls
+- [x] **Removing a server leaves inconsistent state.** `settings.py:379` calls
   the controller then only `invalidate()`; `LibrarySource` keeps its tokens, so
   the removed server stays in the dropdown and browsable but playback refuses
   (`ui.py:226`). Tk rebuilt the source (`gui_mgr.py:783`).
@@ -94,9 +94,9 @@ and can never fire because a lower layer swallows.
   `_client_call`→`_safe`** (`dialogs.py:305,413`). Deliberate per `_edit`'s
   docstring, but these are button presses whose failure the user should see.
 
-## 3. New feature requests
+## 3. New feature requests  ✅ done
 
-- [ ] **Copy logs to the clipboard from the UI.** Users will expect it.
+- [x] **Copy logs to the clipboard from the UI.** Users will expect it.
   **Decision: no new dependency.** Layered: mpv's `clipboard/text` property
   where available, else `wl-copy` / `xclip` / `pbcopy` / `clip`, else write a
   file and report the path. Also worth a "copy the log file path" affordance.
