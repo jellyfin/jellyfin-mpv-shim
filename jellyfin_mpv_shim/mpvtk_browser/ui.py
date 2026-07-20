@@ -706,18 +706,16 @@ class _PlayerController:
     # -- playlist editing -------------------------------------------------
 
     def _edit(self, server_uuid, fn):
+        """Run a playlist/collection edit. RAISES on failure.
+
+        It used to log and return, which quietly defeated every caller's
+        error path: a failed delete still ran the caller's success handler
+        and navigated away from a playlist that still existed. Callers that
+        don't care use _client_call, whose _safe still swallows."""
         client = clientManager.clients.get(server_uuid)
         if client is None:
-            return
-        try:
-            fn(client.jellyfin)
-        except Exception:
-            log.error("mpvtk playlist edit failed", exc_info=True)
-
-    def playlist_move(self, server_uuid, playlist_id, entry_id, new_index):
-        self._edit(server_uuid,
-                   lambda jf: jf.move_playlist_item(playlist_id, entry_id,
-                                                    new_index))
+            raise RuntimeError("no server connection")
+        fn(client.jellyfin)
 
     def playlist_move_many(self, server_uuid, playlist_id, moves):
         """Apply ``[(entry_id, new_index), ...]`` IN ORDER.

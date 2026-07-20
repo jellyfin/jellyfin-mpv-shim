@@ -988,7 +988,7 @@ class MpvtkBrowser:
     MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
     MENU_FAVORITE = MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}
     MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
-                                    "MusicGenre"}
+                                    "MusicGenre", "Series", "Season"}
     MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "Series", "Season", "Playlist"}
 
     def _tile_menu_entries(self, item):
@@ -1195,6 +1195,27 @@ class MpvtkBrowser:
             else:
                 self._open_item(item)
         self.run_async(work, done, ep)
+
+    def _edit_call(self, fn, on_ok=None,
+                   error=None):
+        """A mutating edit whose failure the user must see.
+
+        _client_call swallows: an "Add to Playlist" the server rejected
+        looked exactly like one that worked."""
+        ep = self._epoch
+        msg = error or _("The change could not be applied.")
+
+        def work():
+            fn(self.controller)
+
+        def done(_ok):
+            if on_ok is not None:
+                on_ok()
+
+        def failed(_exc):
+            self.status = msg
+            self.invalidate()
+        self.run_async(work, done, ep, on_error=failed)
 
     def _client_call(self, fn):
         """Run a client-mutating action (watched/favorite) off the loop
@@ -3325,8 +3346,7 @@ class MpvtkBrowser:
             self._action_btn("shuffle", _("Shuffle"), "pl-shuffle",
                              lambda: self._play_shuffle(ids, server,
                                                         audio=audio)),
-            self._action_btn("file_download", _("Download"), "pl-download",
-                             lambda: self._open_download(pl_item)),
+            self._download_btn(pl_item, server, "pl"),
             self._action_btn("edit", _("Edit"), "pl-edit",
                              lambda: self.navigate({
                                  "kind": "playlist_edit", "server": server,
@@ -4282,9 +4302,6 @@ class MpvtkBrowser:
         self._load_route(self.route)
         self.invalidate()
 
-    def _queue_select(self, route, i, mods=None):
-        self._select_click(route, i, mods)
-
     @staticmethod
     def _block_move(items, sel, where):
         """Move the selected indices as one block. Returns (items, new_sel)
@@ -4319,15 +4336,6 @@ class MpvtkBrowser:
         if pid and self.controller is not None:
             self._safe(lambda c: c.skip_to(pid))
 
-    def _queue_remove(self, pid):
-        if pid and self.controller is not None:
-            self._safe(lambda c: c.queue_remove([pid]))
-        self.route.pop("_data", None)   # refresh the queue view
-        self._bump_epoch()
-        self._load_route(self.route)
-        self.invalidate()
-
-    # ------------------------------------------------------------- banners
 
     def notify_update(self, version, url):
         """Registered as playerManager.notify_update: show the update notice
@@ -4738,7 +4746,10 @@ class MpvtkBrowser:
                     on_toggle=lambda: self._addto_name.__setitem__(
                         "private", not self._addto_name.get("private"))))
             buttons = []
-            if collections:
+            # Gated on whether the SOURCE does collections, not on whether
+            # any exist — gating on the latter meant you could never create
+            # your first one. The offline catalog has none either way.
+            if hasattr(self.source, "get_collections") and not self._offline:
                 buttons.append(Button(
                     _("Collections…"), id="add-collections",
                     on_click=lambda: self._show_add_to_collection(
@@ -4801,29 +4812,33 @@ class MpvtkBrowser:
         ids = self._addto_ids or ([item_id] if item_id else [])
         if name and ids:
             private = bool(state.get("private", True))
-            self._client_call(lambda c: c.playlist_new(
+            self._edit_call(lambda c: c.playlist_new(
                 server, name, ids, is_public=not private))
         self._close_dialog()
 
     def _add_to_new_col(self, server, item_id):
         name = (self._addcol_name or {}).get("name", "").strip()
-        ids = self._addto_ids or ([item_id] if item_id else [])
+        ids = self._collection_ids(item_id)
         if name and ids:
-            self._client_call(lambda c: c.collection_new(server, name, ids))
+            self._edit_call(lambda c: c.collection_new(server, name, ids))
         self._close_dialog()
 
+    def _collection_ids(self, item_id):
+        """A collection holds the album, not its 300 tracks — only a
+        playlist wants the resolved ids (Tk resolves for playlists only)."""
+        return [item_id] if item_id else []
+
     def _add_to_col(self, server, collection_id, item_id):
-        ids = self._addto_ids or ([item_id] if item_id else [])
+        ids = self._collection_ids(item_id)
         if collection_id and ids:
-            self._client_call(lambda c: c.collection_add(
+            self._edit_call(lambda c: c.collection_add(
                 server, collection_id, ids))
         self._close_dialog()
 
     def _add_to(self, server, playlist_id, item_id):
         ids = self._addto_ids or ([item_id] if item_id else [])
         if playlist_id and ids:
-            self._client_call(lambda c: c.playlist_add(
-                server, playlist_id, ids))
+            self._edit_call(lambda c: c.playlist_add(server, playlist_id, ids))
         self._close_dialog()
 
     # -------------------------------------------------------- downloads

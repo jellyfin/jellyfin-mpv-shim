@@ -1904,7 +1904,7 @@ class TestQueueView(unittest.TestCase):
         self.b._open_queue()
         route = self.b.route
         first = route["_data"]["entries"][0]["pid"]
-        self.b._queue_select(route, 0)
+        self.b._select_click(route, 0, None)
         self.b._queue_move(route, "down")
         self.assertEqual(route["_data"]["entries"][1]["pid"], first)
         self.assertIn("queue_reorder", [c[0] for c in self.ctl.transport])
@@ -4849,3 +4849,131 @@ class TestEditorExitReload(unittest.TestCase):
         ]
         self.b.go_back()
         self.assertIsNotNone(self.b.route.get("_data"))
+
+
+class TestEditFailuresAreVisible(unittest.TestCase):
+    """_edit used to log and return, which silently defeated every
+    caller's error path — a failed delete still ran the SUCCESS handler
+    and navigated away from a playlist that still existed."""
+
+    def test_edit_raises_so_callers_can_react(self):
+        import jellyfin_mpv_shim.clients as clients_mod
+        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+
+        real = clients_mod.clientManager.clients
+        clients_mod.clientManager.clients = {}
+        self.addCleanup(lambda: setattr(clients_mod.clientManager,
+                                        "clients", real))
+        with self.assertRaises(Exception):
+            _PlayerController().playlist_delete("srv1", "P")
+
+    def test_a_failed_delete_keeps_you_on_the_playlist(self):
+        ctl = FakeController()
+
+        def boom(srv, pid):
+            raise RuntimeError("no server connection")
+
+        ctl.playlist_delete = boom
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.nav_stack = [
+            {"kind": "playlist", "server": "srv1", "item_id": "P"},
+            {"kind": "playlist_edit", "server": "srv1", "item_id": "P"},
+        ]
+        b._pe_delete(b.route)
+        self.assertEqual(b.route["kind"], "playlist_edit",
+                         "navigated away from a playlist that still exists")
+        self.assertIn("could not be deleted", b.status)
+
+    def test_a_failed_add_to_playlist_says_so(self):
+        ctl = FakeController()
+
+        def boom(srv, pid, ids):
+            raise RuntimeError("rejected")
+
+        ctl.playlist_add = boom
+        src = FakeSource()
+        src.get_playlists = lambda srv: [{"Id": "p1", "Name": "Mix"}]
+        b = MpvtkBrowser(app=None, source=src, controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(b)
+        h["add-pl-0"]["click"]()
+        self.assertIn("could not be applied", b.status,
+                      "a rejected add looked exactly like a successful one")
+
+
+class TestCollectionReachability(unittest.TestCase):
+    """Gating the Collections button on having collections meant you could
+    never create your first one."""
+
+    def _browser(self, collections, offline=False):
+        src = FakeSource()
+        src.get_playlists = lambda srv: []
+        src.get_collections = lambda srv: list(collections)
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._offline = offline
+        b._open_add_to({"Id": "m1", "Type": "Movie"})
+        return b
+
+    def test_reachable_with_no_collections_yet(self):
+        b = self._browser([])
+        _n, h = build_scene(b)
+        self.assertIn("add-collections", h, "cannot create a first collection")
+        h["add-collections"]["click"]()
+        nodes, _h = build_scene(b)
+        self.assertIn("addcol-newname", ids(nodes))
+
+    def test_hidden_offline(self):
+        b = self._browser([{"Id": "c1", "Name": "Set"}], offline=True)
+        _n, h = build_scene(b)
+        self.assertNotIn("add-collections", h)
+
+    def test_a_collection_holds_the_album_not_its_tracks(self):
+        """Tk resolves container ids for playlists only."""
+        added = []
+        ctl = FakeController()
+        ctl.collection_add = lambda s, c, ids: added.append(list(ids))
+        src = FakeSource()
+        src.get_playlists = lambda srv: []
+        src.get_collections = lambda srv: [{"Id": "c1", "Name": "Set"}]
+        src.get_album_tracks = lambda srv, aid: [{"Id": "t1"}, {"Id": "t2"}]
+        b = MpvtkBrowser(app=None, source=src, controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._open_add_to({"Id": "a1", "Type": "MusicAlbum"})
+        _n, h = build_scene(b)
+        h["add-collections"]["click"]()
+        _n, h = build_scene(b)
+        h["add-col-0"]["click"]()
+        self.assertEqual(added, [["a1"]], "inserted every track instead")
+
+
+class TestSeriesAddTo(unittest.TestCase):
+    def test_a_series_can_be_added(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        acts = [e[2] for e in b._tile_menu_entries(
+            {"Id": "sh1", "Type": "Series"})]
+        self.assertIn("addto", acts)
+
+    def test_a_season_can_be_added(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        acts = [e[2] for e in b._tile_menu_entries(
+            {"Id": "s1", "Type": "Season"})]
+        self.assertIn("addto", acts)
+
+
+class TestPlaylistPageDownloadButton(unittest.TestCase):
+    def test_it_swaps_to_remove_when_downloaded(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b._downloaded = {"P"}
+        b.nav_stack = [{"kind": "playlist", "server": "srv1", "item_id": "P",
+                        "title": "Mix", "_data": []}]
+        nodes, _h = build_scene(b)
+        self.assertIn("pl-undownload", ids(nodes),
+                      "playlist page still hardcodes Download")
