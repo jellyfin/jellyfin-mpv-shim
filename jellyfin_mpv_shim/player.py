@@ -241,11 +241,24 @@ class PlayerManager(object):
         # mpv is torn down and re-created across idle-quit and crash recovery.
         # Anything holding the raw handle has to follow it — the OSD menu does
         # this via menu.update_player(); the in-window UI attaches a whole
-        # renderer, so it gets explicit hooks. on_mpv_gone fires after the
-        # handle is dead (free anything keyed to it — notably the in-process
-        # BGRA tile buffers, which exist only to be read by that mpv);
+        # renderer, so it gets explicit hooks.
+        #
+        # TWO phases, and the distinction is load-bearing:
+        #
+        #   on_mpv_gone       - the handle is no longer OURS. Stop pushing to
+        #                       it. mpv itself may still be running: terminate
+        #                       happens on its own thread, so this fires while
+        #                       the process is on its way out.
+        #   on_mpv_terminated - mpv is actually dead. Only now is it safe to
+        #                       free anything mpv reads BY ADDRESS, i.e. the
+        #                       in-process BGRA tile buffers. Freeing them at
+        #                       on_mpv_gone time released memory a live mpv
+        #                       was still compositing from every frame, which
+        #                       is a segfault on quit.
+        #
         # on_mpv_recreated fires once a fresh handle is ready.
         self.on_mpv_gone = None
+        self.on_mpv_terminated = None
         self.on_mpv_recreated = None
         # BACK/ESC handler for the in-window UI. Returns True when it
         # consumed the press; at the root of its nav stack it declines and
@@ -806,6 +819,17 @@ class PlayerManager(object):
             handler()
         except Exception:
             log.error("on_mpv_gone handler failed", exc_info=True)
+
+    def _notify_mpv_terminated(self):
+        """mpv is really dead — see on_mpv_terminated. Runs on the terminate
+        thread, so handlers must not block it for long."""
+        handler = self.on_mpv_terminated
+        if handler is None:
+            return
+        try:
+            handler()
+        except Exception:
+            log.error("on_mpv_terminated handler failed", exc_info=True)
 
     # End-of-playback choreography shared by the eof and abort observers:
     # arm the pause-swallow, take the dedup lock non-blockingly (whichever
@@ -2176,10 +2200,10 @@ class PlayerManager(object):
             target=self._terminate_mpv, args=(player,), daemon=True
         )
         self._terminate_thread.start()
-        # The handle is gone: let attached UIs drop anything keyed to it.
-        # For the in-window browser that's the composited tile bitmaps, which
-        # on libmpv are in-process buffers mpv reads by address — keeping them
-        # would defeat the whole point of quitting to save memory.
+        # The handle is no longer ours: let attached UIs stop pushing to it.
+        # NOT the point at which they may free buffers mpv reads by address —
+        # terminate is still running on the thread above. That is
+        # on_mpv_terminated, fired at the end of _terminate_mpv.
         self._notify_mpv_gone()
 
     def _handle_mpv_disconnect(self):
@@ -2261,6 +2285,9 @@ class PlayerManager(object):
         except Exception:
             log.debug("Error terminating mpv", exc_info=True)
         log.info("mpv instance terminated")
+        # Now — and not before — it is safe to release buffers mpv was
+        # reading by address.
+        self._notify_mpv_terminated()
 
     def terminate(self):
         self.stop()

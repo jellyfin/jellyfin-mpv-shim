@@ -979,11 +979,103 @@ class TestHudLifecycleWiring(unittest.TestCase):
         self.assertIn(("skip", "Skip Intro"), app.calls)
 
 
+class TestPlaybackDoesNotBlockTheLoop(unittest.TestCase):
+    """Starting playback is seconds of work — build a Media, ask the server
+    for PlaybackInfo, load the file into mpv under the player's lock. It ran
+    on the loop thread, so the UI dispatched no events and drew no frames
+    until playback began: click a movie, the browser freezes.
+
+    The episode path was worse. It ran inside a `run_async` `on_done`, which
+    `run_async` invokes while HOLDING `_lock` — so every other worker's
+    callback and any `navigate()` (which needs `_lock` to bump the epoch)
+    queued up behind it too.
+
+    These use the REAL pool: with _SyncPool the work happens inline and
+    every one of them would pass against the blocking version.
+    """
+
+    # The fake start blocks this long; the caller must return far sooner.
+    BLOCK_FOR = 30.0
+    MUST_RETURN_WITHIN = 2.0
+
+    def _browser(self):
+        self.started = threading.Event()
+        self.release = threading.Event()
+        ctl = FakeController()
+
+        def blocking_play(*a, **k):
+            self.started.set()
+            # Long, and released only in cleanup: a short wait would simply
+            # time out and let the BLOCKING version return, so the test
+            # would pass against the bug it exists to catch.
+            self.release.wait(self.BLOCK_FOR)
+
+        ctl.play = blocking_play
+        ctl.play_list = blocking_play
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        self.addCleanup(self.release.set)
+        return b
+
+    def _assert_returns_promptly(self, call):
+        t0 = time.time()
+        call()
+        elapsed = time.time() - t0
+        self.assertTrue(self.started.wait(5), "playback never started")
+        self.assertLess(
+            elapsed, self.MUST_RETURN_WITHIN,
+            "the caller was blocked for %.1fs while playback started"
+            % elapsed)
+
+    def test_starting_a_movie_returns_immediately(self):
+        b = self._browser()
+        self._assert_returns_promptly(
+            lambda: b._play({"Id": "m1", "Type": "Movie"}, "srv1"))
+
+    def test_starting_a_list_returns_immediately(self):
+        b = self._browser()
+        self._assert_returns_promptly(
+            lambda: b._play_list(["a1", "a2"], "srv1", 0, audio=True))
+
+    def test_an_episode_start_does_not_hold_the_lock(self):
+        """The one that also starved every other worker: navigate() needs
+        _lock to bump the epoch, and on_done holds it for the whole start."""
+        b = self._browser()
+        b._play({"Id": "e1", "Type": "Episode", "SeriesId": "sh1"}, "srv1")
+        self.assertTrue(self.started.wait(5), "playback never started")
+
+        # _lock must be free while the start is in flight.
+        done = threading.Event()
+
+        def navigator():
+            b._bump_epoch()
+            done.set()
+
+        threading.Thread(target=navigator, daemon=True).start()
+        self.assertTrue(done.wait(5),
+                        "_lock was held across the playback start")
+
+    def test_a_failed_start_says_so(self):
+        ctl = FakeController()
+
+        def boom(*a, **k):
+            raise RuntimeError("no route to server")
+
+        ctl.play = boom
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._play({"Id": "m1", "Type": "Movie"}, "srv1")
+        self.assertIn("playback", b.status.lower())
+
+
 class TestPlaybackLifecycle(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
         self.b = MpvtkBrowser(app=None, source=FakeSource(),
                               controller=self.ctl)
+        # Starting playback is off the loop thread now (see _play_async), so
+        # the assertions below need it to have actually happened.
+        # TestPlaybackDoesNotBlockTheLoop covers the asynchrony itself.
+        self.b._pool = _SyncPool()
 
     def test_click_playable_opens_detail(self):
         self.b._open_item({"Id": "m1", "Name": "Alpha", "Type": "Movie"})

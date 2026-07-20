@@ -102,6 +102,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
     # Horizontal padding of ordinary page content.
     CONTENT_PAD = 16
 
+    # How long shutdown() waits for a long job (a download-store move) to
+    # finish before giving up on it. Long enough to cover a same-drive move,
+    # short enough not to hang a quit.
+    LONG_JOB_SHUTDOWN_WAIT = 20.0
+
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
         # Before anything is built: the toolkit's accented widgets read the
@@ -914,6 +919,33 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         else:
             self._yield()
 
+    def _play_async(self, work):
+        """Start playback off the loop thread.
+
+        ``work()`` receives the controller and runs on a pool worker.
+
+        Starting playback is seconds of work: the controller builds a
+        ``Media``, asks the server for PlaybackInfo, then loads the file into
+        mpv under the player's own lock. Called straight from a click handler
+        that ran on the loop thread, so the UI dispatched no events and drew
+        no frames until playback began — click a movie and the browser froze.
+        The episode path was worse: it ran inside a ``run_async`` ``on_done``,
+        which holds ``_lock``, so every other worker's callback and any
+        ``navigate()`` queued up behind it too.
+
+        Deliberately NOT epoch-gated: the user pressed Play, and navigating
+        elsewhere while it starts is not a reason to cancel it.
+        """
+        if self.controller is None:
+            return
+
+        def failed(_exc):
+            self.set_status(_("Playback could not be started."))
+            self.invalidate()
+
+        self.run_async(lambda: work(self.controller), lambda _r: None,
+                       self._epoch, on_error=failed)
+
     def _play(self, item, server, offset_ticks=None, srcid=None, aid=None,
               sid=None):
         """Yield/keep-browse and start a single ``item``. Episodes queue the
@@ -924,22 +956,25 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             srv, iid, series = server, item.get("Id"), item.get("SeriesId")
 
-            def work():
+            # Queue fetch AND playback start on the same worker: the fetch
+            # decides the queue the start consumes, and splitting them put
+            # the start back on the loop thread via on_done.
+            def work(ctl):
                 try:
                     q = self.source.get_series_queue(
                         srv, series, start_item_id=iid)
-                    return [e.get("Id") for e in q if e.get("Id")] or [iid]
+                    ids = [e.get("Id") for e in q if e.get("Id")] or [iid]
                 except Exception:
-                    return [iid]
+                    log.debug("series queue fetch failed", exc_info=True)
+                    ids = [iid]
+                ctl.play_list(ids, srv, 0, offset_ticks=offset_ticks,
+                              srcid=srcid, aid=aid, sid=sid)
 
-            def done(ids):
-                self.controller.play_list(ids, srv, 0,
-                                          offset_ticks=offset_ticks,
-                                          srcid=srcid, aid=aid, sid=sid)
-            self.run_async(work, done, self._epoch)
+            self._play_async(work)
         else:
-            self.controller.play(item, server, offset_ticks=offset_ticks,
-                                 srcid=srcid, aid=aid, sid=sid)
+            self._play_async(
+                lambda ctl: ctl.play(item, server, offset_ticks=offset_ticks,
+                                     srcid=srcid, aid=aid, sid=sid))
 
     def _play_list(self, ids, server, start_index=0, audio=False,
                    items=None):
@@ -965,8 +1000,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         except ValueError:
             pos = 0
         self._start(audio=audio)
-        if self.controller is not None:
-            self.controller.play_list(ids, server, pos, offset_ticks=offset)
+        self._play_async(
+            lambda ctl: ctl.play_list(ids, server, pos, offset_ticks=offset))
 
     # ------------------------------------------------- browse <-> playback
 
@@ -1626,9 +1661,28 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         thread next to playerManager — see 0.2/0.5 wiring."""
         self.app.run(self.build)
 
-    def shutdown(self):
+    def shutdown(self, free_bitmaps=True):
+        """Stop background work.
+
+        ``free_bitmaps=False`` keeps the composited tile buffers alive. On
+        libmpv those are read BY ADDRESS by mpv every frame it composites, so
+        they may only be released once mpv is genuinely dead — the caller
+        knows that, this does not. See mpvtk_browser.ui.stop().
+        """
         self._shutdown_evt.set()   # also stops the downloads poller
         self._pool.shutdown(wait=False, cancel_futures=True)
+        # Relocating the download store copies the whole thing and has no
+        # cancellation check, so a quit mid-move would kill it partway
+        # through. Give it a bounded chance to finish rather than yanking
+        # the interpreter out from under a half-copied library.
+        long_thread = self._long_thread
+        if long_thread is not None and long_thread.is_alive():
+            log.info("waiting for a long job to finish before shutdown")
+            long_thread.join(timeout=self.LONG_JOB_SHUTDOWN_WAIT)
+            if long_thread.is_alive():
+                log.warning("long job still running at shutdown; "
+                            "it may be left incomplete")
         if self.thumbs is not None:
             self.thumbs.shutdown()
-        self.strips.clear()
+        if free_bitmaps:
+            self.strips.clear()

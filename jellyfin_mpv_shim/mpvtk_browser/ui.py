@@ -1175,6 +1175,7 @@ class UserInterface:
         # mpv is torn down and rebuilt across idle-quit and crash recovery;
         # the renderer is bound to a specific handle, so follow it.
         playerManager.on_mpv_gone = self.on_mpv_gone
+        playerManager.on_mpv_terminated = self.on_mpv_terminated
         playerManager.on_mpv_recreated = self.on_mpv_recreated
         playerManager.on_hud_menu = self._browser.open_hud_menu
         # start_minimized: come up in the windowless state — running, castable,
@@ -1224,18 +1225,33 @@ class UserInterface:
     # -- following mpv across teardown / re-create -------------------------
 
     def on_mpv_gone(self):
-        """mpv terminated (idle-quit or a lost connection).
+        """The mpv handle is no longer ours (idle-quit or a lost connection).
 
-        Stop the render loop and drop every composited bitmap. On libmpv those
-        are in-process buffers that the dead mpv read by address, so holding
-        them would both leak and defeat the memory saving that quitting mpv
-        while minimized is for."""
+        Stop the render loop and detach. Deliberately does NOT free the
+        composited tile bitmaps: on libmpv those are in-process buffers mpv
+        reads BY ADDRESS every frame it composites, and mpv is still being
+        terminated on another thread at this point. Freeing here released
+        memory out from under a live compositor — a segfault on quit. That
+        happens in on_mpv_terminated instead."""
         self._detaching = True
         app, self._app = self._app, None
         if app is not None:
             app.quit()
+        # Wait for the render loop to actually stop before anything else
+        # touches the caches it reads. quit() only enqueues.
+        thread, self._thread = self._thread, None
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2)
         if self._browser is not None:
             self._browser.app = None
+
+    def on_mpv_terminated(self):
+        """mpv is really dead — now the tile buffers can go.
+
+        Holding them would both leak and defeat the memory saving that
+        quitting mpv while minimized is for; freeing them any earlier
+        crashes. See playerManager.on_mpv_terminated."""
+        if self._browser is not None:
             try:
                 self._browser.strips.clear()
             except Exception:
@@ -1335,10 +1351,20 @@ class UserInterface:
         if self._tray is not None:
             self._tray.stop()
         playerManager.mpvtk_active = False
-        if self._app is not None:
-            self._app.quit()
+        app, self._app = self._app, None
+        if app is not None:
+            app.quit()
+            # quit() only enqueues; wait for the loop to stop pushing scenes
+            # before anything frees what those scenes reference.
+            thread, self._thread = self._thread, None
+            if thread is not None and thread.is_alive():
+                thread.join(timeout=2)
         if self._browser is not None:
-            self._browser.shutdown()
+            # free_bitmaps=False: mpv may still be alive here (the caller is
+            # on its way to terminating it), and on libmpv it composites the
+            # tile buffers by address. They are released by
+            # on_mpv_terminated, or reclaimed with the process.
+            self._browser.shutdown(free_bitmaps=False)
 
 
 user_interface = UserInterface()

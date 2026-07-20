@@ -25,6 +25,7 @@ arrives (its ``poster_tag`` changes the key).
 
 import logging
 import os
+import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Optional
@@ -99,6 +100,13 @@ class StripStore:
         self.mem = mem_store  # MemoryStore for the libmpv backend, else None
         self.geom = geom or TileGeom()
         self._cache = OrderedDict()
+        # The cache is built and read on the mpvtk loop thread, but clear()
+        # is called from teardown paths that run on other threads (the
+        # player's action thread via on_mpv_terminated, and whoever calls
+        # stop()). Without this, clear() iterating while the loop inserts
+        # raises "dict changed size during iteration" — caught and logged at
+        # the call site, which left half the buffers freed and half not.
+        self._lock = threading.Lock()
         self._counter = 0
         self.hits = 0
         self.misses = 0
@@ -133,15 +141,19 @@ class StripStore:
         g = geom or self.geom
         tiles = list(tiles)
         key = (self._geom_key(g), tuple(self._tile_key(t) for t in tiles))
-        hit = self._cache.get(key)
-        if hit is not None:
-            self._cache.move_to_end(key)
-            self.hits += 1
-            return hit
-        self.misses += 1
+        with self._lock:
+            hit = self._cache.get(key)
+            if hit is not None:
+                self._cache.move_to_end(key)
+                self.hits += 1
+                return hit
+            self.misses += 1
+        # Composited outside the lock: it is the expensive part and it does
+        # not touch the cache.
         entry = self._compose(tiles, g)
-        self._cache[key] = entry
-        self._evict()
+        with self._lock:
+            self._cache[key] = entry
+            self._evict()
         return entry
 
     def bitmap(self, key, image):
@@ -150,22 +162,32 @@ class StripStore:
         ``image`` is a PIL image already at display size. Returns
         ``{"src", "iw", "ih"}``."""
         ck = ("bitmap", key)
-        hit = self._cache.get(ck)
-        if hit is not None:
-            self._cache.move_to_end(ck)
-            self.hits += 1
-            return hit
-        self.misses += 1
+        with self._lock:
+            hit = self._cache.get(ck)
+            if hit is not None:
+                self._cache.move_to_end(ck)
+                self.hits += 1
+                return hit
+            self.misses += 1
         src, w, h = self._store(image)
         entry = {"src": src, "iw": w, "ih": h}
-        self._cache[ck] = entry
-        self._evict()
+        with self._lock:
+            self._cache[ck] = entry
+            self._evict()
         return entry
 
     def clear(self):
-        for entry in self._cache.values():
+        """Drop every cached bitmap and release its backing buffer.
+
+        On the libmpv path those buffers are read BY ADDRESS by mpv, so this
+        must only be called once mpv is genuinely dead — see
+        mpvtk_browser.ui.on_mpv_terminated. Calling it while mpv is still
+        compositing is a segfault, not a leak."""
+        with self._lock:
+            entries = list(self._cache.values())
+            self._cache.clear()
+        for entry in entries:
             self._free(entry["src"])
-        self._cache.clear()
 
     # -- compositing ------------------------------------------------------
 

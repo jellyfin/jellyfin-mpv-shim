@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 11:21-0400\n"
+"POT-Creation-Date: 2026-07-20 11:44-0400\n"
 "PO-Revision-Date: 2026-05-04 14:15+0000\n"
 "Last-Translator: Aindriú Mac Giolla Eoin <aindriu80@gmail.com>\n"
 "Language-Team: Irish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -178,7 +178,7 @@ msgstr ""
 msgid "This needs a newer jellyfin-apiclient-python."
 msgstr ""
 
-#: jellyfin_mpv_shim/gui_mgr.py:1112 jellyfin_mpv_shim/mpvtk_browser/app.py:661
+#: jellyfin_mpv_shim/gui_mgr.py:1112 jellyfin_mpv_shim/mpvtk_browser/app.py:666
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:521
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:536
 msgid "The change could not be applied."
@@ -202,7 +202,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:1349
 #: jellyfin_mpv_shim/library_browser/app.py:233
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1495 jellyfin_mpv_shim/tray.py:82
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1555 jellyfin_mpv_shim/tray.py:82
 msgid "Configure Servers"
 msgstr "Cumraigh Freastalaithe"
 
@@ -215,7 +215,7 @@ msgid "Application Menu"
 msgstr "Roghchlár an Fheidhmchláir"
 
 #: jellyfin_mpv_shim/gui_mgr.py:1352
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:823 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:824 jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "Oscail Fillteán Cumraíochta"
 
@@ -224,7 +224,7 @@ msgid "Quit"
 msgstr "Scoir"
 
 #: jellyfin_mpv_shim/library_browser/app.py:172
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1333
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1393
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:316
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:587
@@ -232,14 +232,14 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/app.py:175
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1320
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1336
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1380
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1396
 msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/app.py:179
 #: jellyfin_mpv_shim/library_browser/views.py:3488
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1381
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1441
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:553
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:70
 #, fuzzy
@@ -249,7 +249,7 @@ msgstr "Socruithe SVP"
 
 #: jellyfin_mpv_shim/library_browser/app.py:183
 #: jellyfin_mpv_shim/library_browser/views.py:2438
-#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1379
+#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1439
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:420
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:299
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:598 jellyfin_mpv_shim/syncplay.py:685
@@ -258,21 +258,21 @@ msgstr "SyncPlay"
 
 #: jellyfin_mpv_shim/library_browser/app.py:199
 #: jellyfin_mpv_shim/library_browser/app.py:203
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1376
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1436
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:952
 msgid "Search"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/app.py:237
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1433
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1497
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1493
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1557
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:452
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
 msgstr "Bain triail eile as"
 
 #: jellyfin_mpv_shim/library_browser/app.py:249
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1488
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1548
 msgid "Dismiss"
 msgstr ""
 
@@ -281,7 +281,7 @@ msgid "View Release"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/app.py:266
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1523
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1583
 msgid "View Downloads"
 msgstr ""
 
@@ -400,7 +400,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:585
 #: jellyfin_mpv_shim/library_browser/views.py:2301
 #: jellyfin_mpv_shim/library_browser/views.py:2890
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:912
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:917
 msgid "Loading…"
 msgstr ""
 
@@ -1146,7 +1146,7 @@ msgstr "Dún"
 #: jellyfin_mpv_shim/library_browser/views.py:2452
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:463
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:523
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:821
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:822
 msgid "Refresh"
 msgstr ""
 
@@ -1570,7 +1570,7 @@ msgstr "Bain Freastalaí"
 
 #: jellyfin_mpv_shim/library_browser/views.py:3491
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:108
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:818
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:819
 msgid "Logs"
 msgstr ""
 
@@ -1934,11 +1934,11 @@ msgstr "Iarr creidmheasanna a scipeáil"
 msgid "Enable thumbnail previews"
 msgstr "Cumasaigh réamhamhairc mhionsamhlacha"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:489
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:494
 msgid "Failed to load. Check the connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:553
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:558
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1948,53 +1948,57 @@ msgstr ""
 "Níorbh fhéidir freastalaí a chur leis.\n"
 "Seiceáil faisnéis do naisc le do thoil."
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:727
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:732
 msgid "Selected: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1352
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:943
+msgid "Playback could not be started."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1412
 #, fuzzy
 #| msgid "Server:"
 msgid "Server"
 msgstr "Freastalaí:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1364
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1424
 #, fuzzy
 #| msgid "Username:"
 msgid "User"
 msgstr "Ainm Úsáideora:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1369
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1429
 msgid "Search…"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1411
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1471
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:533
 msgid "Queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1483
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1543
 msgid "Update available: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1486
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1546
 msgid "Open"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1493
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1553
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1513
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1573
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1514
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1574
 msgid "Downloading — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1589
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1591
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1649
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1651
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -2675,25 +2679,25 @@ msgstr "Bain Freastalaí"
 msgid "Delete Download"
 msgstr "Bain Freastalaí"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:787
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:788
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:633
 msgid "The download could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:819
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:820
 msgid "Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:829
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:830
 msgid "No log output captured yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:893
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:895
 msgid "There is nothing to copy yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:904
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:912
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:906
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:914
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -2703,11 +2707,11 @@ msgstr ""
 "Níorbh fhéidir freastalaí a chur leis.\n"
 "Seiceáil faisnéis do naisc le do thoil."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:906
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:908
 msgid "No clipboard available — saved to %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:909
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:911
 msgid "Copied %d log lines."
 msgstr ""
 
@@ -2856,27 +2860,27 @@ msgstr "SyncPlay cumasaithe."
 msgid "{0}'s Group"
 msgstr "Grúpa {0}"
 
-#: jellyfin_mpv_shim/player.py:551
+#: jellyfin_mpv_shim/player.py:564
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:906
+#: jellyfin_mpv_shim/player.py:930
 msgid "Skipped Credits"
 msgstr "Creidmheasanna Scipeála"
 
-#: jellyfin_mpv_shim/player.py:908
+#: jellyfin_mpv_shim/player.py:932
 msgid "Skipped Intro"
 msgstr "Scipeáil intreoir"
 
-#: jellyfin_mpv_shim/player.py:927
+#: jellyfin_mpv_shim/player.py:951
 msgid "Seek to Skip Credits"
 msgstr "Déan iarracht creidmheasanna a scipeáil"
 
-#: jellyfin_mpv_shim/player.py:929
+#: jellyfin_mpv_shim/player.py:953
 msgid "Seek to Skip Intro"
 msgstr "Iarracht a Scipeáil Intro"
 
-#: jellyfin_mpv_shim/player.py:1164
+#: jellyfin_mpv_shim/player.py:1188
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2884,23 +2888,23 @@ msgstr ""
 "Tá do físeán iargúlta transcoding!\n"
 "Brúigh c chun socruithe bandaleithead a choigeartú mura bhfuil gá leis seo."
 
-#: jellyfin_mpv_shim/player.py:1396
+#: jellyfin_mpv_shim/player.py:1420
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1865
+#: jellyfin_mpv_shim/player.py:1889
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "Creidmheasanna Scipeála"
 
-#: jellyfin_mpv_shim/player.py:1866
+#: jellyfin_mpv_shim/player.py:1890
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "Scipeáil intreoir"
 
-#: jellyfin_mpv_shim/player.py:1995
+#: jellyfin_mpv_shim/player.py:2019
 msgid "Season {0} - Episode {1}"
 msgstr "Séasúr {0} - Eipeasóid {1}"
 
