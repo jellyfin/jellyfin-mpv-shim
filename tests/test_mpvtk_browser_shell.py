@@ -5133,6 +5133,60 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestNonContiguousMoves(unittest.TestCase):
+    """Up/Down move each selected row one step, against a floor/ceiling, so
+    a scattered selection keeps its gaps. Treating it as one block silently
+    reordered rows the user had not selected, and a selection whose leading
+    row was already at the edge no-opped for the whole selection."""
+
+    def _move(self, items, sel, where):
+        return MpvtkBrowser._block_move(list(items), set(sel), where)
+
+    ABC = ["a", "b", "c", "d", "e"]
+
+    def test_a_scattered_selection_keeps_its_gaps_going_up(self):
+        got, sel = self._move(self.ABC, {1, 3}, "up")
+        self.assertEqual(got, ["b", "a", "d", "c", "e"])
+        self.assertEqual(sel, {0, 2})
+
+    def test_a_scattered_selection_keeps_its_gaps_going_down(self):
+        got, sel = self._move(self.ABC, {1, 3}, "down")
+        self.assertEqual(got, ["a", "c", "b", "e", "d"])
+        self.assertEqual(sel, {2, 4})
+
+    def test_the_rest_still_moves_when_the_first_row_is_pinned(self):
+        """sel[0] at the top used to abandon the whole move."""
+        got, sel = self._move(self.ABC, {0, 3}, "up")
+        self.assertEqual(got, ["a", "b", "d", "c", "e"])
+        self.assertEqual(sel, {0, 2})
+
+    def test_a_contiguous_block_still_moves_as_one(self):
+        got, sel = self._move(self.ABC, {1, 2}, "up")
+        self.assertEqual(got, ["b", "c", "a", "d", "e"])
+        self.assertEqual(sel, {0, 1})
+
+    def test_everything_packed_against_the_edge_is_a_no_op(self):
+        self.assertIsNone(self._move(self.ABC, {0, 1}, "up"))
+        self.assertIsNone(self._move(self.ABC, {3, 4}, "down"))
+
+    def test_top_and_bottom_still_gather_a_scattered_selection(self):
+        """That is the point of them."""
+        got, sel = self._move(self.ABC, {1, 3}, "top")
+        self.assertEqual(got, ["b", "d", "a", "c", "e"])
+        self.assertEqual(sel, {0, 1})
+        got, sel = self._move(self.ABC, {0, 2}, "bottom")
+        self.assertEqual(got, ["b", "d", "e", "a", "c"])
+        self.assertEqual(sel, {3, 4})
+
+    def test_already_at_the_top_is_a_no_op(self):
+        self.assertIsNone(self._move(self.ABC, {0, 1}, "top"))
+        self.assertIsNone(self._move(self.ABC, {3, 4}, "bottom"))
+
+    def test_an_empty_selection_moves_nothing(self):
+        self.assertIsNone(self._move(self.ABC, set(), "up"))
+        self.assertIsNone(self._move([], {0}, "up"))
+
+
 class TestTrackRowsHaveAContextMenu(unittest.TestCase):
     """Tiles have had a right-click menu all along; Table rows never asked
     for one. Every music playlist therefore lost Play / Add to Queue /

@@ -123,10 +123,39 @@ class QueueEditMixin:
         if not sel or not items:
             return None
         n = len(items)
-        target = {"top": 0, "bottom": n - len(sel),
-                  "up": max(0, sel[0] - 1),
-                  "down": min(n - len(sel), sel[0] + 1)}[where]
-        if target == sel[0]:
+        if where in ("up", "down"):
+            # One step each, against a floor/ceiling, so a non-contiguous
+            # selection keeps its gaps — this is what Tk did. Treating it as
+            # a block silently reordered rows the user had not selected, and
+            # a selection whose leading row was already at the edge no-opped
+            # for the whole selection instead of moving the rest.
+            out = list(items)
+            new_sel = set()
+            if where == "up":
+                edge = -1
+                for i in sel:
+                    if i - 1 > edge:
+                        out.insert(i - 1, out.pop(i))
+                        edge = i - 1
+                    else:
+                        edge = i
+                    new_sel.add(edge)
+            else:
+                edge = n
+                for i in reversed(sel):
+                    if i + 1 < edge:
+                        out.insert(i + 1, out.pop(i))
+                        edge = i + 1
+                    else:
+                        edge = i
+                    new_sel.add(edge)
+            if new_sel == set(sel):
+                return None      # already packed against that edge
+            return out, new_sel
+        # Top/Bottom stay block moves: gathering a scattered selection is
+        # the point of them.
+        target = {"top": 0, "bottom": n - len(sel)}[where]
+        if sel == list(range(target, target + len(sel))):
             return None
         block = [items[i] for i in sel]
         rest = [it for i, it in enumerate(items) if i not in set(sel)]
