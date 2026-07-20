@@ -134,6 +134,37 @@ class QueueEditMixin:
                         error=_("Those items could not be removed."))
 
     @staticmethod
+    def _moves_to_reorder(before_ids, after_ids):
+        """Sequential ``(id, absolute_index)`` moves turning ``before_ids``
+        into ``after_ids``, each applied as remove-then-insert.
+
+        Derived from the RESULT rather than from the selection. The previous
+        version emitted ``(selected_id, target + offset)``, which assumed the
+        selection ends up contiguous starting at its new minimum — true for
+        Top/Bottom, false for Up/Down, which move each row one step and
+        deliberately preserve gaps. It also emitted downward moves in forward
+        order, and those do not compose: each removal shifts the rows after
+        it, so the second insert lands in the wrong place. Either way the
+        editor showed one order and the server ended up with another,
+        silently, until the next reload.
+
+        Walking the target left to right is correct by construction — once
+        position i matches it is never disturbed again — and usually emits
+        FEWER moves than there are selected rows.
+        """
+        cur = list(before_ids)
+        moves = []
+        for idx, want in enumerate(after_ids):
+            if idx >= len(cur) or cur[idx] == want:
+                continue
+            if want is None or want not in cur:
+                continue
+            cur.remove(want)
+            cur.insert(idx, want)
+            moves.append((want, idx))
+        return moves
+
+    @staticmethod
     def _block_move(items, sel, where):
         """Move the selected indices as one block. Returns (items, new_sel)
         or None when nothing moves. Shared by the queue and the playlist
@@ -323,13 +354,14 @@ class QueueEditMixin:
         moved = self._block_move(items, sel, where)
         if moved is None:
             return
+        # `items` still references the PRE-move list (_block_move copies),
+        # which is what the server currently has.
         route["_items"], route["_sel"] = moved
-        target = min(route["_sel"])
         server = route.get("server") or self.server
         pid = route["item_id"]
-        picked = [items[i] for i in sel]
-        batch = [(e.get("PlaylistItemId"), target + o)
-                 for o, e in enumerate(picked) if e.get("PlaylistItemId")]
+        batch = self._moves_to_reorder(
+            [e.get("PlaylistItemId") for e in items],
+            [e.get("PlaylistItemId") for e in route["_items"]])
         self.invalidate()
         if not batch:
             return

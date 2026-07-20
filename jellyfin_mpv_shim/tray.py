@@ -1,7 +1,7 @@
 """System tray icon (pystray / AppIndicator), decoupled from the Tk GUI.
 
-The tray used to live inside ``gui_mgr`` alongside the Tk browser process;
-the in-window mpvtk browser doesn't import gui_mgr (and shouldn't — it pulls
+The tray used to live alongside the old Tk browser process; the in-window
+browser has no such process, so this stands alone (and must — it pulls
 in Tk), so the tray lives here and either UI can own one.
 
 **It runs in a separate PROCESS, not a thread.** pystray needs its own

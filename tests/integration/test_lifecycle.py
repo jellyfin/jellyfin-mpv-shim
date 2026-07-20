@@ -12,7 +12,6 @@ deterministic and non-hanging:
 * ``ClientManager.stop()`` — idempotent, and prompt even with an in-flight
   reconnect sleep parked on ``_stop_event`` (reuses the seams from
   test_clients_concurrency).
-* ``gui_mgr.UserInterface.on_browser_died`` — detaches the log / sync callbacks
   and drops the dead child's command queue (the fork-echo / queue-leak fix).
 
 Determinism: threads are driven by their trigger Events and woken by hand;
@@ -259,47 +258,6 @@ class ClientManagerStopTest(unittest.TestCase):
         cm.stop()
         self.assertEqual(cm.clients, {})
         self.assertEqual(c.stopped, 1, "idempotent stop() re-stopped a client")
-
-
-class BrowserDeathDetachTest(unittest.TestCase):
-    """gui_mgr.on_browser_died must detach the forwarding callbacks and drop the
-    dead child's command queue. A real child process is avoided here (fork under
-    a test runner is flaky); the process is mocked and on_browser_died is driven
-    directly — which is exactly the leak/echo path being pinned."""
-
-    def test_on_browser_died_detaches_callbacks_and_nulls_queue(self):
-        import jellyfin_mpv_shim.gui_mgr as gui_mgr
-
-        ui = gui_mgr.UserInterface.__new__(gui_mgr.UserInterface)
-        ui._shutting_down = False
-        ui.browser_ready = True
-        ui.tray_alive = True  # so it minimizes-to-tray rather than quitting
-        ui.browser_cmd_queue = mock.Mock()
-        ui.browser_process = mock.Mock()
-        ui.browser_process.join = mock.Mock()
-
-        # Sentinels the browser launch would have installed.
-        sentinel_log = lambda line: None
-        sentinel_change = lambda: None
-        sentinel_progress = lambda item_id, name, downloaded, total: None
-        gui_mgr.guiHandler.callback = sentinel_log
-        gui_mgr.syncManager.on_change = sentinel_change
-        gui_mgr.syncManager.on_progress = sentinel_progress
-        self.addCleanup(setattr, gui_mgr.guiHandler, "callback", None)
-
-        ui.on_browser_died(None)
-
-        # The forwarding callbacks are detached (reset to no-ops, not the
-        # sentinels), and the dead child's queue is dropped.
-        self.assertIsNot(gui_mgr.guiHandler.callback, sentinel_log)
-        self.assertIsNone(gui_mgr.guiHandler.callback)
-        self.assertIsNot(gui_mgr.syncManager.on_change, sentinel_change)
-        self.assertIsNot(gui_mgr.syncManager.on_progress, sentinel_progress)
-        self.assertIsNone(ui.browser_cmd_queue)
-        self.assertIsNone(ui.browser_process)
-        # A push into the (now detached) sync callbacks must be a safe no-op.
-        gui_mgr.syncManager.on_change()
-        gui_mgr.syncManager.on_progress("i", "n", 1, 2)
 
 
 if __name__ == "__main__":

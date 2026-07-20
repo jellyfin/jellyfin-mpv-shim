@@ -402,7 +402,7 @@ class SettingsMixin:
         connection per server, built once at construction, so the removed
         server stayed in the switcher and stayed browsable — while playback
         refused it, because that path re-checks the credentials. Tk rebuilt
-        (gui_mgr.refresh_servers); this is the equivalent.
+        this is where that happens.
         """
         if self.controller is None:
             return

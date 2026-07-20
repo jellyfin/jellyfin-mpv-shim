@@ -5425,7 +5425,24 @@ class TestNextUp(unittest.TestCase):
 class TestPlaylistReorderBatch(unittest.TestCase):
     """A move is an absolute-index operation, so a multi-row move only
     composes if each lands before the next. They were submitted as N
-    concurrent tasks on a 4-worker pool, landing in arbitrary order."""
+    concurrent tasks on a 4-worker pool, landing in arbitrary order.
+
+    These used to assert the batch NAMED the selected rows in selection
+    order. That encoded a broken contract: the emitted indexes assumed the
+    selection ends up contiguous, and downward moves do not compose in
+    forward order, so the server ended up with an order different from the
+    one on screen (see tests/test_playlist_edit.py, which found it in 95 of
+    300 random selections). The batch is now derived from the RESULT, so
+    what matters is that replaying it reproduces the screen — not which
+    rows it happens to name."""
+
+    @staticmethod
+    def _replay(before_ids, moves):
+        order = list(before_ids)
+        for entry_id, index in moves:
+            order.remove(entry_id)
+            order.insert(index, entry_id)
+        return order
 
     def setUp(self):
         self.ctl = FakeController()
@@ -5444,14 +5461,14 @@ class TestPlaylistReorderBatch(unittest.TestCase):
 
     def test_a_multi_row_move_is_one_ordered_batch(self):
         route = self.b.route
+        before = [e["PlaylistItemId"] for e in route["_items"]]
         self.b._pe_set_sel(route, {0, 1})
         self.b._pe_move(route, "down")
         self.assertEqual(len(self.batches), 1, "not a single batch")
-        moves = self.batches[0]
-        self.assertEqual([m[0] for m in moves], ["e0", "e1"],
-                         "selection order not preserved")
-        self.assertEqual([m[1] for m in moves], sorted(m[1] for m in moves),
-                         "target indexes are not ascending")
+        self.assertEqual(
+            self._replay(before, self.batches[0]),
+            [e["PlaylistItemId"] for e in route["_items"]],
+            "the server would end up in a different order than the screen")
 
     def test_the_batch_targets_the_shown_positions(self):
         route = self.b.route
@@ -5473,11 +5490,15 @@ class TestPlaylistReorderBatch(unittest.TestCase):
                          "left the optimistic order after a failure")
 
     def test_entries_without_an_id_are_skipped(self):
+        """A row the server cannot address must not appear in the batch —
+        and must not derail the rows that can."""
         self.entries[1].pop("PlaylistItemId")
         self.b.route["_items"] = list(self.entries)
         self.b._pe_set_sel(self.b.route, {0, 1})
         self.b._pe_move(self.b.route, "down")
-        self.assertEqual([m[0] for m in self.batches[0]], ["e0"])
+        named = [m[0] for m in self.batches[0]]
+        self.assertNotIn(None, named, "emitted a move for an unaddressable row")
+        self.assertTrue(named, "emitted nothing at all")
 
 
 class TestOrphanedDownloadOwnership(unittest.TestCase):

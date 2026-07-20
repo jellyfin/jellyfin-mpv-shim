@@ -91,10 +91,8 @@ def configure_log_file(destination: str, level: str = "info"):
 class RingLogHandler(logging.Handler):
     """Keeps the last N formatted log lines in memory for in-app log views.
 
-    gui_mgr has its own copy of this (it also forwards lines over IPC to the
-    Tk browser process); the in-window mpvtk browser runs in *this* process and
-    just reads the ring directly, so it doesn't have to import gui_mgr (and
-    with it Tk/pystray)."""
+    The browser runs in *this* process and reads the ring directly, so the
+    log viewer needs no IPC and no separate copy of the buffer."""
 
     def __init__(self, capacity=2000):
         super().__init__()

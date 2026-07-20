@@ -1,6 +1,6 @@
 """Settings-schema helpers for the mpvtk browser's Settings view.
 
-Decoupled from gui_mgr (which pulls in Tk/pystray): classifies the same
+Classifies the
 ``conf.Settings`` annotations the Tk browser's form uses, and reads/writes
 the in-process ``conf.settings`` singleton directly (no IPC — the mpvtk
 browser runs in the player's process).
@@ -12,17 +12,15 @@ from ..conf import Settings, settings
 from ..i18n import _
 
 # Structured / non-scalar config that the flat form can't express, plus
-# internal bookkeeping. Everything else is editable — including browser_ui,
-# which is the only in-UI way back to the Tk browser.
+# internal bookkeeping. Everything else is editable.
 # client_uuid is the device identity the server keys sessions on; editing it
 # free-text orphans every session and playstate the server has recorded.
-_HIDDEN = {"language_config", "audio_output", "close_prompt_shown",
-           "client_uuid"}
+_HIDDEN = {"language_config", "audio_output", "client_uuid"}
 
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".
 SECTIONS = [
-    (_("Interface"), ["player_name", "browser_ui", "browser_fullscreen",
+    (_("Interface"), ["player_name", "browser_fullscreen",
                       "headless",
                       "enable_gui", "start_minimized", "close_to_tray",
                       "fullscreen", "enable_osc", "osc_style",
@@ -50,7 +48,6 @@ SECTIONS = [
 
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
-    "browser_ui": ["mpvtk", "tk"],
     "subtitle_position": ["top", "bottom", "middle"],
     "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
     "shader_pack_subtype": ["lq", "hq"],
@@ -78,7 +75,6 @@ LABEL_OVERRIDES = {
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "close_to_tray": _("Close to Tray (keep running)"),
     "osc_style": _("Player Controls Style"),
-    "browser_ui": _("Library Browser UI"),
     "headless": _("Cast-target mode (no library browsing)"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
@@ -168,7 +164,7 @@ def materialize_language_preset():
     """The language dropdown writes language_config rules (README-style): a
     preset generates rules, Unset clears them, Custom leaves them alone.
 
-    Ported from gui_mgr; without it choosing "Dubbed (shows only)" persists a
+    Without it, choosing "Dubbed (shows only)" persists a
     string that nothing reads and track selection never changes."""
     from ..language_config import preset_rules, parse_language_config
 

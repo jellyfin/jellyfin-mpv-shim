@@ -2,7 +2,7 @@
 
 Exposes the same small surface ``mpv_shim.main`` expects (``start``,
 ``login_servers``, ``stop``, ``open_player_menu``, ``stop_callback``) as
-``cli_mgr``/``gui_mgr``, but instead of a Tk window in a child process it
+``cli_mgr``, but instead of a separate window in a child process it
 attaches the mpvtk UI to the player's own mpv window (main process, next
 to ``playerManager``).
 
@@ -27,7 +27,7 @@ log = logging.getLogger("mpvtk_browser.ui")
 
 def _collect_servers():
     """Connected servers with tokens — what the browser browses with.
-    Mirrors gui_mgr._collect_servers so LibrarySource gets the same shape."""
+    The shape LibrarySource expects."""
     name_by_uuid = {
         cred.get("uuid"): cred.get("Name") or cred.get("address")
         for cred in list(clientManager.credentials)
@@ -243,7 +243,7 @@ class _PlayerController:
             # or the real server is simply unreachable): play the local file.
             # start_playback tolerates client=None — offline_video_factory
             # resolves each item against the catalog instead. Mirrors
-            # gui_mgr.on_play.
+            # the play path.
             item_ids = list(item_ids)
             # Check the item that will actually start, not item_ids[0]:
             # starting a playlist partway through is the common case.
@@ -262,7 +262,7 @@ class _PlayerController:
         except Exception:
             log.error("mpvtk browser failed to start playback", exc_info=True)
 
-    # -- now-playing bar transport (swallow errors like gui_mgr does) -----
+    # -- now-playing bar transport (failures are logged, not surfaced) ---
 
     @staticmethod
     def _act(fn):
@@ -348,7 +348,7 @@ class _PlayerController:
 
     @staticmethod
     def _queue_offline_watched(server_uuid, item_id, watched):
-        """Queue an offline watched mark (mirrors gui_mgr's offline branch).
+        """Queue an offline watched mark.
 
         Only "watched" is representable: the pending queue is advance-only,
         so un-watching offline is dropped rather than silently half-applied.

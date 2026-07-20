@@ -83,10 +83,6 @@ class Settings(SettingsBase):
     # out from under you when you press play.
     fullscreen: bool = False
     enable_gui: bool = True
-    # Which library browser to run: "mpvtk" (the in-mpv-window UI) or "tk"
-    # (the legacy Tkinter browser). Temporary migration switch — the Tk UI is
-    # slated for removal once the mpvtk UI reaches parity (see mpvtk/MIGRATION.md).
-    browser_ui: str = "mpvtk"
     # Run the in-window library browser fullscreen. Off by default: browsing is
     # a desktop activity, and `fullscreen` (which still applies to playback)
     # would otherwise make the browser take over the screen at startup.
@@ -96,8 +92,6 @@ class Settings(SettingsBase):
     # (keeping the app alive as a cast target) rather than exiting. Defaults to
     # the historical behaviour; the user is prompted once on first close.
     close_to_tray: bool = True
-    # Set once the first-close prompt has been answered, so it isn't shown again.
-    close_prompt_shown: bool = False
     library_image_cache_mb: int = 256
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
@@ -200,8 +194,8 @@ class Settings(SettingsBase):
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
     # In-player UI: "mpvtk" (the in-window playback HUD rendered by the
-    # mpvtk browser — jellyfin-web styled, remote navigable; requires
-    # browser_ui "mpvtk", falls back to "mpv" otherwise), "mpv" (stock
+    # library browser — jellyfin-web styled, remote navigable; needs
+    # enable_gui, falls back to "mpv" otherwise), "mpv" (stock
     # mpv OSC patched with trickplay previews), or "default" (whatever
     # OSC is built into the mpv binary / the user's own scripts).
     # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to

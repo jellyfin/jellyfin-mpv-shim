@@ -41,7 +41,7 @@ JMS_TEST_BACKEND=jsonipc python3 -m unittest tests.integration.test_player_state
 JMS_TEST_BACKEND=libmpv xvfb-run -a python3 -m unittest tests.integration.test_realmpv_smoke
 
 # Tk browser UI on a headless box (self-skips if no display and no xvfb):
-xvfb-run -a python3 -m unittest tests.integration.test_browser_ui
+xvfb-run -a python3 -m unittest tests.integration.test_mpvtk_browser
 ```
 
 The runner prints a per-leg / per-backend PASS/FAIL summary so an
@@ -178,7 +178,6 @@ passes — exactly the visibility the maintainer asked for.
 | `test_mpv_lifecycle` | per-backend fake | commit `012961c` lifecycle: leak-free re-open (`_teardown_player` stops old trickplay `join=False`, `TrickPlay` daemon); **`StaleQueueDrainTest`** — `_teardown_player`/re-open drains the outgoing mpv's stale `_handle_mpv_shutdown`/`finished_callback` tasks so the new `_video` survives and eof still queues (the real re-open-wedge fix); `idle_quit()` gating (video/menu/syncplay/webview no-op; fires on in-process libmpv **and** managed external; no-ops only for user-launched ext) with backend globals patched to drive both branches on both fake legs; intentional-quit `handle_shutdown` guard stays silent (vs. teardown control); `_ensure_mpv` re-open clears `_idle_quit` | real clip re-play is covered by `test_realmpv_smoke` |
 | `test_keyboard_controls` | per-backend fake | key-binding **routing** on the real singleton: stop/next/prev/watched/unwatched queue the right task; media keys honour `media_key_seek` (seek vs. next, intro-skip); pause toggles vs. confirms menu; menu open/close and the loading guard; nav keys route to `menu.menu_action` when shown else seek (right/up skip intro); `ok` always → `menu_action("ok")`; `esc` back vs. leave-fullscreen; fullscreen toggle; a full-sweep mis-wiring/crash guard | `kb_debug` (~) never pressed — its handler calls `pdb.set_trace()` and would hang; `kb_kill_shader`'s `settings.save()` is mocked (no config path under the fake harness). Handlers are asserted at the routing layer (queued task / stubbed collaborator), not by running full playback. |
 | `test_lifecycle` | per-backend fake | `ActionThread` / `TimelineManager` tick → survive a collaborator exception → `stop()` joins promptly + dead; action-thread final drain; `PlayerManager.terminate()` → stop + trickplay stop + (jsonipc only) player terminate; `ClientManager.stop()` prompt with an in-flight reconnect sleep + idempotent; `gui_mgr.on_browser_died` detaches log/sync callbacks and nulls the browser cmd queue | `on_browser_died` is driven with the child **process mocked** (a real fork under the test runner is flaky) — the detach/leak path is what's pinned, not a live child crash. |
-| `test_browser_ui` | display, once (xvfb) | a real `BrowserApp` + `run_async`→`_ui_queue`→pump against a fake in-memory `LibrarySource`: navigate/open_item/go_back; stale result dropped after navigating away (current-view guard) and superseded by a newer epoch (epoch guard); `sync_state` swaps the Detail download button in place (no rebuild); `DownloadsPanel` coalesces a `sync_state` burst to one refresh while `on_download_progress` still lands; server switcher keyed by uuid (two same-named servers stay distinct); offline-banner Retry keeps `work_offline` until a **confirmed** reconnect | Artwork is disabled (`image_spec` → None), so the thumbnail store / decode pipeline isn't exercised here. Grid infinite-scroll, search, login/quick-connect and the settings form are constructed but only lightly driven. |
 | `test_realmpv_smoke` | per-backend real (xvfb) | real decode → progress → EOF auto-advance → stop; **#541** seek-to-end fires EOF/auto-advance; **012961c** idle-quit lifecycle: fires + re-opens then **auto-advances** on both libmpv (in-process re-create) and jsonipc (fresh process); `IdleQuitReopenIsolatedTest` runs the full idle-quit→re-open→auto-advance in a subprocess (ADVANCEs on both backends) | benign `ResourceWarning` on jsonipc teardown |
 
 ## Roadmap — implemented vs. remaining
@@ -195,7 +194,7 @@ passes — exactly the visibility the maintainer asked for.
   auto-advance → stop, seek-to-end EOF (#541), and the `012961c` idle-quit
   lifecycle (fires + re-opens + auto-advances on both backends, plus a
   subprocess end-to-end auto-advance check), per backend under xvfb.
-* Tier 3: `test_browser_ui` (7) — live `BrowserApp` + `_ui_queue` pump under
+* Tier 3: `test_mpvtk_browser` / `test_mpvtk_auth` — the real browser attached to a real mpv under
   xvfb against a fake `LibrarySource`.
 * The runner + backend matrix orchestration.
 

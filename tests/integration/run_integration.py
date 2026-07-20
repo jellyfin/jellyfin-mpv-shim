@@ -77,13 +77,10 @@ PER_BACKEND_REAL = [
     "tests.integration.test_mpvtk_auth",
 ]
 
-# Tk browser UI under a display -> backend-agnostic (never imports player.py),
-# run once, wrapped in xvfb when headless. The OSC lua smoke drives the
-# external mpv binary directly, so it is also backend-agnostic.
+# Backend-agnostic, run once. The harness's own contract: the fake mpv
+# module must not survive into sys.modules for later importers (it spawns
+# its own subprocesses).
 DISPLAY_ONCE = [
-    "tests.integration.test_browser_ui",
-    # The harness's own contract: the fake mpv module must not survive into
-    # sys.modules for later importers (it spawns its own subprocesses).
     "tests.integration.test_harness_isolation",
 ]
 

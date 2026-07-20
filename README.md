@@ -262,9 +262,6 @@ You can use the config file to enable and disable features.
 - `fullscreen` - Fullscreen the player when starting playback. Default: `false`
   - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
-- `browser_ui` - Which library browser to use. Default: `mpvtk`
-  - `mpvtk` - The library browser is drawn inside the player's own mpv window. One window shows the browser when idle and the video when playing.
-  - `tk` - The legacy Tkinter browser, in its own window. Being removed once the mpvtk UI is signed off.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
   - Toggling fullscreen in the player (`f`, or the on-screen control) is remembered: it writes `browser_fullscreen` while browsing and `fullscreen` while something is playing.
@@ -281,9 +278,9 @@ You can use the config file to enable and disable features.
     stats, screenshot), favorites, volume, and Skip Intro/Credits.
     Playback runs clean; mouse motion (or the `hud_wake_key`) summons the
     controls, and a few seconds without input hides them again. Fully
-    navigable with a keyboard or a Jellyfin remote. Requires
-    `browser_ui: mpvtk` (falls back to `mpv` otherwise). `jellyfin` is
-    accepted as a legacy alias.
+    navigable with a keyboard or a Jellyfin remote. Needs `enable_gui`
+    (falls back to `mpv` otherwise). `jellyfin` is accepted as a legacy
+    alias.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
@@ -745,9 +742,9 @@ components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
 using Windows and would like mpv to maximize properly, `pywin32` is also needed. The GUI
-component uses `pystray` and `tkinter`, but there is a fallback cli mode. The library browser and
-display mirroring are drawn inside the player's own mpv window (see `browser_ui`) and need `Pillow`;
-no webview and no second window are required.
+component uses `pystray`, but there is a fallback cli mode. The library browser, the playback
+HUD and the cast screen are all drawn inside the player's own mpv window and need `Pillow`; no
+Tk, no webview and no second window are required.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to
@@ -804,21 +801,15 @@ If you are on Linux, you can install via pip. You'll need [libmpv](https://githu
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
 
-If you would like the GUI and systray features, also install `pystray` and `tkinter`:
+If you would like the library browser and systray features, also install `pystray` and `Pillow`:
 
 ```bash
-sudo pip3 install pystray
-sudo apt install python3-tk
+sudo pip3 install 'jellyfin-mpv-shim[gui]'
 ```
 
-If you would like display mirroring support, install the mirroring dependencies (tkinter + Pillow,
-the same packages as the GUI):
-
-```bash
-sudo apt install python3-tk python3-pil python3-pil.imagetk
-# -- OR --
-sudo pip3 install jellyfin-mpv-shim[mirror]
-```
+Tkinter is no longer required — the library browser, the playback HUD and the cast screen are
+all drawn inside the player's own mpv window. If you previously installed `python3-tk` only for
+this application, you can remove it.
 
 Discord rich presence support:
 
@@ -851,9 +842,9 @@ To install the CLI version:
 5. Install jellyfin-mpv-shim. `pipx install jellyfin-mpv-shim`
 6. Run `jellyfin-mpv-shim`.
 
-If you'd like to install the GUI version, you need a working copy of tkinter.
+If you'd like to install the GUI version:
 
-1. Install TK and mpv. `brew install python-tk mpv`
+1. Install mpv. `brew install mpv`
 2. Install python3. `brew install python`
 3. Install pipx. `brew install pipx`
 4. Set path `pipx ensurepath`

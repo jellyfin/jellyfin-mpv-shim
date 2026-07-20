@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Regenerate the Material icon path table used by the library browser UI.
 
-The Tkinter browser used to label its buttons with unicode/emoji glyphs
+The library browser used to label its buttons with unicode/emoji glyphs
 (▶ ⏸ ⚙ 🔀 …). Those render inconsistently across platforms -- emoji get
 boxed frames on Windows and some code points fall back to tofu -- so the
 UI now rasterizes Google Material Design icons instead (the same icon set
-jellyfin-web uses). See jellyfin_mpv_shim/library_browser/icons.py for
+jellyfin-web uses). See jellyfin_mpv_shim/mpvtk/vector.py for
 the rasterizer.
 
 This script downloads the SVG sources for the icons the UI needs and

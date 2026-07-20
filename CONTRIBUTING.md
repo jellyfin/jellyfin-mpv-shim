@@ -40,7 +40,7 @@ Current Dependencies:
  - `pillow` - Provides image processing for trickplay thumbnails, the systray icon, and display mirroring. (Optional)
  - `pywin32` - Allows window management on Windows. (Optional)
  - `pystray` - Provides systray icon. (Optional)
- - `tkinter` - Provides the systray GUI and the legacy `browser_ui=tk` library browser. (Optional)
+ - `pystray` - Provides the systray icon. (Optional)
  - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview
@@ -53,7 +53,8 @@ Current Dependencies:
  - `conffile.py` - Generic module for getting settings folder locations on different platforms.
  - `constants.py` - Constant values for the application that apply to multiple modules.
  - `event_handler.py` - Handles remote control events from the Jellyfin websocket connection.
- - `gui_mgr.py` - Provides systray icon and tkinter GUI.
+ - `tray.py` - Provides the systray icon (its own process; pystray needs the main thread on macOS).
+ - `mpvtk_browser/ui.py` - Hosts the in-window library browser as a `user_interface`.
      - Note: This is a mess of `multiprocessing` processes and event threads to work around various bugs/issues.
  - `i18n.py` - Contains the application translation helpers. Many modules import the `_` function for user-facing strings.
  - `log_utils.py` - This implements logging routines, particularly managing the logger and sanitizing log messages.

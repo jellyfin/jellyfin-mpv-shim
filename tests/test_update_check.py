@@ -1,6 +1,6 @@
 """Unit tests for update-notice routing.
 
-When a UI is running (gui_mgr sets ``playerManager.notify_update``) the update
+When a UI is running (it sets ``playerManager.notify_update``) the update
 notice must go to that callback (the browser banner); otherwise it falls back
 to an MPV OSD toast. These exercise the routing without any network or Tk.
 """

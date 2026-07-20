@@ -1,15 +1,15 @@
-"""Tests for the thumbnail store's byte-bounded in-memory LRU (MemoryCache).
+"""The thumbnail store's byte-bounded in-memory LRU (MemoryCache).
 
-The cache is deliberately Tk-free so its eviction policy can be exercised
-without a display. We pass an explicit sizer so entries have known byte sizes;
-the real store sizes PhotoImages as width*height*4.
+The cache has no UI dependency, so its eviction policy is exercisable
+without a display. An explicit sizer gives entries known byte sizes; the
+real store sizes decoded images as width*height*4.
 
-The ThumbnailStore itself, MediaTile cancellation, and the Tk views need a
-running display and are not unit-tested here.
+(Ported from the Tk browser's identical cache when that browser was
+removed. The eviction policy is the same and so are these tests.)
 """
 import unittest
 
-from jellyfin_mpv_shim.library_browser.thumbnails import MemoryCache
+from jellyfin_mpv_shim.mpvtk_browser.thumbnails import MemoryCache
 
 
 def sizer(value):
@@ -78,11 +78,11 @@ class StoreMemoryBoundWiringTest(unittest.TestCase):
     the in-memory decoded-image budget silently stayed at the hardcoded
     default, so a long browse session ballooned RAM no matter what the user
     configured. The store must honour max_mem_mb, and the sizer must count
-    Tk's real ~8-bytes-per-pixel resident cost (4B master + display copy)."""
+    the real resident cost of a decoded image."""
 
     def _store(self, **kw):
         import tempfile
-        from jellyfin_mpv_shim.library_browser.thumbnails import ThumbnailStore
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
 
         tmp = tempfile.mkdtemp(prefix="jms-thumbtest-")
         self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
@@ -94,17 +94,24 @@ class StoreMemoryBoundWiringTest(unittest.TestCase):
         store = self._store(max_mem_mb=7)
         self.assertEqual(store._mem._max_bytes, 7 * 1024 * 1024)
 
-    def test_photo_bytes_counts_eight_bytes_per_pixel(self):
-        from jellyfin_mpv_shim.library_browser.thumbnails import ThumbnailStore
+    def test_the_sizer_counts_the_real_decoded_size(self):
+        """A sizer that under-reports makes max_mem_mb a fiction. The Tk
+        store counted ~8 bytes/px (PhotoImage master + display copy); this
+        one holds PIL images, so it is width * height * bands."""
+        from PIL import Image as PILImage
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import _image_bytes
 
-        class FakePhoto:
-            def width(self):
-                return 10
+        self.assertEqual(_image_bytes(PILImage.new("RGBA", (10, 20))),
+                         10 * 20 * 4)
+        self.assertEqual(_image_bytes(PILImage.new("RGB", (10, 20))),
+                         10 * 20 * 3)
 
-            def height(self):
-                return 20
+    def test_an_unsizable_object_is_zero_rather_than_a_crash(self):
+        """Eviction runs on the loop thread; raising there would take the
+        UI down over a cache accounting detail."""
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import _image_bytes
 
-        self.assertEqual(ThumbnailStore._photo_bytes(FakePhoto()), 10 * 20 * 8)
+        self.assertEqual(_image_bytes(object()), 0)
 
 
 if __name__ == "__main__":

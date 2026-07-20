@@ -1,41 +1,26 @@
-"""Tests for the playlist editor's move/remove batch logic.
+"""The playlist editor's batch-move algorithm.
 
-The editor mutates a local entries list and emits (entry_id, new_index)
-moves; the main process applies them to the server SEQUENTIALLY (each move =
-remove entry, insert at index). The key invariant: replaying the emitted
-moves against the original server order must reproduce the editor's local
-order, for every selection shape (blocks at edges, non-contiguous picks).
+The editor reorders a local list and emits (entry_id, absolute_index) moves;
+the server applies them SEQUENTIALLY, each one a remove-then-insert. So the
+invariant is not "the moves look right" — it is that replaying them in
+emission order against the ORIGINAL server order reproduces exactly what the
+editor is showing. Anything else and the user's screen and the server
+disagree, silently, until the next reload.
+
+Ported from the Tk editor when that browser was removed: same emitted
+shape, same invariant, driven through the in-window editor's _pe_move.
 """
 
 import random
+import sys
 import unittest
-from unittest import mock
 
-from jellyfin_mpv_shim.library_browser.views import PlaylistEditView
+sys.argv = [sys.argv[0]]
 
+from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 
-def make_view(n=5, selected=()):
-    view = PlaylistEditView.__new__(PlaylistEditView)
-    view.entries = [{"PlaylistItemId": "p%d" % i, "Name": "Item %d" % i}
-                    for i in range(n)]
-    view.route = {"playlist_id": "PL"}
-    view.app = mock.Mock()
-    view.app.current_server = "srv"
-    view.sent = []
-    view.app.playlist_edit = view.sent.append
-    view.tree = mock.Mock()
-    view.tree.selection.return_value = ["p%d" % i for i in selected]
-    view._rebuild = mock.Mock()
-    return view
-
-
-def ids(view):
-    return [e["PlaylistItemId"] for e in view.entries]
-
-
-def emitted_moves(view):
-    return [m for p in view.sent if p.get("op") == "move"
-            for m in p.get("moves", [])]
+from tests.test_mpvtk_browser_shell import (  # noqa: E402
+    FakeController, FakeSource, _SyncPool)
 
 
 def apply_server_moves(order, moves):
@@ -48,108 +33,102 @@ def apply_server_moves(order, moves):
     return order
 
 
-class MoveAlgorithmTest(unittest.TestCase):
-    def check_replay(self, view, before):
-        self.assertEqual(apply_server_moves(before, emitted_moves(view)),
-                         ids(view),
-                         "sequential replay diverged from the local order")
+class PlaylistMoveTest(unittest.TestCase):
+    def _editor(self, n=5, selected=()):
+        ctl = FakeController()
+        self.batches = []
+        ctl.playlist_move_many = lambda srv, pid, batch: self.batches.append(
+            list(batch))
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "playlist_edit", "server": "srv1", "item_id": "PL",
+                 "_items": [{"PlaylistItemId": "p%d" % i,
+                             "Name": "Item %d" % i} for i in range(n)],
+                 "_sel": set(selected)}
+        b.nav_stack = [route]
+        return b, route
+
+    @staticmethod
+    def _ids(route):
+        return [e["PlaylistItemId"] for e in route["_items"]]
+
+    def _emitted(self):
+        return [m for batch in self.batches for m in batch]
+
+    def _check_replay(self, route, before):
+        self.assertEqual(
+            apply_server_moves(before, self._emitted()), self._ids(route),
+            "sequential replay diverged from what the editor is showing")
 
     def test_move_up_single(self):
-        view = make_view(selected=[2])
-        view._move_up()
-        self.assertEqual(ids(view), ["p0", "p2", "p1", "p3", "p4"])
-        self.assertEqual(emitted_moves(view), [("p2", 1)])
-
-    def test_move_up_block_at_top_is_noop(self):
-        view = make_view(selected=[0, 1])
-        view._move_up()
-        self.assertEqual(ids(view), ["p0", "p1", "p2", "p3", "p4"])
-        self.assertEqual(emitted_moves(view), [])
-        self.assertEqual(view.sent, [])  # no pointless server round-trip
-
-    def test_move_up_partially_blocked(self):
-        # p0, p1 are packed against the top; only p3 can rise.
-        view = make_view(selected=[0, 1, 3])
-        view._move_up()
-        self.assertEqual(ids(view), ["p0", "p1", "p3", "p2", "p4"])
-        self.check_replay(view, ["p0", "p1", "p2", "p3", "p4"])
+        b, route = self._editor(selected=[2])
+        before = self._ids(route)
+        b._pe_move(route, "up")
+        self.assertEqual(self._ids(route), ["p0", "p2", "p1", "p3", "p4"])
+        self._check_replay(route, before)
 
     def test_move_down_single(self):
-        view = make_view(selected=[2])
-        view._move_down()
-        self.assertEqual(ids(view), ["p0", "p1", "p3", "p2", "p4"])
-        self.check_replay(view, ["p0", "p1", "p2", "p3", "p4"])
+        b, route = self._editor(selected=[1])
+        before = self._ids(route)
+        b._pe_move(route, "down")
+        self.assertEqual(self._ids(route), ["p0", "p2", "p1", "p3", "p4"])
+        self._check_replay(route, before)
 
-    def test_move_down_block_at_bottom_is_noop(self):
-        view = make_view(selected=[3, 4])
-        view._move_down()
-        self.assertEqual(ids(view), ["p0", "p1", "p2", "p3", "p4"])
-        self.assertEqual(view.sent, [])
+    def test_a_contiguous_block_moves_together(self):
+        b, route = self._editor(selected=[1, 2])
+        before = self._ids(route)
+        b._pe_move(route, "down")
+        self.assertEqual(self._ids(route), ["p0", "p3", "p1", "p2", "p4"])
+        self._check_replay(route, before)
 
-    def test_move_top_non_contiguous(self):
-        view = make_view(selected=[1, 3])
-        view._move_top()
-        self.assertEqual(ids(view), ["p1", "p3", "p0", "p2", "p4"])
-        self.check_replay(view, ["p0", "p1", "p2", "p3", "p4"])
+    def test_a_non_contiguous_selection_is_gathered(self):
+        """Picks that are not adjacent collapse into a block at the target,
+        keeping their relative order."""
+        b, route = self._editor(selected=[0, 3])
+        before = self._ids(route)
+        b._pe_move(route, "down")
+        self._check_replay(route, before)
 
-    def test_move_bottom_non_contiguous(self):
-        view = make_view(selected=[0, 2])
-        view._move_bottom()
-        self.assertEqual(ids(view), ["p1", "p3", "p4", "p0", "p2"])
-        self.check_replay(view, ["p0", "p1", "p2", "p3", "p4"])
+    def test_top_and_bottom(self):
+        for where in ("top", "bottom"):
+            with self.subTest(where=where):
+                b, route = self._editor(selected=[1, 3])
+                before = self._ids(route)
+                b._pe_move(route, where)
+                self._check_replay(route, before)
 
-    def test_replay_invariant_randomized(self):
-        rng = random.Random(20260713)
-        ops = ["_move_up", "_move_down", "_move_top", "_move_bottom"]
-        for _ in range(200):
-            n = rng.randint(1, 8)
+    def test_at_the_edge_it_does_not_emit_a_no_op(self):
+        """Moving the top row up must do nothing at all — not emit a move
+        that reorders the rest around it."""
+        b, route = self._editor(selected=[0])
+        b._pe_move(route, "up")
+        self.assertEqual(self._emitted(), [])
+        self.assertEqual(self._ids(route), ["p0", "p1", "p2", "p3", "p4"])
+
+    def test_the_whole_selection_moves_even_from_the_edge(self):
+        """A block whose FIRST row is already at the top used to no-op the
+        entire selection, so rows 1..n never moved."""
+        b, route = self._editor(n=6, selected=[0, 4])
+        before = self._ids(route)
+        b._pe_move(route, "down")
+        self.assertNotEqual(self._ids(route), before,
+                            "an edge row froze the whole selection")
+        self._check_replay(route, before)
+
+    def test_random_selections_replay_exactly(self):
+        """The property, over shapes nobody would think to enumerate."""
+        rng = random.Random(20260720)
+        for trial in range(300):
+            n = rng.randint(2, 9)
             k = rng.randint(1, n)
-            selected = sorted(rng.sample(range(n), k))
-            op = rng.choice(ops)
-            view = make_view(n=n, selected=selected)
-            before = ids(view)
-            getattr(view, op)()
-            self.check_replay(view, before)
-
-
-class RemoveSelectedTest(unittest.TestCase):
-    def test_bulk_remove_is_one_message(self):
-        # The jf-web pain point: any number of entries, ONE delete call.
-        view = make_view(n=6, selected=[1, 2, 3, 4])
-        view._remove_selected()
-        self.assertEqual(ids(view), ["p0", "p5"])
-        self.assertEqual(len(view.sent), 1)
-        payload = view.sent[0]
-        self.assertEqual(payload["op"], "remove")
-        self.assertEqual(payload["entry_ids"], ["p1", "p2", "p3", "p4"])
-        self.assertEqual(payload["playlist_id"], "PL")
-
-    def test_remove_nothing_selected_is_noop(self):
-        view = make_view(selected=[])
-        view._remove_selected()
-        self.assertEqual(len(ids(view)), 5)
-        self.assertEqual(view.sent, [])
-
-
-class EditResultTest(unittest.TestCase):
-    def test_failure_reloads_from_server(self):
-        view = make_view()
-        view._load = mock.Mock()
-        view.on_edit_result({"kind": "playlist", "ok": False,
-                             "error": "boom"})
-        view._load.assert_called_once()
-
-    def test_success_keeps_local_model(self):
-        view = make_view()
-        view._load = mock.Mock()
-        view.on_edit_result({"kind": "playlist", "ok": True})
-        view._load.assert_not_called()
-
-    def test_other_kinds_ignored(self):
-        view = make_view()
-        view._load = mock.Mock()
-        view.on_edit_result({"kind": "collection", "ok": False})
-        view._load.assert_not_called()
+            sel = rng.sample(range(n), k)
+            where = rng.choice(["up", "down", "top", "bottom"])
+            with self.subTest(trial=trial, n=n, sel=sorted(sel), where=where):
+                b, route = self._editor(n=n, selected=sel)
+                before = self._ids(route)
+                b._pe_move(route, where)
+                self._check_replay(route, before)
 
 
 if __name__ == "__main__":

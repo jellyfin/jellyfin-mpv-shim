@@ -236,7 +236,7 @@ class PlayerManager(object):
         # position lands inside an outro segment (common on short videos).
         self._last_intro_msg_time = 0.0
 
-        # Optional callback (set by gui_mgr) fed a compact now-playing dict on
+        # Optional callback (set by the UI) fed a compact now-playing dict on
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
         self.on_playstate = None
@@ -286,7 +286,7 @@ class PlayerManager(object):
         # During video under the in-window OSC, the kb_menu key routes
         # here instead of the OSD menu. Returns True when handled.
         self.on_hud_menu = None
-        # Optional callback (set by gui_mgr) invoked (version, url) when an
+        # Optional callback (set by the UI) invoked (version, url) when an
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
         self.notify_update = None
@@ -383,9 +383,10 @@ class PlayerManager(object):
         osc_style = settings.osc_style
         if osc_style == "jellyfin":
             osc_style = "mpvtk"
-        if osc_style == "mpvtk" and settings.browser_ui != "mpvtk":
-            # The playback HUD lives inside the mpvtk browser; without
-            # that browser the patched stock OSC is the closest thing.
+        if osc_style == "mpvtk" and not settings.enable_gui:
+            # The playback HUD is rendered by the library browser; with the
+            # GUI disabled there is nothing to render it, so the patched
+            # stock OSC is the closest thing.
             osc_style = "mpv"
         if osc_style == "mpvtk" and not settings.thumbnail_osc_builtin:
             # Legacy opt-out: thumbnail_osc_builtin=False used to mean
@@ -801,7 +802,7 @@ class PlayerManager(object):
                 log.warning("Error when processing client-message.", exc_info=True)
 
         self._showing_browse_bg = False
-        if settings.browser_ui == "mpvtk" and settings.enable_gui:
+        if settings.enable_gui:
             # One window is shared by the browser and playback and the user
             # sizes it to suit, so mpv must not resize it on their behalf.
             # Two separate properties do that, and both default to yes:
@@ -1281,7 +1282,7 @@ class PlayerManager(object):
 
     def stop_to_browser(self):
         """Stop playback but keep the window, so the in-window browser can take
-        it back (the 'q' key while browser_ui=mpvtk). push_playstate(stopped)
+        it back (the 'q' key while the in-window browser is up). push_playstate(stopped)
         is what tells the browser to re-enter browse mode."""
         log.info("stop_to_browser: stopping playback, keeping the window")
         self.stop()

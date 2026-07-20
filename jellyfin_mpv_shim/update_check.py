@@ -66,7 +66,7 @@ class UpdateChecker:
                 self.notify()
 
     def notify(self):
-        """Surface the available update. When a UI is running (gui_mgr sets
+        """Surface the available update. When a UI is running (it sets
         ``notify_update``) the notice goes to the browser window; otherwise it
         falls back to an MPV OSD toast for CLI/headless users."""
         notify_ui = getattr(self.playerManager, "notify_update", None)

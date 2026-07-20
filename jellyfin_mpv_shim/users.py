@@ -57,7 +57,7 @@ def _new_id() -> str:
 class UserManager:
     def __init__(self):
         # Guards the users list / active id against concurrent switches and the
-        # gui_mgr action loop. Never held across network I/O.
+        # UI action loop. Never held across network I/O.
         self._lock = threading.RLock()
         self.users = []  # list of user dicts (see _new_user for the shape)
         self.active_id = None

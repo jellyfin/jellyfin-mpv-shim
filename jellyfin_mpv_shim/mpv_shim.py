@@ -71,36 +71,21 @@ def main():
 
     user_interface = None
     use_gui = False
-    gui_ready = None
     if settings.enable_gui:
-        if settings.browser_ui == "mpvtk":
-            try:
-                # The mpvtk browser rasterizes tiles with Pillow; probe it so
-                # a missing optional dep falls back cleanly.
-                import PIL  # noqa: F401
-                from .mpvtk_browser.ui import user_interface
+        try:
+            # The browser rasterizes tiles with Pillow; probe it here so a
+            # missing optional dep degrades to the CLI with one clear
+            # message, rather than failing somewhere deep in a view.
+            import PIL  # noqa: F401
+            from .mpvtk_browser.ui import user_interface
 
-                use_gui = True
-            except Exception:
-                log.warning(
-                    "Cannot load mpvtk browser UI; trying the Tk browser.",
-                    exc_info=True,
-                )
-        if not use_gui:
-            try:
-                # Tkinter is optional in some Python builds; probe it before
-                # committing to the GUI so we cleanly fall back to the CLI.
-                import tkinter  # noqa: F401
-                from .gui_mgr import user_interface
-
-                use_gui = True
-                gui_ready = Event()
-                user_interface.gui_ready = gui_ready
-            except Exception:
-                log.warning(
-                    "Cannot load GUI. Falling back to command line interface.",
-                    exc_info=True,
-                )
+            use_gui = True
+        except Exception:
+            log.warning(
+                "Cannot load the library browser (is Pillow installed?). "
+                "Falling back to the command line interface.",
+                exc_info=True,
+            )
 
     if not user_interface:
         from .cli_mgr import user_interface

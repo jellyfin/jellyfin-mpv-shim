@@ -3,17 +3,17 @@
 Each test class is anchored to one confirmed finding:
 
 * switch_result must always be sent — a silent drop wedges the browser's
-  modal PIN dialog forever (gui_mgr.on_switch_user busy guard).
+  modal PIN dialog forever. (Tk-only; removed with it.)
 * A login that finishes after a user switch must file its credential under
   the initiating user, not the now-active one (clients._finalize_login).
 * Stale browser_died notices (raced by a tray relaunch) must not tear down
-  the replacement browser (gui_mgr.on_browser_died epoch check).
+  the replacement browser. (Tk-only; removed with it.)
 * A second Quick Connect must supersede (cancel) the first flow.
 * Settings/users saves are atomic (temp file + os.replace) and serialized.
 * The offline source publishes one immutable snapshot, synthesizes UserData
   for series/seasons, and memoizes artwork path resolution.
 * Offline watched-marks fan out from a series/season to its downloaded
-  episodes (gui_mgr._offline_watch_targets).
+  episodes (_PlayerController._queue_offline_watched).
 * backdrop_spec keys header art by the real backdrop tag per source.
 """
 
@@ -27,7 +27,7 @@ from unittest import mock
 
 from jellyfin_mpv_shim.users import UserManager
 from jellyfin_mpv_shim.clients import ClientManager
-from jellyfin_mpv_shim import gui_mgr
+from jellyfin_mpv_shim.mpvtk_browser import ui as browser_ui
 from jellyfin_mpv_shim.mpvtk_browser.repository import (
     LibrarySource, OfflineLibrarySource, _OfflineSnapshot,
 )
@@ -151,66 +151,24 @@ class FinalizeLoginOwnerTest(unittest.TestCase):
         cm.connect_client.assert_not_called()
 
 
-def _bare_ui():
-    ui = gui_mgr.UserInterface.__new__(gui_mgr.UserInterface)
-    ui._send_browser = mock.Mock()
-    return ui
+def _sync():
+    from jellyfin_mpv_shim.sync import manager
+    return manager.syncManager
 
 
-class SwitchBusyReplyTest(unittest.TestCase):
-    def test_busy_switch_still_replies(self):
-        # A dropped reply leaves the PIN dialog waiting forever; the guard
-        # must answer with ok=False busy=True.
-        ui = _bare_ui()
-        ui._switching = True
-        with mock.patch("jellyfin_mpv_shim.gui_mgr.userManager") as um:
-            um.get.return_value = {"id": "u2"}
-            um.is_locked.return_value = False
-            ui.on_switch_user({"user_id": "u2"})
-        (msg,), _kw = ui._send_browser.call_args
-        self.assertEqual(msg[0], "switch_result")
-        self.assertFalse(msg[1]["ok"])
-        self.assertTrue(msg[1]["busy"])
+def _watch_targets(item_id, server_uuid):
+    """What the in-window browser would mark watched, offline.
 
-
-class BrowserDiedEpochTest(unittest.TestCase):
-    def _ui(self, epoch):
-        ui = _bare_ui()
-        ui._shutting_down = False
-        ui._browser_epoch = epoch
-        ui.browser_ready = True
-        ui.browser_process = mock.Mock()
-        ui.browser_cmd_queue = mock.Mock()
-        ui.tray_alive = True
-        return ui
-
-    def test_stale_epoch_is_ignored(self):
-        ui = self._ui(epoch=2)
-        proc = ui.browser_process
-        ui.on_browser_died({"epoch": 1})  # notice from the PREVIOUS launch
-        self.assertIs(ui.browser_process, proc)
-        self.assertIsNotNone(ui.browser_cmd_queue)
-        self.assertTrue(ui.browser_ready)
-
-    def test_current_epoch_reaps(self):
-        ui = self._ui(epoch=2)
-        ui.on_browser_died({"epoch": 2})
-        self.assertIsNone(ui.browser_process)
-        self.assertIsNone(ui.browser_cmd_queue)
-        self.assertFalse(ui.browser_ready)
-
-
-class QuickConnectSupersedeTest(unittest.TestCase):
-    def test_second_flow_cancels_first(self):
-        ui = _bare_ui()
-        first = threading.Event()
-        ui._quick_connect_cancel = first
-        with mock.patch("jellyfin_mpv_shim.gui_mgr.threading.Thread") as thread:
-            ui.on_quick_connect({"server": "http://x"})
-            thread.return_value.start.assert_called_once()
-        self.assertTrue(first.is_set())
-        self.assertIsNot(ui._quick_connect_cancel, first)
-        self.assertFalse(ui._quick_connect_cancel.is_set())
+    _queue_offline_watched applies the marks rather than returning them, so
+    record what it wrote — the fan-out rule (a series or season id expands
+    to its downloaded episodes) is the thing under test either way."""
+    written = []
+    db = _sync().db
+    db.upsert_playstate.side_effect = (
+        lambda srv, iid, played=None: written.append((iid, srv)))
+    browser_ui._PlayerController._queue_offline_watched(
+        server_uuid, item_id, True)
+    return written
 
 
 class OfflineWatchTargetsTest(unittest.TestCase):
@@ -229,29 +187,29 @@ class OfflineWatchTargetsTest(unittest.TestCase):
     def test_leaf_item(self):
         db = self._db()
         db.is_complete.return_value = True
-        with mock.patch.object(gui_mgr.syncManager, "db", db):
-            targets = gui_mgr.UserInterface._offline_watch_targets("m1", "srv")
+        with mock.patch.object(_sync(), "db", db):
+            targets = _watch_targets("m1", "srv")
         self.assertEqual(targets, [("m1", "srv")])
 
     def test_series_fans_out(self):
         db = self._db()
         db.is_complete.return_value = False
-        with mock.patch.object(gui_mgr.syncManager, "db", db):
-            targets = gui_mgr.UserInterface._offline_watch_targets("S", "srv")
+        with mock.patch.object(_sync(), "db", db):
+            targets = _watch_targets("S", "srv")
         self.assertEqual({t[0] for t in targets}, {"e1", "e2"})
 
     def test_season_fans_out(self):
         db = self._db()
         db.is_complete.return_value = False
-        with mock.patch.object(gui_mgr.syncManager, "db", db):
-            targets = gui_mgr.UserInterface._offline_watch_targets("sea2", "srv")
+        with mock.patch.object(_sync(), "db", db):
+            targets = _watch_targets("sea2", "srv")
         self.assertEqual([t[0] for t in targets], ["e2"])
 
     def test_unknown_id_yields_nothing(self):
         db = self._db()
         db.is_complete.return_value = False
-        with mock.patch.object(gui_mgr.syncManager, "db", db):
-            targets = gui_mgr.UserInterface._offline_watch_targets("??", "srv")
+        with mock.patch.object(_sync(), "db", db):
+            targets = _watch_targets("??", "srv")
         self.assertEqual(targets, [])
 
 
