@@ -148,9 +148,16 @@ class ViewsMixin:
             header.append(Text(_("%(shown)d of %(total)d") % {
                 "shown": len(items), "total": total},
                 size=14, color=theme.SUBTLE_FG))
+        elif route["kind"] == "person":
+            # Sort only. The full filter bar is gated on kind == "grid" and
+            # person routes are "person", so a filmography had no ordering
+            # control at all — genre/year/letter filters make no sense over
+            # one person's credits, but "newest first" very much does.
+            header.append(self._sort_bar(route))
         # Header height (title + optional filter bar + count) so the
         # virtualizer can map a scroll offset onto a tile row.
-        head_h = 40 + (110 if route["kind"] == "grid" else 0)
+        head_h = 40 + (110 if route["kind"] == "grid" else 0) \
+            + (46 if route["kind"] == "person" else 0)
         rows = header + self._grid_of(
             items, "grid", size, geom=self._square_geom(items) or self.geom,
             scroll_id="grid", head_h=head_h)
@@ -162,6 +169,15 @@ class ViewsMixin:
                 "grid", off, mx,
                 lambda o, m: self._on_grid_scroll(route, o, m)),
         )
+
+    def _sort_bar(self, route):
+        """Just the sort dropdown, for routes with no filterable axes."""
+        return Row([
+            Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
+            Dropdown("person-sort", [s[0] for s in SORTS],
+                     selected=route.get("_sort", 0), w=180,
+                     on_select=lambda i, v: self._set_grid("_sort", route, i)),
+        ], gap=10, align="center")
 
     def _grid_filter_bar(self, route):
         vals = route.get("_filtervals") or {}
@@ -1118,9 +1134,15 @@ class ViewsMixin:
 
     def _load_person(self, route, ep):
         srv = route.get("server") or self.server
+        # The repository has taken sort_by/sort_order since it was written;
+        # this was the one caller that never passed them, so the dropdown
+        # had nowhere to land.
+        _label, sort_by, sort_order = SORTS[route.get("_sort", 0)]
 
         def work():
-            return self.source.get_person_items(srv, route["person_id"])
+            return self.source.get_person_items(
+                srv, route["person_id"],
+                sort_by=sort_by, sort_order=sort_order)
 
         def done(res):
             route["_items"], route["_total"] = res

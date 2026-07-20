@@ -93,9 +93,7 @@ log = logging.getLogger("mpvtk_browser.app")
 
 # Routes that take over the whole surface (no nav chrome), like the Tk
 # browser's login/locked/connecting screens.
-# ("connecting" was here too, for a route that does not exist — see the
-# connecting-screen item in mpvtk/REVIEW_QUEUE.md. Add it back with the route.)
-CHROME_FREE = {"login", "locked"}
+CHROME_FREE = {"login", "locked", "connecting"}
 
 
 class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
@@ -157,6 +155,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.set_app(app)
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
+        # Tail poller for the logs tab — see SettingsMixin._poll_logs.
+        self._log_thread = None
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
         # Global download progress for the status bar, and its poller.
@@ -1293,9 +1293,12 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
         def nav_button(label, node_id, icon, cb):
             # Icon-only when compact — the icons are the same ones the
-            # labels sit next to, so nothing new has to be learned.
+            # labels sit next to, so nothing new has to be learned. The
+            # tooltip carries the label in that state: compact is exactly
+            # when the button stops saying what it does, and it was the
+            # only mode with neither a label nor a tip.
             return Button("" if compact else label, id=node_id, icon=icon,
-                          on_click=cb)
+                          on_click=cb, tip=label if compact else None)
 
         left = []
         if len(self.nav_stack) > 1:
@@ -1318,7 +1321,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             # the fit probe); overlong labels ellipsize renderer-side
             right.append(Dropdown(
                 "nav-server", [s["name"] for s in servers],
-                selected=cur, min_w=110,
+                selected=cur, min_w=110, tip=_("Server"),
                 max_w=150 if compact else 260,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
@@ -1330,7 +1333,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             right.append(Dropdown(
                 "nav-user",
                 [u.get("name", "?") for u in users],
-                selected=cur, min_w=100,
+                selected=cur, min_w=100, tip=_("User"),
                 max_w=130 if compact else 200, force=True,
                 icons=["lock" if u.get("locked") else "person" for u in users],
                 on_select=lambda i, v: self._switch_user(users[i])))
@@ -1342,6 +1345,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             # The textbox submits on Enter, but a visible button is the
             # discoverable affordance (and the only one with a pointer).
             Button("", id="nav-search-go", icon="search", size=18,
+                   tip=_("Search"),
                    on_click=lambda: self._search(
                        self._search_box.get("term", ""))),
             nav_button(_("SyncPlay"), "nav-syncplay", "groups",
@@ -1550,6 +1554,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         def done(source):
             if source is not None:
                 self.set_source(source)
+                return
+            # Previously a silent no-op: the banner stayed, nothing moved,
+            # and pressing Retry again looked identical to never having
+            # pressed it. Say the reconnect failed.
+            self.set_status(_("Still can't reach the server."))
+            if self.route.get("kind") == "connecting":
+                self.route["_connect_error"] = _("Still can't reach the server.")
+            self.invalidate()
+
         self.run_async(work, done, ep)
 
     # --------------------------------------------------------------- lifecycle

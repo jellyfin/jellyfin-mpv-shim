@@ -2967,7 +2967,13 @@ end)
 
 -- ---------------------------------------------------------------- scene
 
+-- How close to the end still counts as "at the end" for a follow=true
+-- container. Not zero: the offset is clamped to a fractional content
+-- height, so an exact compare would unstick the tail on its own rounding.
+local FOLLOW_SLACK = 6
+
 local function reconcile()
+    local prev = state.byid or {}
     state.byid = {}
     for _, node in ipairs(state.nodes) do
         state.byid[node.id] = node
@@ -2976,9 +2982,27 @@ local function reconcile()
     for id, off in pairs(state.scroll) do
         local node = state.byid[id]
         if node and node.t == 'scroll' then
-            state.scroll[id] = clamp(off, 0, scroll_max(node))
+            local max = scroll_max(node)
+            -- A follow container that was parked at the end before this
+            -- scene rides the new end. Measured against the PREVIOUS
+            -- node's max, because the content just grew and against the
+            -- new one nothing would ever look parked.
+            local was = prev[id]
+            if node.follow and was and was.t == 'scroll'
+                    and off >= scroll_max(was) - FOLLOW_SLACK then
+                state.scroll[id] = max
+            else
+                state.scroll[id] = clamp(off, 0, max)
+            end
         else
             state.scroll[id] = nil
+        end
+    end
+    -- A follow container with no offset yet is being seen for the first
+    -- time (or after its id vanished): open at the end, like a console.
+    for _, node in ipairs(state.nodes) do
+        if node.t == 'scroll' and node.follow and not state.scroll[node.id] then
+            state.scroll[node.id] = scroll_max(node)
         end
     end
     publish_scroll()

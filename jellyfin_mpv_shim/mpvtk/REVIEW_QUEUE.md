@@ -115,8 +115,11 @@ Not in the accepted-losses list. Roughly by value.
 - [x] **Per-item watched marker in the downloads panel** (`downloads.py:48`),
   and "Remove Watched" renders unconditionally (`settings.py:556`) so it looks
   destructive but often deletes nothing silently.
-- [ ] **Live log tailing** — one-shot snapshot only (`settings.py:709`), and
-  500 of 2000 lines (`settings.py:728`).
+- [x] **Live log tailing** — one-shot snapshot only (`settings.py:709`), and
+  500 of 2000 lines (`settings.py:728`). Now a 1s tail poller that only
+  redraws when the ring changed, over a virtualized table of all 2000 lines.
+  Needed a `follow` scroll container (renderer sticks to the end while you
+  are at the end, unpins the moment you scroll up).
 - [x] **Series name on episode tiles** — bare `S1E1` (`tiles.py:47`), so
   Continue Watching / Next Up no longer say which show.
 - [x] **Crew job labels** — `Role or ""` (`views.py:743`) vs Tk's
@@ -128,12 +131,16 @@ Not in the accepted-losses list. Roughly by value.
 - [ ] **Sort control on a person's filmography** — the filter bar is gated on
   `kind == "grid"` (`views.py:138`) and person routes are `"person"`.
 - [x] **Zero-item guard on the Download dialog** (`dialogs.py:283`) — dead click.
-- [ ] **Tooltips** in browser chrome and the now-playing bar. `tip=` exists and
-  the HUD uses it; in compact mode `nav-*` buttons are unlabelled *and*
-  untipped.
+- [x] **Tooltips** in browser chrome and the now-playing bar. Chrome buttons
+  are tipped exactly when compact drops their label; the search button and
+  the whole (icon-only) now-playing bar are tipped always.
 - [ ] **Per-known-server Quick Connect** — fills the URL only (`auth.py:229`).
-- [ ] **"Work offline" on the connecting screen** — there is no `connecting`
-  route at all; it falls to a `_busy()` spinner with no exit.
+- [x] **"Work offline" on the connecting screen** — the `connecting` route
+  now exists (chrome-free), with Work Offline gated on having downloads, and
+  Retry / Sign In once the connect has actually given up. Startup opens on
+  it instead of an empty home route. A failed connect with saved servers
+  stays here rather than dropping to the login form (which lost the offline
+  library).
 
 ## 5. P3 — degraded behaviour
 
@@ -152,8 +159,9 @@ Not in the accepted-losses list. Roughly by value.
 - [x] Version picker no longer dedups same-named sources (`views.py:402`).
 - [x] User switcher offered while offline (`app.py:1270`); Tk gated it because
   a switch reconnects.
-- [ ] Offline banner is one fixed string (`app.py:1404`) — cannot distinguish
-  an outage from the `work_offline` setting; Retry failure gives no feedback.
+- [~] Offline banner is one fixed string (`app.py:1404`) — cannot distinguish
+  an outage from the `work_offline` setting. **Retry failure now reports**;
+  the outage-vs-setting distinction is still open.
 - [x] Download status text raw and untranslated (`settings.py:594`):
   `pending`/`downloading` verbatim vs Tk's "Queued"/"Downloading 42%".
 - [x] Dead buttons: playlist header renders Play All/Shuffle before the empty
@@ -161,9 +169,11 @@ Not in the accepted-losses list. Roughly by value.
   fetch failed (`music.py:430`).
 - [x] Runtime now reads `1:52:00` rather than `112 min`.
 - [ ] Cast tiles square not portrait (`views.py:748`); Songs tab loses per-row
-  art (`music.py:160`); volume slider live rather than commit-on-release
-  (`music.py:402`); seek time frozen during scrub (`music.py:374`); add-to name
-  boxes and the login form lack Enter-to-submit.
+  art (`music.py:160`); seek time frozen during scrub (`music.py:374`); add-to
+  name boxes and the login form lack Enter-to-submit.
+  **Volume is done**: live for audible feedback, but only the release
+  notifies — `set_volume` woke the timeline thread, which posts to the
+  *server*, so one drag was a burst of round trips.
 
 ## 6. P4 — dead / half-finished
 
@@ -185,6 +195,26 @@ Not in the accepted-losses list. Roughly by value.
   natural home for the missing queue double-click-to-jump.
 
 ---
+
+## Incidental fixes found while working the queue
+
+Not from the audit — turned up while doing the above.
+
+- [x] **The renderer had no tests at all.** Two protocol additions (the
+  textbox `commit` event, `follow` containers) were written against nothing
+  but hand testing. `tests/lua/` now loads the real `renderer.lua` against a
+  faked mpv and drives it through the real script-message boundary;
+  `tests/test_renderer_lua.py` runs it in the normal suite (skipped when no
+  Lua interpreter is installed — mpv embeds one, so CI and any dev machine
+  with mpv has it).
+- [x] **An unknown icon name took down the entire scene.** `icon_ass` raised
+  `KeyError` out of the middle of layout, so one button naming an icon
+  that isn't in the generated set blanked the whole browser. Now renders
+  nothing and logs once. (Hit this for real: `cloud_off` isn't in the set.)
+- [x] **`test_pin_is_hashed_not_plaintext` flaked ~1 run in 70.** It searched
+  the whole serialized user entry for the PIN `"1234"`, which turns up
+  inside a random hex salt or hash about that often. Uses a PIN that cannot
+  appear in hex.
 
 ## Calibration on these findings
 

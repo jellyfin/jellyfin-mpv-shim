@@ -190,14 +190,19 @@ class PinTest(UserManagerTestBase):
     def test_pin_is_hashed_not_plaintext(self):
         um = self.fresh()
         kid = um.add_user("Kids")
-        um.set_pin(kid["id"], "1234")
+        # Not "1234": a four-digit PIN turns up inside a random hex salt or
+        # hash about once every seventy runs, and this test used to search
+        # the whole serialized entry for it. A PIN that cannot appear in hex
+        # makes the search mean what it says.
+        pin = "97xz"
+        um.set_pin(kid["id"], pin)
         stored = self.read_users_json()
         entry = next(u for u in stored["users"] if u["id"] == kid["id"])
-        self.assertNotIn("1234", json.dumps(entry))
+        self.assertNotIn(pin, json.dumps(entry))
         self.assertIsNotNone(entry["pin_hash"])
         self.assertIsNotNone(entry["pin_salt"])
         # And the hash actually corresponds to the PIN + salt.
-        self.assertEqual(entry["pin_hash"], _hash_pin("1234", entry["pin_salt"]))
+        self.assertEqual(entry["pin_hash"], _hash_pin(pin, entry["pin_salt"]))
 
     def test_clear_pin(self):
         um = self.fresh()

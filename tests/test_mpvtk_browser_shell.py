@@ -83,6 +83,10 @@ class FakeSource:
         return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
 
     def get_person_items(self, server_uuid, person_id, start_index=0, **kw):
+        # Record the sort the caller asked for: the repository has always
+        # accepted sort_by/sort_order and _load_person never passed them.
+        self.person_sorts = getattr(self, "person_sorts", [])
+        self.person_sorts.append((kw.get("sort_by"), kw.get("sort_order")))
         items = [{"Id": "pf%d" % i, "Name": "Film %d" % i, "Type": "Movie"}
                  for i in range(4)]
         return items[start_index:start_index + 20], len(items)
@@ -438,7 +442,16 @@ class FakeController:
         if name.startswith(("_", "on_")) or name in ("play", "play_list"):
             raise AttributeError(name)
         calls = self.__dict__.setdefault("transport", [])
-        return lambda *a, **k: calls.append((name, a))
+        # Keywords go in a parallel list: `transport` holds (name, args)
+        # two-tuples that a lot of tests assert on by equality, and widening
+        # it would break every one of them.
+        kw_calls = self.__dict__.setdefault("transport_kw", [])
+
+        def record(*a, **k):
+            calls.append((name, a))
+            kw_calls.append((name, a, k))
+
+        return record
 
 
 class HudController(FakeController):
@@ -1362,6 +1375,33 @@ class TestDetailActions(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertIn("img", types(nodes))   # person filmography grid
 
+    def test_a_filmography_can_be_sorted(self):
+        """The filter bar is gated on kind == "grid" and person routes are
+        "person", so a filmography had no ordering control at all — always
+        by name, however long the credit list."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        self.assertIn("person-sort", h, "no sort control on a filmography")
+
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "PremiereDate")
+        h["person-sort"]["select"](want, SORTS[want][0])
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("PremiereDate", "Descending"))
+
+    def test_a_filmography_defaults_to_name(self):
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("SortName", "Ascending"))
+
+    def test_a_filmography_has_no_genre_or_year_filters(self):
+        """They would be filtering one person's credits by genre, and the
+        A-Z strip is meaningless over four films."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        nodes, _h = build_scene(self.b)
+        for nid in ("grid-genre", "grid-year", "grid-l-A"):
+            self.assertNotIn(nid, ids(nodes))
+
     def test_episode_play_queues_season(self):
         ep = {"Id": "e1", "Type": "Episode", "SeriesId": "sh1"}
         self.b._play(ep, "srv1")
@@ -2234,6 +2274,38 @@ class TestNowPlaying(unittest.TestCase):
         for n in ("seek", "set_volume", "set_repeat", "toggle_favorite"):
             self.assertIn(n, names)
 
+    def test_dragging_the_volume_does_not_notify_until_release(self):
+        """set_volume wakes the timeline thread, which posts progress to the
+        server. on_change fires per mouse-move, so a single drag across the
+        bar was a burst of round trips for a setting the server does not
+        even track. Live for audible feedback, notify once on release."""
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 100, "volume": 50})
+        _nodes, h = build_scene(self.b)
+        for v in (40, 30, 20):
+            h["np-vol"]["change"](v)
+        vols = [c for c in self.ctl.transport_kw if c[0] == "set_volume"]
+        self.assertEqual(len(vols), 3, "the drag was not applied live")
+        self.assertTrue(all(c[2].get("notify") is False for c in vols),
+                        "a mid-drag volume change notified: %r" % (vols,))
+
+        h["np-vol"]["commit"](20)
+        released = [c for c in self.ctl.transport_kw
+                    if c[0] == "set_volume" and c[2].get("notify") is not False]
+        self.assertEqual(len(released), 1,
+                         "releasing the slider did not notify exactly once")
+
+    def test_every_control_in_the_bar_names_itself(self):
+        """The bar is icon-only end to end, and had no tooltips at all —
+        the playback HUD has had them since it shipped."""
+        self.b.on_playstate({"stopped": False, "is_audio": True, "title": "S",
+                             "position": 10, "duration": 100, "volume": 50})
+        nodes, _h = build_scene(self.b)
+        untipped = [n["id"] for n in nodes
+                    if str(n.get("id", "")).startswith("np-")
+                    and n["id"] != "np-seek" and not n.get("tip")]
+        self.assertEqual(untipped, [], "controls with no tooltip")
+
     def test_video_playstate_yields_no_bar(self):
         self.b.on_playstate({"stopped": False, "is_audio": False,
                              "title": "Movie", "position": 5, "duration": 100})
@@ -2504,6 +2576,31 @@ class TestChromePolish(unittest.TestCase):
                               controller=Users())
         self.b._pool = _SyncPool()
         self.assertNotIn("Settings", self._labels(at))    # switcher present
+
+    def test_a_collapsed_button_still_says_what_it_is(self):
+        """Compact mode is exactly when a button stops carrying its label,
+        and it was the one state with neither a label nor a tooltip — the
+        icons are all the user has to go on."""
+        nodes, _h = build_scene(self.b, size=(760, 900))
+        for nid, tip in (("nav-settings", "Settings"),
+                         ("nav-syncplay", "SyncPlay"),
+                         ("nav-home", "Home")):
+            node = [n for n in nodes if n.get("id") == nid][0]
+            self.assertEqual(node.get("tip"), tip, nid)
+
+    def test_a_labelled_button_carries_no_tooltip(self):
+        """A tooltip that repeats a label the user is already reading is
+        noise, and it covers the thing underneath it."""
+        nodes, _h = build_scene(self.b, size=(1920, 900))
+        node = [n for n in nodes if n.get("id") == "nav-settings"][0]
+        self.assertIsNone(node.get("tip"))
+
+    def test_the_icon_only_search_button_is_tipped_at_every_width(self):
+        """It never has a label to lose, so the tooltip is not conditional."""
+        for w in (760, 1920):
+            nodes, _h = build_scene(self.b, size=(w, 900))
+            node = [n for n in nodes if n.get("id") == "nav-search-go"][0]
+            self.assertTrue(node.get("tip"), "untipped at %dpx" % w)
 
     def test_top_bar_never_overflows_the_window(self):
         for w in (900, 1100, 1279, 1280, 1920):
@@ -6167,8 +6264,8 @@ class TestCopyLogsButton(unittest.TestCase):
         self.assertIn("3", b.status)
 
     def test_it_copies_more_than_the_view_draws(self):
-        """The view caps at 500 rendered rows; the point of copying is to
-        hand over the whole thing."""
+        """The view materializes only the rows in the viewport; the point of
+        copying is to hand over the whole thing."""
         b = self._browser(lines=["l%d" % i for i in range(900)])
         _nodes, handlers = build_scene(b)
         handlers["log-copy"]["click"]()
@@ -6192,6 +6289,243 @@ class TestCopyLogsButton(unittest.TestCase):
         handlers["log-copy"]["click"]()
         self.assertEqual(self.copied, [])
         self.assertIn("nothing", b.status.lower())
+
+
+class TestConnectingScreen(unittest.TestCase):
+    """The browser opened straight onto an empty home route, which renders
+    as a bare _busy() spinner: nothing saying what it was waiting for, and
+    against a server that never answers, no way out at all. Tk had this
+    screen; mpvtk had "connecting" listed in CHROME_FREE and no route."""
+
+    def _browser(self, downloads=True, offline=True):
+        ctl = FakeController()
+        ctl.has_downloads = lambda: downloads
+        self.offline_source = FakeSource() if offline else None
+        ctl.offline_source = lambda: self.offline_source
+        self.retried = []
+        ctl.retry_connect = lambda: (self.retried.append(1) or None)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.show_connecting()
+        return b
+
+    def test_it_says_what_it_is_waiting_for(self):
+        b = self._browser()
+        nodes, _h = build_scene(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertIn("Connecting", texts)
+
+    def test_it_is_chrome_free(self):
+        """A top bar whose Home/Search go nowhere yet is worse than none."""
+        b = self._browser()
+        nodes, _h = build_scene(b)
+        self.assertNotIn("nav-home", ids(nodes))
+
+    def test_work_offline_browses_the_downloads(self):
+        b = self._browser()
+        _nodes, h = build_scene(b)
+        self.assertIn("conn-offline", h, "no way out of the spinner")
+        h["conn-offline"]["click"]()
+        self.assertIs(b.source, self.offline_source)
+        self.assertEqual(b.route["kind"], "home")
+
+    def test_nothing_downloaded_offers_no_dead_end(self):
+        """An empty offline library is a worse dead end than the spinner."""
+        b = self._browser(downloads=False)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("conn-offline", ids(nodes))
+
+    def test_retry_appears_only_once_the_connect_gave_up(self):
+        """A Retry offered while the first attempt is still in flight just
+        starts a second one racing it."""
+        b = self._browser()
+        self.assertNotIn("conn-retry", ids(build_scene(b)[0]))
+        b.connect_failed()
+        self.assertIn("conn-retry", ids(build_scene(b)[0]))
+
+    def test_a_failed_connect_says_so(self):
+        b = self._browser()
+        b.connect_failed()
+        nodes, _h = build_scene(b)
+        texts = " ".join(n.get("text") or "" for n in nodes)
+        self.assertIn("reach", texts.lower())
+
+    def test_a_failed_retry_says_so_rather_than_looking_dead(self):
+        """_retry_connect's done() used to no-op on failure: nothing moved,
+        and pressing it again looked identical to never pressing it."""
+        b = self._browser()
+        b.connect_failed()
+        _nodes, h = build_scene(b)
+        h["conn-retry"]["click"]()
+        self.assertEqual(len(self.retried), 1)
+        self.assertTrue(b.status, "a failed retry was silent")
+
+    def test_sign_in_is_reachable_from_a_failed_connect(self):
+        """Otherwise a saved server that is gone for good is unrecoverable
+        without editing config by hand."""
+        b = self._browser()
+        b.connect_failed()
+        _nodes, h = build_scene(b)
+        h["conn-login"]["click"]()
+        self.assertEqual(b.route["kind"], "login")
+
+    def test_connect_failed_does_not_yank_a_user_who_moved_on(self):
+        """It runs on the connect thread. If Work Offline already landed,
+        stamping an error onto whatever route is now current would put a
+        connect failure on the home screen."""
+        b = self._browser()
+        _nodes, h = build_scene(b)
+        h["conn-offline"]["click"]()
+        self.assertEqual(b.route["kind"], "home")
+        b.connect_failed()
+        self.assertEqual(b.route["kind"], "home")
+        self.assertIsNone(b.route.get("_connect_error"))
+
+
+class TestLiveLogTail(unittest.TestCase):
+    """The Tk browser streamed the log live and held all 2000 lines. mpvtk
+    took a one-shot snapshot of the last 500 — so the log you were staring
+    at while reproducing a bug never moved, and the interesting part had
+    usually already scrolled out of the ring."""
+
+    def _browser(self, lines):
+        ctl = FakeController()
+        self.reads = 0
+
+        def recent():
+            self.reads += 1
+            return list(lines)
+
+        ctl.recent_logs = recent
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        b.LOG_POLL_SECS = 0.01     # don't sleep a second per tick in a test
+        b._browsing = True
+        self.invalidated = []
+        b.invalidate = lambda: self.invalidated.append(1)
+        b.nav_stack = [{"kind": "settings", "server": "srv1", "_tab": "logs"}]
+        return b
+
+    def _tail(self, b, ticks=3):
+        """Let the poller run a few ticks, then shut it down.
+
+        It is *meant* to run until you leave the tab, so a plain join would
+        hang; the tests that assert it exits on its own change the condition
+        first and pass ticks=0."""
+        b._poll_logs(b.route)
+        t = b._log_thread
+        if t is not None:
+            if ticks:
+                time.sleep(b.LOG_POLL_SECS * (ticks + 1))
+                b._shutdown_evt.set()
+            t.join(5)
+            self.assertFalse(t.is_alive(), "the tail poller never stopped")
+
+    def _scroll_node(self, b):
+        nodes, _h = build_scene(b)
+        for n in nodes:
+            if n.get("id") == "settings-logs" and n["t"] == "scroll":
+                return n
+        self.fail("the log list is not a scroll container")
+
+    def test_the_whole_ring_is_reachable_not_just_the_last_500(self):
+        """The ring holds 2000 and the view drew the last 500, with no sign
+        the rest existed. Assert on the scrollable extent rather than the
+        row count: that is the thing the user can actually reach."""
+        b = self._browser(["l%d" % i for i in range(2000)])
+        node = self._scroll_node(b)
+        self.assertGreaterEqual(
+            node["ch"], 2000 * b.LOG_ROW_H,
+            "the log list only scrolls over %d px" % node["ch"])
+
+    def test_the_list_is_virtualized(self):
+        """2000 un-virtualized rows is 2000 laid-out nodes per frame, at
+        1Hz. The whole reason the cap existed."""
+        b = self._browser(["l%d" % i for i in range(2000)])
+        nodes, _h = build_scene(b)
+        drawn = [n for n in nodes if str(n.get("id", "")).startswith("log-")]
+        self.assertLess(len(drawn), 200,
+                        "every line was materialized: %d" % len(drawn))
+        self.assertTrue(drawn, "no log rows were materialized at all")
+
+    def test_the_view_follows_the_tail(self):
+        """Pinned to the newest line — the renderer unpins it as soon as
+        the user scrolls up (see tests/lua/test_renderer.lua)."""
+        b = self._browser(["a", "b"])
+        nodes, _h = build_scene(b)
+        scroll = [n for n in nodes
+                  if n.get("id") == "settings-logs" and n["t"] == "scroll"]
+        self.assertTrue(scroll, "the log list is not a scroll container")
+        self.assertTrue(scroll[0].get("follow"), "the view does not follow")
+
+    def test_opening_the_tab_starts_the_tail(self):
+        """Every other test here starts the poller itself, so without this
+        one, deleting the call from the view leaves them all green and the
+        log simply never moves again — the exact shape of bug this UI has
+        shipped before."""
+        b = self._browser(["one"])
+        self.assertIsNone(b._log_thread)
+        build_scene(b)
+        self.addCleanup(b._shutdown_evt.set)
+        self.assertIsNotNone(b._log_thread, "rendering the tab started no tail")
+
+    def test_another_tab_starts_no_tail(self):
+        b = self._browser(["one"])
+        b.route["_tab"] = "general"
+        build_scene(b)
+        self.addCleanup(b._shutdown_evt.set)
+        self.assertIsNone(b._log_thread)
+
+    def test_a_new_line_redraws_the_view(self):
+        lines = ["one"]
+        b = self._browser(lines)
+        b._settings_logs(b.route, (1280, 720))    # record what was drawn
+        lines.append("two")                       # something logged
+        self._tail(b)
+        self.assertTrue(self.invalidated, "a new log line did not redraw")
+
+    def test_a_quiet_log_does_not_redraw(self):
+        """An idle app logs nothing for minutes. Rebuilding a 2000-row
+        scene every second to draw the same thing is not free."""
+        b = self._browser(["one", "two"])
+        b._settings_logs(b.route, (1280, 720))
+        self._tail(b)
+        self.assertEqual(self.invalidated, [])
+
+    def test_a_full_ring_still_redraws(self):
+        """Once the ring is full every new line also drops one, so the
+        count stops moving — length alone would go blind exactly when the
+        log is busiest."""
+        lines = ["l%d" % i for i in range(5)]
+        b = self._browser(lines)
+        b._settings_logs(b.route, (1280, 720))
+        lines.pop(0)                 # ring rolled: same length, new content
+        lines.append("newest")
+        self._tail(b)
+        self.assertTrue(self.invalidated, "a rolled ring did not redraw")
+
+    def test_it_stops_when_you_leave_the_tab(self):
+        b = self._browser(["one"])
+        b._settings_logs(b.route, (1280, 720))
+        b.route["_tab"] = "general"
+        self._tail(b, ticks=0)
+        self.assertIsNone(b._log_thread, "the poller slot was never released")
+
+    def test_it_stops_when_browsing_ends(self):
+        """Playback started: the browser is not on screen and a poller
+        holding a thread to redraw it is pure waste."""
+        b = self._browser(["one"])
+        b._settings_logs(b.route, (1280, 720))
+        b._browsing = False
+        self._tail(b, ticks=0)
+        self.assertIsNone(b._log_thread)
+
+    def test_an_empty_log_still_renders_its_buttons(self):
+        b = self._browser([])
+        nodes, handlers = build_scene(b)
+        self.assertIn("log-copy", ids(nodes))
+        self.assertIn("log-refresh", handlers)
 
 
 class TestEmptyDownloadFolderAsksFirst(unittest.TestCase):

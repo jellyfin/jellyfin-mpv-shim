@@ -727,14 +727,24 @@ class Menu(Element):
 
 class Scroll(Element):
     """``on_scroll(offset, max)`` fires debounced from the renderer when
-    the user scrolls — the hook for windowed/infinite content."""
+    the user scrolls — the hook for windowed/infinite content.
 
-    def __init__(self, child, axis, scrollbar=False, on_scroll=None, **kw):
+    ``follow=True`` sticks to the end: the container opens scrolled to the
+    bottom, and stays pinned there as content grows — but only while the
+    user is already at the bottom, so scrolling up to read pauses it. The
+    renderer owns this because it is the only side that knows the offset
+    and the content height at the same instant; a Python round-trip would
+    always be pinning against the *previous* frame's height.
+    """
+
+    def __init__(self, child, axis, scrollbar=False, on_scroll=None,
+                 follow=False, **kw):
         super().__init__(**kw)
         self.child = child
         self.axis = axis
         self.scrollbar = scrollbar
         self.on_scroll = on_scroll
+        self.follow = follow
 
 
 class HScroll(Scroll):

@@ -50,6 +50,20 @@ def _collect_servers():
     return servers
 
 
+def _saved_servers_exist():
+    """Are there saved accounts at all?
+
+    Distinguishes "your server is down" from "you have not signed in yet" —
+    the first wants the connecting screen's retry, the second the login
+    form. Sending a first run to a failed-connect message would be nonsense,
+    and sending a down server to the login form (which is what happened)
+    loses the offline library."""
+    try:
+        return bool(list(clientManager.credentials))
+    except Exception:
+        return False
+
+
 class _PlayerController:
     """Bridges the browser to the player: playback + browse/play window
     state. Imports player/event_handler lazily so the browser package
@@ -302,8 +316,8 @@ class _PlayerController:
             pm.seek(float(secs))
         self._act(do)
 
-    def set_volume(self, pct):
-        self._act(lambda pm: pm.set_volume(float(pct)))
+    def set_volume(self, pct, notify=True):
+        self._act(lambda pm: pm.set_volume(float(pct), notify=notify))
 
     def set_repeat(self, mode):
         self._act(lambda pm: pm.set_repeat(mode))
@@ -446,6 +460,21 @@ class _PlayerController:
         return LibrarySource(servers, clientManager.device_id,
                              settings.player_name,
                              not settings.ignore_ssl_cert)
+
+    def has_downloads(self):
+        """Is there anything downloaded to browse?
+
+        Cheap enough for a render path: a catalog count, no source built.
+        The connecting screen gates its Work Offline button on this."""
+        from ..sync.manager import syncManager
+        try:
+            if syncManager.downloaded_item_ids():
+                return True
+            db = getattr(syncManager, "db", None)
+            return bool(db is not None and db.list_playlists())
+        except Exception:
+            log.debug("has_downloads failed", exc_info=True)
+            return False
 
     def offline_source(self):
         """Browse the download catalog with no server, or None if there is
@@ -1135,6 +1164,10 @@ class UserInterface:
         if locked:
             browser.show_locked()
         else:
+            # On the connecting screen, not an empty home route: a home
+            # route with no source renders as a bare spinner with nothing
+            # explaining it and no way past a server that never answers.
+            browser.show_connecting()
             threading.Thread(target=self._connect, daemon=True,
                              name="mpvtk-connect").start()
 
@@ -1231,7 +1264,15 @@ class UserInterface:
             if offline is not None:
                 self._browser.set_source(offline)
                 return
-            log.warning("mpvtk browser: no servers connected; showing login")
+            # Nothing downloaded either. If saved servers exist this is a
+            # failed connect, so say so on the connecting screen and leave
+            # the retry there; a first run with no accounts wants the login
+            # form.
+            if _saved_servers_exist():
+                log.warning("mpvtk browser: no servers connected")
+                self._browser.connect_failed()
+                return
+            log.warning("mpvtk browser: no servers configured; showing login")
             self._browser.show_login()
             return
         source = LibrarySource(servers, clientManager.device_id,

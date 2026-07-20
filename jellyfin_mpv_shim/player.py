@@ -1316,11 +1316,21 @@ class PlayerManager(object):
         self.push_playstate()
 
     @synchronous("_lock")
-    def set_volume(self, pct: float):
+    def set_volume(self, pct: float, notify: bool = True):
+        """Set the player volume.
+
+        ``notify=False`` skips the timeline wake and the bar push. Dragging
+        a volume slider produces a value per mouse-move, and each one of
+        those was waking the timeline thread — which posts progress to the
+        *server*. A single drag across the bar meant a burst of round trips
+        for a setting the server does not even track. The UI sets the volume
+        live for audible feedback and notifies once, on release.
+        """
         if not self._player.playback_abort:
             self._player.volume = pct
-        self.timeline_handle()
-        self.push_playstate()
+        if notify:
+            self.timeline_handle()
+            self.push_playstate()
 
     @synchronous("_lock")
     def get_state(self):

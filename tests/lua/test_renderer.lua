@@ -1,0 +1,182 @@
+-- Unit tests for renderer.lua, run against a faked mpv (see fake_mp.lua).
+--
+-- The renderer holds every piece of state the Python side cannot see --
+-- scroll offsets, textbox edits, focus -- and it is reached only through
+-- script messages. Both are exercised here through that real boundary:
+-- push a scene, drive input, read back what the renderer published.
+--
+-- Prints "ok N" / "not ok N - why" (TAP-ish); the Python wrapper asserts on
+-- the exit status and shows this output on failure.
+
+local here = arg[0]:match("^(.*)/[^/]*$") or "."
+package.path = here .. "/?.lua;" .. package.path
+
+local fake = require("fake_mp")
+fake.install()
+
+local RENDERER = arg[1]
+assert(RENDERER, "usage: test_renderer.lua <path to renderer.lua>")
+
+local chunk = assert(loadfile(RENDERER))
+chunk()
+
+-- The renderer only builds a scene once it knows the window size.
+fake.observe("osd-dimensions", { w = 1280, h = 720 })
+
+-- ------------------------------------------------------------ harness
+
+local passed, failed = 0, 0
+local n = 0
+
+local function ok(cond, name, detail)
+    n = n + 1
+    if cond then
+        passed = passed + 1
+        print(string.format("ok %d - %s", n, name))
+    else
+        failed = failed + 1
+        print(string.format("not ok %d - %s%s", n, name,
+                            detail and ("\n    # " .. tostring(detail)) or ""))
+    end
+end
+
+local function eq(got, want, name)
+    ok(got == want, name,
+       string.format("got %s, want %s", tostring(got), tostring(want)))
+end
+
+--- Push a scene of nodes and let the renderer reconcile it.
+local function scene(nodes)
+    fake.send("mpvtk-scene", fake.token({ nodes = nodes }))
+end
+
+--- A vertical scroll container: `h` tall viewport over `ch` of content.
+local function vscroll(id, h, ch, extra)
+    local node = { id = id, t = "scroll", axis = "y",
+                   x = 0, y = 0, w = 400, h = h, cw = 400, ch = ch }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+-- An untouched container has no published entry at all, which means the
+-- same thing as being at the top.
+local function offset(id) return fake.scroll_prop()[id] or 0 end
+
+--- Page down until the offset stops moving. A page is ~90% of the
+--- viewport, so "how many" is geometry the test should not encode.
+local function page_to_end(id)
+    local prev
+    while offset(id) ~= prev do
+        prev = offset(id)
+        fake.send("mpvtk-scroll", fake.token({ id = id, dir = 1 }))
+    end
+end
+
+-- =========================================================== follow
+
+-- A follow container is the log viewer: content is appended to the bottom
+-- and the user wants to stay there, unless they have scrolled up to read.
+
+scene({ vscroll("logs", 100, 500, { follow = true }) })
+eq(offset("logs"), 400, "a follow container opens at the end")
+
+scene({ vscroll("logs", 100, 700, { follow = true }) })
+eq(offset("logs"), 600, "it rides the end as content grows")
+
+-- Scroll up: away from the tail, so following must stop.
+fake.send("mpvtk-scroll", fake.token({ id = "logs", dir = -1 }))
+local parked = offset("logs")
+ok(parked < 600, "scrolling up moves off the end",
+   "offset " .. tostring(parked))
+
+scene({ vscroll("logs", 100, 900, { follow = true }) })
+eq(offset("logs"), parked, "a reader who scrolled up is not yanked down")
+
+-- Back to the bottom: following resumes.
+page_to_end("logs")
+eq(offset("logs"), 800, "paging down reaches the end")
+scene({ vscroll("logs", 100, 1100, { follow = true }) })
+eq(offset("logs"), 1000, "returning to the end resumes following")
+
+-- Slack: a fractional content height must not unstick the tail.
+scene({ vscroll("logs", 100, 1103, { follow = true }) })
+eq(offset("logs"), 1003, "a few px short of the end still counts as the end")
+
+-- Content that fits needs no scrolling at all.
+scene({ vscroll("logs", 100, 60, { follow = true }) })
+eq(offset("logs"), 0, "content shorter than the viewport sits at zero")
+
+-- A plain container is untouched by any of this.
+scene({ vscroll("plain", 100, 500) })
+eq(offset("plain"), 0, "a non-follow container still opens at the top")
+scene({ vscroll("plain", 100, 900) })
+eq(offset("plain"), 0, "and does not follow growth")
+
+-- ==================================================== textbox commit
+
+-- The settings screen has 65 rows that were losing the edit unless the
+-- user pressed ENTER. blur() now reports the pending text.
+
+-- Stacked, not overlapping: clicking away has to land on a *different*
+-- node or the renderer rightly treats it as a click on the focused box.
+local function textbox(id, value, row)
+    return { id = id, t = "textbox", x = 0, y = (row or 0) * 40,
+             w = 200, h = 30, size = 18, text = value or "" }
+end
+
+local function type_text(s)
+    fake.send("mpvtk-debug", fake.token({ cmd = "text", s = s }))
+end
+
+local function click(id)
+    fake.send("mpvtk-debug", fake.token({ cmd = "click", id = id }))
+end
+
+local function last_event(t)
+    local evs = fake.log.events
+    for i = #evs, 1, -1 do
+        if type(evs[i]) == "table" and evs[i].t == t then return evs[i] end
+    end
+    return nil
+end
+
+scene({ textbox("box", "before", 0), textbox("other", "", 1) })
+fake.reset_events()
+click("box")
+type_text("!")
+click("other")           -- blur by clicking away
+
+local commit = last_event("commit")
+ok(commit ~= nil, "clicking away from an edited box commits it")
+if commit then
+    eq(commit.id, "box", "the commit names the box that lost focus")
+    eq(commit.value, "before!", "the commit carries the typed value")
+end
+
+-- An untouched box must stay silent, or every click across a settings
+-- screen would re-submit 65 unchanged values.
+scene({ textbox("a", "x", 0), textbox("b", "y", 1) })
+fake.reset_events()
+click("a")
+click("b")
+ok(last_event("commit") == nil, "blurring an unedited box commits nothing")
+
+-- ESC reverts, so it must not commit either.
+scene({ textbox("c", "keep") })
+fake.reset_events()
+click("c")
+type_text("Z")
+fake.key("mpvtk_k_ESC")
+ok(last_event("commit") == nil, "ESC reverts rather than committing")
+
+-- ========================================================== teardown
+
+scene({})
+eq(fake.scroll_prop()["logs"], nil, "state for a vanished node is dropped")
+
+print(string.format("1..%d", n))
+if failed > 0 then
+    io.stderr:write(string.format("%d of %d failed\n", failed, n))
+    os.exit(1)
+end
+os.exit(0)

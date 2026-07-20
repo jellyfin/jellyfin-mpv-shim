@@ -6,10 +6,11 @@ the downloads panel with its progress poller.
 
 State on ``self``: ``_config_obj`` (the settings accessor; None means the
 real config module, tests inject a fake), ``_sync_path`` (download-folder
-field mirror) and ``_dl_thread`` (the poller, started via core's
-``_start_daemon``). The poller runs on a foreign thread, so it writes then
-calls ``invalidate()``; it exits on ``_shutdown_evt``, which is only ever
-set at shutdown.
+field mirror), ``_dl_thread`` (the downloads poller) and ``_log_thread``
+(the log tail), both started via core's ``_start_daemon``. The pollers run
+on foreign threads, so they write then call ``invalidate()``; they exit on
+``_shutdown_evt``, which is only ever set at shutdown, or as soon as the
+user leaves the tab they belong to.
 """
 
 import logging
@@ -26,6 +27,7 @@ from ..mpvtk.widgets import (
     Icon,
     Row,
     Spacer,
+    Table,
     Text,
     TextBox,
     VScroll,
@@ -789,6 +791,17 @@ class SettingsMixin:
 
     # -- Logs -------------------------------------------------------------
 
+    # How often the logs tab re-reads the ring while it is on screen. The
+    # Tk browser got a push per line; there is no such channel in-process,
+    # so poll — cheaply, since a tick that finds nothing new does not
+    # re-render.
+    LOG_POLL_SECS = 1.0
+
+    # One line per row. Fixed height is what makes the list virtualizable,
+    # and virtualization is what lets it show the whole 2000-line ring
+    # rather than the last 500.
+    LOG_ROW_H = 20
+
     def _settings_logs(self, route, size):
         lines = []
         if self.controller is not None:
@@ -796,27 +809,76 @@ class SettingsMixin:
                 lines = self.controller.recent_logs()
             except Exception:
                 log.debug("recent_logs failed", exc_info=True)
-        rows = [Row([Text(_("Logs"), size=20, bold=True), Spacer(),
-                     Button(_("Copy"), id="log-copy", icon="content_copy",
-                            on_click=lambda: self._copy_logs(lines)),
-                     Button(_("Refresh"), id="log-refresh", icon="refresh",
-                            on_click=self.invalidate),
-                     Button(_("Open Config Folder"), id="log-conf",
-                            icon="folder",
-                            on_click=self._open_config_folder)],
-                    gap=8, align="center")]
+        # Remember what we have drawn so the poller can tell whether a tick
+        # actually changed anything (see _poll_logs).
+        route["_log_len"] = len(lines)
+        route["_log_last"] = lines[-1] if lines else None
+        self._poll_logs(route)
+
+        head = Row([Text(_("Logs"), size=20, bold=True), Spacer(),
+                    Button(_("Copy"), id="log-copy", icon="content_copy",
+                           on_click=lambda: self._copy_logs(lines)),
+                    Button(_("Refresh"), id="log-refresh", icon="refresh",
+                           on_click=self.invalidate),
+                    Button(_("Open Config Folder"), id="log-conf",
+                           icon="folder",
+                           on_click=self._open_config_folder)],
+                   gap=8, align="center", pad=self.CONTENT_PAD)
         if not lines:
-            rows.append(Text(_("No log output captured yet."), size=15,
-                             color=theme.SUBTLE_FG))
-        # Newest last, like a console; the scroll keeps its offset across
-        # rebuilds so following the tail is a matter of staying at the bottom.
-        for i, line in enumerate(lines[-500:]):
-            rows.append(Text(line, size=14, color=theme.SUBTLE_FG,
-                             id="log-%d" % i))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=2),
-                       id="settings-logs", flex=1,
-                       on_scroll=lambda off, mx: self._on_scroll(
-                           "settings-logs", off, mx))
+            return Column([head,
+                           Column([Text(_("No log output captured yet."),
+                                        size=15, color=theme.SUBTLE_FG)],
+                                  pad=self.CONTENT_PAD)],
+                          flex=1, align="stretch")
+
+        # Newest last, like a console. `follow` keeps the view pinned to the
+        # newest line as lines arrive, and unpins the moment the user
+        # scrolls up to read something — the renderer decides, because it is
+        # the only side that knows the offset and the content height at the
+        # same instant.
+        rows = [{"cells": [line], "id": "log-%d" % i}
+                for i, line in enumerate(lines)]
+        virtual = {"offset": self._offset("settings-logs"),
+                   "height": float(size[1])}
+        table = Table([{"flex": 1}], rows, row_h=self.LOG_ROW_H, header_h=0,
+                      size=14, fg=theme.SUBTLE_FG, virtual=virtual)
+        return Column([
+            head,
+            VScroll(Column([table], pad=self.CONTENT_PAD),
+                    id="settings-logs", flex=1, follow=True,
+                    on_scroll=lambda off, mx: self._on_scroll(
+                        "settings-logs", off, mx)),
+        ], flex=1, align="stretch")
+
+    def _poll_logs(self, route):
+        """Re-render the logs tab while new lines are arriving.
+
+        Only when something changed: an idle app logs nothing for minutes at
+        a time, and rebuilding a 2000-row scene every second to draw the
+        same thing would cost real frames for nothing.
+        """
+        if self.controller is None:
+            return
+
+        def tick():
+            while not self._shutdown_evt.wait(self.LOG_POLL_SECS):
+                if (self.route is not route
+                        or route.get("_tab") != "logs"
+                        or not self._browsing):
+                    break
+                try:
+                    lines = self.controller.recent_logs()
+                except Exception:
+                    break
+                # Length alone is not enough: the ring is bounded, so once
+                # it is full every new line also drops one and the count
+                # stops moving. Compare the newest line too.
+                last = lines[-1] if lines else None
+                if (len(lines) != route.get("_log_len")
+                        or last != route.get("_log_last")):
+                    self.invalidate()
+
+        self._start_daemon("_log_thread", "mpvtk-log-tail", tick)
 
     def _copy_logs(self, lines):
         """Put the captured log on the clipboard.

@@ -405,6 +405,13 @@ class MusicMixin:
 
     _REPEAT = ["none", "all", "one"]
 
+    # What the button will do next, not what is currently set — the icon
+    # already shows the state, and a tooltip that repeats it is no help.
+    @property
+    def _REPEAT_TIPS(self):
+        return {"none": _("Repeat All"), "all": _("Repeat One"),
+                "one": _("Repeat Off")}
+
     def _cycle_repeat(self):
         np = self._now_playing or {}
         cur = np.get("repeat", "none")
@@ -427,10 +434,14 @@ class MusicMixin:
         pp = "play_arrow" if np.get("paused") else "pause"
         repeat = np.get("repeat", "none")
 
-        def tbtn(icon, node_id, cb, color="eeeeee"):
+        # Every control here is icon-only, so the tooltip is the only thing
+        # that names it — the playback HUD has had them since it shipped and
+        # this bar was simply never given any.
+        def tbtn(icon, node_id, cb, color="eeeeee", tip=None):
             return Box([Icon(icon, 22, color=color)], id=node_id, pad=8,
                        bg=theme.BUTTON_BG, hover={"fill": theme.BUTTON_ACTIVE},
-                       radius=6, align="center", direction="row", on_click=cb)
+                       radius=6, align="center", direction="row", on_click=cb,
+                       tip=tip)
 
         # commit-only: dragging shouldn't spam absolute seeks mid-gesture
         seek = Slider("np-seek", value=pos, min=0, max=max(1, dur),
@@ -444,25 +455,38 @@ class MusicMixin:
                         Text(sub, size=13, color=theme.SUBTLE_FG)],
                        gap=2, w=220),
                 tbtn("skip_previous", "np-prev",
-                     lambda: self._ctl(lambda c: c.prev())),
-                tbtn(pp, "np-pp", lambda: self._ctl(lambda c: c.toggle_pause())),
+                     lambda: self._ctl(lambda c: c.prev()),
+                     tip=_("Previous")),
+                tbtn(pp, "np-pp", lambda: self._ctl(lambda c: c.toggle_pause()),
+                     tip=_("Play") if np.get("paused") else _("Pause")),
                 tbtn("skip_next", "np-next",
-                     lambda: self._ctl(lambda c: c.next())),
-                tbtn("stop", "np-stop", lambda: self._ctl(lambda c: c.stop())),
+                     lambda: self._ctl(lambda c: c.next()), tip=_("Next")),
+                tbtn("stop", "np-stop", lambda: self._ctl(lambda c: c.stop()),
+                     tip=_("Stop")),
                 Text(self._fmt(pos), size=14, w=48, color=theme.SUBTLE_FG),
                 seek,
                 Text(self._fmt(dur), size=14, w=48, color=theme.SUBTLE_FG),
                 tbtn("favorite" if np.get("favorite") else "favorite_border",
                      "np-fav", lambda: self._toggle_np_favorite(),
-                     color=theme.FAV_RED if np.get("favorite") else "eeeeee"),
+                     color=theme.FAV_RED if np.get("favorite") else "eeeeee",
+                     tip=(_("Remove from Favorites") if np.get("favorite")
+                          else _("Add to Favorites"))),
                 tbtn("repeat_one" if repeat == "one" else "repeat", "np-repeat",
                      lambda: self._cycle_repeat(),
-                     color=theme.ACCENT if repeat != "none" else "888888"),
+                     color=theme.ACCENT if repeat != "none" else "888888",
+                     tip=self._REPEAT_TIPS.get(repeat, _("Repeat"))),
                 Icon("volume_up", 20, color="aaaaaa"),
+                # Live for audible feedback, but only the release notifies:
+                # on_change fires per mouse-move, and a notifying set_volume
+                # wakes the timeline thread, which posts to the server.
                 Slider("np-vol", value=np.get("volume", 100), min=0, max=100,
-                       w=110,
-                       on_change=lambda v: self._ctl(lambda c: c.set_volume(v))),
-                tbtn("queue_music", "np-queue", self._open_queue),
+                       w=110, tip=_("Volume"),
+                       on_change=lambda v: self._ctl(
+                           lambda c: c.set_volume(v, notify=False)),
+                       on_commit=lambda v: self._ctl(
+                           lambda c: c.set_volume(v))),
+                tbtn("queue_music", "np-queue", self._open_queue,
+                     tip=_("Queue")),
             ],
             pad=10, gap=10, align="center", h=64, bg=theme.PANEL_BG)
 

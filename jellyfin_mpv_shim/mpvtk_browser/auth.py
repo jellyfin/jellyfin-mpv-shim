@@ -36,6 +36,7 @@ class AuthMixin:
     # kind -> (loader, renderer) method names. Merged into
     # one dispatch table by core's _routes().
     ROUTES = {
+        "connecting": (None, "_render_connecting"),
         "locked": (None, "_render_locked"),
         "login": (None, "_render_login"),
     }
@@ -392,6 +393,93 @@ class AuthMixin:
                 self.show_locked()
         except Exception:
             log.debug("relock check failed", exc_info=True)
+
+    def show_connecting(self):
+        """Come up on the connecting screen while the network settles.
+
+        The browser used to open straight onto an empty home route, which
+        rendered as a bare ``_busy()`` spinner: no explanation, and — with a
+        server that never answers — no way out short of killing the app.
+        Tk had this screen; mpvtk had the route name in ``CHROME_FREE`` and
+        nothing behind it."""
+        self.navigate({"kind": "connecting"}, reset=True)
+
+    def _render_connecting(self, route, size):
+        rows = [
+            Text(_("Connecting to your server…"), size=26, bold=True),
+            Spacer(h=8),
+            Row([Spacer(), Busy(), Spacer()]),
+        ]
+        if route.get("_connect_error"):
+            rows.append(Spacer(h=8))
+            rows.append(Text(route["_connect_error"], size=15, color=theme.FAV_RED))
+
+        # The escape hatch, and the reason this screen exists: with a server
+        # that is down or slow, everything already on disk is still
+        # playable. Only offered when there is something to browse — an
+        # empty offline library is a worse dead end than the spinner.
+        actions = []
+        if self._have_downloads():
+            actions.append(Button(_("Work Offline"), id="conn-offline",
+                                  icon="file_download",
+                                  on_click=self._work_offline))
+        if route.get("_connect_error"):
+            # Only once the connect has actually given up: a Retry offered
+            # while the first attempt is still in flight just starts a
+            # second one racing the first.
+            actions.append(Button(_("Retry"), id="conn-retry", icon="refresh",
+                                  on_click=self._retry_connect))
+            actions.append(Button(_("Sign In"), id="conn-login", icon="person",
+                                  on_click=self.show_login))
+        if actions:
+            rows.append(Spacer(h=14))
+            rows.append(Row([Spacer()] + actions + [Spacer()], gap=10))
+        card = Column(rows, pad=32, gap=8, bg=theme.CARD_BG, radius=12,
+                      border=theme.BORDER, w=480, align="stretch")
+        return Box([Spacer(), Row([Spacer(), card, Spacer()]), Spacer()],
+                   flex=1, direction="column", align="stretch")
+
+    def _have_downloads(self):
+        if self.controller is None:
+            return False
+        try:
+            return bool(self.controller.has_downloads())
+        except Exception:
+            log.debug("has_downloads failed", exc_info=True)
+            return False
+
+    def _work_offline(self):
+        """Give up on the connect and browse the catalog instead.
+
+        Does not touch the ``work_offline`` *setting* — this is a one-shot
+        escape from a slow startup, not a preference change. If the connect
+        lands later, set_source swaps the live source in over the top."""
+        if self.controller is None:
+            return
+        ep = self._epoch
+
+        def work():
+            return self.controller.offline_source()
+
+        def done(source):
+            if source is None:
+                # has_downloads said yes and the source came back empty:
+                # nothing to browse, so stay put rather than dead-ending on
+                # an empty library.
+                self.set_status(_("There is nothing downloaded to browse."))
+                self.invalidate()
+                return
+            self.set_source(source)
+
+        self.run_async(work, done, ep)
+
+    def connect_failed(self, message=None):
+        """The startup connect gave up. Called from the connect thread."""
+        if self.route.get("kind") != "connecting":
+            return
+        self.route["_connect_error"] = message or _(
+            "Couldn't reach your saved server(s).")
+        self.invalidate()
 
     def _render_locked(self, route, size):
         """Startup PIN gate.
