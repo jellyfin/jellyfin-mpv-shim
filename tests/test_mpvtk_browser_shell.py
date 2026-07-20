@@ -5133,6 +5133,77 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestDownloadDialogGuardsAnEmptyEstimate(unittest.TestCase):
+    """An estimate of nothing means everything is already downloaded, so
+    offering Download is a dead click. Tk guarded on the count."""
+
+    def _dialog(self, est):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b._dl = {"server": "srv1", "item": {"Id": "s1", "Name": "Show"},
+                 "est": est, "watched": False, "container": True}
+        b._show_download()
+        return build_scene(b)
+
+    def test_zero_items_offers_no_download_button(self):
+        nodes, handlers = self._dialog({"count": 0, "total_bytes": 0,
+                                        "already_count": 12})
+        self.assertNotIn("dl-ok", handlers, "a dead Download button")
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertTrue(any("nothing left" in t.lower() for t in texts),
+                        "it does not say why: %r" % texts)
+
+    def test_a_real_estimate_still_offers_it(self):
+        _n, handlers = self._dialog({"count": 3, "total_bytes": 100})
+        self.assertIn("dl-ok", handlers)
+
+    def test_a_pending_estimate_still_says_estimating(self):
+        nodes, handlers = self._dialog(None)
+        self.assertNotIn("dl-ok", handlers)
+        texts = [n.get("text") or "" for n in nodes]
+        self.assertTrue(any("estimating" in t.lower() for t in texts))
+
+
+class TestSeasonPageNextUp(unittest.TestCase):
+    """Tk had Play Next Up on the season page. Landing on a season and being
+    able to carry on is the point of the screen; without it you had to go up
+    to the series page to resume."""
+
+    def _season(self, series_id="sh1"):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "season", "server": "srv1", "item_id": "sea1",
+                 "title": "Season 1"}
+        if series_id:
+            route["series_id"] = series_id
+        b.nav_stack = [route]
+        b._load_route(route)
+        return b, route
+
+    def test_the_button_is_on_the_season_page(self):
+        b, _r = self._season()
+        nodes, handlers = build_scene(b)
+        self.assertIn("se-nextup", ids(nodes), "no Next Up on the season page")
+        self.assertIn("se-nextup", handlers)
+
+    def test_it_plays_the_next_episode_of_the_series(self):
+        b, _r = self._season()
+        played = []
+        b._play = lambda item, server, **kw: played.append(item.get("Id"))
+        _n, handlers = build_scene(b)
+        handlers["se-nextup"]["click"]()
+        self.assertTrue(played, "Next Up played nothing")
+
+    def test_a_season_with_no_series_id_does_not_offer_it(self):
+        """Nothing to resume against."""
+        b, _r = self._season(series_id=None)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("se-nextup", ids(nodes))
+
+
 class TestTileAndMetaParity(unittest.TestCase):
     """Small captions that carry most of the information on a tile."""
 

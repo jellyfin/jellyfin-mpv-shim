@@ -861,10 +861,20 @@ class ViewsMixin:
                     "kind": "series", "server": server,
                     "item_id": route["series_id"],
                     "title": season_item.get("SeriesName", "")})))
+        acts = []
+        if route.get("series_id"):
+            # Tk had Play Next Up here too. Landing on a season and being able
+            # to carry on is the point of the screen; without it you had to go
+            # up to the series page to resume.
+            acts.append(self._action_btn(
+                "play_arrow", _("Next Up"), "se-nextup",
+                lambda: self._play_next_up(route["series_id"], server),
+                primary=True))
+        acts += self._common_actions(
+            season_item or {"Id": route["item_id"], "Type": "Season"},
+            server, "se")
         header = [Row(title_row, gap=12, align="center"),
-                  Row(self._common_actions(season_item or {"Id": route["item_id"],
-                                           "Type": "Season"}, server, "se"),
-                      gap=8, align="center")]
+                  Row(acts, gap=8, align="center")]
         rows = header + self._grid_of(
             episodes, "ep", size, geom=geom, image_type="Thumb",
             scroll_id="season", head_h=100)

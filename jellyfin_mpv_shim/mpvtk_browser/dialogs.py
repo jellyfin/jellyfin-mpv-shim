@@ -280,12 +280,16 @@ class DialogsMixin:
                     Button(_("Cancel"), id="dl-cancel",
                            on_click=self._close_download),
                     # Confirming before the estimate lands loses the
-                    # audio_only default and skips played tracks.
+                    # audio_only default and skips played tracks. And an
+                    # estimate of nothing means there is nothing to fetch —
+                    # everything here is already downloaded — so offering
+                    # Download is a dead click. Tk guarded on the count.
                     Button(_("Download"), id="dl-ok",
                            on_click=self._dl_confirm)
-                    if est is not None else
-                    Text(_("Estimating…"), size=15,
-                         color=theme.SUBTLE_FG)]),
+                    if est is not None and est.get("count", 0) else
+                    Text(_("Estimating…") if est is None
+                         else _("Nothing left to download."),
+                         size=15, color=theme.SUBTLE_FG)]),
             ], w=460), on_dismiss=self._close_download)
         self._show_dialog(build)
 
