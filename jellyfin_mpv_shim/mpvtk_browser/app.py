@@ -350,15 +350,29 @@ class MpvtkBrowser:
         if self.app is not None:
             self.app.invalidate()
 
-    def run_async(self, work, on_done, epoch):
+    def run_async(self, work, on_done, epoch, on_error=None):
         """Run ``work()`` off the loop thread; apply ``on_done(result)`` only
         if the epoch still matches (the user hasn't navigated away). ``on_done``
-        mutates state under the lock, then the loop is woken to rebuild."""
+        mutates state under the lock, then the loop is woken to rebuild.
+
+        ``on_error(exc)`` runs the same way when ``work()`` raises. Without
+        one a failure only logs, which left the route's data at None and the
+        view spinning forever — an unreachable server looked like a hang."""
         def task():
             try:
                 result = work()
-            except Exception:
+            except Exception as exc:
                 log.warning("async work failed", exc_info=True)
+                if on_error is None:
+                    return
+                with self._lock:
+                    if epoch != self._epoch:
+                        return
+                    try:
+                        on_error(exc)
+                    except Exception:
+                        log.warning("async on_error failed", exc_info=True)
+                self.invalidate()
                 return
             with self._lock:
                 if epoch != self._epoch:
@@ -371,10 +385,49 @@ class MpvtkBrowser:
 
         self._pool.submit(task)
 
+    def _route_async(self, route, work, on_done, ep):
+        """run_async for a route's data, recording a failure on the route so
+        the view can say so and offer a retry instead of spinning."""
+        def failed(exc):
+            route["_error"] = _("Failed to load. Check the connection.")
+            # Paging guards must not survive the failure or the view stops
+            # requesting anything for the rest of the session.
+            route.pop("_loading", None)
+            log.info("route %r failed to load: %s", route.get("kind"), exc)
+            self._offline_fallback(route)
+        self.run_async(work, on_done, ep, on_error=failed)
+
+    def _offline_fallback(self, route):
+        """A failed *home* load with downloads present drops to the offline
+        library, as the Tk browser does — otherwise the first thing a user
+        sees with the server down is an error where their downloads are."""
+        if route.get("kind") != "home" or self._offline:
+            return
+        if self.controller is None:
+            return
+        try:
+            source = self.controller.offline_source()
+        except Exception:
+            log.debug("offline fallback failed", exc_info=True)
+            return
+        if source is not None:
+            log.info("server unreachable; falling back to the downloads")
+            self.set_source(source)
+
+    def _retry_route(self, route):
+        route.pop("_error", None)
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
     def _load_route(self, route):
         kind = route["kind"]
         if self.server is None:
             return
+        route.pop("_error", None)
         ep = self._epoch
         if kind == "home":
             def work():
@@ -382,7 +435,7 @@ class MpvtkBrowser:
                 libs = self.source.get_libraries(server)
                 rows = self.source.get_home_rows(server, libs)
                 return {"libraries": libs, "rows": rows}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "grid":
             srv = route.get("server") or self.server
             parent = route["parent_id"]
@@ -403,7 +456,7 @@ class MpvtkBrowser:
 
             def done(res):
                 route["_items"], route["_total"], route["_filtervals"] = res
-            self.run_async(work, done, ep)
+            self._route_async(route, work, done, ep)
         elif kind == "detail":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -416,7 +469,7 @@ class MpvtkBrowser:
                 except Exception:
                     pass
                 return {"item": item, "similar": similar}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "series":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -426,7 +479,7 @@ class MpvtkBrowser:
                     "item": self.source.get_item(srv, iid),
                     "seasons": self.source.get_seasons(srv, iid),
                 }
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "season":
             srv = route.get("server") or self.server
 
@@ -437,7 +490,7 @@ class MpvtkBrowser:
                     "seasons": self.source.get_seasons(
                         srv, route.get("series_id")),
                 }
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "search":
             srv = route.get("server") or self.server
             term = route.get("term", "")
@@ -452,13 +505,13 @@ class MpvtkBrowser:
                 except Exception:
                     pass
                 return {"items": items, "people": people}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "music":
             def done(res):
                 items, total = res
                 route["_data"], route["_total"] = items, total
                 route["_loading"] = False
-            self.run_async(self._music_page(route, 0), done, ep)
+            self._route_async(route, self._music_page(route, 0), done, ep)
         elif kind == "album":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -466,7 +519,7 @@ class MpvtkBrowser:
             def work():
                 return {"item": self.source.get_item(srv, iid),
                         "tracks": self.source.get_album_tracks(srv, iid)}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "artist":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -479,7 +532,7 @@ class MpvtkBrowser:
                     pass
                 return {"albums": self.source.get_artist_albums(srv, iid),
                         "songs": songs}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "music_genre":
             srv = route.get("server") or self.server
 
@@ -493,14 +546,14 @@ class MpvtkBrowser:
                 return {"albums": self.source.get_genre_albums(
                     srv, route.get("parent_id"), route["item_id"])[0],
                     "songs": songs}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "playlist":
             srv = route.get("server") or self.server
             iid = route["item_id"]
 
             def work():
                 return self.source.get_playlist_items(srv, iid)
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "person":
             srv = route.get("server") or self.server
 
@@ -509,7 +562,7 @@ class MpvtkBrowser:
 
             def done(res):
                 route["_items"], route["_total"] = res
-            self.run_async(work, done, ep)
+            self._route_async(route, work, done, ep)
         elif kind == "playlist_edit":
             srv = route.get("server") or self.server
             iid = route["item_id"]
@@ -531,7 +584,7 @@ class MpvtkBrowser:
                 if "OpenAccess" in meta:
                     route["_public"] = bool(meta.get("OpenAccess"))
                     route["_public_known"] = True
-            self.run_async(work, done, ep)
+            self._route_async(route, work, done, ep)
         elif kind == "queue":
             srv = route.get("server") or self.server
 
@@ -552,7 +605,7 @@ class MpvtkBrowser:
                      "pid": e.get("playlist_item_id")}
                     for e in q.get("items", [])]
                 return {"entries": entries, "current_id": q.get("current_id")}
-            self.run_async(work, lambda d: route.__setitem__("_data", d), ep)
+            self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 
     # -------------------------------------------------------- tile helpers
 
@@ -1651,7 +1704,27 @@ class MpvtkBrowser:
         }.get(kind)
         if render is None:
             return self._busy()
+        # A load that failed with nothing to show says so and offers a
+        # retry. Without this the route's data stayed None and the view
+        # spun forever, so an unreachable server read as a hang.
+        if (route.get("_error")
+                and route.get("_data") is None
+                and not route.get("_items")):
+            return self._error_retry(route)
         return render(route, size)
+
+    def _error_retry(self, route):
+        return Box([
+            Spacer(),
+            Row([Spacer(),
+                 Text(route["_error"], size=20, color=theme.SUBTLE_FG),
+                 Spacer()]),
+            Row([Spacer(),
+                 Button(_("Retry"), id="route-retry", icon="refresh",
+                        on_click=lambda: self._retry_route(route)),
+                 Spacer()]),
+            Spacer(),
+        ], flex=1, direction="column", align="stretch", gap=14)
 
     def _render_home(self, route, size):
         if self.server is None:
@@ -1854,10 +1927,21 @@ class MpvtkBrowser:
         def done(res):
             new, total2 = res
             route["_items"] = (route.get("_items") or []) + new
-            route["_total"] = total2
+            # A server that answers an in-range page with nothing (a random
+            # sort reshuffling per request, a filter the server applies
+            # differently) would otherwise be re-asked on every scroll
+            # event forever. Treat the page as the end of the list.
+            route["_total"] = (total2 if new
+                               else len(route.get("_items") or []))
             route["_loading"] = False
 
-        self.run_async(work, done, ep)
+        def failed(_exc):
+            # _loading is set before dispatch: leaving it set on a failed
+            # page stopped this grid from ever paging again.
+            route["_loading"] = False
+            self.status = _("Could not load more items.")
+
+        self.run_async(work, done, ep, on_error=failed)
 
     # --------------------------------------------------- detail / series / etc
 

@@ -3336,3 +3336,127 @@ class TestPinSetup(unittest.TestCase):
         handlers["ps-confirm"]["change"]("9999")
         handlers["ps-ok"]["click"]()
         self.assertEqual(calls, [])
+
+
+class _FailingSource(FakeSource):
+    """A source whose browse calls raise, like an unreachable server."""
+
+    def __init__(self, fail=True):
+        super().__init__()
+        self.fail = fail
+        self.calls = 0
+
+    def _boom(self, *a, **k):
+        self.calls += 1
+        if self.fail:
+            raise OSError("server unreachable")
+        return []
+
+    get_libraries = _boom
+    get_home_rows = _boom
+
+
+class TestRouteErrors(unittest.TestCase):
+    """A failed load left the route's data at None with no error path, so
+    the view spun forever — an unreachable server looked like a hang."""
+
+    def setUp(self):
+        self.src = _FailingSource()
+        self.b = MpvtkBrowser(app=None, source=self.src)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _render(self):
+        self.b._load_route(self.b.route)
+        nodes, handlers = build_scene(self.b)
+        return nodes, handlers
+
+    def test_a_failed_load_reports_instead_of_spinning(self):
+        nodes, _h = self._render()
+        self.assertIn("route-retry", ids(nodes), "no retry offered")
+        texts = " ".join(n.get("text", "") for n in nodes if n.get("text"))
+        self.assertIn("Failed to load", texts)
+        self.assertNotIn("busy", [n["t"] for n in nodes])
+
+    def test_retry_reloads_and_recovers(self):
+        _n, handlers = self._render()
+        before = self.src.calls
+        self.src.fail = False
+        handlers["route-retry"]["click"]()
+        self.assertGreater(self.src.calls, before, "retry did not refetch")
+        self.assertIsNone(self.b.route.get("_error"))
+
+    def test_a_stale_failure_is_cleared_on_reload(self):
+        self._render()
+        self.assertIsNotNone(self.b.route.get("_error"))
+        self.src.fail = False
+        self.b._load_route(self.b.route)
+        self.assertIsNone(self.b.route.get("_error"))
+
+    def test_a_failed_home_falls_back_to_downloads(self):
+        """With downloads present, a dead server should land in the offline
+        library rather than on an error where the downloads are."""
+        class OfflineSrc(FakeSource):
+            pass
+
+        ctl = FakeController()
+        offline = OfflineSrc()
+        ctl.offline_source = lambda: offline
+        b = MpvtkBrowser(app=None, source=_FailingSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._load_route(b.route)
+        self.assertIs(b.source, offline, "did not fall back to downloads")
+
+    def test_no_fallback_when_nothing_is_downloaded(self):
+        ctl = FakeController()
+        ctl.offline_source = lambda: None
+        b = MpvtkBrowser(app=None, source=_FailingSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._load_route(b.route)
+        nodes, _h = build_scene(b)
+        self.assertIn("route-retry", ids(nodes))
+
+
+class TestGridPaging(unittest.TestCase):
+    def _grid(self, page_result=None, fail=False):
+        src = FakeSource()
+        calls = []
+
+        def get_library_items(srv, parent, **kw):
+            calls.append(kw.get("start_index", 0))
+            if fail:
+                raise OSError("boom")
+            return page_result if page_result is not None else ([], 100)
+
+        src.get_library_items = get_library_items
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "_items": [{"Id": "m%d" % i} for i in range(20)],
+                 "_total": 100}
+        b.nav_stack = [route]
+        return b, route, calls
+
+    def test_a_failed_page_does_not_deadlock_paging(self):
+        b, route, calls = self._grid(fail=True)
+        b._on_grid_scroll(route, 0, 100)
+        self.assertFalse(route.get("_loading"),
+                         "_loading stuck: the grid can never page again")
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(len(calls), 2, "second page attempt never happened")
+
+    def test_an_empty_page_ends_the_list(self):
+        b, route, calls = self._grid(page_result=([], 100))
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(route["_total"], 20, "total not clamped to loaded")
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(len(calls), 1, "re-requested an empty page")
+
+    def test_a_normal_page_appends(self):
+        b, route, calls = self._grid(page_result=([{"Id": "x"}], 100))
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(len(route["_items"]), 21)
+        self.assertEqual(route["_total"], 100)
