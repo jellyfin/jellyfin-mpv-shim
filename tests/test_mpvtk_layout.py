@@ -225,3 +225,59 @@ class TestAssWrapStyle(unittest.TestCase):
         """Guards the guard: if the pattern above stops matching, the
         first test would pass vacuously."""
         self.assertGreaterEqual(self._renderer().count("\\\\q2"), 2)
+
+
+class TestVirtualTableWidth(unittest.TestCase):
+    """A virtualized table pins min_w so its width can't jitter as rows
+    materialize. Sizing FLEX columns to their widest content made one long
+    song title pin the table far wider than the window — min_w is a floor,
+    so it could never shrink back and the table ran off the edge instead
+    of ellipsizing, which is what a flex column is for."""
+
+    LONG = ("An Extremely Long Song Title That Goes On And On Forever "
+            "And Ever Without Any Sign Of Stopping Whatsoever Truly")
+
+    def _table(self, title):
+        from jellyfin_mpv_shim.mpvtk.widgets import Table
+
+        cols = [{"label": "#", "w": 46, "align": "right"},
+                {"label": "Title", "flex": 3},
+                {"label": "Artist", "flex": 2},
+                {"label": "Time", "w": 70, "align": "right"}]
+        rows = [{"id": "r0", "cells": ["1", title, title, "3:20"]}]
+        return Table(cols, rows, virtual={"offset": 0, "height": 720})
+
+    def test_min_w_ignores_flex_content_length(self):
+        short = self._table("A")
+        long = self._table(self.LONG)
+        self.assertEqual(short.min_w, long.min_w,
+                         "content length leaked into the table's floor")
+
+    def test_min_w_still_covers_the_fixed_columns(self):
+        t = self._table("A")
+        self.assertGreaterEqual(t.min_w, 46 + 70)
+
+    def test_a_long_row_fits_the_window(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, VScroll
+
+        for w in (1200, 1000, 700, 500):
+            tree = VScroll(Column([self._table(self.LONG)], pad=16,
+                                  align="stretch"), flex=1)
+            nodes, _h = layout(tree, w, 720)
+            edge = max(n["x"] + n["w"] for n in nodes if n["t"] == "text")
+            self.assertLessEqual(edge, w,
+                                 "table overflows the window at w=%d" % w)
+
+    def test_long_cells_are_ellipsized(self):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, VScroll
+
+        tree = VScroll(Column([self._table(self.LONG)], pad=16,
+                              align="stretch"), flex=1)
+        nodes, _h = layout(tree, 800, 720)
+        cells = [n["text"] for n in nodes
+                 if n["t"] == "text" and n["text"].startswith("An Extremely")]
+        self.assertTrue(cells, "no long cell rendered")
+        for c in cells:
+            self.assertTrue(c.endswith("…"), "cell not ellipsized: %r" % c)

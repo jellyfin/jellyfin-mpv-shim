@@ -506,6 +506,10 @@ class Table(Column):
     renderer-side state survives the window moving.
     """
 
+    # Width a flex column contributes to a virtualized table's min_w.
+    # A floor, not a content measurement — see __init__.
+    FLEX_MIN_W = 70
+
     def __init__(
         self,
         columns,
@@ -592,23 +596,30 @@ class Table(Column):
         if (virtual is not None and self.w is None and not self.flex
                 and self.min_w is None):
             # A virtualized table's built rows depend on the scroll
-            # offset, so its measured natural width would jitter with
-            # scrolling — a trap for any non-stretch parent. Pin min_w
-            # to the widest content across ALL rows (str cells only;
-            # Element cells are fixed-width in practice).
+            # offset, so a measured natural width would jitter as you
+            # scroll — a trap for any non-stretch parent. Pin min_w
+            # instead, from the column spec alone.
+            #
+            # Fixed columns contribute their width; flex columns
+            # contribute only a small floor, NOT their widest content.
+            # Sizing flex columns to their content made one long song
+            # title pin the table at ~3100px inside a 1000px window —
+            # min_w is a floor, so the table could never shrink back and
+            # the whole thing ran off the edge instead of ellipsizing,
+            # which is exactly what a flex column is for.
             from .layout import text_width
 
             total = 2 * pad_x + gap * (len(columns) + 1)
-            for ci, col in enumerate(columns):
+            for col in columns:
                 if col.get("w") is not None:
                     total += col["w"]
                     continue
-                mx = text_width(str(col.get("label", "")), header_size)
-                for r in rows:
-                    cs = r.get("cells", [])
-                    if ci < len(cs) and not isinstance(cs[ci], Element):
-                        mx = max(mx, text_width(str(cs[ci]), size))
-                total += mx
+                # enough for the header label to stay readable, capped so
+                # a long translated label can't pin the table either
+                total += min(
+                    self.FLEX_MIN_W * 2,
+                    max(self.FLEX_MIN_W,
+                        text_width(str(col.get("label", "")), header_size)))
             self.min_w = total
 
 

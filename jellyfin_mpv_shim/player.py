@@ -66,30 +66,10 @@ if hasattr(mpv, "ShutdownError"):
 else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
-_browse_bg_path = None
+# The mpvtk browser's window background. mpv paints it directly
+# (background=color), so nothing has to be decoded to hold the window open.
+BROWSE_BG_HEX = "#141414"
 
-
-def _browse_background():
-    """Path to a solid dark image used as the mpvtk browser's window
-    background, replacing the Jellyfin logo splash that force_window()
-    shows for the menu. Generated once and cached (the browser scales it to
-    fill with keepaspect-window=no)."""
-    global _browse_bg_path
-    if _browse_bg_path and os.path.exists(_browse_bg_path):
-        return _browse_bg_path
-    try:
-        import tempfile
-        from PIL import Image
-
-        path = os.path.join(tempfile.gettempdir(), "mpvtk-browse-bg.png")
-        if not os.path.exists(path):
-            Image.new("RGB", (16, 16), (20, 20, 20)).save(path)
-        _browse_bg_path = path
-        return path
-    except Exception:
-        # PIL missing (the browser needs it anyway) -> fall back to the logo:
-        # the window still opens, just with branding.
-        return get_resource("logo.png")
 
 SUBTITLE_POS = {
     "top": 0,
@@ -2420,23 +2400,34 @@ class PlayerManager(object):
         try:
             if enabled:
                 try:
-                    # The background is a solid colour, so stretch it to fill
-                    # the window. Without this mpv letterboxes the (square)
-                    # image and the bars around it show as a grey frame under
-                    # the UI. Restored by browse_yield() for real video.
+                    # A UI window resizes freely; keeping the aspect would
+                    # snap it to whatever was last played. Restored by
+                    # browse_yield() for real video.
                     self._player.keepaspect = False
                 except Exception:
                     pass  # older mpv without the property; harmless
+                # Paint the window ourselves rather than decoding a file to
+                # hold it open. This also fixes audio: playing a song
+                # replaces whatever is loaded with a picture-less file, and
+                # mpv then paints its own background there — black against
+                # the UI's dark grey. These are global vo options, so they
+                # survive the file change.
+                self._player.background = "color"
+                self._player.background_color = BROWSE_BG_HEX
                 self._player.force_window = True
                 self._player.keep_open = True
                 self._player.image_display_duration = "inf"
-                # Reloading the background while it is already up tears the
-                # video output down and back up, which reads as the window
-                # closing and reopening. Stopping playback hits this path
-                # twice (once from the stopped-playstate callback, once from
-                # the caller), so it has to be idempotent.
-                if not (self._showing_browse_bg and self._video is None):
-                    self._player.play(_browse_background())
+                # force_window with nothing loaded is an empty window
+                # painted with background-color — no decode, and none of
+                # the video-output teardown that reloading a background
+                # file causes (which read as the window closing and
+                # reopening). Only when nothing is playing: audio keeps the
+                # browser up and must not be stopped out from under itself.
+                # Idempotent — stopping playback reaches here twice, once
+                # from the stopped-playstate callback and once from the
+                # caller.
+                if self._video is None and not self._showing_browse_bg:
+                    self._player.command("stop")
                     self._showing_browse_bg = True
                 # Browsing is a desktop-UI activity: only go fullscreen if the
                 # user explicitly asked for a fullscreen browser. settings.

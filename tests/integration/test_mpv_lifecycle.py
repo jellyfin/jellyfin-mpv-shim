@@ -436,23 +436,46 @@ class WindowLifecycleTest(unittest.TestCase):
         pm.set_browse_window(False)
         self.assertFalse(pm._player.force_window)
 
+    @staticmethod
+    def _stops(pm):
+        return [c for c in pm._player.commands if c and c[0] == "stop"]
+
     def test_browse_window_is_idempotent(self):
-        """Reloading the background over itself tears the video output down
-        and back up, which reads as the window closing and reopening."""
+        """Re-arming the window over itself tears the video output down and
+        back up, which reads as the window closing and reopening."""
         pm = self._player()
         pm.set_browse_window(True)
-        first = len(pm._player.played)
+        first = len(self._stops(pm))
         pm.set_browse_window(True)
         pm.set_browse_window(True)
-        self.assertEqual(len(pm._player.played), first)
+        self.assertEqual(len(self._stops(pm)), first)
 
     def test_real_media_re_arms_the_background(self):
         pm = self._player()
         pm.set_browse_window(True)
-        n = len(pm._player.played)
+        n = len(self._stops(pm))
         pm._showing_browse_bg = False      # what _play_media does
         pm.set_browse_window(True)
-        self.assertEqual(len(pm._player.played), n + 1)
+        self.assertEqual(len(self._stops(pm)), n + 1)
+
+    def test_the_window_is_painted_not_decoded(self):
+        """force_window with nothing loaded shows an empty window painted
+        with background-color — no file decoded just to hold it open, and
+        no video-output churn when it is re-armed."""
+        pm = self._player()
+        pm.set_browse_window(True)
+        self.assertEqual(pm._player.played, [], "decoded a background file")
+        self.assertEqual(pm._player.background, "color")
+        self.assertEqual(pm._player.background_color, "#141414")
+
+    def test_audio_playback_is_not_stopped_by_re_arming(self):
+        """Audio keeps the browser up, so the window must not be re-armed
+        out from under it."""
+        pm = self._player()
+        pm._video = object()
+        pm._showing_browse_bg = False
+        pm.set_browse_window(True)
+        self.assertEqual(self._stops(pm), [], "stopped the music")
 
 
 class FullscreenPersistTest(unittest.TestCase):
