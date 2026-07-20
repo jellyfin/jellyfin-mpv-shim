@@ -975,7 +975,15 @@ class ViewsMixin:
             return items, total, vals
 
         def done(res):
-            route["_items"], route["_total"], route["_filtervals"] = res
+            items, total, vals = res
+            route["_items"], route["_filtervals"] = items, vals
+            # Random reshuffles server-side on every request, so page two is
+            # drawn from a different ordering than page one: paging it yields
+            # duplicates and silently skips items. Reporting the first page as
+            # the whole list is what the Tk browser did, and _page_more's
+            # "an empty page ends the list" rule can never fire here because a
+            # reshuffle always returns something.
+            route["_total"] = len(items) if sort_by == "Random" else total
             # The toggle only makes sense on a movies library, and only
             # when the source can answer it (the offline catalog can't).
             route["_collection_capable"] = (

@@ -1595,6 +1595,52 @@ class TestPlaylistEdit(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
 
+class TestRandomSortDoesNotPage(unittest.TestCase):
+    """A Random-sorted library must stop after its first page.
+
+    The server reshuffles on every request, so page two is drawn from a
+    different ordering: paging it repeats some items and silently skips
+    others. _page_more's "an empty in-range page ends the list" rule can
+    never fire, because a reshuffle always returns something. Tk capped it
+    for exactly this reason.
+    """
+
+    def _grid(self, sort_label):
+        from jellyfin_mpv_shim.mpvtk_browser.app import SORTS
+        idx = [s[0] for s in SORTS].index(sort_label)
+        calls = []
+        src = FakeSource()
+
+        def get_library_items(srv, parent, **kw):
+            calls.append(kw.get("start_index", 0))
+            return ([{"Id": "i%d" % (kw.get("start_index", 0) + n)}
+                     for n in range(20)], 500)
+
+        src.get_library_items = get_library_items
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "_sort": idx}
+        b.nav_stack = [route]
+        b._load_route(route)
+        return b, route, calls
+
+    def test_random_reports_the_first_page_as_the_whole_list(self):
+        b, route, calls = self._grid("Random")
+        self.assertEqual(route["_total"], 20,
+                         "a Random grid still thinks it has 500 items")
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(calls, [0], "Random paged and will duplicate items")
+
+    def test_a_normal_sort_still_pages(self):
+        """The cap must not leak into the other nine sorts."""
+        b, route, calls = self._grid("Name")
+        self.assertEqual(route["_total"], 500)
+        b._on_grid_scroll(route, 0, 100)
+        self.assertEqual(calls, [0, 20], "a Name-sorted grid stopped paging")
+
+
 class TestSearchSongsAllRender(unittest.TestCase):
     """Every song in a search result must be on screen.
 
