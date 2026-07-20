@@ -634,7 +634,11 @@ class _PlayerController:
         self._act(lambda pm: pm.queue_remove_many(list(playlist_item_ids)))
 
     def queue_reorder(self, ordered_playlist_item_ids):
-        self._act(lambda pm: pm.queue_reorder(list(ordered_playlist_item_ids)))
+        """Reorder the playing queue. RAISES on failure — the queue view
+        shows the new order optimistically and has to put it back."""
+        from ..player import playerManager
+
+        playerManager.queue_reorder(list(ordered_playlist_item_ids))
 
     def get_queue_ids(self):
         """Item ids of the playing queue, for "add queue to a playlist"."""

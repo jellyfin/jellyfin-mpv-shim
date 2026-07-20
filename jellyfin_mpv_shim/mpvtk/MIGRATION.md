@@ -1754,6 +1754,12 @@ field testing, but the deletion commit should say so out loud:
 - **Native file dialog** for the download directory → a path TextBox.
 - **Dialog backdrop dimming.** Bitmaps composite above ASS, so a dialog
   cannot dim the posters behind it (GUIDE §6).
+- **The first-close preference prompt.** Tk asked once, on the first
+  window close, whether to minimise to tray or quit. Deliberately not
+  ported: with one shared mpv window we would have to awkwardly re-open
+  the window just to show the modal. Instead the choice is made obvious
+  in Settings -> Interface ("Close to Tray (keep running)") and defaults
+  to the harmless option — minimise, not quit.
 
 Two settings were deleted rather than ported, because mpvtk displayed
 them and never read them: `library_page_size`, `library_image_width`.

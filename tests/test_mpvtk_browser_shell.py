@@ -4977,3 +4977,99 @@ class TestPlaylistPageDownloadButton(unittest.TestCase):
         nodes, _h = build_scene(b)
         self.assertIn("pl-undownload", ids(nodes),
                       "playlist page still hardcodes Download")
+
+
+class TestOptimisticRollback(unittest.TestCase):
+    """Every optimistic editor now puts its change back when the server
+    refuses. _pe_move was the only one that did."""
+
+    def _browser(self, **ctl_attrs):
+        ctl = FakeController()
+        for k, v in ctl_attrs.items():
+            setattr(ctl, k, v)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        return b
+
+    @staticmethod
+    def _boom(*a, **k):
+        raise RuntimeError("server refused")
+
+    def test_remove_puts_the_rows_back(self):
+        b = self._browser(playlist_remove=self._boom)
+        items = [{"Id": "a", "PlaylistItemId": "e1"},
+                 {"Id": "b", "PlaylistItemId": "e2"}]
+        route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+                 "_items": list(items), "_sel": {0}}
+        b.nav_stack = [route]
+        b._pe_remove(route)
+        self.assertEqual([i["Id"] for i in route["_items"]], ["a", "b"],
+                         "rows stayed gone after a refused remove")
+
+    def test_rename_reverts(self):
+        b = self._browser(playlist_update=self._boom)
+        route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+                 "title": "Old", "_newname": "New"}
+        b.nav_stack = [route]
+        b._pe_rename(route)
+        self.assertEqual(route["title"], "Old")
+
+    def test_visibility_reverts(self):
+        """The difference between private and public must not be left
+        showing a value the server rejected."""
+        b = self._browser(playlist_update=self._boom)
+        route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+                 "_public": False, "_public_known": True}
+        b.nav_stack = [route]
+        b._pe_toggle_public(route)
+        self.assertFalse(route["_public"])
+
+    def test_queue_reorder_reverts(self):
+        b = self._browser(queue_reorder=self._boom)
+        entries = [{"item": {"Id": "a"}, "pid": "p1"},
+                   {"item": {"Id": "b"}, "pid": "p2"}]
+        route = {"kind": "queue", "server": "srv1",
+                 "_data": {"entries": list(entries), "current_id": "a"},
+                 "_sel": {0}}
+        b.nav_stack = [route]
+        b._queue_move(route, "down")
+        self.assertEqual([e["pid"] for e in route["_data"]["entries"]],
+                         ["p1", "p2"], "queue kept an order the player refused")
+
+    def test_a_successful_edit_keeps_the_change(self):
+        b = self._browser(playlist_update=lambda *a, **k: None)
+        route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+                 "title": "Old", "_newname": "New"}
+        b.nav_stack = [route]
+        b._pe_rename(route)
+        self.assertEqual(route["title"], "New")
+
+
+class TestGenreResolutionIsNotRacy(unittest.TestCase):
+    """_resolve_play_ids read self.route from a pool thread, so a genre
+    could resolve against a page the user had already left."""
+
+    def test_the_parent_is_captured_not_read_late(self):
+        seen = []
+        src = FakeSource()
+        src.get_genre_songs = lambda srv, parent, gid: (
+            seen.append(parent) or [{"Id": "t1"}])
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b.nav_stack = [{"kind": "music_genre", "server": "srv1",
+                        "parent_id": "lib-music", "item_id": "g1"}]
+        # resolve with the parent captured at call time, then navigate away
+        parent = b.route.get("parent_id")
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        b._resolve_play_ids({"Id": "g1", "Type": "MusicGenre"}, "srv1", parent)
+        self.assertEqual(seen, ["lib-music"],
+                         "resolved against the wrong library")
+
+    def test_it_no_longer_touches_the_route(self):
+        """Belt and braces on a threading rule a behavioural test can only
+        catch by luck. The docstring names self.route, so check the body."""
+        import inspect
+
+        src = inspect.getsource(MpvtkBrowser._resolve_play_ids)
+        body = src.split('"""')[2] if src.count('"""') >= 2 else src
+        self.assertNotIn("self.route", body,
+                         "still reads live route state off the loop thread")

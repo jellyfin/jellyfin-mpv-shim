@@ -1132,22 +1132,27 @@ class MpvtkBrowser:
         """Append to the playing queue. A music container is resolved to its
         tracks first — queueing the container id itself is meaningless."""
         ep = self._epoch
+        parent = self.route.get("parent_id")
 
         def work():
-            return self._resolve_play_ids(item, server)
+            return self._resolve_play_ids(item, server, parent)
 
         def done(ids):
             if ids:
                 self._queue_items(ids, server)
         self.run_async(work, done, ep)
 
-    def _resolve_play_ids(self, item, server):
+    def _resolve_play_ids(self, item, server, parent_id=None):
         """The item ids "Play"/"Add to Queue" should act on.
 
         A music container (album/artist/playlist/series) is not itself a
         playable item — queueing or playing its own id does nothing, which
         is why Play on an album tile used to just navigate. Runs off the
-        loop thread: these hit the server."""
+        loop thread: these hit the server.
+
+        ``parent_id`` (a genre's library) must be captured by the CALLER on
+        the loop thread. Reading self.route here raced navigation: a genre
+        could resolve against whatever page the user had moved on to."""
         t, iid = item.get("Type"), item.get("Id")
         if not iid:
             return []
@@ -1164,7 +1169,7 @@ class MpvtkBrowser:
                         if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
             if t == "MusicGenre":
                 return [i.get("Id") for i in self.source.get_genre_songs(
-                    server, self.route.get("parent_id"), iid)]
+                    server, parent_id, iid)]
             if t in ("Series", "Season"):
                 return [i.get("Id") for i in
                         self.source.get_series_queue(server, iid)]
@@ -1185,9 +1190,10 @@ class MpvtkBrowser:
         # navigating (a "Play" that browses instead is just a lie).
         ep = self._epoch
         audio = t in ("MusicAlbum", "MusicArtist", "MusicGenre")
+        parent = self.route.get("parent_id")
 
         def work():
-            return self._resolve_play_ids(item, server)
+            return self._resolve_play_ids(item, server, parent)
 
         def done(ids):
             if ids:
@@ -1196,12 +1202,13 @@ class MpvtkBrowser:
                 self._open_item(item)
         self.run_async(work, done, ep)
 
-    def _edit_call(self, fn, on_ok=None,
-                   error=None):
+    def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
 
         _client_call swallows: an "Add to Playlist" the server rejected
-        looked exactly like one that worked."""
+        looked exactly like one that worked. ``on_error`` undoes whatever
+        the view already showed optimistically — leaving a rejected change
+        on screen is worse than never showing it."""
         ep = self._epoch
         msg = error or _("The change could not be applied.")
 
@@ -1213,6 +1220,8 @@ class MpvtkBrowser:
                 on_ok()
 
         def failed(_exc):
+            if on_error is not None:
+                on_error()
             self.status = msg
             self.invalidate()
         self.run_async(work, done, ep, on_error=failed)
@@ -4324,13 +4333,18 @@ class MpvtkBrowser:
     def _queue_move(self, route, where):
         data = route.get("_data") or {}
         entries = data.get("entries") or []
+        was, was_sel = list(entries), set(self._pe_sel(route))
         moved = self._block_move(entries, self._pe_sel(route), where)
         if moved is None:
             return
         data["entries"], route["_sel"] = moved
-        self._client_call(lambda c: c.queue_reorder(
-            [e["pid"] for e in data["entries"] if e.get("pid")]))
+        order = [e["pid"] for e in data["entries"] if e.get("pid")]
         self.invalidate()
+
+        def restore():
+            data["entries"], route["_sel"] = was, was_sel
+        self._edit_call(lambda c: c.queue_reorder(order), on_error=restore,
+                        error=_("The queue could not be reordered."))
 
     def _queue_skip(self, pid):
         if pid and self.controller is not None:
@@ -4623,10 +4637,14 @@ class MpvtkBrowser:
         route["_sel"] = set()
         ids = [e.get("PlaylistItemId") for e in entries
                if e.get("PlaylistItemId")]
-        if ids:
-            self._client_call(lambda c: c.playlist_remove(
-                route.get("server") or self.server, route["item_id"], ids))
         self.invalidate()
+        if not ids:
+            return
+        server = route.get("server") or self.server
+        self._edit_call(
+            lambda c: c.playlist_remove(server, route["item_id"], ids),
+            # Put the rows back: the list showed them gone either way.
+            on_error=lambda: route.__setitem__("_items", items))
 
     def _pe_delete(self, route):
         """Delete, then navigate — not both at once. Firing the delete onto
@@ -4651,10 +4669,13 @@ class MpvtkBrowser:
         name = (route.get("_newname") or route.get("title") or "").strip()
         if not name:
             return
+        was = route.get("title")
         route["title"] = name
-        self._client_call(lambda c: c.playlist_update(
-            route.get("server") or self.server, route["item_id"], name=name))
+        server = route.get("server") or self.server
         self.invalidate()
+        self._edit_call(
+            lambda c: c.playlist_update(server, route["item_id"], name=name),
+            on_error=lambda: route.__setitem__("title", was))
 
     def _pe_toggle_public(self, route):
         # Refuse until the loader has read the server's OpenAccess: flipping a
@@ -4664,11 +4685,16 @@ class MpvtkBrowser:
             self._message(_("Still reading this playlist's visibility from "
                             "the server. Try again in a moment."))
             return
-        route["_public"] = not route.get("_public")
-        self._client_call(lambda c: c.playlist_update(
-            route.get("server") or self.server, route["item_id"],
-            is_public=route["_public"]))
+        was = route.get("_public")
+        route["_public"] = not was
+        server = route.get("server") or self.server
         self.invalidate()
+        # Visibility especially must not be left showing a value the server
+        # rejected — that is the difference between private and public.
+        self._edit_call(
+            lambda c: c.playlist_update(server, route["item_id"],
+                                        is_public=route["_public"]),
+            on_error=lambda: route.__setitem__("_public", was))
 
     # ----------------------------------------------------- add to playlist
 
@@ -4680,6 +4706,7 @@ class MpvtkBrowser:
         # A music container is not itself a playlist entry — Tk resolves
         # album/artist/genre to their track ids before offering the dialog.
         self._addto_ids = None
+        parent = self.route.get("parent_id")
 
         def work():
             def fetch(fn):
@@ -4690,7 +4717,8 @@ class MpvtkBrowser:
             return (fetch(self.source.get_playlists),
                     fetch(getattr(self.source, "get_collections",
                                   lambda _s: [])),
-                    item.get("_ids") or self._resolve_play_ids(item, server))
+                    item.get("_ids")
+                    or self._resolve_play_ids(item, server, parent))
         self.run_async(
             work, lambda r: self._show_add_to(server, item, r[0], r[1], r[2]),
             ep)
