@@ -335,12 +335,31 @@ def import_player_with_fake_mpv():
     if BACKEND == "jsonipc":
         settings.mpv_ext = True
         settings.mpv_ext_start = False       # don't try to spawn a real mpv
-        sys.modules["python_mpv_jsonipc"] = make_fake_mpv_module("jsonipc")
+        name = "python_mpv_jsonipc"
     else:
         settings.mpv_ext = False
-        sys.modules["mpv"] = make_fake_mpv_module("libmpv")
+        name = "mpv"
+    real = sys.modules.get(name)
+    sys.modules[name] = make_fake_mpv_module(BACKEND)
 
-    import jellyfin_mpv_shim.player as player_module
+    try:
+        import jellyfin_mpv_shim.player as player_module
+    finally:
+        # Put the real backend back. player.py did `import mpv` while the fake
+        # was installed, so its module global still points at the fake and the
+        # FakeMPV-driven tests are unaffected — but sys.modules is process-wide
+        # and permanent, so leaving the fake there handed it to every *later*
+        # importer too. That is what made the whole integration suite look
+        # flaky: tests/integration/test_mpvtk_browser.py does `import mpv as
+        # libmpv` to spawn a real handle, got the fake once any player test had
+        # run first, and every real-mpv test after it failed with "renderer
+        # never became ready" — 15s of timeout each. In isolation they passed,
+        # which is exactly what a resource-contention problem looks like.
+        if real is not None:
+            sys.modules[name] = real
+        else:
+            sys.modules.pop(name, None)
+
     _PLAYER_MODULE = player_module
     return player_module
 

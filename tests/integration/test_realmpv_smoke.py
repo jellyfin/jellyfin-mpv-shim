@@ -54,20 +54,31 @@ def _import_real_player():
     # singleton (its fake must not spawn a process); a real jsonipc player
     # must spawn one or the connect fails.
     settings.mpv_ext_start = True
-    # In a full-suite run the state-machine tests have already imported
-    # player bound to the FAKE mpv module (import_player_with_fake_mpv), and
-    # player.py caches its singleton at import time — a plain re-import would
-    # hand that back and this file would silently smoke-test the fake (whose
-    # missing unbind_property_observer then errors out of wait_property).
-    # Evict the fake backend and the fake-bound player module so the import
-    # below really constructs a real-mpv player.
+    # In a full-suite run the state-machine tests have already imported player
+    # bound to the FAKE mpv module (import_player_with_fake_mpv), and player.py
+    # caches its singleton at import time — a plain re-import would hand that
+    # back and this file would silently smoke-test the fake (whose missing
+    # unbind_property_observer then errors out of wait_property).
+    #
+    # Ask the *player module* what it is bound to, not sys.modules. The harness
+    # restores the real backend into sys.modules as soon as it has imported
+    # player against the fake (leaving it poisoned broke every later real-mpv
+    # test), so sys.modules is no longer evidence either way — but player.py's
+    # own `mpv` global still points at whatever it imported.
+    player_mod = sys.modules.get("jellyfin_mpv_shim.player")
+    if player_mod is not None and _is_fake(getattr(player_mod, "mpv", None)):
+        sys.modules.pop("jellyfin_mpv_shim.player")
     for name in ("mpv", "python_mpv_jsonipc"):
-        mod = sys.modules.get(name)
-        if mod is not None and getattr(mod, "MPV", None) is h.FakeMPV:
-            del sys.modules[name]
-            sys.modules.pop("jellyfin_mpv_shim.player", None)
+        if _is_fake(sys.modules.get(name)):
+            del sys.modules[name]           # belt and braces
     import jellyfin_mpv_shim.player as player_module
+    assert not _is_fake(player_module.mpv), \
+        "real-mpv smoke test is bound to FakeMPV"
     return player_module
+
+
+def _is_fake(mod):
+    return mod is not None and getattr(mod, "MPV", None) is h.FakeMPV
 
 
 class FakeJellyfinApi:

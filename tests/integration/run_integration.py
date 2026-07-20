@@ -20,9 +20,13 @@ What it does:
   is fragile). The fake-mpv state-machine tests and the real-mpv smoke run in
   *separate* processes even within one backend, since one imports player against
   a fake and the other against the real backend.
-* Real-mpv legs are run under ``xvfb-run`` when no display is present. They
-  self-skip if mpv/ffmpeg/display are unavailable, so a bare machine still
-  exits clean.
+* Real-mpv legs are run under ``xvfb-run`` whenever it is available — not just
+  when headless. Two reasons: a bare run throws ~25 real windows onto the
+  developer's desktop, and a real window manager is free to ignore the
+  requested geometry (a leg once came up 1272x55, which fails as "no overlays
+  rendered" rather than as the window-size problem it is). Pass ``--no-xvfb``
+  to watch the windows for debugging. They self-skip if mpv/ffmpeg/display are
+  unavailable, so a bare machine still exits clean.
 
 Results are reported per leg (and per backend) so an external-mpv-only failure
 is unmissable.
@@ -73,7 +77,20 @@ PER_BACKEND_REAL = [
 # external mpv binary directly, so it is also backend-agnostic.
 DISPLAY_ONCE = [
     "tests.integration.test_browser_ui",
+    # The harness's own contract: the fake mpv module must not survive into
+    # sys.modules for later importers (it spawns its own subprocesses).
+    "tests.integration.test_harness_isolation",
 ]
+
+# The whole suite in ONE process, per backend. The legs above deliberately
+# isolate the fake-mpv and real-mpv halves, which meant a module that poisoned
+# the process for later ones could not be caught by them — and one did, for a
+# while, costing 17 real-mpv tests that passed in isolation. This leg is the
+# only one that would have failed. Keep it last: it is the slowest, and a
+# failure here with every other leg green means cross-module interference.
+# (tests/integration has no __init__.py on purpose, so this is a
+# plain start-directory discover, not a package path.)
+WHOLE_SUITE = ["discover", "tests/integration"]
 
 BACKENDS = ("libmpv", "jsonipc")
 
@@ -82,19 +99,25 @@ def _have_display():
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
-def _run(modules, *, backend=None, use_xvfb=False, extra_env=None):
+def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
+         label=None):
     env = dict(os.environ)
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     if extra_env:
         env.update(extra_env)
-    cmd = [sys.executable, "-m", "unittest", "-v", *modules]
+    if modules and modules[0] == "discover":
+        # `-m unittest -v discover ...` is rejected: -v before the
+        # subcommand selects the plain form, which has no `discover`.
+        cmd = [sys.executable, "-m", "unittest", "discover", "-v", *modules[1:]]
+    else:
+        cmd = [sys.executable, "-m", "unittest", "-v", *modules]
     if use_xvfb:
         xvfb = shutil.which("xvfb-run")
         if xvfb:
             cmd = [xvfb, "-a", *cmd]
     label = "%s%s" % (
-        "/".join(m.rsplit(".", 1)[-1] for m in modules),
+        label or "/".join(m.rsplit(".", 1)[-1] for m in modules),
         " [%s]" % backend if backend else "",
     )
     print("\n" + "=" * 72)
@@ -112,6 +135,10 @@ def main():
                     help="list the legs that would run and exit")
     ap.add_argument("--no-real", action="store_true",
                     help="skip the real-mpv smoke legs (Tier 1 only)")
+    ap.add_argument("--no-xvfb", action="store_true",
+                    help="use the real display instead of xvfb, to watch the "
+                         "windows (expect ~25 of them, and a window manager "
+                         "that may not honour the requested geometry)")
     args = ap.parse_args()
 
     backends = (args.backend,) if args.backend else BACKENDS
@@ -123,6 +150,8 @@ def main():
         print("Display, once (xvfb when headless):")
         for m in DISPLAY_ONCE:
             print("  ", m)
+        if not args.no_real:
+            print("Whole suite in one process, per backend (last)")
         for b in backends:
             print("Backend %s:" % b)
             for m in PER_BACKEND_FAKE + ([] if args.no_real else PER_BACKEND_REAL):
@@ -130,13 +159,17 @@ def main():
         return 0
 
     results = []
-    headless = not _have_display()
+    # Prefer xvfb whenever we have it: isolated from the developer's desktop
+    # and from a window manager with opinions about geometry.
+    xvfb = shutil.which("xvfb-run") is not None and not args.no_xvfb
+    if not xvfb and not _have_display():
+        xvfb = True              # no display at all: xvfb or bust
 
     # 1) Backend-agnostic concurrency tests, once.
     results.append(_run(AGNOSTIC))
 
     # 2) Backend-agnostic Tk browser UI, once (needs a display; xvfb when headless).
-    results.append(_run(DISPLAY_ONCE, use_xvfb=headless))
+    results.append(_run(DISPLAY_ONCE, use_xvfb=xvfb))
 
     # 3) Per-backend legs.
     for backend in backends:
@@ -145,7 +178,14 @@ def main():
         # Real-mpv smoke (needs a display; xvfb when headless).
         if not args.no_real:
             results.append(_run(PER_BACKEND_REAL, backend=backend,
-                                use_xvfb=headless))
+                                use_xvfb=xvfb))
+
+    # 4) Everything at once, per backend — catches cross-module interference
+    #    that the isolated legs above are blind to by construction.
+    if not args.no_real:
+        for backend in backends:
+            results.append(_run(WHOLE_SUITE, backend=backend,
+                                use_xvfb=xvfb, label="whole suite"))
 
     print("\n" + "=" * 72)
     print("INTEGRATION MATRIX SUMMARY")

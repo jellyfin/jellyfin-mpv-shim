@@ -102,6 +102,23 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
             except Exception:
                 pass
 
+    # The window mpv actually gave us must be big enough for a tile row to
+    # exist at all. A window manager is free to ignore the requested
+    # geometry — a full-suite run on a real desktop once produced 1272x55 —
+    # and a squashed window then fails as "no overlays rendered", which
+    # sends you looking for a rendering bug that isn't there. Run under
+    # xvfb (run_integration.py does by default).
+    MIN_RENDER_H = 200
+
+    def _assert_usable_window(self, st):
+        self.assertTrue(st and st.get("w", 0) > 0, "no render size: %r" % st)
+        self.assertGreaterEqual(
+            st.get("h", 0), self.MIN_RENDER_H,
+            "the window came back %dx%d — too short for a tile row, so "
+            "nothing renders. The window manager ignored the requested "
+            "geometry; run under xvfb. %r"
+            % (st.get("w", 0), st.get("h", 0), st))
+
     def test_renders_home_in_real_window(self):
         self.assertTrue(self.app.ready.wait(15),
                         "renderer never became ready in the attached mpv")
@@ -113,7 +130,7 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
             if st and st.get("overlays", 0) >= 1:
                 break
             time.sleep(0.3)
-        self.assertTrue(st and st.get("w", 0) > 0, "no render size: %r" % st)
+        self._assert_usable_window(st)
         self.assertGreaterEqual(
             st.get("overlays", 0), 1,
             "expected at least one strip overlay on the home screen: %r" % st)
@@ -124,12 +141,14 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
         # means the post-load re-render registered the tile hit-handlers) —
         # not just for the data to load, or the click races the render.
         deadline = time.time() + 6
+        st = None
         while time.time() < deadline:
             st = self.app.debug_state()
             if (st and st.get("overlays", 0) >= 1
                     and "_data" in self.browser.route):
                 break
             time.sleep(0.2)
+        self._assert_usable_window(st)
         self.app.debug(cmd="click", id="row-libs-lib1")
         deadline = time.time() + 4
         while time.time() < deadline and self.browser.route["kind"] != "grid":

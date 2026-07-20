@@ -1806,17 +1806,37 @@ user config breaks.
 8. **Docs.** `README.md`'s `browser_ui` entry, `PARITY.md`, and the
    framing of this file.
 
-## Known issue, unrelated to cutover
+## The integration suite runs whole again (was: "known issue")
 
-The **integration suite fails when run whole** (~12–17 real-mpv tests
-report "renderer never became ready"), while the same modules pass in
-isolation. Reproduced against a stashed tree with none of the parity
-work applied, so it predates it — resource contention from many mpv
-instances in one process, not a product bug. It makes
-`python3 -m unittest discover tests/integration` untrustworthy as a
-whole-run gate; run the modules in groups until it is fixed. Worth
-fixing before the cutover commit, so the deletion can be validated by a
-green full run.
+For a while this file recorded that `python3 -m unittest discover
+tests/integration` reported ~12–17 real-mpv failures ("renderer never became
+ready") which passed when their modules ran in isolation, and put it down to
+resource contention from many mpv instances in one process. **That diagnosis
+was wrong.** It was module poisoning.
+
+`_harness.import_player_with_fake_mpv` installs a fake mpv module into
+`sys.modules` so player.py's import-time singleton constructs without a real
+window. That entry is process-wide and permanent, so every *later* importer
+got the fake too — including `test_mpvtk_browser` / `test_mpvtk_hud`, which
+do `import mpv as libmpv` to spawn a real handle. They then waited 15s for a
+renderer that could never start. The harness now restores the real backend as
+soon as it has imported player against the fake; player.py keeps its own
+binding to the fake, so the state-machine tests are unaffected.
+
+The whole suite passes in one process on both backends (~48s, down from ~265s
+of which most was timeout). `run_integration.py` runs it as a final leg per
+backend — the isolated legs cannot catch cross-module interference by
+construction, so that leg is the only one that would have failed.
+
+Two related fixes came out of it:
+
+- `run_integration.py` now prefers `xvfb-run` **whenever it is available**,
+  not only when headless. A bare run throws ~25 real windows onto the
+  developer's desktop, and a real window manager may ignore the requested
+  geometry — one leg came up 1272x55, too short for a tile row, which failed
+  as "no overlays rendered". `--no-xvfb` opts out for watching.
+- `test_mpvtk_browser` now asserts the window is tall enough to render
+  anything, so that case fails as the window-size problem it is.
 
 # Deferred cleanups in `mpvtk_browser/` — all done
 

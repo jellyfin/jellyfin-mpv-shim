@@ -79,6 +79,16 @@ also pins `XDG_CONFIG_HOME` to a temp dir, primes the arg parser (the app parses
 otherwise break), and quiets the heavyweight optional features
 (trickplay/shader-pack/OSC) so construction is light.
 
+It then **puts the real backend module back into `sys.modules`**. player.py has
+already bound the fake, so the state-machine tests are unaffected — but that
+entry is process-wide and permanent, and leaving the fake there handed it to
+every later importer too. `test_mpvtk_browser` / `test_mpvtk_hud` do `import
+mpv as libmpv` to spawn a real handle; with the fake in place they waited 15s
+each for a renderer that could never start, which is why the suite looked
+flaky as a whole run while every module passed alone. `test_harness_isolation`
+pins this contract. Anything that needs a *real*-mpv-bound player module must
+check `player.mpv`, not `sys.modules` — see `test_realmpv_smoke`.
+
 `build_player()` then hands back a `PlayerManager` built via `__new__` with just
 the state the state-machine methods touch wired up — the tests drive the epoch /
 lock / queue logic in isolation rather than re-testing mpv option plumbing.
