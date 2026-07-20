@@ -192,6 +192,28 @@ class MusicMixin:
                     lambda o, m: self._on_music_scroll(route, o, m)))
         return Column([Row([tabs], pad=12), body], flex=1, align="stretch")
 
+    def _music_header_text(self, item, route, tracks):
+        """Title / metadata / overview for an album or artist page.
+
+        Both were a bare title: no cover, no year or genre, no Overview, and
+        on the artist page no heading over the album grid either. Tk showed
+        all of it, and on a music library it is most of what tells one entry
+        from another."""
+        out = [Text(item.get("Name") or route.get("title", ""), size=28,
+                    bold=True)]
+        meta = [x for x in (self._meta_line(item),
+                            (_("%d tracks") % len(tracks)) if tracks else "")
+                if x]
+        if meta:
+            out.append(Text("   ·   ".join(meta), size=15,
+                            color=theme.SUBTLE_FG))
+        overview = (item.get("Overview") or "").strip()
+        if overview:
+            out.append(self._paragraph(overview, 15,
+                                       self._body_w(self._size[0])
+                                       if self._size else 600))
+        return out
+
     def _render_album(self, route, size):
         data = route.get("_data")
         if data is None:
@@ -200,12 +222,13 @@ class MusicMixin:
         tracks = data.get("tracks") or []
         server = route.get("server") or self.server
         ids = [t.get("Id") for t in tracks]
-        header = Column([
-            Text(item.get("Name") or route.get("title", ""), size=28,
-                 bold=True),
-            self._music_action_bar(server, ids, route["item_id"], "album",
-                                   items=tracks),
-        ], gap=14)
+        header = Row([
+            self._art_cell(item, size=132),
+            Column(self._music_header_text(item, route, tracks) + [
+                self._music_action_bar(server, ids, route["item_id"], "album",
+                                       items=tracks),
+            ], gap=8, flex=1, align="stretch"),
+        ], gap=16, align="start")
         body = self._track_list(
             tracks, "trk",
             lambda i: self._play_list(ids, server, i, audio=True),
@@ -222,9 +245,16 @@ class MusicMixin:
         songs = data.get("songs") or []
         server = route.get("server") or self.server
         ids = [s.get("Id") for s in songs]
-        rows = [Text(route.get("title", ""), size=26, bold=True),
-                Spacer(h=4),
-                self._music_action_bar(server, ids, route["item_id"], "art")]
+        item = data.get("item") or {}
+        rows = [Row([
+            self._art_cell(item, size=132) if item else Spacer(w=0),
+            Column(self._music_header_text(item, route, songs) + [
+                self._music_action_bar(server, ids, route["item_id"], "art",
+                                       items=songs),
+            ], gap=8, flex=1, align="stretch"),
+        ], gap=16, align="start")]
+        if albums:
+            rows.append(Text(_("Albums"), size=20, bold=True))
         rows += self._grid_of(albums, "artist", size, geom=self.geom_square,
                               scroll_id="artist", head_h=110)
         similar = data.get("similar") or []
@@ -454,7 +484,13 @@ class MusicMixin:
                 similar = self.source.get_similar(srv, iid) or []
             except Exception:
                 pass   # offline / older server: just no row
-            return {"albums": self.source.get_artist_albums(srv, iid),
+            item = {}
+            try:
+                item = self.source.get_item(srv, iid) or {}
+            except Exception:
+                pass   # older server / offline: header degrades to the title
+            return {"item": item,
+                    "albums": self.source.get_artist_albums(srv, iid),
                     "songs": songs, "similar": similar}
         self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 

@@ -360,9 +360,19 @@ class TestBuild(unittest.TestCase):
         self.assertIn("nav-back", ids(nodes))   # depth > 1
 
     def test_chrome_absent_on_chrome_free_route(self):
-        self.b.nav_stack.append({"kind": "connecting"})
-        nodes, _h = build_scene(self.b)
-        self.assertNotIn("nav-home", ids(nodes))
+        """Uses a route that exists. It used to use "connecting", which
+        nothing navigates to and which no renderer serves — so this asserted
+        the chrome rule against a screen no user can reach."""
+        for kind in ("login", "locked"):
+            with self.subTest(kind=kind):
+                b = MpvtkBrowser(app=None, source=FakeSource())
+                b.nav_stack.append({"kind": kind})
+                self.assertNotIn("nav-home", ids(build_scene(b)[0]))
+
+    def test_chrome_is_present_on_an_ordinary_route(self):
+        self.b.nav_stack.append({"kind": "grid", "server": "srv1",
+                                 "parent_id": "lib1"})
+        self.assertIn("nav-home", ids(build_scene(self.b)[0]))
 
 
 class FakeController:
@@ -5138,6 +5148,115 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self._settle(b)
         self.assertIn("failed", b.status.lower())
         self.assertIsNone(b._long_thread, "the slot was never released")
+
+
+class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
+    def test_a_series_with_trailers_offers_the_button(self):
+        """The detail loader had always fetched trailers for a Series, but a
+        Series routes to _render_series, which had no button — one wasted API
+        call per load for a feature nobody could reach."""
+        src = FakeSource()
+        src.get_trailers = lambda srv, iid: [{"Id": "tr1"}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "series", "server": "srv1", "item_id": "sh1",
+                    "title": "Show"})
+        nodes, handlers = build_scene(b)
+        self.assertIn("sa-trailer", ids(nodes))
+        played = []
+        b._play_list = lambda ids_, srv, i, **kw: played.append(list(ids_))
+        handlers["sa-trailer"]["click"]()
+        self.assertEqual(played, [["tr1"]])
+
+    def test_a_series_without_trailers_offers_nothing(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.source.get_trailers = lambda srv, iid: []
+        b.navigate({"kind": "series", "server": "srv1", "item_id": "sh1",
+                    "title": "Show"})
+        self.assertNotIn("sa-trailer", ids(build_scene(b)[0]))
+
+    def test_client_uuid_is_not_an_editable_settings_row(self):
+        """It is the device identity the server keys sessions on; editing it
+        free-text orphans every session and playstate it has recorded."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        self.assertNotIn("client_uuid", cfg.settings_schema())
+
+    def test_set_offline_has_a_production_caller(self):
+        """It was a public method only the tests reached; _offline was
+        assigned directly elsewhere. One writer now."""
+        import ast
+        import inspect
+        from jellyfin_mpv_shim.mpvtk_browser import app as app_mod
+        src = inspect.getsource(app_mod)
+        calls = [n for n in ast.walk(ast.parse(src))
+                 if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Attribute)
+                 and n.func.attr == "set_offline"]
+        self.assertTrue(calls, "set_offline is dead again")
+
+
+class TestMusicDetailHeaders(unittest.TestCase):
+    """Album and artist pages were a bare title — no cover, no year or genre,
+    no Overview, and no heading over the artist's album grid. On a music
+    library that is most of what tells one entry from another."""
+
+    def _browser(self):
+        src = FakeSource()
+        src.get_item = lambda srv, iid: {
+            "Id": iid, "Name": "The Album", "Type": "MusicAlbum",
+            "ProductionYear": 1999, "Genres": ["Rock"],
+            "Overview": "A record about things."}
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        return b
+
+    def _texts(self, b):
+        return [n.get("text") or "" for n in build_scene(b)[0]]
+
+    def test_an_album_shows_its_year_genre_and_overview(self):
+        b = self._browser()
+        b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                    "title": "The Album"})
+        texts = self._texts(b)
+        self.assertIn("The Album", texts)
+        self.assertTrue(any("1999" in t and "Rock" in t for t in texts),
+                        "no metadata line: %r" % texts)
+        self.assertTrue(any("A record about things" in t for t in texts),
+                        "no overview")
+
+    def test_an_album_shows_its_track_count(self):
+        b = self._browser()
+        b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                    "title": "The Album"})
+        self.assertTrue(any("tracks" in t for t in self._texts(b)))
+
+    def test_an_artist_page_heads_its_album_grid(self):
+        b = self._browser()
+        b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                    "title": "The Artist"})
+        self.assertIn("Albums", self._texts(b))
+
+    def test_an_artist_page_shows_the_fetched_metadata(self):
+        b = self._browser()
+        b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                    "title": "The Artist"})
+        self.assertTrue(any("A record about things" in t
+                            for t in self._texts(b)))
+
+    def test_a_server_that_cannot_answer_still_renders_the_title(self):
+        """get_item is best-effort — the header degrades, it does not blow up
+        the page."""
+        b = self._browser()
+        b.source.get_item = lambda srv, iid: (_ for _ in ()).throw(
+            RuntimeError("no"))
+        b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                    "title": "The Artist"})
+        self.assertIn("The Artist", self._texts(b))
 
 
 class TestMediaInfoKeepsTheCodec(unittest.TestCase):

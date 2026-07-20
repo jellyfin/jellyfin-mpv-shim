@@ -93,7 +93,9 @@ log = logging.getLogger("mpvtk_browser.app")
 
 # Routes that take over the whole surface (no nav chrome), like the Tk
 # browser's login/locked/connecting screens.
-CHROME_FREE = {"login", "locked", "connecting"}
+# ("connecting" was here too, for a route that does not exist — see the
+# connecting-screen item in mpvtk/REVIEW_QUEUE.md. Add it back with the route.)
+CHROME_FREE = {"login", "locked"}
 
 
 class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
@@ -1136,7 +1138,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         source is what keeps the two from drifting apart."""
         from .repository import OfflineLibrarySource
 
-        self._offline = isinstance(source, OfflineLibrarySource)
+        # Through set_offline, so _offline has one writer. It used to be
+        # assigned here directly, which left set_offline with no production
+        # caller at all — a public method only the tests reached.
+        self.set_offline(isinstance(source, OfflineLibrarySource))
         self._locked = False
         self.source = source
         try:

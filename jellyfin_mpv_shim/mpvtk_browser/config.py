@@ -14,7 +14,10 @@ from ..i18n import _
 # Structured / non-scalar config that the flat form can't express, plus
 # internal bookkeeping. Everything else is editable — including browser_ui,
 # which is the only in-UI way back to the Tk browser.
-_HIDDEN = {"language_config", "audio_output", "close_prompt_shown"}
+# client_uuid is the device identity the server keys sessions on; editing it
+# free-text orphans every session and playstate the server has recorded.
+_HIDDEN = {"language_config", "audio_output", "close_prompt_shown",
+           "client_uuid"}
 
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".

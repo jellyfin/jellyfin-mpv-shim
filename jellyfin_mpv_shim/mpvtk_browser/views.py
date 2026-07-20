@@ -636,13 +636,21 @@ class ViewsMixin:
                 self._play(item, server, offset_ticks=offset)
         self.run_async(work, done, ep)
 
-    def _series_actions(self, item, server, series_id):
+    def _series_actions(self, item, server, series_id, trailers=None):
         btns = [self._action_btn(
             "play_arrow", _("Next Up"), "sa-nextup",
             lambda: self._play_next_up(series_id, server), primary=True),
             self._action_btn(
                 "shuffle", _("Shuffle"), "sa-shuffle",
                 lambda: self._shuffle_series(series_id, server))]
+        # The detail loader had always fetched trailers for a Series, but a
+        # Series routes to _render_series, which had no button — one wasted
+        # API call per load, for a feature nobody could reach.
+        tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
+        if tids:
+            btns.append(self._action_btn(
+                "movie", _("Trailer"), "sa-trailer",
+                lambda: self._play_list(tids, server, 0)))
         btns += self._common_actions(item, server, "sa")
         return Row(btns, gap=8, align="center")
 
@@ -831,7 +839,8 @@ class ViewsMixin:
             blocks.append(Text(item.get("Name", ""), size=30, bold=True))
             if meta:
                 blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
-        blocks.append(self._series_actions(item, server, route["item_id"]))
+        blocks.append(self._series_actions(item, server, route["item_id"],
+                                           trailers=data.get("trailers")))
         if item.get("Overview"):
             blocks.append(self._paragraph(item["Overview"], 18, self._body_w(w)))
         seasons = data.get("seasons") or []
@@ -1053,10 +1062,15 @@ class ViewsMixin:
                 similar = self.source.get_similar(srv, iid) or []
             except Exception:
                 pass   # offline / older server: just no row
+            trailers = []
+            try:
+                trailers = self.source.get_trailers(srv, iid) or []
+            except Exception:
+                pass   # older servers / no trailers: just no button
             return {
                 "item": self.source.get_item(srv, iid),
                 "seasons": self.source.get_seasons(srv, iid),
-                "similar": similar,
+                "similar": similar, "trailers": trailers,
             }
         self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 
