@@ -101,6 +101,17 @@ class MusicMixin:
                       on_click=lambda: self._set_music_tab(route, tab))
 
     def _set_music_tab(self, route, tab):
+        """Switch tab, keeping what each tab has already loaded.
+
+        Every switch used to refetch from scratch, so flipping between
+        Albums and Artists on a large library re-paged the whole thing each
+        time. Tk cached per tab. The cache is per route dict, so it dies
+        with the page and cannot go stale across a reload.
+        """
+        cache = route.setdefault("_tab_cache", {})
+        old_tab = route.get("_tab", "albums")
+        if route.get("_data") is not None:
+            cache[old_tab] = (route["_data"], route.get("_total"))
         route["_tab"] = tab
         for k in ("_data", "_total"):
             route.pop(k, None)
@@ -110,7 +121,11 @@ class MusicMixin:
         self._scroll_off.pop("music-grid", None)
         self._scroll_off.pop("music-songs", None)
         self._bump_epoch()
-        self._load_route(route)
+        hit = cache.get(tab)
+        if hit is not None:
+            route["_data"], route["_total"] = hit
+        else:
+            self._load_route(route)
         self.invalidate()
 
     def _music_fetch(self, route):

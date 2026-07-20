@@ -287,7 +287,9 @@ class ViewsMixin:
             parts.append(str(item["ProductionYear"]))
         rt = item.get("RunTimeTicks")
         if rt:
-            parts.append(_("%d min") % (rt // 600000000))
+            # h:mm:ss, like Tk and jellyfin-web. "112 min" makes you do the
+            # arithmetic to know whether it fits in an evening.
+            parts.append(self._fmt_ticks(rt))
         if item.get("OfficialRating"):
             parts.append(str(item["OfficialRating"]))
         if item.get("CommunityRating"):

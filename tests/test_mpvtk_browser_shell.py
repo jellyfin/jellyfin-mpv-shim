@@ -5157,6 +5157,75 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestRuntimeIsAClock(unittest.TestCase):
+    """"112 min" makes you do the arithmetic to know whether it fits in an
+    evening. Tk and jellyfin-web both show h:mm:ss."""
+
+    def test_a_long_runtime_reads_as_a_clock(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        line = b._meta_line({"RunTimeTicks": 112 * 60 * 10_000_000})
+        self.assertIn("1:52:00", line)
+        self.assertNotIn("112", line)
+
+    def test_a_short_one_drops_the_hours(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        self.assertIn("42:00",
+                      b._meta_line({"RunTimeTicks": 42 * 60 * 10_000_000}))
+
+
+class TestMusicTabsAreCached(unittest.TestCase):
+    """Every tab switch refetched from scratch, so flipping between Albums
+    and Artists on a large library re-paged the whole thing each time. Tk
+    cached per tab."""
+
+    def _browser(self):
+        src = FakeSource()
+        self.calls = []
+        real_albums = src.get_music_albums
+        src.get_music_albums = lambda srv, p, **kw: (
+            self.calls.append("albums") or real_albums(srv, p, **kw))
+        src.get_artists = lambda srv, p, **kw: (
+            self.calls.append("artists")
+            or ([{"Id": "ar1", "Name": "A", "Type": "MusicArtist"}], 1))
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
+                    "title": "Music"})
+        return b
+
+    def test_going_back_to_a_tab_does_not_refetch(self):
+        b = self._browser()
+        route = b.route
+        b._set_music_tab(route, "artists")
+        b._set_music_tab(route, "albums")
+        self.assertEqual(self.calls, ["albums", "artists"],
+                         "the albums tab was fetched twice: %r" % self.calls)
+
+    def test_the_cached_tab_still_has_its_items(self):
+        b = self._browser()
+        route = b.route
+        first = list(route["_data"])
+        b._set_music_tab(route, "artists")
+        b._set_music_tab(route, "albums")
+        self.assertEqual(route["_data"], first)
+
+    def test_a_tab_never_opened_is_still_fetched(self):
+        b = self._browser()
+        b._set_music_tab(b.route, "artists")
+        self.assertIn("artists", self.calls)
+
+    def test_the_cache_dies_with_the_route(self):
+        """It lives in the route dict, so it cannot go stale across a
+        reload or outlive the page."""
+        b = self._browser()
+        b._set_music_tab(b.route, "artists")
+        b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
+                    "title": "Music"})
+        self.assertNotIn("_tab_cache", {k: v for k, v in b.route.items()
+                                        if k == "_tab_cache" and v})
+
+
 class TestQueueRemovalReportsFailure(unittest.TestCase):
     """Every other edit in this UI reports; queue removal went through
     _safe, which logs and returns, so a removal the player refused left the
