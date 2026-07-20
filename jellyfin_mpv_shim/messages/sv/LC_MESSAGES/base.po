@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-20 00:46-0400\n"
+"POT-Creation-Date: 2026-07-20 01:06-0400\n"
 "PO-Revision-Date: 2026-05-23 07:46+0000\n"
 "Last-Translator: Viktor <viktor.engkvist@rivig.net>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -168,8 +168,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/gui_mgr.py:954
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:243
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:246
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:260
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:263
 msgid "Moving the downloads failed."
 msgstr ""
 
@@ -214,7 +214,7 @@ msgid "Application Menu"
 msgstr "Applikations meny"
 
 #: jellyfin_mpv_shim/gui_mgr.py:1352
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:725 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:742 jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "Öppna konfigurationsmapp"
 
@@ -649,8 +649,8 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:1181
 #: jellyfin_mpv_shim/library_browser/views.py:2745
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:207
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:329
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:417
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:346
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:434
 #, fuzzy
 #| msgid "Username:"
 msgid "Rename"
@@ -800,12 +800,12 @@ msgid "Results for \"%s\""
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1472
-#: jellyfin_mpv_shim/mpvtk_browser/views.py:926
+#: jellyfin_mpv_shim/mpvtk_browser/views.py:935
 msgid "No results."
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:1501
-#: jellyfin_mpv_shim/mpvtk_browser/views.py:924
+#: jellyfin_mpv_shim/mpvtk_browser/views.py:933
 msgid "Other"
 msgstr ""
 
@@ -974,7 +974,7 @@ msgstr "SVP Inställningar"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:262
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:280
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:356
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:415
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:432
 msgid "Cancel"
 msgstr ""
 
@@ -1008,7 +1008,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2127
 #: jellyfin_mpv_shim/library_browser/views.py:2741
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:326
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:343
 #, fuzzy
 #| msgid "Change Audio"
 msgid "Change PIN"
@@ -1016,7 +1016,7 @@ msgstr "Ändra ljud"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2127
 #: jellyfin_mpv_shim/library_browser/views.py:2742
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:326
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:343
 msgid "Set PIN"
 msgstr ""
 
@@ -1133,8 +1133,8 @@ msgstr "Stäng"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2452
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:403
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:459
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:723
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:476
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:740
 msgid "Refresh"
 msgstr ""
 
@@ -1213,7 +1213,7 @@ msgid "or switch to another user:"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2678
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:313
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:330
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers for %s"
@@ -1221,26 +1221,26 @@ msgstr "Server:"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2679
 #: jellyfin_mpv_shim/library_browser/views.py:3490
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:313
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:330
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers"
 msgstr "Server:"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2684
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:289
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:306
 #, fuzzy
 #| msgid "Server Configuration"
 msgid "No servers configured yet."
 msgstr "Serverkonfiguration"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2690
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:366
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:383
 msgid "Offline"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2692
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:366
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:383
 msgid "Connected"
 msgstr ""
 
@@ -1253,9 +1253,9 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:4007
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:68
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:200
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:369
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:375
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:515
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:386
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:392
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:532
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:478
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:489
 #, fuzzy
@@ -1271,12 +1271,12 @@ msgstr "Lägg till server"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2709
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:194
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:299
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:316
 msgid "Add Server"
 msgstr "Lägg till server"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2714
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:306
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:323
 #, fuzzy
 #| msgid "Username:"
 msgid "Users"
@@ -1289,15 +1289,15 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2735
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:346
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:363
 msgid "active"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2738
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:216
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:333
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:338
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:626
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:350
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:355
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:643
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:575
 msgid "Delete"
 msgstr ""
@@ -1305,19 +1305,19 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:2749
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:78
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:415
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:323
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:340
 msgid "Switch"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2759
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:274
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:291
 #, fuzzy
 #| msgid "Add Server"
 msgid "Add User"
 msgstr "Lägg till server"
 
 #: jellyfin_mpv_shim/library_browser/views.py:2771
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:410
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:427
 msgid "Rename User"
 msgstr ""
 
@@ -1326,7 +1326,7 @@ msgid "Downloads — %s used"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:2958
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:464
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:481
 msgid "Nothing downloaded yet."
 msgstr ""
 
@@ -1428,7 +1428,7 @@ msgstr ""
 #: jellyfin_mpv_shim/library_browser/views.py:3489
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:44
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:106
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:454
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:471
 msgid "Downloads"
 msgstr ""
 
@@ -1544,7 +1544,7 @@ msgid "Moving downloads… %(pct)d%% (%(done)s / %(total)s)"
 msgstr ""
 
 #: jellyfin_mpv_shim/library_browser/views.py:3443
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:249
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:266
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads…"
@@ -1552,7 +1552,7 @@ msgstr "Ta bort server"
 
 #: jellyfin_mpv_shim/library_browser/views.py:3491
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:106
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:722
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:739
 msgid "Logs"
 msgstr ""
 
@@ -2130,7 +2130,7 @@ msgid "Estimating…"
 msgstr "SVP Inställningar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:259
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:455
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:472
 msgid "%(count)d items · %(size)s"
 msgstr ""
 
@@ -2411,88 +2411,93 @@ msgid "Servers & Users"
 msgstr "Server:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:208
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:243
 msgid "Move"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:226
-msgid "Press Enter in the folder field to move."
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:241
+msgid "Move the downloads back to the default folder?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:237
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:243
+msgid "Use the default folder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:253
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads… %d%%"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:245
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:262
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:253
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:270
 msgid "A move is already in progress."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:271
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:288
 #, fuzzy
 #| msgid "Username: "
 msgid "New user name…"
 msgstr "Användarnamn: "
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:307
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:324
 msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:335
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:352
 msgid "Delete user %s and its saved logins?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:338
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:355
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete User"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:373
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:390
 msgid "Remove %s and its saved login?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:375
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:392
 msgid "Remove Server"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:500
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:517
 msgid "%d items"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:511
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:528
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove Watched"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:617
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:634
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the watched downloads in %s?"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:618
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:635
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:572
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the downloaded copy of %s?"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:626
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:643
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:575
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Download"
 msgstr "Ta bort server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:730
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:747
 msgid "No log output captured yet."
 msgstr ""
 

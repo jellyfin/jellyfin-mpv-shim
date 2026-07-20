@@ -5133,6 +5133,57 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestEmptyDownloadFolderAsksFirst(unittest.TestCase):
+    """Clearing the folder field and pressing Enter used to relocate the
+    whole download store to the default location, silently — no confirm, and
+    nothing on screen saying that is what an empty box means."""
+
+    def _browser(self, relocate=None):
+        cfg = FakeConfig()
+        cfg.relocate_downloads = relocate or (
+            lambda path, progress=None: (True, "moved"))
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController(), config=cfg)
+        b._pool = _SyncPool()
+        return b
+
+    def _settle(self, b):
+        t = b._long_thread
+        if t is not None:
+            t.join(5)
+
+    def test_an_empty_field_does_not_move_anything_yet(self):
+        moved = []
+        b = self._browser(lambda path, progress=None: (
+            moved.append(path) or (True, "moved")))
+        for empty in ("", "   ", None):
+            with self.subTest(value=empty):
+                del moved[:]
+                b._dialog = None
+                b._move_downloads(empty)
+                self._settle(b)
+                self.assertEqual(moved, [], "relocated without asking")
+                self.assertIsNotNone(b._dialog, "no confirmation was shown")
+
+    def test_confirming_then_moves_to_the_default(self):
+        moved = []
+        b = self._browser(lambda path, progress=None: (
+            moved.append(path) or (True, "moved")))
+        b._move_downloads("", confirmed=True)
+        self._settle(b)
+        self.assertEqual(moved, [""],
+                         "confirming did not reach the default folder")
+
+    def test_a_real_path_still_moves_without_a_prompt(self):
+        moved = []
+        b = self._browser(lambda path, progress=None: (
+            moved.append(path) or (True, "moved")))
+        b._move_downloads("/somewhere/else")
+        self._settle(b)
+        self.assertEqual(moved, ["/somewhere/else"])
+        self.assertIsNone(b._dialog, "prompted for an ordinary move")
+
+
 class TestLatentFixes(unittest.TestCase):
     """Items that were wrong regardless of Tk."""
 

@@ -222,16 +222,26 @@ class SettingsMixin:
         return Row([Text(label, w=340, size=17, color=theme.SUBTLE_FG),
                     widget], gap=12, align="center")
 
-    def _move_downloads(self, path):
+    def _move_downloads(self, path, confirmed=False):
         """Relocating the download store copies files (possibly across
         drives), so it runs on its own thread — not the pool, whose four
         workers serve every route load — and reports progress into the
-        status line."""
+        status line.
+
+        An empty path means "go back to the default location". That is a real
+        thing to want, but it used to happen *silently*: clearing the field
+        and pressing Enter relocated the whole store with no confirmation and
+        no indication that is what an empty box meant. It asks first now, like
+        every other destructive download action."""
+        if path is not None and not str(path).strip():
+            path = None
         if path is None:
-            self.set_status(
-                _("Press Enter in the folder field to move."))
-            self.invalidate()
-            return
+            if not confirmed:
+                self._confirm(
+                    _("Move the downloads back to the default folder?"),
+                    lambda: self._move_downloads(None, confirmed=True),
+                    title=_("Use the default folder"), yes=_("Move"))
+                return
         cfg = self._config()
         if not hasattr(cfg, "relocate_downloads"):
             self._set_setting("sync_path", path)
@@ -243,7 +253,8 @@ class SettingsMixin:
                 self.set_status(_("Moving downloads… %d%%") % pct)
                 self.invalidate()
             try:
-                ok, message = cfg.relocate_downloads(path, progress=progress)
+                ok, message = cfg.relocate_downloads(path or "",
+                                                     progress=progress)
             except Exception:
                 log.error("download folder move failed", exc_info=True)
                 ok, message = False, _("Moving the downloads failed.")
