@@ -3537,6 +3537,120 @@ class TestGridPaging(unittest.TestCase):
         self.assertEqual(route["_total"], 100)
 
 
+class TestPagersShareTheirInvariants(unittest.TestCase):
+    """The grid, music-tab and genre pagers were three copies of the same
+    logic, and each had learned the invariants separately — the genre one had
+    never been tested at all, and the music one had no on_error, so a failed
+    page left _loading set and that tab could not page again for the rest of
+    the session.
+
+    They are one _page_more now, so assert the invariants once per view: what
+    used to differ between the copies is exactly what regressions look like.
+    """
+
+    def _make(self, view, fail=False, page=None):
+        src = FakeSource()
+        calls = []
+
+        def fetch(*a, **kw):
+            calls.append(kw.get("start_index", 0))
+            if fail:
+                raise OSError("boom")
+            return page if page is not None else ([], 100)
+
+        items = [{"Id": "i%d" % i, "Name": "N%d" % i} for i in range(20)]
+        if view == "grid":
+            src.get_library_items = fetch
+            route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                     "_items": list(items), "_total": 100}
+            read = lambda r: r["_items"]           # noqa: E731
+        elif view == "music":
+            src.get_music_albums = fetch
+            route = {"kind": "music", "server": "srv1", "parent_id": "lib1",
+                     "_tab": "albums", "_data": list(items), "_total": 100}
+            read = lambda r: r["_data"]            # noqa: E731
+        else:
+            src.get_genre_albums = fetch
+            route = {"kind": "music_genre", "server": "srv1",
+                     "parent_id": "lib1", "item_id": "g1",
+                     "_data": {"albums": list(items), "total": 100}}
+            read = lambda r: r["_data"]["albums"]  # noqa: E731
+
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.nav_stack = [route]
+        scroll = {"grid": b._on_grid_scroll, "music": b._on_music_scroll,
+                  "genre": b._on_genre_scroll}[view]
+        return b, route, calls, scroll, read
+
+    VIEWS = ("grid", "music", "genre")
+
+    def test_a_failed_page_does_not_deadlock_paging(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, _r = self._make(view, fail=True)
+                scroll(route, 0, 100)
+                self.assertFalse(route.get("_loading"),
+                                 "_loading stuck: it can never page again")
+                scroll(route, 0, 100)
+                self.assertEqual(len(calls), 2,
+                                 "second page attempt never happened")
+
+    def test_a_failed_page_tells_the_user(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, _r = self._make(view, fail=True)
+                scroll(route, 0, 100)
+                self.assertTrue(b.status, "the failure was silent")
+
+    def test_an_empty_page_ends_the_list(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, read = self._make(
+                    view, page=([], 100))
+                scroll(route, 0, 100)
+                scroll(route, 0, 100)
+                self.assertEqual(len(calls), 1, "re-requested an empty page")
+
+    def test_a_normal_page_appends(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, read = self._make(
+                    view, page=([{"Id": "x", "Name": "X"}], 100))
+                scroll(route, 0, 100)
+                self.assertEqual(len(read(route)), 21)
+
+    def test_far_from_the_bottom_does_not_page(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, _r = self._make(view)
+                scroll(route, 0, 10_000)
+                self.assertEqual(calls, [], "paged from the top of the list")
+
+    def test_a_scroll_for_a_route_you_left_is_ignored(self):
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, _r = self._make(view)
+                b.nav_stack = [{"kind": "home", "server": "srv1"}]
+                scroll(route, 0, 100)
+                self.assertEqual(calls, [], "paged a route that is not shown")
+
+    def test_it_never_pages_from_an_empty_list(self):
+        """start_index=0 is the initial load, which the route loader owns."""
+        for view in self.VIEWS:
+            with self.subTest(view=view):
+                b, route, calls, scroll, _r = self._make(view)
+                if view == "genre":
+                    route["_data"] = {"albums": [], "total": 100}
+                elif view == "music":
+                    route["_data"] = []
+                else:
+                    route["_items"] = []
+                scroll(route, 0, 100)
+                self.assertEqual(calls, [], "re-ran the initial load")
+
+
 class TestPlaylistQueueing(unittest.TestCase):
     """Clicking an entry in a video playlist must play the PLAYLIST from
     that point. It went through _open_item, so Play on the detail page

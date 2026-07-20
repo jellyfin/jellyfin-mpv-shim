@@ -444,6 +444,54 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self._offline_fallback(route)
         self.run_async(work, on_done, ep, on_error=failed)
 
+    # How close to the bottom of a scroller a page request is triggered.
+    PAGE_SLOP = 800
+
+    def _page_more(self, route, offset, maximum, get, put, fetch, error=None):
+        """One page of an infinite-scroll list.
+
+        ``get(route)`` returns ``(items, total)``, ``put(route, items, total)``
+        writes them back, and ``fetch(start_index)`` asks the server for the
+        next page as ``(new_items, total)``. Three views used to carry a copy
+        of this, and each learned its invariants separately:
+
+        * **Only page the route that is on screen.** ``route is not
+          self.route`` — a scroll event can arrive for a view being left.
+        * **``_loading`` guards re-entry**, and must not survive a failure, or
+          the list never requests anything again for the rest of the session.
+          (``run_async`` runs ``on_error`` regardless of epoch for this
+          reason.)
+        * **An in-range page that comes back empty ends the list.** A random
+          sort that reshuffles per request, or a filter the server applies
+          differently than we do, otherwise gets re-asked on every scroll
+          event forever.
+        * **Never page from an empty list** — that is start_index=0, i.e. the
+          initial load, and the loader owns it.
+        """
+        if route is not self.route or route.get("_loading"):
+            return
+        items, total = get(route)
+        if not items or len(items) >= total:
+            return
+        if maximum - offset >= self.PAGE_SLOP:
+            return                       # only page in near the bottom
+        route["_loading"] = True
+        ep = self._epoch
+        start = len(items)
+
+        def done(res):
+            new, total2 = res
+            cur, _t = get(route)
+            merged = list(cur) + list(new)
+            put(route, merged, total2 if new else len(merged))
+            route["_loading"] = False
+
+        def failed(_exc):
+            route["_loading"] = False
+            self.set_status(error or _("Could not load more items."))
+
+        self.run_async(lambda: fetch(start), done, ep, on_error=failed)
+
     def _offline_fallback(self, route):
         """A failed *home* load with downloads present drops to the offline
         library, as the Tk browser does — otherwise the first thing a user
@@ -586,7 +634,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 items, total = res
                 route["_data"], route["_total"] = items, total
                 route["_loading"] = False
-            self._route_async(route, self._music_page(route, 0), done, ep)
+            fetch = self._music_fetch(route)     # bind the tab here, not later
+            self._route_async(route, lambda: fetch(0), done, ep)
         elif kind == "album":
             srv = route.get("server") or self.server
             iid = route["item_id"]

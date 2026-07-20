@@ -91,15 +91,20 @@ class MusicMixin:
         self._load_route(route)
         self.invalidate()
 
-    def _music_page(self, route, start_index):
-        """A ``work()`` that fetches one page of the route's music tab,
-        returning ``(items, total)``. Genres are unpaged server-side, so they
-        report their own length as the total."""
+    def _music_fetch(self, route):
+        """Return a ``fetch(start_index)`` for the route's music tab, giving
+        ``(items, total)``. Genres are unpaged server-side, so they report
+        their own length as the total.
+
+        **Call this on the loop thread.** It binds the server, library and
+        tab *now*; reading them when the page lands would resolve against
+        whichever tab the user had switched to by then.
+        """
         srv = route.get("server") or self.server
         parent = route["parent_id"]
         tab = route.get("_tab", "albums")
 
-        def work():
+        def fetch(start_index):
             if tab == "albumartists":
                 return self.source.get_album_artists(
                     srv, parent, start_index=start_index)
@@ -114,32 +119,19 @@ class MusicMixin:
                 return (genres if start_index == 0 else []), len(genres)
             return self.source.get_music_albums(
                 srv, parent, start_index=start_index)
-        return work
+        return fetch
 
     def _on_music_scroll(self, route, offset, maximum):
         """Page the current music tab in near the bottom (the Tk browser's
         _MusicGrid did this per tab; without it a library is capped at the
         first 100 albums)."""
-        if route is not self.route:
-            return
-        items = route.get("_data") or []
-        total = route.get("_total") or 0
-        if route.get("_loading") or len(items) >= total or not items:
-            return
-        if maximum - offset >= 800:
-            return
-        route["_loading"] = True
-        ep = self._epoch
+        def put(r, items, total):
+            r["_data"], r["_total"] = items, total
 
-        def done(res):
-            new, total2 = res
-            if new:
-                route["_data"] = (route.get("_data") or []) + new
-                route["_total"] = total2
-            else:
-                route["_total"] = len(route.get("_data") or [])
-            route["_loading"] = False
-        self.run_async(self._music_page(route, len(items)), done, ep)
+        self._page_more(
+            route, offset, maximum,
+            lambda r: (r.get("_data") or [], r.get("_total") or 0),
+            put, self._music_fetch(route))
 
     def _render_music(self, route, size):
         tabs = Row([
@@ -245,34 +237,21 @@ class MusicMixin:
     def _on_genre_scroll(self, route, offset, maximum):
         """Page a genre's albums. It rendered one 100-album page with no
         scroll handler, so a large genre simply stopped there."""
-        data = route.get("_data") or {}
-        albums = data.get("albums") or []
-        total = data.get("total") or 0
-        if route is not self.route or route.get("_loading"):
-            return
-        if len(albums) >= total or maximum - offset >= 800:
-            return
-        route["_loading"] = True
-        ep = self._epoch
         srv = route.get("server") or self.server
-        start = len(albums)
+        parent = route.get("parent_id")
+        gid = route["item_id"]
 
-        def work():
-            return self.source.get_genre_albums(
-                srv, route.get("parent_id"), route["item_id"],
-                start_index=start)
+        def put(r, items, total):
+            data = r.get("_data") or {}
+            data["albums"], data["total"] = items, total
 
-        def done(res):
-            new, total2 = res
-            data["albums"] = albums + new
-            # an empty in-range page ends the list, or it re-requests
-            # forever on every scroll event
-            data["total"] = total2 if new else len(data["albums"])
-            route["_loading"] = False
-
-        def failed(_e):
-            route["_loading"] = False
-        self.run_async(work, done, ep, on_error=failed)
+        self._page_more(
+            route, offset, maximum,
+            lambda r: ((r.get("_data") or {}).get("albums") or [],
+                       (r.get("_data") or {}).get("total") or 0),
+            put,
+            lambda start: self.source.get_genre_albums(
+                srv, parent, gid, start_index=start))
 
     def _render_playlist(self, route, size):
         data = route.get("_data")

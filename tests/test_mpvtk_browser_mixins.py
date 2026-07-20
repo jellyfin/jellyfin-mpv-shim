@@ -27,7 +27,8 @@ def _members(module):
     Read from source rather than ``vars()`` so that a name defined twice in
     one module (the other way to lose a method) is also visible.
     """
-    src = open(os.path.join(PKG, module + ".py")).read()
+    with open(os.path.join(PKG, module + ".py")) as fh:
+        src = fh.read()
     out = {}
     for cls in [n for n in ast.parse(src).body if isinstance(n, ast.ClassDef)]:
         for node in cls.body:
@@ -68,7 +69,8 @@ class TestMixinPartition(unittest.TestCase):
         for mod in MODULES:
             if mod == "app":
                 continue
-            src = open(os.path.join(PKG, mod + ".py")).read()
+            with open(os.path.join(PKG, mod + ".py")) as fh:
+                src = fh.read()
             for node in ast.walk(ast.parse(src)):
                 if isinstance(node, ast.ImportFrom) and node.module == "app":
                     offenders.append(mod)
@@ -83,7 +85,8 @@ class TestMixinPartition(unittest.TestCase):
         for mod in MODULES:
             if mod == "app":
                 continue
-            src = open(os.path.join(PKG, mod + ".py")).read()
+            with open(os.path.join(PKG, mod + ".py")) as fh:
+                src = fh.read()
             for node in ast.walk(ast.parse(src)):
                 targets = []
                 if isinstance(node, ast.Assign):

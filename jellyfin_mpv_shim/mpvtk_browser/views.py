@@ -240,22 +240,13 @@ class ViewsMixin:
         self.run_async(work, done, ep)
 
     def _on_grid_scroll(self, route, offset, maximum):
-        if route is not self.route:
-            return
-        items = route.get("_items") or []
-        total = route.get("_total") or 0
-        if len(items) >= total or route.get("_loading"):
-            return
-        if maximum - offset >= 800:
-            return  # only page in near the bottom
-        route["_loading"] = True
-        ep = self._epoch
-        start = len(items)
+        # Read on the loop thread, before dispatch: the sort/filters must be
+        # the ones the page was asked for, not whatever they are when it lands.
         _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
         filters = route.get("_filters") or {}
         person = route.get("person_id")
 
-        def work():
+        def fetch(start):
             srv = route.get("server") or self.server
             if person:
                 return self.source.get_person_items(srv, person,
@@ -268,24 +259,13 @@ class ViewsMixin:
                 srv, route["parent_id"], start_index=start, sort_by=sort_by,
                 sort_order=sort_order, filters=filters)
 
-        def done(res):
-            new, total2 = res
-            route["_items"] = (route.get("_items") or []) + new
-            # A server that answers an in-range page with nothing (a random
-            # sort reshuffling per request, a filter the server applies
-            # differently) would otherwise be re-asked on every scroll
-            # event forever. Treat the page as the end of the list.
-            route["_total"] = (total2 if new
-                               else len(route.get("_items") or []))
-            route["_loading"] = False
+        def put(r, items, total):
+            r["_items"], r["_total"] = items, total
 
-        def failed(_exc):
-            # _loading is set before dispatch: leaving it set on a failed
-            # page stopped this grid from ever paging again.
-            route["_loading"] = False
-            self.set_status(_("Could not load more items."))
-
-        self.run_async(work, done, ep, on_error=failed)
+        self._page_more(
+            route, offset, maximum,
+            lambda r: (r.get("_items") or [], r.get("_total") or 0),
+            put, fetch)
 
     # --------------------------------------------------- detail / series / etc
 
