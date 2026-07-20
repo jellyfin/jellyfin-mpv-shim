@@ -472,5 +472,35 @@ class TestPlaylistArtDownload(TmpTest):
         self.assertFalse(os.path.exists(self._poster()))
 
 
+class TestDeleteScope(TmpTest):
+    """An unscoped delete used to mean "delete the entire catalog", which
+    the downloads manager reached by simply not passing a scope for its
+    flat Movies group — behind a prompt naming only that group."""
+
+    def _manager(self):
+        jf = FakeJellyfin([])
+        m = make_manager(self.tmp, jf)
+        self.addCleanup(m.db.close)
+        for item in ("m1", "m2", "e1"):
+            m.db.upsert(make_row(item, type="Movie", server_id="srv"))
+        return m
+
+    def test_unscoped_delete_removes_nothing(self):
+        m = self._manager()
+        m.delete()
+        self.assertEqual(len(m.db.list()), 3, "wiped the catalog")
+
+    def test_scoped_deletes_still_work(self):
+        m = self._manager()
+        m.delete(item_id="m1")
+        self.assertEqual({r["item_id"] for r in m.db.list()}, {"m2", "e1"})
+
+    def test_watched_sweep_must_be_explicit(self):
+        """The one legitimate catalog-wide delete asks for it by name."""
+        m = self._manager()
+        m.delete(watched_only=True)
+        self.assertEqual(len(m.db.list()), 3, "no scope, no sweep")
+
+
 if __name__ == "__main__":
     unittest.main()

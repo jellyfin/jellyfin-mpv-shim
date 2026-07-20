@@ -405,13 +405,23 @@ class SyncManager:
         self._notify_change()
 
     def delete(self, item_id=None, series_id=None, season_id=None,
-               watched_only=False, playlist_id=None):
+               watched_only=False, watched_all=False, playlist_id=None):
         """Flexible delete: a single item, a season, a whole series, a
-        playlist's downloads, and/or only watched items within that scope."""
+        playlist's downloads, and/or only watched items within that scope.
+
+        An unscoped call deletes NOTHING. "Delete every download" has to be
+        asked for explicitly (``watched_all`` for the watched sweep) — a
+        caller that simply forgot to pass its scope used to wipe the entire
+        catalog, and the only thing standing between that and the user was a
+        confirm dialog naming the group they thought they were deleting."""
         if self._relocating:
             return  # catalog is mid-move; caller can retry after
         if item_id:
             self.delete_item(item_id)
+            return
+        if not (series_id or season_id or playlist_id or watched_all):
+            log.error("sync delete called with no scope; refusing to delete "
+                      "the whole catalog")
             return
         if playlist_id:
             self._delete_playlist(playlist_id, watched_only=watched_only)

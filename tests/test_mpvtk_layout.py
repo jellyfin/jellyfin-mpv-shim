@@ -143,3 +143,43 @@ class TestLayout(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestWrapMargin(unittest.TestCase):
+    """Wrapping is decided from estimated advances but drawn by libass with
+    the real font. A line that fits by a fraction of a pixel renders one
+    word too long, so the wrap limit keeps a margin."""
+
+    TXT = ("An overview paragraph long enough to wrap several times so that "
+           "we can see exactly where each line ends relative to the container "
+           "that it is supposed to fit inside of, which is the whole question "
+           "here and it needs enough words to sample many widths properly.")
+
+    def test_no_line_lands_on_the_edge(self):
+        from jellyfin_mpv_shim.mpvtk.layout import (WRAP_SLOP, text_width,
+                                                    wrap_text)
+
+        tightest = min(
+            max_w - text_width(line, 18, False)
+            for max_w in range(300, 1400)
+            for line in wrap_text(self.TXT, 18, False, max_w))
+        self.assertGreaterEqual(
+            tightest, WRAP_SLOP - 0.01,
+            "a wrapped line sits within the slop of the edge")
+
+    def test_wrapping_still_fills_the_line(self):
+        """The margin must not cost a whole word — the line count has to
+        match what a no-margin wrap would produce, or close to it."""
+        from jellyfin_mpv_shim.mpvtk.layout import wrap_text
+
+        for max_w in (400, 700, 1000):
+            n = len(wrap_text(self.TXT, 18, False, max_w))
+            wide = len(wrap_text(self.TXT, 18, False, max_w + 40))
+            self.assertGreaterEqual(n, wide)
+            self.assertLessEqual(n - wide, 2, "margin cost too many lines")
+
+    def test_degenerate_widths_terminate(self):
+        from jellyfin_mpv_shim.mpvtk.layout import wrap_text
+
+        for w in (0, 0.5, 1, 2):
+            self.assertTrue(wrap_text("hello world", 18, False, w))

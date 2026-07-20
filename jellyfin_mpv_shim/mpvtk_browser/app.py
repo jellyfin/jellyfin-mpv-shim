@@ -677,7 +677,8 @@ class MpvtkBrowser:
         bw = min(width - 2 * self.CONTENT_PAD, 1100)
         return bw, int(bw * self.BANNER_RATIO)
 
-    def _backdrop_node(self, item, box, node_id, title=None, meta=None):
+    def _backdrop_node(self, item, box, node_id, title=None, meta=None,
+                       context=None):
         """A backdrop banner for detail/series headers.
 
         With ``title`` the heading is *baked into the bitmap* over a bottom
@@ -693,7 +694,8 @@ class MpvtkBrowser:
             owner_id, tag = spec
             key = make_key(owner_id, "Backdrop", tag, box[0], box[1])
             if title:
-                key += "|" + make_key(title, meta or "", "", box[0], box[1])
+                key += "|" + make_key(title, meta or "", context or "",
+                                      box[0], box[1])
             url = self.source.backdrop_url(self.server, item, width=box[0],
                                            height=box[1], fill=True)
             # Request at the *source* aspect and crop to the banner below, so
@@ -701,15 +703,66 @@ class MpvtkBrowser:
             img = self._request_image(key, url, (box[0], box[0]))
             if img is not None:
                 b = self.strips.bitmap(key, self._compose_banner(
-                    img, box, title, meta))
+                    img, box, title, meta, context))
                 return Image(b["src"], b["iw"], b["ih"], id=node_id)
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
 
     @staticmethod
-    def _compose_banner(image, box, title=None, meta=None):
+    def _heading_for(item):
+        """``(title, context)`` for a detail heading.
+
+        An episode's series and SxEy go on their own line above the episode
+        title rather than being joined into one string — joined, a name of
+        any length ran off the end of the banner and was cut mid-word
+        ("Clannad · S1E1 · On the Hillside Pa")."""
+        title = item.get("Name", "")
+        if item.get("Type") != "Episode":
+            return title, ""
+        s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
+        se = "S%sE%s" % (s, e) if s is not None and e is not None else ""
+        context = "   ·   ".join(
+            p for p in (item.get("SeriesName"), se) if p)
+        return title, context
+
+    @staticmethod
+    def _wrap_pil(draw, text, font, max_w, max_lines=2):
+        """Word-wrap ``text`` to ``max_lines``, ellipsizing the last line.
+        Falls back to breaking mid-word for a single word too long to fit."""
+        words, lines, cur = text.split(), [], ""
+        for word in words:
+            trial = (cur + " " + word).strip()
+            if not cur or draw.textlength(trial, font=font) <= max_w:
+                cur = trial
+                continue
+            lines.append(cur)
+            cur = word
+            if len(lines) == max_lines:
+                break
+        if cur and len(lines) < max_lines:
+            lines.append(cur)
+        if not lines:
+            return [text]
+        # The last line absorbs whatever didn't fit, ellipsized.
+        consumed = len(" ".join(lines).split())
+        if consumed < len(words) or draw.textlength(
+                lines[-1], font=font) > max_w:
+            last = lines[-1]
+            if consumed < len(words):
+                last = " ".join([last] + words[consumed:])
+            while last and draw.textlength(last + "…", font=font) > max_w:
+                last = last[:-1]
+            lines[-1] = last.rstrip() + "…"
+        return lines
+
+    @classmethod
+    def _compose_banner(cls, image, box, title=None, meta=None, context=None):
         """Crop ``image`` to the banner box and bake the heading over a
-        bottom-up dark gradient."""
+        bottom-up dark gradient.
+
+        Stacked bottom-up: meta, title (wrapped to two lines), then the
+        context line above it. Text is sized off the banner height and
+        stays small enough that a long episode title reads in full."""
         from PIL import ImageDraw
 
         from ..display_mirror import (_apply_dark_gradient, _pil_font,
@@ -723,24 +776,29 @@ class MpvtkBrowser:
                                       max_alpha=215)
         draw = ImageDraw.Draw(canvas)
         margin = max(18, w // 40)
-        size = max(22, min(46, h // 4))
+        avail = w - 2 * margin
+        # Smaller than it was: the heading has up to three stacked lines to
+        # fit inside the gradient now, not one.
+        size = max(20, min(34, h // 6))
         y = h - margin
         if meta:
-            f = _pil_font(int(size * 0.5), text=meta)
+            f = _pil_font(int(size * 0.6), text=meta)
             asc, desc = f.getmetrics()
             draw.text((margin, y - asc - desc), meta, font=f,
                       fill=(200, 200, 200, 255))
             y -= asc + desc + 6
         f = _pil_font(size, bold=True, text=title)
         asc, desc = f.getmetrics()
-        # Ellipsize rather than overflow the crop.
-        while title and draw.textlength(title, font=f) > w - 2 * margin:
-            title = title[:-1]
-            if draw.textlength(title + "…", font=f) <= w - 2 * margin:
-                title += "…"
-                break
-        draw.text((margin, y - asc - desc), title, font=f,
-                  fill=(255, 255, 255, 255))
+        for line in reversed(cls._wrap_pil(draw, title, f, avail)):
+            draw.text((margin, y - asc - desc), line, font=f,
+                      fill=(255, 255, 255, 255))
+            y -= asc + desc + 2
+        if context:
+            f = _pil_font(int(size * 0.62), text=context)
+            asc, desc = f.getmetrics()
+            line = cls._wrap_pil(draw, context, f, avail, max_lines=1)[0]
+            draw.text((margin, y - asc - desc + 2), line, font=f,
+                      fill=(215, 215, 215, 255))
         return canvas
 
     def _tile(self, item, geom, image_type="Primary"):
@@ -1811,6 +1869,19 @@ class MpvtkBrowser:
             parts.append("★ %.1f" % item["CommunityRating"])
         return "   ·   ".join(parts)
 
+    def _body_w(self, w):
+        """Usable text width inside a padded, scrollable content column.
+
+        The window width minus the content padding AND the scrollbar the
+        scroll view reserves. Wrapping at ``w - 2*pad`` — the padding alone
+        — makes every line 10px wider than the space it actually gets, so
+        the tail of each line runs under the scrollbar, and which words land
+        there changes with the window size. That is what made resizing look
+        like the wrapping was unstable."""
+        from ..mpvtk.layout import SCROLLBAR_W
+
+        return max(120, w - 2 * self.CONTENT_PAD - SCROLLBAR_W)
+
     def _paragraph(self, text, size, max_w, color=None):
         """Wrapped body text (overviews).
 
@@ -2094,19 +2165,18 @@ class MpvtkBrowser:
         w = size[0]
         server = route.get("server") or self.server
         bw, bh = self._banner_box(w)
-        title = item.get("Name", "")
-        if item.get("Type") == "Episode":
-            s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
-            se = "S%sE%s" % (s, e) if s is not None and e is not None else ""
-            title = "   ·   ".join(
-                p for p in (item.get("SeriesName"), se, title) if p)
+        title, context = self._heading_for(item)
         meta = self._meta_line(item)
         banner = self._backdrop_node(item, (bw, bh), "detail-bd",
-                                     title=title, meta=meta)
+                                     title=title, meta=meta, context=context)
         blocks = [banner]
         if isinstance(banner, Box):
-            # No artwork (or still loading): draw the heading normally.
-            blocks.append(Text(title, size=30, bold=True))
+            # No artwork (or still loading): draw the heading normally, with
+            # the same title/context split the baked one uses.
+            if context:
+                blocks.append(Text(context, size=17, color=theme.SUBTLE_FG))
+            blocks.append(Text(title, size=26, bold=True, wrap=True,
+                               w=self._body_w(w)))
             if meta:
                 blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
         info = self._media_info_line(item, route)
@@ -2116,7 +2186,7 @@ class MpvtkBrowser:
         blocks.append(self._detail_actions(item, server))
         blocks.extend(self._track_pickers(route, item))
         if item.get("Overview"):
-            blocks.append(self._paragraph(item["Overview"], 18, w - 32))
+            blocks.append(self._paragraph(item["Overview"], 18, self._body_w(w)))
         people_row = self._people_row(item.get("People") or [], server)
         if people_row is not None:
             blocks.append(people_row)
@@ -2143,7 +2213,7 @@ class MpvtkBrowser:
                 blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
         blocks.append(self._series_actions(item, server, route["item_id"]))
         if item.get("Overview"):
-            blocks.append(self._paragraph(item["Overview"], 18, w - 32))
+            blocks.append(self._paragraph(item["Overview"], 18, self._body_w(w)))
         seasons = data.get("seasons") or []
         if seasons:
             blocks.append(self._tile_row(
@@ -2257,7 +2327,11 @@ class MpvtkBrowser:
     # ---------------------------------------------------- music / playlists
 
     def _cols(self, w, geom):
-        return max(1, int((w - 32 + geom.gap) // (geom.tile_w + geom.gap)))
+        # _body_w, not w - 32: grids sit in the same padded scroll column,
+        # so ignoring the scrollbar fits one tile too many at some widths
+        # and the last one is clipped.
+        return max(1, int(
+            (self._body_w(w) + geom.gap) // (geom.tile_w + geom.gap)))
 
     GRID_GAP = 12
 
@@ -3240,7 +3314,14 @@ class MpvtkBrowser:
             self._dl_delete_cb(
                 route, group,
                 series_id=group.get("id") if kind == "series" else None,
-                playlist_id=group.get("id") if kind == "playlist" else None),
+                playlist_id=group.get("id") if kind == "playlist" else None,
+                # Groups without a server-side id (the flat "Movies &
+                # Videos" bucket) delete their own rows explicitly. Passing
+                # no scope at all used to reach syncManager.delete() with
+                # every id None, which deleted the ENTIRE catalog behind a
+                # prompt naming only this group.
+                item_ids=(None if kind in ("series", "playlist")
+                          else self._dl_group_item_ids(group))),
             bold=True, count=group.get("count"),
             icon={"movies": "movie", "playlist": "queue_music"}.get(kind),
             route=route, toggle=gkey if children else None,
@@ -3280,8 +3361,19 @@ class MpvtkBrowser:
                             self._dl_delete_cb(route, item,
                                                item_id=item.get("id")))
 
+    @staticmethod
+    def _dl_group_item_ids(group):
+        """Every download id under a group, including nested season rows."""
+        out = []
+        for child in group.get("children") or ():
+            if child.get("kind") == "season":
+                out += [g.get("id") for g in child.get("children") or ()]
+            elif child.get("id"):
+                out.append(child["id"])
+        return [i for i in out if i]
+
     def _dl_delete_cb(self, route, entry, item_id=None, series_id=None,
-                      season_id=None, playlist_id=None):
+                      season_id=None, playlist_id=None, item_ids=None):
         def go():
             self._confirm(
                 _("Delete the downloaded copy of %s?")
@@ -3289,7 +3381,8 @@ class MpvtkBrowser:
                 lambda: self._delete_download(route, item_id=item_id,
                                               series_id=series_id,
                                               season_id=season_id,
-                                              playlist_id=playlist_id),
+                                              playlist_id=playlist_id,
+                                              item_ids=item_ids),
                 title=_("Delete Download"), yes=_("Delete"))
         return go
 
@@ -3341,7 +3434,7 @@ class MpvtkBrowser:
         self.run_async(work, done, ep)
 
     def _delete_download(self, route, item_id=None, series_id=None,
-                         season_id=None, playlist_id=None):
+                         season_id=None, playlist_id=None, item_ids=None):
         """Delete, then re-read the catalog — in that order, on one worker.
 
         Submitting the delete and the reload as separate tasks raced: the
@@ -3353,9 +3446,13 @@ class MpvtkBrowser:
 
         def work():
             try:
-                self.controller.delete_download(
-                    item_id=item_id, series_id=series_id,
-                    season_id=season_id, playlist_id=playlist_id)
+                if item_ids is not None:
+                    for one in item_ids:
+                        self.controller.delete_download(item_id=one)
+                else:
+                    self.controller.delete_download(
+                        item_id=item_id, series_id=series_id,
+                        season_id=season_id, playlist_id=playlist_id)
             except Exception:
                 log.error("delete_download failed", exc_info=True)
             return self.controller.list_downloads()

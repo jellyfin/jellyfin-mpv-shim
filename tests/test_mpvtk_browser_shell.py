@@ -3150,3 +3150,74 @@ class TestPlaylistTileShape(unittest.TestCase):
             {"collection_type": None,
              "items": [{"Id": "p1", "Type": "Playlist"}]})
         self.assertIs(geom, self.b.geom_square)
+
+
+class TestDownloadsGroupDelete(unittest.TestCase):
+    """The flat "Movies & Videos" group has no server-side id, so its
+    Remove button must enumerate its own rows. Passing no scope reached
+    syncManager.delete() with every id None — the whole catalog."""
+
+    def test_a_group_without_an_id_deletes_only_its_own_rows(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        group = {"kind": "movies", "id": None, "title": "Movies & Videos",
+                 "children": [{"kind": "item", "id": "m1"},
+                              {"kind": "item", "id": "m2"}]}
+        self.assertEqual(b._dl_group_item_ids(group), ["m1", "m2"])
+
+    def test_season_rows_are_collected_from_nested_children(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        group = {"kind": "series", "id": "sh1", "children": [
+            {"kind": "season", "id": "s1", "children": [
+                {"kind": "item", "id": "e1"}, {"kind": "item", "id": "e2"}]}]}
+        self.assertEqual(b._dl_group_item_ids(group), ["e1", "e2"])
+
+    def test_an_empty_group_yields_no_ids(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        self.assertEqual(b._dl_group_item_ids({"kind": "movies"}), [])
+
+
+class TestBodyWidth(unittest.TestCase):
+    """Content wrapped at "window minus padding" is a scrollbar too wide,
+    so line tails run under the scrollbar — and which words land there
+    changes with the window size, which read as unstable wrapping."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_body_width_excludes_padding_and_the_scrollbar(self):
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        w = 1280
+        self.assertEqual(
+            self.b._body_w(w),
+            w - 2 * self.b.CONTENT_PAD - SCROLLBAR_W)
+
+    def test_paragraphs_fit_inside_the_scroll_view(self):
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W, layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, VScroll
+
+        txt = ("An overview long enough to wrap several times so the line "
+               "ends can be compared against the container they must fit "
+               "inside, at more than one window width.")
+        for w in (1280, 1000, 800, 640):
+            tree = VScroll(Column([self.b._paragraph(txt, 18,
+                                                     self.b._body_w(w))],
+                                  pad=self.b.CONTENT_PAD, align="stretch"),
+                           flex=1)
+            nodes, _h = layout(tree, w, 720)
+            scroll = next(n for n in nodes if n["t"] == "scroll")
+            bar = SCROLLBAR_W if scroll.get("bar") else 0
+            limit = scroll["x"] + scroll["w"] - bar - self.b.CONTENT_PAD
+            for n in [x for x in nodes if x["t"] == "text"]:
+                self.assertLessEqual(
+                    n["x"] + n["w"], limit + 0.5,
+                    "text overflows the scroll view at w=%d" % w)
+
+    def test_grid_columns_leave_room_for_the_scrollbar(self):
+        geom = self.b.geom
+        for w in range(600, 1930, 7):
+            cols = self.b._cols(w, geom)
+            used = cols * geom.tile_w + (cols - 1) * geom.gap
+            self.assertLessEqual(
+                used, self.b._body_w(w),
+                "%d columns don't fit at w=%d" % (cols, w))

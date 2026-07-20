@@ -139,22 +139,34 @@ def _break_word(word, size, bold, max_w):
     return out or [""]
 
 
+# Wrapping is decided from *estimated* advances, but the text is drawn by
+# libass with the real font, and the two disagree by a fraction of a pixel.
+# A line that fits by less than that renders one word too long — measuring a
+# sample paragraph across window widths, ~1.6% of lines land within 1px of
+# the edge, which is exactly how often the overflow was showing up. Wrap
+# against a slightly conservative limit so an estimate error can't push the
+# last word past the edge. (ellipsize slops the other way on purpose: there,
+# being conservative would truncate a label that does fit.)
+WRAP_SLOP = 1.0
+
+
 def wrap_text(s, size, bold, max_w):
     """Greedy word wrap against the measured metrics. ``\\n`` starts a
     new paragraph (blank lines preserved); words wider than ``max_w``
     are hard-broken."""
+    limit = max(1.0, max_w - WRAP_SLOP)
     lines = []
     for para in s.split("\n"):
         cur = ""
         for word in para.split():
             trial = (cur + " " + word) if cur else word
-            if not cur or text_width(trial, size, bold) <= max_w:
+            if not cur or text_width(trial, size, bold) <= limit:
                 cur = trial
             else:
                 lines.append(cur)
                 cur = word
-            if text_width(cur, size, bold) > max_w:
-                chunks = _break_word(cur, size, bold, max_w)
+            if text_width(cur, size, bold) > limit:
+                chunks = _break_word(cur, size, bold, limit)
                 lines.extend(chunks[:-1])
                 cur = chunks[-1]
         lines.append(cur)
