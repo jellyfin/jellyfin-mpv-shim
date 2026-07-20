@@ -180,6 +180,22 @@ def build_scene(browser, size=(1280, 720)):
     return nodes, handlers
 
 
+
+def menu_pick(browser, action):
+    """Invoke the tile-menu entry whose action is ``action``.
+
+    By action, not index: the menu is now built per item type, so a
+    hardcoded index silently selects a different entry (or none).
+    """
+    entries = browser._tile_menu_entries(browser._menu["item"])
+    for i, (_label, _icon, key) in enumerate(entries):
+        if key == action:
+            browser._menu_action(i, None)
+            return
+    raise AssertionError("no %r entry for this item: %r"
+                         % (action, [e[2] for e in entries]))
+
+
 def ids(nodes):
     return {n.get("id") for n in nodes}
 
@@ -1369,7 +1385,7 @@ class TestTileContextMenu(unittest.TestCase):
         item = {"Id": "m1", "Name": "A", "Type": "Movie",
                 "UserData": {"Played": False}}
         self.b._open_tile_menu(item, 10, 10)
-        self.b._menu_action(1, None)          # "Mark Watched"
+        menu_pick(self.b, "watched")
         self.assertTrue(item["UserData"]["Played"])
         self.assertIsNone(self.b._menu)       # menu closed
         calls = getattr(self.ctl, "transport", [])
@@ -1378,7 +1394,7 @@ class TestTileContextMenu(unittest.TestCase):
     def test_toggle_favorite_calls_client(self):
         item = {"Id": "m1", "Type": "Movie", "UserData": {"IsFavorite": False}}
         self.b._open_tile_menu(item, 10, 10)
-        self.b._menu_action(2, None)          # "Add to Favorites"
+        menu_pick(self.b, "favorite")
         self.assertTrue(item["UserData"]["IsFavorite"])
         self.assertIn("set_favorite",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
@@ -1386,7 +1402,7 @@ class TestTileContextMenu(unittest.TestCase):
     def test_menu_play_audio_plays(self):
         item = {"Id": "s1", "Type": "Audio"}
         self.b._open_tile_menu(item, 10, 10)
-        self.b._menu_action(0, None)          # "Play"
+        menu_pick(self.b, "play")
         self.assertTrue(self.ctl.played)
 
     def test_dismiss_closes_menu(self):
@@ -1573,7 +1589,7 @@ class TestAddToPlaylist(unittest.TestCase):
     def test_menu_add_to_playlist_opens_dialog(self):
         self.b._pool = _SyncPool()
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
-        self.b._menu_action(3, None)   # "Add to Playlist"
+        menu_pick(self.b, "addto")
         self.assertIsNone(self.b._menu)
         self.assertIsNotNone(self.b._dialog)
 
@@ -1779,7 +1795,7 @@ class TestDownloadDialog(unittest.TestCase):
 
     def test_menu_download_opens_dialog(self):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
-        self.b._menu_action(4, None)   # "Download"
+        menu_pick(self.b, "download")
         self.assertIsNone(self.b._menu)
         self.assertIsNotNone(self.b._dl)
 
@@ -3572,3 +3588,121 @@ class TestWorkOfflineToggle(unittest.TestCase):
         before = b.source
         b._set_setting("player_name", "Bud")
         self.assertIs(b.source, before)
+
+
+class TestTileMenuGating(unittest.TestCase):
+    """Every menu entry used to be offered for every item, so right-clicking
+    a cast member offered to play, download and mark a Person watched."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def _actions(self, item):
+        return [e[2] for e in self.b._tile_menu_entries(item)]
+
+    def test_a_movie_gets_the_full_menu(self):
+        acts = self._actions({"Id": "m1", "Type": "Movie"})
+        for expected in ("play", "queue", "watched", "favorite", "addto",
+                         "download"):
+            self.assertIn(expected, acts)
+
+    def test_a_person_gets_nothing_playable(self):
+        acts = self._actions({"Id": "p1", "Type": "Person"})
+        self.assertEqual(acts, [], "offered actions on a Person")
+
+    def test_a_music_genre_is_not_downloadable_or_watchable(self):
+        acts = self._actions({"Id": "g1", "Type": "MusicGenre"})
+        self.assertNotIn("watched", acts)
+        self.assertNotIn("download", acts)
+
+    def test_an_album_can_be_played_and_queued(self):
+        acts = self._actions({"Id": "a1", "Type": "MusicAlbum"})
+        self.assertIn("play", acts)
+        self.assertIn("queue", acts)
+
+    def test_editing_actions_hide_offline(self):
+        self.b._offline = True
+        acts = self._actions({"Id": "m1", "Type": "Movie"})
+        self.assertNotIn("addto", acts)
+        self.assertNotIn("download", acts)
+
+    def test_an_empty_menu_renders_nothing(self):
+        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+                        "server": "srv1", "x": 10, "y": 10}
+        self.assertIsNone(self.b._tile_menu_node())
+
+
+class TestMenuQueueAndPlay(unittest.TestCase):
+    """Play/Add to Queue on a container must resolve it to its items — the
+    container's own id isn't playable, which is why Play on an album tile
+    used to just navigate."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.queued = []
+        self.ctl.queue_items = lambda srv, ids: self.queued.append(list(ids))
+        self.src = FakeSource()
+        self.src.get_album_tracks = lambda srv, aid: [
+            {"Id": "t1"}, {"Id": "t2"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_queueing_an_album_queues_its_tracks(self):
+        self.b._menu_queue({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(self.queued, [["t1", "t2"]])
+
+    def test_queueing_a_movie_queues_the_movie(self):
+        self.b._menu_queue({"Id": "m1", "Type": "Movie"}, "srv1")
+        self.assertEqual(self.queued, [["m1"]])
+
+    def test_playing_an_album_plays_its_tracks(self):
+        played = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: played.append(list(ids))
+        self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(played, [["t1", "t2"]], "navigated instead of playing")
+
+    def test_an_unresolvable_container_falls_back_to_opening_it(self):
+        self.src.get_album_tracks = lambda srv, aid: []
+        self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(self.b.route["kind"], "album")
+
+
+class TestYearFilter(unittest.TestCase):
+    """The repository supported year filtering all along (online and
+    offline); only the picker was missing."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b.server = "srv1"
+
+    def _route(self, **kw):
+        r = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+             "_items": [], "_total": 0,
+             "_filtervals": {"genres": ["Drama"], "years": [2021, 1999]}}
+        r.update(kw)
+        self.b.nav_stack = [r]
+        return r
+
+    def test_the_year_picker_lists_the_available_years(self):
+        self._route()
+        nodes, _h = build_scene(self.b)
+        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        self.assertEqual(dd["items"][1:], ["2021", "1999"])
+
+    def test_choosing_a_year_stores_it_as_an_int(self):
+        route = self._route()
+        _n, handlers = build_scene(self.b)
+        handlers["grid-year"]["select"](1, "2021")
+        self.assertEqual(route["_filters"]["year"], 2021)
+
+    def test_all_years_clears_the_filter(self):
+        route = self._route(_filters={"year": 2021})
+        _n, handlers = build_scene(self.b)
+        handlers["grid-year"]["select"](0, "All Years")
+        self.assertIsNone(route["_filters"].get("year"))
+
+    def test_the_current_year_is_preselected(self):
+        self._route(_filters={"year": 1999})
+        nodes, _h = build_scene(self.b)
+        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        self.assertEqual(dd["sel"], 2)

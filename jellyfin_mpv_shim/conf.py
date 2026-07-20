@@ -98,8 +98,6 @@ class Settings(SettingsBase):
     close_to_tray: bool = True
     # Set once the first-close prompt has been answered, so it isn't shown again.
     close_prompt_shown: bool = False
-    library_page_size: int = 100
-    library_image_width: int = 280
     library_image_cache_mb: int = 256
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None

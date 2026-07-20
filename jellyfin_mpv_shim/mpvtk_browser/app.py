@@ -905,24 +905,45 @@ class MpvtkBrowser:
         self._menu = None
         self.invalidate()
 
+    # Types the tile menu offers each action for. Every entry used to be
+    # shown for every item, so right-clicking a cast member offered to
+    # play, download and mark a Person watched.
+    MENU_PLAYABLE = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
+                                      "Series", "Season", "Playlist"}
+    MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
+    MENU_FAVORITE = MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}
+    MENU_ADD_TO = PLAYABLE_TYPES | {"Audio"}
+    MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "Series", "Season", "Playlist"}
+
+    def _tile_menu_entries(self, item):
+        """``[(label, icon, action-key)]`` for this item's type."""
+        t = item.get("Type")
+        ud = item.get("UserData") or {}
+        watched = self._is_watched(item)
+        fav = bool(ud.get("IsFavorite"))
+        out = []
+        if t in self.MENU_PLAYABLE:
+            out.append((_("Play"), "play_arrow", "play"))
+            out.append((_("Add to Queue"), "playlist_add", "queue"))
+        if t in self.MENU_WATCHED:
+            out.append((_("Mark Unwatched") if watched
+                        else _("Mark Watched"), "check", "watched"))
+        if t in self.MENU_FAVORITE:
+            out.append((_("Remove from Favorites") if fav
+                        else _("Add to Favorites"), "favorite", "favorite"))
+        if t in self.MENU_ADD_TO and not self._offline:
+            out.append((_("Add to Playlist"), "queue_music", "addto"))
+        if t in self.MENU_DOWNLOAD and not self._offline:
+            out.append((_("Download"), "file_download", "download"))
+        return out
+
     def _tile_menu_node(self):
         m = self._menu
-        item = m["item"]
-        ud = item.get("UserData") or {}
-        watched = bool(ud.get("Played")) or (
-            item.get("Type") in ("Series", "Season")
-            and (ud.get("UnplayedItemCount") or 0) == 0)
-        fav = bool(ud.get("IsFavorite"))
-        labels = [
-            _("Play"),
-            _("Mark Unwatched") if watched else _("Mark Watched"),
-            _("Remove from Favorites") if fav else _("Add to Favorites"),
-            _("Add to Playlist"),
-            _("Download"),
-        ]
-        return Menu("tilemenu", labels, m["x"], m["y"],
-                    icons=["play_arrow", "check", "favorite", "queue_music",
-                           "file_download"],
+        entries = self._tile_menu_entries(m["item"])
+        if not entries:
+            return None
+        return Menu("tilemenu", [e[0] for e in entries], m["x"], m["y"],
+                    icons=[e[1] for e in entries],
                     on_select=self._menu_action, on_dismiss=self._close_menu)
 
     def _menu_action(self, index, value):
@@ -930,41 +951,92 @@ class MpvtkBrowser:
         if m is None:
             return
         item, server = m["item"], m["server"]
-        ud = item.setdefault("UserData", {})
-        if index == 0:                                   # Play
+        entries = self._tile_menu_entries(item)
+        if not 0 <= index < len(entries):
+            return self._close_menu()
+        action = entries[index][2]
+        if action == "play":
             self._menu_play(item, server)
-        elif index == 1:                                 # watched toggle
-            new = not (bool(ud.get("Played")) or (
-                item.get("Type") in ("Series", "Season")
-                and (ud.get("UnplayedItemCount") or 0) == 0))
-            ud["Played"] = new
-            if item.get("Type") in ("Series", "Season"):
-                ud["UnplayedItemCount"] = 0 if new else 1
-            self._client_call(lambda c: c.set_watched(
-                server, item.get("Id"), new))
-        elif index == 2:                                 # favorite toggle
-            new = not bool(ud.get("IsFavorite"))
-            ud["IsFavorite"] = new
-            self._client_call(lambda c: c.set_favorite(
-                server, item.get("Id"), new))
-        elif index == 3:                                 # add to playlist
+        elif action == "queue":
+            self._menu_queue(item, server)
+        elif action == "watched":
+            self._act_watched(item, server)
+        elif action == "favorite":
+            self._act_favorite(item, server)
+        elif action == "addto":
             self._close_menu()
             self._open_add_to(item)
             return
-        elif index == 4:                                 # download
+        elif action == "download":
             self._close_menu()
             self._open_download(item)
             return
         self._close_menu()
 
+    def _menu_queue(self, item, server):
+        """Append to the playing queue. A music container is resolved to its
+        tracks first — queueing the container id itself is meaningless."""
+        ep = self._epoch
+
+        def work():
+            return self._resolve_play_ids(item, server)
+
+        def done(ids):
+            if ids:
+                self._queue_items(ids, server)
+        self.run_async(work, done, ep)
+
+    def _resolve_play_ids(self, item, server):
+        """The item ids "Play"/"Add to Queue" should act on.
+
+        A music container (album/artist/playlist/series) is not itself a
+        playable item — queueing or playing its own id does nothing, which
+        is why Play on an album tile used to just navigate. Runs off the
+        loop thread: these hit the server."""
+        t, iid = item.get("Type"), item.get("Id")
+        if not iid:
+            return []
+        try:
+            if t == "MusicAlbum":
+                return [i.get("Id")
+                        for i in self.source.get_album_tracks(server, iid)]
+            if t == "MusicArtist":
+                return [i.get("Id")
+                        for i in self.source.get_artist_songs(server, iid)]
+            if t == "Playlist":
+                return [i.get("Id") for i in
+                        self.source.get_playlist_items(server, iid)
+                        if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
+            if t in ("Series", "Season"):
+                return [i.get("Id") for i in
+                        self.source.get_series_queue(server, iid)]
+        except Exception:
+            log.warning("could not resolve %s for playback", t, exc_info=True)
+            return []
+        return [iid]
+
     def _menu_play(self, item, server):
         t = item.get("Type")
         if t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
-        elif t in PLAYABLE_TYPES:
+            return
+        if t in PLAYABLE_TYPES:
             self._play(item, server)
-        else:
-            self._open_item(item)
+            return
+        # A container: resolve it to its items and play those, rather than
+        # navigating (a "Play" that browses instead is just a lie).
+        ep = self._epoch
+        audio = t in ("MusicAlbum", "MusicArtist")
+
+        def work():
+            return self._resolve_play_ids(item, server)
+
+        def done(ids):
+            if ids:
+                self._play_list(ids, server, 0, audio=audio)
+            else:
+                self._open_item(item)
+        self.run_async(work, done, ep)
 
     def _client_call(self, fn):
         """Run a client-mutating action (watched/favorite) off the loop
@@ -1850,6 +1922,13 @@ class MpvtkBrowser:
         gi = 0
         if filters.get("genre") in genres:
             gi = genres.index(filters["genre"]) + 1
+        # Years come back as ints; keep them that way in the filter (the
+        # offline source compares against ProductionYear directly) and only
+        # stringify for display.
+        years = list(vals.get("years") or [])
+        yi = 0
+        if filters.get("year") in years:
+            yi = years.index(filters["year"]) + 1
         bar = Row([
             Dropdown("grid-sort", [s[0] for s in SORTS],
                      selected=route.get("_sort", 0), w=180,
@@ -1858,6 +1937,11 @@ class MpvtkBrowser:
                      w=180,
                      on_select=lambda i, v: self._set_grid_filter(
                          route, "genre", None if i == 0 else genres[i - 1])),
+            Dropdown("grid-year",
+                     [_("All Years")] + [str(y) for y in years],
+                     selected=yi, w=140,
+                     on_select=lambda i, v: self._set_grid_filter(
+                         route, "year", None if i == 0 else years[i - 1])),
             Checkbox(_("Unplayed"), bool(filters.get("unplayed")),
                      id="grid-unplayed",
                      on_toggle=lambda: self._toggle_grid_filter(

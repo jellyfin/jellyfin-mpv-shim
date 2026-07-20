@@ -40,8 +40,7 @@ SECTIONS = [
     (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
-    (_("Library Browser"), ["library_page_size", "library_image_width",
-                            "library_image_cache_mb"]),
+    (_("Library Browser"), ["library_image_cache_mb"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded"]),
 ]
 

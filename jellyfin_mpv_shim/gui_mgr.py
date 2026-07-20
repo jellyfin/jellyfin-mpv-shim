@@ -411,8 +411,11 @@ class UserInterface(threading.Thread):
 
     def _browser_options(self, start_hidden):
         return {
-            "page_size": settings.library_page_size,
-            "image_width": settings.library_image_width,
+            # Former library_page_size / library_image_width settings.
+            # Dropped as config keys (mpvtk, the default UI, never read
+            # them); the Tk browser keeps their defaults until it goes.
+            "page_size": 100,
+            "image_width": 280,
             "image_cache_mb": settings.library_image_cache_mb,
             # The active user's device id — the browse-only clients must present
             # the same device as the control clients so they share a session.
