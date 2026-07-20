@@ -147,6 +147,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.set_app(app)
         # Poller that refreshes the downloads view while transfers run.
         self._dl_thread = None
+        # Long job (currently only the download-folder move) — see _run_long.
+        self._long_thread = None
         # Global download progress for the status bar, and its poller.
         self._dl_status = None
         self._dlbar_thread = None
@@ -1187,11 +1189,13 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         unnoticed.
 
         ``attr`` is cleared when the thread exits, so the next call starts a
-        fresh one.
+        fresh one. Returns True if this call started the thread, False if one
+        was already running — callers driven by a *user action* should say so
+        rather than appear to do nothing.
         """
         with self._poller_lock:
             if getattr(self, attr) is not None:
-                return
+                return False
 
             def run():
                 try:
@@ -1208,6 +1212,24 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             thread = threading.Thread(target=run, daemon=True, name=name)
             setattr(self, attr, thread)
         thread.start()
+        return True
+
+    def _run_long(self, work, name):
+        """Run a job that can take minutes, off the pool.
+
+        The pool has four workers and serves every route load and every
+        client mutation. A job that holds one for minutes — relocating the
+        download store copies the whole thing, possibly across drives —
+        starves browsing, and a handful of them would stop it outright.
+        Long jobs get their own thread instead.
+
+        One at a time, and False if one is already running."""
+        def run():
+            try:
+                work()
+            except Exception:
+                log.error("long job %r failed", name, exc_info=True)
+        return self._start_daemon("_long_thread", name, run)
 
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.

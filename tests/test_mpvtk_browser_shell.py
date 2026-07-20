@@ -176,6 +176,18 @@ class _SyncPool:
         pass
 
 
+class _RecordingPool(_SyncPool):
+    """Runs work inline like _SyncPool, but counts it — for asserting that a
+    long job did *not* go to the shared pool."""
+
+    def __init__(self):
+        self.submitted = 0
+
+    def submit(self, fn, *a, **k):
+        self.submitted += 1
+        return super().submit(fn, *a, **k)
+
+
 class _DeferredPool:
     """Holds submitted work until drain(), so a test can move the epoch
     (navigate) while a call is "in flight" — the window _SyncPool closes by
@@ -4897,6 +4909,77 @@ class TestSeriesExtras(unittest.TestCase):
                                      "srv1", "sh1")
         nodes, _h = layout(row, 1280, 720)
         self.assertIn("sa-shuffle", ids(nodes))
+
+
+class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
+    """Relocating the download store copies the whole thing, possibly across
+    drives. On the 4-worker pool it holds a worker for minutes while route
+    loads queue behind it, so it gets its own thread."""
+
+    def _browser(self, relocate):
+        cfg = FakeConfig()
+        cfg.relocate_downloads = relocate
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController(), config=cfg)
+        b._pool = _RecordingPool()
+        return b
+
+    def _settle(self, b, timeout=5):
+        t = b._long_thread
+        if t is not None:
+            t.join(timeout)
+
+    def test_it_does_not_take_a_pool_worker(self):
+        done = threading.Event()
+
+        def relocate(path, progress=None):
+            done.set()
+            return True, "moved"
+
+        b = self._browser(relocate)
+        b._move_downloads("/new")
+        self.assertTrue(done.wait(5), "the move never ran")
+        self._settle(b)
+        self.assertEqual(b._pool.submitted, 0,
+                         "the multi-GB copy went to the shared pool")
+
+    def test_a_second_move_says_so_instead_of_doing_nothing(self):
+        release = threading.Event()
+        calls = []
+
+        def relocate(path, progress=None):
+            calls.append(path)
+            release.wait(5)
+            return True, "moved"
+
+        b = self._browser(relocate)
+        b._move_downloads("/new")
+        for _ in range(500):          # wait for the first to be in flight
+            if calls:
+                break
+            time.sleep(0.005)
+        b._move_downloads("/other")
+        self.assertIn("already", b.status.lower(),
+                      "a second press looked like a dead button")
+        release.set()
+        self._settle(b)
+        self.assertEqual(calls, ["/new"], "two copies ran at once")
+
+    def test_the_outcome_reaches_the_status_line(self):
+        b = self._browser(lambda path, progress=None: (False, ""))
+        b._move_downloads("/new")
+        self._settle(b)
+        self.assertIn("failed", b.status.lower())
+
+    def test_a_crash_in_the_move_is_logged_not_swallowed_silently(self):
+        def relocate(path, progress=None):
+            raise OSError("disk full")
+
+        b = self._browser(relocate)
+        b._move_downloads("/new")
+        self._settle(b)
+        self.assertIn("failed", b.status.lower())
+        self.assertIsNone(b._long_thread, "the slot was never released")
 
 
 class TestLatentFixes(unittest.TestCase):

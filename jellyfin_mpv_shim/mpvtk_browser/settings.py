@@ -211,8 +211,10 @@ class SettingsMixin:
                     widget], gap=12, align="center")
 
     def _move_downloads(self, path):
-        """Relocating the download store copies files (possibly across drives),
-        so it runs on the pool and reports progress into the status line."""
+        """Relocating the download store copies files (possibly across
+        drives), so it runs on its own thread — not the pool, whose four
+        workers serve every route load — and reports progress into the
+        status line."""
         if path is None:
             self.set_status(
                 _("Press Enter in the folder field to move."))
@@ -222,8 +224,6 @@ class SettingsMixin:
         if not hasattr(cfg, "relocate_downloads"):
             self._set_setting("sync_path", path)
             return
-        self.set_status(_("Moving downloads…"))
-        self.invalidate()
 
         def work():
             def progress(copied, total):
@@ -238,7 +238,14 @@ class SettingsMixin:
             self.set_status(message or (
                 _("Download folder moved. Restart to finish switching.")
                 if ok else _("Moving the downloads failed.")))
-        self._pool.submit(work)
+
+        # Set before starting, so the job's own progress line wins the race.
+        self.set_status(_("Moving downloads…"))
+        if not self._run_long(work, "mpvtk-move-downloads"):
+            # Two concurrent copies of the same store would fight. Say so —
+            # a second press that silently did nothing reads as a dead button.
+            self.set_status(_("A move is already in progress."))
+        self.invalidate()
 
     # -- Servers & Users --------------------------------------------------
 
