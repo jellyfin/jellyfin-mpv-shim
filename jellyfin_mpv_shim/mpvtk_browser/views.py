@@ -292,6 +292,12 @@ class ViewsMixin:
             parts.append(str(item["OfficialRating"]))
         if item.get("CommunityRating"):
             parts.append("★ %.1f" % item["CommunityRating"])
+        # Genres are already fetched (repository asks for them); Tk showed up
+        # to three here and dropping them lost the quickest read on what a
+        # thing actually is.
+        genres = ", ".join(item.get("Genres") or [])
+        if genres:
+            parts.append(genres)
         return "   ·   ".join(parts)
 
     def _body_w(self, w):
@@ -740,7 +746,11 @@ class ViewsMixin:
         # Every credited person, not just Actor/Director/Writer — Producer,
         # GuestStar and Composer were silently dropped. Copied, not
         # mutated: these DTOs are shared with whatever else holds the item.
-        cast = [dict(p, Type="Person", _subtitle=(p.get("Role") or ""))
+        # Role, then Type. A crew member has no Role — their job IS the Type
+        # (Director, Writer, Producer) — so `Role or ""` captioned every one
+        # of them blank. Type is read before it is overwritten below.
+        cast = [dict(p, Type="Person",
+                     _subtitle=(p.get("Role") or p.get("Type") or ""))
                 for p in people][:24]
         if not cast:
             return None

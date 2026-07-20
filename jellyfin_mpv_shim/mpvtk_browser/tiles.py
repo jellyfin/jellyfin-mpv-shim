@@ -45,9 +45,15 @@ class TilesMixin:
         if item.get("_subtitle") is not None:
             return item["_subtitle"]      # pseudo-items (chapters)
         if item.get("Type") == "Episode":
+            # Lead with the series. A bare "S1E1" on a Continue Watching or
+            # Next Up tile does not say which show it belongs to, which is
+            # the one thing you need there.
+            series = item.get("SeriesName") or ""
             s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
             if s is not None and e is not None:
-                return "S%dE%d" % (s, e)
+                se = "S%dE%d" % (s, e)
+                return "%s · %s" % (series, se) if series else se
+            return series
         return str(item.get("ProductionYear") or "")
 
     # A thumbnail fetch that fails transiently is retried on a later

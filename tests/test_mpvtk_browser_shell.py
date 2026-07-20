@@ -5133,6 +5133,65 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestTileAndMetaParity(unittest.TestCase):
+    """Small captions that carry most of the information on a tile."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_an_episode_tile_names_its_show(self):
+        """A bare "S1E1" on a Continue Watching tile does not say which show
+        it belongs to, which is the one thing you need there."""
+        self.assertEqual(
+            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show",
+                              "ParentIndexNumber": 1, "IndexNumber": 2}),
+            "The Show · S1E2")
+
+    def test_an_episode_with_no_numbering_still_names_the_show(self):
+        self.assertEqual(
+            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show"}),
+            "The Show")
+
+    def test_an_episode_with_no_series_name_still_shows_the_number(self):
+        self.assertEqual(
+            self.b._subtitle({"Type": "Episode", "ParentIndexNumber": 1,
+                              "IndexNumber": 2}), "S1E2")
+
+    def test_a_movie_tile_is_unchanged(self):
+        self.assertEqual(
+            self.b._subtitle({"Type": "Movie", "ProductionYear": 2001}),
+            "2001")
+
+    def test_a_crew_member_is_captioned_with_their_job(self):
+        """Crew have no Role — their job IS the Type — so `Role or ""`
+        captioned every Director and Writer blank."""
+        # Tile captions are baked into the strip bitmap, so catch them at
+        # the boundary where _people_row hands its tiles over.
+        seen = []
+        self.b._tile_row = lambda title, items, rid, **kw: seen.extend(items)
+        self.b._people_row(
+            [{"Id": "p1", "Name": "A Director", "Type": "Director"},
+             {"Id": "p2", "Name": "An Actor", "Type": "Actor",
+              "Role": "Some Character"}], "srv1")
+        self.assertEqual([p["_subtitle"] for p in seen],
+                         ["Director", "Some Character"])
+
+    def test_the_people_row_does_not_mutate_the_source_dtos(self):
+        """These DTOs are shared with whatever else holds the item."""
+        people = [{"Id": "p1", "Name": "A Director", "Type": "Director"}]
+        self.b._tile_row = lambda *a, **kw: None
+        self.b._people_row(people, "srv1")
+        self.assertEqual(people[0]["Type"], "Director")
+
+    def test_the_metadata_line_lists_genres(self):
+        line = self.b._meta_line({"ProductionYear": 2001,
+                                  "Genres": ["Drama", "Comedy"]})
+        self.assertIn("Drama, Comedy", line)
+
+    def test_no_genres_leaves_no_empty_separator(self):
+        self.assertEqual(self.b._meta_line({"ProductionYear": 2001}), "2001")
+
+
 class TestFailuresAreVisible(unittest.TestCase):
     """Error paths that existed, were wired, and could never fire.
 
