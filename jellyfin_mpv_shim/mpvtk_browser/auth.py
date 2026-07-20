@@ -121,10 +121,12 @@ class AuthMixin:
                 rows.append(Text(state["error"], size=15, color=theme.FAV_RED))
             if u.get("locked"):
                 rows.append(self._pin_field(_("Current PIN"), "ps-cur", state,
-                                            "cur"))
+                                            "cur", on_submit=save))
             rows += [
-                self._pin_field(_("New PIN"), "ps-new", state, "new"),
-                self._pin_field(_("Confirm"), "ps-confirm", state, "confirm"),
+                self._pin_field(_("New PIN"), "ps-new", state, "new",
+                                on_submit=save),
+                self._pin_field(_("Confirm"), "ps-confirm", state, "confirm",
+                                on_submit=save),
                 Checkbox(_("Require this PIN at startup"), state["startup"],
                          id="ps-startup",
                          on_toggle=lambda: (state.__setitem__(
@@ -189,10 +191,12 @@ class AuthMixin:
         self._show_dialog(build)
 
     @staticmethod
-    def _pin_field(label, node_id, state, key):
+    def _pin_field(label, node_id, state, key, on_submit=None):
         return Row([Text(label, w=140, size=16, color=theme.SUBTLE_FG),
                     TextBox(node_id, placeholder=label, mask=True, w=200,
-                            on_change=lambda v: state.__setitem__(key, v))],
+                            on_change=lambda v: state.__setitem__(key, v),
+                            on_submit=(None if on_submit is None
+                                       else lambda v: on_submit()))],
                    gap=10, align="center")
 
     # --------------------------------------------------------------- login
@@ -214,10 +218,14 @@ class AuthMixin:
         def field(fid, ph, key, mask=False):
             return Row([
                 Text(ph, w=140, size=17, color=theme.SUBTLE_FG),
+                # Enter submits from any field. Typing a password and
+                # pressing Enter is the reflex on every login form there
+                # is, and here it did nothing at all.
                 TextBox(fid, text=self._login[key], placeholder=ph, mask=mask,
                         w=360,
                         on_change=lambda v, k=key: self._login.__setitem__(
-                            k, v)),
+                            k, v),
+                        on_submit=lambda v: self._do_login()),
             ], gap=12, align="center")
 
         qc = route.get("_qc")

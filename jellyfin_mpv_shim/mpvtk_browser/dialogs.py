@@ -92,9 +92,13 @@ class DialogsMixin:
                     lambda pid: self._add_to(server, pid, item_id),
                     _("No playlists yet.")),
                 Row([
+                    # Enter creates, same as the button beside it. Typing a
+                    # name and pressing Enter did nothing.
                     TextBox("add-newname", placeholder=_("New playlist name…"),
                             w=280,
-                            on_change=lambda v: self._addto_name_changed(v)),
+                            on_change=lambda v: self._addto_name_changed(v),
+                            on_submit=lambda v: self._add_to_new(
+                                server, item_id)),
                     Button(_("Create"), id="add-create",
                            on_click=lambda: self._add_to_new(server, item_id)),
                 ], gap=10, align="center"),
@@ -151,7 +155,9 @@ class DialogsMixin:
                     TextBox("addcol-newname",
                             placeholder=_("New collection name…"), w=280,
                             on_change=lambda v: self._addcol_name.__setitem__(
-                                "name", v)),
+                                "name", v),
+                            on_submit=lambda v: self._add_to_new_col(
+                                server, item_id)),
                     Button(_("Create"), id="addcol-create",
                            on_click=lambda: self._add_to_new_col(
                                server, item_id)),

@@ -1375,6 +1375,26 @@ class TestDetailActions(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertIn("img", types(nodes))   # person filmography grid
 
+    def test_cast_tiles_are_portrait_like_every_other_poster(self):
+        """Jellyfin serves person Primary images at 2:3. A square tile
+        letterboxed or cropped every face; geom_square is for album art.
+        Asserted on the laid-out tile, not the geom constant, because the
+        shape on screen is the thing that was wrong."""
+        nodes, _h = self._detail()
+
+        def tile(prefix):
+            hit = [n for n in nodes
+                   if str(n.get("id", "")).startswith(prefix + "-")
+                   and n["t"] == "rect"]
+            self.assertTrue(hit, "no tiles under %s" % prefix)
+            return hit[0]["w"], hit[0]["h"]
+
+        # Against the poster row in the same scene, not against a geom
+        # constant: every geom produces a taller-than-wide tile once the
+        # caption is added, so "is it portrait" cannot tell them apart.
+        self.assertEqual(tile("detail-people"), tile("detail-similar"),
+                         "cast tiles are not the same shape as posters")
+
     def test_a_filmography_can_be_sorted(self):
         """The filter bar is gated on kind == "grid" and person routes are
         "person", so a filmography had no ordering control at all — always
@@ -1846,6 +1866,15 @@ class TestAddToPlaylist(unittest.TestCase):
         self.assertIn("playlist_new", [c[0] for c in self.ctl.transport])
         self.assertIsNone(self.b._dialog)
 
+    def test_enter_in_the_name_box_creates_the_playlist(self):
+        """The button beside it works; Enter did nothing."""
+        self.b._open_add_to({"Id": "m1", "Name": "Movie", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("Road Trip")
+        self.assertIn("submit", h["add-newname"], "no Enter on the name box")
+        h["add-newname"]["submit"]("Road Trip")
+        self.assertIn("playlist_new", [c[0] for c in self.ctl.transport])
+
 
 class TestPlaylistExtras(unittest.TestCase):
     def setUp(self):
@@ -1919,6 +1948,17 @@ class TestLogin(unittest.TestCase):
         # success -> rebuild source -> home
         self.assertEqual(self.b.route["kind"], "home")
         self.assertIsNone(self.b._login_error)
+
+    def test_enter_submits_the_login_form(self):
+        """Typing a password and pressing Enter is the reflex on every
+        login form there is. Here it did nothing at all."""
+        self.b.show_login()
+        _n, handlers = build_scene(self.b)
+        handlers["login-server"]["change"]("good")
+        for fid in ("login-server", "login-user", "login-pass"):
+            self.assertIn("submit", handlers[fid], "%s: no Enter" % fid)
+        handlers["login-pass"]["submit"]("p")
+        self.assertEqual(self.b.route["kind"], "home")
 
 
 class TestLocked(unittest.TestCase):
@@ -5268,6 +5308,41 @@ class TestRuntimeIsAClock(unittest.TestCase):
         b = MpvtkBrowser(app=None, source=FakeSource())
         self.assertIn("42:00",
                       b._meta_line({"RunTimeTicks": 42 * 60 * 10_000_000}))
+
+
+class TestSongsTabArt(unittest.TestCase):
+    """The Songs tab is a whole library's songs from every album at once —
+    exactly the mixed-album case the art column exists for — and it was the
+    one track list rendering without it. The album page omits art on
+    purpose (every row would be the same cover)."""
+
+    def _browser(self, tab):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        # Spy on the art cell: with no real image server the cell falls back
+        # to a placeholder, so the rendered scene can't tell "art column,
+        # nothing loaded yet" from "no art column".
+        self.art_for = []
+        b._art_cell = lambda tr, size=28: self.art_for.append(
+            tr.get("Id")) or b._art_placeholder(size)
+        b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
+                    "title": "Music"})
+        b._set_music_tab(b.route, tab)
+        return b
+
+    def test_the_songs_tab_shows_per_row_art(self):
+        b = self._browser("songs")
+        build_scene(b)
+        self.assertTrue(self.art_for, "no album art in the songs list")
+
+    def test_the_list_is_still_virtualized(self):
+        """art=True means one mpv overlay per visible row, against a budget
+        of 63 — safe only because off-screen rows are never built."""
+        b = self._browser("songs")
+        build_scene(b)
+        self.assertLess(len(self.art_for), 63)
 
 
 class TestMusicTabsAreCached(unittest.TestCase):

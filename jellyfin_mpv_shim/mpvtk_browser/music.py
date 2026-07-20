@@ -184,10 +184,15 @@ class MusicMixin:
         elif route.get("_tab") == "songs":
             server = route.get("server") or self.server
             ids = [s.get("Id") for s in data]
+            # art=True: this is a whole library's worth of songs from every
+            # album at once, which is exactly the mixed-album case the art
+            # column is for (the album page redundantly omits it). Safe
+            # because the list is virtualized — only visible rows composite
+            # an overlay, so the 63-overlay budget holds.
             body = VScroll(Column([self._track_list(
                 data, "song",
                 lambda i: self._play_list(ids, server, i, audio=True),
-                scroll_id="music-songs", menu=True)],
+                art=True, scroll_id="music-songs", menu=True)],
                 pad=self.CONTENT_PAD, align="stretch"),
                 id="music-songs", flex=1,
                 on_scroll=lambda off, mx: self._on_scroll(

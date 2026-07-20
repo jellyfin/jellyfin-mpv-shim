@@ -128,8 +128,10 @@ Not in the accepted-losses list. Roughly by value.
   `Genres` is still fetched.
 - [ ] **SyncPlay across servers, and joined-state** — single server only
   (`dialogs.py:372`), never marks which group you are in, Leave always shown.
-- [ ] **Sort control on a person's filmography** — the filter bar is gated on
-  `kind == "grid"` (`views.py:138`) and person routes are `"person"`.
+- [x] **Sort control on a person's filmography** — the filter bar is gated on
+  `kind == "grid"` (`views.py:138`) and person routes are `"person"`. Added a
+  sort-only bar; the repository has always taken sort_by/sort_order and
+  `_load_person` was the one caller that never passed them.
 - [x] **Zero-item guard on the Download dialog** (`dialogs.py:283`) — dead click.
 - [x] **Tooltips** in browser chrome and the now-playing bar. Chrome buttons
   are tipped exactly when compact drops their label; the search button and
@@ -168,12 +170,17 @@ Not in the accepted-losses list. Roughly by value.
   check (`music.py:282`); artist action bar renders with `ids=[]` if the song
   fetch failed (`music.py:430`).
 - [x] Runtime now reads `1:52:00` rather than `112 min`.
-- [ ] Cast tiles square not portrait (`views.py:748`); Songs tab loses per-row
-  art (`music.py:160`); seek time frozen during scrub (`music.py:374`); add-to
-  name boxes and the login form lack Enter-to-submit.
-  **Volume is done**: live for audible feedback, but only the release
-  notifies — `set_volume` woke the timeline thread, which posts to the
-  *server*, so one drag was a burst of round trips.
+- [x] Cast tiles square not portrait (`views.py:748`) — now the same poster
+  shape as everything else, on the search People row too.
+- [x] Songs tab loses per-row art (`music.py:160`) — it is the mixed-album
+  case the art column exists for, and it is virtualized so the overlay
+  budget holds.
+- [x] Volume slider live rather than commit-on-release — live for audible
+  feedback, but only the release notifies: `set_volume` woke the timeline
+  thread, which posts to the *server*, so one drag was a burst of round
+  trips.
+- [x] Add-to name boxes and the login form lack Enter-to-submit.
+- [ ] Seek time frozen during scrub (`music.py:374`).
 
 ## 6. P4 — dead / half-finished
 

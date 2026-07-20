@@ -802,8 +802,11 @@ class ViewsMixin:
                 for p in people][:24]
         if not cast:
             return None
+        # Portrait, not square: Jellyfin serves person Primary images at
+        # 2:3 like every other poster, so a square tile letterboxed or
+        # cropped every face. geom_square is for album art.
         return self._tile_row(_("Cast & Crew"), cast, "detail-people",
-                              geom=self.geom_square)
+                              geom=self.geom)
 
     def _error(self, msg):
         return Box([Text(msg, size=20, color=theme.SUBTLE_FG)],
@@ -960,7 +963,7 @@ class ViewsMixin:
         rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
         if people:
             rows.append(self._tile_row(_("People"), people, "search-people",
-                                       geom=self.geom_square))
+                                       geom=self.geom))
         # Group by type, each with its natural tile shape (like the Tk browser).
         groups = [
             (_("Movies"), ("Movie",), self.geom, "Primary"),
