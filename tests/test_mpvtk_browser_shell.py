@@ -2111,14 +2111,16 @@ class DownloadsController(FakeController):
     def __init__(self):
         super().__init__()
         self.deleted = []
+        self.deleted_watched_only = []
 
     def list_downloads(self):
         import copy
         return copy.deepcopy(self.TREE)
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
-                        playlist_id=None):
+                        playlist_id=None, watched_only=False):
         self.deleted.append((item_id, series_id, season_id, playlist_id))
+        self.deleted_watched_only.append(bool(watched_only))
 
     def download_activity(self):
         return (0, 3)
@@ -2756,7 +2758,8 @@ class TestListWidthsAreStable(unittest.TestCase):
         return [n["w"] for n in nodes
                 if n["t"] == "rect"
                 and str(n.get("id", "")).startswith(prefix)
-                and not str(n["id"]).endswith(("-rm", "-tgl"))]
+                # button rects, not rows: -rmw is "Remove Watched"
+                and not str(n["id"]).endswith(("-rm", "-rmw", "-tgl"))]
 
     def test_download_rows_span_the_pane(self):
         self.b.open_settings("downloads")
@@ -3706,3 +3709,126 @@ class TestYearFilter(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         dd = next(n for n in nodes if n.get("id") == "grid-year")
         self.assertEqual(dd["sel"], 2)
+
+
+class TestRemoveWatchedDownloads(unittest.TestCase):
+    """"Reclaim space on a finished show" — delete only the watched
+    downloads in a scope, keeping what hasn't been watched. The sync
+    manager supported watched_only all along; mpvtk never offered it."""
+
+    def setUp(self):
+        self.ctl = DownloadsController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.open_settings("downloads")
+        build_scene(self.b)
+
+    def test_a_series_offers_remove_watched(self):
+        _n, h = build_scene(self.b)
+        self.assertIn("dl-g1-rmw", h, "no Remove Watched on a series")
+
+    def test_it_deletes_only_the_watched_ones(self):
+        _n, h = build_scene(self.b)
+        h["dl-g1-rmw"]["click"]()
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.ctl.deleted, [(None, "sh1", None, None)])
+        self.assertEqual(self.ctl.deleted_watched_only, [True])
+
+    def test_plain_remove_is_unaffected(self):
+        _n, h = build_scene(self.b)
+        h["dl-g1-rm"]["click"]()
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.ctl.deleted_watched_only, [False])
+
+    def test_a_flat_group_has_no_watched_sweep(self):
+        """The Movies group has no server-side scope, so a watched sweep
+        there would have to enumerate — not offered rather than wrong."""
+        _n, h = build_scene(self.b)
+        self.assertNotIn("dl-g2-rmw", h)
+
+    def test_individual_items_have_no_watched_sweep(self):
+        _n, h = build_scene(self.b)
+        self.assertNotIn("dl-g1-s0-e0-rmw", h)
+
+
+class TestCollections(unittest.TestCase):
+    """Collections were missing from mpvtk entirely: no Movies-library
+    toggle, no add-to-collection, no remove-from-collection."""
+
+    def setUp(self):
+        self.src = FakeSource()
+        self.calls = []
+        self.src.get_movie_collections = lambda srv, **kw: (
+            self.calls.append(("collections", kw))
+            or ([{"Id": "c1", "Name": "Trilogy", "Type": "BoxSet"}], 1))
+        self.src.get_library_items = lambda srv, parent, **kw: (
+            self.calls.append(("library", kw))
+            or ([{"Id": "m1", "Name": "A Movie", "Type": "Movie"}], 1))
+        self.src.get_collections = lambda srv: [
+            {"Id": "c1", "Name": "Trilogy"}]
+        self.ctl = FakeController()
+        self.added = []
+        self.ctl.collection_add = lambda srv, cid, ids: self.added.append(
+            (cid, list(ids)))
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _movies_grid(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies",
+                         "collection_type": "movies"})
+        return self.b.route
+
+    def test_a_movies_library_offers_the_toggle(self):
+        self._movies_grid()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("grid-collections", ids(nodes))
+
+    def test_a_music_library_does_not(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib2", "title": "Music",
+                         "collection_type": "music"})
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("grid-collections", ids(nodes))
+
+    def test_toggling_queries_collections_instead(self):
+        route = self._movies_grid()
+        self.calls.clear()
+        self.b._toggle_collections(route)
+        kinds = [c[0] for c in self.calls]
+        self.assertIn("collections", kinds)
+        self.assertNotIn("library", kinds, "still queried the library")
+        self.assertEqual([i["Id"] for i in route["_items"]], ["c1"])
+
+    def test_toggling_back_returns_to_the_library(self):
+        route = self._movies_grid()
+        self.b._toggle_collections(route)
+        self.calls.clear()
+        self.b._toggle_collections(route)
+        self.assertIn("library", [c[0] for c in self.calls])
+
+    def test_add_to_dialog_lists_collections(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, _h = build_scene(self.b)
+        self.assertIn("add-col-0", ids(nodes))
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("Trilogy", texts)
+
+    def test_adding_to_a_collection_calls_the_api(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-col-0"]["click"]()
+        self.assertEqual(self.added, [("c1", ["m1"])])
+
+    def test_a_source_without_collections_still_opens_the_dialog(self):
+        """The offline catalog has no collections; the dialog must not
+        break, it just doesn't offer that section."""
+        del self.src.get_collections
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("add-col-0", ids(nodes))
+        self.assertIn("add-newname", ids(nodes))

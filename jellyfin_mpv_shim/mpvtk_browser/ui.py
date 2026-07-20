@@ -690,6 +690,34 @@ class _PlayerController:
                    lambda jf: jf.add_playlist_items(playlist_id,
                                                     list(item_ids)))
 
+    def collection_add(self, server_uuid, collection_id, item_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.add_collection_items(collection_id,
+                                                      list(item_ids)))
+
+    def collection_remove(self, server_uuid, collection_id, item_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.remove_collection_items(collection_id,
+                                                         list(item_ids)))
+
+    def collection_new(self, server_uuid, name, item_ids):
+        self._edit(server_uuid,
+                   lambda jf: jf.new_collection(name, list(item_ids)))
+
+    @staticmethod
+    def edit_apis():
+        """Playlist/collection editing needs apiclient >= 1.15. The edit
+        affordances hide entirely when it's older, as the Tk browser does —
+        otherwise they render and silently do nothing."""
+        try:
+            from jellyfin_apiclient_python.api import API
+        except Exception:
+            return False
+        return all(hasattr(API, name) for name in (
+            "add_playlist_items", "remove_playlist_items",
+            "move_playlist_item", "new_collection", "add_collection_items",
+            "remove_collection_items"))
+
     def playlist_new(self, server_uuid, name, item_ids, is_public=False):
         """Create a playlist. Private by default, as the Tk browser does —
         the server's own default is public, so omitting the flag published
@@ -834,12 +862,16 @@ class _PlayerController:
         return out
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
-                        playlist_id=None):
-        """Delete one item, a season, a series, or a playlist's downloads."""
+                        playlist_id=None, watched_only=False):
+        """Delete one item, a season, a series, or a playlist's downloads.
+
+        ``watched_only`` keeps unwatched items — the "reclaim space on a
+        finished show" gesture the Tk browser has."""
         from ..sync.manager import syncManager
         try:
             syncManager.delete(item_id=item_id, series_id=series_id,
-                               season_id=season_id, playlist_id=playlist_id)
+                               season_id=season_id, playlist_id=playlist_id,
+                               watched_only=watched_only)
         except Exception:
             log.error("mpvtk delete_download failed", exc_info=True)
 

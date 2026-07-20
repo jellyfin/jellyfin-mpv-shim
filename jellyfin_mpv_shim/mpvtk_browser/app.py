@@ -442,10 +442,20 @@ class MpvtkBrowser:
             _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
             filters = route.get("_filters") or {}
 
+            collections = bool(route.get("_collections"))
+
             def work():
-                items, total = self.source.get_library_items(
-                    srv, parent, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters)
+                if collections:
+                    # Collections are server-wide and recursive (a BoxSet
+                    # can gather items from several libraries), so this is a
+                    # different query, not a filter on the library.
+                    items, total = self.source.get_movie_collections(
+                        srv, sort_by=sort_by, sort_order=sort_order,
+                        filters=filters)
+                else:
+                    items, total = self.source.get_library_items(
+                        srv, parent, sort_by=sort_by, sort_order=sort_order,
+                        filters=filters)
                 vals = route.get("_filtervals")
                 if vals is None:
                     try:
@@ -456,6 +466,11 @@ class MpvtkBrowser:
 
             def done(res):
                 route["_items"], route["_total"], route["_filtervals"] = res
+                # The toggle only makes sense on a movies library, and only
+                # when the source can answer it (the offline catalog can't).
+                route["_collection_capable"] = (
+                    route.get("collection_type") == "movies"
+                    and hasattr(self.source, "get_movie_collections"))
             self._route_async(route, work, done, ep)
         elif kind == "detail":
             srv = route.get("server") or self.server
@@ -1188,7 +1203,10 @@ class MpvtkBrowser:
         elif t in ("Person", "Actor", "Director", "Writer"):
             self.navigate(dict(base, kind="person", person_id=item.get("Id")))
         elif t in FOLDER_TYPES or item.get("CollectionType"):
-            self.navigate(dict(base, kind="grid", parent_id=item.get("Id")))
+            # collection_type rides along so the grid knows whether to offer
+            # the Collections toggle (movies libraries only).
+            self.navigate(dict(base, kind="grid", parent_id=item.get("Id"),
+                               collection_type=item.get("CollectionType")))
         else:
             self.status = _("Selected: %s") % item.get("Name", "")
             self.invalidate()
@@ -1914,6 +1932,13 @@ class MpvtkBrowser:
             return self._busy()
         header = [Text(route.get("title", ""), size=26, bold=True)]
         if route["kind"] == "grid":
+            if route.get("_collection_capable"):
+                header.append(Row([
+                    Checkbox(_("Collections"),
+                             bool(route.get("_collections")),
+                             id="grid-collections",
+                             on_toggle=lambda: self._toggle_collections(
+                                 route))], gap=10, align="center"))
             header.append(self._grid_filter_bar(route))
             total = route.get("_total") or 0
             header.append(Text(_("%(shown)d of %(total)d") % {
@@ -2043,6 +2068,10 @@ class MpvtkBrowser:
             if person:
                 return self.source.get_person_items(srv, person,
                                                     start_index=start)
+            if route.get("_collections"):
+                return self.source.get_movie_collections(
+                    srv, start_index=start, sort_by=sort_by,
+                    sort_order=sort_order, filters=filters)
             return self.source.get_library_items(
                 srv, route["parent_id"], start_index=start, sort_by=sort_by,
                 sort_order=sort_order, filters=filters)
@@ -3206,6 +3235,18 @@ class MpvtkBrowser:
                               align="stretch"),
                        id="settings", flex=1)
 
+    def _toggle_collections(self, route):
+        """Movies library <-> its collections, like jellyfin-web's toggle.
+        Collections are server-wide and recursive, so this is a different
+        query rather than a filter."""
+        route["_collections"] = not route.get("_collections")
+        route.pop("_items", None)
+        route.pop("_total", None)
+        route.pop("_loading", None)
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
     def _toggle_advanced(self, route):
         route["_advanced"] = not route.get("_advanced")
         self.invalidate()
@@ -3568,7 +3609,7 @@ class MpvtkBrowser:
 
     def _dl_row(self, node_id, title, meta, depth, on_delete, bold=False,
                 icon=None, count=None, route=None, toggle=None,
-                expanded=True):
+                expanded=True, on_delete_watched=None):
         """One Grid row spec of the downloads tree. Indentation carries
         the level (inside the title cell, so the meta/Remove tracks stay
         shared across every depth); every level gets its own delete so a
@@ -3602,8 +3643,13 @@ class MpvtkBrowser:
                 Row(title_cell, gap=10, align="center", flex=1),
                 Text(meta, size=14, color=theme.SUBTLE_FG,
                      align="right"),
-                Button(_("Remove"), id=node_id + "-rm", icon="delete",
-                       size=15, on_click=on_delete),
+                Row(([Button(_("Remove Watched"), id=node_id + "-rmw",
+                             icon="check", size=15,
+                             on_click=on_delete_watched)]
+                     if on_delete_watched else []) +
+                    [Button(_("Remove"), id=node_id + "-rm", icon="delete",
+                            size=15, on_click=on_delete)],
+                    gap=6, align="center"),
             ],
         }
 
@@ -3640,7 +3686,18 @@ class MpvtkBrowser:
             bold=True, count=group.get("count"),
             icon={"movies": "movie", "playlist": "queue_music"}.get(kind),
             route=route, toggle=gkey if children else None,
-            expanded=g_open)]
+            expanded=g_open,
+            # Reclaim space on a finished show without losing what's
+            # unwatched — the Tk browser's gesture.
+            on_delete_watched=(
+                self._dl_delete_cb(
+                    route, group, watched_only=True,
+                    series_id=group.get("id") if kind == "series" else None,
+                    playlist_id=(group.get("id") if kind == "playlist"
+                                 else None),
+                    item_ids=(None if kind in ("series", "playlist")
+                              else self._dl_group_item_ids(group)))
+                if kind in ("series", "playlist") else None))]
         for ci, child in enumerate(children if g_open else []):
             if child.get("kind") == "season":
                 skey = self._dl_key(child, "%d.%d" % (gi, ci))
@@ -3688,16 +3745,19 @@ class MpvtkBrowser:
         return [i for i in out if i]
 
     def _dl_delete_cb(self, route, entry, item_id=None, series_id=None,
-                      season_id=None, playlist_id=None, item_ids=None):
+                      season_id=None, playlist_id=None, item_ids=None,
+                      watched_only=False):
         def go():
             self._confirm(
-                _("Delete the downloaded copy of %s?")
+                (_("Delete the watched downloads in %s?") if watched_only
+                 else _("Delete the downloaded copy of %s?"))
                 % entry.get("title", ""),
                 lambda: self._delete_download(route, item_id=item_id,
                                               series_id=series_id,
                                               season_id=season_id,
                                               playlist_id=playlist_id,
-                                              item_ids=item_ids),
+                                              item_ids=item_ids,
+                                              watched_only=watched_only),
                 title=_("Delete Download"), yes=_("Delete"))
         return go
 
@@ -3749,7 +3809,8 @@ class MpvtkBrowser:
         self.run_async(work, done, ep)
 
     def _delete_download(self, route, item_id=None, series_id=None,
-                         season_id=None, playlist_id=None, item_ids=None):
+                         season_id=None, playlist_id=None, item_ids=None,
+                         watched_only=False):
         """Delete, then re-read the catalog — in that order, on one worker.
 
         Submitting the delete and the reload as separate tasks raced: the
@@ -3761,13 +3822,14 @@ class MpvtkBrowser:
 
         def work():
             try:
-                if item_ids is not None:
+                if item_ids is not None and not watched_only:
                     for one in item_ids:
                         self.controller.delete_download(item_id=one)
                 else:
                     self.controller.delete_download(
                         item_id=item_id, series_id=series_id,
-                        season_id=season_id, playlist_id=playlist_id)
+                        season_id=season_id, playlist_id=playlist_id,
+                        watched_only=watched_only)
             except Exception:
                 log.error("delete_download failed", exc_info=True)
             return self.controller.list_downloads()
@@ -4231,14 +4293,18 @@ class MpvtkBrowser:
         ep = self._epoch
 
         def work():
-            try:
-                return self.source.get_playlists(server)
-            except Exception:
-                return []
-        self.run_async(work, lambda pls: self._show_add_to(server, item, pls),
-                       ep)
+            def fetch(fn):
+                try:
+                    return fn(server)
+                except Exception:
+                    return []
+            return (fetch(self.source.get_playlists),
+                    fetch(getattr(self.source, "get_collections",
+                                  lambda _s: [])))
+        self.run_async(
+            work, lambda r: self._show_add_to(server, item, r[0], r[1]), ep)
 
-    def _show_add_to(self, server, item, playlists):
+    def _show_add_to(self, server, item, playlists, collections=()):
         item_id = item.get("Id")
         # Private by default, matching the Tk browser: the server creates
         # playlists public unless told otherwise.
@@ -4267,6 +4333,14 @@ class MpvtkBrowser:
                 bool(self._addto_name.get("private")), id="add-private",
                 on_toggle=lambda: self._addto_name.__setitem__(
                     "private", not self._addto_name.get("private"))))
+            if collections:
+                rows.append(Spacer(h=6))
+                rows.append(Text(_("Add to Collection"), size=18, bold=True))
+                for i, col in enumerate(collections):
+                    rows.append(Button(
+                        col.get("Name", ""), id="add-col-%d" % i,
+                        on_click=lambda cid=col.get("Id"): self._add_to_col(
+                            server, cid, item_id)))
             rows.append(self._dialog_buttons([
                 Button(_("Close"), id="add-close",
                        on_click=self._close_dialog)]))
@@ -4282,6 +4356,12 @@ class MpvtkBrowser:
             private = bool(state.get("private", True))
             self._client_call(lambda c: c.playlist_new(
                 server, name, [item_id], is_public=not private))
+        self._close_dialog()
+
+    def _add_to_col(self, server, collection_id, item_id):
+        if collection_id and item_id:
+            self._client_call(lambda c: c.collection_add(
+                server, collection_id, [item_id]))
         self._close_dialog()
 
     def _add_to(self, server, playlist_id, item_id):
