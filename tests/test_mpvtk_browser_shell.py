@@ -4139,3 +4139,62 @@ class TestAddToDialogLayout(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertIn("No playlists yet.",
                       [n.get("text") for n in nodes if n.get("text")])
+
+
+class TestPlaylistDeleteNavigation(unittest.TestCase):
+    """Deleting a playlist left the user on its now-dead page: the prune
+    matched routes by parent_id, but a playlist page keys its id as
+    item_id, so nothing was ever pruned."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.deleted = []
+        self.ctl.playlist_delete = lambda srv, pid: self.deleted.append(pid)
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+        self.b.nav_stack = [
+            {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+             "title": "Playlists", "_items": [{"Id": "P"}]},
+            {"kind": "playlist", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_data": []},
+            {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_items": []},
+        ]
+
+    def test_deleting_backs_out_of_the_playlist(self):
+        self.b._pe_delete(self.b.route)
+        self.assertEqual(self.deleted, ["P"])
+        kinds = [r["kind"] for r in self.b.nav_stack]
+        self.assertNotIn("playlist", kinds, "left on the deleted playlist")
+        self.assertNotIn("playlist_edit", kinds)
+        self.assertEqual(self.b.route["kind"], "grid")
+
+    def test_the_route_we_land_on_refetches(self):
+        """The grid we came from still listed the deleted playlist, because
+        it was rendered from its cached _items."""
+        self.b._pe_delete(self.b.route)
+        ids = [i.get("Id") for i in self.b.route.get("_items") or []]
+        self.assertNotIn("P", ids, "still lists the deleted playlist")
+        self.assertTrue(ids, "landed on an unloaded route")
+
+    def test_a_failed_delete_does_not_navigate_away(self):
+        def boom(srv, pid):
+            raise OSError("server said no")
+
+        self.ctl.playlist_delete = boom
+        self.b._pe_delete(self.b.route)
+        self.assertEqual(self.b.route["kind"], "playlist_edit",
+                         "walked out of a playlist that still exists")
+        self.assertIn("could not be deleted", self.b.status)
+
+    def test_an_empty_stack_falls_back_home(self):
+        self.b.nav_stack = [{"kind": "playlist", "server": "srv1",
+                             "item_id": "P", "title": "Mix"}]
+        self.b.after_playlist_deleted("P")
+        self.assertEqual(self.b.route["kind"], "home")
+
+    def test_unrelated_routes_survive(self):
+        self.b.after_playlist_deleted("OTHER")
+        self.assertEqual(len(self.b.nav_stack), 3)

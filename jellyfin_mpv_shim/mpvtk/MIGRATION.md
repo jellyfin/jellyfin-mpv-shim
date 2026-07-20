@@ -5,6 +5,11 @@ bonus, the display mirror) onto **mpvtk**, the in-mpv UI toolkit. This
 is the execution doc; read `GUIDE.md` (framework), `PARITY.md`
 (component gap analysis) and `README.md` (spike log) first.
 
+> **Doing the cutover?** Skip to
+> [Cutover checklist](#cutover-checklist--deleting-the-tk-browser) at the
+> end — current state, accepted losses, and the deletion steps. The rest
+> of this file is the historical execution log.
+
 ## Field-test round 1 (2026-07-19) — reported issues
 
 First real session with `browser_ui=mpvtk`. All fixed unless noted.
@@ -1687,3 +1692,117 @@ IPC, the idle skip overlay's timing/placement over real intros.
   OSC lua also draw on the player's window. Ensure the browser overlay
   and these don't fight — likely the browser suppresses the OSD
   menu/OSC while active and vice-versa.
+
+---
+
+# Cutover checklist — deleting the Tk browser
+
+This is the section to work from when the Tk browser is actually
+removed. Everything above is the historical execution log; this is the
+current state and the mechanical steps.
+
+Parity was closed by a set of code:code audits comparing
+`library_browser/` + `gui_mgr.py` against `mpvtk_browser/`, followed by
+field testing. Each item below was fixed with a regression test that was
+verified to fail against the pre-fix code.
+
+## What the audits found (all fixed)
+
+The valuable finding is the *class* of bug: mpvtk looked like Tk but had
+different semantics, and the difference was invisible until it reached
+the server or the player.
+
+- **Track defaults.** `media.map_streams` treats a browser selection as
+  final (`explicit_tracks`) *because* "its pickers already defaulted to
+  language_config (then the server default)". mpvtk never did that
+  resolution, so its subtitle picker read "None" — and picking any
+  track sent `sid=None` as a deliberate choice, so subtitles came up off
+  and `remember_subtitle_track` pinned that for the whole queue.
+- **`_is_watched` inverted.** `(count or 0) == 0` reads a *missing*
+  `UnplayedItemCount` as fully watched, so an untouched Series showed a
+  tick and the first click marked it unwatched.
+- **New playlists were public.** `is_public` omitted; the server default
+  is public.
+- **Downloads: the flat group's Remove wiped the whole catalog.** No
+  scope was passed, and `syncManager.delete()` treated "no scope" as
+  "everything" — behind a prompt naming one group. `delete()` now
+  refuses an unscoped call.
+- **Offline marks were silently dropped**, with optimistic UI on top.
+- **Route failures spun forever** — `run_async` had no error path, so an
+  unreachable server was indistinguishable from a hang.
+- **Playlist clicks queued the series**, not the playlist, and dropped
+  the resume offset.
+- **Queue skip did nothing**: `Media.get_from_key` matched item `Id`,
+  the queue view addresses entries by `PlaylistItemId`.
+
+Two rendering bugs worth remembering, both in `mpvtk/`:
+
+- **Double wrapping.** The layout engine wraps text and positions each
+  line, but the ASS events carried no `\q` tag, so libass applied its own
+  smart wrapping on top. Our line breaks were never authoritative. Fixed
+  with `\q2`; a static test guards new text emitters.
+- **Virtualized tables pinned `min_w` to their widest content**, so one
+  long song title pinned a table wider than the window, and `min_w` being
+  a floor meant it could never shrink back.
+
+## Accepted losses (decide, then record in the release notes)
+
+These are Tk features that are **not** coming across. None blocked
+field testing, but the deletion commit should say so out loud:
+
+- **Text input IME on X11/CJK.** Wayland/Windows are fine.
+- **Native file dialog** for the download directory → a path TextBox.
+- **Dialog backdrop dimming.** Bitmaps composite above ASS, so a dialog
+  cannot dim the posters behind it (GUIDE §6).
+
+Two settings were deleted rather than ported, because mpvtk displayed
+them and never read them: `library_page_size`, `library_image_width`.
+Unknown keys in an existing `config.json` are ignored on load, so no
+user config breaks.
+
+## Deletion steps
+
+1. **Delete** `jellyfin_mpv_shim/library_browser/` (≈5 800 lines) and
+   `jellyfin_mpv_shim/gui_mgr.py` (≈1 370 lines).
+2. **Do not delete `mpvtk_browser/repository.py`** — it is the shared
+   data layer and `library_browser/app.py` imports it *from* mpvtk, not
+   the other way round. Nothing in the data layer is Tk-specific.
+3. **Two modules live under `library_browser/` but are not the browser**
+   and need a decision, not a reflex delete:
+   - `library_browser/icons.py` — used by `gen_ui_icons.py` (the build
+     script that rasterizes Material icons) and `tests/test_icons.py`.
+     mpvtk draws icons as ASS vectors (`mpvtk/vector.py`) and does not
+     need it. Move it next to `gen_ui_icons.py` or delete both together.
+   - `library_browser/thumbnails.py` — its `MemoryCache` is what
+     `tests/test_thumbnail_cache.py` exercises. `mpvtk_browser/
+     thumbnails.py` has its own. Port the test or drop it deliberately.
+4. **`mpv_shim.py:main`** — remove the Tk fallback branch so the mpvtk
+   import failing is a hard error rather than a silent downgrade to a UI
+   that no longer exists.
+5. **`conf.py`** — `browser_ui` becomes dead. Either drop the key (and
+   its `ENUMS`/`SECTIONS`/`LABEL_OVERRIDES` entries in
+   `mpvtk_browser/config.py`) or keep it as a one-value enum. Check
+   `player.py:358` and `player.py:776`, which branch on it.
+6. **Tray/IPC.** `gui_mgr.UserInterface` is the *Tk path's* tray owner
+   and IPC hub; `mpvtk_browser/ui.py:UserInterface` is the mpvtk one and
+   owns `tray.py` directly. Confirm nothing else reaches into gui_mgr —
+   `log_utils.py`, `update_check.py`, `users.py`, `player.py` and
+   `tray.py` all reference it today.
+7. **Tests.** These reference the Tk path and need porting or removing:
+   `test_close_to_tray.py`, `test_thumbnail_cache.py`, `test_view_epoch.py`,
+   `test_playlist_edit.py`, `test_icons.py`, `test_update_check.py`,
+   `integration/test_lifecycle.py`, `integration/test_browser_ui.py`.
+8. **Docs.** `README.md`'s `browser_ui` entry, `PARITY.md`, and the
+   framing of this file.
+
+## Known issue, unrelated to cutover
+
+The **integration suite fails when run whole** (~12–17 real-mpv tests
+report "renderer never became ready"), while the same modules pass in
+isolation. Reproduced against a stashed tree with none of the parity
+work applied, so it predates it — resource contention from many mpv
+instances in one process, not a product bug. It makes
+`python3 -m unittest discover tests/integration` untrustworthy as a
+whole-run gate; run the modules in groups until it is fixed. Worth
+fixing before the cutover commit, so the deletion can be validated by a
+green full run.

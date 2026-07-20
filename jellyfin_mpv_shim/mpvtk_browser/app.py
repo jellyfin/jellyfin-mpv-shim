@@ -246,13 +246,23 @@ class MpvtkBrowser:
             self.invalidate()
 
     def after_playlist_deleted(self, playlist_id):
-        """Prune stale routes pointing at a now-deleted playlist (mirrors the
-        Tk browser so a back-stack can't resurrect a gone item)."""
+        """Drop every route pointing at a now-deleted playlist and reload
+        whatever is left showing.
+
+        A playlist page keys its id as ``item_id``; only ``parent_id`` was
+        checked, so nothing was ever pruned and deleting a playlist left the
+        user sitting on its now-dead page. The route we land on also has to
+        re-fetch, or the grid we came from still lists the playlist."""
         self.nav_stack = [
             r for r in self.nav_stack
-            if r.get("parent_id") != playlist_id
+            if playlist_id not in (r.get("item_id"), r.get("parent_id"))
         ] or [{"kind": "home", "server": self.server}]
+        route = self.route
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
         self._bump_epoch()
+        self._load_route(route)
         self.invalidate()
 
     def display_item(self, server_uuid, item_id):
@@ -4400,10 +4410,23 @@ class MpvtkBrowser:
         self.invalidate()
 
     def _pe_delete(self, route):
+        """Delete, then navigate — not both at once. Firing the delete onto
+        the pool and pruning immediately meant a failed delete still walked
+        the user out of a playlist that still exists."""
         pid = route["item_id"]
-        self._client_call(lambda c: c.playlist_delete(
-            route.get("server") or self.server, pid))
-        self.after_playlist_deleted(pid)
+        server = route.get("server") or self.server
+        ep = self._epoch
+
+        def work():
+            self.controller.playlist_delete(server, pid)
+            return True
+
+        def done(_ok):
+            self.after_playlist_deleted(pid)
+
+        def failed(_exc):
+            self.status = _("The playlist could not be deleted.")
+        self.run_async(work, done, ep, on_error=failed)
 
     def _pe_rename(self, route):
         name = (route.get("_newname") or route.get("title") or "").strip()
