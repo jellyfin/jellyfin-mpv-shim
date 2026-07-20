@@ -110,9 +110,9 @@ Not in the accepted-losses list. Roughly by value.
   from Playlist" on every music playlist — only the bulk editor remains.
 - [x] **Play Next Up on the season page** — `_play_next_up` exists but is only
   called from the *series* page (`views.py:636`).
-- [ ] **Album/artist detail header** — no backdrop, cover, metadata line,
+- [x] **Album/artist detail header** — no backdrop, cover, metadata line,
   Overview or "Albums" heading (`music.py:191,212`).
-- [ ] **Per-item watched marker in the downloads panel** (`downloads.py:48`),
+- [x] **Per-item watched marker in the downloads panel** (`downloads.py:48`),
   and "Remove Watched" renders unconditionally (`settings.py:556`) so it looks
   destructive but often deletes nothing silently.
 - [ ] **Live log tailing** — one-shot snapshot only (`settings.py:709`), and
@@ -166,17 +166,17 @@ Not in the accepted-losses list. Roughly by value.
 
 ## 6. P4 — dead / half-finished
 
-- [ ] **`set_offline` (`app.py:1383`) has zero production call sites** — only
+- [x] **`set_offline` (`app.py:1383`) has zero production call sites** — only
   three in tests. `_offline` is really driven by `set_source`.
-- [ ] `"connecting"` in `CHROME_FREE` (`app.py:96`) — no route, nothing
+- [x] `"connecting"` in `CHROME_FREE` (`app.py:96`) — no route, nothing
   navigates to it.
-- [ ] Trailer fetch for `Series` (`views.py:989`) can never surface — series
+- [x] Trailer fetch for `Series` (`views.py:989`) can never surface — series
   route to `_render_series`, which has no Trailer button. One wasted API call
   per series load.
 - [ ] `_grid_of(heading=…)` (`tiles.py:699`) — never passed by any caller.
-- [ ] `MENU_FAVORITE` (`tiles.py:370`) reads as widening `MENU_PLAYABLE` but is
+- [x] `MENU_FAVORITE` (`tiles.py:370`) reads as widening `MENU_PLAYABLE` but is
   a no-op; both names are already in it.
-- [ ] `config.py:17` `_HIDDEN` doesn't cover `client_uuid` — an editable
+- [x] `config.py:17` `_HIDDEN` doesn't cover `client_uuid` — an editable
   free-text row that rewrites the device identity the server tracks sessions by.
 - [ ] `_render_album` has no `on_scroll` (`music.py:202`); its virtualized table
   relies on live offsets, so it windows wrong on the mpv < 0.36 fallback path.

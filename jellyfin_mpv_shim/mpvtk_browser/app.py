@@ -1322,7 +1322,9 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 max_w=150 if compact else 260,
                 on_select=lambda i, v: self._switch_server(servers[i]["uuid"])))
         users = self._users()
-        if len(users) > 1:
+        # Not while offline: switching user reconnects, which cannot work
+        # with no server, and Tk gated it for that reason.
+        if len(users) > 1 and not self._offline:
             cur = next((i for i, u in enumerate(users)
                         if u.get("active")), 0)
             right.append(Dropdown(

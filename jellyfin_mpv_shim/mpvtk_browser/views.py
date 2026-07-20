@@ -405,8 +405,16 @@ class ViewsMixin:
         sources = item.get("MediaSources") or []
         controls = []
         if len(sources) > 1:
-            names = [s.get("Name") or _("Version %d") % (i + 1)
-                     for i, s in enumerate(sources)]
+            # Two sources with the same Name gave two indistinguishable
+            # dropdown rows — you could not tell which one you were picking.
+            # Tk suffixed the duplicate with its position.
+            names, seen = [], set()
+            for i, src in enumerate(sources):
+                label = src.get("Name") or _("Version %d") % (i + 1)
+                if label in seen:
+                    label = "%s (%d)" % (label, i + 1)
+                seen.add(label)
+                names.append(label)
             cur = next((i for i, s in enumerate(sources)
                         if s.get("Id") == route.get("_srcid")), 0)
             controls.append(self._picker_row(
@@ -569,6 +577,10 @@ class ViewsMixin:
         complete item did nothing visible and there was no way to reclaim
         the space outside Settings -> Downloads."""
         if not self._is_downloaded(item):
+            if self._offline:
+                # Nothing to fetch from. Tk swapped the button out rather
+                # than offering a download with no server behind it.
+                return None
             return self._action_btn(
                 "file_download", _("Download"), prefix + "-download",
                 lambda: self._open_download(item))

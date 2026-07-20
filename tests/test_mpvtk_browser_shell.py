@@ -5157,6 +5157,126 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestQueueRemovalReportsFailure(unittest.TestCase):
+    """Every other edit in this UI reports; queue removal went through
+    _safe, which logs and returns, so a removal the player refused left the
+    rows on screen with no explanation."""
+
+    def _browser(self, remove):
+        ctl = FakeController()
+        ctl.queue_remove = remove
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        route = {"kind": "queue", "server": "srv1", "_sel": {0},
+                 "_data": {"entries": [{"item": {"Id": "a"}, "pid": "p1"},
+                                       {"item": {"Id": "b"}, "pid": "p2"}],
+                           "current_id": "a"}}
+        b.nav_stack = [route]
+        return b, route
+
+    def test_a_refused_removal_says_so(self):
+        def boom(pids):
+            raise RuntimeError("nope")
+        b, route = self._browser(boom)
+        b._queue_remove_selected(route)
+        self.assertIn("could not be removed", b.status.lower())
+
+    def test_it_re_reads_the_queue_either_way(self):
+        """On failure especially: the rows have to go back to what the
+        player really has, not the optimistic list."""
+        for label, remove in (("ok", lambda pids: None),
+                              ("fails", lambda pids: (_ for _ in ()).throw(
+                                  RuntimeError()))):
+            with self.subTest(remove=label):
+                b, route = self._browser(remove)
+                seen = []
+                real = b.controller.get_queue
+                b.controller.get_queue = lambda: (seen.append(1) or real())
+                b._queue_remove_selected(route)
+                self.assertTrue(seen, "the queue was never re-read")
+                self.assertNotEqual(
+                    [e["pid"] for e in route["_data"]["entries"]],
+                    ["p1", "p2"],
+                    "still showing the pre-removal list")
+
+    def test_a_successful_removal_is_silent(self):
+        b, route = self._browser(lambda pids: None)
+        b._queue_remove_selected(route)
+        self.assertNotIn("could not", b.status.lower())
+
+
+class TestOfflineGates(unittest.TestCase):
+    """Controls that cannot work without a server were still offered."""
+
+    def _browser(self, offline):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b._offline = offline
+        return b
+
+    def test_offline_offers_no_download_button(self):
+        """There is nothing to fetch from."""
+        b = self._browser(True)
+        self.assertIsNone(
+            b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d"))
+
+    def test_online_still_offers_it(self):
+        b = self._browser(False)
+        self.assertIsNotNone(
+            b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d"))
+
+    def test_remove_download_is_still_offered_offline(self):
+        """Reclaiming space is exactly what you want offline."""
+        b = self._browser(True)
+        b._downloaded = {"m1"}
+        btn = b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d")
+        self.assertIn("d-undownload", ids(layout(btn, 1280, 720)[0]))
+
+    def test_offline_hides_the_user_switcher(self):
+        """Switching user reconnects, which cannot work with no server."""
+        b = self._browser(True)
+        b.controller.list_users = lambda: [
+            {"id": "u1", "name": "A", "active": True},
+            {"id": "u2", "name": "B", "active": False}]
+        self.assertNotIn("nav-user", ids(build_scene(b)[0]))
+
+    def test_online_shows_it(self):
+        b = self._browser(False)
+        b.controller.list_users = lambda: [
+            {"id": "u1", "name": "A", "active": True},
+            {"id": "u2", "name": "B", "active": False}]
+        self.assertIn("nav-user", ids(build_scene(b)[0]))
+
+
+class TestVersionPickerDedups(unittest.TestCase):
+    """Two sources with the same Name gave two indistinguishable dropdown
+    rows — you could not tell which one you were picking."""
+
+    def _names(self, source_names):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        item = {"Id": "m1", "MediaSources": [
+            {"Id": "s%d" % i, "Name": n, "MediaStreams": []}
+            for i, n in enumerate(source_names)]}
+        controls = b._track_pickers({"kind": "detail"}, item)
+        for n in layout(Column(list(controls)), 1280, 720)[0]:
+            if n.get("id") == "dt-version":
+                return n.get("items")
+        return None
+
+    def test_duplicate_names_are_distinguished(self):
+        self.assertEqual(self._names(["Bluray", "Bluray"]),
+                         ["Bluray", "Bluray (2)"])
+
+    def test_distinct_names_are_untouched(self):
+        self.assertEqual(self._names(["Bluray", "Web"]), ["Bluray", "Web"])
+
+    def test_an_unnamed_source_still_gets_a_number(self):
+        self.assertEqual(self._names([None, None]),
+                         ["Version 1", "Version 2"])
+
+
 class TestDownloadsWatchedMarker(unittest.TestCase):
     """"Remove Watched" rendered unconditionally, and no row said which items
     it meant — so it read as a destructive guess, and on a show with nothing

@@ -107,12 +107,22 @@ class QueueEditMixin:
         if not pids:
             return
         route["_sel"] = set()
-        if self.controller is not None:
-            self._safe(lambda c: c.queue_remove(pids))
-        self.route.pop("_data", None)
-        self._bump_epoch()
-        self._load_route(self.route)
-        self.invalidate()
+
+        def reload():
+            self.route.pop("_data", None)
+            self._bump_epoch()
+            self._load_route(self.route)
+            self.invalidate()
+
+        if self.controller is None:
+            return reload()
+        # _edit_call, not _safe: every other edit in this UI reports, and a
+        # removal that silently did nothing left the rows on screen with no
+        # explanation. Re-read either way — on failure to put back what is
+        # really in the queue.
+        self._edit_call(lambda c: c.queue_remove(pids), on_ok=reload,
+                        on_error=reload,
+                        error=_("Those items could not be removed."))
 
     @staticmethod
     def _block_move(items, sel, where):
