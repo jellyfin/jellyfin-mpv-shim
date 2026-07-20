@@ -3863,3 +3863,109 @@ class TestRightClickCrash(unittest.TestCase):
         self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
                         "server": "srv1", "x": 5, "y": 5}
         build_scene(self.b)
+
+
+class TestMediaInfoLine(unittest.TestCase):
+    """The detail page showed only video title/range/container — size,
+    bitrate, audio codec and "Ends at" were all dropped."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def _item(self, **src):
+        base = {"Id": "ms", "Container": "mkv", "Size": 8 * 1024 ** 3,
+                "Bitrate": 12000000, "MediaStreams": [
+                    {"Type": "Video", "DisplayTitle": "1080p HEVC",
+                     "VideoRange": "HDR", "VideoRangeType": "HDR10"},
+                    {"Type": "Audio", "Codec": "eac3",
+                     "ChannelLayout": "5.1"}]}
+        base.update(src)
+        return {"Id": "m1", "Type": "Movie", "MediaSources": [base],
+                "RunTimeTicks": 72000000000}
+
+    def test_it_includes_audio_size_and_bitrate(self):
+        line = self.b._media_info_line(self._item(), {})
+        self.assertIn("EAC3 5.1", line)
+        self.assertIn("GB", line)
+        self.assertIn("Mbps", line)
+
+    def test_video_range_type_wins_over_range(self):
+        """VideoRange only says "HDR"; VideoRangeType says which."""
+        self.assertIn("HDR10", self.b._media_info_line(self._item(), {}))
+
+    def test_it_shows_when_playback_would_end(self):
+        self.assertIn("Ends at", self.b._media_info_line(self._item(), {}))
+
+    def test_sdr_is_not_called_out(self):
+        item = self._item()
+        item["MediaSources"][0]["MediaStreams"][0] = {
+            "Type": "Video", "DisplayTitle": "1080p", "VideoRange": "SDR",
+            "VideoRangeType": "SDR"}
+        self.assertNotIn("SDR", self.b._media_info_line(item, {}))
+
+    def test_a_sourceless_item_is_empty_not_broken(self):
+        self.assertEqual(
+            self.b._media_info_line({"Id": "m1", "Type": "Movie"}, {}), "")
+
+
+class TestCastRow(unittest.TestCase):
+    """Cast was filtered to Actor/Director/Writer, dropping Producer,
+    GuestStar and Composer, and mutated the shared DTOs in place."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_every_credited_role_is_kept(self):
+        people = [{"Id": "p1", "Name": "A", "Type": "Actor", "Role": "Hero"},
+                  {"Id": "p2", "Name": "B", "Type": "Producer"},
+                  {"Id": "p3", "Name": "C", "Type": "Composer"}]
+        self.assertIsNotNone(self.b._people_row(people, "srv1"))
+        # the source list is untouched
+        self.assertEqual([p["Type"] for p in people],
+                         ["Actor", "Producer", "Composer"])
+
+    def test_no_people_means_no_row(self):
+        self.assertIsNone(self.b._people_row([], "srv1"))
+
+
+class TestRemoveFromPlaylist(unittest.TestCase):
+    """A quick single-entry removal without entering the editor. Removal
+    is by PlaylistItemId — the same item can appear twice."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.removed = []
+        self.ctl.playlist_remove = lambda srv, pid, ids: self.removed.append(
+            (pid, list(ids)))
+        self.ctl.edit_apis = lambda: True
+        self.src = FakeSource()
+        self.src.get_playlist_items = lambda srv, pid: []
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.nav_stack = [{"kind": "playlist", "server": "srv1",
+                             "item_id": "P", "title": "Mix", "_data": []}]
+
+    def _entry(self):
+        return {"Id": "m1", "Type": "Movie", "Name": "One",
+                "PlaylistItemId": "e9"}
+
+    def test_the_entry_is_offered_inside_a_playlist(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(self._entry())]
+        self.assertIn("unplaylist", acts)
+
+    def test_it_is_not_offered_outside_a_playlist(self):
+        self.b.nav_stack = [{"kind": "grid", "server": "srv1",
+                             "parent_id": "lib1"}]
+        acts = [e[2] for e in self.b._tile_menu_entries(self._entry())]
+        self.assertNotIn("unplaylist", acts)
+
+    def test_an_entry_without_a_playlist_item_id_is_skipped(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "m1", "Type": "Movie"})]
+        self.assertNotIn("unplaylist", acts)
+
+    def test_removing_passes_the_entry_id(self):
+        self.b._remove_from_playlist(self._entry())
+        _n, h = build_scene(self.b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(self.removed, [("P", ["e9"])])

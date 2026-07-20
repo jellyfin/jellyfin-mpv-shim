@@ -198,6 +198,8 @@ class MpvtkBrowser:
         # thumb key -> (failed attempts, earliest retry time). Only holds
         # keys whose fetch failed transiently; see _image_done.
         self._img_retry = {}
+        # apiclient edit-capability probe, resolved once
+        self._edit_apis_ok = None
         self.status = ""
         self._size = None         # last window size seen by build()
 
@@ -547,13 +549,17 @@ class MpvtkBrowser:
             iid = route["item_id"]
 
             def work():
-                songs = []
+                songs, similar = [], []
                 try:
                     songs = self.source.get_artist_songs(srv, iid)
                 except Exception:
                     pass
+                try:
+                    similar = self.source.get_similar(srv, iid) or []
+                except Exception:
+                    pass   # offline / older server: just no row
                 return {"albums": self.source.get_artist_albums(srv, iid),
-                        "songs": songs}
+                        "songs": songs, "similar": similar}
             self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "music_genre":
             srv = route.get("server") or self.server
@@ -565,9 +571,9 @@ class MpvtkBrowser:
                         srv, route.get("parent_id"), route["item_id"])
                 except Exception:
                     pass
-                return {"albums": self.source.get_genre_albums(
-                    srv, route.get("parent_id"), route["item_id"])[0],
-                    "songs": songs}
+                albums, total = self.source.get_genre_albums(
+                    srv, route.get("parent_id"), route["item_id"])
+                return {"albums": albums, "songs": songs, "total": total}
             self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
         elif kind == "playlist":
             srv = route.get("server") or self.server
@@ -972,7 +978,22 @@ class MpvtkBrowser:
             out.append((_("Add to Playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
             out.append((_("Download"), "file_download", "download"))
+        # Only inside a playlist, and only for an entry that carries its
+        # PlaylistItemId — removal is by entry, not by item id (the same
+        # item can appear twice).
+        if (self.route.get("kind") == "playlist"
+                and item.get("PlaylistItemId") and not self._offline
+                and self._edit_apis()):
+            out.append((_("Remove from Playlist"), "delete", "unplaylist"))
         return out
+
+    def _edit_apis(self):
+        if self._edit_apis_ok is None:
+            try:
+                self._edit_apis_ok = bool(self.controller.edit_apis())
+            except Exception:
+                self._edit_apis_ok = False
+        return self._edit_apis_ok
 
     def _tile_menu_node(self):
         m = self._menu
@@ -1008,7 +1029,34 @@ class MpvtkBrowser:
             self._close_menu()
             self._open_download(item)
             return
+        elif action == "unplaylist":
+            self._close_menu()
+            self._remove_from_playlist(item)
+            return
         self._close_menu()
+
+    def _remove_from_playlist(self, item):
+        entry = item.get("PlaylistItemId")
+        pid = self.route.get("item_id")
+        server = self.route.get("server") or self.server
+        if not (entry and pid):
+            return
+        self._confirm(
+            _("Remove %s from this playlist?") % item.get("Name", ""),
+            lambda: self._do_remove_from_playlist(server, pid, entry),
+            title=_("Remove from Playlist"), yes=_("Remove"))
+
+    def _do_remove_from_playlist(self, server, playlist_id, entry_id):
+        ep = self._epoch
+
+        def work():
+            self.controller.playlist_remove(server, playlist_id, [entry_id])
+            return self.source.get_playlist_items(server, playlist_id)
+
+        def done(items):
+            self.route["_data"] = items
+            self.invalidate()
+        self.run_async(work, done, ep)
 
     def _menu_queue(self, item, server):
         """Append to the playing queue. A music container is resolved to its
@@ -2434,28 +2482,54 @@ class MpvtkBrowser:
         self.invalidate()
 
     def _media_info_line(self, item, route):
+        """Codec/resolution/audio/size line plus "Ends at", like
+        jellyfin-web — enough to judge direct-play before hitting Play."""
+        import datetime
+
         src = self._sel_source(item.get("MediaSources") or [], route)
         streams = (src or {}).get("MediaStreams") or []
-        video = next((s for s in streams if s.get("Type") == "Video"), None)
         parts = []
+        video = next((s for s in streams if s.get("Type") == "Video"), None)
         if video:
             if video.get("DisplayTitle"):
                 parts.append(video["DisplayTitle"])
             elif video.get("Height"):
                 parts.append("%dp" % video["Height"])
-            if video.get("VideoRange") and video["VideoRange"] != "SDR":
-                parts.append(video["VideoRange"])
+            # VideoRangeType first: VideoRange only says HDR, not which.
+            vrange = video.get("VideoRangeType") or video.get("VideoRange")
+            if vrange and vrange != "SDR":
+                parts.append(vrange)
+        audio = next((s for s in streams if s.get("Type") == "Audio"), None)
+        if audio:
+            bits = [(audio.get("Codec") or "").upper(),
+                    audio.get("ChannelLayout") or ""]
+            joined = " ".join(b for b in bits if b)
+            if joined:
+                parts.append(joined)
         if src and src.get("Container"):
             parts.append(src["Container"].upper())
-        return "   ·   ".join(parts)
+        if src and src.get("Size"):
+            parts.append(self._human_size(src["Size"]))
+        if src and src.get("Bitrate"):
+            parts.append(_("%.1f Mbps") % (src["Bitrate"] / 1000000.0))
+        runtime = item.get("RunTimeTicks")
+        if runtime:
+            pos = (item.get("UserData") or {}).get(
+                "PlaybackPositionTicks") or 0
+            remaining = max(runtime - pos, 0) // 10000000
+            ends = (datetime.datetime.now()
+                    + datetime.timedelta(seconds=remaining))
+            parts.append(_("Ends at %s") % ends.strftime("%H:%M"))
+        return "   ·   ".join(p for p in parts if p)
 
     def _people_row(self, people, server):
-        cast = [p for p in people
-                if p.get("Type") in ("Actor", "Director", "Writer", None)][:20]
+        # Every credited person, not just Actor/Director/Writer — Producer,
+        # GuestStar and Composer were silently dropped. Copied, not
+        # mutated: these DTOs are shared with whatever else holds the item.
+        cast = [dict(p, Type="Person", _subtitle=(p.get("Role") or ""))
+                for p in people][:24]
         if not cast:
             return None
-        for p in cast:
-            p.setdefault("Type", "Person")
         return self._tile_row(_("Cast & Crew"), cast, "detail-people",
                               geom=self.geom_square)
 
@@ -2965,6 +3039,12 @@ class MpvtkBrowser:
                 self._music_action_bar(server, ids, route["item_id"], "art")]
         rows += self._grid_of(albums, "artist", size, geom=self.geom_square,
                               scroll_id="artist", head_h=110)
+        similar = data.get("similar") or []
+        if similar:
+            rows.append(Spacer(h=8))
+            rows.append(self._tile_row(_("Similar Artists"), similar,
+                                       "artist-similar",
+                                       geom=self.geom_square))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
                        id="artist", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
@@ -2986,7 +3066,40 @@ class MpvtkBrowser:
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP),
                        id="mgenre", flex=1,
                        on_scroll=lambda off, mx: self._on_scroll(
-                           "mgenre", off, mx))
+                           "mgenre", off, mx,
+                           lambda o, m: self._on_genre_scroll(route, o, m)))
+
+    def _on_genre_scroll(self, route, offset, maximum):
+        """Page a genre's albums. It rendered one 100-album page with no
+        scroll handler, so a large genre simply stopped there."""
+        data = route.get("_data") or {}
+        albums = data.get("albums") or []
+        total = data.get("total") or 0
+        if route is not self.route or route.get("_loading"):
+            return
+        if len(albums) >= total or maximum - offset >= 800:
+            return
+        route["_loading"] = True
+        ep = self._epoch
+        srv = route.get("server") or self.server
+        start = len(albums)
+
+        def work():
+            return self.source.get_genre_albums(
+                srv, route.get("parent_id"), route["item_id"],
+                start_index=start)
+
+        def done(res):
+            new, total2 = res
+            data["albums"] = albums + new
+            # an empty in-range page ends the list, or it re-requests
+            # forever on every scroll event
+            data["total"] = total2 if new else len(data["albums"])
+            route["_loading"] = False
+
+        def failed(_e):
+            route["_loading"] = False
+        self.run_async(work, done, ep, on_error=failed)
 
     def _render_playlist(self, route, size):
         data = route.get("_data")
