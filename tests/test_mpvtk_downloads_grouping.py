@@ -249,5 +249,46 @@ class TestProgressSummary(unittest.TestCase):
         self.assertEqual(got["name"], "First")
 
 
+class TestTheShapeTheViewExpects(unittest.TestCase):
+    """The settings panel reads specific keys off this tree, and its own
+    fixtures are hand-built — so a key added here can go missing there and
+    quietly change what renders. Pin the contract in one place."""
+
+    GROUP_KEYS = {"kind", "id", "title", "size", "count", "watched_count",
+                  "children"}
+    ITEM_KEYS = {"kind", "id", "title", "status", "size", "index", "done",
+                 "total", "watched"}
+
+    def _tree(self):
+        import json as _json
+        rows = [row("e1", "Ep1", series_id="s1", series_name="S",
+                    season_id="a", parent_index=1, index_number=1,
+                    userdata_json=_json.dumps({"Played": True})),
+                row("m1", "A Movie")]
+        pls = [{"playlist_id": "p1", "name": "Mix"}]
+        return group_downloads(rows, pls,
+                               lambda pid: [row("t1", "T", type="Movie")], {})
+
+    def test_every_group_carries_the_keys_the_view_reads(self):
+        for g in self._tree():
+            with self.subTest(kind=g["kind"]):
+                self.assertLessEqual(self.GROUP_KEYS, set(g))
+
+    def test_every_item_carries_the_keys_the_view_reads(self):
+        def items(node):
+            for c in node.get("children") or []:
+                if c.get("kind") == "item":
+                    yield c
+                else:
+                    yield from items(c)
+
+        seen = 0
+        for g in self._tree():
+            for it in items(g):
+                seen += 1
+                self.assertLessEqual(self.ITEM_KEYS, set(it))
+        self.assertTrue(seen, "the fixture produced no item rows")
+
+
 if __name__ == "__main__":
     unittest.main()

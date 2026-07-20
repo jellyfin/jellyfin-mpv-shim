@@ -2315,22 +2315,29 @@ if __name__ == "__main__":
 class DownloadsController(FakeController):
     """Controller whose downloads catalog has real hierarchy."""
 
+    # Mirrors what downloads.group_downloads actually produces, including
+    # watched/watched_count — the panel gates "Remove Watched" on the count,
+    # so a fixture without it silently loses the button.
     TREE = [
         {"kind": "playlist", "id": "PL9", "title": "Road Trip", "size": 9000,
-         "count": 120, "children": []},
+         "count": 120, "watched_count": 0, "children": []},
         {"kind": "series", "id": "sh1", "title": "The Show", "size": 3000,
-         "count": 2,
+         "count": 2, "watched_count": 1,
          "children": [
              {"kind": "season", "id": "se1", "series_id": "sh1",
-              "title": "Season 1", "size": 3000, "count": 2, "children": [
+              "title": "Season 1", "size": 3000, "count": 2,
+              "watched_count": 1, "children": [
                   {"kind": "item", "id": "e1", "title": "Pilot",
-                   "status": "complete", "size": 2000, "index": 1},
+                   "status": "complete", "size": 2000, "index": 1,
+                   "done": 2000, "total": 2000, "watched": True},
                   {"kind": "item", "id": "e2", "title": "Second",
-                   "status": "pending", "size": 1000, "index": 2}]}]},
+                   "status": "pending", "size": 1000, "index": 2,
+                   "done": 0, "total": 1000, "watched": False}]}]},
         {"kind": "movies", "id": None, "title": "Movies & Videos", "size": 500,
-         "count": 1,
+         "count": 1, "watched_count": 0,
          "children": [{"kind": "item", "id": "m1", "title": "A Movie",
-                       "status": "complete", "size": 500, "index": None}]},
+                       "status": "complete", "size": 500, "index": None,
+                       "done": 500, "total": 500, "watched": False}]},
     ]
 
     def __init__(self):
