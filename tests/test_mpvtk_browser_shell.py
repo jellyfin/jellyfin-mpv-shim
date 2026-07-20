@@ -4611,9 +4611,10 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
 
 class TestSeasonTitles(unittest.TestCase):
     def _title(self, **row):
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _season_title
+        from jellyfin_mpv_shim.mpvtk_browser.downloads import (
+            season_title)
 
-        return _season_title(row)
+        return season_title(row)
 
     def test_season_zero_is_specials(self):
         self.assertEqual(self._title(parent_index=0), "Specials")

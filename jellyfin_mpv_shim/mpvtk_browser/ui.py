@@ -13,7 +13,6 @@ window to playback + the OSC; when playback stops (``on_playstate``) the
 browser takes the window back.
 """
 
-import json
 import logging
 import os
 import threading
@@ -24,27 +23,6 @@ from ..conf import settings
 from ..i18n import _
 
 log = logging.getLogger("mpvtk_browser.ui")
-
-# A downloaded playlist made only of these is listed item by item in the
-# downloads manager. Whitelist, not an audio blacklist: a row with a missing
-# or unrecognized type must stay collapsed rather than risk unfolding a
-# few-hundred-track music playlist.
-_VIDEO_TYPES = ("Movie", "Episode", "Video")
-
-
-def _season_title(row):
-    """Display name for a downloaded episode's season."""
-    try:
-        name = (json.loads(row.get("item_json") or "{}")
-                .get("SeasonName") or "").strip()
-    except (ValueError, TypeError):
-        name = ""
-    if name:
-        return name
-    idx = row.get("parent_index")
-    if idx is None:
-        return _("Episodes")
-    return _("Specials") if idx == 0 else _("Season %s") % idx
 
 
 def _collect_servers():
@@ -810,17 +788,9 @@ class _PlayerController:
             log.error("mpvtk download enqueue failed", exc_info=True)
 
     def list_downloads(self):
-        """Downloads grouped for display, mirroring the Tk DownloadsPanel:
-
-            [{"kind": "playlist"|"series"|"movies", "title", "id",
-              "size", "count", "children": [...]}]
-
-        Playlists come first. A *music* playlist is listed collapsed — it is
-        hundreds of tracks nobody wants enumerated — but a video playlist is a
-        handful of films/episodes, so it expands to its items like a series
-        does. Either way its items are owned by the playlist and must not also
-        appear below. Series nest their seasons; everything left over lands in
-        one flat group."""
+        """The downloads manager's display tree. Reaching the sync db is this
+        layer's job; the grouping is in ``downloads.group_downloads``."""
+        from .downloads import group_downloads
         from ..sync.manager import syncManager
         db = getattr(syncManager, "db", None)
         if db is None:
@@ -833,95 +803,17 @@ class _PlayerController:
             log.error("mpvtk list_downloads failed", exc_info=True)
             return []
 
-        def size_of(r):
-            # size_bytes is the *expected* size and is only known once the
-            # source has been probed; downloaded_bytes is what's on disk.
-            # Reading a non-existent "size" key is why this showed 0 B.
-            return (r.get("downloaded_bytes") or 0) or (r.get("size_bytes") or 0)
-
-        def entry(r):
-            return {
-                "kind": "item",
-                "id": r.get("item_id"),
-                "title": r.get("name") or r.get("item_id"),
-                "status": r.get("status") or "",
-                "size": size_of(r),
-                "index": r.get("index_number"),
-            }
-
-        # Playlists that still exist as records. An ownership row can
-        # outlive its playlist (deleted, or its members all removed), and
-        # skipping those rows unconditionally made the downloads invisible
-        # AND undeletable — disk used with no way to reclaim it. Only skip
-        # what a LIVE playlist group will actually show.
-        live = {pl["playlist_id"] for pl in playlists}
-
-        out = []
-        for pl in playlists:
+        def items_of(playlist_id):
             try:
-                items = db.playlist_item_rows(pl["playlist_id"])
+                return db.playlist_item_rows(playlist_id)
             except Exception:
-                items = []
-            # An all-video playlist lists its items; anything else (music,
-            # or mixed — one video in a 400-song playlist must not unfold the
-            # whole thing) stays collapsed.
-            video = bool(items) and all(
-                (r.get("type") or "") in _VIDEO_TYPES for r in items)
-            out.append({
-                "kind": "playlist",
-                "id": pl["playlist_id"],
-                "title": pl.get("name") or _("Playlist"),
-                "size": sum(size_of(r) for r in items),
-                "count": len(items),
-                "children": [entry(r) for r in items] if video else [],
-            })
+                # One unreadable playlist collapses to empty rather than
+                # taking the whole downloads list down with it.
+                log.warning("playlist rows unreadable: %s", playlist_id,
+                            exc_info=True)
+                return []
 
-        series = {}
-        loose = []
-        for r in rows:
-            if owned.get(r.get("item_id")) in live:
-                continue             # counted under its playlist
-            sid = r.get("series_id")
-            if not sid:
-                loose.append(entry(r))
-                continue
-            show = series.setdefault(sid, {
-                "kind": "series", "id": sid,
-                "title": r.get("series_name") or _("Unknown Series"),
-                "size": 0, "count": 0, "children": {},
-            })
-            show["size"] += size_of(r)
-            show["count"] += 1
-            season_id = r.get("season_id") or sid
-            season = show["children"].setdefault(season_id, {
-                "kind": "season", "id": season_id, "series_id": sid,
-                # Season 0 is Specials, not "Season 0"; the catalog's
-                # stored SeasonName is better than either when present.
-                "title": _season_title(r),
-                "size": 0, "count": 0, "children": [],
-            })
-            season["size"] += size_of(r)
-            season["count"] += 1
-            season["children"].append(entry(r))
-
-        shows = []
-        for show in series.values():
-            seasons = sorted(show["children"].values(),
-                             key=lambda x: str(x["title"]))
-            for s2 in seasons:
-                s2["children"].sort(key=lambda e: (e["index"] is None,
-                                                   e["index"], e["title"]))
-            show["children"] = seasons
-            shows.append(show)
-        shows.sort(key=lambda g: str(g["title"]))
-        out += shows
-        if loose:
-            loose.sort(key=lambda e: str(e["title"]))
-            out.append({"kind": "movies", "id": None,
-                        "title": _("Movies & Videos"),
-                        "size": sum(e["size"] for e in loose),
-                        "count": len(loose), "children": loose})
-        return out
+        return group_downloads(rows, playlists, items_of, owned)
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
                         playlist_id=None, watched_only=False):
@@ -952,6 +844,7 @@ class _PlayerController:
         """Global download progress for the status bar:
         ``{"pending": n, "name": str, "percent": int|None}``, or None when
         nothing is outstanding."""
+        from .downloads import progress_summary
         from ..sync.manager import syncManager
         from ..sync.db import STATUS_COMPLETE
         db = getattr(syncManager, "db", None)
@@ -962,18 +855,7 @@ class _PlayerController:
                     if (r.get("status") or "") != STATUS_COMPLETE]
         except Exception:
             return None
-        if not rows:
-            return None
-        # The in-flight one is whichever has bytes on disk but isn't done.
-        active = next((r for r in rows if (r.get("downloaded_bytes") or 0) > 0),
-                      rows[0])
-        total = active.get("size_bytes") or 0
-        done = active.get("downloaded_bytes") or 0
-        return {
-            "pending": len(rows),
-            "name": active.get("name") or "",
-            "percent": int(done * 100 / total) if total else None,
-        }
+        return progress_summary(rows)
 
     def download_activity(self):
         """(active, pending) counts — the downloads view polls this so it can
