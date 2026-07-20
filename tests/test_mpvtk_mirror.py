@@ -91,9 +91,9 @@ class TestMirror(unittest.TestCase):
 
     def test_wrap_breaks_long_text(self):
         from PIL import Image as PILImage, ImageDraw
-        from jellyfin_mpv_shim.display_mirror import _pil_font
+        from jellyfin_mpv_shim.imageutil import pil_font
         draw = ImageDraw.Draw(PILImage.new("RGBA", (10, 10)))
-        lines = _wrap(draw, "word " * 100, _pil_font(24), 300)
+        lines = _wrap(draw, "word " * 100, pil_font(24), 300)
         self.assertGreater(len(lines), 1)
 
 

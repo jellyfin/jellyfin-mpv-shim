@@ -272,15 +272,15 @@ class TilesMixin:
         stays small enough that a long episode title reads in full."""
         from PIL import ImageDraw
 
-        from ..display_mirror import (_apply_dark_gradient, _pil_font,
-                                      _scale_to_cover)
+        from ..imageutil import (apply_dark_gradient, pil_font,
+                                 scale_to_cover)
 
         w, h = box
-        canvas = _scale_to_cover(image.convert("RGBA"), w, h)
+        canvas = scale_to_cover(image.convert("RGBA"), w, h)
         if not title:
             return canvas
-        canvas = _apply_dark_gradient(canvas, height_fraction=0.7,
-                                      max_alpha=215)
+        canvas = apply_dark_gradient(canvas, height_fraction=0.7,
+                                     max_alpha=215)
         draw = ImageDraw.Draw(canvas)
         margin = max(18, w // 40)
         avail = w - 2 * margin
@@ -289,19 +289,19 @@ class TilesMixin:
         size = max(20, min(34, h // 6))
         y = h - margin
         if meta:
-            f = _pil_font(int(size * 0.6), text=meta)
+            f = pil_font(int(size * 0.6), text=meta)
             asc, desc = f.getmetrics()
             draw.text((margin, y - asc - desc), meta, font=f,
                       fill=(200, 200, 200, 255))
             y -= asc + desc + 6
-        f = _pil_font(size, bold=True, text=title)
+        f = pil_font(size, bold=True, text=title)
         asc, desc = f.getmetrics()
         for line in reversed(cls._wrap_pil(draw, title, f, avail)):
             draw.text((margin, y - asc - desc), line, font=f,
                       fill=(255, 255, 255, 255))
             y -= asc + desc + 2
         if context:
-            f = _pil_font(int(size * 0.62), text=context)
+            f = pil_font(int(size * 0.62), text=context)
             asc, desc = f.getmetrics()
             line = cls._wrap_pil(draw, context, f, avail, max_lines=1)[0]
             draw.text((margin, y - asc - desc + 2), line, font=f,
