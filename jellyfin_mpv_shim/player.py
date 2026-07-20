@@ -1856,6 +1856,9 @@ class PlayerManager(object):
                      else _("Skip Intro"))
                     if skip is not None else None
                 ),
+                # Which queue entry this is, so the browser's queue view
+                # can move its now-playing highlight without refetching.
+                "id": getattr(video, "item_id", None),
                 "title": item.get("Name") or "",
                 "artist": ", ".join(item.get("Artists") or []),
                 "album": item.get("Album") or "",

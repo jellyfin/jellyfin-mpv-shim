@@ -3811,26 +3811,42 @@ class TestCollections(unittest.TestCase):
         self.b._toggle_collections(route)
         self.assertIn("library", [c[0] for c in self.calls])
 
-    def test_add_to_dialog_lists_collections(self):
+    def test_collections_are_a_separate_window(self):
+        """Two long lists stacked in one dialog was the crowding."""
         self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, h = build_scene(self.b)
+        self.assertNotIn("add-col-0", ids(nodes), "still stacked inline")
+        self.assertIn("add-collections", h, "no way through to collections")
+        h["add-collections"]["click"]()
         nodes, _h = build_scene(self.b)
         self.assertIn("add-col-0", ids(nodes))
-        texts = [n.get("text") for n in nodes if n.get("text")]
-        self.assertIn("Trilogy", texts)
+        self.assertIn("Trilogy",
+                      [n.get("text") for n in nodes if n.get("text")])
 
     def test_adding_to_a_collection_calls_the_api(self):
         self.b._open_add_to({"Id": "m1", "Type": "Movie"})
         _n, h = build_scene(self.b)
+        h["add-collections"]["click"]()
+        _n, h = build_scene(self.b)
         h["add-col-0"]["click"]()
         self.assertEqual(self.added, [("c1", ["m1"])])
 
-    def test_a_source_without_collections_still_opens_the_dialog(self):
+    def test_back_returns_to_the_playlist_dialog(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-collections"]["click"]()
+        _n, h = build_scene(self.b)
+        h["addcol-back"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("add-newname", ids(nodes))
+
+    def test_a_source_without_collections_offers_no_way_in(self):
         """The offline catalog has no collections; the dialog must not
-        break, it just doesn't offer that section."""
+        break, it just doesn't offer that button."""
         del self.src.get_collections
         self.b._open_add_to({"Id": "m1", "Type": "Movie"})
-        nodes, _h = build_scene(self.b)
-        self.assertNotIn("add-col-0", ids(nodes))
+        nodes, h = build_scene(self.b)
+        self.assertNotIn("add-collections", h)
         self.assertIn("add-newname", ids(nodes))
 
 
@@ -3969,3 +3985,157 @@ class TestRemoveFromPlaylist(unittest.TestCase):
         _n, h = build_scene(self.b)
         h["dlg-ok"]["click"]()
         self.assertEqual(self.removed, [("P", ["e9"])])
+
+
+class TestQueueSkipAndHighlight(unittest.TestCase):
+    """The queue's play button passes a PlaylistItemId, and its highlight
+    has to follow the track actually playing."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.skipped = []
+        self.ctl.skip_to = lambda key: self.skipped.append(key)
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.entries = [
+            {"item": {"Id": "a", "Name": "One", "Type": "Audio"},
+             "pid": "playlistItem1"},
+            {"item": {"Id": "b", "Name": "Two", "Type": "Audio"},
+             "pid": "playlistItem2"},
+        ]
+        self.b.nav_stack = [{"kind": "queue", "server": "srv1",
+                             "_data": {"entries": self.entries,
+                                       "current_id": "a"}}]
+
+    def test_the_row_play_button_skips_to_that_entry(self):
+        _n, h = build_scene(self.b)
+        self.assertIn("q-play-1", h, "no per-row play button")
+        h["q-play-1"]["click"]()
+        self.assertEqual(self.skipped, ["playlistItem2"])
+
+    def test_the_highlight_follows_the_playing_track(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "b"})
+        self.assertEqual(self.b.route["_data"]["current_id"], "b")
+
+    def test_the_highlight_clears_when_playback_stops(self):
+        self.b.on_playstate({"stopped": True})
+        self.assertIsNone(self.b.route["_data"]["current_id"])
+
+    def test_other_routes_are_untouched(self):
+        self.b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "b"})
+        # no crash, nothing to sync
+        self.assertEqual(self.b.route["kind"], "home")
+
+    def test_the_play_glyph_is_centred_in_its_button(self):
+        """align centres on the cross axis only; without justify the glyph
+        sat against the button's left edge."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+
+        nodes, _h = layout(Column([self.b._track_list(
+            [e["item"] for e in self.entries], "q",
+            on_play=lambda i: None, on_select=lambda i, m: None,
+            scroll_id="queue")]), 1000, 720)
+        btn = next(n for n in nodes if n.get("id") == "q-play-0")
+        icon = next(n for n in nodes if n["t"] == "icon")
+        lead = icon["x"] - btn["x"]
+        trail = (btn["x"] + btn["w"]) - (icon["x"] + icon["w"])
+        self.assertAlmostEqual(lead, trail, delta=1.0)
+
+
+class TestQueueLookup(unittest.TestCase):
+    """skip_to resolves a queue entry through Media.get_from_key. It
+    matched on item Id only, but the queue view addresses entries by
+    PlaylistItemId — so every skip from the queue silently did nothing."""
+
+    def _media(self):
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.media import Media
+
+        m = Media.__new__(Media)
+        m.client = None
+        m.user_id = None
+        m.seq = 0
+        m.queue = [{"Id": "a", "PlaylistItemId": "pi1"},
+                   {"Id": "b", "PlaylistItemId": "pi2"},
+                   {"Id": "a", "PlaylistItemId": "pi3"}]
+        return m
+
+    def test_it_resolves_a_playlist_item_id(self):
+        found = self._media().get_from_key("pi2")
+        self.assertIsNotNone(found, "PlaylistItemId did not resolve")
+        self.assertEqual(found.seq, 1)
+
+    def test_a_duplicate_item_resolves_to_the_right_entry(self):
+        """Two copies of the same track: the PlaylistItemId picks which."""
+        found = self._media().get_from_key("pi3")
+        self.assertEqual(found.seq, 2)
+
+    def test_it_still_resolves_a_bare_item_id(self):
+        """The websocket remote and the Tk browser address entries by Id."""
+        found = self._media().get_from_key("b")
+        self.assertEqual(found.seq, 1)
+
+    def test_an_unknown_key_is_none(self):
+        self.assertIsNone(self._media().get_from_key("nope"))
+        self.assertIsNone(self._media().get_from_key(None))
+
+
+class TestAddToDialogLayout(unittest.TestCase):
+    """The dialog listed every playlist as a button and always showed the
+    Private checkbox — a flat list of 40 playlists made it unusably tall."""
+
+    def setUp(self):
+        self.src = FakeSource()
+        self.src.get_playlists = lambda srv: [
+            {"Id": "p%d" % i, "Name": "Playlist %d" % i} for i in range(40)]
+        self.src.get_collections = lambda srv: [{"Id": "c1", "Name": "Set"}]
+        self.b = MpvtkBrowser(app=None, source=self.src,
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+
+    def test_the_playlist_list_scrolls(self):
+        nodes, _h = build_scene(self.b)
+        scrolls = [n for n in nodes if n["t"] == "scroll"
+                   and n.get("id") == "add-pl"]
+        self.assertTrue(scrolls, "playlist list is not scrollable")
+        self.assertLessEqual(scrolls[0]["h"], self.b.PICKER_H + 1)
+
+    def test_the_dialog_fits_the_window(self):
+        nodes, _h = build_scene(self.b)
+        dialog = [n for n in nodes if str(n.get("id", "")) == "addto"]
+        self.assertTrue(dialog)
+        self.assertLessEqual(dialog[0]["h"], 720,
+                             "dialog is taller than the window")
+
+    def test_private_is_hidden_until_a_name_is_typed(self):
+        nodes, h = build_scene(self.b)
+        self.assertNotIn("add-private", ids(nodes))
+        h["add-newname"]["change"]("Road Trip")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("add-private", ids(nodes))
+
+    def test_clearing_the_name_hides_it_again(self):
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("x")
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("add-private", ids(nodes))
+
+    def test_whitespace_is_not_a_name(self):
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("   ")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("add-private", ids(nodes))
+
+    def test_an_empty_playlist_list_says_so(self):
+        self.src.get_playlists = lambda srv: []
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, _h = build_scene(self.b)
+        self.assertIn("No playlists yet.",
+                      [n.get("text") for n in nodes if n.get("text")])

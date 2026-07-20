@@ -200,6 +200,8 @@ class MpvtkBrowser:
         self._img_retry = {}
         # apiclient edit-capability probe, resolved once
         self._edit_apis_ok = None
+        # rebuilder for the add-to dialog (re-shown from its sub-dialog)
+        self._addto_build = None
         self.status = ""
         self._size = None         # last window size seen by build()
 
@@ -1545,6 +1547,7 @@ class MpvtkBrowser:
         """Registered as playerManager.on_playstate. Drives browse/playback
         state and the now-playing bar. Audio keeps the browser visible (bar +
         browsing); video stays yielded to the picture + OSC."""
+        self._sync_queue_highlight(state)
         if not state or state.get("stopped"):
             self._now_playing = None
             self._hud_state = None
@@ -1597,6 +1600,24 @@ class MpvtkBrowser:
                     self.app.set_hud_skip(state.get("skip_label") or "")
                 except Exception:
                     log.debug("hud sync failed", exc_info=True)
+
+    def _sync_queue_highlight(self, state):
+        """Keep the queue view's "now playing" row on the right track.
+
+        The queue's data is fetched once when the route opens, so the
+        highlight stayed on whatever was playing then — it never moved when
+        a song ended or was skipped. Cheap: the id comes off the playstate,
+        no refetch."""
+        route = self.route
+        if route.get("kind") != "queue":
+            return
+        data = route.get("_data")
+        if not data:
+            return
+        new = None if (not state or state.get("stopped")) else state.get("id")
+        if data.get("current_id") != new:
+            data["current_id"] = new
+            self.invalidate()
 
     def _start_np_ticker(self):
         """Keep the now-playing bar's clock at 1s.
@@ -2822,7 +2843,11 @@ class MpvtkBrowser:
                              color=theme.ACCENT if tr.get("Id") == playing_id
                              else theme.SUBTLE_FG)],
                        id="%s-play-%d" % (prefix, i), w=40, h=26,
-                       direction="row", align="center", radius=4,
+                       # justify centres along the row's main axis; align
+                       # alone only centred it vertically, leaving the glyph
+                       # packed against the left edge of the button.
+                       direction="row", align="center", justify="center",
+                       radius=4,
                        hover={"fill": theme.BUTTON_ACTIVE},
                        on_click=lambda i=i: on_play(i))
 
@@ -4423,6 +4448,24 @@ class MpvtkBrowser:
         self.run_async(
             work, lambda r: self._show_add_to(server, item, r[0], r[1]), ep)
 
+    # Height of a picker list inside a dialog before it scrolls. Enough to
+    # show several entries without the dialog growing past the window.
+    PICKER_H = 240
+
+    def _picker_list(self, node_id, entries, on_pick, empty_text):
+        """Scrollable list of {Id, Name} buttons for a dialog.
+
+        Scrollable, not a dropdown: these are the primary choice in the
+        dialog, and a flat list of every playlist made it unusably tall.
+        """
+        if not entries:
+            return Text(empty_text, size=15, color=theme.SUBTLE_FG)
+        rows = [Button(e.get("Name", ""), id="%s-%d" % (node_id, i),
+                       on_click=lambda eid=e.get("Id"): on_pick(eid))
+                for i, e in enumerate(entries)]
+        return VScroll(Column(rows, gap=6, align="stretch"),
+                       id=node_id, h=self.PICKER_H)
+
     def _show_add_to(self, server, item, playlists, collections=()):
         item_id = item.get("Id")
         # Private by default, matching the Tk browser: the server creates
@@ -4430,41 +4473,74 @@ class MpvtkBrowser:
         self._addto_name = {"name": "", "private": True}
 
         def build():
-            rows = [Text(_("Add to Playlist"), size=22, bold=True)]
-            for i, pl in enumerate(playlists):
-                rows.append(Button(
-                    pl.get("Name", ""), id="add-pl-%d" % i,
-                    on_click=lambda pid=pl.get("Id"): self._add_to(
-                        server, pid, item_id)))
-            if not playlists:
-                rows.append(Text(_("No playlists yet."), size=15,
-                                 color=theme.SUBTLE_FG))
-            rows.append(Row([
-                TextBox("add-newname", placeholder=_("New playlist name…"),
-                        w=280,
-                        on_change=lambda v: self._addto_name.__setitem__(
-                            "name", v)),
-                Button(_("Create"), id="add-create",
-                       on_click=lambda: self._add_to_new(server, item_id)),
-            ], gap=10, align="center"))
-            rows.append(Checkbox(
-                _("Private (only you can see it)"),
-                bool(self._addto_name.get("private")), id="add-private",
-                on_toggle=lambda: self._addto_name.__setitem__(
-                    "private", not self._addto_name.get("private"))))
+            named = bool((self._addto_name.get("name") or "").strip())
+            rows = [
+                Text(_("Add to Playlist"), size=22, bold=True),
+                self._picker_list(
+                    "add-pl", playlists,
+                    lambda pid: self._add_to(server, pid, item_id),
+                    _("No playlists yet.")),
+                Row([
+                    TextBox("add-newname", placeholder=_("New playlist name…"),
+                            w=280,
+                            on_change=lambda v: self._addto_name_changed(v)),
+                    Button(_("Create"), id="add-create",
+                           on_click=lambda: self._add_to_new(server, item_id)),
+                ], gap=10, align="center"),
+            ]
+            if named:
+                # Only meaningful once there's a playlist to be private:
+                # an always-on checkbox above an empty name box is noise.
+                rows.append(Checkbox(
+                    _("Private (only you can see it)"),
+                    bool(self._addto_name.get("private")), id="add-private",
+                    on_toggle=lambda: self._addto_name.__setitem__(
+                        "private", not self._addto_name.get("private"))))
+            buttons = []
             if collections:
-                rows.append(Spacer(h=6))
-                rows.append(Text(_("Add to Collection"), size=18, bold=True))
-                for i, col in enumerate(collections):
-                    rows.append(Button(
-                        col.get("Name", ""), id="add-col-%d" % i,
-                        on_click=lambda cid=col.get("Id"): self._add_to_col(
-                            server, cid, item_id)))
-            rows.append(self._dialog_buttons([
-                Button(_("Close"), id="add-close",
-                       on_click=self._close_dialog)]))
+                buttons.append(Button(
+                    _("Collections…"), id="add-collections",
+                    on_click=lambda: self._show_add_to_collection(
+                        server, item, collections)))
+            buttons.append(Button(_("Close"), id="add-close",
+                                  on_click=self._close_dialog))
+            rows.append(self._dialog_buttons(buttons))
             return Dialog("addto",
                           self._dialog_shell("addto", rows, w=460),
+                          on_dismiss=self._close_dialog)
+        self._addto_build = build
+        self._show_dialog(build)
+
+    def _addto_name_changed(self, value):
+        """Rebuild only when the name crosses empty <-> non-empty, which is
+        what shows or hides the Private checkbox. Rebuilding on every
+        keystroke would be pointless churn."""
+        was = bool((self._addto_name.get("name") or "").strip())
+        self._addto_name["name"] = value
+        if bool((value or "").strip()) != was and self._addto_build:
+            self._show_dialog(self._addto_build)
+
+    def _show_add_to_collection(self, server, item, collections):
+        """Collections get their own window: two long lists stacked in one
+        dialog was the crowding."""
+        item_id = item.get("Id")
+
+        def build():
+            rows = [
+                Text(_("Add to Collection"), size=22, bold=True),
+                self._picker_list(
+                    "add-col", collections,
+                    lambda cid: self._add_to_col(server, cid, item_id),
+                    _("No collections yet.")),
+                self._dialog_buttons([
+                    Button(_("Back"), id="addcol-back",
+                           on_click=lambda: self._show_dialog(
+                               self._addto_build)),
+                    Button(_("Close"), id="addcol-close",
+                           on_click=self._close_dialog)]),
+            ]
+            return Dialog("addtocol",
+                          self._dialog_shell("addtocol", rows, w=460),
                           on_dismiss=self._close_dialog)
         self._show_dialog(build)
 

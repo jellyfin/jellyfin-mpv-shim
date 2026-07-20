@@ -627,9 +627,22 @@ class Media(object):
                 queue_override=False,
             )
 
-    def get_from_key(self, item_id: str):
+    def get_from_key(self, key: str):
+        """Locate a queue entry by PlaylistItemId, else by item Id.
+
+        PlaylistItemId first because it is the precise identifier: a queue
+        may hold the same item twice, and matching on Id alone always jumps
+        to the first copy. Id is still accepted — the websocket remote and
+        the Tk browser both address entries that way."""
+        if key is None:
+            return None
         for i, video in enumerate(self.queue):
-            if video["Id"] == item_id:
+            if video.get("PlaylistItemId") == key:
+                return Media(
+                    self.client, self.queue, i, self.user_id, queue_override=False
+                )
+        for i, video in enumerate(self.queue):
+            if video["Id"] == key:
                 return Media(
                     self.client, self.queue, i, self.user_id, queue_override=False
                 )
