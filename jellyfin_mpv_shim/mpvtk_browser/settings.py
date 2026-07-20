@@ -663,7 +663,13 @@ class SettingsMixin:
                 except Exception:
                     break
                 if not pending:
-                    break     # nothing in flight; the list can't change
+                    # One last read before stopping. The transition that took
+                    # pending to zero is exactly the one the list has not
+                    # drawn yet, so breaking straight out left the item that
+                    # had just finished reading "downloading" until someone
+                    # pressed Refresh.
+                    self._load_downloads(route, force=True)
+                    break
                 self._load_downloads(route, force=True)
 
         self._start_daemon("_dl_thread", "mpvtk-dl-poll", tick)

@@ -5133,6 +5133,60 @@ class TestMoveDownloadsIsNotOnThePool(unittest.TestCase):
         self.assertIsNone(b._long_thread, "the slot was never released")
 
 
+class TestDownloadsPollerShowsCompletion(unittest.TestCase):
+    """The poller stopped as soon as nothing was pending — without reading
+    the catalog one last time. The transition that took pending to zero is
+    the one the list has not drawn yet, so the item that had just finished
+    still read "downloading" until someone pressed Refresh."""
+
+    def _browser(self, activity):
+        ctl = FakeController()
+        self.reads = []
+        ctl.download_activity = lambda: activity.pop(0) if activity else (0, 0)
+        ctl.list_downloads = lambda: (self.reads.append(1) or [])
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=FakeConfig())
+        b._pool = _SyncPool()
+        b.DL_POLL_SECS = 0.01      # don't sleep 3s per tick in a test
+        b._browsing = True
+        return b
+
+    def _run_poller(self, b, route):
+        b.nav_stack = [route]
+        b._poll_downloads(route)
+        t = b._dl_thread
+        if t is not None:
+            t.join(5)
+            self.assertFalse(t.is_alive(), "the poller never stopped")
+
+    def test_it_reads_once_more_when_the_queue_drains(self):
+        b = self._browser([(1, 1), (0, 1)])
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads"}
+        self._run_poller(b, route)
+        self.assertGreaterEqual(
+            len(self.reads), 2,
+            "the finished download was never re-read: %d" % len(self.reads))
+
+    def test_it_still_stops(self):
+        """The extra read must not turn the break into a spin."""
+        b = self._browser([(1, 1), (0, 1)])
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads"}
+        self._run_poller(b, route)
+        self.assertIsNone(b._dl_thread, "the poller slot was never released")
+
+    def test_leaving_the_tab_does_not_trigger_a_final_read(self):
+        """Only a drained queue gets the last read; walking away should not
+        cost a catalog scan."""
+        b = self._browser([(1, 1)])
+        route = {"kind": "settings", "server": "srv1", "_tab": "downloads"}
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]   # not on the tab
+        b._poll_downloads(route)
+        t = b._dl_thread
+        if t is not None:
+            t.join(5)
+        self.assertEqual(self.reads, [])
+
+
 class TestCopyLogsButton(unittest.TestCase):
     """The Copy button on Settings -> Logs. A helper test alone would not
     prove it is on screen or wired, which is how five features in this UI
