@@ -48,7 +48,9 @@ def _icon_paths(names):
 
     return [icon_ass(n) if n else "" for n in names]
 
-# Heuristic fallback — keep in sync with CHAR_W in renderer.lua.
+# Heuristic fallback — must match char_w() in renderer.lua, which measures
+# the same text on the other side of the mpv boundary. Enforced by
+# tests/test_python_lua_constants.py.
 # set_metrics() replaces it with measured advances (see metrics.py).
 _NARROW = set("iIljtfr.,:;!|'`()[]\"")
 _WIDE = set("mwMW@%&")

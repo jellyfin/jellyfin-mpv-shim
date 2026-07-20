@@ -597,8 +597,10 @@ def build_hud(b, size):
     return Stack(children, w=w, h=h)
 
 
-# Keep in sync with renderer.lua's SLIDER_PAD (track inset inside the
-# slider node — the thumb travels between the insets).
+# Must match renderer.lua's SLIDER_PAD (track inset inside the slider node —
+# the thumb travels between the insets). A click is mapped back to a seek
+# time through this, so drift puts the seek off where the user clicked.
+# Enforced by tests/test_python_lua_constants.py.
 _SLIDER_PAD = 8
 
 

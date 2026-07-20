@@ -110,7 +110,8 @@ end
 local phud_touch, phud_summon, phud_hide, phud_clear
 local phud_skip_show
 
--- Heuristic fallback — keep in sync with layout.py. Replaced at
+-- Heuristic fallback — must match layout.py's _NARROW/_WIDE/_*_W
+-- (enforced by tests/test_python_lua_constants.py). Replaced at
 -- runtime by measured advances via the mpvtk-metrics message.
 local NARROW = {}
 for c in ("iIljtfr.,:;!|'`()[]\""):gmatch('.') do NARROW[c] = true end
