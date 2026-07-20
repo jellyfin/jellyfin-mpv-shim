@@ -1087,8 +1087,16 @@ class OfflineLibrarySource:
                     name = _("Season %d") % pidx
                 else:
                     name = _("Episodes")
+                # SeriesId is load-bearing, not decoration: opening a Season
+                # tile reads it to build the season route (see app.py's
+                # item-type routing), and without it the route carried
+                # series_id=None — which get_episodes filters against, so
+                # every episode was discarded and the season read "Nothing
+                # here yet." The live source gets this for free from the
+                # server's own Season DTO.
                 seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
                              "Type": "Season", "ImageTags": {},
+                             "SeriesId": series_id,
                              "IndexNumber": pidx}
                 episodes_by_key[key] = []
                 order.append(key)

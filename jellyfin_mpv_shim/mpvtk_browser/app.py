@@ -1937,10 +1937,20 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         without the remembered value the default silently changes between
         launches on a multi-server setup.
         """
-        if server_uuid:
-            return server_uuid
         if not servers:
             return None
+        known = {s.get("uuid") for s in servers}
+        if server_uuid:
+            if server_uuid in known:
+                return server_uuid
+            # Asked for a server this source does not have. The reconnect path
+            # passes the CURRENT selection back in, and offline that selection
+            # is the "offline" sentinel from OfflineLibrarySource.servers() —
+            # handing it to a live source made every subsequent call blow up
+            # with KeyError: 'offline' until a restart. A removed or
+            # not-yet-connected server lands here too.
+            log.info("server %r is not in this source; picking another",
+                     server_uuid)
         # getattr, not a direct call: the browser is unit-tested with stub
         # controllers (and runs with controller=None offline).
         getter = getattr(self.controller, "get_last_server", None)
@@ -1950,7 +1960,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             except Exception:
                 log.debug("could not read last server", exc_info=True)
             else:
-                if last and last in {s.get("uuid") for s in servers}:
+                if last and last in known:
                     return last
         return servers[0]["uuid"]
 
