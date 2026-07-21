@@ -389,3 +389,29 @@ class QualifiedTitleTest(unittest.TestCase):
                  index_number=4)], [], lambda pid: [], {})
         self.assertEqual(
             tree[0]["children"][0]["children"][0]["title"], "Chapter Four")
+
+
+class EntryNumberingTest(unittest.TestCase):
+    """The view numbers item rows ("4. Chapter Four"). That reads correctly
+    under a season heading and not at all in a flat group whose titles
+    already spell out S01E04 -- and across mixed shows, a bare "4." means
+    nothing at all."""
+
+    def _entry_for(self, origin):
+        tree = group_downloads(
+            [row("a", name="Chapter Four", origin=origin, type="Episode",
+                 series_id="s1", series_name="Show", parent_index=1,
+                 index_number=4)], [], lambda pid: [], {})
+        group = tree[0]
+        # series groups nest a season; auto groups are flat
+        child = group["children"][0]
+        return child["children"][0] if child.get("kind") == "season" else child
+
+    def test_auto_entries_opt_out_of_numbering(self):
+        self.assertTrue(self._entry_for(ORIGIN_AUTO_NEXT_UP)["qualified"])
+
+    def test_series_entries_keep_numbering(self):
+        entry = self._entry_for(ORIGIN_USER)
+        self.assertFalse(entry["qualified"])
+        self.assertIsNotNone(entry["index"],
+                             "the season view still numbers its episodes")

@@ -106,6 +106,12 @@ def _entry(row, qualified=False):
         "id": row.get("item_id"),
         "title": qualified_title(row) if qualified else (
             row.get("name") or row.get("item_id")),
+        # The view numbers rows ("4. Chapter Four"), which reads correctly
+        # under a season heading and not at all in a flat group where the
+        # title already spells out S01E04. Carried on the entry rather than
+        # inferred from the group kind, so the renderer does not have to
+        # know which groups are flat.
+        "qualified": qualified,
         "status": row.get("status") or "",
         "size": row_size(row),
         "index": row.get("index_number"),

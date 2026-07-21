@@ -909,8 +909,12 @@ class SettingsMixin:
 
     def _dl_item_row(self, route, item, node_id, depth):
         num = item.get("index")
+        # Not numbered when the title is already qualified: those rows read
+        # "Show - S01E04 - Chapter Four", and a leading "4. " on top of that
+        # is both redundant and, in a group mixing shows, meaningless.
         title = ("%s. %s" % (num, item.get("title", ""))
-                 if num is not None else item.get("title", ""))
+                 if num is not None and not item.get("qualified")
+                 else item.get("title", ""))
         from .downloads import status_text
         # The watched marker is why "Remove Watched" is offered at all; with
         # no way to see which rows it means, the button read as a destructive
