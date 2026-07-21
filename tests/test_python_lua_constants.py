@@ -136,6 +136,45 @@ class TestSkipButtonGeometry(unittest.TestCase):
                    "rect, so a mismatch moves the clickable area away from "
                    "the button you can see")
 
+    def _pair_str(self, py_name, lua_name, why):
+        """Same as _pair, for the quoted colour constants."""
+        py = _one(rf'^{py_name} = "([0-9a-fA-F]{{6}})"$', _read(HUD), py_name)
+        lua = _one(rf"^local {lua_name} = '([0-9a-fA-F]{{6}})'$",
+                   _read(RENDERER), f"lua {lua_name}")
+        self.assertEqual(py.lower(), lua.lower(), why)
+
+    def test_background_colour_matches(self):
+        self._pair_str("_SKIP_BG", "PHUD_SKIP_BG",
+                       "the handoff would flash a different-coloured box")
+
+    def test_label_colour_matches(self):
+        self._pair_str("_SKIP_FG", "PHUD_SKIP_FG",
+                       "the handoff would flash a different-coloured label")
+
+    def test_opacity_matches(self):
+        self._pair("_SKIP_ALPHA", "PHUD_SKIP_ALPHA",
+                   "the handoff would flash a more/less transparent box")
+
+    def test_opacity_is_translucent_but_legible(self):
+        """A guard on the value itself, not parity: 255 is opaque (the old
+        look) and a very low value stops the label carrying over bright
+        frames. Both copies are pinned to each other above, so checking
+        one is enough."""
+        alpha = int(_one(r"^_SKIP_ALPHA = (\d+)$", _read(HUD), "_SKIP_ALPHA"))
+        self.assertLess(alpha, 255, "the button is meant to be translucent")
+        self.assertGreater(alpha, 120, "too transparent to read over video")
+
+    def test_the_colours_are_not_scaled(self):
+        """_SCALE_BASE members are multiplied by the UI scale. A colour or
+        an opacity in there becomes nonsense at any scale but 1."""
+        found = re.search(r"local _SCALE_BASE = \{(.*?)\}", _read(RENDERER),
+                          re.S)
+        self.assertIsNotNone(found, "could not find _SCALE_BASE")
+        base = found.group(1)
+        for name in ("PHUD_SKIP_BG", "PHUD_SKIP_FG", "PHUD_SKIP_ALPHA"):
+            self.assertNotIn(name, base,
+                             f"{name} must not be scaled with the geometry")
+
     def test_line_height_matches_the_layout_engine(self):
         py = float(_one(r"^LINE_H = ([0-9.]+)", _read(LAYOUT), "LINE_H"))
         lua = float(_one(r"^local PHUD_SKIP_LINE_H = ([0-9.]+)$",

@@ -1092,6 +1092,13 @@ local PHUD_SKIP_FS = 18
 local PHUD_SKIP_PAD = 10
 local PHUD_SKIP_RIGHT = 24
 local PHUD_SKIP_LINE_H = 1.25
+--   PHUD_SKIP_BG/_FG/_ALPHA  hud.py _SKIP_BG/_SKIP_FG/_SKIP_ALPHA
+-- Colours, so the handoff is not a colour flash. Deliberately NOT in
+-- _SCALE_BASE below: those are pixel geometry and get multiplied by the
+-- UI scale, which would turn an opacity into nonsense.
+local PHUD_SKIP_BG = '202020'
+local PHUD_SKIP_FG = 'ffffff'
+local PHUD_SKIP_ALPHA = 180
 
 local function draw_slider(ass, node, ex, ey, clip)
     -- No hover outline: the highlight means "this is what the arrows
@@ -1558,12 +1565,15 @@ render = function()
         state.phud.skip_rect = { x1 = x1, y1 = y1,
                                  x2 = x1 + bw, y2 = y1 + bh }
         draw_rect(ass, x1, y1, bw, bh,
-            { fill = 'eeeeee', a = 255, radius = 6 })
+            { fill = PHUD_SKIP_BG, a = PHUD_SKIP_ALPHA, radius = 6 })
         ass:new_event()
+        -- \1a&H00& keeps the label fully opaque over the translucent
+        -- box: the background is what softens against the picture, and
+        -- fading the text with it would cost legibility on bright frames.
         ass:append(string.format(
             '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
             '\\1a&H00&\\b0%s}',
-            x1 + bw / 2, y1 + bh / 2, fs, ass_color('111111'),
+            x1 + bw / 2, y1 + bh / 2, fs, ass_color(PHUD_SKIP_FG),
             ui_font and ('\\fn' .. ui_font) or ''))
         ass:append(esc(label))
     else

@@ -62,6 +62,17 @@ _SKIP_PAD = 10
 # buttons drifted apart horizontally by 24*(scale-1) px -- including the
 # renderer-drawn hit rect, which is what you actually click.
 _SKIP_RIGHT = 24
+# ...and the colours, for the same handoff reason: a mismatch here is a
+# flash of a different-coloured button on summon rather than a hop. Dark
+# translucent grey with white text, so the button reads as part of the
+# player's overlay furniture over any picture instead of a light chip
+# punched out of the video. _SKIP_ALPHA is opacity (255 = opaque) and
+# applies on hover too — renderer.lua reuses node.a whatever the hover
+# fill is, so only the fill changes under the pointer.
+_SKIP_BG = "202020"
+_SKIP_BG_HOVER = "3a3a3a"
+_SKIP_FG = "ffffff"
+_SKIP_ALPHA = 180
 
 
 def _episode_context(st):
@@ -427,7 +438,8 @@ def _skip_float(b, size):
         return None
     return Button(
         label, id="hud-skip", size=_SKIP_SIZE, pad=_SKIP_PAD,
-        bg="eeeeee", fg="111111", hover={"fill": "ffffff"},
+        bg=_SKIP_BG, alpha=_SKIP_ALPHA, fg=_SKIP_FG,
+        hover={"fill": _SKIP_BG_HOVER},
         on_click=lambda: _hud_action(b, "skip-segment"),
         anchor="se", dx=-_SKIP_RIGHT, dy=-_SKIP_BOTTOM)
 
