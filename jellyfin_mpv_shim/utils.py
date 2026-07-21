@@ -165,6 +165,18 @@ def get_profile(
             },
             {"Container": "jpeg", "Type": "Photo"},
         ],
+        # No Container / AudioCodec on these entries ON PURPOSE. An empty
+        # container in a DirectPlayProfile means "any" to the server
+        # (ContainerHelper.ContainsContainer treats empty as accept-all), so
+        # this declares that mpv can direct-play every container and codec —
+        # which, being ffmpeg-backed, it effectively can. Do NOT "tighten" this
+        # into an explicit list: the moment it is enumerated, anything left off
+        # (DSD, APE, WavPack, TAK, tracker modules, whatever this mpv build
+        # happens to support) silently transcodes to mp3 instead of direct
+        # playing. This is also why the shim does not use the /Audio/universal
+        # endpoint jellyfin-web uses for music — that endpoint has no wildcard
+        # and forces exactly that enumeration. The PlaybackInfo round trip this
+        # profile drives is ~20ms; it is not worth trading for a transcode risk.
         "DirectPlayProfiles": [{"Type": "Video"}, {"Type": "Audio"}, {"Type": "Photo"}],
         "ResponseProfiles": [],
         "ContainerProfiles": [],
