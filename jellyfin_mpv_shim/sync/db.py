@@ -73,10 +73,13 @@ CREATE TABLE IF NOT EXISTS downloads (
     source_json TEXT,
     userdata_json TEXT,
     added_at INTEGER,
-    -- See ORIGIN_*. NULL on rows written before auto-download existed, which
-    -- _migrate backfills to 'user': a pre-existing download was necessarily
-    -- asked for by hand, and defaulting the other way would let the reaper
-    -- delete someone's whole offline library on first run.
+    -- See ORIGIN_*. NULL on rows written before auto-download existed.
+    -- What actually keeps those rows safe is three-valued logic, not the
+    -- backfill: NULL GLOB 'auto*' is NULL, so auto_size/list_auto exclude
+    -- them, and is_auto(None) is False. _migrate backfills them to 'user'
+    -- anyway so the column reads honestly, but do NOT rewrite those queries
+    -- into a form that matches NULL (e.g. `origin IS NOT 'user'`) -- that
+    -- would make every un-backfilled legacy row reapable.
     origin TEXT,
     completed_at INTEGER
 );
@@ -109,6 +112,17 @@ CREATE TABLE IF NOT EXISTS playlist_items (
     PRIMARY KEY (playlist_id, item_id)
 );
 CREATE INDEX IF NOT EXISTS idx_playlist_items_item ON playlist_items(item_id);
+-- Auto-downloads the reaper deliberately threw away. Without this, dropping
+-- an unwatched episode after `keep_days` accomplishes nothing: it is still
+-- the server's Next Up (unwatched is exactly why it is there), so the very
+-- next pass re-downloads it, and the cycle repeats forever. A tombstone is
+-- the memory of "we fetched this and decided against it". Cleared when the
+-- user asks for the item explicitly, which is the one signal that overrides
+-- the decision.
+CREATE TABLE IF NOT EXISTS auto_discarded (
+    item_id TEXT PRIMARY KEY,
+    discarded_at INTEGER
+);
 """
 
 STATUS_PENDING = "pending"
@@ -160,24 +174,28 @@ class SyncDB:
             log.warning("Could not inspect the catalog schema", exc_info=True)
             return
         added = [c for c, _t in self._ADDED_COLUMNS if c not in have]
-        if not added:
-            return
         try:
             for col, decl in self._ADDED_COLUMNS:
                 if col in have:
                     continue
                 self._conn.execute(
                     "ALTER TABLE downloads ADD COLUMN %s %s" % (col, decl))
-            if "origin" in added:
-                # Everything already on disk predates auto-download, so it was
-                # necessarily requested by hand. Marking it 'user' is what
-                # stops the first reaper run from eating an existing library.
-                self._conn.execute(
-                    "UPDATE downloads SET origin = ? WHERE origin IS NULL",
-                    (ORIGIN_USER,))
+            # Unconditional, not gated on "did this run add the column":
+            # DDL autocommits, so a crash (or a failed backfill) between the
+            # ALTER and this UPDATE would otherwise leave origin NULL
+            # forever -- reopening would see the column present, skip the
+            # backfill and never repair it. As a WHERE-guarded update this
+            # is a no-op once clean, so running it every open is free.
+            self._conn.execute(
+                "UPDATE downloads SET origin = ? WHERE origin IS NULL",
+                (ORIGIN_USER,))
             self._conn.commit()
-            log.info("Catalog migrated: added %s", ", ".join(added))
+            if added:
+                log.info("Catalog migrated: added %s", ", ".join(added))
         except sqlite3.Error:
+            # Undoes the backfill only: ALTER TABLE autocommits under the
+            # legacy sqlite3 isolation this connection uses, so the columns
+            # stay. That is why the backfill above has to be self-healing.
             self._conn.rollback()
             # Not fatal: without these columns auto-download stays off (it
             # reads origin), but existing downloads and playback still work.
@@ -521,8 +539,16 @@ class SyncDB:
         """
         rows = self._query(
             "SELECT COALESCE(SUM(downloaded_bytes),0) AS s FROM downloads "
-            "WHERE origin LIKE ?", (AUTO_PREFIX + "%",))
+            "WHERE origin GLOB ?", (AUTO_PREFIX + "*",))
         return rows[0]["s"] if rows else 0
+
+    def list_auto_incomplete(self):
+        """Auto rows stuck in ERROR. They keep their partial bytes (counted
+        by auto_size) and the planner never retries them, so nothing else
+        would ever reclaim them."""
+        return self._query(
+            "SELECT * FROM downloads WHERE origin GLOB ? AND status=?",
+            (AUTO_PREFIX + "*", STATUS_ERROR))
 
     def list_auto(self, status=STATUS_COMPLETE):
         """Auto-downloads, oldest completion first — the reaper's eviction
@@ -530,9 +556,42 @@ class SyncDB:
         COALESCE falls back to added_at so those sort sensibly rather than
         all landing at the front."""
         return self._query(
-            "SELECT * FROM downloads WHERE origin LIKE ? AND status=? "
+            "SELECT * FROM downloads WHERE origin GLOB ? AND status=? "
             "ORDER BY COALESCE(completed_at, added_at, 0), rowid",
-            (AUTO_PREFIX + "%", status))
+            (AUTO_PREFIX + "*", status))
+
+    def mark_discarded(self, item_id):
+        """Remember that the reaper threw this away, so the planner does not
+        immediately fetch it again. See the auto_discarded table."""
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO auto_discarded VALUES (?, ?)",
+                    (item_id, int(time.time())))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def clear_discarded(self, item_id):
+        """Forget a tombstone — the user asked for this item by hand, which
+        overrides the reaper's decision."""
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "DELETE FROM auto_discarded WHERE item_id=?", (item_id,))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def discarded_ids(self):
+        return {r["item_id"] for r in
+                self._query("SELECT item_id FROM auto_discarded")}
 
     def set_origin(self, item_id, origin):
         """Promote an auto-download to user-owned (see ORIGIN_*). Only ever

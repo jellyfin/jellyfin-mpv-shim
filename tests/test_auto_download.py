@@ -35,11 +35,17 @@ class FakeApi:
         self.calls = []
 
     def get_next(self, limit=1):
-        self.calls.append(("get_next", limit))
-        return {"Items": list(self._next_up)}
+        # Present but never used: _next_up goes through shows("/NextUp") so
+        # it can ask for Fields (the helper has no such parameter, which is
+        # how every Next Up candidate ended up charged the unknown-size
+        # fallback). Reaching this is the regression.
+        raise AssertionError(
+            "get_next cannot request MediaSources; use shows('/NextUp')")
 
     def shows(self, handler, params=None):
         self.calls.append(("shows", handler, params))
+        if handler == "/NextUp":
+            return {"Items": list(self._next_up)}
         return {"Items": list(self._episodes)}
 
     def get_userdata_for_item(self, item_id):
@@ -433,8 +439,9 @@ class BudgetAccountingTest(AutoTest):
         api = FakeApi()
         auto = self._auto(clients={"srv": FakeClient(api)})
         auto.fill(100 * GB)
-        self.assertEqual([c for c in api.calls if c[0] == "get_next"],
-                         [("get_next", 10)])
+        nextup = [c for c in api.calls if c[1] == "/NextUp"]
+        self.assertEqual(len(nextup), 1)
+        self.assertEqual(nextup[0][2]["Limit"], 10)
 
     def test_an_unknown_size_still_costs_budget(self):
         """Counting these as free let an unbounded number through: the cap is
@@ -461,3 +468,115 @@ class BudgetAccountingTest(AutoTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NextUpSizingTest(AutoTest):
+    """Next Up is a list query and omits MediaSources unless asked. It was
+    not asked, so every candidate fell back to the unknown-size charge and
+    the cap was spent against a guess for 100% of them."""
+
+    def test_media_sources_are_requested(self):
+        settings.auto_download_lookahead = 0
+        api = FakeApi(next_up=[{"Id": "e1", "Type": "Episode"}])
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.fill(100 * GB)
+        params = next(c[2] for c in api.calls if c[1] == "/NextUp")
+        self.assertIn("MediaSources", params.get("Fields", ""))
+
+    def test_a_real_size_is_charged_not_the_fallback(self):
+        settings.auto_download_lookahead = 0
+        items = [{"Id": "e%d" % i, "Type": "Episode",
+                  "MediaSources": [{"Size": 1 * GB}]} for i in range(6)]
+        api = FakeApi(next_up=items)
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.fill(5 * GB)
+        # At the 2 GB unknown-size fallback only 3 would fit; at their real
+        # 1 GB, 5 do.
+        self.assertEqual(len(self.mgr.enqueued), 5)
+
+
+class DiscardMemoryTest(AutoTest):
+    """Dropping an unwatched episode on age is pointless if the next pass
+    re-downloads it -- and it would, because it is still Next Up."""
+
+    def setUp(self):
+        super().setUp()
+        self.old = 100000.0 - (31 * 86400)
+
+    def test_an_aged_out_item_is_tombstoned(self):
+        self.db.upsert(row("a1", completed_at=int(self.old)))
+        self._auto().reap()
+        self.assertIn("a1", self.db.discarded_ids())
+
+    def test_a_tombstoned_item_is_not_fetched_again(self):
+        self.db.mark_discarded("e1")
+        settings.auto_download_lookahead = 0
+        api = FakeApi(next_up=[{"Id": "e1", "Type": "Episode"}])
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.fill(100 * GB)
+        self.assertEqual(self.mgr.enqueued, [])
+
+    def test_a_watched_reap_leaves_no_tombstone(self):
+        """enqueue already skips watched items, and the user may rewatch."""
+        self.db.upsert(row("a1", played=True))
+        self._auto().reap()
+        self.assertEqual(self.db.discarded_ids(), set())
+
+    def test_a_cap_eviction_leaves_no_tombstone(self):
+        """Space pressure is not a judgement that the user does not want
+        the episode."""
+        settings.auto_download_delete_watched = False
+        settings.auto_download_keep_days = 0
+        settings.auto_download_max_gb = 1
+        self.db.upsert(row("a1", size=2 * GB, played=True))
+        self._auto().reap()
+        self.assertEqual(self.db.discarded_ids(), set())
+
+
+class InterruptionTest(AutoTest):
+    """A pass is dozens of blocking HTTP calls. stop() joins the worker with
+    a short timeout and closes the catalog regardless, so a pass that
+    ignores shutdown gets its writes dropped and its deletes applied to a
+    catalog that can no longer record them."""
+
+    def test_shutdown_stops_the_reaper(self):
+        for i in range(5):
+            self.db.upsert(row("a%d" % i, played=True))
+        mgr = FakeManager(self.db)
+        auto = AutoDownloader(mgr, get_clients=lambda: {},
+                              should_stop=lambda: True,
+                              now=lambda: 100000.0)
+        self.assertEqual(auto.reap(), 0)
+        self.assertEqual(mgr.deleted, [])
+
+    def test_playback_starting_stops_the_fill(self):
+        """is_busy was sampled once in due(); a pass then ran for minutes,
+        queueing downloads that competed with the stream."""
+        settings.auto_download_lookahead = 0
+        api = FakeApi(next_up=[{"Id": "e%d" % i, "Type": "Episode"}
+                               for i in range(5)])
+        auto = self._auto(clients={"srv": FakeClient(api)},
+                          is_busy=lambda: True)
+        self.assertEqual(auto.fill(100 * GB), 0)
+
+
+class NegativeCapTest(AutoTest):
+    def test_a_negative_cap_allows_nothing(self):
+        """Hand-editing -1 means "off"; clamping it up to 0 would hand the
+        user unlimited instead."""
+        settings.auto_download_max_gb = -1
+        self.assertEqual(self._auto().free_budget(), 0)
+
+    def test_zero_is_still_unlimited(self):
+        settings.auto_download_max_gb = 0
+        self.assertEqual(self._auto().free_budget(), float("inf"))
+
+
+class FailedRowReclaimTest(AutoTest):
+    def test_error_rows_are_reclaimed(self):
+        """They hold .part bytes, count against the cap, and the planner
+        never retries them, so nothing else would."""
+        from jellyfin_mpv_shim.sync.db import STATUS_ERROR
+        self.db.upsert(row("bad", status=STATUS_ERROR))
+        self.assertEqual(self._auto().reap(), 1)
+        self.assertEqual(self.mgr.deleted, ["bad"])

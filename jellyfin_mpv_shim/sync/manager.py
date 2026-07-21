@@ -93,7 +93,8 @@ class SyncManager:
         working, in which case auto-download simply finds no servers."""
         self.get_client = get_client
         self.auto = AutoDownloader(self, get_clients=get_clients,
-                                   is_busy=is_busy)
+                                   is_busy=is_busy,
+                                   should_stop=lambda: self._stop)
         self.root = settings.sync_path or os.path.join(confdir(APP_NAME), "offline")
         self._open_and_run()
 
@@ -350,9 +351,14 @@ class SyncManager:
                     row = self.db.get(iid)
                     if row and is_auto(row["origin"]):
                         self.db.set_origin(iid, ORIGIN_USER)
+                    self._clear_discard(iid)
                 continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):
                 continue
+            if origin == ORIGIN_USER:
+                # Asking for it by hand overrides a previous auto discard,
+                # which is the only signal that outranks the reaper.
+                self._clear_discard(iid)
             self._add_row(server_uuid, server_id, item, origin=origin)
             members.append(iid)
             added += 1
@@ -364,6 +370,15 @@ class SyncManager:
             self._notify_change()
             self._wake.set()
         return added
+
+    def _clear_discard(self, item_id):
+        """Best-effort: a missing tombstone table or a closed catalog must
+        not fail a download the user asked for."""
+        try:
+            self.db.clear_discarded(item_id)
+        except Exception:
+            log.debug("Could not clear the discard for %s", item_id,
+                      exc_info=True)
 
     def _record_playlist(self, server_uuid, server_id, api, playlist_id,
                          member_ids, pre_existing):

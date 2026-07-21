@@ -65,8 +65,15 @@ class AutoDownloader:
     """
 
     def __init__(self, manager, get_clients=None, is_busy=None,
-                 now=time.time):
+                 should_stop=None, now=time.time):
         self.manager = manager
+        #: () -> bool; True once the app is shutting down. A pass is dozens
+        #: of blocking HTTP calls, and SyncManager.stop() joins the worker
+        #: with a short timeout and then closes the catalog regardless — so
+        #: a pass that ignores this gets its writes silently dropped and its
+        #: file deletions applied to a catalog that can no longer record
+        #: them. The download loop polls the same flag every chunk.
+        self.should_stop = should_stop or (lambda: False)
         #: () -> {server_uuid: client}
         self.get_clients = get_clients or (lambda: {})
         #: () -> bool; True while media is playing. Injected rather than
@@ -106,10 +113,22 @@ class AutoDownloader:
 
     # -- the pass ----------------------------------------------------------
 
+    def _interrupted(self):
+        """Give up mid-pass on shutdown, or as soon as playback starts.
+
+        is_busy is re-checked here rather than only in due(): a pass is
+        long, and queueing downloads that then compete with the stream the
+        user just started is exactly what this module promises not to do.
+        """
+        return self.should_stop() or self.is_busy()
+
     def run(self):
         """One full pass: reap, then fill the freed space. Returns a summary
         dict (used by tests and the log line)."""
+        self._watched_cache = {}
         reaped = self.reap()
+        if self._interrupted():
+            return {"queued": 0, "reaped": reaped}
         queued = 0
         budget = self.free_budget()
         if budget <= 0:
@@ -124,13 +143,20 @@ class AutoDownloader:
     # -- budget ------------------------------------------------------------
 
     def cap_bytes(self):
-        return max(0, int(settings.auto_download_max_gb or 0)) * _GB
+        """Cap in bytes. 0 means unlimited; negative means nothing at all."""
+        return int(settings.auto_download_max_gb or 0) * _GB
 
     def free_budget(self):
-        """Bytes of headroom under the cap. A cap of 0 means unlimited, which
-        is deliberately reachable but not the default."""
+        """Bytes of headroom under the cap.
+
+        A cap of 0 is unlimited (reachable, not the default). A *negative*
+        cap allows nothing: someone hand-editing -1 means "off", and
+        clamping that up to 0 would hand them the opposite.
+        """
         cap = self.cap_bytes()
-        if cap <= 0:
+        if cap < 0:
+            return 0
+        if cap == 0:
             return float("inf")
         return cap - self.manager.db.auto_size()
 
@@ -143,15 +169,33 @@ class AutoDownloader:
         aged-out, then oldest-first purely to fit the cap. Only ever touches
         rows with an ``auto:`` origin.
         """
+        removed = 0
+        # ERROR rows keep their .part bytes, count against auto_size(), and
+        # are never retried by the planner (db.get finds them), so nothing
+        # else reclaims them.
+        try:
+            for row in self.manager.db.list_auto_incomplete():
+                if self._interrupted():
+                    return removed
+                self._delete(row, "failed download")
+                removed += 1
+        except Exception:
+            log.debug("Could not reclaim failed auto downloads",
+                      exc_info=True)
         rows = self.manager.db.list_auto(status=STATUS_COMPLETE)
         if not rows:
-            return 0
-        removed = 0
+            return removed
         keep = []
         for row in rows:
+            if self._interrupted():
+                return removed
             reason = self._retire_reason(row)
             if reason:
-                self._delete(row, reason)
+                # Only the age rule needs a tombstone. A watched item is
+                # skipped by enqueue's own include_watched=False, and a
+                # cap eviction is space pressure rather than a judgement
+                # that the user does not want the episode.
+                self._delete(row, reason, tombstone=reason.startswith("un"))
                 removed += 1
             else:
                 keep.append(row)
@@ -166,7 +210,7 @@ class AutoDownloader:
             size = sum((r["downloaded_bytes"] or 0) for r in keep)
             # keep is already oldest-first (list_auto orders by completed_at).
             for row in keep:
-                if size <= cap:
+                if size <= cap or self._interrupted():
                     break
                 if not self._is_watched(row):
                     continue
@@ -196,12 +240,21 @@ class AutoDownloader:
         be wrong.
         """
         item_id = row["item_id"]
+        cache = getattr(self, "_watched_cache", None)
+        if cache is not None and item_id in cache:
+            # The cap loop re-checks every survivor the retention loop
+            # already asked about; without this that is a second HTTP round
+            # trip per row, per pass.
+            return cache[item_id]
         client = self.manager.get_client(row["server_uuid"])
         if client is not None:
             try:
                 data = client.jellyfin.get_userdata_for_item(item_id)
                 if data is not None:
-                    return bool(data.get("Played"))
+                    played = bool(data.get("Played"))
+                    if cache is not None:
+                        cache[item_id] = played
+                    return played
             except Exception:
                 log.debug("Could not refresh userdata for %s", item_id,
                           exc_info=True)
@@ -210,10 +263,20 @@ class AutoDownloader:
         except Exception:
             return False
 
-    def _delete(self, row, reason):
+    def _delete(self, row, reason, tombstone=False):
         log.info("Auto-download: removing %s (%s).",
                  row["name"] or row["item_id"], reason)
         self.manager.delete(item_id=row["item_id"])
+        if tombstone:
+            # Remember the decision. An unwatched episode dropped on age is
+            # still the server's Next Up -- unwatched is why it is there --
+            # so without this the next pass re-downloads it and the cycle
+            # repeats every keep_days, forever.
+            try:
+                self.manager.db.mark_discarded(row["item_id"])
+            except Exception:
+                log.debug("Could not record the discard for %s",
+                          row["item_id"], exc_info=True)
 
     # -- planning ----------------------------------------------------------
 
@@ -229,12 +292,21 @@ class AutoDownloader:
         an overshoot throttles the pass after it rather than compounding.
         """
         queued = 0
+        try:
+            discarded = self.manager.db.discarded_ids()
+        except Exception:
+            log.debug("Could not read the discard list", exc_info=True)
+            discarded = set()
         for server_uuid, item, origin in self._candidates():
             if budget <= 0 or queued >= _MAX_PER_PASS:
+                break
+            if self._interrupted():
                 break
             item_id = item.get("Id")
             if not item_id or self.manager.db.get(item_id):
                 continue        # downloaded, queued, or errored — leave it
+            if item_id in discarded:
+                continue        # reaped on age; do not fetch it again
             added = self.manager.enqueue(server_uuid, item_id,
                                          item.get("Type") or "Episode",
                                          origin=origin)
@@ -303,7 +375,16 @@ class AutoDownloader:
         """
         limit = max(1, int(settings.auto_download_next_up_limit or 10))
         try:
-            result = api.get_next(limit=limit) or {}
+            # Not api.get_next(): /NextUp is a list query and omits
+            # MediaSources unless asked, and the apiclient helper has no
+            # Fields parameter in every version we support. Without the
+            # sizes every candidate fell back to _UNKNOWN_SIZE, so the cap
+            # was being spent against a guess for 100% of Next Up items.
+            result = api.shows("/NextUp", {
+                "UserId": "{UserId}",
+                "Limit": limit,
+                "Fields": _FIELDS,
+            }) or {}
         except Exception:
             log.debug("Next Up fetch failed", exc_info=True)
             return []
