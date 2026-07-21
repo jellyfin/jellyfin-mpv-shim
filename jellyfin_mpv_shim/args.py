@@ -48,6 +48,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="override mpv_log_level for this run",
     )
     parser.add_argument(
+        "--scale",
+        dest="ui_scale",
+        metavar="FACTOR",
+        type=float,
+        default=None,
+        help="scale the in-player UI by FACTOR for this run, e.g. 1.5 or 2 "
+        "(overrides ui_scale; not saved to the config)",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="surface debug-level application log messages (does not affect mpv verbosity)",

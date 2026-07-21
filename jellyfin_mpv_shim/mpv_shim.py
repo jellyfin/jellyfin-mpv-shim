@@ -34,6 +34,11 @@ def main():
         settings.start_minimized = args.start_minimized
     if args.mpv_loglevel is not None:
         settings.mpv_log_level = args.mpv_loglevel
+    if args.ui_scale is not None:
+        # In-memory only: settings.save() elsewhere would otherwise persist
+        # a scale the user asked for on ONE run. Resolved on the mpvtk
+        # ready event (app._resolve_scale), which reads settings.ui_scale.
+        settings.ui_scale = args.ui_scale
 
     if settings.sanitize_output:
         enable_sanitization()

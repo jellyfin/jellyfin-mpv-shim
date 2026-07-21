@@ -278,6 +278,8 @@ You can use the config file to enable and disable features.
   - Set a number (`1.5`, `2.0`) to force it. Handy on a 1x display to see what
     a HiDPI user gets, or to make the UI readable on a TV across the room.
   - Read once at startup; changing it requires a restart.
+  - `--scale FACTOR` overrides this for a single run without touching
+    the config, e.g. `jellyfin-mpv-shim --scale 1.5`.
   - Artwork is re-fetched from the server at the larger size, so scaling up
     stays sharp. Art from **offline sync** is the exception: it was downloaded
     at 1x and will be upscaled.
