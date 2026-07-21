@@ -272,6 +272,15 @@ You can use the config file to enable and disable features.
 - `start_minimized` - Start minimized to the tray instead of opening the library. Also ignored when no tray is available. Default: `false`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
+- `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
+  - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
+    X11 and the compositor's factor on Wayland/macOS.
+  - Set a number (`1.5`, `2.0`) to force it. Handy on a 1x display to see what
+    a HiDPI user gets, or to make the UI readable on a TV across the room.
+  - Read once at startup; changing it requires a restart.
+  - Artwork is re-fetched from the server at the larger size, so scaling up
+    stays sharp. Art from **offline sync** is the exception: it was downloaded
+    at 1x and will be upscaled.
 - `osc_style` - Which on-screen controller to use. Default: `mpvtk`
   - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
     browser inside the player window: top bar (back, title, SyncPlay),

@@ -3160,6 +3160,45 @@ mp.register_script_message('mpvtk-theme', function(json)
     request_render()
 end)
 
+-- UI scale. Scene nodes arrive already in physical pixels (Python converts
+-- in mpvtk.scaling.scale_scene), but these constants live only here, so
+-- they are scaled on receipt instead.
+--
+-- Bases are snapshotted at load so repeated messages don't compound, and
+-- the declarations above keep their literal form on purpose:
+-- tests/test_python_lua_constants.py pins several of them to their Python
+-- twins by matching the source text.
+local _SCALE_BASE = {
+    WHEEL_STEP = WHEEL_STEP,
+    SLIDER_PAD = SLIDER_PAD,
+    PHUD_SKIP_BOTTOM = PHUD_SKIP_BOTTOM,
+    PHUD_SKIP_FS = PHUD_SKIP_FS,
+    PHUD_SKIP_PAD = PHUD_SKIP_PAD,
+    NAV_LEAD = NAV_LEAD,
+    NAV_TAIL = NAV_TAIL,
+    FOLLOW_SLACK = FOLLOW_SLACK,
+}
+
+mp.register_script_message('mpvtk-scale', function(json)
+    local t = utils.parse_json(json)
+    if not t or not tonumber(t.s) then return end
+    local s = tonumber(t.s)
+    if s <= 0 then s = 1 end
+    state.scale = s
+    -- Same rounding as Python's scaling.px(); SLIDER_PAD in particular must
+    -- land on the identical value or clicks seek to the wrong time.
+    local function sc(v) return math.floor(v * s + 0.5) end
+    WHEEL_STEP = sc(_SCALE_BASE.WHEEL_STEP)
+    SLIDER_PAD = sc(_SCALE_BASE.SLIDER_PAD)
+    PHUD_SKIP_BOTTOM = sc(_SCALE_BASE.PHUD_SKIP_BOTTOM)
+    PHUD_SKIP_FS = sc(_SCALE_BASE.PHUD_SKIP_FS)
+    PHUD_SKIP_PAD = sc(_SCALE_BASE.PHUD_SKIP_PAD)
+    NAV_LEAD = sc(_SCALE_BASE.NAV_LEAD)
+    NAV_TAIL = sc(_SCALE_BASE.NAV_TAIL)
+    FOLLOW_SLACK = sc(_SCALE_BASE.FOLLOW_SLACK)
+    request_render()
+end)
+
 mp.register_script_message('mpvtk-scene', function(json)
     local scene, err = utils.parse_json(json)
     if not scene then

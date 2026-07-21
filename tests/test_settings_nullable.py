@@ -89,5 +89,56 @@ class ParseObjNullableTest(unittest.TestCase):
         self.assertIsNone(parsed.health_check_interval)
 
 
+class SettingsFormNullableTest(unittest.TestCase):
+    """The settings form must be able to write None back.
+
+    coerce() has no None branch -- float(None) raises -- so a dropdown
+    offering an explicit "unset" choice (ui_scale's "Follow display") saved
+    as "Invalid value" until set_setting learned which keys are nullable.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        from jellyfin_mpv_shim.conf import settings
+
+        self.cfg = cfg
+        self.settings = settings
+        self._saved_save = settings.save
+        self._saved_scale = settings.ui_scale
+        settings.save = lambda *a, **k: None   # no config file under test
+
+    def tearDown(self):
+        self.settings.ui_scale = self._saved_scale
+        self.settings.save = self._saved_save
+
+    def test_every_ui_scale_choice_saves(self):
+        for label, value in self.cfg.LABELED_ENUMS["ui_scale"]:
+            with self.subTest(choice=label):
+                self.assertTrue(self.cfg.set_setting("ui_scale", value))
+                self.assertEqual(self.settings.ui_scale, value)
+
+    def test_none_is_refused_for_a_non_nullable_key(self):
+        self.assertFalse(self.cfg.set_setting("local_kbps", None))
+
+    def test_is_nullable_reads_the_annotation(self):
+        self.assertTrue(self.cfg.is_nullable("ui_scale"))
+        self.assertFalse(self.cfg.is_nullable("osc_style"))
+
+    def test_the_dropdown_preselects_follow_display_when_unset(self):
+        """The row picks the current index by string comparison, so None
+        has to match the None-valued option rather than falling back to 0
+        by accident."""
+        opts = self.cfg.LABELED_ENUMS["ui_scale"]
+        idx = next((i for i, (_l, v) in enumerate(opts)
+                    if str(v) == str(None)), None)
+        self.assertIsNotNone(idx)
+        self.assertIsNone(opts[idx][1])
+
+    def test_ui_scale_is_offered_in_the_interface_section(self):
+        section = next(keys for name, keys in self.cfg.SECTIONS
+                       if "osc_style" in keys)
+        self.assertIn("ui_scale", section)
+
+
 if __name__ == "__main__":
     unittest.main()

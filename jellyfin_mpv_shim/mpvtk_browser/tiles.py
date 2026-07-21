@@ -14,6 +14,7 @@ import logging
 import time
 
 from ..i18n import _
+from ..mpvtk.scaling import px, raster
 from ..mpvtk.widgets import (
     Box,
     Column,
@@ -108,7 +109,11 @@ class TilesMixin:
     def _poster_for(self, item, geom, image_type="Primary"):
         """Return (PIL image or None, cache tag). Requests the poster once
         if absent; the strip recomposites when it arrives (tag changes)."""
-        w, h = geom.tile_w, geom.tile_h
+        # Art is fetched at physical size: the renderer crops rather than
+        # resamples, so a 1x poster under a 2x UI would render as a corner
+        # fragment. Jellyfin resizes server-side, so this costs nothing but
+        # bandwidth.
+        w, h = raster(geom.tile_w, geom.tile_h)
         if "_image_url" in item:
             # A pseudo-item (a chapter) carrying its own spec+url: chapter
             # art is indexed, so it isn't addressable through image_spec.
@@ -117,11 +122,10 @@ class TilesMixin:
                 return None, ""
             key = make_key(spec[0], spec[1], spec[2], w, h)
             return self._request_image(key, url, (w, h)), key
-        spec = self.source.image_spec(item, image_type, geom.tile_w)
+        spec = self.source.image_spec(item, image_type, w)
         if not spec or self.server is None:
             return None, ""
         item_id, itype, itag = spec
-        w, h = geom.tile_w, geom.tile_h
         key = make_key(item_id, itype, itag, w, h)
         url = self.source.image_url(self.server, item_id, itype, itag,
                                     w, h, fill=True)
@@ -132,16 +136,23 @@ class TilesMixin:
         a placeholder box while it loads or when the item has none.
         Each cell is its own overlay, so only use in virtualized or
         short tables (the 63-overlay budget is shared)."""
-        spec = self.source.image_spec(item, "Primary", size)
+        ps = px(size)
+        spec = self.source.image_spec(item, "Primary", ps)
         if spec and self.server is not None:
             item_id, itype, itag = spec
-            key = make_key(item_id, itype, itag, size, size)
+            key = make_key(item_id, itype, itag, ps, ps)
             url = self.source.image_url(self.server, item_id, itype,
-                                        itag, size, size, fill=True)
-            img = self._request_image(key, url, (size, size))
+                                        itag, ps, ps, fill=True)
+            img = self._request_image(key, url, (ps, ps))
             if img is not None:
+                # No lsize: this is decoded artwork, not a canvas we sized.
+                # The server preserves aspect, so a "square" request comes
+                # back e.g. 56x52 and the logical footprint is whatever the
+                # bitmap actually is. What must be scaled here is the
+                # *request* above, not the result.
                 b = self.strips.bitmap(key, img)
-                return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0))
+                return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0),
+                             w=b["lw"], h=b["lh"])
         return self._art_placeholder(size)
 
     @staticmethod
@@ -210,19 +221,23 @@ class TilesMixin:
             spec = self.source.backdrop_spec(item)
         if spec:
             owner_id, tag = spec
-            key = make_key(owner_id, "Backdrop", tag, box[0], box[1])
+            # box is logical (it came off the surface width); the bitmap and
+            # everything baked into it are physical.
+            pbox = raster(*box)
+            key = make_key(owner_id, "Backdrop", tag, pbox[0], pbox[1])
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
-                                      box[0], box[1])
-            url = self.source.backdrop_url(self.server, item, width=box[0],
-                                           height=box[1], fill=True)
+                                      pbox[0], pbox[1])
+            url = self.source.backdrop_url(self.server, item, width=pbox[0],
+                                           height=pbox[1], fill=True)
             # Request at the *source* aspect and crop to the banner below, so
             # a shallow banner doesn't ask the server for a squashed image.
-            img = self._request_image(key, url, (box[0], box[0]))
+            img = self._request_image(key, url, (pbox[0], pbox[0]))
             if img is not None:
                 b = self.strips.bitmap(key, self._compose_banner(
-                    img, box, title, meta, context))
-                return Image(b["src"], b["iw"], b["ih"], id=node_id, v=b.get("v", 0))
+                    img, pbox, title, meta, context), lsize=box)
+                return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                             v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
 
@@ -286,6 +301,9 @@ class TilesMixin:
         from ..imageutil import (apply_dark_gradient, pil_font,
                                  scale_to_cover)
 
+        # box is PHYSICAL here; the bare sizes below are logical constants,
+        # so they convert. The h//6 and w//40 terms are already physical
+        # because they derive from box.
         w, h = box
         canvas = scale_to_cover(image.convert("RGBA"), w, h)
         if not title:
@@ -293,29 +311,29 @@ class TilesMixin:
         canvas = apply_dark_gradient(canvas, height_fraction=0.7,
                                      max_alpha=215)
         draw = ImageDraw.Draw(canvas)
-        margin = max(18, w // 40)
+        margin = max(px(18), w // 40)
         avail = w - 2 * margin
         # Smaller than it was: the heading has up to three stacked lines to
         # fit inside the gradient now, not one.
-        size = max(20, min(34, h // 6))
+        size = max(px(20), min(px(34), h // 6))
         y = h - margin
         if meta:
             f = pil_font(int(size * 0.6), text=meta)
             asc, desc = f.getmetrics()
             draw.text((margin, y - asc - desc), meta, font=f,
                       fill=(200, 200, 200, 255))
-            y -= asc + desc + 6
+            y -= asc + desc + px(6)
         f = pil_font(size, bold=True, text=title)
         asc, desc = f.getmetrics()
         for line in reversed(cls._wrap_pil(draw, title, f, avail)):
             draw.text((margin, y - asc - desc), line, font=f,
                       fill=(255, 255, 255, 255))
-            y -= asc + desc + 2
+            y -= asc + desc + px(2)
         if context:
             f = pil_font(int(size * 0.62), text=context)
             asc, desc = f.getmetrics()
             line = cls._wrap_pil(draw, context, f, avail, max_lines=1)[0]
-            draw.text((margin, y - asc - desc + 2), line, font=f,
+            draw.text((margin, y - asc - desc + px(2)), line, font=f,
                       fill=(215, 215, 215, 255))
         return canvas
 
@@ -352,7 +370,7 @@ class TilesMixin:
                 on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
-                        v=s.get("v", 0))
+                        v=s.get("v", 0), w=s["lw"], h=s["lh"])
 
     # ------------------------------------------------------ tile context menu
 

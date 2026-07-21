@@ -299,8 +299,13 @@ class CastMixin:
     def _composite(self, data, size):
         from PIL import Image
 
+        from ..mpvtk.scaling import raster
+
         try:
-            w, h = size
+            # size is logical (it comes from the view build); the canvas is
+            # a real bitmap, so it is physical.
+            lw, lh = size
+            w, h = raster(lw, lh)
             if data.get("idle"):
                 title = _("Ready to cast")
                 overview = _("Select your media in Jellyfin and play it here.")
@@ -335,7 +340,7 @@ class CastMixin:
                     "\x00".join((title, misc, rating, overview,
                                  self._cast_backdrop_key or "")).encode("utf-8")
                 ).hexdigest())
-            entry = self.strips.bitmap(key, canvas)
+            entry = self.strips.bitmap(key, canvas, lsize=(lw, lh))
             with self._cast_lock:
                 self._cast_entry = entry
             self.invalidate()
@@ -365,20 +370,25 @@ class CastMixin:
     def _draw_text(self, canvas, title, misc, rating, overview, cw, ch):
         from PIL import ImageDraw
 
+        from ..mpvtk.scaling import px
+
         draw = ImageDraw.Draw(canvas)
-        margin = max(40, cw // 30)
+        # cw/ch are PHYSICAL, so the //30-style terms already scale; the
+        # bare floors and caps are logical constants and convert.
+        margin = max(px(40), cw // 30)
         wrap = cw - 2 * margin
-        info_size = max(14, min(28, ch // 50))
-        body_size = max(18, min(36, ch // 30))
+        info_size = max(px(14), min(px(28), ch // 50))
+        body_size = max(px(18), min(px(36), ch // 30))
         title = (title or "")[:200]
-        base = max(36, min(96, ch // 14))
+        base = max(px(36), min(px(96), ch // 14))
         title_size = int(base * (0.6 if len(title) > 60
                                  else 0.75 if len(title) > 40 else 1.0))
 
         # Bottom-up: overview, then misc·rating, then the title.
         y = ch - margin
 
-        def stack(text, font, fill, gap=18):
+        def stack(text, font, fill, gap=None):
+            gap = px(18) if gap is None else gap
             nonlocal y
             if not text:
                 return
@@ -387,11 +397,11 @@ class CastMixin:
                 asc, desc = font.getmetrics()
                 lh = asc + desc
                 draw.text((margin, y - lh), line, font=font, fill=fill)
-                y -= lh + 4
-            y -= gap - 4
+                y -= lh + px(4)
+            y -= gap - px(4)
 
         info = "    ".join(s for s in (misc, rating) if s)
         stack(overview, pil_font(body_size, text=overview), (221, 221, 221))
         stack(info, pil_font(info_size, text=info), (187, 187, 187))
         stack(title, pil_font(title_size, bold=True, text=title),
-              (255, 255, 255), gap=8)
+              (255, 255, 255), gap=px(8))

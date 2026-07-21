@@ -15,6 +15,7 @@ import threading
 import time
 
 from . import theme
+from . import scaling
 from .layout import layout, set_metrics
 from .metrics import extend_metrics, measure_font
 
@@ -298,6 +299,18 @@ class MpvtkApp:
         self._dirty = True
         self._queue.put(("wake", None))
 
+    @property
+    def logical_size(self):
+        """Surface size in LOGICAL pixels -- what views build against.
+
+        Handing views this rather than the physical size is what keeps
+        everything derived from it logical too, so e.g. hud.py's
+        responsive sz() composes with the user scale instead of applying
+        on top of it."""
+        if self.size is None:
+            return None
+        return scaling.logical_size(self.size)
+
     def _push_metrics(self):
         """Measured glyph advances -> layout engine + renderer, so both
         sides agree on real text widths (falls back to the heuristic
@@ -321,6 +334,36 @@ class MpvtkApp:
         self.backend.command(
             "script-message", "mpvtk-theme", json.dumps(theme.palette())
         )
+
+    def push_scale(self):
+        """Forward the UI scale to the renderer.
+
+        Nodes arrive already-physical, but the renderer has pixel
+        constants of its own (wheel step, slider padding, the idle Skip
+        button, tooltip offsets) that no scene node covers."""
+        self.backend.command(
+            "script-message", "mpvtk-scale", json.dumps({"s": scaling.scale()})
+        )
+
+    def _resolve_scale(self):
+        """settings.ui_scale, or the display's own factor when unset.
+
+        Read once, on ready: rescaling live would mean dropping every
+        cached bitmap, and StripStore.clear() is only safe on the libmpv
+        path once mpv is dead."""
+        from ..conf import settings
+
+        want = getattr(settings, "ui_scale", None)
+        if want is None:
+            try:
+                want = self.backend.get_property("display-hidpi-scale")
+            except Exception:
+                # Not every VO/backend exposes it; 1.0 is the honest
+                # default rather than a guess.
+                want = None
+        s = scaling.set_scale(want if want else 1.0)
+        if s != 1.0:
+            log.info("UI scale: %gx", s)
 
     @staticmethod
     def _scene_texts(nodes):
@@ -372,7 +415,7 @@ class MpvtkApp:
         self._dirty = False
         t0 = time.perf_counter()
         try:
-            tree = self._build(self.size)
+            tree = self._build(self.logical_size)
         except Exception:
             # Event handlers are already guarded; builds were not, so one
             # exception in any view killed the whole UI loop. Views index
@@ -383,11 +426,16 @@ class MpvtkApp:
                       exc_info=True)
             return
         t1 = time.perf_counter()
-        nodes, handlers = layout(tree, *self.size)
+        lsize = self.logical_size
+        nodes, handlers = layout(tree, *lsize)
         if self._extend_metrics(self._scene_texts(nodes)):
             # novel glyphs got measured: lay out once more with the
             # accurate widths (builds cost ~0.3ms; this is rare)
-            nodes, handlers = layout(self._build(self.size), *self.size)
+            nodes, handlers = layout(self._build(lsize), *lsize)
+        # Logical -> physical. The scene's own w/h stay physical: the
+        # renderer pins the ASS PlayRes to them, and overlay bitmaps
+        # composite in real pixels regardless.
+        scaling.scale_scene(nodes)
         self._handlers = handlers
         self._nodes = nodes
         scene = {"v": 1, "w": self.size[0], "h": self.size[1], "nodes": nodes}
@@ -432,8 +480,10 @@ class MpvtkApp:
             self.size = (evt["w"], evt["h"])
             self._dirty = True
             if t == "ready":
+                self._resolve_scale()
                 self._push_metrics()
                 self.push_theme()
+                self.push_scale()
                 self.ready.set()
             return
         if t == "debug_state":
@@ -488,9 +538,14 @@ class MpvtkApp:
             elif t == "select":
                 fn(evt.get("index", 0), evt.get("value"))
             elif t == "scroll":
-                fn(evt.get("offset", 0), evt.get("max", 0))
+                # The renderer scrolls in physical pixels; views window
+                # their content against logical row heights.
+                fn(scaling.dip(evt.get("offset", 0)),
+                   scaling.dip(evt.get("max", 0)))
             elif t == "context":
-                fn(evt.get("x", 0), evt.get("y", 0))
+                # Mouse position, likewise physical on the wire.
+                fn(scaling.dip(evt.get("x", 0)),
+                   scaling.dip(evt.get("y", 0)))
             elif t == "dismiss":
                 fn()
         except Exception:
@@ -627,8 +682,20 @@ class MpvtkApp:
         scroll nodes) or None."""
         for n in self._nodes or []:
             if n["id"] == node_id:
-                return n
+                return self._logical_rect(n)
         return None
+
+    @staticmethod
+    def _logical_rect(node):
+        """Scene nodes are physical (scale_scene ran before the push), but
+        callers use these to position widgets, which is logical work."""
+        if scaling.scale() == 1.0:
+            return node
+        out = dict(node)
+        for key in ("x", "y", "w", "h", "cw", "ch"):
+            if out.get(key) is not None:
+                out[key] = scaling.dip(out[key])
+        return out
 
     def scroll_offsets(self):
         """Synchronous snapshot of the renderer's live scroll offsets
@@ -637,4 +704,7 @@ class MpvtkApp:
         event. Empty when nothing has scrolled yet (or mpv < 0.36,
         which lacks ``user-data``)."""
         v = self.backend.get_property("user-data/mpvtk/scroll")
-        return v if isinstance(v, dict) else {}
+        if not isinstance(v, dict):
+            return {}
+        # Physical on the renderer side; logical for everyone here.
+        return {k: scaling.dip(px) for k, px in v.items()}

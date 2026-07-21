@@ -678,7 +678,10 @@ def _preview_float(b, secs, dur, size, chapters):
         rows.append(Text(chapter, size=14, color="dddddd",
                          align="center"))
     rows.append(Text(_clock(secs), size=14, bold=True, align="center"))
-    bw = max(entry["iw"] if entry is not None else 0, 120) + 16
+    # lw, not iw: this is bubble geometry in logical space, and iw is the
+    # frame's physical width (trickplay frames are sized by the video, not
+    # by a logical box, so the two differ at any scale != 1).
+    bw = max(entry["lw"] if entry is not None else 0, 120) + 16
     frac = max(0.0, min(1.0, secs / dur))
     track_x = rect["x"] + _SLIDER_PAD
     track_w = rect["w"] - 2 * _SLIDER_PAD

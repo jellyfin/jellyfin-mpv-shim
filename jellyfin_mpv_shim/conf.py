@@ -213,6 +213,14 @@ class Settings(SettingsBase):
     # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
     # name was retired once the HUD reached parity).
     osc_style: str = "mpvtk"
+    # Scale factor for the whole in-player UI (tiles, text, chrome).
+    # null follows the display: mpv's display-hidpi-scale, which is 1.0
+    # on X11 and the compositor's factor on Wayland/macOS. Set a number
+    # (1.5, 2.0) to force it — useful on a 1x display to see what a HiDPI
+    # user gets. Read once at startup; changing it needs a restart,
+    # because rescaling live means dropping every cached bitmap and that
+    # is only safe on the libmpv path once mpv is gone.
+    ui_scale: Optional[float] = None
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.

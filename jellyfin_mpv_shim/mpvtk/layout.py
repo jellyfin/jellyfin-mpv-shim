@@ -467,8 +467,10 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         return
 
     if isinstance(el, Image):
-        # containers may assign a stretched size; images never stretch
-        w, h = min(w, el.iw), min(h, el.ih)
+        # containers may assign a stretched size; images never stretch.
+        # Clamp against the LOGICAL footprint: iw/ih are physical, and at
+        # any scale != 1 comparing them to a logical w/h mixes spaces.
+        w, h = min(w, el.lw), min(h, el.lh)
         node = _base(el, "img", x, y, w, h, sc, path)
         node["src"] = el.src
         node["iw"] = el.iw
@@ -484,7 +486,7 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         return
 
     if isinstance(el, ImageMap):
-        w, h = min(w, el.iw), min(h, el.ih)
+        w, h = min(w, el.lw), min(h, el.lh)
         node = _base(el, "img", x, y, w, h, sc, path)
         node["src"] = el.src
         node["iw"] = el.iw

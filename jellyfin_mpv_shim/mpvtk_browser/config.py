@@ -25,7 +25,7 @@ SECTIONS = [
     (_("Interface"), ["player_name", "browser_fullscreen",
                       "headless",
                       "enable_gui", "start_minimized", "close_to_tray",
-                      "fullscreen", "enable_osc", "osc_style",
+                      "fullscreen", "ui_scale", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
                       "check_updates", "notify_updates"]),
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
@@ -62,6 +62,13 @@ LABELED_ENUMS = {
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
     ],
+    "ui_scale": [
+        (_("Follow display"), None),
+        (_("100% (no scaling)"), 1.0),
+        (_("125%"), 1.25),
+        (_("150%"), 1.5),
+        (_("200%"), 2.0),
+    ],
     "language_preference": [
         (_("Unset"), "unset"),
         (_("Dubbed (shows only)"), "dubbed_shows"),
@@ -77,6 +84,7 @@ LABEL_OVERRIDES = {
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "close_to_tray": _("Close to Tray (keep running)"),
     "osc_style": _("Player Controls Style"),
+    "ui_scale": _("Interface Scale"),
     "headless": _("Cast-target mode (no library browsing)"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
@@ -88,6 +96,8 @@ LABEL_OVERRIDES = {
 NOTES = {
     "osc_style": _("MPV keybinds are used by default. Press ENTER to drive "
                    "the player controls by keyboard."),
+    "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
+                  "scale your desktop reports, which is 100% on X11."),
 }
 
 _ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC",
@@ -134,6 +144,19 @@ def _classify(ann):
         if len(non_none) == 1:
             return _classify(non_none[0])
     return "skip"  # lists / structured configs — not editable in the flat form
+
+
+def is_nullable(key):
+    """True when the key's annotation is Optional[...].
+
+    settings_schema() collapses Optional[float] to "float" (the form only
+    needs the editor kind), but a nullable key can legitimately be set back
+    to None -- ui_scale's "Follow display" is exactly that -- and coerce()
+    would otherwise raise on it.
+    """
+    ann = Settings.__annotations__.get(key)
+    return (typing.get_origin(ann) is typing.Union
+            and type(None) in typing.get_args(ann))
 
 
 def settings_schema():
@@ -191,7 +214,10 @@ def set_setting(key, value):
     if kind is None:
         return False
     try:
-        setattr(settings, key, coerce(kind, value))
+        if value is None and is_nullable(key):
+            setattr(settings, key, None)
+        else:
+            setattr(settings, key, coerce(kind, value))
     except (ValueError, TypeError):
         return False
     if key in ("language_preference", "preferred_language"):

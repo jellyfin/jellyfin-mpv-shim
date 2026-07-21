@@ -42,6 +42,13 @@ from . import theme
 
 log = logging.getLogger("mpvtk_browser.strips")
 
+def _px(v):
+    """Logical -> physical, for constants baked into a strip bitmap."""
+    from ..mpvtk.scaling import px
+
+    return px(v)
+
+
 def _font(size, bold=False, text=None):
     """Font for baked caption text. ``text`` selects the script-appropriate
     face — Pillow does no font fallback, so a Japanese title drawn with the
@@ -68,6 +75,20 @@ class TileGeom:
     @property
     def strip_h(self):
         return self.tile_h + self.caption_h
+
+    def physical(self):
+        """A copy with every pixel field converted to physical px.
+
+        TileGeom is authored in LOGICAL units like the rest of the view
+        layer; only the compositor below works in physical pixels, because
+        the renderer crops bitmaps rather than resampling them."""
+        from ..mpvtk.scaling import px
+
+        return TileGeom(
+            tile_w=px(self.tile_w), tile_h=px(self.tile_h), gap=px(self.gap),
+            caption_h=px(self.caption_h), title_size=px(self.title_size),
+            sub_size=px(self.sub_size), badge_size=px(self.badge_size),
+        )
 
 
 # Tile shapes, matching the Tk browser's poster_box/thumb_box/square_box.
@@ -174,11 +195,13 @@ class StripStore:
             self._evict()
         return entry
 
-    def bitmap(self, key, image):
+    def bitmap(self, key, image, lsize=None):
         """Cache a single arbitrary image as BGRA (backdrops, logos, art) in
         the same store/LRU as strips. ``key`` must identify the content;
-        ``image`` is a PIL image already at display size. Returns
-        ``{"src", "iw", "ih", "v"}``."""
+        ``image`` is a PIL image already at **physical** display size.
+        ``lsize`` is the logical (w, h) box it was rasterized for — pass it
+        whenever a logical box drove the size, so the Image widget can check
+        the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``."""
         ck = ("bitmap", key)
         with self._lock:
             hit = self._cache.get(ck)
@@ -188,7 +211,10 @@ class StripStore:
                 return hit
             self.misses += 1
         src, w, h, v = self._store(image)
-        entry = {"src": src, "iw": w, "ih": h, "v": v}
+        from ..mpvtk.scaling import dip
+
+        lw, lh = lsize if lsize is not None else (dip(w), dip(h))
+        entry = {"src": src, "iw": w, "ih": h, "lw": lw, "lh": lh, "v": v}
         with self._lock:
             self._cache[ck] = entry
             self._evict()
@@ -212,21 +238,32 @@ class StripStore:
     def _compose(self, tiles, g):
         from PIL import Image as PILImage, ImageDraw
 
+        from ..mpvtk.scaling import px, raster
+
         n = len(tiles)
-        iw = n * g.tile_w + (n - 1) * g.gap if n else 1
-        img = PILImage.new("RGBA", (iw, g.strip_h), (0, 0, 0, 0))
+        # Logical footprint first, then a canvas that is exactly raster() of
+        # it — that identity is what widgets._check_raster verifies, and it
+        # keeps the bitmap's stride in step with the box layout reserved.
+        lw = n * g.tile_w + (n - 1) * g.gap if n else 1
+        lh = g.strip_h
+        pg = g.physical()
+        img = PILImage.new("RGBA", raster(lw, lh), (0, 0, 0, 0))
         dr = ImageDraw.Draw(img)
         regions = []
         for col, t in enumerate(tiles):
-            x = col * (g.tile_w + g.gap)
-            self._paint_poster(img, dr, x, t, g)
-            self._paint_decorations(dr, x, t, g)
-            self._paint_caption(dr, x, t, g)
+            # Tile origin in logical units: regions are consumed by layout,
+            # which runs logical. Painting converts, per tile, so rounding
+            # never accumulates across a long strip.
+            lx = col * (g.tile_w + g.gap)
+            self._paint_poster(img, dr, px(lx), t, pg)
+            self._paint_decorations(dr, px(lx), t, pg)
+            self._paint_caption(dr, px(lx), t, pg)
             regions.append(
-                {"x": x, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
+                {"x": lx, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
             )
         src, iw2, ih2, v = self._store(img)
-        return {"src": src, "iw": iw2, "ih": ih2, "v": v, "regions": regions}
+        return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh,
+                "v": v, "regions": regions}
 
     def _paint_poster(self, img, dr, x, t, g):
         from PIL import Image as PILImage
@@ -247,7 +284,7 @@ class StripStore:
             img.paste(poster, (px, py))
         elif t.glyph:
             # A muted centered glyph (first initial / ♪) so blank tiles read.
-            gsize = max(24, g.tile_h // 4)
+            gsize = max(_px(24), g.tile_h // 4)
             dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
                     font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
                     fill=theme.rgb(theme.SUBTLE_FG))
@@ -257,38 +294,47 @@ class StripStore:
         )
 
     def _paint_decorations(self, dr, x, t, g):
+        # NB every bare offset in here is a logical constant being drawn
+        # into a physical bitmap, so it goes through _px(). g is already
+        # physical (see _compose); mixing the two silently is how a scaled
+        # tile ends up with 1x decorations pinned to its corner.
+        lw = max(1, _px(2))          # decoration stroke width
         if t.watched:
-            dr.ellipse([x + 6, 6, x + 28, 28],
+            dr.ellipse([x + _px(6), _px(6), x + _px(28), _px(28)],
                        fill=theme.rgb(theme.ACCENT, 255))
-            dr.line([(x + 12, 17), (x + 16, 22), (x + 23, 12)],
-                    fill=(255, 255, 255, 255), width=2)
+            dr.line([(x + _px(12), _px(17)), (x + _px(16), _px(22)),
+                     (x + _px(23), _px(12))],
+                    fill=(255, 255, 255, 255), width=lw)
         # Top-right corner: downloaded badge takes priority over the
         # unplayed-count badge (they rarely coexist).
         if t.downloaded:
-            cx, cy = x + g.tile_w - 17, 17
-            dr.ellipse([cx - 11, cy - 11, cx + 11, cy + 11],
+            cx, cy = x + g.tile_w - _px(17), _px(17)
+            r = _px(11)
+            dr.ellipse([cx - r, cy - r, cx + r, cy + r],
                        fill=theme.rgb(theme.ACCENT, 255))
-            dr.line([(cx, cy - 5), (cx, cy + 4)],
-                    fill=(255, 255, 255, 255), width=2)
-            dr.line([(cx - 4, cy), (cx, cy + 4), (cx + 4, cy)],
-                    fill=(255, 255, 255, 255), width=2)
-            dr.line([(cx - 5, cy + 7), (cx + 5, cy + 7)],
-                    fill=(255, 255, 255, 255), width=2)
+            dr.line([(cx, cy - _px(5)), (cx, cy + _px(4))],
+                    fill=(255, 255, 255, 255), width=lw)
+            dr.line([(cx - _px(4), cy), (cx, cy + _px(4)), (cx + _px(4), cy)],
+                    fill=(255, 255, 255, 255), width=lw)
+            dr.line([(cx - _px(5), cy + _px(7)), (cx + _px(5), cy + _px(7))],
+                    fill=(255, 255, 255, 255), width=lw)
         elif t.badge:
-            bw = 26
+            bw = _px(26)
             dr.rounded_rectangle(
-                [x + g.tile_w - bw - 5, 5, x + g.tile_w - 5, 25],
-                radius=6, fill=theme.rgb(theme.ACCENT, 255),
+                [x + g.tile_w - bw - _px(5), _px(5),
+                 x + g.tile_w - _px(5), _px(25)],
+                radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
-            dr.text((x + g.tile_w - 5 - bw / 2, 15), str(t.badge),
+            dr.text((x + g.tile_w - _px(5) - bw / 2, _px(15)), str(t.badge),
                     font=_font(g.badge_size, bold=True), anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
-            dr.rectangle([x, g.tile_h - 6, x + g.tile_w - 1, g.tile_h - 1],
+            bar = _px(6)
+            dr.rectangle([x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
                          fill=theme.rgb(theme.PROGRESS_TRACK, 200))
             dr.rectangle(
-                [x, g.tile_h - 6,
+                [x, g.tile_h - bar,
                  x + int((g.tile_w - 1) * frac), g.tile_h - 1],
                 fill=theme.rgb(theme.ACCENT, 255),
             )
@@ -297,12 +343,12 @@ class StripStore:
         if t.title:
             fnt = _font(g.title_size, text=t.title)
             title = self._ellipsize(dr, t.title, fnt, g.tile_w)
-            dr.text((x, g.tile_h + 6), title, font=fnt,
+            dr.text((x, g.tile_h + _px(6)), title, font=fnt,
                     fill=theme.rgb(theme.TEXT_FG))
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
-            dr.text((x, g.tile_h + 6 + g.title_size + 7), sub,
+            dr.text((x, g.tile_h + _px(6) + g.title_size + _px(7)), sub,
                     font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
 
     @staticmethod

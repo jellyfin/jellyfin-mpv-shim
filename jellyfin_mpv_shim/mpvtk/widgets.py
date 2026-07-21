@@ -151,24 +151,66 @@ class Text(Element):
         self.max_lines = max_lines
 
 
+def _check_raster(src, iw, ih, kw):
+    """Fill in the logical footprint, or verify a declared one matches the
+    bitmap. This is the enforcement behind mpvtk.scaling's rule that only
+    rasterization thinks in physical pixels.
+
+    A caller that declares w/h is telling us the logical box it sized this
+    image for; if the bitmap isn't scaling.raster() of that box, the
+    producer skipped the conversion and the renderer -- which crops rather
+    than resamples -- would silently show a fragment. Raising here surfaces
+    it at build time, where app._render's guard logs it with a traceback
+    and keeps the last good frame up.
+
+    **Only declare w/h for a canvas you sized yourself** (a composited
+    strip, the cast backdrop, a banner). Decoded artwork must NOT: the
+    server preserves aspect, so a square request comes back 56x52 and the
+    footprint is whatever the bitmap turned out to be. What has to be
+    scaled for those is the *request*, which this cannot see.
+    """
+    from . import scaling
+
+    if kw.get("w") is None or kw.get("h") is None:
+        kw["w"] = scaling.dip(iw)
+        kw["h"] = scaling.dip(ih)
+        return
+    want = scaling.raster(kw["w"], kw["h"])
+    if want != (iw, ih):
+        raise ValueError(
+            "image %r is %dx%d but its %gx logical box %gx%g needs %dx%d; "
+            "the producer did not rasterize at the UI scale"
+            % (src, iw, ih, scaling.scale(), kw["w"], kw["h"],
+               want[0], want[1])
+        )
+
+
 class Image(Element):
     """A pre-rasterized BGRA image (see rawimage.write_bgra).
 
-    ``src`` is the path to the raw file, ``iw``/``ih`` its pixel size.
-    The display size is w/h; keep them equal to iw/ih (the renderer does
-    not scale — pre-scale with Pillow when rasterizing). ``v`` is a
-    content version: bump it when rewriting the same path in place so
-    the renderer re-reads the file (content-keyed filenames don't need
-    it).
+    ``src`` is the path to the raw file, ``iw``/``ih`` its **physical**
+    pixel size. w/h are the **logical** footprint it occupies in layout;
+    the renderer does not scale, so the two must agree through
+    ``scaling.raster`` — a producer that rasterized at 1x under a 2x UI
+    scale fails here rather than rendering a cropped or sheared image.
+    Omit w/h only when the image is inherently physical (nothing derived
+    it from a logical box).
+
+    ``v`` is a content version: bump it when rewriting the same path in
+    place so the renderer re-reads it. On the libmpv path src is a malloc
+    address and addresses get recycled, so entries carry one always —
+    see mpvtk_browser.strips._store.
     """
 
     def __init__(self, src, iw, ih, on_click=None, hover=None, v=0, **kw):
-        kw.setdefault("w", iw)
-        kw.setdefault("h", ih)
+        _check_raster(src, iw, ih, kw)
         super().__init__(**kw)
         self.src = src
         self.iw = iw
         self.ih = ih
+        # Logical footprint: what layout reserves and clamps against.
+        self.lw = kw["w"]
+        self.lh = kw["h"]
         self.v = v
         self.on_click = on_click
         self.hover = hover
@@ -191,12 +233,13 @@ class ImageMap(Element):
     """
 
     def __init__(self, src, iw, ih, regions=None, v=0, **kw):
-        kw.setdefault("w", iw)
-        kw.setdefault("h", ih)
+        _check_raster(src, iw, ih, kw)
         super().__init__(**kw)
         self.src = src
         self.iw = iw
         self.ih = ih
+        self.lw = kw["w"]
+        self.lh = kw["h"]
         self.v = v
         self.regions = regions or []
 
