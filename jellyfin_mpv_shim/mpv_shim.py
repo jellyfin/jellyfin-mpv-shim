@@ -131,7 +131,14 @@ def main():
     # re-creation, binding through playerManager keeps this correct if that
     # ever changes.
     user_interface.open_player_menu = lambda: playerManager.menu.show_menu()
-    syncManager.start(lambda server_uuid: clientManager.clients.get(server_uuid))
+    syncManager.start(
+        lambda server_uuid: clientManager.clients.get(server_uuid),
+        # Auto-download sweeps every logged-in server, and stands down while
+        # anything is playing so it never competes with streaming for
+        # bandwidth. is_playing() is False when idle or paused-at-idle, which
+        # is exactly when fetching ahead is free.
+        get_clients=lambda: clientManager.clients,
+        is_busy=lambda: playerManager.is_playing())
     user_interface.start()
     single.on_activate = getattr(user_interface, "activate", lambda: None)
     user_interface.login_servers()

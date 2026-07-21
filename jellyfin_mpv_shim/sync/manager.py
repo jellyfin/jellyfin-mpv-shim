@@ -21,8 +21,9 @@ from ..conffile import confdir
 from ..constants import APP_NAME
 from ..i18n import _
 from ..utils import get_profile
+from .auto import AutoDownloader
 from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
-                 STATUS_ERROR)
+                 STATUS_ERROR, ORIGIN_USER, ORIGIN_AUTO)
 
 log = logging.getLogger("sync.manager")
 
@@ -59,6 +60,9 @@ class SyncManager:
         self.get_client = lambda server_uuid: None
         self.on_change = lambda: None
         self.on_progress = lambda item_id, name, downloaded, total: None
+        # Built in start(); None until then so the worker loop (which tests
+        # drive directly, without start()) stays safe.
+        self.auto = None
 
         self._worker = None
         self._wake = threading.Event()
@@ -83,8 +87,13 @@ class SyncManager:
 
     # -- lifecycle ---------------------------------------------------------
 
-    def start(self, get_client):
+    def start(self, get_client, get_clients=None, is_busy=None):
+        """get_clients (() -> {uuid: client}) and is_busy (() -> bool) power
+        auto-download; both optional so existing callers and the tests keep
+        working, in which case auto-download simply finds no servers."""
         self.get_client = get_client
+        self.auto = AutoDownloader(self, get_clients=get_clients,
+                                   is_busy=is_busy)
         self.root = settings.sync_path or os.path.join(confdir(APP_NAME), "offline")
         self._open_and_run()
 
@@ -313,7 +322,8 @@ class SyncManager:
                 "watched_count": watched, "already_count": already,
                 "audio_only": audio_only}
 
-    def enqueue(self, server_uuid, item_id, item_type, include_watched=False):
+    def enqueue(self, server_uuid, item_id, item_type, include_watched=False,
+                origin=ORIGIN_USER):
         if self._relocating:
             return 0  # catalog is mid-move; caller can retry after
         client = self.get_client(server_uuid)
@@ -332,10 +342,18 @@ class SyncManager:
             iid = item.get("Id")
             if self.db.is_complete(iid):
                 members.append(iid)  # already downloaded → still a member
+                # A user asking for something the scheduler already fetched
+                # takes ownership of it, so the reaper stops considering it.
+                # Never the reverse: an auto pass must not downgrade a
+                # download the user asked for.
+                if origin == ORIGIN_USER:
+                    row = self.db.get(iid)
+                    if row and row["origin"] == ORIGIN_AUTO:
+                        self.db.set_origin(iid, ORIGIN_USER)
                 continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):
                 continue
-            self._add_row(server_uuid, server_id, item)
+            self._add_row(server_uuid, server_id, item, origin=origin)
             members.append(iid)
             added += 1
         if item_type == "Playlist":
@@ -504,7 +522,7 @@ class SyncManager:
         sources = item.get("MediaSources") or []
         return (sources[0].get("Size") or 0) if sources else 0
 
-    def _add_row(self, server_uuid, server_id, item):
+    def _add_row(self, server_uuid, server_id, item, origin=ORIGIN_USER):
         source = (item.get("MediaSources") or [{}])[0]
         ext = (source.get("Container") or "mkv").split(",")[0]
         self.db.upsert({
@@ -529,6 +547,8 @@ class SyncManager:
             "source_json": json.dumps(source),
             "userdata_json": json.dumps(item.get("UserData") or {}),
             "added_at": int(time.time()),
+            "origin": origin,
+            "completed_at": None,
         })
 
     def _item_dir(self, row):
@@ -616,6 +636,12 @@ class SyncManager:
                 if now - self._last_playstate >= PLAYSTATE_INTERVAL:
                     self._last_playstate = now
                     self._sync_playstate()
+                # Only between downloads: a pass here would otherwise
+                # enqueue work while the user's own download is streaming,
+                # and tick() is a no-op unless the interval has elapsed.
+                if self.auto is not None and not self.db.list(
+                        status=STATUS_PENDING):
+                    self.auto.tick()
                 row = None
                 pending = self.db.list(status=STATUS_PENDING)
                 if pending:
@@ -764,7 +790,12 @@ class SyncManager:
                                downloaded_bytes=size,
                                size_bytes=size or expected,
                                media_source_id=source.get("Id") or row.get("media_source_id"),
-                               source_json=json.dumps(source))
+                               source_json=json.dumps(source),
+                               # Completion time, not enqueue time: the reaper
+                               # evicts oldest-first, and a row that sat in the
+                               # queue for hours should age from when it landed
+                               # on disk.
+                               completed_at=int(time.time()))
                 self._active_item = None
             log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
                      size / (1 << 20))

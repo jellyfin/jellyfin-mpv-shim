@@ -51,7 +51,12 @@ SECTIONS = [
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb"]),
-    (_("Downloads"), ["sync_path", "prefer_downloaded"]),
+    (_("Downloads"), ["sync_path", "prefer_downloaded",
+                      "auto_download_enable", "auto_download_next_up",
+                      "auto_download_lookahead", "auto_download_max_gb",
+                      "auto_download_delete_watched",
+                      "auto_download_keep_days",
+                      "auto_download_interval_mins"]),
 ]
 
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
@@ -88,6 +93,13 @@ LABELED_ENUMS = {
 LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "auto_download_enable": _("Automatically Download Upcoming Episodes"),
+    "auto_download_next_up": _("Include Next Up"),
+    "auto_download_lookahead": _("Episodes to Keep Ahead (0 = off)"),
+    "auto_download_max_gb": _("Storage Limit for Automatic Downloads (GB)"),
+    "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
+    "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
+    "auto_download_interval_mins": _("Check Every (minutes)"),
     "close_to_tray": _("Close to Tray (keep running)"),
     "remember_window_size": _("Remember Window Size"),
     "osc_style": _("Player Controls Style"),

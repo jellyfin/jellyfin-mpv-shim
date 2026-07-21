@@ -120,6 +120,26 @@ class Settings(SettingsBase):
     sync_path: Optional[str] = None
     work_offline: bool = False
     prefer_downloaded: bool = True
+    # Auto-download: keep upcoming episodes on disk without being asked.
+    # Off by default — it is the only feature that writes to the user's disk
+    # unattended, so it is opt-in rather than something to discover after the
+    # fact. It runs on a schedule and only while nothing is playing, so it
+    # never competes with streaming for bandwidth.
+    auto_download_enable: bool = False
+    # Sources. next_up follows the server's Next Up across every series;
+    # lookahead follows the series you are actually working through, queueing
+    # this many episodes past the last one you watched (0 disables it).
+    auto_download_next_up: bool = True
+    auto_download_lookahead: int = 2
+    # Budget for auto-downloads only (see SyncDB.auto_size). Downloads the
+    # user asked for are never counted against it and never reaped.
+    auto_download_max_gb: int = 20
+    # Retention. Both can be on; delete_watched keeps the footprint near the
+    # lookahead window, keep_days reclaims a show that was abandoned midway.
+    # keep_days = 0 means never expire on age alone.
+    auto_download_delete_watched: bool = True
+    auto_download_keep_days: int = 30
+    auto_download_interval_mins: int = 60
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None

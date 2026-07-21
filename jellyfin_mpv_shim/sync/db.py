@@ -22,8 +22,15 @@ COLUMNS = [
     "series_id", "series_name", "season_id", "parent_index", "index_number",
     "media_source_id", "file_path", "ext", "size_bytes", "downloaded_bytes",
     "status", "runtime_ticks", "item_json", "source_json", "userdata_json",
-    "added_at",
+    "added_at", "origin", "completed_at",
 ]
+
+#: `origin` values. Auto-downloads are the only ones the reaper may delete;
+#: anything the user asked for outlives the cap, however full the disk gets.
+#: An auto-download that is later requested explicitly is promoted to USER and
+#: stops being reapable — never the other way round.
+ORIGIN_USER = "user"
+ORIGIN_AUTO = "auto"
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS downloads (
@@ -47,7 +54,13 @@ CREATE TABLE IF NOT EXISTS downloads (
     item_json TEXT,
     source_json TEXT,
     userdata_json TEXT,
-    added_at INTEGER
+    added_at INTEGER,
+    -- See ORIGIN_*. NULL on rows written before auto-download existed, which
+    -- _migrate backfills to 'user': a pre-existing download was necessarily
+    -- asked for by hand, and defaulting the other way would let the reaper
+    -- delete someone's whole offline library on first run.
+    origin TEXT,
+    completed_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_downloads_series ON downloads(series_id);
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
@@ -104,9 +117,53 @@ class SyncDB:
             self._conn.executescript(_SCHEMA)
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.commit()
+            self._migrate()
 
         if self._conn is not None:
             self._conn.row_factory = sqlite3.Row
+
+    #: Columns added after the first release, as (name, DDL type). _SCHEMA's
+    #: CREATE TABLE IF NOT EXISTS is a no-op on an existing catalog, so a new
+    #: column only reaches an existing install through here.
+    _ADDED_COLUMNS = (("origin", "TEXT"), ("completed_at", "INTEGER"))
+
+    def _migrate(self):
+        """Bring an existing catalog up to the current schema.
+
+        Additive only: new nullable columns, never a drop or a rewrite, so a
+        catalog touched by this build still opens in an older one. Runs on
+        every open — PRAGMA table_info is the check, so it is a no-op once
+        the columns exist.
+        """
+        try:
+            have = {r[1] for r in
+                    self._conn.execute("PRAGMA table_info(downloads)")}
+        except sqlite3.Error:
+            log.warning("Could not inspect the catalog schema", exc_info=True)
+            return
+        added = [c for c, _t in self._ADDED_COLUMNS if c not in have]
+        if not added:
+            return
+        try:
+            for col, decl in self._ADDED_COLUMNS:
+                if col in have:
+                    continue
+                self._conn.execute(
+                    "ALTER TABLE downloads ADD COLUMN %s %s" % (col, decl))
+            if "origin" in added:
+                # Everything already on disk predates auto-download, so it was
+                # necessarily requested by hand. Marking it 'user' is what
+                # stops the first reaper run from eating an existing library.
+                self._conn.execute(
+                    "UPDATE downloads SET origin = ? WHERE origin IS NULL",
+                    (ORIGIN_USER,))
+            self._conn.commit()
+            log.info("Catalog migrated: added %s", ", ".join(added))
+        except sqlite3.Error:
+            self._conn.rollback()
+            # Not fatal: without these columns auto-download stays off (it
+            # reads origin), but existing downloads and playback still work.
+            log.error("Catalog migration failed", exc_info=True)
 
     def close(self):
         with self._lock:
@@ -435,6 +492,34 @@ class SyncDB:
     def total_size(self):
         rows = self._query("SELECT COALESCE(SUM(downloaded_bytes),0) AS s FROM downloads")
         return rows[0]["s"] if rows else 0
+
+    def auto_size(self):
+        """Bytes held by auto-downloads alone.
+
+        The cap deliberately measures only these: it is a budget for what the
+        app decided to fetch on its own, not a ceiling on the library the user
+        built by hand. Sizing the cap against everything would make one large
+        manual download switch auto-download off.
+        """
+        rows = self._query(
+            "SELECT COALESCE(SUM(downloaded_bytes),0) AS s FROM downloads "
+            "WHERE origin=?", (ORIGIN_AUTO,))
+        return rows[0]["s"] if rows else 0
+
+    def list_auto(self, status=STATUS_COMPLETE):
+        """Auto-downloads, oldest completion first — the reaper's eviction
+        order. completed_at is NULL for rows finished before it existed, and
+        COALESCE falls back to added_at so those sort sensibly rather than
+        all landing at the front."""
+        return self._query(
+            "SELECT * FROM downloads WHERE origin=? AND status=? "
+            "ORDER BY COALESCE(completed_at, added_at, 0), rowid",
+            (ORIGIN_AUTO, status))
+
+    def set_origin(self, item_id, origin):
+        """Promote an auto-download to user-owned (see ORIGIN_*). Only ever
+        called in that direction."""
+        self.update(item_id, origin=origin)
 
     def is_complete(self, item_id):
         row = self.get(item_id)
