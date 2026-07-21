@@ -29,6 +29,13 @@ The forced exit only ever runs *after* the orderly shutdown: playback
 stopped, the stop reported to the server, config and credentials written.
 What it skips is the interpreter's own wait, which by then has nothing
 left to do for us.
+
+Everything here has to tolerate having nowhere to write. A Windows GUI
+build (pythonw, the frozen installer build) has no console, so
+``sys.stdout`` and ``sys.stderr`` are ``None`` — and code that exists to
+make quitting reliable is the last code that should raise on the way
+out. Streams go through :func:`_write` / :func:`_flush` / :func:`_dump_to`,
+never touched directly.
 """
 
 import faulthandler
@@ -57,6 +64,56 @@ _watchdog = None
 _disarm = threading.Event()
 
 
+def _flush(stream):
+    """Flush a stream that may not exist.
+
+    On Windows a GUI build (pythonw / the frozen installer build, which
+    has no console) hands us ``sys.stdout is None`` and ``sys.stderr is
+    None``. Flushing them unconditionally turned quitting into an
+    AttributeError — a crash on the way out, from the code whose entire
+    job is to make the way out reliable.
+    """
+    if stream is None:
+        return
+    try:
+        stream.flush()
+    except Exception:
+        pass
+
+
+def _write(stream, text):
+    """Write to a stream that may not exist or may be closed."""
+    if stream is None:
+        return
+    try:
+        stream.write(text)
+        stream.flush()
+    except Exception:
+        pass
+
+
+def _dump_to(stream):
+    """faulthandler-dump every thread to ``stream``, if it can take one.
+
+    faulthandler writes through a file descriptor, so a stream is only
+    usable if ``fileno()`` works — which rules out ``None``, and also the
+    wrappers a frozen GUI build can leave in place of a real console.
+    """
+    if stream is None:
+        return False
+    try:
+        if stream.fileno() < 0:
+            return False
+    except Exception:
+        return False
+    try:
+        faulthandler.dump_traceback(file=stream, all_threads=True)
+        _flush(stream)
+        return True
+    except Exception:
+        return False
+
+
 def enable_manual_dumps():
     """``kill -USR1 <pid>`` dumps every thread's stack to stderr.
 
@@ -81,25 +138,25 @@ def _dump_all_threads(why):
     that names it.
     """
     banner = "\n===== %s =====\n" % why
-    sys.stderr.write(banner)
-    sys.stderr.flush()
-    faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
-    sys.stderr.flush()
+    _write(sys.stderr, banner)
+    dumped = _dump_to(sys.stderr)
     # The log file is what gets sent back in a bug report, and faulthandler
-    # writes to a file descriptor rather than through logging.
+    # writes to a file descriptor rather than through logging. It is also
+    # the ONLY destination on a Windows GUI build, where there is no
+    # console and sys.stderr is None.
     for handler in logging.getLogger().handlers:
         stream = getattr(handler, "stream", None)
         if stream is None or stream in (sys.stderr, sys.stdout):
             continue
-        try:
-            stream.write(banner)
-            stream.flush()
-            faulthandler.dump_traceback(file=stream, all_threads=True)
-            stream.flush()
-        except Exception:
-            # Best effort: a handler we cannot write to must not stop us
-            # reporting to the ones we can.
-            pass
+        _write(stream, banner)
+        # Best effort per handler: one we cannot write to must not stop us
+        # reporting to the ones we can.
+        dumped = _dump_to(stream) or dumped
+    if not dumped:
+        # Nothing could take a faulthandler dump (no console, no file log).
+        # The compact walk still goes through logging, so the reason for
+        # the exit is not lost entirely.
+        log.warning("%s\n%s", why, _describe(_survivors()))
 
 
 def arm(deadline=None):
@@ -121,7 +178,7 @@ def arm(deadline=None):
             "shutdown did not finish within %.0fs - all thread stacks "
             "follow; the main thread shows which step is wedged" % seconds)
         logging.shutdown()
-        sys.stderr.flush()
+        _flush(sys.stderr)
         os._exit(1)
 
     _watchdog = threading.Thread(target=watch, name="exit-watchdog",
@@ -196,6 +253,6 @@ def finish(status=0):
     # flushing, which is NOT something we can skip — the warning above is
     # the entire value of this function.
     logging.shutdown()
-    sys.stdout.flush()
-    sys.stderr.flush()
+    _flush(sys.stdout)
+    _flush(sys.stderr)
     os._exit(status)
