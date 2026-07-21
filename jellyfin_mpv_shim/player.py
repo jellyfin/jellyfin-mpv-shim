@@ -639,6 +639,15 @@ class PlayerManager(object):
         mpv_options["geometry"] = "%dx%d" % (width, height)
         if settings.window_maximized:
             mpv_options["window_maximized"] = True
+        # geometry is an INITIAL size, but mpv re-applies it on every VO
+        # reconfig — so a window the user resized snapped back to the stored
+        # size on the next file. The option is dropped before media is loaded
+        # (see _play_media); this keeps mpv from filling the gap by
+        # resizing to each video's native size instead, which is the behavior
+        # geometry had been masking. Both are needed: per mpv's own docs,
+        # auto-window-resize "does not have any impact on the --geometry
+        # option".
+        mpv_options["auto_window_resize"] = False
 
         # Desktop-icon hints. mpv has no "set the window icon" option; on
         # Linux the icon is resolved by matching the window's class against
@@ -1425,6 +1434,15 @@ class PlayerManager(object):
         self._load_failed.clear()
         self._load_completed.clear()
         self._load_error_detail = None
+        # geometry is documented as the INITIAL window size, but mpv re-applies
+        # it on every VO reconfig — so a window the user had resized snapped
+        # back to the stored size on each new file. Drop it before handing mpv
+        # any media; _set_force_window re-arms it when the window is destroyed,
+        # which is the only time it is wanted again.
+        try:
+            self._player.geometry = ""
+        except Exception:
+            log.debug("Could not clear the window geometry", exc_info=True)
         clear_mpv_errors()
         self._loading = True
         # Tell the UI a load is in flight. Until this existed the window just
@@ -1655,7 +1673,39 @@ class PlayerManager(object):
             log.debug("force_window=False suppressed: the in-window UI "
                       "owns this window")
             return
+        if not value:
+            # Releasing force_window IS the minimize — mpv destroys the
+            # window rather than the WM iconifying it — so this is the last
+            # moment its size can be read. Persist it for the next launch and
+            # re-arm the geometry option for the next window, which is what
+            # makes raising from the tray come back where the user left it.
+            self._save_window_geometry()
+            self._rearm_window_geometry()
         self._player.force_window = value
+
+    def _rearm_window_geometry(self):
+        """Point the geometry option at the size the window has right now.
+
+        Separate from _save_window_geometry, which persists to settings and
+        is gated on remember_window_size: reopening from the tray mid-session
+        should land where the user left the window whether or not they asked
+        for it to be remembered across launches. Falls back to the configured
+        size when the live size is unreadable or the window is maximized.
+        """
+        width = height = 0
+        try:
+            if not self._player.window_maximized:
+                width = int(self._player.osd_width or 0)
+                height = int(self._player.osd_height or 0)
+        except Exception:
+            pass
+        if width < 320 or height < 240:
+            width = max(320, int(settings.window_width or 1280))
+            height = max(240, int(settings.window_height or 720))
+        try:
+            self._player.geometry = "%dx%d" % (width, height)
+        except Exception:
+            log.debug("Could not re-arm the window geometry", exc_info=True)
 
     def stop_and_close(self):
         log.info("stop_and_close: stopping playback")
