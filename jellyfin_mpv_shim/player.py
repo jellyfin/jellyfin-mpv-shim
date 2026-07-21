@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 from .utils import synchronous, Timer, none_fallback, get_resource
 from .mpv_events import wait_property
+from .session_reporter import SessionReporter
 from .conf import settings
 from .menu import OSDMenu
 from .osc_bridge import OscBridge
@@ -358,6 +359,11 @@ class PlayerManager(object):
         # would otherwise sit out its full timeout waiting for a value that
         # can never arrive — the load generation lets the handler ignore an
         # end-file belonging to the file we just replaced.
+        # Session reports (playing/stopped) go out here rather than inline:
+        # they are remote round trips that used to sit on the advance path.
+        # Never drain() while holding _tl_lock — _session_playing_safe takes
+        # it on the worker.
+        self._reporter = SessionReporter()
         self._load_failed = Event()
         # The other way out of that wait. duration is a proxy for "the file is
         # loaded" dating back to the initial commit, and it is a bad one for
@@ -2678,9 +2684,14 @@ class PlayerManager(object):
         # Open the session off the play path (a remote round-trip that would
         # otherwise delay switching tracks), but gate progress reports until it
         # completes so a session_progress can't race ahead of session_playing.
+        #
+        # On the shared reporter rather than its own thread: the stop for the
+        # outgoing track is queued just before this, and the server blanks the
+        # session on a stop, so a start that overtook it would be erased.
         self._session_ready.clear()
-        Thread(target=self._session_playing_safe,
-               args=(video.client, options), daemon=True).start()
+        self._reporter.submit(
+            lambda: self._session_playing_safe(video.client, options),
+            "session_playing")
 
     @synchronous("_tl_lock")
     def send_timeline_stopped(self, finished=False, options=None, client=None):
@@ -2706,7 +2717,12 @@ class PlayerManager(object):
         # down; a client of None means offline playback (no server session).
         # Either way, still run the local cleanup below.
         if options is not None and client is not None:
-            client.jellyfin.session_stop(options)
+            # Queued, not called here: this runs on the advance path, and the
+            # round trip used to sit between the last sample of one track and
+            # the first of the next. Ordering against the following
+            # session_playing is what the shared worker guarantees.
+            self._reporter.submit(
+                lambda: client.jellyfin.session_stop(options), "session_stop")
 
         if discord_presence:
             try:
@@ -2958,6 +2974,11 @@ class PlayerManager(object):
         # to be read while it still exists.
         self._save_window_geometry()
         self.stop()
+        # After stop(), which is what queues the final report, and outside
+        # _tl_lock (the worker takes it). The worker is a daemon, so without
+        # this the last stop would be lost to interpreter exit and the server
+        # would keep showing the session as playing.
+        self._reporter.stop()
         if is_using_ext_mpv:
             self._player.terminate()
 

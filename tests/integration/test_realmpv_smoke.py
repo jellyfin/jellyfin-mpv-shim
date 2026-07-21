@@ -323,7 +323,11 @@ class RealMpvSmokeTest(unittest.TestCase):
         self.pm.play(video, is_initial_play=True)
         self.assertIs(self.pm._video, video)
         self.pm.stop()
-        self.assertTrue(client.jellyfin.stopped, "stop() did not report session_stop")
+        # The session_stop is queued on the reporter worker now, off the
+        # playback path, so it arrives shortly after stop() returns rather
+        # than within it.
+        self.assertTrue(self._pump_until(lambda: bool(client.jellyfin.stopped)),
+                        "stop() did not report session_stop")
         self.assertIsNone(self.pm._video)
 
     @unittest.skipUnless(h.BACKEND == "jsonipc",

@@ -376,6 +376,7 @@ def build_player(player_module, video=None):
     from queue import Queue
     from threading import RLock, Lock, Event
     from jellyfin_mpv_shim.utils import Timer
+    from jellyfin_mpv_shim.session_reporter import SessionReporter
 
     PlayerManager = player_module.PlayerManager
     pm = PlayerManager.__new__(PlayerManager)
@@ -426,6 +427,10 @@ def build_player(player_module, video=None):
     # Load/start bookkeeping. update() and the stop/advance paths read these,
     # so they have to exist even for tests that never load anything.
     pm._loading = False
+    # A real one: it is lazy (no thread until something is submitted) and the
+    # stop/advance paths genuinely queue reports through it, so a stub would
+    # hide ordering bugs rather than expose them.
+    pm._reporter = SessionReporter()
     pm._load_failed = Event()
     pm._load_completed = Event()
     pm._load_cancelled = False
