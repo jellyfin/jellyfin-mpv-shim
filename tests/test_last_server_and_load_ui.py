@@ -15,6 +15,7 @@ sys.argv = [sys.argv[0]]      # importing the browser reaches args.get_args()
 
 from jellyfin_mpv_shim.mpvtk.layout import layout  # noqa: E402
 from jellyfin_mpv_shim.mpvtk.widgets import Busy  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import home_sections
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.users import UserManager  # noqa: E402
 
@@ -29,8 +30,11 @@ class FakeSource:
     def get_libraries(self, server_uuid):
         return []
 
-    def get_home_rows(self, server_uuid, libraries=None,
-                          sections=None):
+    def get_home_prefs(self, server_uuid, refresh=False):
+        return list(home_sections.DEFAULT_LAYOUT), frozenset()
+
+    def get_home_rows(self, server_uuid, libraries=None, sections=None,
+                      layout=None, latest_excludes=None):
         return []
 
 

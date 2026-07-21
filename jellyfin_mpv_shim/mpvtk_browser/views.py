@@ -26,7 +26,7 @@ from ..mpvtk.widgets import (
     Text,
     VScroll,
 )
-from . import theme
+from . import home_sections, theme
 
 log = logging.getLogger("mpvtk_browser.views")
 
@@ -74,18 +74,35 @@ class ViewsMixin:
         data = route.get("_data")
         if data is None:
             return self._busy()
-        rows = []
-        if data["libraries"]:
-            # Libraries read as landscape cards, like the web client.
-            rows.append(self._tile_row(
-                _("Libraries"), data["libraries"], "row-libs",
-                geom=self.geom_wide, bleed=True))
-        for i, hr in enumerate(data["rows"]):
-            if hr.get("items"):
-                geom, itype = self._row_shape(hr)
-                rows.append(self._tile_row(
-                    hr["title"], hr["items"], "row-%d" % i,
-                    geom=geom, image_type=itype, bleed=True))
+        layout = data.get("layout") or list(home_sections.DEFAULT_LAYOUT)
+        # The Libraries row is a configurable section now, not a fixed header,
+        # so it is placed by slot alongside the fetched rows. Its slot may be
+        # absent entirely (the user set every slot to something else), in
+        # which case the home screen simply has no library row — the sidebar
+        # and search still reach them.
+        entries = []
+        if data["libraries"] and home_sections.LIBRARIES in layout:
+            entries.append((layout.index(home_sections.LIBRARIES),
+                            _("Libraries"), data["libraries"],
+                            # Libraries read as landscape cards, like the web
+                            # client.
+                            self.geom_wide, "Primary", "row-libs"))
+        # Ids are derived from section kind and ordinal, not from position:
+        # they key the scroll containers, so an index-based id would hand a
+        # reordered section the previous occupant's scroll offset.
+        seen = {}
+        for hr in data["rows"]:
+            if not hr.get("items"):
+                continue
+            kind = hr.get("kind") or "row"
+            n = seen[kind] = seen.get(kind, -1) + 1
+            geom, itype = self._row_shape(hr)
+            entries.append((hr.get("slot", 0), hr["title"], hr["items"],
+                            geom, itype, "row-%s-%d" % (kind, n)))
+        entries.sort(key=lambda e: e[0])
+        rows = [self._tile_row(title, items, row_id, geom=geom,
+                               image_type=itype, bleed=True)
+                for _slot, title, items, geom, itype, row_id in entries]
         if not rows:
             rows.append(Row([Spacer(w=self.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size=20,
@@ -1029,23 +1046,51 @@ class ViewsMixin:
         to yet. Libraries + Continue Watching + Next Up now publish as soon as
         they land, and the Latest rows replace that partial data when they
         arrive.
+
+        The batches are merged by slot rather than concatenated: the user can
+        put Recently Added above Continue Watching, so "primary then latest"
+        is no longer the display order.
         """
         def work():
             server = route.get("server") or self.server
+            # getattr, not a plain call: this is the path the offline
+            # fallback lands in, and a source without this method must
+            # degrade to the stock layout rather than raise. An exception
+            # here re-triggers the fallback that got us here, which is the
+            # unbounded retry loop get_home_rows' docstring warns about.
+            get_prefs = getattr(self.source, "get_home_prefs", None)
+            layout, excludes = (get_prefs(server) if get_prefs
+                                else (list(home_sections.DEFAULT_LAYOUT),
+                                      frozenset()))
             libs = self.source.get_libraries(server)
-            primary = self.source.get_home_rows(server, libs,
-                                                sections=("primary",))
+
+            def rows(stage):
+                return self.source.get_home_rows(
+                    server, libs, sections=(stage,), layout=layout,
+                    latest_excludes=excludes)
+
+            primary = rows("primary")
             # Epoch-checked by hand: this publishes mid-flight, so it is not
             # covered by the run_async gate that protects the final result.
             # Without it, navigating away mid-load would repaint the home
             # screen the user just left.
             if self._epoch == ep:
-                route["_data"] = {"libraries": libs, "rows": primary}
+                route["_data"] = {"libraries": libs, "layout": layout,
+                                  "rows": self._order_rows(primary)}
                 self.invalidate()
-            latest = self.source.get_home_rows(server, libs,
-                                               sections=("latest",))
-            return {"libraries": libs, "rows": primary + latest}
+            latest = rows("latest")
+            return {"libraries": libs, "layout": layout,
+                    "rows": self._order_rows(primary + latest)}
         self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
+
+    @staticmethod
+    def _order_rows(rows):
+        """Restore the user's section order across the two fetch batches.
+
+        Stable, so the per-library Latest rows keep the library order they
+        were submitted in rather than shuffling within their slot.
+        """
+        return sorted(rows, key=lambda r: r.get("slot", 0))
 
     def _load_grid(self, route, ep):
         srv = route.get("server") or self.server

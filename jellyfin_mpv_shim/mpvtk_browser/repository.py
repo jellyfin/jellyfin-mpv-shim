@@ -20,6 +20,7 @@ from jellyfin_apiclient_python import JellyfinClient
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
+from . import home_sections
 
 log = logging.getLogger("mpvtk_browser.repository")
 
@@ -115,6 +116,11 @@ class LibrarySource:
     def __init__(self, servers, device_id: str, player_name: str, verify_ssl: bool):
         self._conns = {}
         self._order = []
+        # uuid -> (layout, latest_excludes). Two small requests that every home
+        # load needs before it can build its task list, so they are cached
+        # rather than paid on every back-navigation. Refreshed whenever the
+        # settings screen reads them, and rewritten on save.
+        self._home_prefs = {}
         for info in servers:
             try:
                 conn = ServerConn(info, device_id, player_name, verify_ssl)
@@ -149,27 +155,116 @@ class LibrarySource:
             out.append(item)
         return out
 
-    #: Row groups get_home_rows can fetch. "primary" is Continue Watching and
-    #: Next Up — the above-the-fold rows; "latest" is the per-library Latest
-    #: rows, which sit below the fold and are the slow part (one call each).
+    # -- home screen layout (shared with jellyfin-web) ---------------------
+
+    def _display_prefs_dto(self, api):
+        """The raw DisplayPreferencesDto. There is no partial-update path on
+        this API, so a save has to GET the whole document, mutate CustomPrefs
+        and POST it back — dropping fields we do not understand would clobber
+        jellyfin-web's other settings (landing screens, tvhome, ...)."""
+        return api.get_user_settings(
+            client=home_sections.DISPLAY_PREFS_CLIENT) or {}
+
+    def get_home_prefs(self, server_uuid, refresh=False):
+        """(layout, latest_excludes) for a server, cached.
+
+        ``layout`` is the ordered list of section types; ``latest_excludes``
+        is the set of library ids the user unchecked under "Display in home
+        screen sections", which we must apply ourselves for the Recently Added
+        rows (see get_home_rows).
+
+        Never raises: an unreachable or ancient server falls back to the
+        default layout with nothing excluded, because a home screen with the
+        stock rows beats no home screen at all.
+        """
+        if not refresh and server_uuid in self._home_prefs:
+            return self._home_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        try:
+            prefs = self._display_prefs_dto(api).get("CustomPrefs") or {}
+            layout = home_sections.resolve_layout(prefs)
+        except Exception:
+            log.warning("Failed to read home layout; using defaults",
+                        exc_info=True)
+            layout = list(home_sections.DEFAULT_LAYOUT)
+        try:
+            excludes = self.get_latest_excludes(server_uuid)
+        except Exception:
+            log.warning("Failed to read library home-screen exclusions",
+                        exc_info=True)
+            excludes = frozenset()
+        self._home_prefs[server_uuid] = (layout, excludes)
+        return layout, excludes
+
+    def save_home_layout(self, server_uuid, layout):
+        """Persist the section layout back to the server. Raises on failure —
+        the settings screen reports it rather than pretending it saved."""
+        api = self._conn(server_uuid).api
+        dto = self._display_prefs_dto(api)
+        custom = dict(dto.get("CustomPrefs") or {})
+        custom.update(home_sections.layout_to_prefs(layout))
+        dto["CustomPrefs"] = custom
+        # The DTO's own Id/Client round-trip unchanged; the server keys off the
+        # query string, which must match what jellyfin-web uses or we write a
+        # preference set only this client can see.
+        api._post("DisplayPreferences/%s" % home_sections.DISPLAY_PREFS_ID,
+                  json=dto,
+                  params={"userId": "{UserId}",
+                          "client": home_sections.DISPLAY_PREFS_CLIENT})
+        excludes = self._home_prefs.get(server_uuid, (None, frozenset()))[1]
+        self._home_prefs[server_uuid] = (list(layout), excludes)
+
+    def get_latest_excludes(self, server_uuid):
+        """Library ids excluded from the home screen's generated rows.
+
+        The server applies this itself for Continue Watching and Next Up, but
+        only when the query carries no ParentId — and the Recently Added rows
+        are deliberately one request *per library*, which bypasses it. So this
+        set has to be applied client-side there, exactly as jellyfin-web does
+        in recentlyAdded.ts.
+        """
+        api = self._conn(server_uuid).api
+        user = api.get_user() or {}
+        config = user.get("Configuration") or {}
+        return frozenset(config.get("LatestItemsExcludes") or ())
+
+    #: Row groups get_home_rows can fetch. "primary" is Continue Watching,
+    #: Continue Listening and Next Up — the above-the-fold rows; "latest" is
+    #: the per-library Latest rows, which sit below the fold and are the slow
+    #: part (one call each).
     HOME_SECTIONS = ("primary", "latest")
 
-    def get_home_rows(self, server_uuid, libraries=None, sections=None):
+    def get_home_rows(self, server_uuid, libraries=None, sections=None,
+                      layout=None, latest_excludes=None):
         """Return the ordered rows shown on the home screen.
 
-        Each row is ``{"title": str, "items": [DTO, ...]}``; empty rows are
-        dropped so the home screen only shows what exists. ``libraries`` (the
-        get_libraries result) drives the per-library "Latest" rows; passing it
-        in avoids a second views fetch when the caller already has it.
+        Each row is ``{"title", "items", "collection_type", "slot", "kind"}``;
+        empty rows are dropped so the home screen only shows what exists.
+        ``libraries`` (the get_libraries result) drives the per-library
+        "Latest" rows; passing it in avoids a second views fetch when the
+        caller already has it.
 
         ``sections`` limits which groups are fetched (see HOME_SECTIONS), so
         the caller can draw the above-the-fold rows without waiting on the
         Latest fan-out. Defaults to everything.
+
+        ``layout`` is the user's ordered section list (see home_sections);
+        defaults to jellyfin-web's stock layout. ``slot`` on each row is its
+        index in that layout, which is what lets the caller merge the two
+        fetch batches back into the user's order — the batches no longer
+        concatenate cleanly now that Latest need not be last.
+
+        ``latest_excludes`` is the set of library ids to skip when building
+        Latest rows; see get_latest_excludes for why it is applied here and
+        not by the server.
         """
         # `is None`, not `or`: an explicitly empty selection means "fetch
         # nothing", which the falsy test would have turned into "fetch
         # everything" — the opposite of what the caller asked for.
         sections = tuple(self.HOME_SECTIONS if sections is None else sections)
+        layout = (list(home_sections.DEFAULT_LAYOUT) if layout is None
+                  else list(layout))
+        latest_excludes = frozenset(latest_excludes or ())
         api = self._conn(server_uuid).api
 
         # Per-library "Latest in X" rows, like jellyfin-web's home screen
@@ -182,26 +277,43 @@ class LibrarySource:
                             exc_info=True)
                 libraries = []
 
-        def resume_row():
-            resume = api.user_items(params={
-                "Recursive": True,
-                "Filters": "IsResumable",
-                "SortBy": "DatePlayed",
-                "SortOrder": "Descending",
-                "IncludeItemTypes": "Movie,Episode,Video",
-                "Limit": 20,
-                "Fields": LIST_FIELDS,
-                "EnableImageTypes": "Primary,Thumb,Backdrop",
-                # One tag per image type: without it every backdrop tag comes
-                # back, and items routinely carry five to ten.
-                "ImageTypeLimit": 1,
-                # The row is capped at 20 anyway, so the server's separate
-                # COUNT(*) over the whole library is pure waste (jellyfin-web
-                # passes this on all three home queries).
-                "EnableTotalRecordCount": False,
-            }) or {}
+        def resume_row(title, collection_type=None, **extra):
+            def fetch():
+                params = {
+                    "Recursive": True,
+                    "Filters": "IsResumable",
+                    "SortBy": "DatePlayed",
+                    "SortOrder": "Descending",
+                    "Limit": 20,
+                    "Fields": LIST_FIELDS,
+                    "EnableImageTypes": "Primary,Thumb,Backdrop",
+                    # One tag per image type: without it every backdrop tag
+                    # comes back, and items routinely carry five to ten.
+                    "ImageTypeLimit": 1,
+                    # The row is capped at 20 anyway, so the server's separate
+                    # COUNT(*) over the whole library is pure waste
+                    # (jellyfin-web passes this on all three home queries).
+                    "EnableTotalRecordCount": False,
+                }
+                params.update(extra)
+                # Deliberately no ParentId: that is what lets the server apply
+                # the user's "Display in home screen sections" exclusions for
+                # us. Scoping this by library would silently bypass them.
+                resume = api.user_items(params=params) or {}
+                return (title, resume.get("Items", []), collection_type)
+            return fetch
+
+        def video_resume_row():
             # No CollectionType: these mixed rows keep the item-type heuristic.
-            return (_("Continue Watching"), resume.get("Items", []), None)
+            return resume_row(_("Continue Watching"),
+                              IncludeItemTypes="Movie,Episode,Video")()
+
+        def audio_resume_row():
+            # MediaTypes rather than IncludeItemTypes, matching jellyfin-web:
+            # it catches Audio and AudioBook without enumerating types. The
+            # music collection_type gives the row square art.
+            return resume_row(_("Continue Listening"), collection_type="music",
+                              MediaTypes="Audio")()
 
         def next_up_row():
             nextup = api.get_next(
@@ -232,12 +344,30 @@ class LibrarySource:
                         lib.get("CollectionType"))
             return fetch
 
+        builders = {
+            home_sections.RESUME: video_resume_row,
+            home_sections.RESUME_AUDIO: audio_resume_row,
+            home_sections.NEXT_UP: next_up_row,
+        }
+
+        # (slot, kind, callable). The slot travels with the row so the caller
+        # can restore the user's order after merging the two fetch batches.
+        # Sections we cannot draw (Live TV, recordings, books) simply have no
+        # entry in STAGE and contribute no work.
         tasks = []
-        if "primary" in sections:
-            tasks += [resume_row, next_up_row]
-        if "latest" in sections:
-            tasks += [latest_row(lib) for lib in libraries
-                      if lib.get("CollectionType") != "playlists"]
+        for slot, kind in enumerate(layout):
+            stage = home_sections.STAGE.get(kind)
+            if stage is None or stage == "local" or stage not in sections:
+                continue
+            if kind == home_sections.LATEST:
+                # One request per library, so this is where the user's
+                # exclusions have to be honoured — the ParentId these carry
+                # stops the server from doing it.
+                tasks += [(slot, kind, latest_row(lib)) for lib in libraries
+                          if lib.get("CollectionType") != "playlists"
+                          and lib.get("Id") not in latest_excludes]
+            else:
+                tasks.append((slot, kind, builders[kind]))
         if not tasks:
             return []
 
@@ -254,10 +384,11 @@ class LibrarySource:
         with ThreadPoolExecutor(
                 max_workers=min(HOME_FANOUT, max(1, len(tasks))),
                 thread_name_prefix="home") as pool:
-            futures = [pool.submit(task) for task in tasks]
-            for future in futures:
+            futures = [(slot, kind, pool.submit(task))
+                       for slot, kind, task in tasks]
+            for slot, kind, future in futures:
                 try:
-                    rows.append(future.result())
+                    rows.append((slot, kind) + future.result())
                 except Exception:
                     # One dead row must not cost the whole home screen.
                     log.warning("Failed to load a home row", exc_info=True)
@@ -265,8 +396,9 @@ class LibrarySource:
         # Carry each row's CollectionType so the home view can pick poster vs
         # landscape by library kind — a TV "Latest" row mixes Series and stray
         # Episodes, so scanning item types alone mis-classifies it.
-        return [{"title": t, "items": i, "collection_type": c}
-                for t, i, c in rows if i]
+        return [{"title": t, "items": i, "collection_type": c,
+                 "slot": slot, "kind": kind}
+                for slot, kind, t, i, c in rows if i]
 
     @staticmethod
     def _filter_params(filters):
@@ -932,14 +1064,28 @@ class OfflineLibrarySource:
                  "UserData": self._aggregate_userdata(episodes_by_series[sid])}
                 for sid in order]
 
-    def get_home_rows(self, server_uuid, libraries=None, sections=None):
+    def get_home_prefs(self, server_uuid, refresh=False):
+        """Signature parity with LibrarySource — see get_home_rows below for
+        why parity matters here. There is no server to ask, and the offline
+        rows are not the configurable ones, so this is always the default
+        layout with nothing excluded."""
+        return list(home_sections.DEFAULT_LAYOUT), frozenset()
+
+    def get_home_rows(self, server_uuid, libraries=None, sections=None,
+                      layout=None, latest_excludes=None):
         """Offline home rows.
 
-        ``sections`` is accepted for signature parity with LibrarySource, and
+        Every keyword is accepted for signature parity with LibrarySource, and
         must stay that way: _load_home fetches in two batches, and the offline
         source is what the failure path falls back TO. A TypeError here would
         fail that fallback, which re-triggers the fallback, which fails
         again — an unbounded retry loop rather than a degraded screen.
+
+        ``layout`` and ``latest_excludes`` are ignored rather than honoured:
+        these rows are "what you downloaded", not the server's configurable
+        sections, so there is nothing for a section layout to reorder. They
+        still carry ascending ``slot`` values so the caller's merge-by-slot
+        works the same for both sources.
 
         Everything is local, so there is nothing to stagger: the whole set is
         returned for the primary batch and the latest batch adds nothing.
@@ -962,6 +1108,9 @@ class OfflineLibrarySource:
         if series:
             rows.append({"title": _("Downloaded Shows"), "items": series,
                          "collection_type": "tvshows"})
+        for slot, row in enumerate(rows):
+            row["slot"] = slot
+            row["kind"] = home_sections.LATEST
         return rows
 
     @staticmethod

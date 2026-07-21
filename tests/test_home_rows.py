@@ -15,6 +15,7 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
+from jellyfin_mpv_shim.mpvtk_browser import home_sections as hs  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     LIST_FIELDS,
     LibrarySource,
@@ -97,14 +98,19 @@ class FanOutTest(HomeRowsHarness):
 
     def test_row_order_survives_the_fan_out(self):
         """Collected in submit order, so rows do not shuffle by whichever
-        server call happens to answer first."""
+        server call happens to answer first.
+
+        The order is the default section layout's: Continue Watching,
+        Continue Listening, Next Up, then the per-library Latest rows.
+        """
         api = FakeApi()
         rows = self._source(api).get_home_rows("srv", libraries=LIBS)
         titles = [r["title"] for r in rows]
         self.assertEqual(titles[0], "Continue Watching")
-        self.assertEqual(titles[1], "Next Up")
-        self.assertIn("Movies", titles[2])
-        self.assertIn("Shows", titles[3])
+        self.assertEqual(titles[1], "Continue Listening")
+        self.assertEqual(titles[2], "Next Up")
+        self.assertIn("Movies", titles[3])
+        self.assertIn("Shows", titles[4])
 
     def test_one_failing_row_does_not_lose_the_others(self):
         api = FakeApi()
@@ -123,7 +129,8 @@ class FanOutTest(HomeRowsHarness):
         titles = [r["title"] for r in rows]
         self.assertIn("Continue Watching", titles)
         self.assertIn("Next Up", titles)
-        self.assertEqual(len(titles), 3, "a dead row cost the whole screen")
+        # 3 primary rows + 2 library Latest rows, one of which died.
+        self.assertEqual(len(titles), 4, "a dead row cost the whole screen")
 
     def test_playlist_libraries_get_no_latest_row(self):
         api = FakeApi()
@@ -134,6 +141,112 @@ class FanOutTest(HomeRowsHarness):
         api = FakeApi(latest_items=[])
         rows = self._source(api).get_home_rows("srv", libraries=LIBS)
         self.assertFalse(any("Latest" in r["title"] for r in rows))
+
+
+class LayoutTest(HomeRowsHarness):
+    """The section layout drives which rows are fetched and in what order.
+
+    Ordering matters across the two fetch batches: the user can put Recently
+    Added above Continue Watching, so the caller merges by slot rather than
+    concatenating primary + latest.
+    """
+
+    def test_layout_order_is_reflected_in_slots(self):
+        api = FakeApi()
+        layout = [hs.NEXT_UP, hs.RESUME] + [hs.NONE] * 8
+        rows = self._source(api).get_home_rows("srv", libraries=LIBS,
+                                               layout=layout)
+        by_slot = sorted(rows, key=lambda r: r["slot"])
+        self.assertEqual([r["title"] for r in by_slot],
+                         ["Next Up", "Continue Watching"])
+
+    def test_latest_above_resume_still_merges_in_order(self):
+        """The regression the slot key exists for: concatenating the primary
+        and latest batches would put Continue Watching first regardless."""
+        api = FakeApi()
+        src = self._source(api)
+        layout = [hs.LATEST, hs.RESUME] + [hs.NONE] * 8
+        primary = src.get_home_rows("srv", LIBS, sections=("primary",),
+                                    layout=layout)
+        latest = src.get_home_rows("srv", LIBS, sections=("latest",),
+                                   layout=layout)
+        merged = sorted(primary + latest, key=lambda r: r["slot"])
+        self.assertIn("Latest", merged[0]["title"])
+        self.assertEqual(merged[-1]["title"], "Continue Watching")
+
+    def test_sections_not_in_the_layout_are_not_fetched(self):
+        api = FakeApi()
+        rows = self._source(api).get_home_rows(
+            "srv", libraries=LIBS, layout=[hs.RESUME] + [hs.NONE] * 9)
+        self.assertEqual([r["title"] for r in rows], ["Continue Watching"])
+        self.assertNotIn("get_next", api.calls)
+        self.assertNotIn("user_items/Latest", api.calls)
+
+    def test_unsupported_sections_fetch_nothing(self):
+        """Live TV and books are recognised but undrawable; they must not
+        turn into requests or empty rows."""
+        api = FakeApi()
+        rows = self._source(api).get_home_rows(
+            "srv", libraries=LIBS,
+            layout=[hs.LIVE_TV, hs.RESUME_BOOK, hs.ACTIVE_RECORDINGS]
+                   + [hs.NONE] * 7)
+        self.assertEqual(rows, [])
+        self.assertEqual(api.calls, [])
+
+    def test_libraries_section_costs_no_request(self):
+        """The Libraries row is rendered from get_libraries, which the loader
+        already holds — it must not add a fetch task."""
+        api = FakeApi()
+        rows = self._source(api).get_home_rows(
+            "srv", libraries=LIBS, layout=[hs.LIBRARIES] + [hs.NONE] * 9)
+        self.assertEqual(rows, [])
+        self.assertEqual(api.calls, [])
+
+    def test_resume_audio_asks_for_audio_media(self):
+        api = FakeApi()
+        self._source(api).get_home_rows(
+            "srv", libraries=LIBS, layout=[hs.RESUME_AUDIO] + [hs.NONE] * 9)
+        params = api.params[0]
+        self.assertEqual(params.get("MediaTypes"), "Audio")
+        self.assertNotIn("IncludeItemTypes", params)
+
+    def test_resume_rows_never_carry_a_parent_id(self):
+        """ParentId is what disables the server-side "Display in home screen
+        sections" exclusion, so these rows must not scope by library."""
+        api = FakeApi()
+        self._source(api).get_home_rows(
+            "srv", libraries=LIBS,
+            layout=[hs.RESUME, hs.RESUME_AUDIO] + [hs.NONE] * 8)
+        for params in api.params:
+            self.assertNotIn("ParentId", params)
+
+
+class LatestExcludesTest(HomeRowsHarness):
+    """Recently Added is one request per library, and passing ParentId
+    bypasses the server's own exclusion handling — so it is applied here."""
+
+    def _latest_titles(self, api, excludes):
+        rows = self._source(api).get_home_rows(
+            "srv", libraries=LIBS, sections=("latest",),
+            latest_excludes=excludes)
+        return [r["title"] for r in rows]
+
+    def test_excluded_libraries_get_no_latest_row(self):
+        api = FakeApi()
+        titles = self._latest_titles(api, {"l1"})
+        self.assertFalse(any("Movies" in t for t in titles))
+        self.assertTrue(any("Shows" in t for t in titles))
+
+    def test_excluded_libraries_are_not_even_requested(self):
+        """Filtering the response instead of the task list would still pay
+        the round trip."""
+        api = FakeApi()
+        self._latest_titles(api, {"l1", "l2"})
+        self.assertNotIn("user_items/Latest", api.calls)
+
+    def test_no_excludes_keeps_every_library(self):
+        api = FakeApi()
+        self.assertEqual(len(self._latest_titles(api, None)), 2)
 
 
 class LeanFieldsTest(HomeRowsHarness):
@@ -203,7 +316,8 @@ class SectionsTest(HomeRowsHarness):
         rows = self._source(api).get_home_rows("srv", libraries=LIBS,
                                                sections=("primary",))
         self.assertEqual([r["title"] for r in rows],
-                         ["Continue Watching", "Next Up"])
+                         ["Continue Watching", "Continue Listening",
+                          "Next Up"])
         self.assertNotIn("user_items/Latest", api.calls,
                          "the first batch waited on the Latest fan-out")
 

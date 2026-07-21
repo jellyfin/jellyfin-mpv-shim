@@ -9,6 +9,7 @@ import time
 import unittest
 
 from jellyfin_mpv_shim.mpvtk.layout import layout
+from jellyfin_mpv_shim.mpvtk_browser import home_sections
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
@@ -41,8 +42,11 @@ class FakeSource:
     def get_libraries(self, server_uuid):
         return list(self.libraries)
 
-    def get_home_rows(self, server_uuid, libraries=None,
-                          sections=None):
+    def get_home_prefs(self, server_uuid, refresh=False):
+        return list(home_sections.DEFAULT_LAYOUT), frozenset()
+
+    def get_home_rows(self, server_uuid, libraries=None, sections=None,
+                      layout=None, latest_excludes=None):
         return list(self.home_rows)
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,

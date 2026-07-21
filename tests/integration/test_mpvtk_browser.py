@@ -38,8 +38,14 @@ def _make_source():
         def get_libraries(self, server_uuid):
             return list(self.libraries)
 
-        def get_home_rows(self, server_uuid, libraries=None,
-                              sections=None):
+        def get_home_prefs(self, server_uuid, refresh=False):
+            # Imported here, not at module scope: this file defers every
+            # jellyfin_mpv_shim import so it can be collected without mpv.
+            from jellyfin_mpv_shim.mpvtk_browser import home_sections
+            return list(home_sections.DEFAULT_LAYOUT), frozenset()
+
+        def get_home_rows(self, server_uuid, libraries=None, sections=None,
+                          layout=None, latest_excludes=None):
             return list(self.rows)
 
         def get_library_items(self, server_uuid, parent_id, start_index=0,
