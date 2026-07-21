@@ -34,6 +34,12 @@ LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear,Artists"
 # screen is two waves: /Views, then everything else.
 HOME_FANOUT = 8
 
+# Row "kind" for the offline home rows. Namespaces their scroll-container
+# ids ("row-downloaded-0"); deliberately not one of home_sections' types,
+# because the offline rows are not the server's configurable sections.
+# tests/integration/test_e2e_offline.py focuses these ids by name.
+OFFLINE_ROW_KIND = "downloaded"
+
 # Fields for music browse (albums/artists/tracks): artist/album labels, track
 # runtime for the tabular list, and counts for artist tiles.
 MUSIC_FIELDS = ("PrimaryImageAspectRatio,Artists,Album,AlbumId,RunTimeTicks,"
@@ -1110,7 +1116,12 @@ class OfflineLibrarySource:
                          "collection_type": "tvshows"})
         for slot, row in enumerate(rows):
             row["slot"] = slot
-            row["kind"] = home_sections.LATEST
+            # Not a home_sections type: these are "what you downloaded", not
+            # any of the server's configurable sections. The kind only
+            # namespaces the row's scroll id, and calling these latestmedia
+            # made the id read "row-latestmedia-0" for a row titled
+            # "Downloaded Movies".
+            row["kind"] = OFFLINE_ROW_KIND
         return rows
 
     @staticmethod

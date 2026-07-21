@@ -174,7 +174,11 @@ class OfflineEndToEndTest(unittest.TestCase):
                    "the grid opened but loaded nothing from the catalog")
 
     def test_the_keyboard_opens_an_item(self):
-        self._focus("row-0-m1")
+        # "row-<kind>-<n>-<item>": home rows are keyed by section kind and
+        # ordinal, not by position, so a reordered section cannot inherit
+        # the previous occupant's scroll offset. Offline rows use
+        # repository.OFFLINE_ROW_KIND.
+        self._focus("row-downloaded-0-m1")
         self._keypress("ENTER")
         self._wait(lambda: self.browser.route["kind"] == "detail",
                    "ENTER on an item tile did not open it (route is %r)"
