@@ -209,19 +209,36 @@ class Video(object):
         else:
             return settings.remote_kbps
 
-    def terminate_transcode(self):
-        if not self.is_transcode:
-            return
+    def _close_live_stream(self, live_stream_id: str):
+        """Release the server-side live stream (and its tuner).
 
-        # Live TV streams are torn down server-side by closing the live stream;
-        # that closes the transcode as a side effect, so we skip the second call.
+        Not the apiclient's ``close_live_stream``: that sends the id as a JSON
+        body, but the server binds it from the query string
+        (``CloseLiveStream([FromQuery, Required] string liveStreamId)``), so
+        the request fails model validation and the tuner is never released.
+        """
+        self.client.jellyfin._post(
+            "LiveStreams/Close", params={"liveStreamId": live_stream_id}
+        )
+
+    def terminate_transcode(self):
+        # Closing the live stream is deliberately NOT gated on is_transcode:
+        # a live source that direct-streams (the usual HDHomeRun path) still
+        # holds a tuner server-side. There is no reaper for a leaked stream —
+        # it is freed only by an explicit close, a stop report carrying the
+        # LiveStreamId, or a server restart — so on a single-tuner box a leak
+        # means no more live TV until the server comes back. Closing the live
+        # stream tears down any transcode with it, hence the early return.
         live_stream_id = (self.media_source or {}).get("LiveStreamId")
         if live_stream_id:
             try:
-                self.client.jellyfin.close_live_stream(live_stream_id)
+                self._close_live_stream(live_stream_id)
                 return
             except Exception:
                 log.warning("Closing live stream failed.", exc_info=True)
+
+        if not self.is_transcode:
+            return
 
         play_session_id = (self.playback_info or {}).get("PlaySessionId")
         if play_session_id is None:

@@ -1,7 +1,8 @@
 """Playback behavior for remote sources (.strm shortcuts and live streams).
 
-Covers where the runtime for a remote source actually lives, and what happens
-when its origin stops delivering without ever signalling end-of-file.
+Covers the three places a remote source diverges from a local file: where the
+runtime actually lives, how a live stream is released, and what happens when
+the origin stops delivering without ever signalling end-of-file.
 """
 
 import sys
@@ -54,6 +55,59 @@ class GetDurationTest(unittest.TestCase):
     def test_zero_ticks_is_not_a_duration(self):
         video = make_video(item={"RunTimeTicks": 0}, media_source={"RunTimeTicks": 0})
         self.assertIsNone(video.get_duration())
+
+
+class TerminateTranscodeTest(unittest.TestCase):
+    def test_closes_live_stream_even_when_direct_streaming(self):
+        # The regression this guards: a live source that direct-streams (the
+        # usual HDHomeRun path) is not a transcode, so an is_transcode gate
+        # skipped the close entirely and leaked the tuner.
+        video = make_video(media_source={"LiveStreamId": "live-1"},
+                           is_transcode=False)
+        video.terminate_transcode()
+        video.client.jellyfin._post.assert_called_once_with(
+            "LiveStreams/Close", params={"liveStreamId": "live-1"}
+        )
+
+    def test_close_sends_id_as_query_param_not_body(self):
+        # The server binds liveStreamId with [FromQuery, Required]; a JSON body
+        # fails model validation and the tuner is never released.
+        video = make_video(media_source={"LiveStreamId": "live-2"},
+                           is_transcode=True)
+        video.terminate_transcode()
+        _args, kwargs = video.client.jellyfin._post.call_args
+        self.assertEqual(kwargs.get("params"), {"liveStreamId": "live-2"})
+        self.assertIsNone(kwargs.get("json"))
+
+    def test_closing_live_stream_skips_the_transcode_call(self):
+        # Closing the live stream tears down its transcode as a side effect.
+        video = make_video(media_source={"LiveStreamId": "live-3"},
+                           is_transcode=True,
+                           playback_info={"PlaySessionId": "sess"})
+        video.terminate_transcode()
+        video.client.jellyfin.close_transcode.assert_not_called()
+
+    def test_falls_back_to_transcode_close_when_live_close_fails(self):
+        video = make_video(media_source={"LiveStreamId": "live-4"},
+                           is_transcode=True,
+                           playback_info={"PlaySessionId": "sess"})
+        video.client.jellyfin._post.side_effect = RuntimeError("boom")
+        video.client.config.data = {"app.device_id": "dev"}
+        video.terminate_transcode()
+        video.client.jellyfin.close_transcode.assert_called_once_with("dev", "sess")
+
+    def test_plain_direct_play_closes_nothing(self):
+        video = make_video(media_source={}, is_transcode=False)
+        video.terminate_transcode()
+        video.client.jellyfin._post.assert_not_called()
+        video.client.jellyfin.close_transcode.assert_not_called()
+
+    def test_transcode_without_live_stream_still_closes_transcode(self):
+        video = make_video(media_source={}, is_transcode=True,
+                           playback_info={"PlaySessionId": "sess"})
+        video.client.config.data = {"app.device_id": "dev"}
+        video.terminate_transcode()
+        video.client.jellyfin.close_transcode.assert_called_once_with("dev", "sess")
 
 
 class StalledFinishTest(unittest.TestCase):
