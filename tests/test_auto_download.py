@@ -107,7 +107,7 @@ class AutoTest(unittest.TestCase):
         settings.auto_download_keep_days = 30
         settings.auto_download_interval_mins = 60
         settings.auto_download_next_up_limit = 10
-        settings.auto_download_servers = None
+        settings.auto_download_servers = "srv"
 
     def _restore(self):
         for k, v in self._saved.items():
@@ -390,8 +390,19 @@ class ServerScopeTest(AutoTest):
         settings.auto_download_lookahead = 0
         return a, b, {"mine": FakeClient(a), "friend": FakeClient(b)}
 
-    def test_empty_means_every_server(self):
+    def test_empty_means_no_server(self):
+        """A logged-in server may be a friend's. Enabling the feature seeds
+        the one you were looking at; nothing else is implied."""
         a, b, clients = self._two_servers()
+        settings.auto_download_servers = ""
+        auto = self._auto(clients=clients)
+        auto.fill(100 * GB)
+        self.assertEqual(self.mgr.enqueued, [])
+        self.assertEqual(a.calls + b.calls, [])
+
+    def test_both_servers_when_both_are_listed(self):
+        a, b, clients = self._two_servers()
+        settings.auto_download_servers = "mine,friend"
         auto = self._auto(clients=clients)
         auto.fill(100 * GB)
         self.assertEqual({e[0] for e in self.mgr.enqueued}, {"mine", "friend"})

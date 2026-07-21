@@ -254,19 +254,16 @@ class AutoDownloader:
 
     @staticmethod
     def allowed_servers():
-        """Server uuids the scheduler may pull from, or None for "all".
+        """Server uuids the scheduler may pull from.
 
-        A logged-in server is not necessarily *your* server — pointing
-        unattended downloads at a friend's box is a rude default, so this is
-        selectable. Empty means all: the master switch is already an opt-in,
-        and demanding a second one would make the feature do nothing on the
-        common single-server setup.
+        Empty means none. A logged-in server is not necessarily *your*
+        server, and unattended downloads are a rude thing to point at a
+        friend's box, so this is an explicit allow-list rather than an
+        opt-out. The settings screen seeds it with the server you were
+        looking at when you switched auto-download on.
         """
         raw = (settings.auto_download_servers or "").strip()
-        if not raw:
-            return None
-        picked = {s.strip() for s in raw.split(",") if s.strip()}
-        return picked or None
+        return {s.strip() for s in raw.split(",") if s.strip()}
 
     def _candidates(self):
         """(server_uuid, item DTO, origin) for everything worth downloading,
@@ -274,10 +271,17 @@ class AutoDownloader:
         too. The origin travels with the item so the downloads manager can
         show each source as its own subtree."""
         allowed = self.allowed_servers()
+        if not allowed:
+            # Reachable by hand-editing the config (the settings screen always
+            # seeds a server when switching this on). Say so — enabled but
+            # silently doing nothing is otherwise indistinguishable from a bug.
+            log.warning("Auto-download is on but no servers are selected; "
+                        "tick one in Settings -> Servers.")
+            return
         for server_uuid, client in (self.get_clients() or {}).items():
             if client is None:
                 continue
-            if allowed is not None and server_uuid not in allowed:
+            if server_uuid not in allowed:
                 continue
             api = getattr(client, "jellyfin", None)
             if api is None:

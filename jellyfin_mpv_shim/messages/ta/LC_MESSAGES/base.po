@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-21 14:52-0400\n"
+"POT-Creation-Date: 2026-07-21 14:58-0400\n"
 "PO-Revision-Date: 2025-06-26 13:51+0000\n"
 "Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
@@ -462,7 +462,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:292
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:300
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:385
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:676
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:729
 msgid "Cancel"
 msgstr ""
 
@@ -585,7 +585,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:79
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:549
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:500
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:559
 msgid "Switch"
 msgstr ""
 
@@ -648,7 +648,7 @@ msgid "The PIN could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:211
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:476
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:535
 msgid "Add Server"
 msgstr "சேவையகத்தைச் சேர்க்கவும்"
 
@@ -823,8 +823,8 @@ msgid "Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:54
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:113
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:721
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:130
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:774
 msgid "Downloads"
 msgstr ""
 
@@ -971,7 +971,7 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:149
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:150
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:167
 msgid "Advanced"
 msgstr ""
 
@@ -1047,7 +1047,7 @@ msgid "Estimating…"
 msgstr "SVP அமைப்புகள்"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:279
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:722
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:775
 msgid "%(count)d items · %(size)s"
 msgstr ""
 
@@ -1118,8 +1118,8 @@ msgid "Leave"
 msgstr "புதிய குழு"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:463
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:726
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1025
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:779
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1078
 msgid "Refresh"
 msgstr ""
 
@@ -1532,9 +1532,9 @@ msgstr "சேவையகத்தை அகற்று"
 
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:68
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:279
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:550
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:556
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:782
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:609
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:615
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:835
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:512
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:523
 #, fuzzy
@@ -1555,8 +1555,8 @@ msgid "The queue could not be reordered."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:286
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:506
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:678
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:565
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:731
 #, fuzzy
 #| msgid "Username:"
 msgid "Rename"
@@ -1580,9 +1580,9 @@ msgid "Delete the playlist %s?"
 msgstr "சேவையகத்தை அகற்று"
 
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:295
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:510
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:515
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:898
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:569
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:574
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:951
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 msgid "Delete"
 msgstr ""
@@ -1670,11 +1670,11 @@ msgstr ""
 msgid "Saved: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:100
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:117
 msgid "Nothing downloaded to browse offline."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:102
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:119
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1684,64 +1684,64 @@ msgstr ""
 "சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
 "உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:111
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:128
 msgid "General"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:111
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:128
 msgid "Home Screen"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:112
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:129
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers & Users"
 msgstr "சேவையகம்:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:113
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1022
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:130
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1075
 msgid "Logs"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:153
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:170
 msgid "Show advanced settings"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:166
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:186
 msgid "Some changes take effect after restarting."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:186
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:197
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:212
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:206
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:217
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:232
 msgid "Home Screen Layout"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:187
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:207
 msgid "Connect to a server to change the home screen sections."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:198
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:218
 msgid "The layout could not be loaded from your server."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:200
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:220
 msgid "Try Again"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:213
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:233
 msgid "These sections are stored on your server and shared with Jellyfin Web."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:228
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:248
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:231
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:251
 msgid "Section %d"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:276
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:296
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1751,11 +1751,11 @@ msgstr ""
 "சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
 "உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:301
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:321
 msgid "Home screen layout saved."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:308
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:328
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1765,208 +1765,212 @@ msgstr ""
 "சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
 "உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:368
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:403
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:362
+msgid "Applies to %s, enable other servers in servers tab."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:427
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:462
 msgid "Move"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:401
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:460
 msgid "Move the downloads back to the default folder?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:403
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:462
 msgid "Use the default folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:413
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:472
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads… %d%%"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:420
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:423
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:479
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:482
 msgid "Moving the downloads failed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:422
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:481
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:426
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:485
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Moving downloads…"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:430
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:489
 msgid "A move is already in progress."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:448
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:507
 #, fuzzy
 #| msgid "Username: "
 msgid "New user name…"
 msgstr "பயனர்பெயர்: "
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:451
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:510
 #, fuzzy
 #| msgid "Add Server"
 msgid "Add User"
 msgstr "சேவையகத்தைச் சேர்க்கவும்"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:466
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:525
 #, fuzzy
 #| msgid "Server Configuration"
 msgid "No servers configured yet."
 msgstr "சேவையக உள்ளமைவு"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:483
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:542
 #, fuzzy
 #| msgid "Username:"
 msgid "Users"
 msgstr "பயனர்பெயர்:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:484
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:543
 msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:490
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:549
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers"
 msgstr "சேவையகம்:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:490
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:549
 #, fuzzy
 #| msgid "Server:"
 msgid "Servers for %s"
 msgstr "சேவையகம்:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:503
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:562
 #, fuzzy
 #| msgid "Change Audio"
 msgid "Change PIN"
 msgstr "ஆடியோவை மாற்றவும்"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:503
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:562
 msgid "Set PIN"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:512
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:571
 msgid "Delete user %s and its saved logins?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:515
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:574
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete User"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:523
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:582
 msgid "active"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:543
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:602
 msgid "Connected"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:543
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:602
 msgid "Offline"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:546
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:605
 msgid "Auto-download"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:554
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:613
 msgid "Remove %s and its saved login?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:556
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:615
 msgid "Remove Server"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:633
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:686
 msgid "The server could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:652
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:705
 msgid "That user could not be added."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:671
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:724
 msgid "Rename User"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:692
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:745
 msgid "That user could not be renamed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:731
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:784
 msgid "Nothing downloaded yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:767
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:820
 msgid "%d items"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:778
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:831
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove Watched"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:866
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:919
 msgid "watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:889
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:942
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the watched downloads in %s?"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:890
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:943
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:635
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the downloaded copy of %s?"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:898
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:951
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Download"
 msgstr "சேவையகத்தை அகற்று"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:991
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1044
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:660
 msgid "The download could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1023
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1076
 msgid "Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1027
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1080
 #: jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "கட்டமைப்பு கோப்புறையைத் திறக்கவும்"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1033
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1086
 msgid "No log output captured yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1098
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1151
 msgid "There is nothing to copy yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1109
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1117
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1162
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1170
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1976,11 +1980,11 @@ msgstr ""
 "சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
 "உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1111
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1164
 msgid "No clipboard available — saved to %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1114
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1167
 msgid "Copied %d log lines."
 msgstr ""
 

@@ -146,11 +146,13 @@ class Settings(SettingsBase):
     auto_download_keep_days: int = 30
     auto_download_interval_mins: int = 60
     # Which servers the scheduler may pull from, as a comma-separated list of
-    # server uuids. Empty means all of them — requiring a second opt-in after
-    # the master switch would make the feature look broken on the common
-    # single-server setup. It exists because a logged-in server may be a
-    # friend's, and unattended downloads are a rude thing to point at someone
-    # else's hardware; the Servers tab has a checkbox per server.
+    # server uuids. Empty means NONE, not all: a logged-in server may be a
+    # friend's, and pointing unattended downloads at someone else's hardware
+    # is a rude thing to do by default. Switching auto-download on seeds this
+    # with the server you were looking at when you did it, which is the one
+    # you meant; every other server — and every other local user, whose
+    # servers have different uuids — stays off until ticked in the Servers
+    # tab.
     auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")

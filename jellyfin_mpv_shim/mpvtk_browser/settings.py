@@ -79,7 +79,24 @@ class SettingsMixin:
                         % key)
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
+        if ok and key == "auto_download_enable" and value:
+            self._seed_auto_download_server()
         self.invalidate()
+
+    def _seed_auto_download_server(self):
+        """Switching auto-download on means "for the server I am looking at".
+
+        The allow-list is empty by default and empty means none, so without
+        this the feature would switch on and do nothing. Only ever seeds an
+        empty list: re-enabling after a deliberate change must not silently
+        re-add a server the user unticked.
+        """
+        cfg = self._config()
+        if (cfg.get_settings().get("auto_download_servers") or "").strip():
+            return
+        if not self.server:
+            return
+        cfg.set_setting("auto_download_servers", str(self.server))
 
     def _apply_work_offline(self, offline):
         """Swap the data source when the setting is toggled, rather than
@@ -158,10 +175,13 @@ class SettingsMixin:
             notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))
-                if key in notes:
+                # Static note from the config module, or one that has to name
+                # something only the browser knows (which server is selected).
+                note = notes.get(key) or self._dynamic_note(key)
+                if note:
                     # An explanatory line under the setting it belongs to;
                     # the settings it qualifies follow directly below.
-                    rows.append(Text(notes[key], size=14,
+                    rows.append(Text(note, size=14,
                                      color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
@@ -326,6 +346,45 @@ class SettingsMixin:
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
+
+    def _dynamic_note(self, key):
+        """Explanatory line that depends on live state rather than the key.
+
+        NOTES in config.py is a static dict, but auto-download's scope is
+        "the server you turned it on for", which only the browser knows.
+        Naming it is what stops the setting reading as global.
+        """
+        if key != "auto_download_enable":
+            return None
+        name = self._auto_dl_scope_name()
+        if not name:
+            return None
+        return _("Applies to %s, enable other servers in servers tab.") % name
+
+    def _auto_dl_scope_name(self):
+        """Display name of the server auto-download is scoped to.
+
+        The stored allow-list wins over the currently-selected server: after
+        unticking servers elsewhere, the note has to describe what is
+        configured, not what happens to be on screen.
+        """
+        picked = self._auto_dl_servers()
+        try:
+            servers = self.controller.list_servers() if self.controller else []
+        except Exception:
+            log.debug("list_servers failed", exc_info=True)
+            servers = []
+        names = {sv.get("uuid"): sv.get("name") for sv in servers}
+        if picked:
+            chosen = [names.get(u) or u for u in picked]
+            if len(chosen) == 1:
+                return chosen[0]
+            # Plural: the note's "enable other servers" advice still applies,
+            # so keep the shape and just list them.
+            return ", ".join(sorted(chosen))
+        # Not yet seeded — name the server the toggle is about to claim.
+        return names.get(self.server) or (str(self.server) if self.server
+                                          else None)
 
     def _toggle_advanced(self, route):
         route["_advanced"] = not route.get("_advanced")
@@ -558,16 +617,13 @@ class SettingsMixin:
         }
 
     def _auto_dl_servers(self):
-        """The configured include-list as a set, or None meaning "all"."""
+        """The configured allow-list as a set. Empty means no server."""
         raw = (self._config().get_settings().get("auto_download_servers")
                or "").strip()
-        if not raw:
-            return None
         return {p.strip() for p in raw.split(",") if p.strip()}
 
     def _auto_dl_on(self, sv):
-        picked = self._auto_dl_servers()
-        return picked is None or sv.get("uuid") in picked
+        return sv.get("uuid") in self._auto_dl_servers()
 
     def _toggle_auto_server(self, uuid):
         """Include/exclude one server from automatic downloads.
@@ -584,18 +640,15 @@ class SettingsMixin:
         except Exception:
             log.debug("list_servers failed", exc_info=True)
             return
-        picked = self._auto_dl_servers()
-        picked = set(known) if picked is None else set(picked)
+        picked = set(self._auto_dl_servers())
         if uuid in picked:
             picked.discard(uuid)
         else:
             picked.add(uuid)
-        # Every server ticked is the same as the default; store the empty
-        # string so adding a server later is included rather than silently
-        # left out of a stale list.
-        value = "" if picked >= set(known) else ",".join(
-            u for u in known if u in picked)
-        self._set_setting("auto_download_servers", value)
+        # Stored in the servers' own order so the value is stable across
+        # toggles rather than reshuffling with set iteration.
+        self._set_setting("auto_download_servers",
+                          ",".join(u for u in known if u in picked))
         self.invalidate()
 
     def _remove_server(self, uuid):
