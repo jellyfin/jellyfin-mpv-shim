@@ -412,6 +412,8 @@ def build_player(player_module, video=None):
     pm._play_epoch = 0
     pm._reached_eof = False
     pm._last_playback_position = 0
+    pm._stall_position = None
+    pm._stall_since = 0.0
     pm._last_intro_msg_time = 0.0
 
     pm.repeat_mode = "none"
@@ -425,6 +427,7 @@ def build_player(player_module, video=None):
     # so they have to exist even for tests that never load anything.
     pm._loading = False
     pm._load_failed = Event()
+    pm._load_completed = Event()
     pm._load_cancelled = False
     pm._load_error_detail = None
     pm._load_generation = 0
@@ -562,6 +565,40 @@ def make_test_clip(path, duration=2, size="160x120", label=None):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL,
                    stderr=subprocess.PIPE)
     return path
+
+
+def start_live_stream(path, size="160x120"):
+    """Start an endless, duration-less stream on a FIFO at ``path``.
+
+    Models what a client actually gets for live TV, and for a .strm whose
+    origin is an open-ended feed: mpv can play it, but the duration property
+    never arrives. That distinction matters because the playback-start gate
+    used to wait on ``duration``, which for these sources meant waiting out
+    the whole timeout and killing a stream that was playing fine.
+
+    Raw Annex-B H.264 rather than MPEG-TS on purpose: a TS over a pipe still
+    lets ffmpeg estimate a (steadily growing) duration from the timestamps it
+    has seen, which would make the test assert nothing. An elementary stream
+    carries no container timestamps, so the duration stays genuinely absent.
+
+    No ``-re``: the writer is throttled by the FIFO buffer filling anyway, and
+    pacing it in realtime instead made mpv wait seconds for enough data to
+    probe. Unthrottled, file-loaded fires immediately and the stream is still
+    endless.
+
+    Returns the ffmpeg Popen; the caller must terminate it (the writer blocks
+    on the FIFO until a reader opens it, so it exits on its own only once mpv
+    has gone away).
+    """
+    os.mkfifo(path)
+    proc = subprocess.Popen(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-f", "lavfi", "-i", "testsrc=size=%s:rate=10" % size,
+         "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast",
+         "-bsf:v", "h264_mp4toannexb", "-f", "h264", path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return proc
 
 
 class TmpDirTest(unittest.TestCase):

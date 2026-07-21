@@ -14,6 +14,7 @@ def wait_property(
     timeout: Optional[int] = None,
     skip_initial: bool = False,
     abort: Optional[Event] = None,
+    satisfied_by: Optional[Event] = None,
 ):
     """Block until MPV property ``name`` reports a value satisfying ``cond``.
 
@@ -66,6 +67,15 @@ def wait_property(
     interval rather than instantly; that turns a 30s hang into a sub-second
     one, which is the point. An aborted wait returns False, exactly like a
     timed-out one.
+
+    ``satisfied_by`` is the mirror of ``abort``: an Event the caller may set to
+    end the wait SUCCESSFULLY, for when something other than the property
+    proves what the caller was really waiting for. The playback start uses it
+    to accept mpv's file-loaded event, because the property it watches
+    (``duration``) never arrives for a live or otherwise unbounded stream, and
+    waiting it out would kill a stream that is in fact playing. Like ``abort``
+    it is observed by the poll thread, so it lands within one poll interval —
+    the property remains the fast path for everything that does have one.
     """
     event = Event()
     # Set only by a genuine cond() match, so the abort and timeout paths both
@@ -116,6 +126,13 @@ def wait_property(
             # property read on a wedged mpv could block for minutes.
             if abort is not None and abort.is_set():
                 event.set()  # satisfied stays False -> wait_property returns False
+                return
+            # Checked after abort so a failed load stays a failure even if
+            # both fire: mpv can report a file loaded and then immediately
+            # fail it.
+            if satisfied_by is not None and satisfied_by.is_set():
+                satisfied = True
+                event.set()
                 return
             try:
                 value = getattr(instance, name)

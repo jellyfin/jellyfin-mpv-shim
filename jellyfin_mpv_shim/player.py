@@ -359,6 +359,14 @@ class PlayerManager(object):
         # can never arrive — the load generation lets the handler ignore an
         # end-file belonging to the file we just replaced.
         self._load_failed = Event()
+        # The other way out of that wait. duration is a proxy for "the file is
+        # loaded" dating back to the initial commit, and it is a bad one for
+        # anything unbounded: a live stream never reports one, so the wait sat
+        # out its full timeout and killed a stream that was playing fine.
+        # file-loaded says the same thing directly, and mpv has the track list
+        # populated by the time it fires, which is what the code after the
+        # wait actually needs.
+        self._load_completed = Event()
         self._load_error_detail = None
         self._load_generation = 0
         self._loading = False
@@ -952,6 +960,14 @@ class PlayerManager(object):
                         self.syncplay.play_request()
                         self.set_paused(True, True)
 
+        @self._player.event_callback("file-loaded")
+        def handle_file_loaded(_event):
+            # Mirrors handle_end_file's generation guard: a file-loaded from
+            # the OUTGOING file (keep_open holds it until the replacement
+            # lands) must not be taken as the incoming one having loaded.
+            if self._loading:
+                self._load_completed.set()
+
         @self._player.event_callback("end-file")
         def handle_end_file(event):
             # Only interesting while a load is in flight: this is purely a
@@ -1407,6 +1423,7 @@ class PlayerManager(object):
         # unloadable before the duration wait below even starts.
         self._load_generation += 1
         self._load_failed.clear()
+        self._load_completed.clear()
         self._load_error_detail = None
         clear_mpv_errors()
         self._loading = True
@@ -1428,6 +1445,7 @@ class PlayerManager(object):
                     settings.playback_timeout,
                     skip_initial=True,
                     abort=self._load_failed,
+                    satisfied_by=self._load_completed,
                 )
         finally:
             self._loading = False

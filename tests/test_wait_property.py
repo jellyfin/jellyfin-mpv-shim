@@ -260,3 +260,70 @@ class WaitPropertyAbortTest(unittest.TestCase):
         """Every existing caller passes no abort; that must be unchanged."""
         player = FakeLibmpv(None, [7])
         self.assertTrue(wait_property(player, "duration", not_none, 5))
+
+
+class WaitPropertySatisfiedByTest(unittest.TestCase):
+    """A stream whose property never arrives must still be able to succeed.
+
+    `duration` is a proxy for "the file is loaded", and an unbounded stream
+    (live TV, an open-ended remote origin) never reports one. Without a second
+    way to succeed, the wait times out and kills a stream that is playing.
+    """
+
+    def test_satisfied_by_succeeds_without_the_property(self):
+        import threading
+        import time
+
+        loaded = threading.Event()
+        loaded.set()
+        player = FakeLibmpv(None, [])   # duration never arrives
+        started = time.time()
+        with mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01):
+            result = wait_property(player, "duration", not_none, 5,
+                                   satisfied_by=loaded)
+        self.assertTrue(result)
+        self.assertLess(time.time() - started, 2)
+        self.assertTrue(player.unobserved, "observer leaked on the success path")
+
+    def test_satisfied_by_set_while_waiting(self):
+        import threading
+        import time
+
+        loaded = threading.Event()
+        threading.Timer(0.05, loaded.set).start()
+        player = FakeLibmpv(None, [])
+        started = time.time()
+        with mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01):
+            result = wait_property(player, "duration", not_none, 5,
+                                   satisfied_by=loaded)
+        self.assertTrue(result)
+        self.assertLess(time.time() - started, 2)
+
+    def test_abort_wins_over_satisfied_by(self):
+        """mpv can report a file loaded and then immediately fail it; a failed
+        load must stay a failure."""
+        import threading
+
+        abort = threading.Event()
+        loaded = threading.Event()
+        abort.set()
+        loaded.set()
+        player = FakeLibmpv(None, [])
+        with mock.patch.object(mpv_events, "POLL_INTERVAL_SECS", 0.01):
+            result = wait_property(player, "duration", not_none, 5,
+                                   abort=abort, satisfied_by=loaded)
+        self.assertFalse(result)
+
+    def test_property_still_wins_when_it_arrives(self):
+        """The property stays the fast path for everything that has one."""
+        import threading
+
+        loaded = threading.Event()   # never set
+        player = FakeLibmpv(None, [42])
+        self.assertTrue(
+            wait_property(player, "duration", not_none, 5,
+                          satisfied_by=loaded))
+
+    def test_satisfied_by_is_optional(self):
+        player = FakeLibmpv(None, [7])
+        self.assertTrue(wait_property(player, "duration", not_none, 5))

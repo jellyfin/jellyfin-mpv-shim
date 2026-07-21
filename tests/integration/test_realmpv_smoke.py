@@ -117,10 +117,12 @@ class RealParent:
 class RealVideo:
     """A minimally-complete Video for a real local-file playback."""
 
-    def __init__(self, path, client, item_id="v", next_video=None):
+    def __init__(self, path, client, item_id="v", next_video=None,
+                 duration=2):
         self._path = path
         self.client = client
         self.item_id = item_id
+        self._duration = duration
         self.parent = RealParent(next_video)
         self.aid = None
         self.sid = -1                    # subtitles off -> configure_streams noop
@@ -146,7 +148,9 @@ class RealVideo:
         return "clip-%s" % self.item_id
 
     def get_duration(self):
-        return 2
+        # None models a live channel or an unprobed .strm: the server reports
+        # no RunTimeTicks for either.
+        return self._duration
 
     def get_playlist_id(self):
         return "pl-%s" % self.item_id
@@ -255,6 +259,58 @@ class RealMpvSmokeTest(unittest.TestCase):
             self.assertTrue(advanced,
                             "seek-to-end did not fire EOF / auto-advance")
             self.pm.stop()
+
+    def test_durationless_live_stream_starts_and_keeps_playing(self):
+        """A stream mpv never reports a duration for must still start.
+
+        `duration` has gated playback start since the initial commit, as a
+        proxy for "the file is loaded". For a live channel — and for a .strm
+        pointing at an open-ended origin — it never arrives, so the gate sat
+        out its full playback_timeout and then stopped a stream that was
+        playing perfectly well. The gate now also accepts mpv's file-loaded
+        event, which is what this pins.
+        """
+        import shutil
+        import tempfile
+        tmp = tempfile.mkdtemp(prefix="jms-live-")
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        fifo = os.path.join(tmp, "live.h264")
+        writer = h.start_live_stream(fifo)
+        self.addCleanup(writer.kill)
+
+        client = FakeClient()
+        # No next item: a live channel is not a queue, and part of the point
+        # is that nothing advances past it.
+        video = RealVideo(fifo, client, item_id="live", duration=None)
+
+        self.pm.play(video, is_initial_play=True)
+
+        # 1) The start succeeded despite duration never arriving. Before the
+        #    file-loaded path this left _video None and reported a timeout.
+        self.assertIs(self.pm._video, video,
+                      "duration-less stream failed to start")
+        self.assertIsNone(
+            self.pm._player.duration,
+            "the test source reported a duration, so it is not modelling a "
+            "live stream and this test would pass vacuously")
+
+        # 2) It is genuinely decoding, not merely loaded.
+        playing = self._pump_until(
+            lambda: (self.pm._player.playback_time or 0) > 0.5, timeout=30)
+        self.assertTrue(playing,
+                        "duration-less stream never advanced its position")
+
+        # 3) seekable is the honest live signal — duration is not.
+        self.assertFalse(self.pm._player.seekable,
+                         "an endless pipe should not be seekable")
+
+        # 4) Nothing mistook the missing duration for an ended file: the
+        #    stall watchdog must not fire on a stream with no known end.
+        self.assertIs(self.pm._video, video, "live stream was ended early")
+        self.assertFalse(client.jellyfin.stopped,
+                         "live stream reported a stop while still playing")
+
+        self.pm.stop()
 
     def test_explicit_stop_reports_session_stop(self):
         import tempfile
