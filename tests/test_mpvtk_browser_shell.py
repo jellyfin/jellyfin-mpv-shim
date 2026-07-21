@@ -3846,7 +3846,17 @@ class TestRemoteDisplayContent(unittest.TestCase):
         self.b.display_item("srv1", "sh1")
         self.assertEqual(self.b.route["kind"], "series")
 
-    def test_wakes_a_minimized_client(self):
+    def test_wakes_a_minimized_client_only_when_asked_to(self):
+        """This used to wake unconditionally. It no longer does by default:
+        the browser being closed to the tray is a deliberate state, and
+        someone idly scrolling a phone should not take over the TV. The
+        route is still set, so the page is waiting when it is opened.
+        See TestCastingDoesNotSummonTheBrowser for the default."""
+        from jellyfin_mpv_shim.conf import settings
+        saved = settings.display_mirror_summon
+        self.addCleanup(
+            lambda: setattr(settings, "display_mirror_summon", saved))
+        settings.display_mirror_summon = True
         self.b.minimize()
         self.b.display_item("srv1", "m1")
         self.assertFalse(self.b.minimized)
@@ -8132,3 +8142,55 @@ class TestSortModes(unittest.TestCase):
         labels = [s[0] for s in SORTS]
         self.assertIn("Critic Rating", labels)
         self.assertIn("Parental Rating", labels)
+
+
+class TestCastingDoesNotSummonTheBrowser(unittest.TestCase):
+    """Browsing on a phone mirrors onto this client. Navigating to what the
+    remote is looking at stays on; popping the window open when the browser
+    is closed to the tray does not, because idly scrolling a phone would
+    otherwise take over the TV. The route is set either way, so the page is
+    waiting when the browser is next opened."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.conf import settings
+        self.settings = settings
+        self._saved = settings.display_mirror_summon
+        self.addCleanup(
+            lambda: setattr(settings, "display_mirror_summon", self._saved))
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _cast_while_minimized(self):
+        self.b._minimized = True
+        self.b.display_item("srv1", "m1")
+
+    def test_it_does_not_open_the_window_by_default(self):
+        self.settings.display_mirror_summon = False
+        self._cast_while_minimized()
+        self.assertTrue(self.b._minimized,
+                        "casting popped the browser open from the tray")
+
+    def test_the_page_is_still_waiting(self):
+        """Not summoning must not mean not mirroring — the whole point is
+        that it is already there when you open the browser."""
+        self.settings.display_mirror_summon = False
+        self._cast_while_minimized()
+        self.assertEqual(self.b.route.get("item_id"), "m1")
+
+    def test_it_opens_the_window_when_opted_in(self):
+        self.settings.display_mirror_summon = True
+        self._cast_while_minimized()
+        self.assertFalse(self.b._minimized,
+                         "opting in did not wake the browser")
+
+    def test_an_open_browser_still_follows_the_remote(self):
+        """Only the closed case changed; mirroring onto a browser the user
+        already has open is the feature working normally."""
+        self.settings.display_mirror_summon = False
+        self.b._minimized = False
+        self.b._browsing = True
+        self.b.display_item("srv1", "m1")
+        self.assertEqual(self.b.route.get("item_id"), "m1")

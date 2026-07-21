@@ -28,7 +28,7 @@ _HIDDEN = {"language_config", "audio_output", "client_uuid", "config_version",
 # under "Advanced".
 SECTIONS = [
     (_("Interface"), ["player_name", "browser_fullscreen",
-                      "headless",
+                      "headless", "display_mirror_summon",
                       "enable_gui", "start_minimized", "close_to_tray",
                       "remember_window_size",
                       "fullscreen", "ui_scale", "enable_osc", "osc_style",
@@ -107,6 +107,7 @@ LABEL_OVERRIDES = {
     "osc_style": _("Player Controls Style"),
     "ui_scale": _("Interface Scale"),
     "headless": _("Cast-target mode (no library browsing)"),
+    "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),

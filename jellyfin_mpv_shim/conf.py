@@ -172,6 +172,13 @@ class Settings(SettingsBase):
     # still reaches Settings. It stops a plugged-in mouse from playing the
     # library, which is what it is for.
     headless: bool = False
+    # Browsing on a phone mirrors onto this client: a DisplayContent event
+    # navigates the library browser to whatever the remote is looking at.
+    # That stays on. What is off by default is letting it *summon* the
+    # window: with the browser closed to the tray, idly scrolling a phone
+    # would otherwise pop the app open on the TV. The page is still
+    # navigated, so it is waiting when the browser is next opened.
+    display_mirror_summon: bool = False
     log_decisions: bool = False
     mpv_log_level: str = "info"
     idle_when_paused: bool = False

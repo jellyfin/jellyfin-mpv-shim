@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-21 15:05-0400\n"
+"POT-Creation-Date: 2026-07-21 15:20-0400\n"
 "PO-Revision-Date: 2025-07-26 19:59+0000\n"
 "Last-Translator: Djwarf <djwar.fettah@outlook.com>\n"
 "Language-Team: Kurdish (Southern) <https://translate.jellyfin.org/projects/"
@@ -196,7 +196,7 @@ msgstr ""
 msgid "Change Video Quality"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1918
+#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1927
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:420
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:329
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:632 jellyfin_mpv_shim/syncplay.py:685
@@ -409,11 +409,11 @@ msgstr ""
 msgid "Enable thumbnail previews"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:591
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:600
 msgid "Failed to load. Check the connection."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:655
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:664
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -423,28 +423,28 @@ msgstr ""
 "Nekarî serverê lê zêde bike.\n"
 "Ji kerema xwe agahiyên girêdana xwe kontrol bikin."
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:763
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:772
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:540
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:555
 msgid "The change could not be applied."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:829
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:838
 msgid "Selected: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1015
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1187
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1024
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1196
 msgid "Loading…"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1069
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1230
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1078
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1239
 msgid "Timed out loading this item"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1070
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1231
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1079
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1240
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -454,8 +454,8 @@ msgstr ""
 "Nekarî serverê lê zêde bike.\n"
 "Ji kerema xwe agahiyên girêdana xwe kontrol bikin."
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1188
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1245
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1197
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1254
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:77
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:140
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
@@ -466,101 +466,101 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1239
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2021
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2085
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1248
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2030
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2094
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:452
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1242
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1251
 msgid "Retry with Transcode"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1275
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1310
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1284
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1319
 msgid "Playback could not be started."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1860
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1876
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1869
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1885
 msgid "Home"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1873
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1882
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:346
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
 msgid "Back"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1890
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1899
 #, fuzzy
 #| msgid "Server:"
 msgid "Server"
 msgstr "Server:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1903
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1912
 #, fuzzy
 #| msgid "Username: "
 msgid "User"
 msgstr "Navê bikarhêner: "
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1908
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1917
 msgid "Search…"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1915
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1924
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:979
 msgid "Search"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1920
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1929
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:587
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:74
 msgid "Settings"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1999
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2008
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:546
 msgid "Queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2071
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2080
 msgid "Update available: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2074
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2083
 msgid "Open"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2076
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2085
 msgid "Dismiss"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2081
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2090
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2083 jellyfin_mpv_shim/tray.py:82
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2092 jellyfin_mpv_shim/tray.py:82
 msgid "Configure Servers"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2101
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2110
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2102
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2111
 msgid "Downloading — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2111
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2120
 msgid "View Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2177
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2179
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2186
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2188
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -933,30 +933,34 @@ msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:110
-msgid "Fullscreen Library Browser"
+msgid "Casting Opens the Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:111
-msgid "Always Bind Arrow Keys to Player Controls"
+msgid "Fullscreen Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:112
+msgid "Always Bind Arrow Keys to Player Controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:113
 msgid "Player Controls Activation Key"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:118
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:119
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:120
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:121
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:150
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:151
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:167
 msgid "Advanced"
 msgstr ""
@@ -1087,7 +1091,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:463
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:779
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1078
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1082
 msgid "Refresh"
 msgstr ""
 
@@ -1150,34 +1154,34 @@ msgstr ""
 msgid "Specials"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:136
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:142
 msgid "Downloading %d%%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:137
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:143
 msgid "Downloading"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:139
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:145
 msgid "Queued"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:141
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:147
 #, fuzzy
 #| msgid "Fail"
 msgid "Failed"
 msgstr "Biserîneçûn"
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:178
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:184
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1003
 msgid "Playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:203
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:209
 msgid "Unknown Series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:264
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:270
 msgid "Movies & Videos"
 msgstr ""
 
@@ -1518,7 +1522,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:295
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:569
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:574
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:951
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:955
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 msgid "Delete"
 msgstr ""
@@ -1635,7 +1639,7 @@ msgid "Servers & Users"
 msgstr "Server:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:130
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1075
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1079
 msgid "Logs"
 msgstr ""
 
@@ -1849,48 +1853,48 @@ msgstr ""
 msgid "Remove Watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:919
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:923
 msgid "watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:942
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:946
 msgid "Delete the watched downloads in %s?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:943
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:947
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:635
 msgid "Delete the downloaded copy of %s?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:951
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:955
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 msgid "Delete Download"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1044
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1048
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:660
 msgid "The download could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1076
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1080
 msgid "Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1080
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1084
 #: jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1086
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1090
 msgid "No log output captured yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1151
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1155
 msgid "There is nothing to copy yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1162
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1170
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1166
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1174
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1900,11 +1904,11 @@ msgstr ""
 "Nekarî serverê lê zêde bike.\n"
 "Ji kerema xwe agahiyên girêdana xwe kontrol bikin."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1164
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1168
 msgid "No clipboard available — saved to %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1167
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1171
 msgid "Copied %d log lines."
 msgstr ""
 

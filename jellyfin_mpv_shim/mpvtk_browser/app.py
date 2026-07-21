@@ -443,9 +443,18 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             if not item:
                 return
             self._display_route(item)
+            # Imported here, not at module scope, like the other conf reads
+            # in this file (import cycle: conf -> ... -> app).
+            from ..conf import settings
+            if self._minimized and not settings.display_mirror_summon:
+                # Closed to the tray. The route is set either way, so the
+                # page is waiting whenever the browser is opened — but
+                # popping the window open because someone idly scrolled a
+                # phone is not something to do by default. Opt in with
+                # display_mirror_summon.
+                return
             if self._minimized or self._browsing:
-                # Idle or already browsing: bring the page forward. A cast
-                # has to be able to wake a minimized client.
+                # Idle or already browsing: bring the page forward.
                 self.enter_browse()
                 if self.controller is not None:
                     self._safe(lambda c: c.raise_window())
