@@ -1399,9 +1399,18 @@ class UserInterface:
         return True
 
     def _run(self):
+        from ..player import _mpv_errors, bound_ipc_replies
         app = self._app
         try:
             app.run(self._browser.build)
+        except _mpv_errors:
+            # Not a crash: the window went away under us. This is also the
+            # earliest hard evidence that the IPC socket is dead, and the
+            # player is very likely mid-teardown on the action thread with
+            # a command whose reply will never arrive — so tighten the
+            # reply wait now rather than after it has already parked.
+            log.info("mpvtk browser loop ended: mpv is gone")
+            bound_ipc_replies()
         except Exception:
             log.error("mpvtk browser loop crashed", exc_info=True)
         finally:

@@ -24,10 +24,19 @@ class TimelineManager(threading.Thread):
 
         threading.Thread.__init__(self)
 
+    # Same reasoning as ActionThread.JOIN_TIMEOUT: this thread's loop body
+    # posts progress to the server, so an unresponsive server can park it
+    # for a full request timeout. Bounded so it cannot hold up the exit.
+    JOIN_TIMEOUT = 15.0
+
     def stop(self):
         self.halt = True
         self.trigger.set()
-        self.join()
+        self.join(timeout=self.JOIN_TIMEOUT)
+        if self.is_alive():
+            log.warning(
+                "Timeline thread did not stop within %.0fs; continuing "
+                "shutdown without it.", self.JOIN_TIMEOUT)
 
     def run(self):
         while not self.halt:

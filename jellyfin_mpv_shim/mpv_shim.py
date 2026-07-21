@@ -56,6 +56,13 @@ def main():
 
     log = root_logger
 
+    # `kill -USR1 <pid>` dumps every thread's stack. The only time a hang is
+    # diagnosable is while it is hanging, and by then it is too late to add
+    # instrumentation.
+    from .exit_watchdog import enable_manual_dumps
+
+    enable_manual_dumps()
+
     try:
         # Use 'spawn' for the tray/browser child processes on every platform.
         # - macOS: avoids Objective-C fork crashes with GUI frameworks
@@ -138,13 +145,40 @@ def main():
             print("")
             log.info("Stopping services...")
     finally:
-        playerManager.terminate()
-        timelineManager.stop()
-        actionThread.stop()
-        syncManager.stop()
-        clientManager.stop()
-        user_interface.stop()
-        single.release()
+        from . import exit_watchdog
+
+        # Armed BEFORE the sequence, not after: the failure we are guarding
+        # against is a step that never returns, and anything placed after
+        # such a step is unreachable. On expiry it dumps every thread, which
+        # is what identifies the wedged step.
+        exit_watchdog.arm()
+        # Covers the quit paths that do not start at a window close (tray
+        # Quit, Ctrl-C): mpv is about to go away either way, and no reply
+        # is worth minutes now.
+        from .player import bound_ipc_replies
+
+        bound_ipc_replies()
+        # Logged per step for the same reason — the last line in the log
+        # names the step that hung, even if the dump is unavailable.
+        for name, stop in (
+            ("player", playerManager.terminate),
+            ("timeline", timelineManager.stop),
+            ("action thread", actionThread.stop),
+            ("sync manager", syncManager.stop),
+            ("clients", clientManager.stop),
+            ("user interface", user_interface.stop),
+            ("instance lock", single.release),
+        ):
+            log.info("Shutting down: %s", name)
+            try:
+                stop()
+            except Exception:
+                # One component failing to stop must not strand the rest —
+                # a half-shut-down app is exactly what leaves the stray
+                # threads this sequence exists to clean up.
+                log.exception("Error shutting down %s", name)
+        log.info("Shutdown complete.")
+        exit_watchdog.finish()
 
 
 if __name__ == "__main__":

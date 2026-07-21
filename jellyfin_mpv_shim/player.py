@@ -66,6 +66,44 @@ if hasattr(mpv, "ShutdownError"):
 else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
+# How long to wait for an mpv command's reply once the window is going
+# away. Only the external (jsonipc) backend needs this: every command
+# there is a request/response over a socket, and the reply is waited for
+# with python_mpv_jsonipc.TIMEOUT, which is 120s.
+#
+# A closing window puts that squarely in the failure path. mpv can accept
+# a command, run it, and exit before its reply is written back — we saw
+# exactly that on the close path, where trickplay's overlay-clear reached
+# mpv (it logged "Clearing trickplay") but the reply never came, parking
+# the action thread for two minutes with the whole shutdown queued behind
+# it. libmpv has no equivalent: a dead handle raises immediately, which
+# is why the same close is instant there.
+#
+# Bounding the wait is the fix rather than hunting individual calls: any
+# command issued while the window is disappearing can lose its reply, and
+# during teardown there is no command whose answer is worth minutes.
+IPC_TEARDOWN_TIMEOUT = 5
+
+
+def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
+    """Stop waiting minutes for replies from an mpv that is going away.
+
+    ``TIMEOUT`` is a module global read at each wait, so lowering it takes
+    effect for calls already in flight as well as later ones. Idempotent,
+    and never raised back to the caller: this runs on teardown paths where
+    failing to tighten a timeout must not become the thing that breaks the
+    shutdown.
+    """
+    if not is_using_ext_mpv:
+        return
+    try:
+        if mpv.TIMEOUT > seconds:
+            log.debug("Bounding mpv IPC reply wait to %ss for teardown.",
+                      seconds)
+            mpv.TIMEOUT = seconds
+    except Exception:
+        log.debug("Could not bound the mpv IPC reply wait.", exc_info=True)
+
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
 BROWSE_BG_HEX = "#141414"
@@ -653,6 +691,11 @@ class PlayerManager(object):
             # hook this used to stop playback, which fired a stopped
             # playstate, which re-opened the browser window immediately.
             log.info("handle_close_win triggered")
+            # From here mpv may exit at any moment, including between
+            # accepting a command and answering it. Everything below runs
+            # on the action thread, so an unbounded reply wait blocks the
+            # whole shutdown behind it — see bound_ipc_replies.
+            bound_ipc_replies()
             handler = self.on_window_closed
             if self.mpvtk_active and handler is not None:
                 self.put_task(handler)
