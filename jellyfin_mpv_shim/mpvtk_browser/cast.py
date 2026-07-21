@@ -236,7 +236,7 @@ class CastMixin:
             # whatever was behind us.
             return Column([], w=size[0], h=size[1])
         return ImageNode(entry["src"], entry["iw"], entry["ih"],
-                         w=size[0], h=size[1])
+                         w=size[0], h=size[1], v=entry.get("v", 0))
 
     def display_cast_item(self, server_uuid, item_id):
         """A remote picked something: show it.

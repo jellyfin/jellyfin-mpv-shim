@@ -213,15 +213,16 @@ class StripCounterRaceTest(unittest.TestCase):
         assertion that actually pins the fix.
         """
         store, img = self._store_fixture()
-        seen, seen_lock = [], threading.Lock()
+        seen, versions, seen_lock = [], [], threading.Lock()
         start = threading.Event()
 
         def store_many():
             start.wait(5)
             for _ in range(50):
-                src, _w, _h = store._store(img)
+                src, _w, _h, v = store._store(img)
                 with seen_lock:
                     seen.append(src)
+                    versions.append(v)
 
         threads = [threading.Thread(target=store_many, daemon=True)
                    for _ in range(4)]
@@ -235,6 +236,10 @@ class StripCounterRaceTest(unittest.TestCase):
         self.assertEqual(len(seen), len(set(seen)),
                          "two strips share one filename — the cache would "
                          "hold two entries on one path with different iw/ih")
+        self.assertEqual(len(versions), len(set(versions)),
+                         "two strips share one content version — on the "
+                         "libmpv path (recycled addresses) that makes them "
+                         "indistinguishable to the renderer's overlay cache")
 
 
 if __name__ == "__main__":

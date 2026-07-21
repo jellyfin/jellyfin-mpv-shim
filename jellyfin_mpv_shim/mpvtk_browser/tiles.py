@@ -141,7 +141,7 @@ class TilesMixin:
             img = self._request_image(key, url, (size, size))
             if img is not None:
                 b = self.strips.bitmap(key, img)
-                return Image(b["src"], b["iw"], b["ih"])
+                return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0))
         return self._art_placeholder(size)
 
     @staticmethod
@@ -222,7 +222,7 @@ class TilesMixin:
             if img is not None:
                 b = self.strips.bitmap(key, self._compose_banner(
                     img, box, title, meta, context))
-                return Image(b["src"], b["iw"], b["ih"], id=node_id)
+                return Image(b["src"], b["iw"], b["ih"], id=node_id, v=b.get("v", 0))
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
 
@@ -351,7 +351,8 @@ class TilesMixin:
                 on_click=(lambda i=it: act(i)),
                 on_context=(lambda x, y, i=it: self._open_tile_menu(i, x, y)),
             ))
-        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions)
+        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
+                        v=s.get("v", 0))
 
     # ------------------------------------------------------ tile context menu
 

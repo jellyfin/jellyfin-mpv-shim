@@ -11,10 +11,17 @@ crop math on cached bitmaps.
 
 Strips are **content-keyed**: the key folds in every visible property
 (poster identity, title, watched/badge/progress, geometry), so changing
-any of them composites a new bitmap under a new src — the renderer's
-overlay cache can never show stale content. The cache is LRU-bounded so
-a long browse session doesn't grow without limit; anything on screen was
-requested by the current build and is therefore most-recent.
+any of them composites a new bitmap under a new src. The cache is
+LRU-bounded so a long browse session doesn't grow without limit;
+anything on screen was requested by the current build and is therefore
+most-recent.
+
+A new src alone does NOT guarantee the renderer refreshes, though: on
+the libmpv path src is a malloc address, and addresses are recycled once
+a freed buffer leaves MemoryStore's graveyard, so a new entry can be
+handed a departed entry's exact src. Every entry therefore also carries
+a monotonic ``v`` (see ``_store``), which is what actually keeps the
+renderer's overlay cache from showing stale content.
 
 Backends: on libmpv (in-process) strips go to a ``MemoryStore`` (ctypes
 buffers, ``&<addr>`` src, no fs); on jsonipc they're BGRA files. The
@@ -146,7 +153,7 @@ class StripStore:
 
     def strip(self, tiles, geom=None):
         """Composite ``tiles`` into one strip (in ``geom``'s shape, default
-        the store's). Returns ``{"src", "iw", "ih", "regions"}`` where each
+        the store's). Returns ``{"src", "iw", "ih", "v", "regions"}`` where each
         region is ``{"x", "y", "w", "h", "key"}`` in image-local coords (the
         view wraps these with on_click/on_context/id)."""
         g = geom or self.geom
@@ -171,7 +178,7 @@ class StripStore:
         """Cache a single arbitrary image as BGRA (backdrops, logos, art) in
         the same store/LRU as strips. ``key`` must identify the content;
         ``image`` is a PIL image already at display size. Returns
-        ``{"src", "iw", "ih"}``."""
+        ``{"src", "iw", "ih", "v"}``."""
         ck = ("bitmap", key)
         with self._lock:
             hit = self._cache.get(ck)
@@ -180,8 +187,8 @@ class StripStore:
                 self.hits += 1
                 return hit
             self.misses += 1
-        src, w, h = self._store(image)
-        entry = {"src": src, "iw": w, "ih": h}
+        src, w, h, v = self._store(image)
+        entry = {"src": src, "iw": w, "ih": h, "v": v}
         with self._lock:
             self._cache[ck] = entry
             self._evict()
@@ -218,8 +225,8 @@ class StripStore:
             regions.append(
                 {"x": x, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
             )
-        src, iw2, ih2 = self._store(img)
-        return {"src": src, "iw": iw2, "ih": ih2, "regions": regions}
+        src, iw2, ih2, v = self._store(img)
+        return {"src": src, "iw": iw2, "ih": ih2, "v": v, "regions": regions}
 
     def _paint_poster(self, img, dr, x, t, g):
         from PIL import Image as PILImage
@@ -309,8 +316,20 @@ class StripStore:
     # -- storage ----------------------------------------------------------
 
     def _store(self, img):
-        if self.mem is not None:
-            return self.mem.add(img)
+        """Returns (src, w, h, v). ``v`` is a monotonic content version.
+
+        It is what keeps the libmpv path honest. There ``src`` is a raw
+        malloc address, and addresses ARE recycled: once a freed buffer
+        falls out of MemoryStore's graveyard, the next allocation can land
+        on the exact address an evicted entry used (measured: 60 strip-sized
+        allocations produced only 20 distinct addresses). The renderer skips
+        re-issuing an overlay whose args are unchanged, so a recycled address
+        made the NEW entry indistinguishable from the old one and mpv went on
+        compositing the PREVIOUS buffer's contents under the new entry's
+        identity -- a stale poster that never refreshes. mpv copies at
+        overlay-add rather than reading the address live, so bumping v (which
+        lands in the renderer's arg string) forces the re-issue and the copy.
+        """
         # Under the lock even though the composite around it deliberately is
         # not: `+= 1` is a read-modify-write, and this runs on the pool
         # workers (the cast compositor) as well as the loop thread. Two
@@ -323,9 +342,12 @@ class StripStore:
         with self._lock:
             self._counter += 1
             counter = self._counter
+        if self.mem is not None:
+            src, w, h = self.mem.add(img)
+            return src, w, h, counter
         src = os.path.join(self.dir, "strip%d.bgra" % counter)
         w, h = write_bgra(img, src)
-        return src, w, h
+        return src, w, h, counter
 
     def _free(self, src):
         if self.mem is not None:

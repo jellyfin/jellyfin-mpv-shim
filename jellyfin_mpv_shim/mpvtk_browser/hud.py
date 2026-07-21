@@ -88,7 +88,7 @@ def _clock(secs):
 def _trickplay_frame(b, secs):
     """Scrub preview bitmap for ``secs``, via the TrickPlay worker's
     decoded raw-BGRA tile file (player.trickplay_meta). Returns a
-    strips.bitmap entry {"src", "iw", "ih"} or None (no trickplay data
+    strips.bitmap entry {"src", "iw", "ih", "v"} or None (no trickplay data
     for this video / frame not readable)."""
     get = getattr(b.controller, "trickplay", None)
     if get is None or b.strips is None:
@@ -668,7 +668,8 @@ def _preview_float(b, secs, dur, size, chapters):
     entry = _trickplay_frame(b, secs)
     rows = []
     if entry is not None:
-        rows.append(Image(entry["src"], entry["iw"], entry["ih"]))
+        rows.append(Image(entry["src"], entry["iw"], entry["ih"],
+                          v=entry.get("v", 0)))
     chapter = None
     for ch in chapters:
         if ch["time"] <= secs and ch.get("title"):
