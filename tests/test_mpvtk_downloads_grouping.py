@@ -14,7 +14,10 @@ import unittest
 sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 
 from jellyfin_mpv_shim.mpvtk_browser.downloads import (  # noqa: E402
-    group_downloads, progress_summary, row_size, season_title, status_text)
+    group_downloads, progress_summary, qualified_title, row_size,
+    season_title, status_text)
+from jellyfin_mpv_shim.sync.db import (  # noqa: E402
+    ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD, ORIGIN_USER)
 
 
 def row(item_id, name="Item", **kw):
@@ -292,3 +295,97 @@ class TestTheShapeTheViewExpects(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AutoSubtreeTest(unittest.TestCase):
+    """Automatic downloads get their own groups, ahead of the hand-picked
+    ones: they are what changes without the user doing anything."""
+
+    def _tree(self, rows):
+        return group_downloads(rows, [], lambda pid: [], {})
+
+    def test_each_source_is_its_own_group(self):
+        tree = self._tree([
+            row("a", origin=ORIGIN_AUTO_NEXT_UP, type="Episode"),
+            row("b", origin=ORIGIN_AUTO_LOOKAHEAD, type="Episode"),
+        ])
+        self.assertEqual([g["title"] for g in tree],
+                         ["Automatic: Next Up", "Automatic: Actively Watched"])
+
+    def test_an_empty_source_shows_no_group(self):
+        tree = self._tree([row("a", origin=ORIGIN_AUTO_NEXT_UP,
+                               type="Episode")])
+        self.assertEqual(len(tree), 1)
+
+    def test_auto_rows_are_not_also_listed_under_their_series(self):
+        """Otherwise the same episode appears twice and its size is counted
+        twice in the totals."""
+        tree = self._tree([
+            row("a", origin=ORIGIN_AUTO_NEXT_UP, type="Episode",
+                series_id="s1", series_name="Show"),
+        ])
+        self.assertEqual([g["kind"] for g in tree], ["auto"])
+
+    def test_user_rows_still_group_by_series(self):
+        tree = self._tree([
+            row("u", origin=ORIGIN_USER, type="Episode",
+                series_id="s1", series_name="Show"),
+        ])
+        self.assertEqual([g["kind"] for g in tree], ["series"])
+
+    def test_the_group_has_no_server_side_id(self):
+        """The renderer deletes an id-less group by listing its rows, which
+        is right: no server object means "what auto-download fetched"."""
+        tree = self._tree([row("a", origin=ORIGIN_AUTO_NEXT_UP,
+                               type="Episode")])
+        self.assertIsNone(tree[0]["id"])
+
+    def test_an_unknown_auto_source_still_appears(self):
+        """A catalog from an early build. It has to be reachable or it is
+        disk used with no way to reclaim it from this screen."""
+        tree = self._tree([row("a", origin="auto", type="Episode")])
+        self.assertEqual([g["kind"] for g in tree], ["auto"])
+
+
+class QualifiedTitleTest(unittest.TestCase):
+    """The automatic groups are flat and mix shows, so a bare episode name
+    does not say what it belongs to."""
+
+    def test_series_and_numbering_are_included(self):
+        self.assertEqual(
+            qualified_title(row("a", name="Chapter Four", type="Episode",
+                                series_name="Show", parent_index=1,
+                                index_number=4)),
+            "Show - S01E04 - Chapter Four")
+
+    def test_a_movie_is_left_alone(self):
+        self.assertEqual(
+            qualified_title(row("m", name="Arrival", type="Movie")), "Arrival")
+
+    def test_missing_numbering_is_dropped_not_rendered(self):
+        """"S01ENone" is worse than no numbering at all."""
+        out = qualified_title(row("a", name="Special", type="Episode",
+                                  series_name="Show"))
+        self.assertEqual(out, "Show - Special")
+
+    def test_an_episode_with_no_series_still_reads(self):
+        self.assertEqual(
+            qualified_title(row("a", name="Pilot", type="Episode")), "Pilot")
+
+    def test_the_auto_group_uses_it(self):
+        tree = group_downloads(
+            [row("a", name="Chapter Four", origin=ORIGIN_AUTO_NEXT_UP,
+                 type="Episode", series_name="Show", parent_index=1,
+                 index_number=4)], [], lambda pid: [], {})
+        self.assertEqual(tree[0]["children"][0]["title"],
+                         "Show - S01E04 - Chapter Four")
+
+    def test_series_groups_keep_the_bare_name(self):
+        """Under a series/season heading the tree already supplies context;
+        repeating it would be noise."""
+        tree = group_downloads(
+            [row("u", name="Chapter Four", origin=ORIGIN_USER, type="Episode",
+                 series_id="s1", series_name="Show", parent_index=1,
+                 index_number=4)], [], lambda pid: [], {})
+        self.assertEqual(
+            tree[0]["children"][0]["children"][0]["title"], "Chapter Four")

@@ -74,11 +74,38 @@ def row_watched(row):
         return False
 
 
-def _entry(row):
+def qualified_title(row):
+    """Episode title with enough context to identify it on its own.
+
+    Under a series/season heading the bare name is fine — the tree supplies
+    the rest. The automatic groups are flat and mix shows together, so a row
+    reading "Chapter Four" says nothing about what it belongs to. Formats as
+    "Show - S01E04 - Chapter Four", dropping whatever is missing rather than
+    rendering "S01ENone" for an item with no numbering.
+    """
+    name = row.get("name") or row.get("item_id") or ""
+    if (row.get("type") or "") != "Episode":
+        return name          # a movie is already self-describing
+    parts = []
+    series = (row.get("series_name") or "").strip()
+    if series:
+        parts.append(series)
+    season, index = row.get("parent_index"), row.get("index_number")
+    if season is not None and index is not None:
+        parts.append("S%02dE%02d" % (season, index))
+    elif index is not None:
+        parts.append("E%02d" % index)
+    if name:
+        parts.append(name)
+    return " - ".join(parts) or name
+
+
+def _entry(row, qualified=False):
     return {
         "kind": "item",
         "id": row.get("item_id"),
-        "title": row.get("name") or row.get("item_id"),
+        "title": qualified_title(row) if qualified else (
+            row.get("name") or row.get("item_id")),
         "status": row.get("status") or "",
         "size": row_size(row),
         "index": row.get("index_number"),
@@ -215,7 +242,9 @@ def group_downloads(rows, playlists, playlist_items, owned):
             "size": sum(row_size(r) for r in items),
             "count": len(items),
             "watched_count": sum(1 for r in items if row_watched(r)),
-            "children": [_entry(r) for r in items],
+            # Qualified: this group is flat and mixes shows, so a bare
+            # episode name would not say what it belongs to.
+            "children": [_entry(r, qualified=True) for r in items],
         })
 
     shows = []

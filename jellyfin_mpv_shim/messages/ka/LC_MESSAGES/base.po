@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-21 14:58-0400\n"
+"POT-Creation-Date: 2026-07-21 15:05-0400\n"
 "PO-Revision-Date: 2026-05-24 14:38+0000\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -828,149 +828,149 @@ msgstr ""
 msgid "Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:72
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:73
 msgid "Jellyfin UI"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:73
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:74
 msgid "MPV UI with thumbnails"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:74
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:75
 msgid "MPV built-in default"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:77
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:78
 msgid "Follow display"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:78
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:79
 msgid "100% (no scaling)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:79
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:80
 msgid "125%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:80
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:81
 msgid "150%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:81
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:82
 msgid "200%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:84
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:85
 msgid "Unset"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:86
 msgid "Dubbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:86
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:87
 msgid "Subbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:87
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:88
 msgid "Dubbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:88
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:89
 msgid "Subbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:89
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:90
 msgid "Custom (set in config)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:94
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Download Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:95
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:96
 msgid "Prefer Downloaded Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:96
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:97
 msgid "Automatically Download Upcoming Episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:97
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:98
 msgid "Include Next Up"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:98
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:99
 msgid "Next Up Entries to Consider"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:99
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:100
 msgid "Episodes to Keep Ahead (0 = off)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:100
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:101
 msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:101
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:102
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
 msgstr "სერვერის წაშლა"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:102
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
 msgid "Delete Unwatched After (days, 0 = never)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid "Check Every (minutes)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
 msgid "Close to Tray (keep running)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
 msgid "Remember Window Size"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:107
 msgid "Player Controls Style"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:107
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:108
 msgid "Interface Scale"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:108
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:109
 msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:109
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:110
 msgid "Fullscreen Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:110
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:111
 msgid "Always Bind Arrow Keys to Player Controls"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:111
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:112
 msgid "Player Controls Activation Key"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:117
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:118
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:119
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:120
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:149
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:150
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:167
 msgid "Advanced"
 msgstr ""
@@ -1186,36 +1186,36 @@ msgstr ""
 msgid "Specials"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:109
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:136
 msgid "Downloading %d%%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:110
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:137
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Downloading"
 msgstr "სერვერის წაშლა"
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:112
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:139
 msgid "Queued"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:114
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:141
 #, fuzzy
 #| msgid "Fail"
 msgid "Failed"
 msgstr "ჩავარდნა"
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:151
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:178
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1003
 msgid "Playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:176
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:203
 msgid "Unknown Series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:235
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:264
 msgid "Movies & Videos"
 msgstr ""
 

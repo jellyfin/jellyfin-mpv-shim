@@ -184,6 +184,35 @@ class TestSkipButtonGeometry(unittest.TestCase):
                          "layout.py does; drift changes the box height")
 
 
+class TestBoldFactor(unittest.TestCase):
+    """layout.py BOLD_FACTOR vs renderer.lua's.
+
+    Only the regular face is measured, so bold width is derived from it by
+    this factor. It was 1.04 -- measuring DejaVuSans against DejaVuSans-Bold
+    gives ~1.12 -- which under-measured a bold heading by ~14px at size 17
+    and let the next node overlap it.
+    """
+
+    def _values(self):
+        py = float(_one(r"^BOLD_FACTOR = ([0-9.]+)$", _read(LAYOUT),
+                        "BOLD_FACTOR"))
+        lua = float(_one(r"^local BOLD_FACTOR = ([0-9.]+)$", _read(RENDERER),
+                         "lua BOLD_FACTOR"))
+        return py, lua
+
+    def test_they_match(self):
+        py, lua = self._values()
+        self.assertEqual(py, lua,
+                         "Python sizes the box, Lua draws the glyphs; drift "
+                         "makes bold text overflow or overlap its neighbour")
+
+    def test_it_is_not_the_old_underestimate(self):
+        py, _lua = self._values()
+        self.assertGreater(py, 1.10,
+                           "1.04 is the value that caused the overlap")
+        self.assertLess(py, 1.20, "implausibly wide for a bold face")
+
+
 class TestStripCacheHoldsAWholeScene(unittest.TestCase):
     """strips.py's MAX_ENTRIES vs renderer.lua's MAX_OVERLAYS.
 

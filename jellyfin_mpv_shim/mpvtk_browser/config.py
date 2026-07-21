@@ -53,6 +53,7 @@ SECTIONS = [
     (_("Library Browser"), ["library_image_cache_mb"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
                       "auto_download_enable", "auto_download_next_up",
+                      "auto_download_next_up_limit",
                       "auto_download_lookahead", "auto_download_max_gb",
                       "auto_download_delete_watched",
                       "auto_download_keep_days",

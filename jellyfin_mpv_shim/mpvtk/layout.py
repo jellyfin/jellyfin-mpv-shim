@@ -90,6 +90,19 @@ def char_w(ch):
     return _DEFAULT_W
 
 
+#: How much wider the bold face is than the regular one. Only the regular
+#: face is measured (metrics.py), so bold is derived from it by this factor.
+#:
+#: Was 1.04, which is not close: measuring DejaVuSans against
+#: DejaVuSans-Bold with Pillow gives 1.122 aggregate over ASCII, and
+#: 1.119-1.130 across real UI strings. At size 17 the old value
+#: under-measured a bold heading by ~14px, so whatever the layout put next
+#: to it overlapped — the downloads screen's group titles ran into their
+#: item counts. renderer.lua carries the same constant and
+#: tests/test_python_lua_constants.py pins them together.
+BOLD_FACTOR = 1.12
+
+
 def text_width(s, size, bold=False):
     w = 0.0
     prev = None
@@ -99,7 +112,7 @@ def text_width(s, size, bold=False):
         w += char_w(c)
         prev = c
     w *= size
-    return w * 1.04 if bold else w
+    return w * BOLD_FACTOR if bold else w
 
 
 def ellipsize(s, size, bold, max_w):
@@ -113,7 +126,7 @@ def ellipsize(s, size, bold, max_w):
     out = []
     w = 0.0
     prev = None
-    bf = 1.04 if bold else 1.0
+    bf = BOLD_FACTOR if bold else 1.0
     for c in s:
         cw = char_w(c) * size * bf
         if prev is not None:

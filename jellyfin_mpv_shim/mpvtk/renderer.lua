@@ -171,6 +171,11 @@ local function u8_count(s)
     return n
 end
 
+-- How much wider the bold face is than the regular one. Mirrors
+-- layout.py's BOLD_FACTOR (measured, not guessed -- see the comment
+-- there); tests/test_python_lua_constants.py pins the two together.
+local BOLD_FACTOR = 1.12
+
 local function text_w(s, size, bold)
     local w = 0
     local prev = nil
@@ -180,7 +185,7 @@ local function text_w(s, size, bold)
         prev = c
     end
     w = w * size
-    if bold then w = w * 1.04 end
+    if bold then w = w * BOLD_FACTOR end
     return w
 end
 
@@ -194,7 +199,7 @@ local function ellipsize(s, size, bold, max_w)
     local out = {}
     local w = 0
     local prev = nil
-    local bf = bold and 1.04 or 1
+    local bf = bold and BOLD_FACTOR or 1
     for c in s:gmatch(U8PAT) do
         local cw = char_w(c) * size * bf
         if prev then cw = cw + kern_w(prev, c) * size * bf end
