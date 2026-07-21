@@ -71,6 +71,9 @@ EXCLUDED_COLLECTION_TYPES = {"musicvideos", "books", "livetv"}
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
 # Item types that drill into a series view.
 SERIES_TYPES = {"Series"}
+# Live TV entries, which play immediately rather than opening a detail view.
+# A Program plays its ChannelId, not its own id.
+LIVE_TYPES = {"Program", "TvChannel"}
 # Item types that drill into another grid (by ParentId).
 FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
@@ -127,6 +130,10 @@ class LibrarySource:
         # rather than paid on every back-navigation. Refreshed whenever the
         # settings screen reads them, and rewritten on save.
         self._home_prefs = {}
+        # uuid -> whether this server offers Live TV to this user. Derived for
+        # free from the /Views response get_libraries already fetches; see
+        # has_live_tv for why that answer is authoritative.
+        self._has_live_tv = {}
         for info in servers:
             try:
                 conn = ServerConn(info, device_id, player_name, verify_ssl)
@@ -155,11 +162,38 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_views() or {}
         out = []
+        has_live_tv = False
         for item in result.get("Items", []):
             if item.get("CollectionType") in EXCLUDED_COLLECTION_TYPES:
+                # Noted on the way past rather than fetched separately: the
+                # server adds this view only when the user may use Live TV AND
+                # a tuner is configured (UserViewManager consults
+                # LiveTvManager.GetEnabledUsers, which is
+                # EnableLiveTvAccess && tuner hosts exist). So its presence
+                # here is the whole gate, at no extra request — which matters
+                # because Live TV sits in the stock home layout, and without a
+                # gate every user without a tuner would pay for a row that can
+                # never have anything in it.
+                has_live_tv = has_live_tv or item.get("CollectionType") == "livetv"
                 continue
             out.append(item)
+        self._has_live_tv[server_uuid] = has_live_tv
         return out
+
+    def has_live_tv(self, server_uuid):
+        """Whether this server offers Live TV, per the last get_libraries.
+
+        Defaults to False when views have not been read yet: the cost of
+        being wrong in that direction is one missing row until the next home
+        load, against a pointless request on every home load for the large
+        majority of users who have no tuner.
+
+        getattr rather than a bare attribute read, because a LibrarySource
+        built without __init__ (as the home-row tests do) must still answer
+        "no Live TV" rather than raise from inside the fan-out.
+        """
+        return (getattr(self, "_has_live_tv", None) or {}).get(
+            server_uuid, False)
 
     # -- home screen layout (shared with jellyfin-web) ---------------------
 
@@ -327,6 +361,30 @@ class LibrarySource:
                 enable_image_types="Primary,Thumb,Backdrop") or {}
             return (_("Next Up"), nextup.get("Items", []), None)
 
+        def live_tv_row():
+            # jellyfin-web's Live TV home section is a row of nav buttons plus
+            # an "On Now" strip; the strip is the part that lists anything, so
+            # it is the part reproduced here.
+            #
+            # api._get rather than a helper: jellyfin-apiclient-python has
+            # get_channels but nothing for Programs. ChannelInfo is what adds
+            # ChannelName/ChannelPrimaryImageTag to each program, which is the
+            # only art most guide data carries.
+            #
+            # Not jellyfin-web's separate limit=1 probe: an empty row is
+            # already dropped by the comprehension below, so probing first
+            # would only add a round trip to reach the same result.
+            onnow = api._get("LiveTv/Programs/Recommended", {
+                "IsAiring": True,
+                "Limit": 24,
+                "Fields": LIST_FIELDS + ",ChannelInfo",
+                "EnableImageTypes": "Primary,Thumb,Backdrop",
+                "ImageTypeLimit": 1,
+                "EnableTotalRecordCount": False,
+                "EnableUserData": False,
+            }) or {}
+            return (_("On Now"), onnow.get("Items", []), "livetv")
+
         def latest_row(lib):
             def fetch():
                 # NOT api.get_recently_added: that helper hardcodes
@@ -354,6 +412,7 @@ class LibrarySource:
             home_sections.RESUME: video_resume_row,
             home_sections.RESUME_AUDIO: audio_resume_row,
             home_sections.NEXT_UP: next_up_row,
+            home_sections.LIVE_TV: live_tv_row,
         }
 
         # (slot, kind, callable). The slot travels with the row so the caller
@@ -364,6 +423,11 @@ class LibrarySource:
         for slot, kind in enumerate(layout):
             stage = home_sections.STAGE.get(kind)
             if stage is None or stage == "local" or stage not in sections:
+                continue
+            if kind == home_sections.LIVE_TV and not self.has_live_tv(server_uuid):
+                # No tuner (or no access): the request could only ever answer
+                # empty, and this section is in the stock layout, so skipping
+                # it here is what keeps Live TV free for everyone not using it.
                 continue
             if kind == home_sections.LATEST:
                 # One request per library, so this is where the user's
@@ -855,6 +919,18 @@ class LibrarySource:
 
         if item.get("SeriesId") and item.get("SeriesPrimaryImageTag"):
             return item["SeriesId"], "Primary", item["SeriesPrimaryImageTag"]
+
+        if item.get("ParentThumbItemId") and item.get("ParentThumbImageTag"):
+            # Live TV programs inherit the channel's thumb this way.
+            return (item["ParentThumbItemId"], "Thumb",
+                    item["ParentThumbImageTag"])
+
+        if item.get("ChannelId") and item.get("ChannelPrimaryImageTag"):
+            # Last resort for a program: the channel logo. Guide data often
+            # carries no art of its own, and a wall of letter glyphs reads as
+            # broken — the logo at least identifies what is on.
+            return (item["ChannelId"], "Primary",
+                    item["ChannelPrimaryImageTag"])
 
         if item.get("AlbumId") and item.get("AlbumPrimaryImageTag"):
             return item["AlbumId"], "Primary", item["AlbumPrimaryImageTag"]

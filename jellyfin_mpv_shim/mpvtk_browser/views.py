@@ -134,6 +134,11 @@ class ViewsMixin:
         ctype = hr.get("collection_type")
         items = hr.get("items", [])
         has_episode = any(it.get("Type") == "Episode" for it in items)
+        if ctype == "livetv":
+            # Programs are 16:9 guide stills or channel logos; a poster crop
+            # of either is unreadable. jellyfin-web uses a backdrop shape with
+            # preferThumb for the same reason.
+            return self.geom_wide, "Thumb"
         if ctype in ("movies", "tvshows", "boxsets"):
             return self.geom, "Primary"
         if ctype in ("music", "playlists"):

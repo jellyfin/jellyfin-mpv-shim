@@ -39,11 +39,11 @@ class TestResolveLayout(unittest.TestCase):
         self.assertEqual(hs.DEFAULT_LAYOUT[5], hs.NEXT_UP)   # guards the point
 
     def test_unsupported_values_survive_resolution(self):
-        """We cannot draw Live TV, but we must not lose it: the same layout is
-        read by jellyfin-web."""
-        layout = hs.resolve_layout({"homesection0": hs.LIVE_TV})
-        self.assertEqual(layout[0], hs.LIVE_TV)
-        self.assertNotIn(hs.LIVE_TV, hs.SUPPORTED)
+        """We cannot draw recordings, but we must not lose them: the same
+        layout is read by jellyfin-web."""
+        layout = hs.resolve_layout({"homesection0": hs.ACTIVE_RECORDINGS})
+        self.assertEqual(layout[0], hs.ACTIVE_RECORDINGS)
+        self.assertNotIn(hs.ACTIVE_RECORDINGS, hs.SUPPORTED)
 
     def test_values_are_stringified_and_stripped(self):
         layout = hs.resolve_layout({"homesection0": "  resume  "})
@@ -95,7 +95,8 @@ class TestStages(unittest.TestCase):
         self.assertEqual(hs.stages_for([hs.LATEST]), {"latest"})
 
     def test_unsupported_sections_contribute_no_work(self):
-        self.assertEqual(hs.stages_for([hs.LIVE_TV, hs.RESUME_BOOK]), set())
+        self.assertEqual(
+            hs.stages_for([hs.ACTIVE_RECORDINGS, hs.RESUME_BOOK]), set())
 
     def test_default_layout_needs_both_fetch_stages(self):
         stages = hs.stages_for(hs.DEFAULT_LAYOUT)

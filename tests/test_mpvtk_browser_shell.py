@@ -4614,6 +4614,45 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
                 self.assertEqual(calls, [], "re-ran the initial load")
 
 
+class TestLiveTvActivation(unittest.TestCase):
+    """Clicking an On Now tile.
+
+    A Program is not itself playable — what you watch is the channel carrying
+    it — so the tile has to resolve to ChannelId. Both live types also go
+    straight to playback: there is no detail page for a channel, and nothing
+    to resume.
+    """
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.plays = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: self.plays.append(
+            list(ids))
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_program_plays_its_channel_not_itself(self):
+        self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
+                           "ChannelId": "c1"})
+        self.assertEqual(self.plays, [["c1"]])
+
+    def test_channel_plays_itself(self):
+        self.b._open_item({"Id": "c1", "Name": "BBC One", "Type": "TvChannel"})
+        self.assertEqual(self.plays, [["c1"]])
+
+    def test_program_without_channel_info_falls_back_to_its_own_id(self):
+        # Fails downstream as an unplayable item, which is a better outcome
+        # than a tile that silently does nothing.
+        self.b._open_item({"Id": "p1", "Name": "Orphan", "Type": "Program"})
+        self.assertEqual(self.plays, [["p1"]])
+
+    def test_live_tiles_do_not_open_a_detail_page(self):
+        self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
+                           "ChannelId": "c1"})
+        self.assertNotEqual(self.b.route.get("kind"), "detail")
+
+
 class TestPlaylistQueueing(unittest.TestCase):
     """Clicking an entry in a video playlist must play the PLAYLIST from
     that point. It went through _open_item, so Play on the detail page

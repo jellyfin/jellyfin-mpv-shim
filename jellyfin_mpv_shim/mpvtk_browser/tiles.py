@@ -55,6 +55,11 @@ class TilesMixin:
                 se = "S%dE%d" % (s, e)
                 return "%s · %s" % (series, se) if series else se
             return series
+        if item.get("Type") == "Program":
+            # The channel, not the year: "On Now" is a list of things airing
+            # right now, so which channel to turn to is the useful half. Guide
+            # data frequently has no ProductionYear at all.
+            return item.get("ChannelName") or ""
         return str(item.get("ProductionYear") or "")
 
     # A thumbnail fetch that fails transiently is retried on a later

@@ -80,7 +80,8 @@ from ..mpvtk.widgets import (
 )
 from . import theme
 from .hud import build_hud
-from .repository import FOLDER_TYPES, PLAYABLE_TYPES, SERIES_TYPES
+from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
+                         SERIES_TYPES)
 from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
 from .dialogs import DialogsMixin
 from .auth import AuthMixin
@@ -815,6 +816,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t in LIVE_TYPES:
+            # Straight to playback: a live channel has no detail page to open
+            # and nothing to resume. A Program is not itself playable — what
+            # you watch is the channel carrying it, which is how jellyfin-web
+            # resolves it too. Falling back to the item's own id covers a
+            # TvChannel, and a program whose ChannelInfo fields are missing
+            # then fails as a normal unplayable item rather than silently
+            # doing nothing.
+            self._play_list([item.get("ChannelId") or item.get("Id")], server)
         elif item.get("CollectionType") == "music":
             self.navigate(dict(base, kind="music", parent_id=item.get("Id")))
         elif t in SERIES_TYPES:

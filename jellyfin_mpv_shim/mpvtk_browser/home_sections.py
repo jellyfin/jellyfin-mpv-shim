@@ -63,13 +63,17 @@ DEFAULT_LAYOUT = (
 )
 
 #: What this browser can actually draw. The rest of jellyfin-web's types are
-#: recognised but render nothing: Live TV and recordings because
-#: repository.EXCLUDED_COLLECTION_TYPES drops livetv outright, books likewise,
-#: and librarybuttons is a redundant second styling of the Libraries row.
-#: Unsupported values are *preserved* on save rather than rewritten to "none",
-#: so configuring the shim never silently degrades the web client's home
-#: screen for the same user.
-SUPPORTED = frozenset({NONE, LIBRARIES, RESUME, RESUME_AUDIO, NEXT_UP, LATEST})
+#: recognised but render nothing: books because
+#: repository.EXCLUDED_COLLECTION_TYPES drops them, recordings because there is
+#: no view to open one in, and librarybuttons is a redundant second styling of
+#: the Libraries row. Unsupported values are *preserved* on save rather than
+#: rewritten to "none", so configuring the shim never silently degrades the web
+#: client's home screen for the same user.
+#:
+#: LIVE_TV draws the "On Now" strip only — jellyfin-web pairs it with buttons
+#: into Guide/Programs/Recordings/Schedule/Series, none of which exist here.
+SUPPORTED = frozenset({NONE, LIBRARIES, RESUME, RESUME_AUDIO, NEXT_UP, LATEST,
+                       LIVE_TV})
 
 #: Fetch stage per section, matching get_home_rows' two-batch load. "local"
 #: needs no request (the Libraries row is rendered from get_libraries, which
@@ -80,6 +84,10 @@ STAGE = {
     RESUME: "primary",
     RESUME_AUDIO: "primary",
     NEXT_UP: "primary",
+    # Above the fold with the other single-request rows. It only costs a
+    # request on a server that actually has Live TV — get_home_rows skips it
+    # entirely otherwise (see LibrarySource.has_live_tv).
+    LIVE_TV: "primary",
     LATEST: "latest",
 }
 
@@ -97,6 +105,7 @@ def section_labels():
         (RESUME_AUDIO, _("Continue Listening")),
         (NEXT_UP, _("Next Up")),
         (LATEST, _("Recently Added")),
+        (LIVE_TV, _("Live TV")),
     ]
 
 
