@@ -130,6 +130,11 @@ class Settings(SettingsBase):
     # lookahead follows the series you are actually working through, queueing
     # this many episodes past the last one you watched (0 disables it).
     auto_download_next_up: bool = True
+    # Next Up is as long as your started-series count -- 50+ on a real
+    # library, far more than anyone wants fetched unattended. The server
+    # returns it most-recent first, so a small limit is the shows you are
+    # actually working through.
+    auto_download_next_up_limit: int = 10
     auto_download_lookahead: int = 2
     # Budget for auto-downloads only (see SyncDB.auto_size). Downloads the
     # user asked for are never counted against it and never reaped.
@@ -140,6 +145,13 @@ class Settings(SettingsBase):
     auto_download_delete_watched: bool = True
     auto_download_keep_days: int = 30
     auto_download_interval_mins: int = 60
+    # Which servers the scheduler may pull from, as a comma-separated list of
+    # server uuids. Empty means all of them — requiring a second opt-in after
+    # the master switch would make the feature look broken on the common
+    # single-server setup. It exists because a logged-in server may be a
+    # friend's, and unattended downloads are a rude thing to point at someone
+    # else's hardware; the Servers tab has a checkbox per server.
+    auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None

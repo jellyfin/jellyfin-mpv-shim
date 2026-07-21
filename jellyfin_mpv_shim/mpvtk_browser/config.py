@@ -95,6 +95,7 @@ LABEL_OVERRIDES = {
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
+    "auto_download_next_up_limit": _("Next Up Entries to Consider"),
     "auto_download_lookahead": _("Episodes to Keep Ahead (0 = off)"),
     "auto_download_max_gb": _("Storage Limit for Automatic Downloads (GB)"),
     "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),

@@ -19,7 +19,8 @@ sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.sync.auto import AutoDownloader  # noqa: E402
 from jellyfin_mpv_shim.sync.db import (  # noqa: E402
-    SyncDB, STATUS_COMPLETE, STATUS_PENDING, ORIGIN_AUTO, ORIGIN_USER,
+    SyncDB, STATUS_COMPLETE, STATUS_PENDING, ORIGIN_USER,
+    ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD,
 )
 
 GB = 1 << 30
@@ -71,7 +72,7 @@ class FakeManager:
         self.db.delete(item_id)
 
 
-def row(item_id, origin=ORIGIN_AUTO, size=1 * GB, status=STATUS_COMPLETE,
+def row(item_id, origin=ORIGIN_AUTO_NEXT_UP, size=1 * GB, status=STATUS_COMPLETE,
         completed_at=None, played=False, series_id="s1", season=1, ep=1,
         server_uuid="srv"):
     return {
@@ -105,6 +106,8 @@ class AutoTest(unittest.TestCase):
         settings.auto_download_delete_watched = True
         settings.auto_download_keep_days = 30
         settings.auto_download_interval_mins = 60
+        settings.auto_download_next_up_limit = 10
+        settings.auto_download_servers = None
 
     def _restore(self):
         for k, v in self._saved.items():
@@ -259,7 +262,7 @@ class FillTest(AutoTest):
         auto = self._auto(clients={"srv": FakeClient(api)})
         self.assertEqual(auto.fill(10 * GB), 1)
         self.assertEqual(self.mgr.enqueued,
-                         [("srv", "e1", "Episode", ORIGIN_AUTO)])
+                         [("srv", "e1", "Episode", ORIGIN_AUTO_NEXT_UP)])
 
     def test_already_known_items_are_skipped(self):
         self.db.upsert(row("e1"))
@@ -375,6 +378,74 @@ class MigrationTest(unittest.TestCase):
         db = SyncDB(self.path)
         self.addCleanup(db.close)
         self.assertEqual(db.get("old")["origin"], ORIGIN_USER)
+
+
+class ServerScopeTest(AutoTest):
+    """A logged-in server may be a friend's; unattended downloads should not
+    be pointed at someone else's hardware without being asked."""
+
+    def _two_servers(self):
+        a = FakeApi(next_up=[{"Id": "a1", "Type": "Episode"}])
+        b = FakeApi(next_up=[{"Id": "b1", "Type": "Episode"}])
+        settings.auto_download_lookahead = 0
+        return a, b, {"mine": FakeClient(a), "friend": FakeClient(b)}
+
+    def test_empty_means_every_server(self):
+        a, b, clients = self._two_servers()
+        auto = self._auto(clients=clients)
+        auto.fill(100 * GB)
+        self.assertEqual({e[0] for e in self.mgr.enqueued}, {"mine", "friend"})
+
+    def test_only_the_listed_servers_are_swept(self):
+        a, b, clients = self._two_servers()
+        settings.auto_download_servers = "mine"
+        auto = self._auto(clients=clients)
+        auto.fill(100 * GB)
+        self.assertEqual([e[0] for e in self.mgr.enqueued], ["mine"])
+        self.assertEqual(b.calls, [], "the excluded server was queried anyway")
+
+    def test_whitespace_and_blanks_are_tolerated(self):
+        a, b, clients = self._two_servers()
+        settings.auto_download_servers = " mine , , "
+        auto = self._auto(clients=clients)
+        auto.fill(100 * GB)
+        self.assertEqual([e[0] for e in self.mgr.enqueued], ["mine"])
+
+
+class BudgetAccountingTest(AutoTest):
+
+    def test_next_up_is_bounded_by_the_limit(self):
+        """It pulled 50 on a real library; Next Up is as long as your
+        started-series count."""
+        settings.auto_download_next_up_limit = 10
+        settings.auto_download_lookahead = 0
+        api = FakeApi()
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.fill(100 * GB)
+        self.assertEqual([c for c in api.calls if c[0] == "get_next"],
+                         [("get_next", 10)])
+
+    def test_an_unknown_size_still_costs_budget(self):
+        """Counting these as free let an unbounded number through: the cap is
+        checked against anticipated bytes, and the reaper only evicts watched
+        items, so nothing corrects the overshoot afterwards."""
+        items = [{"Id": "e%d" % i, "Type": "Episode"} for i in range(10)]
+        api = FakeApi(next_up=items)
+        settings.auto_download_lookahead = 0
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.fill(5 * GB)
+        self.assertLess(len(self.mgr.enqueued), 10,
+                        "unsized items were queued for free")
+
+    def test_a_pass_is_capped_in_item_count(self):
+        items = [{"Id": "e%d" % i, "Type": "Episode",
+                  "MediaSources": [{"Size": 1}]} for i in range(200)]
+        api = FakeApi(next_up=items)
+        settings.auto_download_lookahead = 0
+        settings.auto_download_max_gb = 0        # unlimited
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        queued = auto.fill(auto.free_budget())
+        self.assertLessEqual(queued, 20, "one pass stampeded the queue")
 
 
 if __name__ == "__main__":

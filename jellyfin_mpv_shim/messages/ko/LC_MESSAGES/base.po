@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-21 14:24-0400\n"
+"POT-Creation-Date: 2026-07-21 14:52-0400\n"
 "PO-Revision-Date: 2024-08-26 07:41+0000\n"
 "Last-Translator: aky <arksky@naver.com>\n"
 "Language-Team: Korean <https://translate.jellyfin.org/projects/jellyfin/"
@@ -462,7 +462,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:292
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:300
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:385
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:631
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:676
 msgid "Cancel"
 msgstr ""
 
@@ -824,7 +824,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:54
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:113
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:676
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:721
 msgid "Downloads"
 msgstr ""
 
@@ -901,72 +901,76 @@ msgid "Include Next Up"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:98
-msgid "Episodes to Keep Ahead (0 = off)"
+msgid "Next Up Entries to Consider"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:99
-msgid "Storage Limit for Automatic Downloads (GB)"
+msgid "Episodes to Keep Ahead (0 = off)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:100
+msgid "Storage Limit for Automatic Downloads (GB)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:101
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:101
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:102
 msgid "Delete Unwatched After (days, 0 = never)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:102
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
 msgid "Check Every (minutes)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid "Close to Tray (keep running)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
 msgid "Remember Window Size"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
 msgid "Player Controls Style"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:107
 msgid "Interface Scale"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:107
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:108
 msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:108
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:109
 msgid "Fullscreen Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:109
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:110
 msgid "Always Bind Arrow Keys to Player Controls"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:110
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:111
 msgid "Player Controls Activation Key"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:116
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:117
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:118
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:119
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:148
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:149
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:150
 msgid "Advanced"
 msgstr ""
@@ -1043,7 +1047,7 @@ msgid "Estimating…"
 msgstr "SVP 설정"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:279
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:677
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:722
 msgid "%(count)d items · %(size)s"
 msgstr ""
 
@@ -1114,8 +1118,8 @@ msgid "Leave"
 msgstr "새 모임"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:463
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:681
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:980
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:726
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1025
 msgid "Refresh"
 msgstr ""
 
@@ -1149,51 +1153,69 @@ msgstr ""
 "서버를 추가할 수 없습니다.\n"
 "연결 정보를 확인하십시오."
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:34
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:22
+#, fuzzy
+#| msgid "Automatic"
+msgid "Automatic: Next Up"
+msgstr "자동"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:23
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Automatic: Actively Watched"
+msgstr "서버 제거"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:30
+#: jellyfin_mpv_shim/svp_integration.py:45
+#: jellyfin_mpv_shim/svp_integration.py:58
+msgid "Automatic"
+msgstr "자동"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:50
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1249
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:998
 msgid "Episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:35
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:51
 msgid "Season %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:35
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:51
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1245
 msgid "Specials"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:93
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:109
 msgid "Downloading %d%%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:94
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:110
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Downloading"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:96
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:112
 msgid "Queued"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:98
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:114
 #, fuzzy
 #| msgid "Fail"
 msgid "Failed"
 msgstr "실패"
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:135
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:151
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1003
 msgid "Playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:153
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:176
 msgid "Unknown Series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:188
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py:235
 msgid "Movies & Videos"
 msgstr ""
 
@@ -1510,9 +1532,9 @@ msgstr "서버 제거"
 
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:68
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:279
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:546
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:552
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:737
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:550
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:556
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:782
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:512
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:523
 #, fuzzy
@@ -1534,7 +1556,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:286
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:506
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:633
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:678
 #, fuzzy
 #| msgid "Username:"
 msgid "Rename"
@@ -1560,7 +1582,7 @@ msgstr "서버 제거"
 #: jellyfin_mpv_shim/mpvtk_browser/queue_edit.py:295
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:510
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:515
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:853
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:898
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 msgid "Delete"
 msgstr ""
@@ -1677,7 +1699,7 @@ msgid "Servers & Users"
 msgstr "서버:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:113
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:977
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1022
 msgid "Logs"
 msgstr ""
 
@@ -1855,91 +1877,96 @@ msgstr ""
 msgid "Offline"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:550
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:546
+msgid "Auto-download"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:554
 msgid "Remove %s and its saved login?"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:552
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:556
 msgid "Remove Server"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:588
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:633
 msgid "The server could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:607
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:652
 msgid "That user could not be added."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:626
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:671
 msgid "Rename User"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:647
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:692
 msgid "That user could not be renamed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:686
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:731
 msgid "Nothing downloaded yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:722
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:767
 msgid "%d items"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:733
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:778
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove Watched"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:821
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:866
 msgid "watched"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:844
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:889
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the watched downloads in %s?"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:845
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:890
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:635
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete the downloaded copy of %s?"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:853
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:898
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:638
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Download"
 msgstr "서버 제거"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:946
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:991
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:660
 msgid "The download could not be removed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:978
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1023
 msgid "Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:982 jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1027
+#: jellyfin_mpv_shim/tray.py:85
 msgid "Open Config Folder"
 msgstr "구성 폴더 열기"
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:988
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1033
 msgid "No log output captured yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1053
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1098
 msgid "There is nothing to copy yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1064
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1072
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1109
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1117
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1949,11 +1976,11 @@ msgstr ""
 "서버를 추가할 수 없습니다.\n"
 "연결 정보를 확인하십시오."
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1066
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1111
 msgid "No clipboard available — saved to %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1069
+#: jellyfin_mpv_shim/mpvtk_browser/settings.py:1114
 msgid "Copied %d log lines."
 msgstr ""
 
@@ -2267,11 +2294,6 @@ msgstr "인트로 건너뜀"
 #: jellyfin_mpv_shim/player.py:2519
 msgid "Season {0} - Episode {1}"
 msgstr "시즌 {0} - {1}화"
-
-#: jellyfin_mpv_shim/svp_integration.py:45
-#: jellyfin_mpv_shim/svp_integration.py:58
-msgid "Automatic"
-msgstr "자동"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"

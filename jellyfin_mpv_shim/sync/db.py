@@ -29,8 +29,26 @@ COLUMNS = [
 #: anything the user asked for outlives the cap, however full the disk gets.
 #: An auto-download that is later requested explicitly is promoted to USER and
 #: stops being reapable — never the other way round.
+#:
+#: The automatic ones record *which* source queued them, so the downloads
+#: manager can show them as separate subtrees and so removing one source's
+#: worth of downloads does not touch the other's. They share the "auto:"
+#: prefix, which is what is_auto() keys on — a new source only needs a new
+#: constant, not a change to every query.
 ORIGIN_USER = "user"
-ORIGIN_AUTO = "auto"
+ORIGIN_AUTO_NEXT_UP = "auto:nextup"
+ORIGIN_AUTO_LOOKAHEAD = "auto:lookahead"
+
+#: Matches every automatic origin. Also matches the bare "auto" written by
+#: early builds of this feature, which is deliberate: such a row is still
+#: reapable and still counts against the cap, it just has no known source to
+#: file it under.
+AUTO_PREFIX = "auto"
+
+
+def is_auto(origin):
+    """Was this row queued by the scheduler rather than asked for?"""
+    return bool(origin) and str(origin).startswith(AUTO_PREFIX)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS downloads (
@@ -503,7 +521,7 @@ class SyncDB:
         """
         rows = self._query(
             "SELECT COALESCE(SUM(downloaded_bytes),0) AS s FROM downloads "
-            "WHERE origin=?", (ORIGIN_AUTO,))
+            "WHERE origin LIKE ?", (AUTO_PREFIX + "%",))
         return rows[0]["s"] if rows else 0
 
     def list_auto(self, status=STATUS_COMPLETE):
@@ -512,9 +530,9 @@ class SyncDB:
         COALESCE falls back to added_at so those sort sensibly rather than
         all landing at the front."""
         return self._query(
-            "SELECT * FROM downloads WHERE origin=? AND status=? "
+            "SELECT * FROM downloads WHERE origin LIKE ? AND status=? "
             "ORDER BY COALESCE(completed_at, added_at, 0), rowid",
-            (ORIGIN_AUTO, status))
+            (AUTO_PREFIX + "%", status))
 
     def set_origin(self, item_id, origin):
         """Promote an auto-download to user-owned (see ORIGIN_*). Only ever

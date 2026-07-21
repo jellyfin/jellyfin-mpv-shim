@@ -12,6 +12,22 @@ calls these; ``SettingsMixin`` renders what comes back.
 import json
 
 from ..i18n import _
+from ..sync.db import (ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD, is_auto)
+
+# Automatic downloads are shown as their own subtrees rather than mixed into
+# the series they belong to: they arrived without being asked for, they are
+# the only ones the reaper may delete, and seeing them separately is how you
+# tell what the scheduler is holding. Ordered as rendered.
+AUTO_GROUPS = (
+    (ORIGIN_AUTO_NEXT_UP, _("Automatic: Next Up")),
+    (ORIGIN_AUTO_LOOKAHEAD, _("Automatic: Actively Watched")),
+)
+
+#: Fallback bucket for an auto row whose origin names no source we know —
+#: only reachable from a catalog written by an early build of the feature.
+#: It still has to appear somewhere, or it would be disk used with no way to
+#: reclaim it from this screen.
+AUTO_OTHER_TITLE = _("Automatic")
 
 # A downloaded playlist made only of these is listed item by item in the
 # downloads manager. Whitelist, not an audio blacklist: a row with a missing
@@ -139,11 +155,18 @@ def group_downloads(rows, playlists, playlist_items, owned):
             "children": [_entry(r) for r in items] if video else [],
         })
 
+    # Automatic downloads are lifted out before the series/movies grouping so
+    # they appear once, under the source that fetched them, rather than mixed
+    # into the shows the user chose to download by hand.
+    auto = {}
     series = {}
     loose = []
     for r in rows:
         if owned.get(r.get("item_id")) in live:
             continue                 # counted under its playlist
+        if is_auto(r.get("origin")):
+            auto.setdefault(r.get("origin"), []).append(r)
+            continue
         sid = r.get("series_id")
         if not sid:
             loose.append(_entry(r))
@@ -170,6 +193,30 @@ def group_downloads(rows, playlists, playlist_items, owned):
         season["watched_count"] = season.get("watched_count", 0) + (
             1 if row_watched(r) else 0)
         season["children"].append(_entry(r))
+
+    # Automatic groups lead: they are the ones that change without the user
+    # doing anything, so they are what you open this screen to check.
+    known = {origin for origin, _t in AUTO_GROUPS}
+    ordered = list(AUTO_GROUPS) + [
+        (o, AUTO_OTHER_TITLE) for o in sorted(auto) if o not in known]
+    for origin, title in ordered:
+        items = auto.get(origin)
+        if not items:
+            continue
+        items = sorted(items, key=lambda r: (
+            str(r.get("series_name") or ""), r.get("parent_index") or 0,
+            r.get("index_number") or 0, str(r.get("name") or "")))
+        out.append({
+            # A kind of its own, with id None: the renderer deletes a group
+            # without a server-side id by listing its item ids explicitly,
+            # which is exactly right here — there is no server-side object
+            # that means "the things auto-download fetched".
+            "kind": "auto", "id": None, "origin": origin, "title": title,
+            "size": sum(row_size(r) for r in items),
+            "count": len(items),
+            "watched_count": sum(1 for r in items if row_watched(r)),
+            "children": [_entry(r) for r in items],
+        })
 
     shows = []
     for show in series.values():

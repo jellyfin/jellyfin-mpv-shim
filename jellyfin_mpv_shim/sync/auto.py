@@ -12,11 +12,13 @@ Two sources, independently switchable:
 * **Lookahead** — for series you already have downloads for, the next N
   episodes after the furthest one you hold. Narrow, follows a binge.
 
-Everything it fetches is marked ``origin='auto'`` (see db.ORIGIN_*), which is
-the whole safety story: the reaper only ever considers auto rows, so nothing
-the user asked for is deleted to make room, however tight the cap. Asking for
-an auto-downloaded item by hand promotes it to user-owned and takes it out of
-the reaper's reach for good.
+Everything it fetches is marked with an ``auto:`` origin naming the source
+that queued it (see db.ORIGIN_*), which is the whole safety story: the reaper
+only ever considers auto rows, so nothing the user asked for is deleted to
+make room, however tight the cap. Asking for an auto-downloaded item by hand
+promotes it to user-owned and takes it out of the reaper's reach for good.
+Recording the source also lets the downloads manager show each as its own
+subtree.
 
 The reaper runs *before* the planner so a run that is over budget can free
 space and then use it, rather than skipping for a whole interval.
@@ -27,7 +29,8 @@ import logging
 import time
 
 from ..conf import settings
-from .db import STATUS_COMPLETE, ORIGIN_AUTO
+from .db import (STATUS_COMPLETE, ORIGIN_AUTO_NEXT_UP,
+                 ORIGIN_AUTO_LOOKAHEAD)
 
 log = logging.getLogger("sync.auto")
 
@@ -37,6 +40,19 @@ log = logging.getLogger("sync.auto")
 _FIELDS = "MediaSources,UserData,ParentId"
 
 _GB = 1 << 30
+
+#: Charged against the budget for an item whose size the server does not
+#: report. Counting those as free let an unbounded number through: the cap is
+#: checked against *anticipated* bytes, and nothing corrects an overshoot
+#: afterwards now that the reaper only evicts watched items. A rough guess
+#: that is sometimes wrong beats a zero that is always wrong in the same
+#: direction.
+_UNKNOWN_SIZE = 2 * _GB
+
+#: Hard ceiling on items queued in one pass, whatever the budget says. A
+#: backstop for a pathological library (every size unreported, a cap of 0
+#: meaning unlimited): auto-download should trickle, not stampede.
+_MAX_PER_PASS = 20
 
 
 class AutoDownloader:
@@ -125,7 +141,7 @@ class AutoDownloader:
 
         Order matters: watched first (they have served their purpose), then
         aged-out, then oldest-first purely to fit the cap. Only ever touches
-        ``origin='auto'`` rows.
+        rows with an ``auto:`` origin.
         """
         rows = self.manager.db.list_auto(status=STATUS_COMPLETE)
         if not rows:
@@ -204,52 +220,86 @@ class AutoDownloader:
     def fill(self, budget):
         """Queue upcoming episodes until the budget is spent.
 
-        Returns the number of items actually enqueued. Items whose size is
-        unknown (the server omits MediaSources[0].Size for some containers)
-        are counted as zero against the budget rather than skipped — the cap
-        is then enforced on the next pass by the reaper, which works from real
-        on-disk bytes.
+        Returns the number of items actually enqueued.
+
+        The cap is enforced against *anticipated* sizes, which the server
+        sometimes under-reports or omits, so it is a soft ceiling: a pass can
+        overshoot by up to one item plus whatever the estimates got wrong.
+        Real on-disk bytes are what auto_size() measures on the next pass, so
+        an overshoot throttles the pass after it rather than compounding.
         """
         queued = 0
-        for server_uuid, item in self._candidates():
-            if budget <= 0:
+        for server_uuid, item, origin in self._candidates():
+            if budget <= 0 or queued >= _MAX_PER_PASS:
                 break
             item_id = item.get("Id")
             if not item_id or self.manager.db.get(item_id):
                 continue        # downloaded, queued, or errored — leave it
             added = self.manager.enqueue(server_uuid, item_id,
                                          item.get("Type") or "Episode",
-                                         origin=ORIGIN_AUTO)
+                                         origin=origin)
             if added:
                 queued += added
                 budget -= self._size_of(item)
+        if queued >= _MAX_PER_PASS:
+            log.info("Auto-download: stopped at the %d-item per-pass limit; "
+                     "the rest follow next pass.", _MAX_PER_PASS)
         return queued
 
     @staticmethod
     def _size_of(item):
+        """Anticipated bytes, never zero — see _UNKNOWN_SIZE."""
         sources = item.get("MediaSources") or [{}]
-        return sources[0].get("Size") or 0
+        return sources[0].get("Size") or _UNKNOWN_SIZE
+
+    @staticmethod
+    def allowed_servers():
+        """Server uuids the scheduler may pull from, or None for "all".
+
+        A logged-in server is not necessarily *your* server — pointing
+        unattended downloads at a friend's box is a rude default, so this is
+        selectable. Empty means all: the master switch is already an opt-in,
+        and demanding a second one would make the feature do nothing on the
+        common single-server setup.
+        """
+        raw = (settings.auto_download_servers or "").strip()
+        if not raw:
+            return None
+        picked = {s.strip() for s in raw.split(",") if s.strip()}
+        return picked or None
 
     def _candidates(self):
-        """(server_uuid, item DTO) for everything worth downloading, best
-        first. A generator so an exhausted budget stops the API calls too."""
+        """(server_uuid, item DTO, origin) for everything worth downloading,
+        best first. A generator so an exhausted budget stops the API calls
+        too. The origin travels with the item so the downloads manager can
+        show each source as its own subtree."""
+        allowed = self.allowed_servers()
         for server_uuid, client in (self.get_clients() or {}).items():
             if client is None:
+                continue
+            if allowed is not None and server_uuid not in allowed:
                 continue
             api = getattr(client, "jellyfin", None)
             if api is None:
                 continue
             if settings.auto_download_next_up:
                 for item in self._next_up(api):
-                    yield server_uuid, item
+                    yield server_uuid, item, ORIGIN_AUTO_NEXT_UP
             if int(settings.auto_download_lookahead or 0) > 0:
                 for item in self._lookahead(api, server_uuid):
-                    yield server_uuid, item
+                    yield server_uuid, item, ORIGIN_AUTO_LOOKAHEAD
 
     def _next_up(self, api):
-        """The next episode of every series in progress."""
+        """The most recent N entries of Next Up.
+
+        Bounded because Next Up is as long as your started-series count —
+        50 on a real library, which is far more than anyone wants fetched
+        unattended. The server returns it most-recent first, so a small
+        limit is the shows you are actually working through.
+        """
+        limit = max(1, int(settings.auto_download_next_up_limit or 10))
         try:
-            result = api.get_next(limit=50) or {}
+            result = api.get_next(limit=limit) or {}
         except Exception:
             log.debug("Next Up fetch failed", exc_info=True)
             return []

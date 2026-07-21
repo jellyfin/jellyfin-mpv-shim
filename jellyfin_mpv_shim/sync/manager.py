@@ -23,7 +23,7 @@ from ..i18n import _
 from ..utils import get_profile
 from .auto import AutoDownloader
 from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
-                 STATUS_ERROR, ORIGIN_USER, ORIGIN_AUTO)
+                 STATUS_ERROR, ORIGIN_USER, is_auto)
 
 log = logging.getLogger("sync.manager")
 
@@ -348,7 +348,7 @@ class SyncManager:
                 # download the user asked for.
                 if origin == ORIGIN_USER:
                     row = self.db.get(iid)
-                    if row and row["origin"] == ORIGIN_AUTO:
+                    if row and is_auto(row["origin"]):
                         self.db.set_origin(iid, ORIGIN_USER)
                 continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):

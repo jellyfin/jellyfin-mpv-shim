@@ -468,7 +468,7 @@ class SettingsMixin:
         else:
             server_rows.append(Grid(
                 [self._server_row(sv, i) for i, sv in enumerate(servers)],
-                cols=[{"w": 22}, {"flex": 1}, {}, {},
+                cols=[{"w": 22}, {"flex": 1}, {}, {}, {},
                       {"align": "right"}],
                 gap=12, row_gap=4, row_pad=8,
             ))
@@ -543,6 +543,10 @@ class SettingsMixin:
                 Text(_("Connected") if connected else _("Offline"),
                      size=15,
                      color=theme.OK_GREEN if connected else theme.FAV_RED),
+                Checkbox(_("Auto-download"), self._auto_dl_on(sv), 
+                         id="sv-auto-%d" % i,
+                         on_toggle=lambda u=sv.get("uuid"):
+                             self._toggle_auto_server(u)),
                 Button(_("Remove"), id="sv-rm-%d" % i, icon="delete",
                        size=15,
                        on_click=lambda u=sv.get("uuid"), n=sv.get("name"):
@@ -552,6 +556,47 @@ class SettingsMixin:
                                title=_("Remove Server"), yes=_("Remove"))),
             ],
         }
+
+    def _auto_dl_servers(self):
+        """The configured include-list as a set, or None meaning "all"."""
+        raw = (self._config().get_settings().get("auto_download_servers")
+               or "").strip()
+        if not raw:
+            return None
+        return {p.strip() for p in raw.split(",") if p.strip()}
+
+    def _auto_dl_on(self, sv):
+        picked = self._auto_dl_servers()
+        return picked is None or sv.get("uuid") in picked
+
+    def _toggle_auto_server(self, uuid):
+        """Include/exclude one server from automatic downloads.
+
+        Stored as an explicit include-list. Unticking the first server has to
+        materialize "all" into the full list first, or the empty-means-all
+        default would read the removal back as "everything is still on".
+        """
+        if not uuid:
+            return
+        try:
+            known = [sv.get("uuid") for sv in self.controller.list_servers()
+                     if sv.get("uuid")]
+        except Exception:
+            log.debug("list_servers failed", exc_info=True)
+            return
+        picked = self._auto_dl_servers()
+        picked = set(known) if picked is None else set(picked)
+        if uuid in picked:
+            picked.discard(uuid)
+        else:
+            picked.add(uuid)
+        # Every server ticked is the same as the default; store the empty
+        # string so adding a server later is included rather than silently
+        # left out of a stale list.
+        value = "" if picked >= set(known) else ",".join(
+            u for u in known if u in picked)
+        self._set_setting("auto_download_servers", value)
+        self.invalidate()
 
     def _remove_server(self, uuid):
         """Remove a server and rebuild the data source.
