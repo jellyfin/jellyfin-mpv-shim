@@ -411,7 +411,13 @@ class Video(object):
             weight = (media_source.get("SupportsDirectPlay") or 0) * 50000 + (
                 media_source.get("Bitrate") or 0
             ) / 1000
-            if weight > weight_selected:
+            # "selected is None" and not just a higher weight: a live TV source
+            # reports neither SupportsDirectPlay nor a Bitrate, so it weighs 0
+            # and could never beat the starting 0 — leaving nothing selected
+            # even when it was the only source on offer. Callers dereference
+            # this immediately, and the retry below only covers a queue of more
+            # than one source, which a live channel never has.
+            if selected is None or weight > weight_selected:
                 weight_selected = weight
                 selected = media_source
         if preferred_selected:

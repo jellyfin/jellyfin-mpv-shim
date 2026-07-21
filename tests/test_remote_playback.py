@@ -110,6 +110,52 @@ class TerminateTranscodeTest(unittest.TestCase):
         video.client.jellyfin.close_transcode.assert_called_once_with("dev", "sess")
 
 
+class BestMediaSourceTest(unittest.TestCase):
+    """Source selection must never come back empty-handed.
+
+    Callers dereference the result immediately (get_playback_url does
+    media_source["Id"]), and the retry loop only covers a playback_info
+    carrying more than one source — which a live channel never has.
+    """
+
+    @staticmethod
+    def video_with(sources):
+        video = make_video()
+        video.playback_info = {"MediaSources": sources}
+        return video
+
+    def test_live_source_with_no_bitrate_is_still_selected(self):
+        # A live TV source reports neither SupportsDirectPlay nor a Bitrate,
+        # so it weighs 0 and could never beat the starting weight of 0.
+        live = {"Id": "live", "SupportsDirectStream": True}
+        video = self.video_with([live])
+        self.assertIs(video.get_best_media_source(), live)
+
+    def test_prefers_direct_play_over_higher_bitrate(self):
+        direct = {"Id": "a", "SupportsDirectPlay": True, "Bitrate": 1000}
+        fat = {"Id": "b", "SupportsDirectPlay": False, "Bitrate": 40000000}
+        video = self.video_with([fat, direct])
+        self.assertIs(video.get_best_media_source(), direct)
+
+    def test_prefers_higher_bitrate_among_equals(self):
+        low = {"Id": "a", "SupportsDirectPlay": True, "Bitrate": 1000}
+        high = {"Id": "b", "SupportsDirectPlay": True, "Bitrate": 9000}
+        video = self.video_with([low, high])
+        self.assertIs(video.get_best_media_source(), high)
+
+    def test_explicit_preference_wins(self):
+        wanted = {"Id": "want", "Bitrate": 1}
+        better = {"Id": "other", "SupportsDirectPlay": True, "Bitrate": 9000}
+        video = self.video_with([better, wanted])
+        self.assertIs(video.get_best_media_source("want"), wanted)
+
+    def test_first_source_wins_when_all_weigh_nothing(self):
+        first = {"Id": "a"}
+        second = {"Id": "b"}
+        video = self.video_with([first, second])
+        self.assertIs(video.get_best_media_source(), first)
+
+
 class StalledFinishTest(unittest.TestCase):
     """The watchdog for an end-of-file mpv never reports.
 
