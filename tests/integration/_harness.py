@@ -374,7 +374,7 @@ def build_player(player_module, video=None):
     left as real methods; tests stub the ones they want to observe.
     """
     from queue import Queue
-    from threading import RLock, Lock
+    from threading import RLock, Lock, Event
     from jellyfin_mpv_shim.utils import Timer
 
     PlayerManager = player_module.PlayerManager
@@ -419,6 +419,21 @@ def build_player(player_module, video=None):
     pm.mpvtk_active = False
     pm.trickplay_meta = None
     pm._hud_skip = None
+    pm._trickplay_pending = False
+
+    # Load/start bookkeeping. update() and the stop/advance paths read these,
+    # so they have to exist even for tests that never load anything.
+    pm._loading = False
+    pm._load_failed = Event()
+    pm._load_cancelled = False
+    pm._load_error_detail = None
+    pm._load_generation = 0
+    pm._start_in_progress = False
+    pm._failed_playback = None
+    pm._session_ready = Event()
+    pm._last_ui_seek_time = 0.0
+    pm._browse_bg_deferred = False
+
     # Optional UI hooks. This harness builds a PlayerManager without running
     # __init__, so anything the real constructor defines has to be set here or
     # the code that reads it raises instead of taking its "no handler" path.
@@ -430,6 +445,9 @@ def build_player(player_module, video=None):
     pm.on_hud_menu = None
     pm.on_playstate = None
     pm.notify_update = None
+    pm.on_load_start = None
+    pm.on_load_error = None
+    pm.on_mpv_terminated = None
     pm._showing_browse_bg = False
 
     pm.menu = _FakeMenu()

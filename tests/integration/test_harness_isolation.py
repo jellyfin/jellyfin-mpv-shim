@@ -79,5 +79,68 @@ class TestFakeMpvIsNotLeaked(unittest.TestCase):
         self._check("jsonipc")
 
 
+class BuildPlayerTracksTheConstructor(unittest.TestCase):
+    """``build_player`` bypasses ``__init__``, so it has to re-declare every
+    attribute the constructor sets.
+
+    When it falls behind, the failure is not a clear "harness is stale" — it
+    is an ``AttributeError`` raised from deep inside whatever production
+    method happens to read the new attribute first, in every test that calls
+    it. ``_trickplay_pending`` did exactly that: one line added to
+    ``__init__`` broke 19 tests across two modules, and the traceback pointed
+    at ``player.py``, which was innocent.
+
+    Deliberate omissions go in ``ALLOWED_MISSING`` with a reason, so skipping
+    one stays a decision rather than an oversight.
+    """
+
+    # Set up by the harness in a form the fake backend needs, or genuinely
+    # meaningless without the real constructor's collaborators.
+    ALLOWED_MISSING = {
+        "_player",        # the FakeMPV, wired directly
+        "_video",         # the test's video, passed in
+        "menu",           # _FakeMenu
+        "syncplay",       # _FakeSyncplay
+        "update_check",   # _FakeUpdateCheck
+        "osc_bridge",     # built against the fake pm
+    }
+
+    def _init_attrs(self):
+        import ast
+        path = os.path.join(ROOT, "jellyfin_mpv_shim", "player.py")
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read())
+        cls = next(n for n in tree.body
+                   if isinstance(n, ast.ClassDef) and n.name == "PlayerManager")
+        init = next(n for n in cls.body
+                    if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+        attrs = set()
+        for node in ast.walk(init):
+            targets = []
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target]
+            for t in targets:
+                if (isinstance(t, ast.Attribute)
+                        and isinstance(t.value, ast.Name)
+                        and t.value.id == "self"):
+                    attrs.add(t.attr)
+        self.assertTrue(attrs, "could not parse PlayerManager.__init__")
+        return attrs
+
+    def test_every_constructor_attribute_exists_on_a_built_player(self):
+        pm = h.build_player(h.import_player_with_fake_mpv())
+        missing = sorted(a for a in self._init_attrs()
+                         if a not in self.ALLOWED_MISSING
+                         and not hasattr(pm, a))
+        self.assertEqual(
+            missing, [],
+            "PlayerManager.__init__ sets these but build_player does not, so "
+            "any tested method reading one raises AttributeError: %s\n"
+            "Add them to build_player (or to ALLOWED_MISSING with a reason)."
+            % ", ".join(missing))
+
+
 if __name__ == "__main__":
     unittest.main()
