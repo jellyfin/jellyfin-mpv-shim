@@ -99,6 +99,45 @@ class TestSliderPad(unittest.TestCase):
                          "drift puts the seek off where the user clicked")
 
 
+class TestSkipButtonGeometry(unittest.TestCase):
+    """hud.py's _SKIP_* vs renderer.lua's PHUD_SKIP_*.
+
+    The Skip Intro/Credits button has two implementations — a scene node
+    while the HUD is summoned, a renderer-drawn overlay while it is idle
+    — and a live segment hands off between them whenever the bar comes
+    up or auto-hides. renderer.lua rebuilds the widget's box by hand
+    (Python sends node sizes for everything else, but the idle scene is
+    empty), so every input to that box has to agree: drift makes the
+    button hop or change size mid-segment.
+    """
+
+    def _pair(self, py_name, lua_name, why):
+        py = int(_one(rf"^{py_name} = (\d+)$", _read(HUD), py_name))
+        lua = int(_one(rf"^local {lua_name} = (\d+)$", _read(RENDERER),
+                       f"lua {lua_name}"))
+        self.assertEqual(py, lua, why)
+
+    def test_bottom_inset_matches(self):
+        self._pair("_SKIP_BOTTOM", "PHUD_SKIP_BOTTOM",
+                   "the two copies must land in the same place")
+
+    def test_type_size_matches(self):
+        self._pair("_SKIP_SIZE", "PHUD_SKIP_FS",
+                   "the label must be the same size in both copies")
+
+    def test_padding_matches(self):
+        self._pair("_SKIP_PAD", "PHUD_SKIP_PAD",
+                   "the box must be the same size in both copies")
+
+    def test_line_height_matches_the_layout_engine(self):
+        py = float(_one(r"^LINE_H = ([0-9.]+)", _read(LAYOUT), "LINE_H"))
+        lua = float(_one(r"^local PHUD_SKIP_LINE_H = ([0-9.]+)$",
+                         _read(RENDERER), "lua PHUD_SKIP_LINE_H"))
+        self.assertEqual(py, lua,
+                         "the overlay derives the label's height the way "
+                         "layout.py does; drift changes the box height")
+
+
 class TestStripCacheHoldsAWholeScene(unittest.TestCase):
     """strips.py's MAX_ENTRIES vs renderer.lua's MAX_OVERLAYS.
 

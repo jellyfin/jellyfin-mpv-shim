@@ -108,7 +108,6 @@ end
 -- its auto-hide timer and summon path). All are assigned before the
 -- event loop can dispatch anything.
 local phud_touch, phud_summon, phud_hide, phud_clear
-local phud_skip_show
 
 -- Heuristic fallback — must match layout.py's _NARROW/_WIDE/_*_W
 -- (enforced by tests/test_python_lua_constants.py). Replaced at
@@ -1068,6 +1067,21 @@ end
 
 local SLIDER_PAD = 8
 
+-- Geometry of the standalone Skip button. The scene draws the same
+-- button (hud.py's _skip_float) while the HUD is up and this one takes
+-- over when it hides, so every number here mirrors that widget or the
+-- handoff reads as the button hopping / changing weight:
+--   PHUD_SKIP_BOTTOM  hud.py _SKIP_BOTTOM, to the button's BOTTOM edge
+--   PHUD_SKIP_FS      hud.py _SKIP_SIZE
+--   PHUD_SKIP_PAD     hud.py _SKIP_PAD (Box padding around the label)
+--   PHUD_SKIP_LINE_H  layout.py LINE_H, which sets the label's height
+-- Its label is a plain Text node, so it is NOT bold.
+-- (tests/test_python_lua_constants.py)
+local PHUD_SKIP_BOTTOM = 106
+local PHUD_SKIP_FS = 18
+local PHUD_SKIP_PAD = 10
+local PHUD_SKIP_LINE_H = 1.25
+
 local function draw_slider(ass, node, ex, ey, clip)
     -- No hover outline: the highlight means "this is what the arrows
     -- drive", so only keyboard/remote focus draws it (the nav ring).
@@ -1505,18 +1519,27 @@ render = function()
         state.busy_timer:kill()
         state.busy_timer = nil
     end
-    if state.phud.mode and not state.phud.shown and state.phud.skip_show
-        and state.phud.intro then
-        -- Standalone Skip Intro/Credits button while the HUD is idle
-        -- (see the mpvtk-hud-skip handler). Renderer-drawn — the idle
-        -- scene is blank by design, so this can't come from a scene
-        -- push. Mirrors the summoned HUD's button styling/placement.
+    if state.phud.mode and state.phud.intro
+        and (state.phud.skip_show or state.phud.shown)
+        and not state.byid['hud-skip'] then
+        -- Standalone Skip Intro/Credits button (see the mpvtk-hud-skip
+        -- handler). Renderer-drawn: the idle scene is blank by design,
+        -- so this can't come from a scene push, and drawing it here
+        -- also covers the summon round-trip during which the scene's
+        -- own hud-skip node does not exist yet. Whenever that node IS
+        -- present the scene owns the button and this yields, so the two
+        -- never double up. Mirrors the scene button's style/placement.
+        -- Box(pad) around a centred, non-bold Text — the same box the
+        -- scene's Button lays out, rebuilt from the shared constants so
+        -- the two copies occupy the same pixels and the handoff between
+        -- them is invisible.
         local label = state.phud.intro
-        local fs = 18
-        local bw = math.floor(text_w(label, fs, true) + 40)
-        local bh = 44
+        local fs = PHUD_SKIP_FS
+        local bw = math.floor(text_w(label, fs, false)
+                              + 2 * PHUD_SKIP_PAD)
+        local bh = math.floor(fs * PHUD_SKIP_LINE_H + 2 * PHUD_SKIP_PAD)
         local x1 = state.w - bw - 24
-        local y1 = state.h - 150
+        local y1 = state.h - PHUD_SKIP_BOTTOM - bh
         state.phud.skip_rect = { x1 = x1, y1 = y1,
                                  x2 = x1 + bw, y2 = y1 + bh }
         draw_rect(ass, x1, y1, bw, bh,
@@ -1524,7 +1547,7 @@ render = function()
         ass:new_event()
         ass:append(string.format(
             '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
-            '\\1a&H00&\\b1%s}',
+            '\\1a&H00&\\b0%s}',
             x1 + bw / 2, y1 + bh / 2, fs, ass_color('111111'),
             ui_font and ('\\fn' .. ui_font) or ''))
         ass:append(esc(label))
@@ -2945,14 +2968,12 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
              math.abs(pos.y - state.phud.my)) > 2
         state.phud.mx, state.phud.my = pos.x, pos.y
         if moved then
-            if state.phud.intro then
-                -- during a skippable segment, pointer movement (re)shows
-                -- the lightweight skip button instead of the whole HUD;
-                -- arrows or a click outside the button still summon
-                phud_skip_show()
-            else
-                phud_summon('mouse')
-            end
+            -- Pointer movement summons the full HUD, skippable segment
+            -- or not: the scene draws its own Skip button, so there is
+            -- nothing to withhold, and a live segment lasting a minute
+            -- must not leave the mouse unable to raise the controls.
+            -- (phud_summon drops the standalone overlay.)
+            phud_summon('mouse')
         end
         return
     end
@@ -3236,7 +3257,11 @@ end)
 -- mpv default (space pauses, q quits, …).
 
 local PHUD_HIDE_S = 4
-local PHUD_SKIP_S = 6
+-- How long the standalone Skip button stays up on its own after a
+-- segment starts. Independent of the HUD: it runs whether or not the
+-- bar is summoned, so the offer is on screen for the same window
+-- either way.
+local PHUD_SKIP_S = 10
 local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
 
 local function phud_summon_enter()
@@ -3251,20 +3276,47 @@ local function phud_wake_key()
 end
 
 local phud_bind_summon  -- fwd: the skip overlay rebinds on hide
+local phud_skip_hide, phud_skip_unbind  -- fwd: summon/hide retune them
 
--- Standalone Skip Intro/Credits overlay while the HUD is idle: shown
--- for a few seconds when a skippable segment starts (mpvtk-hud-skip
--- from Python) and again on pointer movement while the segment lasts.
--- ENTER (and remote Select, routed here as a keypress) skips instead
--- of summoning; a click skips on the button, summons elsewhere.
-local function phud_skip_hide()
+-- Standalone Skip Intro/Credits overlay: shown for PHUD_SKIP_S when a
+-- skippable segment starts (mpvtk-hud-skip from Python), whether the
+-- HUD is idle or summoned. The summoned HUD scene draws its own Skip
+-- button; the renderer's copy simply yields once that node exists (see
+-- the draw block), which is what keeps the button from blinking out
+-- during the summon round-trip.
+--
+-- Input follows the same split. While idle, ENTER (and remote Select,
+-- routed here as a keypress) skips instead of summoning, and a click
+-- skips on the button / summons elsewhere. While the HUD is up, ENTER
+-- and clicks belong to the scene, whose Skip button is a real node.
+local function phud_skip_bind()
+    -- ENTER skips while the button is up and nothing else owns it
+    -- (deterministically: any ENTER summon/wake binding is removed,
+    -- not merely shadowed)
+    if not state.phud.skip_show or state.phud.shown then return end
+    if phud_wake_key() == 'ENTER' then
+        mp.remove_key_binding('mpvtk_wake')
+    end
+    mp.remove_key_binding('mpvtk_summon_ENTER')
+    mp.add_forced_key_binding('ENTER', 'mpvtk_skip_enter', function()
+        send({ t = 'hudskip' })
+        phud_skip_hide()
+    end)
+end
+
+-- Give ENTER back to the scene without taking the button down.
+function phud_skip_unbind()
+    mp.remove_key_binding('mpvtk_skip_enter')
+end
+
+function phud_skip_hide()
     if state.phud.skip_timer then
         state.phud.skip_timer:kill()
         state.phud.skip_timer = nil
     end
     if not state.phud.skip_show then return end
     state.phud.skip_show = false
-    mp.remove_key_binding('mpvtk_skip_enter')
+    phud_skip_unbind()
     if state.phud.mode and not state.phud.shown then
         -- hand ENTER back to the summon surface (add_forced with an
         -- existing name replaces, so rebinding everything is safe)
@@ -3273,27 +3325,11 @@ local function phud_skip_hide()
     request_render()
 end
 
-function phud_skip_show()
-    if not state.phud.mode or state.phud.shown
-        or not state.phud.intro then
-        return
-    end
-    if not state.phud.skip_show then
-        state.phud.skip_show = true
-        -- ENTER skips while the button is up (deterministically: any
-        -- ENTER summon/wake binding is removed, not merely shadowed)
-        if phud_wake_key() == 'ENTER' then
-            mp.remove_key_binding('mpvtk_wake')
-        end
-        mp.remove_key_binding('mpvtk_summon_ENTER')
-        mp.add_forced_key_binding('ENTER', 'mpvtk_skip_enter', function()
-            send({ t = 'hudskip' })
-            phud_skip_hide()
-        end)
-        -- clicks route through the always-on mpvtk_phud_click binding
-        -- (skip on the button, pause elsewhere)
-    end
-    -- (re)arm the auto-hide on every show/pointer touch
+local function phud_skip_show()
+    if not state.phud.mode or not state.phud.intro then return end
+    state.phud.skip_show = true
+    phud_skip_bind()
+    -- (re)arm the auto-hide
     if state.phud.skip_timer then state.phud.skip_timer:kill() end
     state.phud.skip_timer = mp.add_timeout(PHUD_SKIP_S, function()
         state.phud.skip_timer = nil
@@ -3404,7 +3440,11 @@ end
 
 function phud_summon(src)
     if not state.phud.mode or state.phud.shown then return end
-    phud_skip_hide()  -- the full HUD's own skip button takes over
+    -- The scene's own Skip button takes over — but only once it is
+    -- actually on screen, so the overlay keeps drawing across the
+    -- round-trip and the button never blinks out. ENTER goes back to
+    -- the scene immediately, though: it activates the focused node.
+    phud_skip_unbind()
     state.phud.shown = true
     -- a keyboard/remote summon lands spatial-nav focus on the scene's
     -- autofocus node (play/pause) once Python pushes the HUD; a mouse
@@ -3476,6 +3516,9 @@ function phud_hide()
     mp.remove_key_binding('mpvtk_phud_esc')
     ui_suspend()
     phud_bind_summon()
+    -- the scene (and its Skip button) is gone; if the segment window
+    -- is still running, the overlay draws again and reclaims ENTER
+    phud_skip_bind()
     pcall(mp.set_property_native, 'user-data/mpvtk/active', false)
     send({ t = 'hud', active = false })
     request_render()
@@ -3555,12 +3598,11 @@ mp.register_script_message('mpvtk-hud-summon', function(kind)
     end
 end)
 
--- Skippable-segment label for the idle overlay ('' = no segment).
--- Pushed by the browser from every video playstate; the player also
--- pushes a playstate the moment a segment starts/ends, so this stays
--- within ~a pump of reality. Shows the standalone button on the
--- idle transition into a segment; while the HUD is summoned, the
--- scene's own skip button covers it.
+-- Skippable-segment label ('' = no segment). Pushed by the browser
+-- from every video playstate; the player also pushes a playstate the
+-- moment a segment starts/ends, so this stays within ~a pump of
+-- reality. A segment start opens the PHUD_SKIP_S window regardless of
+-- HUD state; whichever of the two buttons is appropriate then draws.
 mp.register_script_message('mpvtk-hud-skip', function(label)
     label = (label ~= nil and label ~= '') and label or nil
     local started = label ~= nil and state.phud.intro == nil
@@ -3569,7 +3611,10 @@ mp.register_script_message('mpvtk-hud-skip', function(label)
     if label == nil then
         phud_skip_hide()
         request_render()
-    elseif started and not state.phud.shown then
+    elseif started then
+        -- armed whether or not the bar is up: with the HUD summoned
+        -- the scene draws the button, and the window still governs
+        -- what happens once the bar auto-hides
         phud_skip_show()
     end
 end)
@@ -3804,11 +3849,7 @@ mp.register_script_message('mpvtk-debug', function(json)
             -- injected reliably under headless X)
             state.phud.mx, state.phud.my = cmd.x or 10, cmd.y or 10
             if state.phud.mode and not state.phud.shown then
-                if state.phud.intro then
-                    phud_skip_show()
-                else
-                    phud_summon('mouse')
-                end
+                phud_summon('mouse')
             end
         end
     end

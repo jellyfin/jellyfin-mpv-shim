@@ -564,26 +564,17 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="overlay never dropped after the skip")
 
         # the fake controller doesn't actually skip, so the segment is
-        # still live: pointer movement re-shows the button, not the
-        # whole HUD. (A retried ENTER may have summoned after the
-        # overlay hid — drop back to idle first.)
-        if self.browser._hud_shown:
-            self._press_until("ESC",
-                              lambda: not self.browser._hud_shown,
-                              msg="could not hide the HUD again")
+        # still live — pointer movement summons the full HUD, which
+        # carries its own Skip button (the scene node)
         self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
-        self._wait(lambda: self._state().get("phud_skip"),
-                   msg="mouse motion never re-showed the overlay")
-        self.assertFalse(self._state().get("phud_shown"))
+        self._wait(lambda: self.browser._hud_shown,
+                   msg="mouse motion never summoned during a segment")
+        self._wait(lambda: self.app.node_rect("hud-skip") is not None,
+                   msg="the summoned HUD has no Skip button")
 
-        # ~6s without input hides it again; HUD stays idle
-        self._wait(lambda: not self._state().get("phud_skip"),
-                   timeout=10, msg="overlay never auto-hid")
-        self.assertTrue(self._state().get("phud_mode"))
-        self.assertFalse(self.browser._hud_shown)
-
-        # segment ends: label clears, and pointer movement goes back to
-        # summoning the full HUD
+        # segment ends: label clears, pointer movement still summons
+        self._press_until("ESC", lambda: not self.browser._hud_shown,
+                          msg="could not hide the HUD again")
         self.browser.on_playstate(dict(VIDEO_STATE))
         self._wait(lambda: not self._state().get("phud_intro"),
                    msg="intro label never cleared")
@@ -591,6 +582,66 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: self.browser._hud_shown,
                    msg="mouse motion should summon once the segment "
                        "ended")
+
+    def test_skip_overlay_spans_the_hud(self):
+        """The Skip button must not blink out across a summon, and the
+        segment window runs whether or not the bar is up."""
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self.browser.on_playstate(dict(VIDEO_STATE,
+                                       skip_label="Skip Intro"))
+        self._wait(lambda: self._state().get("phud_skip"),
+                   msg="skip overlay never auto-showed")
+
+        # summoning must not drop the window: the renderer's overlay
+        # keeps drawing until the scene's own hud-skip node lands, so
+        # some Skip button is on screen the whole way through
+        self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
+        self._wait(lambda: self.browser._hud_shown,
+                   msg="pointer movement never summoned")
+        self.assertTrue(
+            self._state().get("phud_skip"),
+            "the segment window must survive a summon (it governs "
+            "what happens once the bar auto-hides)")
+        self._wait(lambda: self.app.node_rect("hud-skip") is not None,
+                   msg="the summoned HUD has no Skip button")
+
+        # ...and hiding the bar hands it straight back to the overlay
+        self._press_until("ESC", lambda: not self.browser._hud_shown,
+                          msg="could not hide the HUD")
+        self.assertTrue(self._state().get("phud_skip"),
+                        "the overlay must resume when the bar hides")
+
+        # ENTER is the overlay's again now that the scene is gone
+        self._press_until(
+            "ENTER",
+            lambda: ("hud_action", "skip-segment", None) in self.ctl.calls,
+            msg="ENTER never skipped after the HUD hid")
+
+    def test_skip_window_armed_while_the_hud_is_up(self):
+        """A segment starting while the bar is already summoned arms the
+        same window, so the offer outlives the bar's auto-hide."""
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser._hud_shown,
+                          msg="never summoned the HUD")
+        self.browser.on_playstate(dict(VIDEO_STATE,
+                                       skip_label="Skip Intro"))
+        self._wait(lambda: self._state().get("phud_skip"),
+                   msg="a segment starting under the HUD never armed "
+                       "the standalone window")
+        self._press_until("ESC", lambda: not self.browser._hud_shown,
+                          msg="could not hide the HUD")
+        self.assertTrue(self._state().get("phud_skip"),
+                        "the offer must survive the bar going away")
+
+        # and the window expires on its own clock, leaving HUD-idle
+        self._wait(lambda: not self._state().get("phud_skip"),
+                   timeout=15, msg="overlay never auto-hid")
+        self.assertTrue(self._state().get("phud_mode"))
+        self.assertFalse(self.browser._hud_shown)
 
     def test_paused_video_keeps_hud_up(self):
         self._play_video()

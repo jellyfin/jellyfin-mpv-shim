@@ -44,6 +44,19 @@ log = logging.getLogger("mpvtk_browser.hud")
 SCRIM_FRAC = 0.55
 SCRIM_MAX = 380
 
+# Bottom inset of the Skip Intro/Credits button, measured to its BOTTOM
+# edge so the two implementations line up whatever the label's measured
+# height turns out to be. renderer.lua draws the same button while the
+# HUD is idle (PHUD_SKIP_BOTTOM there) and hands over to this one mid-
+# segment, so a mismatch shows as the button hopping on summon/hide.
+# Enforced by tests/test_python_lua_constants.py.
+_SKIP_BOTTOM = 106
+# ...and so must its type size and padding, or the two copies differ in
+# size and weight even when they share a corner. renderer.lua rebuilds
+# the Button box from these plus layout.LINE_H.
+_SKIP_SIZE = 18
+_SKIP_PAD = 10
+
 
 def _episode_context(st):
     """``"Series   ·   S1E2"`` for an episode, ``""`` for anything else.
@@ -394,20 +407,23 @@ def _toggle_hud_favorite(b):
 def _skip_float(b, size):
     """Floating Skip Intro / Skip Credits button above the bar's right
     edge (jellyfin-web's placement), when the player says a skippable
-    segment is live (playstate skip_label)."""
+    segment is live (playstate skip_label).
+
+    Positioned by a constant inset from the bottom rather than off the
+    laid-out slider rect, for two reasons: the rect is a frame stale, so
+    keying off it left the button out of the HUD's very first scene
+    (it showed up a tick late, or not at all until something else
+    invalidated); and renderer.lua draws the standalone version of this
+    button while the HUD is idle, so the two have to land in the same
+    place or the handoff between them reads as a jump."""
     label = (b._hud_state or {}).get("skip_label")
     if not label:
         return None
-    rect = None
-    if b.app is not None and hasattr(b.app, "node_rect"):
-        rect = b.app.node_rect("hud-seek")
-    if rect is None:
-        return None
     return Button(
-        label, id="hud-skip", size=18, bg="eeeeee", fg="111111",
-        hover={"fill": "ffffff"},
+        label, id="hud-skip", size=_SKIP_SIZE, pad=_SKIP_PAD,
+        bg="eeeeee", fg="111111", hover={"fill": "ffffff"},
         on_click=lambda: _hud_action(b, "skip-segment"),
-        anchor="ne", dx=-24, dy=rect["y"] - 56)
+        anchor="se", dx=-24, dy=-_SKIP_BOTTOM)
 
 
 def build_hud(b, size):
