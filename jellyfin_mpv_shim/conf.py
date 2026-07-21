@@ -100,6 +100,17 @@ class Settings(SettingsBase):
     # would otherwise make the browser take over the screen at startup.
     browser_fullscreen: bool = False
     start_minimized: bool = False
+    # Window size for the player/browser window. mpv's own default is a fixed
+    # 960x540 regardless of how big the display is, which is small for a
+    # browsable UI. These are rewritten on exit when remember_window_size is
+    # on, so they double as "the size you left it at".
+    window_width: int = 1280
+    window_height: int = 720
+    window_maximized: bool = False
+    # Persist the window size across launches. Off means window_width/height
+    # are a fixed preference the app always opens at, which is what you want
+    # if you deliberately pinned a size.
+    remember_window_size: bool = True
     # When True, closing the library-browser window hides it to the system tray
     # (keeping the app alive as a cast target) rather than exiting. Defaults to
     # the historical behaviour; the user is prompted once on first close.

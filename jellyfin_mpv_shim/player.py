@@ -17,7 +17,7 @@ from .mpv_events import wait_property
 from .conf import settings
 from .menu import OSDMenu
 from .osc_bridge import OscBridge
-from .constants import APP_NAME
+from .constants import APP_NAME, DESKTOP_ID, USER_APP_NAME
 from .syncplay import SyncPlayManager
 from .update_check import UpdateChecker
 from .i18n import _
@@ -610,6 +610,36 @@ class PlayerManager(object):
         # track (which would otherwise pop a window showing the album art).
         # Only affects audio-only files — video and music videos are untouched.
         mpv_options["audio_display"] = "no"
+
+        # Window title. mpv's default is "No file - mpv", which names the
+        # wrong application and reports "No file" for what is actually the
+        # library browser. Property expansion is mpv's, evaluated live, so
+        # the title follows playback without us pushing updates.
+        mpv_options["title"] = "${?media-title:${media-title} - }%s" % USER_APP_NAME
+
+        # Window size. mpv defaults to a fixed 960x540 whatever the display
+        # size, which is cramped for a browsable UI. Restored from the last
+        # session when remember_window_size is on (see _save_window_geometry).
+        width = max(320, int(settings.window_width or 1280))
+        height = max(240, int(settings.window_height or 720))
+        mpv_options["geometry"] = "%dx%d" % (width, height)
+        if settings.window_maximized:
+            mpv_options["window_maximized"] = True
+
+        # Desktop-icon hints. mpv has no "set the window icon" option; on
+        # Linux the icon is resolved by matching the window's class against
+        # an installed .desktop file, so naming ourselves after ours is the
+        # whole mechanism. Only meaningful once the .desktop is installed
+        # (packaged/Flatpak, not run-from-source), and some window managers
+        # still prefer mpv's built-in _NET_WM_ICON — overriding that needs
+        # Xlib, which is not worth a dependency.
+        #
+        # Platform-gated: --x11-name only exists in builds with X11 support,
+        # so setting it on a Windows or macOS mpv fails at startup. Those
+        # platforms take their icon from the exe/bundle anyway.
+        if sys.platform not in ("win32", "darwin"):
+            mpv_options["x11_name"] = DESKTOP_ID
+            mpv_options["wayland_app_id"] = DESKTOP_ID
 
         self._player = mpv.MPV(
             input_default_bindings=True,
@@ -2754,7 +2784,42 @@ class PlayerManager(object):
         # reading by address.
         self._notify_mpv_terminated()
 
+    def _save_window_geometry(self):
+        """Remember the window size for the next launch.
+
+        Size only: mpv exposes the *actual* window size as osd-width/height,
+        but never its position — the `geometry` property reads back the
+        option we set, not where the user dragged the window. So there is
+        nothing to persist for position without platform-specific code.
+
+        Never raises: this runs on the shutdown path, where mpv may already
+        be gone, and failing to remember a window size must not stop the
+        app exiting.
+        """
+        if not settings.remember_window_size:
+            return
+        try:
+            maximized = bool(self._player.window_maximized)
+            # A maximized window reports the maximized size; storing that
+            # would make un-maximizing later restore to full-screen-ish
+            # dimensions. Keep the last floating size and the flag instead.
+            if not maximized:
+                width = int(self._player.osd_width or 0)
+                height = int(self._player.osd_height or 0)
+                # 0 while the window is being torn down, and a nonsense
+                # size is worse than the default we would otherwise use.
+                if width >= 320 and height >= 240:
+                    settings.window_width = width
+                    settings.window_height = height
+            settings.window_maximized = maximized
+            settings.save()
+        except Exception:
+            log.debug("Could not save the window geometry", exc_info=True)
+
     def terminate(self):
+        # Before stop(): stopping can tear the window down, and the size has
+        # to be read while it still exists.
+        self._save_window_geometry()
         self.stop()
         if is_using_ext_mpv:
             self._player.terminate()

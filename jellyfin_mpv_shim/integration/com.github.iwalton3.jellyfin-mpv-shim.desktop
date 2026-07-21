@@ -4,3 +4,7 @@ Exec=jellyfin-mpv-shim
 Type=Application
 Icon=com.github.iwalton3.jellyfin-mpv-shim
 Categories=Video;AudioVideo;TV;Player
+# Ties the mpv window back to this entry so the desktop uses the icon above
+# instead of mpv's. Must match player.py's x11_name / wayland_app_id, which
+# come from constants.DESKTOP_ID.
+StartupWMClass=com.github.iwalton3.jellyfin-mpv-shim

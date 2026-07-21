@@ -17,7 +17,12 @@ from ..i18n import _
 # free-text orphans every session and playstate the server has recorded.
 # config_version is migration bookkeeping; editing it re-runs or skips
 # one-time upgrades.
-_HIDDEN = {"language_config", "audio_output", "client_uuid", "config_version"}
+# window_width/height/maximized are remembered window *state*, rewritten on
+# every exit — editing them in a form the app then overwrites is a setting
+# that appears not to work. The preference that governs them,
+# remember_window_size, stays visible.
+_HIDDEN = {"language_config", "audio_output", "client_uuid", "config_version",
+           "window_width", "window_height", "window_maximized"}
 
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".
@@ -25,6 +30,7 @@ SECTIONS = [
     (_("Interface"), ["player_name", "browser_fullscreen",
                       "headless",
                       "enable_gui", "start_minimized", "close_to_tray",
+                      "remember_window_size",
                       "fullscreen", "ui_scale", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
                       "check_updates", "notify_updates"]),
@@ -83,6 +89,7 @@ LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "close_to_tray": _("Close to Tray (keep running)"),
+    "remember_window_size": _("Remember Window Size"),
     "osc_style": _("Player Controls Style"),
     "ui_scale": _("Interface Scale"),
     "headless": _("Cast-target mode (no library browsing)"),

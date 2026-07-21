@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-21 12:58-0400\n"
+"POT-Creation-Date: 2026-07-21 13:57-0400\n"
 "PO-Revision-Date: 2026-06-29 09:08+0000\n"
 "Last-Translator: Pavel Miniutka <pavel.miniutka@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -186,15 +186,15 @@ msgstr "Змяніць аўдыё"
 msgid "Change Subtitles"
 msgstr "Змяніць субцітры"
 
-#: jellyfin_mpv_shim/menu.py:156 jellyfin_mpv_shim/mpvtk_browser/hud.py:294
+#: jellyfin_mpv_shim/menu.py:156 jellyfin_mpv_shim/mpvtk_browser/hud.py:305
 #: jellyfin_mpv_shim/osc_bridge.py:84
 msgid "Change Video Quality"
 msgstr "Змяніць якасць відэа"
 
 #: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1918
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:420
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:318
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:620 jellyfin_mpv_shim/syncplay.py:685
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:329
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:632 jellyfin_mpv_shim/syncplay.py:685
 msgid "SyncPlay"
 msgstr "SyncPlay"
 
@@ -202,17 +202,17 @@ msgstr "SyncPlay"
 msgid "MPV Shim v{0} Release Info/Download"
 msgstr "MPV Shim v{0} Інфармацыя аб выпуску/спампоўка"
 
-#: jellyfin_mpv_shim/menu.py:171 jellyfin_mpv_shim/mpvtk_browser/hud.py:305
+#: jellyfin_mpv_shim/menu.py:171 jellyfin_mpv_shim/mpvtk_browser/hud.py:316
 #: jellyfin_mpv_shim/osc_bridge.py:88
 msgid "Change Video Playback Profile"
 msgstr "Змяніць профіль прайгравання відэа"
 
-#: jellyfin_mpv_shim/menu.py:180 jellyfin_mpv_shim/mpvtk_browser/hud.py:327
+#: jellyfin_mpv_shim/menu.py:180 jellyfin_mpv_shim/mpvtk_browser/hud.py:338
 #: jellyfin_mpv_shim/osc_bridge.py:91
 msgid "Quit and Mark Unwatched"
 msgstr "Выйсці і пазначыць неназіраным"
 
-#: jellyfin_mpv_shim/menu.py:183 jellyfin_mpv_shim/mpvtk_browser/hud.py:324
+#: jellyfin_mpv_shim/menu.py:183 jellyfin_mpv_shim/mpvtk_browser/hud.py:335
 #: jellyfin_mpv_shim/osc_bridge.py:90
 msgid "Screenshot"
 msgstr "Скрыншот"
@@ -475,8 +475,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1873
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:335
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:609
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:346
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
 msgid "Back"
 msgstr ""
 
@@ -502,7 +502,7 @@ msgid "Search"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1920
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:575
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:587
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:74
 #, fuzzy
 #| msgid "SVP Settings"
@@ -763,145 +763,149 @@ msgstr "Гатовы да перадачы"
 msgid "Select your media in Jellyfin and play it here."
 msgstr "Выберыце свой медыяфайл у Jellyfin і прайграйце яго тут"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:25
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:30
 msgid "Interface"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:31
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:37
 msgid "Playback"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:34
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:40
 msgid "Subtitles & Languages"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:39
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:45
 #, fuzzy
 #| msgid " (Transcode)"
 msgid "Transcoding"
 msgstr " (Перакадзіраваць)"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:44
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:50
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
 msgstr "Прапусціць цітры"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:47
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:53
 msgid "Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:48
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:54
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:113
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:676
 msgid "Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:61
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:67
 msgid "Jellyfin UI"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:62
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:68
 msgid "MPV UI with thumbnails"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:63
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:69
 msgid "MPV built-in default"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:66
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:72
 msgid "Follow display"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:67
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:73
 msgid "100% (no scaling)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:68
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:74
 msgid "125%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:69
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:75
 msgid "150%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:70
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:76
 msgid "200%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:73
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:79
 msgid "Unset"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:74
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:80
 msgid "Dubbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:75
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:81
 msgid "Subbed (shows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:76
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:82
 msgid "Dubbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:77
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:83
 msgid "Subbed (all)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:78
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:84
 msgid "Custom (set in config)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:83
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:89
 msgid "Download Folder"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:84
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:90
 msgid "Prefer Downloaded Copy"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:85
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:91
 msgid "Close to Tray (keep running)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:86
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:92
+msgid "Remember Window Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:93
 msgid "Player Controls Style"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:87
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:94
 msgid "Interface Scale"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:88
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:89
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:96
 msgid "Fullscreen Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:90
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:97
 msgid "Always Bind Arrow Keys to Player Controls"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:91
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:98
 msgid "Player Controls Activation Key"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:97
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:99
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:129
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:136
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:150
 msgid "Advanced"
 msgstr ""
@@ -1029,7 +1033,7 @@ msgid "No active groups."
 msgstr "Новая група"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:451
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:364
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 #: jellyfin_mpv_shim/osc_bridge.py:96 jellyfin_mpv_shim/syncplay.py:679
 msgid "New Group"
 msgstr "Новая група"
@@ -1059,7 +1063,7 @@ msgid "Could not leave the SyncPlay group."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:34
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1238
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1249
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:998
 msgid "Episodes"
 msgstr ""
@@ -1069,7 +1073,7 @@ msgid "Season %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:35
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1234
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1245
 msgid "Specials"
 msgstr ""
 
@@ -1094,7 +1098,7 @@ msgid "Failed"
 msgstr "Няўдача"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:135
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:997
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1003
 msgid "Playlist"
 msgstr ""
 
@@ -1111,17 +1115,17 @@ msgid "My Media"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py:96
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:308
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:314
 msgid "Continue Watching"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py:97
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:315
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:321
 msgid "Continue Listening"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py:98
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:322
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:328
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:698
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:949
 msgid "Next Up"
@@ -1131,126 +1135,126 @@ msgstr ""
 msgid "Recently Added"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:193
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:204
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:557
 msgid "Chapter %d"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:198
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:209
 msgid "Chapters"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:207
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:218
 #, fuzzy
 #| msgid "Select Audio Track"
 msgid "Audio Track"
 msgstr "Выберыце аўдыёдарожку"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:211
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:222
 #, fuzzy
 #| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
 msgstr "Выбраць дарожку субцітраў"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:215
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:226
 #, fuzzy
 #| msgid "Change Video Quality"
 msgid "Video Quality"
 msgstr "Змяніць якасць відэа"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:298
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:309
 #: jellyfin_mpv_shim/osc_bridge.py:85
 msgid "Playback Speed"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:300
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:311
 #: jellyfin_mpv_shim/osc_bridge.py:86
 msgid "Aspect Ratio"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:308
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:319
 #: jellyfin_mpv_shim/osc_bridge.py:92
 #, fuzzy
 #| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
 msgstr "Памер субцітраў: {0}"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:309
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:320
 #: jellyfin_mpv_shim/osc_bridge.py:93
 #, fuzzy
 #| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
 msgstr "Пазіцыя субцітраў: {0}"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:310
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:321
 #: jellyfin_mpv_shim/osc_bridge.py:94
 #, fuzzy
 #| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
 msgstr "Колер субцітраў: {0}"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:321
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:332
 #: jellyfin_mpv_shim/osc_bridge.py:89
 msgid "Playback Data"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:349
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:360
 #: jellyfin_mpv_shim/osc_bridge.py:87
 #, fuzzy
 #| msgid "Auto Play"
 msgid "Auto"
 msgstr "Аўтапрайграванне"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:360
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:371
 #: jellyfin_mpv_shim/osc_bridge.py:95 jellyfin_mpv_shim/osc_bridge.py:194
 #: jellyfin_mpv_shim/osc_bridge.py:205 jellyfin_mpv_shim/osc_bridge.py:223
 #: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:190
 msgid "None (Disabled)"
 msgstr "Няма (адключана)"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:501
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:513
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:509
 msgid "Previous"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:507
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:519
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Previous Chapter"
 msgstr "Сервер паспяхова дададзены."
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:512
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:524
 msgid "Back 10 Seconds"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:520
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:532
 msgid "Forward 30 Seconds"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:525
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:537
 msgid "Next Chapter"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:528
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:540
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:513
 msgid "Next"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:548
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:560
 #: jellyfin_mpv_shim/osc_bridge.py:83
 msgid "Ends at {0}"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:558
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:570
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:612
 msgid "Favorite"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:566
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:578
 msgid "Mute"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py:579
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py:591
 #, fuzzy
 #| msgid "Auto Fullscreen"
 msgid "Fullscreen"
@@ -1500,50 +1504,50 @@ msgid ""
 "moment."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:343
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:349
 msgid "Latest %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1011
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1017
 msgid "Downloaded"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1030
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1036
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:996
 msgid "Movies"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1035
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1041
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:999
 msgid "Videos"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1039
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1045
 msgid "TV Shows"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1043
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1049
 msgid "Playlists"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1059
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1324
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1065
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1335
 msgid "Series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1101
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1107
 msgid "Downloaded Movies"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1105
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1111
 msgid "Downloaded Videos"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1109
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1115
 msgid "Downloaded Shows"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1236
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1247
 msgid "Season %d"
 msgstr ""
 
@@ -2095,27 +2099,27 @@ msgstr "SyncPlay уключаны."
 msgid "{0}'s Group"
 msgstr "Група {0}"
 
-#: jellyfin_mpv_shim/player.py:745
+#: jellyfin_mpv_shim/player.py:775
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1197
+#: jellyfin_mpv_shim/player.py:1227
 msgid "Skipped Credits"
 msgstr "Прапушчаныя цітры"
 
-#: jellyfin_mpv_shim/player.py:1199
+#: jellyfin_mpv_shim/player.py:1229
 msgid "Skipped Intro"
 msgstr "Прапушчаны ўступ"
 
-#: jellyfin_mpv_shim/player.py:1218
+#: jellyfin_mpv_shim/player.py:1248
 msgid "Seek to Skip Credits"
 msgstr "Прапусціць цітры"
 
-#: jellyfin_mpv_shim/player.py:1220
+#: jellyfin_mpv_shim/player.py:1250
 msgid "Seek to Skip Intro"
 msgstr "Шукаць каб прапусціць уступ"
 
-#: jellyfin_mpv_shim/player.py:1530
+#: jellyfin_mpv_shim/player.py:1560
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2124,23 +2128,23 @@ msgstr ""
 "Націсніце С, каб наладзіць налады прапускной здольнасці, калі гэта не "
 "патрэбна."
 
-#: jellyfin_mpv_shim/player.py:1762
+#: jellyfin_mpv_shim/player.py:1792
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2354
+#: jellyfin_mpv_shim/player.py:2384
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "Прапушчаныя цітры"
 
-#: jellyfin_mpv_shim/player.py:2355
+#: jellyfin_mpv_shim/player.py:2385
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "Прапушчаны ўступ"
 
-#: jellyfin_mpv_shim/player.py:2489
+#: jellyfin_mpv_shim/player.py:2519
 msgid "Season {0} - Episode {1}"
 msgstr "Сезон {0} - Серыя {1}"
 
