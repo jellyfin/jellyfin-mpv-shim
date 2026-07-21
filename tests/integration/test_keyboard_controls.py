@@ -177,6 +177,46 @@ class KeyboardRoutingTest(unittest.TestCase):
             hide.assert_called_once_with()
             show.assert_not_called()
 
+    def test_menu_key_opens_the_hud_menu_under_the_mpvtk_osc(self):
+        with mock.patch.object(self.pm, "_osc_style_resolved", "mpvtk"), \
+                mock.patch.object(self.pm, "on_hud_menu") as hud, \
+                mock.patch.object(self.pm.menu, "show_menu") as show:
+            self.pm._player.press_key(settings.kb_menu)
+            hud.assert_called_once_with()
+            show.assert_not_called()
+
+    def test_menu_key_never_reaches_the_osd_menu_under_the_mpvtk_osc(self):
+        """The OSD menu is a classic-OSC surface: it draws under the mpvtk
+        overlay bitmaps and takes the arrow keys off the browser. So when the
+        HUD declines — or there is no video at all to have a HUD — the key
+        does nothing rather than falling through."""
+        cases = (
+            ("hud declines", FakeVideo(), mock.Mock(return_value=False)),
+            ("no video", None, mock.Mock(return_value=True)),
+            ("no hud wired", FakeVideo(), None),
+        )
+        for label, video, hud in cases:
+            with self.subTest(label):
+                with mock.patch.object(self.pm, "_osc_style_resolved", "mpvtk"), \
+                        mock.patch.object(self.pm, "_video", video), \
+                        mock.patch.object(self.pm, "on_hud_menu", hud), \
+                        mock.patch.object(self.pm.menu, "show_menu") as show, \
+                        mock.patch.object(self.pm.menu, "hide_menu") as hide:
+                    self.pm._player.press_key(settings.kb_menu)
+                    show.assert_not_called()
+                    hide.assert_not_called()
+
+    def test_menu_key_still_opens_the_osd_menu_under_the_classic_osc(self):
+        for style in ("mpv", "default", None):
+            with self.subTest(style):
+                with mock.patch.object(self.pm, "_osc_style_resolved", style), \
+                        mock.patch.object(self.pm, "on_hud_menu") as hud, \
+                        mock.patch.object(self.pm.menu, "show_menu") as show:
+                    self.pm.menu.is_menu_shown = False
+                    self.pm._player.press_key(settings.kb_menu)
+                    show.assert_called_once_with()
+                    hud.assert_not_called()
+
     def test_menu_key_ignored_while_loading(self):
         # do_not_handle_pause guards against opening the menu mid-load.
         with mock.patch.object(self.pm.menu, "show_menu") as show:

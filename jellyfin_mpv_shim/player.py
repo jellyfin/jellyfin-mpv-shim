@@ -701,20 +701,20 @@ class PlayerManager(object):
             if self.do_not_handle_pause:
                 self._player.show_text(_("Please wait, loading..."), 1000, 1)
                 return
-            if (
-                self._video is not None
-                and self.on_hud_menu is not None
-                and self.mpvtk_active
-                and getattr(self, "_osc_style_resolved", None) == "mpvtk"
-            ):
-                # Under the in-window OSC the HUD's gear menu replaces
-                # the OSD menu during playback (the OSD menu remains
-                # the settings surface everywhere else).
-                try:
-                    if self.on_hud_menu():
-                        return
-                except Exception:
-                    log.debug("hud menu open failed", exc_info=True)
+            if getattr(self, "_osc_style_resolved", None) == "mpvtk":
+                # Under the in-window OSC the HUD's gear menu replaces the
+                # OSD menu entirely. The OSD menu is a classic-OSC surface:
+                # drawn as mpv OSD text, it lands *under* the mpvtk overlay
+                # bitmaps and steals the arrow keys from the browser, so it
+                # must not open here even when the HUD declines (browsing,
+                # idle, no video). The tray's "Application Menu" is the
+                # deliberate way in.
+                if self._video is not None and self.on_hud_menu is not None:
+                    try:
+                        self.on_hud_menu()
+                    except Exception:
+                        log.debug("hud menu open failed", exc_info=True)
+                return
             if not self.menu.is_menu_shown:
                 self.menu.show_menu()
             else:
