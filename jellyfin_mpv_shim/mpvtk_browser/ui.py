@@ -336,6 +336,12 @@ class _PlayerController:
         # from under the bar that was just clicked.
         self._act(lambda pm: pm.stop_to_browser())
 
+    def stop_for_close(self):
+        """Stop playback on the way out of the window — plain stop(), NOT
+        stop_to_browser(), which re-asserts the browse window we are in the
+        middle of releasing."""
+        self._act(lambda pm: pm.stop())
+
     def next(self):
         self._act(lambda pm: pm.play_next())
 
@@ -1187,6 +1193,13 @@ class UserInterface:
             # is what's already there when it comes back.
             self._browser.maybe_relock()
             self._browser.minimize()
+        # Closing the window means "stop playing" — for music especially,
+        # which kept going with no window to control it from. Order matters:
+        # minimize() cannot release force_window while something is playing
+        # (set_browse_window's `not self._video` guard), so the window used to
+        # stay on screen. Stopping *after* it re-enters minimize() through the
+        # stopped playstate, which is where force_window finally drops.
+        _PlayerController().stop_for_close()
 
     def login_servers(self):
         from ..player import playerManager, is_using_ext_mpv

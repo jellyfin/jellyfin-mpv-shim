@@ -63,6 +63,43 @@ class CloseToTrayTest(unittest.TestCase):
         self.ui.on_window_closed()
         self.ui._quit.assert_called_once()
 
+    def test_hiding_stops_playback(self):
+        """Music kept playing after the window went away — and because
+        set_browse_window() will not release force_window while something is
+        playing, the window did not actually go away either."""
+        settings.close_to_tray = True
+        self.ui._tray = _Tray()
+        with mock.patch(
+            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+        ) as ctl:
+            self.ui.on_window_closed()
+        ctl.return_value.stop_for_close.assert_called_once_with()
+
+    def test_hiding_minimizes_before_stopping(self):
+        """Stopping first re-enters browse mode (the stopped playstate) and
+        flashes the library up on the way out."""
+        settings.close_to_tray = True
+        self.ui._tray = _Tray()
+        order = []
+        self.browser.minimize.side_effect = lambda: order.append("minimize")
+        with mock.patch(
+            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+        ) as ctl:
+            ctl.return_value.stop_for_close.side_effect = (
+                lambda: order.append("stop"))
+            self.ui.on_window_closed()
+        self.assertEqual(order, ["minimize", "stop"])
+
+    def test_exiting_does_not_double_stop(self):
+        """The exit path stops through playerManager.terminate()."""
+        settings.close_to_tray = False
+        self.ui._tray = _Tray()
+        with mock.patch(
+            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+        ) as ctl:
+            self.ui.on_window_closed()
+        ctl.return_value.stop_for_close.assert_not_called()
+
     def test_hiding_re_arms_the_pin_gate(self):
         """Unlocking covers this appearance of the window, not the rest of
         the process's life — re-raising from the tray must re-prompt."""
