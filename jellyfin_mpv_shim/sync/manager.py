@@ -67,6 +67,14 @@ class SyncManager:
         self._worker = None
         self._wake = threading.Event()
         self._stop = False
+        # Bumped for every worker started. stop() joins with a timeout and
+        # gives up if the worker is still busy, but leaves it running; the
+        # next _open_and_run then sets _stop back to False, which re-armed
+        # that abandoned thread's loop. Two workers against one catalog
+        # interleave appends into the same .part file. A worker also checks
+        # that it is still the current generation, so an abandoned one
+        # exits no matter what _stop is set to afterwards.
+        self._generation = 0
         # Coordinates the worker with deletes of the item it is actively
         # downloading: the worker owns cleanup so files/rows can't be yanked
         # out from under an in-flight write.
@@ -115,7 +123,9 @@ class SyncManager:
         except Exception:
             log.debug("Startup disk reconcile failed.", exc_info=True)
         self._stop = False
-        self._worker = threading.Thread(target=self._run, daemon=True)
+        self._generation += 1
+        self._worker = threading.Thread(target=self._run,
+                                        args=(self._generation,), daemon=True)
         self._worker.start()
 
     def relocate(self, new_path, progress=None):
@@ -163,13 +173,24 @@ class SyncManager:
             log.error("Failed to move download folder from %r to %r",
                       old_root, new_root, exc_info=True)
             self.root = old_root
-            self._open_and_run()  # resume where the downloads still are
+            try:
+                self._open_and_run()  # resume where the downloads still are
+            finally:
+                # Cleared only once the catalog is open again -- see below.
+                self._relocating = False
             return False, _("Moving the downloads failed. They were left in "
                             "place; the download folder was not changed.")
-        finally:
-            self._relocating = False
         self.root = new_root
-        self._open_and_run()
+        try:
+            self._open_and_run()
+        finally:
+            # NOT in a `finally` around the move: this used to be cleared
+            # before the reopen, leaving a window where self.db was the
+            # *closed* old handle and the enqueue/delete guards were open.
+            # An enqueue landing there did its network work, wrote to a
+            # closed connection (a silent no-op), and still told the user N
+            # items were queued.
+            self._relocating = False
         return True, ""
 
     def _move_tree(self, old_root, new_root, progress=None):
@@ -634,9 +655,14 @@ class SyncManager:
 
     # -- worker ------------------------------------------------------------
 
-    def _run(self):
+    def _run(self, gen=None):
+        def stopping():
+            """Shutting down, or superseded by a newer worker."""
+            return self._stop or (gen is not None
+                                  and gen != self._generation)
+
         error_streak = 0
-        while not self._stop:
+        while not stopping():
             # Consume the wake signal up front. It used to be cleared only in
             # the idle branch, which is unreachable while a pending row
             # exists — so _download's no-client wait() returned instantly and
@@ -664,7 +690,7 @@ class SyncManager:
                 if row is None:
                     self._wake.wait(5)
                     continue
-                self._download(row)
+                self._download(row, stopping=stopping)
                 error_streak = 0
             except Exception:
                 # The worker must survive anything (disk full, DB errors —
@@ -706,7 +732,7 @@ class SyncManager:
             log.info("Synced %d offline playstate change(s) to the server.",
                      len(done))
 
-    def _download(self, row):
+    def _download(self, row, stopping=None):
         item_id = row["item_id"]
         client = self.get_client(row["server_uuid"])
         if client is None:
@@ -762,7 +788,7 @@ class SyncManager:
             url = client.jellyfin.download_url(item_id)
             expected = row.get("size_bytes") or 0
             size, total = self._stream(url, media_path, item_id, row.get("name"),
-                                       expected)
+                                       expected, stopping=stopping)
 
             # Never record a short/truncated response as complete: keep the
             # .part and leave the row pending so a later pass resumes it. Don't
@@ -856,7 +882,8 @@ class SyncManager:
                 self._cancelled.discard(item_id)
         self._notify_change()
 
-    def _stream(self, url, dest, item_id, name, expected):
+    def _stream(self, url, dest, item_id, name, expected,
+                stopping=None):
         """Download `url` to `dest`.part, resuming a partial file where possible.
 
         Returns ``(downloaded, total)``. The caller promotes the .part to `dest`
@@ -873,7 +900,8 @@ class SyncManager:
         if expected and resume >= expected:
             return expected, expected
         try:
-            return self._stream_request(url, tmp, item_id, name, expected, resume)
+            return self._stream_request(url, tmp, item_id, name, expected,
+                                        resume, stopping)
         except requests.HTTPError as exc:
             resp = getattr(exc, "response", None)
             if resp is None or resp.status_code != 416:
@@ -889,9 +917,11 @@ class SyncManager:
                 os.remove(tmp)
             except OSError:
                 pass
-            return self._stream_request(url, tmp, item_id, name, expected, 0)
+            return self._stream_request(url, tmp, item_id, name, expected,
+                                        0, stopping)
 
-    def _stream_request(self, url, tmp, item_id, name, expected, resume):
+    def _stream_request(self, url, tmp, item_id, name, expected,
+                        resume, stopping=None):
         verify = not settings.ignore_ssl_cert
         headers = {"Range": "bytes=%d-" % resume} if resume else {}
         with requests.get(url, stream=True, headers=headers, verify=verify,
@@ -904,8 +934,9 @@ class SyncManager:
             last_push = downloaded
             mode = "ab" if resume else "wb"
             with open(tmp, mode) as fh:
+                stopping = stopping or (lambda: self._stop)
                 for chunk in resp.iter_content(CHUNK):
-                    if self._stop:
+                    if stopping():
                         raise _Stopped()
                     if item_id in self._cancelled:
                         raise _Cancelled()

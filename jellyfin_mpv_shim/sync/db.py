@@ -461,11 +461,16 @@ class SyncDB:
     # -- reads (either process) -------------------------------------------
 
     def _query(self, sql, params=()):
-        if self._conn is None:
-            return []
         # Reads share the one connection with the writer thread; take the lock
         # so a read can't interleave with an in-flight write/commit.
+        #
+        # The `_conn is None` test is INSIDE the lock: outside it, a close()
+        # landing between the check and the execute left self._conn None at
+        # the execute, raising AttributeError -- which `except sqlite3.Error`
+        # does not catch, so it escaped to whichever thread was reading.
         with self._lock:
+            if self._conn is None:
+                return []
             try:
                 return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
             except sqlite3.Error:

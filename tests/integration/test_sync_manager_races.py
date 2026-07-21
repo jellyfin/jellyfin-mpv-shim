@@ -42,7 +42,8 @@ class DeleteAtCommitRaceTest(h.TmpDirTest):
 
         at_finish = threading.Barrier(2)
 
-        def fake_stream(url, dest, item_id, name, expected):
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -138,7 +139,8 @@ class StopMidDownloadTest(h.TmpDirTest):
 
         streaming = threading.Event()
 
-        def parked_stream(url, dest, item_id, name, expected):
+        def parked_stream(url, dest, item_id, name, expected,
+                          stopping=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 20)     # a partial download on disk

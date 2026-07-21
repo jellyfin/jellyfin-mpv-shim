@@ -98,18 +98,27 @@ class AutoDownloader:
         interval = max(1, int(settings.auto_download_interval_mins or 60)) * 60
         return (self._now() - self.last_run) >= interval
 
-    def tick(self):
+    def tick(self, should_stop=None):
         """Run the job if it is due. Never raises — this is called from the
         worker loop, where an exception would take the download thread with
-        it and stop *user* downloads too."""
+        it and stop *user* downloads too.
+
+        ``should_stop`` overrides the constructor's for this pass. The
+        worker passes its own, which also returns True once that worker has
+        been superseded — a stale one must abandon its pass rather than
+        read a flag the worker replacing it has since cleared.
+        """
         if not self.due():
             return None
         self.last_run = self._now()
+        self._pass_stop = should_stop or self.should_stop
         try:
             return self.run()
         except Exception:
             log.error("Auto-download pass failed", exc_info=True)
             return None
+        finally:
+            self._pass_stop = None
 
     # -- the pass ----------------------------------------------------------
 
@@ -120,7 +129,8 @@ class AutoDownloader:
         long, and queueing downloads that then compete with the stream the
         user just started is exactly what this module promises not to do.
         """
-        return self.should_stop() or self.is_busy()
+        stop = getattr(self, "_pass_stop", None) or self.should_stop
+        return stop() or self.is_busy()
 
     def run(self):
         """One full pass: reap, then fill the freed space. Returns a summary

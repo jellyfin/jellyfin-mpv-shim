@@ -119,7 +119,8 @@ class DownloadCommitTest(TmpTest):
         add_row(m, "a", size_bytes=100)
         item_dir = m._item_dir(m.db.get("a"))
 
-        def fake_stream(url, dest, item_id, name, expected):
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -141,7 +142,8 @@ class DownloadCommitTest(TmpTest):
         add_row(m, "a", size_bytes=100)
         item_dir = m._item_dir(m.db.get("a"))
 
-        def fake_stream(url, dest, item_id, name, expected):
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -158,7 +160,8 @@ class DownloadCommitTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, "a", size_bytes=100)
 
-        def fake_stream(url, dest, item_id, name, expected):
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -459,3 +462,118 @@ class StopTest(TmpTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SupersededWorkerTest(TmpTest):
+    """stop() joins with a timeout and gives up if the worker is still busy,
+    but leaves it running. _open_and_run then set _stop back to False, which
+    re-armed that abandoned thread: two workers against one catalog,
+    interleaving appends into the same .part file."""
+
+    def test_a_superseded_worker_stops_even_when_stop_is_cleared(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._generation = 7
+        stopped = []
+
+        # Drive _run's loop body once as generation 7, then supersede it.
+        def fake_download(row, stopping=None):
+            m._generation = 8          # a newer worker took over
+            stopped.append(stopping())
+        m._download = fake_download
+        add_row(m, "a")
+        t = threading.Thread(target=lambda: m._run(7))
+        t.start()
+        t.join(timeout=5)
+        self.assertFalse(t.is_alive(), "the superseded worker never exited")
+        self.assertTrue(stopped and stopped[0],
+                        "the stop check ignored the generation bump")
+
+    def test_the_current_worker_is_not_stopped_by_its_own_generation(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._generation = 3
+        seen = []
+
+        def fake_download(row, stopping=None):
+            seen.append(stopping())
+            m._stop = True             # end the loop the normal way
+        m._download = fake_download
+        add_row(m, "a")
+        m._run(3)
+        self.assertEqual(seen, [False])
+
+    def test_each_start_takes_a_new_generation(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        before = m._generation
+        m._stop = True                 # keep the worker from doing anything
+        m._open_and_run()
+        self.addCleanup(m.stop)
+        self.assertGreater(m._generation, before)
+
+
+class RelocateGuardTest(TmpTest):
+    """_relocating was cleared before the catalog was reopened, leaving a
+    window where self.db was the closed old handle and the enqueue/delete
+    guards were open. An enqueue landing there wrote nothing and still
+    reported success."""
+
+    def test_the_guard_outlives_the_reopen(self):
+        # Source and destination must be siblings: relocating into a
+        # subdirectory of the source makes _move_tree recurse into itself.
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        seen = []
+        real_open = m._open_and_run
+
+        def watched_open():
+            # The guard must still be set while the catalog is being
+            # reopened -- that is the whole window.
+            seen.append(m._relocating)
+            real_open()
+        m._open_and_run = watched_open
+        ok, msg = m.relocate(os.path.join(self.tmp, "drive2", "offline"))
+        self.assertTrue(ok, msg)
+        self.assertEqual(seen, [True])
+        self.assertFalse(m._relocating, "the guard was left set")
+
+    def test_the_guard_is_cleared_after_a_failed_move(self):
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        m._move_tree = lambda *a, **k: (_ for _ in ()).throw(OSError("nope"))
+        ok, msg = m.relocate(os.path.join(self.tmp, "drive2", "offline"))
+        self.assertFalse(ok)
+        self.assertTrue(msg)
+        self.assertFalse(m._relocating, "a failed move left the guard set")
+
+
+class QueryClosedCatalogTest(TmpTest):
+    """_query tested _conn outside its lock, so a close() landing between
+    the check and the execute raised AttributeError -- which
+    `except sqlite3.Error` does not catch."""
+
+    def test_a_close_during_a_read_does_not_raise(self):
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        db = SyncDB(os.path.join(self.tmp, "c.db"))
+        errors = []
+        stop = threading.Event()
+
+        def reader():
+            while not stop.is_set():
+                try:
+                    db.list()
+                except Exception as exc:       # noqa: BLE001 - that's the point
+                    errors.append(exc)
+                    return
+
+        t = threading.Thread(target=reader)
+        t.start()
+        time.sleep(0.05)
+        db.close()
+        time.sleep(0.05)
+        stop.set()
+        t.join(timeout=5)
+        self.assertEqual(errors, [], "a concurrent close escaped as %r"
+                         % (errors[:1],))
