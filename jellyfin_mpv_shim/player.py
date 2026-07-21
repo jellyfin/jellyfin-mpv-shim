@@ -390,6 +390,12 @@ class PlayerManager(object):
         # Last known playback position; used when MPV exits (e.g. OSC 'x'
         # button) before we get to send the final timeline update.
         self._last_playback_position = 0
+        # Stall watchdog state: (position, when it was first seen).
+        # Feeds _check_stalled_finish, which covers an end-of-file that mpv
+        # never reports at all — distinct from the poll rescue below it, which
+        # covers one that was reported but whose notification was lost.
+        self._stall_position = None
+        self._stall_since = 0.0
         # Timestamp of the most recent intro/credits prompt or skip toast.
         # Used to debounce the prompt loop so a skip event isn't immediately
         # overwritten by a "Seek to Skip Credits" prompt when the post-skip
@@ -1302,6 +1308,8 @@ class PlayerManager(object):
                 if eof is True:
                     self._reached_eof = True
                     self._queue_finished()
+                elif self._check_stalled_finish(video):
+                    self._queue_finished()
                 elif not video.parent.has_next:
                     # Last item: keep_open is off, so mpv idles at the end and
                     # eof-reached reads unavailable — mirror the abort observer.
@@ -1483,6 +1491,10 @@ class PlayerManager(object):
         # episode that aborts before its first timeline tick).
         self._reached_eof = False
         self._last_playback_position = 0
+        # Likewise the stall window: a position carried over from the previous
+        # file would otherwise be compared against the new one's timeline.
+        self._stall_position = None
+        self._stall_since = 0.0
         # Invalidate finished-callbacks queued for the previous playback: a
         # cast landing in the same instant as an EOF would otherwise let the
         # stale callback mark the just-cast item played and skip past it.
@@ -2638,6 +2650,63 @@ class PlayerManager(object):
         video = self._video
         if video:
             self._player.keep_open = video.parent.has_next
+
+    # How long playback has to sit at an unchanged position, at the end of the
+    # media, before the watchdog calls it finished. Long enough not to fire on
+    # ordinary rebuffering; short enough that a user does not give up first.
+    STALL_FINISH_SECS = 20
+
+    def _check_stalled_finish(self, video):
+        """Whether playback has silently died at the end of a remote stream.
+
+        The observers and the poll rescue all wait for mpv to *say* the file
+        ended. A remote origin that stops delivering without closing the
+        connection produces no such statement: the demuxer blocks in read, so
+        there is no end-file event, eof-reached stays False and playback-abort
+        stays False. With keep_open holding the last frame mid-queue, that is
+        indistinguishable from a normal hold — the queue just stops forever.
+        Reported against .strm items, whose origins are arbitrary third-party
+        servers, but nothing here is .strm-specific.
+
+        Deliberately requires the position to be at the END of the media, not
+        merely frozen. A bare stall is far more likely to be rebuffering on a
+        slow origin, and advancing through that would silently skip the rest
+        of an episode — a worse outcome than the freeze this fixes. Items with
+        no known duration therefore get no rescue; _finished_at_eof cannot
+        place them, and guessing is not worth the risk of skipping content.
+        """
+        # Live streams have no end to arrive at: a stall there is an outage,
+        # and "finishing" one would advance the queue past a channel the user
+        # is still watching.
+        if (video.media_source or {}).get("IsInfiniteStream"):
+            return False
+        try:
+            if self._player.pause:
+                return False
+            position = self._player.playback_time
+        except Exception:
+            # Including a disconnect: the eof-reached read just above already
+            # owns that case, so by here the connection was alive a moment ago
+            # and an unreadable property is not worth a second teardown path.
+            return False
+        if position is None:
+            return False
+
+        now = time.time()
+        if position != self._stall_position:
+            self._stall_position = position
+            self._stall_since = now
+            return False
+        if now - self._stall_since < self.STALL_FINISH_SECS:
+            return False
+        if not self._finished_at_eof(video, position):
+            return False
+        log.warning(
+            "Playback stalled at %.1fs at the end of the media without an "
+            "end-of-file from mpv; treating as finished.", position
+        )
+        self._reached_eof = True
+        return True
 
     def _finished_at_eof(self, video, playback_time=None):
         """Whether the playback that just ended genuinely reached the end.

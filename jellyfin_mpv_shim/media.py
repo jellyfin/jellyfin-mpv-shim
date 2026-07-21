@@ -541,9 +541,18 @@ class Video(object):
         return url
 
     def get_duration(self):
-        ticks = self.item.get("RunTimeTicks")
-        if ticks:
-            return ticks / 10000000
+        # The MediaSource comes first because the Item DTO is unreliable for
+        # remote shortcuts: a library scan never probes a .strm (the probe is
+        # gated on the item not being a shortcut), so the Item carries no
+        # RunTimeTicks. The server does probe it, but only during the
+        # PlaybackInfo request, and that runtime lands on the MediaSource —
+        # the Item we fetched earlier stays stale. Reading only the Item left
+        # every .strm with no duration, which disabled the player's near-end
+        # finish check and stranded the queue on a frozen last frame.
+        for source in ((self.media_source or {}), self.item):
+            ticks = source.get("RunTimeTicks")
+            if ticks:
+                return ticks / 10000000
 
     def set_played(self, watched: bool = True):
         self.client.jellyfin.item_played(self.item_id, watched)
