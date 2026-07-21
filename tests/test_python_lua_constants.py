@@ -129,6 +129,13 @@ class TestSkipButtonGeometry(unittest.TestCase):
         self._pair("_SKIP_PAD", "PHUD_SKIP_PAD",
                    "the box must be the same size in both copies")
 
+    def test_right_inset_matches(self):
+        self._pair("_SKIP_RIGHT", "PHUD_SKIP_RIGHT",
+                   "the two copies must sit the same distance from the "
+                   "right edge -- the renderer-drawn copy carries the hit "
+                   "rect, so a mismatch moves the clickable area away from "
+                   "the button you can see")
+
     def test_line_height_matches_the_layout_engine(self):
         py = float(_one(r"^LINE_H = ([0-9.]+)", _read(LAYOUT), "LINE_H"))
         lua = float(_one(r"^local PHUD_SKIP_LINE_H = ([0-9.]+)$",

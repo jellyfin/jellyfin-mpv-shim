@@ -83,6 +83,7 @@ local state = {
     slider_drag = nil,      -- slider id being dragged
     tb_drag = nil,          -- {id, anchor} during click-drag selection
     tb_menu = nil,          -- {id, x, y} textbox context menu
+    scale = 1,              -- UI scale (mpvtk-scale); see ui_px()
     tb_menu_geo = nil,
     modal = nil,            -- 'layer' meta node of the open Dialog
     modal_hidden = false,   -- dismissed locally, awaiting scene push
@@ -664,12 +665,21 @@ local function tb_menu_items(node)
     return { 'Cut', 'Copy', 'Paste', 'Select All' }
 end
 
+local function ui_px(v)
+    -- Logical -> physical for chrome that is composed HERE and so never
+    -- passes through Python's scale_scene: the textbox context menu and
+    -- the hover tooltip. Same rounding as scaling.px().
+    return math.floor(v * (state.scale or 1) + 0.5)
+end
+
+
 local function tb_menu_geometry(items)
     local n = #items
-    local ih = 34
-    local w = 40
+    local ih = ui_px(34)
+    local w = ui_px(40)
+    local fs = ui_px(18)
     for _, item in ipairs(items) do
-        w = math.max(w, text_w(item, 18) + 32)
+        w = math.max(w, text_w(item, fs) + ui_px(32))
     end
     local x = clamp(state.tb_menu.x, 0, math.max(0, state.w - w - 4))
     local y = state.tb_menu.y
@@ -677,7 +687,7 @@ local function tb_menu_geometry(items)
         y = y - n * ih
     end
     y = clamp(y, 0, math.max(0, state.h - n * ih))
-    return { x = x, y = y, w = w, ih = ih, n = n }
+    return { x = x, y = y, w = w, ih = ih, n = n, fs = fs }
 end
 
 local function draw_textbox(ass, node, ex, ey, clip)
@@ -984,7 +994,7 @@ end
 
 local function menu_geometry(node)
     local n = #node.items
-    local ih = node.ih
+    local ih = node.rh
     local x = math.max(0, math.min(node.x, state.w - node.w - 4))
     local y = node.y
     if y + n * ih > state.h and y - n * ih >= 0 then
@@ -1080,6 +1090,7 @@ local SLIDER_PAD = 8
 local PHUD_SKIP_BOTTOM = 106
 local PHUD_SKIP_FS = 18
 local PHUD_SKIP_PAD = 10
+local PHUD_SKIP_RIGHT = 24
 local PHUD_SKIP_LINE_H = 1.25
 
 local function draw_slider(ass, node, ex, ey, clip)
@@ -1340,15 +1351,18 @@ render = function()
     if state.tip then
         local tnode = state.byid[state.tip]
         if tnode and tnode.tip and state.hover_id == state.tip then
-            local tw = text_w(tnode.tip, 15) + 18
-            local th = 26
-            local tx = clamp(state.mouse.x + 12, 2, state.w - tw - 2)
-            local ty = state.mouse.y + 20
+            local tfs = ui_px(15)
+            local tw = text_w(tnode.tip, tfs) + ui_px(18)
+            local th = ui_px(26)
+            local tx = clamp(state.mouse.x + ui_px(12), 2,
+                             state.w - tw - 2)
+            local ty = state.mouse.y + ui_px(20)
             if ty + th > state.h - 2 then
-                ty = state.mouse.y - th - 8
+                ty = state.mouse.y - th - ui_px(8)
             end
             state.tip_geo = {
-                x = tx, y = ty, w = tw, h = th, text = tnode.tip,
+                x = tx, y = ty, w = tw, h = th, fs = tfs,
+                text = tnode.tip,
             }
             occluders[#occluders + 1] = {
                 x1 = tx - 2, y1 = ty - 2,
@@ -1496,8 +1510,9 @@ render = function()
     if state.tb_menu_geo then
         local tbn = state.byid[state.tb_menu.id]
         if tbn then
+            -- g.fs, not a literal: the box was measured at that size
             draw_list(ass, state.tb_menu_geo, tb_menu_items(tbn),
-                nil, 18)
+                nil, state.tb_menu_geo.fs)
         end
     end
     if state.tip_geo then
@@ -1506,9 +1521,9 @@ render = function()
             fill = '111111', a = 245, radius = 5,
             bc = '4a4a4a', bw = 1,
         })
-        draw_text(ass, { w = g.w - 18, h = g.h, size = 15,
+        draw_text(ass, { w = g.w - ui_px(18), h = g.h, size = g.fs,
                          align = 'left' },
-            g.x + 9, g.y, nil, g.text, 'dddddd')
+            g.x + ui_px(9), g.y, nil, g.text, 'dddddd')
     end
     if busy_visible and not state.busy_timer then
         state.busy_timer = mp.add_periodic_timer(0.1, function()
@@ -1538,7 +1553,7 @@ render = function()
         local bw = math.floor(text_w(label, fs, false)
                               + 2 * PHUD_SKIP_PAD)
         local bh = math.floor(fs * PHUD_SKIP_LINE_H + 2 * PHUD_SKIP_PAD)
-        local x1 = state.w - bw - 24
+        local x1 = state.w - bw - PHUD_SKIP_RIGHT
         local y1 = state.h - PHUD_SKIP_BOTTOM - bh
         state.phud.skip_rect = { x1 = x1, y1 = y1,
                                  x2 = x1 + bw, y2 = y1 + bh }
@@ -3174,6 +3189,7 @@ local _SCALE_BASE = {
     PHUD_SKIP_BOTTOM = PHUD_SKIP_BOTTOM,
     PHUD_SKIP_FS = PHUD_SKIP_FS,
     PHUD_SKIP_PAD = PHUD_SKIP_PAD,
+    PHUD_SKIP_RIGHT = PHUD_SKIP_RIGHT,
     NAV_LEAD = NAV_LEAD,
     NAV_TAIL = NAV_TAIL,
     FOLLOW_SLACK = FOLLOW_SLACK,
@@ -3193,6 +3209,7 @@ mp.register_script_message('mpvtk-scale', function(json)
     PHUD_SKIP_BOTTOM = sc(_SCALE_BASE.PHUD_SKIP_BOTTOM)
     PHUD_SKIP_FS = sc(_SCALE_BASE.PHUD_SKIP_FS)
     PHUD_SKIP_PAD = sc(_SCALE_BASE.PHUD_SKIP_PAD)
+    PHUD_SKIP_RIGHT = sc(_SCALE_BASE.PHUD_SKIP_RIGHT)
     NAV_LEAD = sc(_SCALE_BASE.NAV_LEAD)
     NAV_TAIL = sc(_SCALE_BASE.NAV_TAIL)
     FOLLOW_SLACK = sc(_SCALE_BASE.FOLLOW_SLACK)

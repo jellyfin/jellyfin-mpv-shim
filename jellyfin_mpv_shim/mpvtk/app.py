@@ -706,5 +706,7 @@ class MpvtkApp:
         v = self.backend.get_property("user-data/mpvtk/scroll")
         if not isinstance(v, dict):
             return {}
+        if scaling.scale() == 1.0:
+            return v          # identity, and keeps the offsets ints
         # Physical on the renderer side; logical for everyone here.
         return {k: scaling.dip(px) for k, px in v.items()}

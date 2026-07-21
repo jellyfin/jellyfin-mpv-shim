@@ -89,7 +89,8 @@ def _round(v):
 
 # Pixel geometry, uniform across every node type (audited against
 # layout.py's emission and renderer.lua's reads).
-_PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch")
+_PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch",
+            "rh")
 
 # Pixel values that live INSIDE nested style dicts. These are the reason
 # this is an explicit table rather than a recursive walk over anything
@@ -101,6 +102,11 @@ _NESTED_PX_KEYS = ("bw", "radius")
 # Never scaled: iw/ih are the physical bitmap dims (the boundary itself),
 # min/max/value/marks/ranges are slider domain values, a/a1/a2 are alphas,
 # v is a content version.
+#
+# These lists are keyed on name alone, which is only safe while a key means
+# the same thing on every node type. Menu's row height used to ship as "ih"
+# and silently inherited the img exclusion -- if you add a field, make sure
+# its name isn't already spoken for.
 
 
 def scale_scene(nodes):

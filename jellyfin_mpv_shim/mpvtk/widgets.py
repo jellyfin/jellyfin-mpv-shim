@@ -171,7 +171,16 @@ def _check_raster(src, iw, ih, kw):
     """
     from . import scaling
 
-    if kw.get("w") is None or kw.get("h") is None:
+    have_w, have_h = kw.get("w") is not None, kw.get("h") is not None
+    if have_w != have_h:
+        # Declaring one axis and not the other used to silently discard the
+        # one you gave and derive both -- the single shape that failed
+        # quietly in a check whose whole job is to fail loudly.
+        raise ValueError(
+            "image %r declared only %s; declare both or neither"
+            % (src, "w" if have_w else "h")
+        )
+    if not have_w:
         kw["w"] = scaling.dip(iw)
         kw["h"] = scaling.dip(ih)
         return

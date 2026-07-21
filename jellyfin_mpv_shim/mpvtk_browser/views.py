@@ -12,6 +12,7 @@ work; reading ``self.route`` inside the callback races navigation.
 import logging
 
 from ..i18n import _
+from ..mpvtk.scaling import px
 from ..mpvtk.widgets import (
     Box,
     Busy,
@@ -525,8 +526,12 @@ class ViewsMixin:
         for i, ch in enumerate(chapters):
             url = None
             try:
-                url = self.source.chapter_image_url(server, iid, i, ch,
-                                                    width=self.geom_wide.tile_w)
+                # Physical: geom is logical, and _poster_for keys/decodes
+                # this pseudo-item at raster(tile_w, tile_h). PIL's
+                # thumbnail() only ever downscales, so a logical request
+                # here leaves the art stranded at 1x inside a scaled card.
+                url = self.source.chapter_image_url(
+                    server, iid, i, ch, width=px(self.geom_wide.tile_w))
             except Exception:
                 log.debug("chapter art failed", exc_info=True)
             start = ch.get("StartPositionTicks") or 0

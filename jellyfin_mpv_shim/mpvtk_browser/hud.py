@@ -56,6 +56,12 @@ _SKIP_BOTTOM = 106
 # the Button box from these plus layout.LINE_H.
 _SKIP_SIZE = 18
 _SKIP_PAD = 10
+# ...and the horizontal inset, for the same reason. This one was a bare
+# literal on both sides, so when the UI scale landed only the Python copy
+# scaled (layout folds dx into x, which scale_scene converts) and the two
+# buttons drifted apart horizontally by 24*(scale-1) px -- including the
+# renderer-drawn hit rect, which is what you actually click.
+_SKIP_RIGHT = 24
 
 
 def _episode_context(st):
@@ -423,7 +429,7 @@ def _skip_float(b, size):
         label, id="hud-skip", size=_SKIP_SIZE, pad=_SKIP_PAD,
         bg="eeeeee", fg="111111", hover={"fill": "ffffff"},
         on_click=lambda: _hud_action(b, "skip-segment"),
-        anchor="se", dx=-24, dy=-_SKIP_BOTTOM)
+        anchor="se", dx=-_SKIP_RIGHT, dy=-_SKIP_BOTTOM)
 
 
 def build_hud(b, size):

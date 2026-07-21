@@ -16,7 +16,7 @@ from jellyfin_mpv_shim.mpvtk import scaling
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk.widgets import (
     Box, Button, Checkbox, Column, Dropdown, Gradient, Icon, Image, ImageMap,
-    Progress, Row, Scroll, Slider, Text, TextBox,
+    Menu, Progress, Row, Scroll, Slider, Text, TextBox,
 )
 
 
@@ -58,6 +58,11 @@ def _tree():
                  trigger_icon="menu"),
         TextBox("tb", text="typed", size=17, w=220, h=34),
         Icon("play", size=24),
+        # A Menu is what emits `rh`, its row height. That field used to
+        # ship as "ih" and silently inherited the img exclusion, so the
+        # tree must keep exercising it.
+        Menu("menu", ["Play", "Mark Watched", "Delete"], x=10, y=20,
+             size=17),
         # A Scroll is what emits cw/ch.
         Scroll(Column([Text("row %d" % i, size=16) for i in range(20)],
                       gap=6),
@@ -86,18 +91,29 @@ class ScaleSceneDriftTest(unittest.TestCase):
         unscaled = []
         for nid, n1 in one.items():
             n2 = two[nid]
-            for key, v1 in n1.items():
-                if key in NOT_PIXELS or not isinstance(v1, (int, float)):
+            # Union, not n1's keys: a field emitted only at 2x would
+            # otherwise never be looked at.
+            for key in set(n1) | set(n2):
+                v1, v2 = n1.get(key), n2.get(key)
+                if key in NOT_PIXELS:
                     continue
-                if isinstance(v1, bool):
+                if not isinstance(v1, (int, float)) or isinstance(v1, bool):
                     continue
-                v2 = n2.get(key)
-                if not isinstance(v2, (int, float)):
+                if not isinstance(v2, (int, float)) or isinstance(v2, bool):
                     continue
                 if v1 == 0:
                     continue  # 0 scales to 0; carries no information
-                if abs(v2 - v1 * 2) > 1.51:   # allow double-rounding slack
-                    unscaled.append((nid, key, v1, v2))
+                # Two independent signals. The magnitude check allows a
+                # unit of double-rounding slack, but that slack SWALLOWS
+                # small values -- an unscaled field whose 1x value is 1
+                # lands within it (|1 - 2| = 1), and border_w defaults to
+                # exactly 1. So also assert the field moved at all: for a
+                # pixel value at 2x, staying put is the signature of not
+                # being scaled.
+                if v2 == v1:
+                    unscaled.append((nid, key, v1, v2, "did not move"))
+                elif abs(v2 - v1 * 2) > 1.51:
+                    unscaled.append((nid, key, v1, v2, "not ~2x"))
 
         self.assertFalse(
             unscaled,
@@ -329,6 +345,36 @@ class BoundaryConversionTest(unittest.TestCase):
         node = {"id": "n", "x": 100, "y": 40, "w": 600, "h": 20, "t": "rect"}
         app = self._app(nodes=[node])
         self.assertIs(app.node_rect("n"), node)
+
+
+class ScaleCliTest(unittest.TestCase):
+    """--scale overrides ui_scale for one run without persisting it."""
+
+    def _parse(self, argv):
+        from jellyfin_mpv_shim.args import _build_parser
+
+        return _build_parser().parse_args(argv)
+
+    def test_scale_parses_as_a_float(self):
+        self.assertEqual(self._parse(["--scale", "1.5"]).ui_scale, 1.5)
+        self.assertEqual(self._parse(["--scale", "2"]).ui_scale, 2.0)
+
+    def test_absent_leaves_the_config_alone(self):
+        """None is what tells main() not to touch settings at all."""
+        self.assertIsNone(self._parse([]).ui_scale)
+
+    def test_dest_matches_the_settings_key(self):
+        """main() applies overrides as settings.<dest> = args.<dest>, so the
+        flag's dest has to be the config key name or the override silently
+        writes an attribute nothing reads."""
+        from jellyfin_mpv_shim.conf import Settings
+
+        self.assertIn("ui_scale", Settings.__annotations__)
+
+    def test_nonsense_values_degrade_to_1(self):
+        """argparse takes any float; set_scale is the guard."""
+        for bad in (0.0, -1.0, float("inf")):
+            self.assertEqual(scaling.set_scale(bad or 1.0), 1.0, repr(bad))
 
 
 class ScaleResolutionTest(unittest.TestCase):

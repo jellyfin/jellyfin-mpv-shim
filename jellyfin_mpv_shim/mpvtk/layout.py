@@ -747,7 +747,11 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
             "x": _round(el.x),
             "y": _round(el.y),
             "w": _round(widest + 36),
-            "ih": _round(el.size * 1.9),
+            # "rh", not "ih": this is a row height in LOGICAL px and must
+            # scale, whereas an img node's "ih" is the physical bitmap
+            # height and must not. One key meaning both is how the menu
+            # ended up drawing 1x rows under 2x text.
+            "rh": _round(el.size * 1.9),
             "items": el.items,
             "size": el.size,
         }

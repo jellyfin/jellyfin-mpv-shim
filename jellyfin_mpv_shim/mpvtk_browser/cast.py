@@ -235,8 +235,15 @@ class CastMixin:
             # Nothing baked yet: a plain dark field rather than a flash of
             # whatever was behind us.
             return Column([], w=size[0], h=size[1])
+        # The entry's OWN size, not the requested one. _recomposite_cast is
+        # async, so during a resize this entry is still the previous size's
+        # bitmap; declaring the new box against the old bitmap fails
+        # widgets._check_raster and the whole cast screen freezes on the
+        # last good frame until the pool catches up. Declaring what we
+        # actually have is self-healing: the next composite lands and the
+        # node grows with it.
         return ImageNode(entry["src"], entry["iw"], entry["ih"],
-                         w=size[0], h=size[1], v=entry.get("v", 0))
+                         w=entry["lw"], h=entry["lh"], v=entry.get("v", 0))
 
     def display_cast_item(self, server_uuid, item_id):
         """A remote picked something: show it.
