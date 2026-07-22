@@ -258,6 +258,41 @@ You can adjust the basic transcoder settings via the menu.
       the specified format.
   - This may have the same limitations as `always_transcode`.
 
+### Audio Output
+
+By default the shim changes nothing about audio and lets MPV (and anything in
+your own `mpv.conf`) decide. The settings below are for sending audio to an
+external receiver.
+
+- `audio_mode` - How audio is sent to your speakers or receiver. Default: `auto`
+  - `auto` - Change nothing. MPV's defaults and your `mpv.conf` apply.
+  - `stereo` - Force stereo and normalize the downmix.
+  - `optical` - S/PDIF (optical or coaxial). Passes through AC3 and DTS, which
+      is all the cable has bandwidth for, and encodes anything else to AC3 so
+      you still get surround instead of a stereo downmix.
+  - `hdmi` - Passes through every compressed format your receiver accepts.
+      Never re-encodes: HDMI carries multichannel PCM natively, so anything
+      that isn't passed through is sent uncompressed.
+- `audio_passthrough_ac3`, `audio_passthrough_dts`, `audio_passthrough_eac3`,
+  `audio_passthrough_dts_hd`, `audio_passthrough_truehd` - Which formats to
+  pass through. All default to `true`; untick anything your receiver can't
+  decode. Only the ones the selected mode can carry are shown in Settings —
+  `optical` offers AC3 and DTS only.
+- `audio_optical_encode_ac3` - In `optical` mode, encode audio that can't be
+  passed through to AC3. Default: `true`
+  - This is the only way surround fits down an optical cable, so leave it on
+    unless the encoder causes trouble — it adds latency on some receivers.
+  - With it off, those tracks are sent as stereo PCM. S/PDIF can't carry
+    multichannel PCM either, so there is no third option. Formats your
+    receiver *can* accept directly are unaffected.
+- `audio_night_mode` - "Night Mode (Auto Volume Adj)". Evens out loud effects
+  and quiet dialogue. Default: `false`
+  - Also on the player's settings menu, and applies to what is already playing.
+  - Turns passthrough off while enabled. The volume has to be adjusted before
+    your receiver gets the audio, which means the audio has to be decoded
+    first. In `optical` mode you keep surround (it is re-encoded to AC3); in
+    `hdmi` mode you get multichannel PCM.
+
 ### Features
 
 You can use the config file to enable and disable features.
@@ -483,7 +518,6 @@ Other miscellaneous configuration options. You probably won't have to change the
 
 - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
 - `client_uuid` - The identifier for the client. Set to a random value on first run.
-- `audio_output` - Currently has no effect. Default: `hdmi`
 - `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
   - If you're hitting this, it means files on your server probably got corrupted or deleted.
   - It could also happen if you try to play an unsupported video format. These are rare.

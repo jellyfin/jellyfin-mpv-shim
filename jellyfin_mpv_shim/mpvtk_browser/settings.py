@@ -81,7 +81,19 @@ class SettingsMixin:
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:
             self._seed_auto_download_server()
+        if ok and key.startswith("audio_"):
+            self._apply_audio_settings()
         self.invalidate()
+
+    def _apply_audio_settings(self):
+        """Audio settings apply live -- a mode change takes effect without a
+        restart, and mid-playback without a reload."""
+        try:
+            from ..player import playerManager
+
+            playerManager.apply_audio_settings()
+        except Exception:
+            log.error("Could not apply audio settings.", exc_info=True)
 
     def _seed_auto_download_server(self):
         """Switching auto-download on means "for the server I am looking at".

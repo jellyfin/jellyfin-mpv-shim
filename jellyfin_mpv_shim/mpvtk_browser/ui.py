@@ -201,6 +201,11 @@ class _PlayerController:
         self._act(lambda pm: pm._player.command(
             "script-binding", "stats/display-stats-toggle"))
 
+    def toggle_night_mode(self):
+        """Night mode on/off from the playback HUD's gear menu. Applies to
+        what is playing right now — no reload."""
+        self._act(lambda pm: pm.set_night_mode(not settings.audio_night_mode))
+
     def set_paused(self, paused):
         """Explicit pause state (scrub-in-progress pauses; commit or
         cancel restores)."""

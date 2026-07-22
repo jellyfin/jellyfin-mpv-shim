@@ -48,7 +48,6 @@ class Settings(SettingsBase):
     # A config written before this key existed loads as 0. See _migrate().
     config_version: int = 0
     player_name: str = socket.gethostname()
-    audio_output: str = "hdmi"
     client_uuid: str = str(uuid.uuid4())
     media_ended_cmd: Optional[str] = None
     pre_media_cmd: Optional[str] = None
@@ -239,6 +238,30 @@ class Settings(SettingsBase):
     lang_filter_audio: bool = False
     remember_audio_track: bool = True
     remember_subtitle_track: bool = True
+    # Audio output mode. "auto" touches nothing at all -- no audio-channels,
+    # no audio-spdif, no filters -- so mpv (and the user's own mpv.conf)
+    # decide. The other modes are described in player.py:apply_audio_settings.
+    # Replaced the old audio_output key, which nothing ever read.
+    audio_mode: str = "auto"
+    # Which codecs to pass through, for the modes that pass anything through.
+    # Default on: a mode is opt-in already, and picking "HDMI Passthrough"
+    # only to find nothing passes through would be surprising. Which of these
+    # are *offered* depends on the mode (S/PDIF has the bandwidth for AC3 and
+    # DTS core only) -- see AUDIO_PASSTHROUGH_CODECS.
+    audio_passthrough_ac3: bool = True
+    audio_passthrough_dts: bool = True
+    audio_passthrough_eac3: bool = True
+    audio_passthrough_dts_hd: bool = True
+    audio_passthrough_truehd: bool = True
+    # Optical only. Anything the cable cannot pass through is encoded to AC3,
+    # which is the only way surround crosses S/PDIF at all. Off means those
+    # tracks go out as stereo PCM instead -- worse, but the encoder adds
+    # latency on some receivers and that is a real reason to refuse it.
+    audio_optical_encode_ac3: bool = True
+    # "Night mode": compress the dynamic range so explosions and dialogue end
+    # up at similar volumes. Independent of audio_mode, but it forces PCM --
+    # a filter cannot sit downstream of a compressed passthrough stream.
+    audio_night_mode: bool = False
     language_preference: str = "custom"
     preferred_language: str = "eng"
     force_set_played: bool = False

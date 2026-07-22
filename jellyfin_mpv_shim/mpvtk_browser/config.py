@@ -21,8 +21,26 @@ from ..i18n import _
 # every exit — editing them in a form the app then overwrites is a setting
 # that appears not to work. The preference that governs them,
 # remember_window_size, stays visible.
-_HIDDEN = {"language_config", "audio_output", "client_uuid", "config_version",
+_HIDDEN = {"language_config", "client_uuid", "config_version",
            "window_width", "window_height", "window_maximized"}
+
+# Passthrough toggles, in the order they should appear, paired with the mpv
+# codec name that decides whether the current audio mode offers them at all.
+# The mode -> codec mapping itself lives in player.py (AUDIO_PASSTHROUGH_CODECS)
+# so there is one place that knows what a cable can carry.
+AUDIO_PASSTHROUGH_KEYS = [
+    ("ac3", "audio_passthrough_ac3"),
+    ("dts", "audio_passthrough_dts"),
+    ("eac3", "audio_passthrough_eac3"),
+    ("dts-hd", "audio_passthrough_dts_hd"),
+    ("truehd", "audio_passthrough_truehd"),
+]
+
+# Audio settings that only mean something in particular modes. Hidden
+# elsewhere rather than shown as a control that quietly does nothing.
+AUDIO_MODE_ONLY = {
+    "audio_optical_encode_ac3": {"optical"},
+}
 
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".
@@ -37,6 +55,11 @@ SECTIONS = [
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
                      "playback_timeout"]),
+    # Passthrough keys are listed in full here; sections() drops the ones the
+    # selected mode cannot carry.
+    (_("Audio"), ["audio_mode", "audio_night_mode"]
+                 + [k for _c, k in AUDIO_PASSTHROUGH_KEYS]
+                 + ["audio_optical_encode_ac3"]),
     (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
                                   "subtitle_position", "language_preference",
                                   "preferred_language", "remember_audio_track",
@@ -81,6 +104,12 @@ LABELED_ENUMS = {
         (_("150%"), 1.5),
         (_("200%"), 2.0),
     ],
+    "audio_mode": [
+        (_("Default (auto)"), "auto"),
+        (_("Force Stereo"), "stereo"),
+        (_("Optical Surround"), "optical"),
+        (_("HDMI Passthrough"), "hdmi"),
+    ],
     "language_preference": [
         (_("Unset"), "unset"),
         (_("Dubbed (shows only)"), "dubbed_shows"),
@@ -111,6 +140,14 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "audio_mode": _("Audio Output Mode"),
+    "audio_night_mode": _("Night Mode (Auto Volume Adj)"),
+    "audio_passthrough_ac3": _("Pass Through AC3"),
+    "audio_passthrough_dts": _("Pass Through DTS"),
+    "audio_passthrough_eac3": _("Pass Through E-AC3"),
+    "audio_passthrough_dts_hd": _("Pass Through DTS-HD"),
+    "audio_passthrough_truehd": _("Pass Through TrueHD"),
+    "audio_optical_encode_ac3": _("Re-encode Others to AC3"),
 }
 
 # Explanatory line rendered under a setting, for the ones whose default
@@ -120,6 +157,18 @@ NOTES = {
                    "the player controls by keyboard."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
+    "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
+                    "mpv.conf) decide. Pick a mode only if you are sending "
+                    "audio to a receiver."),
+    "audio_optical_encode_ac3": _("Audio your receiver can't be sent directly "
+                                  "is encoded to AC3, which is the only way "
+                                  "surround fits down an optical cable. Turn "
+                                  "this off if the encoder causes audio delay "
+                                  "— those tracks become stereo instead."),
+    "audio_night_mode": _("Evens out loud effects and quiet dialogue. This "
+                          "turns passthrough off while it is enabled, because "
+                          "the volume has to be adjusted before your receiver "
+                          "gets the audio."),
 }
 
 _ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC",
@@ -135,14 +184,37 @@ def label_for(key):
     return " ".join(_ACRONYMS.get(w, w.capitalize()) for w in key.split("_"))
 
 
+def visible_passthrough_keys():
+    """The passthrough toggles the current audio mode can actually use.
+
+    S/PDIF has the bandwidth for AC3 and DTS core only, so offering TrueHD
+    beside them would be offering a setting that silently does nothing. In
+    "Default" and "Force Stereo" nothing is passed through at all.
+    """
+    from ..player import AUDIO_PASSTHROUGH_CODECS
+
+    usable = AUDIO_PASSTHROUGH_CODECS.get(settings.audio_mode or "auto", ())
+    return [key for codec, key in AUDIO_PASSTHROUGH_KEYS if codec in usable]
+
+
 def sections():
     """``[(title, [key, ...]), ...]`` — curated groups first, then Advanced
     with everything else that's editable."""
     schema = settings_schema()
-    curated = set()
+    mode = settings.audio_mode or "auto"
+    # Seeded, not built up: an audio toggle hidden because the mode can't use
+    # it must not reappear under "Advanced" as an uncurated key.
+    curated = {k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
     out = []
+    try:
+        shown = set(visible_passthrough_keys())
+    except Exception:
+        # Importing player pulls in mpv; never let that break the whole form.
+        shown = set()
+    shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
+    hidden = curated - shown
     for title, keys in SECTIONS:
-        present = [k for k in keys if k in schema]
+        present = [k for k in keys if k in schema and k not in hidden]
         curated.update(present)
         if present:
             out.append((title, present))

@@ -17,6 +17,7 @@ parity (MIGRATION.md Phase 9).
 import logging
 import time
 
+from ..conf import settings
 from ..i18n import _
 from ..mpvtk.widgets import (
     Box,
@@ -329,6 +330,9 @@ def _menu_rows(b, st):
             rows.append((with_current(_("SyncPlay"),
                                       syncplay.get("current")), None,
                          lambda: _open_hud_menu(b, "syncplay")))
+        rows.append((_("Night Mode (Auto Volume Adj)"),
+                     "check" if settings.audio_night_mode else None,
+                     leaf(lambda: b._ctl(lambda c: c.toggle_night_mode()))))
         rows.append((_("Playback Data"), None, leaf(
             lambda: b._ctl(lambda c: c.toggle_stats()))))
         if st.get("allow_screenshot"):

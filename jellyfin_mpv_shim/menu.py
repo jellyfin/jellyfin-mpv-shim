@@ -435,6 +435,11 @@ class OSDMenu(object):
         _x, _x, key, name = self.menu_list[self.menu_selection]
         setattr(settings, key, not getattr(settings, key))
         settings.save()
+        if key.startswith("audio_"):
+            # Audio settings apply live rather than at the next file, so the
+            # toggle changes what you are listening to right now. Deferred:
+            # the menu runs inside an mpv event handler.
+            self.playerManager.put_task(self.playerManager.apply_audio_settings)
         self.menu_list[self.menu_selection] = self.get_settings_toggle(name, key)
 
     def get_settings_toggle(self, name: str, setting: str):
@@ -599,6 +604,9 @@ class OSDMenu(object):
                 ),
                 self.get_settings_toggle(
                     _("Enable thumbnail previews"), "thumbnail_enable"
+                ),
+                self.get_settings_toggle(
+                    _("Night Mode (Auto Volume Adj)"), "audio_night_mode"
                 ),
             ],
         )
