@@ -54,7 +54,9 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 ## Limitations
 
-- Live TV is not supported.
+- Live TV is partially supported. The home screen's "On Now" row appears when your server has a
+  tuner, and playing an entry from it tunes the channel. There is no channel guide, no Live TV
+  library browsing and no DVR/recording management — for those, use the web client.
 - A single active session still reports as one device to a given server. For sharing the player between
   people, see [Fast User Switching](#fast-user-switching), which keeps each local user on its own device
   identity. ([Related issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
@@ -66,7 +68,7 @@ Please note the following issues with controlling SyncPlay:
 - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
   - You can, however, proceed to activate SyncPlay [using the menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
 - If you would like to create a group or join a group for currently playing media, [use menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
-- SyncPlay as of 10.7.0 is new and kind of fragile. You may need to rejoin or even restart the client. Please report any issues you find.
+- SyncPlay can still be fragile. You may need to rejoin or even restart the client. Please report any issues you find.
 
 Music playback works, but gapless playback is not planned at this time.
 
@@ -714,18 +716,25 @@ Set `mpv_ext` to `true` in the config. Add `script=/path/to/mpris.so` to `mpv.co
 
 ### Run Multiple Instances (#45)
 
-You can pass `--config /path/to/folder` to run another copy of the player. Please
-note that running multiple copies of the desktop client is currently not supported.
+Pass `--config /path/to/folder` to run another copy of the player.
+
+Each config directory gets its own instance: the single-instance guard is a lock inside the
+config directory, so copies pointed at different folders coexist by design. Launching a second
+copy with the *same* config directory instead raises the window of the one already running,
+which is what makes the desktop launcher and the tray behave sensibly.
 
 ### Audio Passthrough
 
-You can edit `mpv.conf` to support audio passthrough. A [user on Reddit](https://reddit.com/r/jellyfin/comments/fru6xo/new_cross_platform_desktop_client_jellyfin_mpv/fns7vyp) had luck with this config:
+This is built in now — see [Audio Output](#audio-output). Set `audio_mode` to `hdmi` or
+`optical` in Settings and tick the formats your receiver accepts; there is no need to hand-edit
+`mpv.conf`.
 
-```
-audio-spdif=ac3,dts,eac3 # (to use the passthrough to receiver over hdmi)
-audio-channels=2 # (not sure this is necessary, but i keep it in because it works)
-af=scaletempo,lavcac3enc=yes:640:3 # (for aac 5.1 tracks to the receiver)
-```
+This section used to recommend an `mpv.conf` snippet setting `audio-spdif` and
+`af=lavcac3enc` together. **Don't do that.** The two are mutually exclusive per track: the AC3
+encoder is handed a compressed frame it cannot convert, the filter chain fails to build, and mpv
+recovers by silently disabling the filter — so the encoder never runs and nothing tells you why.
+`audio_mode=optical` handles this properly by choosing between passthrough and the encoder per
+track, based on what the track actually is.
 
 ### MPV Crashes with "The sub-scale option must be a floating point number or a ratio"
 
