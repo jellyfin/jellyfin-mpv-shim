@@ -240,6 +240,9 @@ class FakePlayer:
         self.props[name] = value
 
     def _get_property(self, name):
+        if name == "af":
+            # Shaped like mpv's: a list of filter entries carrying labels.
+            return [{"name": "x", "label": label} for label in self.filters]
         attr = name.replace("-", "_")
         if attr in self.props:
             return self.props[attr]
@@ -388,6 +391,22 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         p = self.apply("optical")
         self.assertNotIn("jfac3", p.filters)
         self.assertNotIn("ac3", p.props["audio_spdif"])
+
+    def test_no_pointless_af_remove_for_an_unattached_filter(self):
+        """mpv logs a warning for `af remove` of an absent label, and the
+        shim surfaces those -- so an unconditional remove put two warnings in
+        the log on every night-mode toggle."""
+        p = self.apply("auto", night=True)
+        removes = [c for c in p.commands if c[:2] == ("af", "remove")]
+        self.assertEqual(removes, [],
+                         "removed filters that were never attached")
+        self.assertIn("jfnight", p.filters)
+
+        p = self.apply("auto", night=False)
+        # Now it *is* attached, so exactly one real removal is expected.
+        removes = [c for c in p.commands if c[:2] == ("af", "remove")]
+        self.assertEqual(removes, [("af", "remove", "@jfnight")])
+        self.assertEqual(p.filters, [])
 
     def test_leaving_optical_drops_the_ac3_encoder(self):
         self.settings.audio_mode = "optical"

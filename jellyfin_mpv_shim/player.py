@@ -1238,16 +1238,41 @@ class PlayerManager(object):
         except Exception:
             return None
 
+    def _attached_af_labels(self):
+        """Labels currently in mpv's audio filter chain.
+
+        None if the chain could not be read, which callers treat as "don't
+        know" rather than "empty".
+        """
+        chain = self._mpv_property("af")
+        if not isinstance(chain, (list, tuple)):
+            return None
+        return {
+            entry.get("label")
+            for entry in chain
+            if isinstance(entry, dict) and entry.get("label")
+        }
+
     def _set_af(self, label: str, filter_spec: Optional[str]):
         """Add or remove a labelled audio filter, idempotently.
 
-        ``af remove`` on a label that isn't present succeeds, so neither
-        direction needs to track what is currently attached.
+        ``af remove`` on a label that isn't attached still succeeds, but mpv
+        logs "Option af-remove: item label @x not found" at warn level for it
+        -- which the shim surfaces, so an unconditional remove meant two
+        warnings on every night-mode toggle and one per file in optical mode.
+        Ask what is attached first, and skip the removal when there is
+        nothing to remove. Reading the chain rather than tracking it in
+        Python is deliberate: mpv drops a filter that fails to initialize, so
+        our idea of what is attached can otherwise drift from the truth.
         """
         if self._player is None:
             return
         try:
-            self._player.command("af", "remove", "@" + label)
+            attached = self._attached_af_labels()
+            # None => unreadable; fall back to the unconditional remove, which
+            # is correct, just noisy.
+            if attached is None or label in attached:
+                self._player.command("af", "remove", "@" + label)
             if filter_spec:
                 self._player.command("af", "add", "@%s:%s" % (label, filter_spec))
         except _mpv_errors:
