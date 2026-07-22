@@ -198,14 +198,8 @@ Unit tests for the layout engine: `python3 -m unittest tests.test_mpvtk_layout`.
 
 ## Not yet built (deliberately out of scope)
 
-- Modal dialogs (the menu/popup floating-layer + occluder mechanism
-  generalizes to them).
-- Focus traversal (Tab), keyboard/remote navigation of tiles.
 - Momentum/animated scrolling (ASS `\t` or renderer timers).
 - Scene diffing (full-replace is fine at this scale).
 - Image scaling in the renderer (pre-scale with Pillow instead).
-- Text selection in textboxes (clipboard paste works; select/copy is
-  ~150 lines of renderer work).
-- IME text input; native file chooser (keep Tk for that one settings
-  page or use a path textbox).
+- native file chooser (use a path textbox)
 - Non-ASCII glyph metrics (measured table covers printable ASCII).
