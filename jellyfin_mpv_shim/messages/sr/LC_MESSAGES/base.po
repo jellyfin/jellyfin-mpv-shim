@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 11:59-0400\n"
+"POT-Creation-Date: 2026-07-22 13:18-0400\n"
 "PO-Revision-Date: 2026-04-17 12:45+0000\n"
 "Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -553,7 +553,7 @@ msgstr ""
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:82
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:92
 msgid "Configure Servers"
 msgstr "Конфигуриши сервере"
 
@@ -2045,7 +2045,7 @@ msgid "Copy"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:1096
-#: jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/tray.py:94
 msgid "Open Config Folder"
 msgstr "Отвори фасциклу за конфигурисање"
 
@@ -2334,27 +2334,27 @@ msgstr "SyncPlay омогућен."
 msgid "{0}'s Group"
 msgstr "{0} група"
 
-#: jellyfin_mpv_shim/player.py:906
+#: jellyfin_mpv_shim/player.py:932
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1486
+#: jellyfin_mpv_shim/player.py:1600
 msgid "Skipped Credits"
 msgstr "Прескочене одјавне шпице"
 
-#: jellyfin_mpv_shim/player.py:1488
+#: jellyfin_mpv_shim/player.py:1602
 msgid "Skipped Intro"
 msgstr "Прескочени уводи"
 
-#: jellyfin_mpv_shim/player.py:1507
+#: jellyfin_mpv_shim/player.py:1621
 msgid "Seek to Skip Credits"
 msgstr "Прескочи одјавну шпицу"
 
-#: jellyfin_mpv_shim/player.py:1509
+#: jellyfin_mpv_shim/player.py:1623
 msgid "Seek to Skip Intro"
 msgstr "Прескочи увод"
 
-#: jellyfin_mpv_shim/player.py:1836
+#: jellyfin_mpv_shim/player.py:1950
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2363,23 +2363,23 @@ msgstr ""
 "Притисните c да бисте подесили подешавања пропусног опсега ако то није "
 "потребно."
 
-#: jellyfin_mpv_shim/player.py:2100
+#: jellyfin_mpv_shim/player.py:2214
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2692
+#: jellyfin_mpv_shim/player.py:2806
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "Прескочене одјавне шпице"
 
-#: jellyfin_mpv_shim/player.py:2693
+#: jellyfin_mpv_shim/player.py:2807
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "Прескочени уводи"
 
-#: jellyfin_mpv_shim/player.py:2827
+#: jellyfin_mpv_shim/player.py:2941
 msgid "Season {0} - Episode {1}"
 msgstr "Сезона {0} - Епизода {1}"
 
@@ -2475,19 +2475,15 @@ msgstr "{0} је отишао/ла."
 msgid "{0} is buffering."
 msgstr "{0} баферује."
 
-#: jellyfin_mpv_shim/tray.py:81
+#: jellyfin_mpv_shim/tray.py:91
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/tray.py:83
+#: jellyfin_mpv_shim/tray.py:93
 msgid "Show Console"
 msgstr "Прикажи конзолу"
 
-#: jellyfin_mpv_shim/tray.py:84
-msgid "Application Menu"
-msgstr "Мени апликације"
-
-#: jellyfin_mpv_shim/tray.py:86
+#: jellyfin_mpv_shim/tray.py:95
 msgid "Quit"
 msgstr "Одустани"
 
@@ -2519,11 +2515,11 @@ msgstr ""
 msgid "User not found."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:360
+#: jellyfin_mpv_shim/utils.py:337
 msgid "Unkn"
 msgstr "Непознато"
 
-#: jellyfin_mpv_shim/utils.py:361
+#: jellyfin_mpv_shim/utils.py:338
 msgid " Forced"
 msgstr " Форсирано"
 
@@ -2593,6 +2589,9 @@ msgstr "Изабери шедера (Shader) профил"
 
 #~ msgid "Password:"
 #~ msgstr "Лозинка:"
+
+#~ msgid "Application Menu"
+#~ msgstr "Мени апликације"
 
 #~ msgid "Auto Set Audio/Subtitles (Entire Series)"
 #~ msgstr "Аутоматско подешавање звука/титла (целе серије)"

@@ -1127,7 +1127,6 @@ class UserInterface:
             "show": self.activate,
             "show_preferences": lambda: self._open_settings("servers"),
             "show_console": lambda: self._open_settings("logs"),
-            "open_player_menu": lambda: self.open_player_menu(),
             "open_config": self._open_config_folder,
             "quit": self._quit,
         })

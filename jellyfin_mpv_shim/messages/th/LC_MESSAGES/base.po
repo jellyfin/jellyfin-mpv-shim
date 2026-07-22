@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 11:59-0400\n"
+"POT-Creation-Date: 2026-07-22 13:18-0400\n"
 "PO-Revision-Date: 2026-05-04 02:27+0000\n"
 "Last-Translator: Bunyapat Thaibkhom <topstenbyp@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
@@ -553,7 +553,7 @@ msgstr ""
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:82
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:92
 msgid "Configure Servers"
 msgstr "ตั้งค่าเซิร์ฟเวอร์"
 
@@ -2043,7 +2043,7 @@ msgid "Copy"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:1096
-#: jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/tray.py:94
 msgid "Open Config Folder"
 msgstr "เปิดโฟลเดอร์การตั้งค่า"
 
@@ -2332,27 +2332,27 @@ msgstr "เปิดใช้งาน SyncPlay แล้ว"
 msgid "{0}'s Group"
 msgstr "กลุ่มของ {0}"
 
-#: jellyfin_mpv_shim/player.py:906
+#: jellyfin_mpv_shim/player.py:932
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1486
+#: jellyfin_mpv_shim/player.py:1600
 msgid "Skipped Credits"
 msgstr "ข้ามเครดิตแล้ว"
 
-#: jellyfin_mpv_shim/player.py:1488
+#: jellyfin_mpv_shim/player.py:1602
 msgid "Skipped Intro"
 msgstr "ข้ามอินโทรแล้ว"
 
-#: jellyfin_mpv_shim/player.py:1507
+#: jellyfin_mpv_shim/player.py:1621
 msgid "Seek to Skip Credits"
 msgstr "เลื่อนเพื่อข้ามเครดิต"
 
-#: jellyfin_mpv_shim/player.py:1509
+#: jellyfin_mpv_shim/player.py:1623
 msgid "Seek to Skip Intro"
 msgstr "เลื่อนเพื่อข้ามอินโทร"
 
-#: jellyfin_mpv_shim/player.py:1836
+#: jellyfin_mpv_shim/player.py:1950
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2360,23 +2360,23 @@ msgstr ""
 "วิดีโอจากเครื่องของคุณกำลังแปลงไฟล์!\n"
 "กด c เพื่อปรับการตั้งค่าแบนด์วิดท์ หากไม่ต้องการใช้งาน"
 
-#: jellyfin_mpv_shim/player.py:2100
+#: jellyfin_mpv_shim/player.py:2214
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2692
+#: jellyfin_mpv_shim/player.py:2806
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "ข้ามเครดิตแล้ว"
 
-#: jellyfin_mpv_shim/player.py:2693
+#: jellyfin_mpv_shim/player.py:2807
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "ข้ามอินโทรแล้ว"
 
-#: jellyfin_mpv_shim/player.py:2827
+#: jellyfin_mpv_shim/player.py:2941
 msgid "Season {0} - Episode {1}"
 msgstr "ซีซัน {0} - ตอนที่ {1}"
 
@@ -2472,19 +2472,15 @@ msgstr "{0} ออกจากกลุ่มแล้ว"
 msgid "{0} is buffering."
 msgstr "{0} กำลังบัฟเฟอร์"
 
-#: jellyfin_mpv_shim/tray.py:81
+#: jellyfin_mpv_shim/tray.py:91
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/tray.py:83
+#: jellyfin_mpv_shim/tray.py:93
 msgid "Show Console"
 msgstr "แสดงผลคอนโซล"
 
-#: jellyfin_mpv_shim/tray.py:84
-msgid "Application Menu"
-msgstr "รายการแอปพลิเคชัน"
-
-#: jellyfin_mpv_shim/tray.py:86
+#: jellyfin_mpv_shim/tray.py:95
 msgid "Quit"
 msgstr "ออก"
 
@@ -2516,11 +2512,11 @@ msgstr ""
 msgid "User not found."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:360
+#: jellyfin_mpv_shim/utils.py:337
 msgid "Unkn"
 msgstr "ไม่ทราบ"
 
-#: jellyfin_mpv_shim/utils.py:361
+#: jellyfin_mpv_shim/utils.py:338
 msgid " Forced"
 msgstr " บังคับ"
 
@@ -2590,6 +2586,9 @@ msgstr "เลือกโปรไฟล์ Shader"
 
 #~ msgid "Password:"
 #~ msgstr "รหัสผ่าน:"
+
+#~ msgid "Application Menu"
+#~ msgstr "รายการแอปพลิเคชัน"
 
 #~ msgid "Auto Set Audio/Subtitles (Entire Series)"
 #~ msgstr "ตั้งค่าเสียง/คำบรรยายอัตโนมัติ (ทั้งซีรีส์)"

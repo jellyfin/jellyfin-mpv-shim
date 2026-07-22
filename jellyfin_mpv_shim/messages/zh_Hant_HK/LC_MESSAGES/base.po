@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 11:59-0400\n"
+"POT-Creation-Date: 2026-07-22 13:18-0400\n"
 "PO-Revision-Date: 2026-07-06 08:24+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
@@ -534,7 +534,7 @@ msgstr ""
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:82
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:92
 msgid "Configure Servers"
 msgstr "設定伺服器"
 
@@ -1962,7 +1962,7 @@ msgid "Copy"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:1096
-#: jellyfin_mpv_shim/tray.py:85
+#: jellyfin_mpv_shim/tray.py:94
 msgid "Open Config Folder"
 msgstr "打開設定檔資料夾"
 
@@ -2241,27 +2241,27 @@ msgstr "已啟用「一齊睇」。"
 msgid "{0}'s Group"
 msgstr "{0} 嘅群組"
 
-#: jellyfin_mpv_shim/player.py:906
+#: jellyfin_mpv_shim/player.py:932
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1486
+#: jellyfin_mpv_shim/player.py:1600
 msgid "Skipped Credits"
 msgstr "跳過咗片尾"
 
-#: jellyfin_mpv_shim/player.py:1488
+#: jellyfin_mpv_shim/player.py:1602
 msgid "Skipped Intro"
 msgstr "跳過咗片頭"
 
-#: jellyfin_mpv_shim/player.py:1507
+#: jellyfin_mpv_shim/player.py:1621
 msgid "Seek to Skip Credits"
 msgstr "快進嚟跳過片尾"
 
-#: jellyfin_mpv_shim/player.py:1509
+#: jellyfin_mpv_shim/player.py:1623
 msgid "Seek to Skip Intro"
 msgstr "快進嚟跳過片頭"
 
-#: jellyfin_mpv_shim/player.py:1836
+#: jellyfin_mpv_shim/player.py:1950
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2269,23 +2269,23 @@ msgstr ""
 "你部遠端影片轉緊碼！\n"
 "如果唔需要，可以撳 c 掣嚟調整頻寬設定。"
 
-#: jellyfin_mpv_shim/player.py:2100
+#: jellyfin_mpv_shim/player.py:2214
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2692
+#: jellyfin_mpv_shim/player.py:2806
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "跳過咗片尾"
 
-#: jellyfin_mpv_shim/player.py:2693
+#: jellyfin_mpv_shim/player.py:2807
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "跳過咗片頭"
 
-#: jellyfin_mpv_shim/player.py:2827
+#: jellyfin_mpv_shim/player.py:2941
 msgid "Season {0} - Episode {1}"
 msgstr "第 {0} 季 - 第 {1} 集"
 
@@ -2381,19 +2381,15 @@ msgstr "{0} 離開咗。"
 msgid "{0} is buffering."
 msgstr "{0} 緩衝緊。"
 
-#: jellyfin_mpv_shim/tray.py:81
+#: jellyfin_mpv_shim/tray.py:91
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/tray.py:83
+#: jellyfin_mpv_shim/tray.py:93
 msgid "Show Console"
 msgstr "顯示控制台"
 
-#: jellyfin_mpv_shim/tray.py:84
-msgid "Application Menu"
-msgstr "程式選單"
-
-#: jellyfin_mpv_shim/tray.py:86
+#: jellyfin_mpv_shim/tray.py:95
 msgid "Quit"
 msgstr "離開"
 
@@ -2425,11 +2421,11 @@ msgstr ""
 msgid "User not found."
 msgstr ""
 
-#: jellyfin_mpv_shim/utils.py:360
+#: jellyfin_mpv_shim/utils.py:337
 msgid "Unkn"
 msgstr "未知"
 
-#: jellyfin_mpv_shim/utils.py:361
+#: jellyfin_mpv_shim/utils.py:338
 msgid " Forced"
 msgstr " 強制"
 
@@ -2499,6 +2495,9 @@ msgstr "揀著色器 (Shader) 設定檔"
 
 #~ msgid "Password:"
 #~ msgstr "密碼："
+
+#~ msgid "Application Menu"
+#~ msgstr "程式選單"
 
 #~ msgid "Auto Set Audio/Subtitles (Entire Series)"
 #~ msgstr "自動設定聲軌/字幕 (套用至全劇)"

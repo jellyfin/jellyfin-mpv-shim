@@ -50,6 +50,40 @@ class TestTrayDispatch(unittest.TestCase):
         TrayManager({}).stop()
 
 
+class TestTrayMenuShape(unittest.TestCase):
+    """The menu is built inside the child process, so it cannot be exercised
+    here -- but the source can be checked for the one property that is easy to
+    drop by accident."""
+
+    def _menu_lines(self):
+        """The MenuItem lines only -- comments mention these names too."""
+        import inspect
+
+        from jellyfin_mpv_shim import tray
+
+        src = inspect.getsource(tray.TrayProcess.run)
+        return [ln.strip() for ln in src.splitlines()
+                if ln.strip().startswith("MenuItem(")]
+
+    def test_show_library_browser_is_the_default_click_action(self):
+        # Clicking the icon should reopen the window. Without default=True the
+        # only way back to the app is right-click -> menu, which reads as the
+        # tray icon being inert.
+        entry = [ln for ln in self._menu_lines()
+                 if "Show Library Browser" in ln]
+        self.assertTrue(entry, "the Show Library Browser entry is gone")
+        self.assertIn(
+            "default=True", entry[0],
+            "The tray's Show Library Browser item is no longer the default "
+            "action; clicking the icon will do nothing on Windows/macOS.")
+
+    def test_only_one_default_item(self):
+        # pystray takes the first default item; a second one is dead config
+        # and a sign someone meant to move it.
+        defaults = [ln for ln in self._menu_lines() if "default=True" in ln]
+        self.assertEqual(len(defaults), 1)
+
+
 class TestTrayPump(unittest.TestCase):
     def test_pump_drains_the_queue_and_honours_halt(self):
         seen = threading.Event()

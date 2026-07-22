@@ -792,10 +792,10 @@ class PlayerManager(object):
         )
 
         # The menu object must survive mpv re-creation (crash recovery,
-        # idle-quit): its is_menu_shown state gates idle_quit, and external
-        # holders (the systray "Application Menu" entry) call into it. A fresh
-        # OSDMenu here used to reset is_menu_shown to False mid-show, letting
-        # idle_quit kill the window while the user was looking at the menu.
+        # idle-quit): its is_menu_shown state gates idle_quit, and callers
+        # outside this class hold on to it. A fresh OSDMenu here used to reset
+        # is_menu_shown to False mid-show, letting idle_quit kill the window
+        # while the user was looking at the menu.
         if self.menu is None:
             self.menu = OSDMenu(self, self._player)
         else:
@@ -937,8 +937,7 @@ class PlayerManager(object):
                 # drawn as mpv OSD text, it lands *under* the mpvtk overlay
                 # bitmaps and steals the arrow keys from the browser, so it
                 # must not open here even when the HUD declines (browsing,
-                # idle, no video). The tray's "Application Menu" is the
-                # deliberate way in.
+                # idle, no video).
                 if self._video is not None and self.on_hud_menu is not None:
                     try:
                         self.on_hud_menu()

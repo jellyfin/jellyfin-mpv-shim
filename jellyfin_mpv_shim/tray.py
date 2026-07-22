@@ -78,10 +78,19 @@ class TrayProcess(Process):
                 self.icon_stop()
 
         menu_items = [
-            MenuItem(_("Show Library Browser"), send("show")),
+            # default=True makes this the click action, not just a menu entry:
+            # clicking the icon is what people expect to reopen the window, and
+            # having to right-click and pick from a list to get the app back is
+            # a poor greeting. It stays in the menu as well.
+            #
+            # Only some backends honour it -- pystray exposes that as
+            # Icon.HAS_DEFAULT_ACTION (true on Windows and macOS, false on
+            # Linux/AppIndicator, where a left click opens the menu by
+            # convention). Where it isn't honoured this is simply the first
+            # menu entry, so there is nothing to guard.
+            MenuItem(_("Show Library Browser"), send("show"), default=True),
             MenuItem(_("Configure Servers"), send("show_preferences")),
             MenuItem(_("Show Console"), send("show_console")),
-            MenuItem(_("Application Menu"), send("open_player_menu")),
             MenuItem(_("Open Config Folder"), send("open_config")),
             MenuItem(_("Quit"), die),
         ]
@@ -111,9 +120,10 @@ class TrayManager:
     """Owns the tray process and pumps its commands to ``handlers``.
 
     ``handlers`` maps the command names the child emits ("show",
-    "show_preferences", "show_console", "open_player_menu", "open_config",
-    "quit") to callables. Unknown commands are ignored, so the child and the
-    parent can disagree about the menu without crashing either.
+    "show_preferences", "show_console", "open_config", "quit") to callables.
+    Unknown commands are ignored, so the child and the parent can disagree
+    about the menu without crashing either -- which is what lets an older
+    installed copy of the child keep working after a menu entry is removed.
     """
 
     def __init__(self, handlers=None):
