@@ -373,6 +373,26 @@ class DialogsMixin:
             ]), on_dismiss=self._close_dialog)
         self._show_dialog(build)
 
+    def _on_clipboard_error(self, op, need):
+        """Neither MPV's clipboard nor a desktop helper could be used.
+
+        MPV only gained an X11 clipboard backend in 0.41 (its
+        --clipboard-backends default is win32,mac,wayland,vo), so on an
+        older MPV under X11 copy and paste do nothing at all. Silence
+        reads as the text field being broken; say what to install.
+        The renderer raises this at most once per session."""
+        if op == "copy":
+            text = _("Copying to the clipboard is not available.")
+        else:
+            text = _("Pasting from the clipboard is not available.")
+        if need:
+            text += " " + (
+                _('Install the "%s" package (for example "apt install %s"), '
+                  "or use MPV 0.41 or newer.") % (need, need))
+        else:
+            text += " " + _("Use MPV 0.41 or newer.")
+        self._message(text, title=_("Clipboard"))
+
     def _confirm(self, text, on_yes, title=None, yes=None):
         title = title or _("Confirm")
         yes = yes or _("OK")

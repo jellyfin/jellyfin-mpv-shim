@@ -114,6 +114,110 @@ local function send(tbl)
     mp.commandv('script-message', 'mpvtk-event', utils.format_json(tbl))
 end
 
+-- ------------------------------------------------------------ clipboard
+--
+-- mpv's `clipboard/text` is the fast path, and on Windows and macOS the
+-- only one needed. It is NOT universal on Linux: --clipboard-backends
+-- defaults to win32,mac,wayland,vo and mpv only gained an *x11* backend
+-- in 0.41, so on an X11 session under mpv 0.40 the property reads and
+-- writes as "property unavailable". Copy silently did nothing and paste
+-- inserted nothing, with no way for the user to tell why.
+--
+-- Note mp.set_property does not raise on failure, it returns nil + err --
+-- so the original `pcall(mp.set_property, ...)` reported success either
+-- way. Both results are checked below.
+local function clip_tools()
+    if state.clip_tools then return state.clip_tools end
+    local t = {}
+    local plat = mp.get_property('platform') or ''
+    -- `set` is a shell command (see clip_write), `get` a plain argv.
+    if plat == 'darwin' then
+        -- Only reachable if the mac backend is missing; pbcopy/pbpaste
+        -- are part of the OS, so there is nothing to install.
+        t = { { set = 'pbcopy', get = { 'pbpaste' } } }
+    elseif os.getenv('WAYLAND_DISPLAY') then
+        -- Wayland first when the session is Wayland: it usually also
+        -- answers xclip through XWayland, which is a different clipboard.
+        t = { { pkg = 'wl-clipboard',
+                set = 'wl-copy',
+                get = { 'wl-paste', '--no-newline' } } }
+    elseif os.getenv('DISPLAY') then
+        t = { { pkg = 'xclip',
+                set = 'xclip -selection clipboard',
+                get = { 'xclip', '-selection', 'clipboard', '-o' } },
+              { pkg = 'xsel',
+                set = 'xsel --clipboard --input',
+                get = { 'xsel', '--clipboard', '--output' } } }
+    end
+    -- Windows is deliberately absent: every mpv that runs there has the
+    -- win32 backend, we ship mpv with the installer, and the shell
+    -- redirect clip_write relies on assumes a POSIX sh.
+    state.clip_tools = t
+    return t
+end
+
+local function clip_call(t)
+    local ok, r = pcall(mp.command_native, t)
+    if not ok or type(r) ~= 'table' or r.status ~= 0 then return nil end
+    return r.stdout or ''
+end
+
+local function clip_read(argv)
+    return clip_call({ name = 'subprocess', playback_only = false,
+                       args = argv,
+                       capture_stdout = true, capture_stderr = true })
+end
+
+local function clip_write(cmd, text)
+    -- The redirect goes inside a shell rather than relying on
+    -- capture_stdout=false. xclip, xsel and wl-copy all fork a child that
+    -- goes on owning the selection, and mpv makes pipes for the child
+    -- whether or not we asked to capture them -- the forked copy inherits
+    -- those and holds them until the clipboard is replaced, so mpv waits
+    -- forever. Measured against mpv 0.40: an unwrapped copy never
+    -- returns; `exec ... >/dev/null 2>&1` closes the pipes before the
+    -- fork and returns in 0s. `detach` is not the answer either -- it
+    -- leaves the child holding mpv's OWN stdout instead.
+    --
+    -- Nothing user-supplied is interpolated into the command; the text
+    -- travels on stdin.
+    return clip_call({ name = 'subprocess', playback_only = false,
+                       args = { 'sh', '-c',
+                                'exec ' .. cmd .. ' >/dev/null 2>&1' },
+                       stdin_data = text,
+                       capture_stdout = false, capture_stderr = false })
+end
+
+-- Tell the app once per session that there is no clipboard to be had, so
+-- it can name the package to install. Once, not per keypress: a nag on
+-- every failed paste would be worse than the silence it replaces.
+local function clip_notify(op)
+    if state.clip_warned then return end
+    state.clip_warned = true
+    local tools = clip_tools()
+    send({ t = 'clipboard', op = op,
+           need = tools[1] and tools[1].pkg or nil })
+end
+
+local function clip_set(text)
+    local ok, res = pcall(mp.set_property, 'clipboard/text', text)
+    if ok and res then return true end
+    for _, tool in ipairs(clip_tools()) do
+        if clip_write(tool.set, text) then return true end
+    end
+    return false
+end
+
+local function clip_get()
+    local ok, v = pcall(mp.get_property, 'clipboard/text')
+    if ok and v and v ~= '' then return v end
+    for _, tool in ipairs(clip_tools()) do
+        local out = clip_read(tool.get)
+        if out and out ~= '' then return out end
+    end
+    return nil
+end
+
 -- Playback-HUD lifecycle (implemented with the mpvtk-hud handler at
 -- the bottom; fwd-declared because the input handlers above it feed
 -- its auto-hide timer and summon path). All are assigned before the
@@ -1938,19 +2042,25 @@ local function tb_key(name)
         if tb.sel and tb.sel ~= tb.cursor and not node.mask then
             local a = math.min(tb.sel, tb.cursor)
             local b = math.max(tb.sel, tb.cursor)
-            pcall(mp.set_property, 'clipboard/text',
-                tb.text:sub(a + 1, b))
+            if not clip_set(tb.text:sub(a + 1, b)) then
+                clip_notify('copy')
+            end
         end
     elseif name == 'CUT' then
         if tb.sel and tb.sel ~= tb.cursor then
+            -- A cut whose copy failed would just destroy the text, so
+            -- only masked fields (which never copy) cut unconditionally.
+            local cut = true
             if not node.mask then
                 local a = math.min(tb.sel, tb.cursor)
                 local b = math.max(tb.sel, tb.cursor)
-                pcall(mp.set_property, 'clipboard/text',
-                    tb.text:sub(a + 1, b))
+                cut = clip_set(tb.text:sub(a + 1, b))
+                if not cut then clip_notify('copy') end
             end
-            tb_del_selection(tb)
-            tb_changed(node, tb)
+            if cut then
+                tb_del_selection(tb)
+                tb_changed(node, tb)
+            end
         end
     elseif name == 'HOME' then
         tb.sel = nil
@@ -1976,9 +2086,11 @@ local function tb_key(name)
             blur()  -- luacheck: ignore (fwd-declared below)
         end
     elseif name == 'PASTE' then
-        local ok, clip = pcall(mp.get_property, 'clipboard/text')
-        if ok and clip and clip ~= '' then
+        local clip = clip_get()
+        if clip then
             tb_insert(clip:gsub('[\r\n]', ' '))
+        else
+            clip_notify('paste')
         end
     end
 end

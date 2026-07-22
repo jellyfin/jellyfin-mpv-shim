@@ -260,6 +260,12 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        # called (op, need) when a textbox copy/paste found no clipboard at
+        # all -- neither mpv's clipboard/text nor a desktop helper. ``op``
+        # is "copy" or "paste"; ``need`` names the package to install, or
+        # None when there is nothing to suggest. Fires at most once per
+        # renderer, so a handler can show a modal without nagging.
+        self.on_clipboard_error = None
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -511,6 +517,14 @@ class MpvtkApp:
                     self.on_hud_skip()
                 except Exception:
                     log.exception("on_hud_skip handler failed")
+            return
+        if t == "clipboard":
+            if self.on_clipboard_error is not None:
+                try:
+                    self.on_clipboard_error(evt.get("op", ""),
+                                            evt.get("need"))
+                except Exception:
+                    log.exception("on_clipboard_error handler failed")
             return
         if t in ("change", "submit", "commit"):
             # typed text may contain glyphs we've never measured; the

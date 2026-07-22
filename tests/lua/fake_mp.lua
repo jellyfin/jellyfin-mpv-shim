@@ -19,6 +19,18 @@ M.log = {
     keybinds = {},
 }
 
+-- Property names mpv answers "property unavailable" for, in both
+-- directions. mpv 0.40 does this with clipboard/text on an X11 session --
+-- it ships no x11 clipboard backend -- and a *silent* failure is exactly
+-- what made that hard to spot, so the fake reproduces the real return
+-- convention: set_property yields nil + err rather than raising.
+M.unavailable = {}
+
+-- Handler for the `subprocess` command: function(t) -> result table.
+-- Left unset, every subprocess fails as if the binary were not installed,
+-- which is the state a fallback has to cope with.
+M.subprocess = nil
+
 -- ------------------------------------------------------------ json stub
 
 local tokens = {}
@@ -103,7 +115,13 @@ function mp.commandv(...)
     end
 end
 
-function mp.command_native(t) table.insert(M.log.commands, t) end
+function mp.command_native(t)
+    table.insert(M.log.commands, t)
+    if type(t) == "table" and t.name == "subprocess" then
+        if M.subprocess then return M.subprocess(t) end
+        return { status = -1, stdout = "" }
+    end
+end
 function mp.command(s) table.insert(M.log.commands, { s }) end
 
 function mp.set_property_native(name, value)
@@ -118,10 +136,19 @@ function mp.set_property_native(name, value)
     M.log.props[name] = value
 end
 
-function mp.set_property(name, value) M.log.props[name] = value end
+-- Real mpv returns true, or nil + an error string; it does not raise. Code
+-- that only pcall'd the call therefore saw every failure as a success.
+function mp.set_property(name, value)
+    if M.unavailable[name] then return nil, "property unavailable" end
+    M.log.props[name] = value
+    return true
+end
 function mp.set_property_bool(name, value) M.log.props[name] = value end
 function mp.get_property_native(name, def) return M.log.props[name] or def end
-function mp.get_property(name, def) return M.log.props[name] or def end
+function mp.get_property(name, def)
+    if M.unavailable[name] then return nil, "property unavailable" end
+    return M.log.props[name] or def
+end
 function mp.get_property_number(name, def) return M.log.props[name] or def end
 function mp.get_property_bool(name, def) return M.log.props[name] or def end
 

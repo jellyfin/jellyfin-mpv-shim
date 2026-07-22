@@ -37,9 +37,11 @@ def _commands():
 
 
 def _via_mpv(text, player):
-    """mpv 0.40+ exposes a writable ``clipboard/text``. Older builds have it
-    read-only, or not at all, and a failed write does not always raise — so
-    read it back rather than trusting the set."""
+    """mpv exposes a writable ``clipboard/text`` only where it has a backend
+    for the session. Its --clipboard-backends default is win32,mac,wayland,vo
+    and the *x11* backend only arrived in 0.41, so an X11 session under mpv
+    0.40 reads and writes it as "property unavailable" — and a failed write
+    does not always raise. Read it back rather than trusting the set."""
     if player is None:
         return False
     try:
@@ -60,8 +62,17 @@ def _via_command(text):
         if shutil.which(argv[0]) is None:
             continue
         try:
+            # Output is deliberately discarded rather than captured. xclip,
+            # xsel and wl-copy all fork a child that goes on owning the
+            # selection and inherits our pipes, so capture_output waits for
+            # the *clipboard* to be replaced rather than for the command to
+            # finish — measured as a full 10s timeout on a copy that had in
+            # fact already succeeded. With the pipes detached it returns
+            # immediately.
             proc = subprocess.run(argv, input=text.encode("utf-8"),
-                                  timeout=10, capture_output=True)
+                                  timeout=10,
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
         except Exception:
             log.debug("clipboard command %s failed", argv[0], exc_info=True)
             continue

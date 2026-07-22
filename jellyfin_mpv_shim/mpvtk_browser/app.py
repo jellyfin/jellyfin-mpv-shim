@@ -891,6 +891,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             app.on_hud = self._on_hud
         if hasattr(app, "on_hud_skip"):
             app.on_hud_skip = self._on_hud_skip
+        if hasattr(app, "on_clipboard_error"):
+            app.on_clipboard_error = self._on_clipboard_error
 
     def reassert_window_state(self):
         """Re-assert window ownership on a FRESH renderer (which starts

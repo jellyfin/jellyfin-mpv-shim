@@ -39,19 +39,46 @@ LUA = find_lua()
 @unittest.skipIf(LUA is None,
                  "no Lua interpreter (tried: %s)" % ", ".join(INTERPRETERS))
 class TestRendererLua(unittest.TestCase):
-    def _run(self, script):
+    def _run(self, script, env=None):
         return subprocess.run(
             [LUA, os.path.join(LUA_DIR, script), RENDERER],
-            cwd=LUA_DIR, capture_output=True, text=True, timeout=120)
+            cwd=LUA_DIR, capture_output=True, text=True, timeout=120,
+            env=env)
 
-    def test_the_renderer_suite_passes(self):
-        proc = self._run("test_renderer.lua")
+    def _assert_suite_passed(self, proc):
         if proc.returncode != 0:
             self.fail("%s\n%s" % (proc.stdout, proc.stderr))
         # A silent pass would also be a pass if the script exited early
         # before running anything, so check it reported a plan.
         self.assertIn("1..", proc.stdout, "no test plan in the output")
         self.assertNotIn("not ok", proc.stdout)
+
+    @staticmethod
+    def _session_env(**overrides):
+        """A pinned session for the clipboard tests. The renderer picks its
+        clipboard helper off WAYLAND_DISPLAY / DISPLAY, so an unpinned
+        environment silently tests whichever session the developer happens
+        to be sitting in — and never the other one."""
+        env = dict(os.environ)
+        env.pop("WAYLAND_DISPLAY", None)
+        env.pop("DISPLAY", None)
+        env.update(overrides)
+        return env
+
+    def test_the_renderer_suite_passes_on_x11(self):
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0")))
+
+    def test_the_renderer_suite_passes_on_wayland(self):
+        """Same suite, Wayland session: the clipboard block asserts wl-copy
+        rather than xclip. A Wayland session usually also answers xclip
+        through XWayland, which is a *different* clipboard, so picking the
+        wrong one would look like copy working and paste returning stale
+        text."""
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(WAYLAND_DISPLAY="wayland-0")))
 
     def test_the_renderer_parses_under_this_interpreter(self):
         """Cheap syntax gate, separate from the behavioural run: a parse

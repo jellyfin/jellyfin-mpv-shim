@@ -809,6 +809,7 @@ class StubHudApp:
         self.on_nav = None
         self.on_hud = None
         self.on_hud_skip = None
+        self.on_clipboard_error = None
 
     def invalidate(self):
         pass
@@ -962,8 +963,44 @@ class TestHudLifecycleWiring(unittest.TestCase):
         self.assertEqual(app.on_nav, b._on_nav_mode)
         self.assertEqual(app.on_hud, b._on_hud)
         self.assertEqual(app.on_hud_skip, b._on_hud_skip)
+        self.assertEqual(app.on_clipboard_error, b._on_clipboard_error)
         self.assertFalse(b._hud_shown,
                          "a fresh renderer has no summoned HUD")
+
+
+class TestClipboardNotice(unittest.TestCase):
+    """MPV gained an X11 clipboard backend only in 0.41, so on an older MPV
+    under X11 copy and paste do nothing at all. The renderer falls back to
+    xclip/xsel/wl-copy; when even those are missing it says so, once."""
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        shown = []
+        b._message = lambda text, title=None: shown.append((text, title))
+        return b, shown
+
+    def test_it_names_the_package_to_install(self):
+        b, shown = self._browser()
+        b._on_clipboard_error("paste", "wl-clipboard")
+        self.assertEqual(len(shown), 1)
+        text = shown[0][0]
+        self.assertIn("wl-clipboard", text)
+        self.assertIn("apt install wl-clipboard", text)
+
+    def test_it_says_which_operation_failed(self):
+        b, shown = self._browser()
+        b._on_clipboard_error("copy", "xclip")
+        self.assertIn("Copying", shown[0][0])
+        b._on_clipboard_error("paste", "xclip")
+        self.assertIn("Pasting", shown[1][0])
+
+    def test_with_no_package_to_suggest_it_still_explains(self):
+        """A session we have no helper for at all -- the only remedy left is
+        a newer MPV, and saying nothing reads as a broken text field."""
+        b, shown = self._browser()
+        b._on_clipboard_error("paste", None)
+        self.assertIn("0.41", shown[0][0])
 
     def test_reassert_window_state(self):
         b = MpvtkBrowser(app=None, source=FakeSource(),

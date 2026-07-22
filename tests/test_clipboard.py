@@ -1,9 +1,9 @@
 """Copying to the system clipboard without a clipboard dependency.
 
 Every backend is probed and the first one that *verifiably* worked wins —
-"verifiably" because mpv's clipboard/text is read-only on older builds and a
-failed write does not always raise, so a naive set-and-assume would report
-success while copying nothing.
+"verifiably" because mpv only has a clipboard/text where it has a backend for
+the session (no x11 backend before 0.41) and a failed write does not always
+raise, so a naive set-and-assume would report success while copying nothing.
 """
 
 import os
@@ -118,6 +118,28 @@ class TestCommandBackend(unittest.TestCase):
                                      return_value=clipboard._LINUX):
             clipboard._via_command("héllo")
         self.assertEqual(seen[0][1], "héllo".encode("utf-8"))
+
+    def test_the_output_pipes_are_detached(self):
+        """xclip, xsel and wl-copy all fork a child that goes on owning the
+        selection and inherits our pipes. Capturing output therefore waits
+        for the *clipboard* to be replaced rather than for the command to
+        finish — measured as a full 10s timeout on a copy that had in fact
+        already succeeded."""
+        seen = []
+
+        def run(argv, **kw):
+            seen.append(kw)
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(clipboard.shutil, "which",
+                               lambda n: "/usr/bin/" + n), \
+                mock.patch.object(clipboard.subprocess, "run", run), \
+                mock.patch.object(clipboard, "_commands",
+                                  return_value=clipboard._LINUX):
+            clipboard._via_command("x")
+        self.assertNotIn("capture_output", seen[0])
+        self.assertEqual(seen[0].get("stdout"), clipboard.subprocess.DEVNULL)
+        self.assertEqual(seen[0].get("stderr"), clipboard.subprocess.DEVNULL)
 
     def test_nothing_installed_is_a_clean_failure(self):
         w, r = self._run(set())

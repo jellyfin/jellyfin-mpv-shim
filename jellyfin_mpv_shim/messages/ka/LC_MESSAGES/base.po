@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 13:18-0400\n"
+"POT-Creation-Date: 2026-07-22 15:18-0400\n"
 "PO-Revision-Date: 2026-05-24 14:38+0000\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -196,8 +196,8 @@ msgstr "სუბტიტრების შეცვლა"
 msgid "Change Video Quality"
 msgstr "ვიდეოს ხარისხის შეცვლა"
 
-#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1941
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:420
+#: jellyfin_mpv_shim/menu.py:157 jellyfin_mpv_shim/mpvtk_browser/app.py:1943
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:440
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:330
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:636 jellyfin_mpv_shim/syncplay.py:685
 msgid "SyncPlay"
@@ -438,18 +438,18 @@ msgstr ""
 msgid "Selected: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1038
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1210
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1040
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1212
 msgid "Loading…"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1092
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1253
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1094
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1255
 msgid "Timed out loading this item"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1093
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1254
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1095
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1256
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -459,71 +459,71 @@ msgstr ""
 "სერვერის დამატება შეუძლებელია.\n"
 "შეამოწმეთ თქვენი კავშირის ინფორმაცია."
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1211
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1268
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1213
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1270
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:77
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:140
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:292
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:300
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:385
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:405
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:741
 msgid "Cancel"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1262
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2044
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2108
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1264
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2046
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2110
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:452
 #: jellyfin_mpv_shim/svp_integration.py:174
 msgid "Retry"
 msgstr "თავიდან ცდა"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1265
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1267
 #, fuzzy
 #| msgid "No Transcode"
 msgid "Retry with Transcode"
 msgstr "ტრანსკოდირების გარეშე"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1298
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1333
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1300
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1335
 msgid "Playback could not be started."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1883
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1899
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1885
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1901
 msgid "Home"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1896
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1898
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:350
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:625
 msgid "Back"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1913
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1915
 #, fuzzy
 #| msgid "Server:"
 msgid "Server"
 msgstr "სერვერი:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1926
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1928
 #, fuzzy
 #| msgid "Username:"
 msgid "User"
 msgstr "მომხმარებლის სახელი:"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1931
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1933
 msgid "Search…"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1938
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1940
 #: jellyfin_mpv_shim/mpvtk_browser/views.py:1003
 msgid "Search"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:1943
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:1945
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:591
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:74
 #, fuzzy
@@ -531,45 +531,45 @@ msgstr ""
 msgid "Settings"
 msgstr "SVP-ის მორგება"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2022
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2024
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:551
 msgid "Queue"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2094
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2096
 msgid "Update available: %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2097
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2099
 msgid "Open"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2099
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2101
 msgid "Dismiss"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2104
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106
 msgid "Offline — showing what's available."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2106 jellyfin_mpv_shim/tray.py:92
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2108 jellyfin_mpv_shim/tray.py:102
 msgid "Configure Servers"
 msgstr "სერვერების მორგება"
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2124
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2126
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2125
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2127
 msgid "Downloading — %(n)d remaining"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2134
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2136
 msgid "View Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/app.py:2200
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:2202
+#: jellyfin_mpv_shim/mpvtk_browser/app.py:2204
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -614,7 +614,7 @@ msgid "New PIN"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:128
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:377
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:397
 msgid "Confirm"
 msgstr ""
 
@@ -1086,7 +1086,7 @@ msgstr "სერვერის წაშლა"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:123
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:169
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:466
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:486
 msgid "Close"
 msgstr "დახურვა"
 
@@ -1162,47 +1162,69 @@ msgid "Notice"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:371
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:378
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:398
 msgid "OK"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:436
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:385
+msgid "Copying to the clipboard is not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:387
+msgid "Pasting from the clipboard is not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:390
+msgid ""
+"Install the \"%s\" package (for example \"apt install %s\"), or use MPV 0.41 "
+"or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:393
+msgid "Use MPV 0.41 or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:394
+msgid "Clipboard"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:456
 #, fuzzy
 #| msgid "{0} has joined."
 msgid "%s (joined)"
 msgstr "შემოგვიერთდა {0}."
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:437
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:457
 #, fuzzy
 #| msgid "New Group"
 msgid "Group"
 msgstr "ახალი ჯგუფი"
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:448
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:468
 #, fuzzy
 #| msgid "New Group"
 msgid "No active groups."
 msgstr "ახალი ჯგუფი"
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:451
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:471
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:379
 #: jellyfin_mpv_shim/osc_bridge.py:96 jellyfin_mpv_shim/syncplay.py:679
 msgid "New Group"
 msgstr "ახალი ჯგუფი"
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:459
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:479
 #, fuzzy
 #| msgid "New Group"
 msgid "Leave"
 msgstr "ახალი ჯგუფი"
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:463
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:483
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:791
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:1094
 msgid "Refresh"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:481
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:501
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1212,7 +1234,7 @@ msgstr ""
 "სერვერის დამატება შეუძლებელია.\n"
 "შეამოწმეთ თქვენი კავშირის ინფორმაცია."
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:486
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:506
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -1222,7 +1244,7 @@ msgstr ""
 "სერვერის დამატება შეუძლებელია.\n"
 "შეამოწმეთ თქვენი კავშირის ინფორმაცია."
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:491
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:511
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -2044,7 +2066,7 @@ msgid "Copy"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:1096
-#: jellyfin_mpv_shim/tray.py:94
+#: jellyfin_mpv_shim/tray.py:104
 msgid "Open Config Folder"
 msgstr "კონფიგურაციის საქაღალდის გახსნა"
 
@@ -2333,27 +2355,27 @@ msgstr "SyncPlay ჩართულია."
 msgid "{0}'s Group"
 msgstr "{0}-ის ჯგუფი"
 
-#: jellyfin_mpv_shim/player.py:932
+#: jellyfin_mpv_shim/player.py:959
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1600
+#: jellyfin_mpv_shim/player.py:1626
 msgid "Skipped Credits"
 msgstr "გამოტოვებული კრედიტები"
 
-#: jellyfin_mpv_shim/player.py:1602
+#: jellyfin_mpv_shim/player.py:1628
 msgid "Skipped Intro"
 msgstr "გამოტოვებული შესავალი"
 
-#: jellyfin_mpv_shim/player.py:1621
+#: jellyfin_mpv_shim/player.py:1647
 msgid "Seek to Skip Credits"
 msgstr "ტიტრების გადახვევა"
 
-#: jellyfin_mpv_shim/player.py:1623
+#: jellyfin_mpv_shim/player.py:1649
 msgid "Seek to Skip Intro"
 msgstr "შესავლის გადახვევა"
 
-#: jellyfin_mpv_shim/player.py:1950
+#: jellyfin_mpv_shim/player.py:1976
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2361,23 +2383,23 @@ msgstr ""
 "მიმდინარეობს თქვენი დაშორებული ვიდეოს ტრანსკოდირება.\n"
 "თუ ეს საჭირო არაა, გამტარობის მოსარგებად დააჭირეთ ღილაკს c."
 
-#: jellyfin_mpv_shim/player.py:2214
+#: jellyfin_mpv_shim/player.py:2240
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2806
+#: jellyfin_mpv_shim/player.py:2832
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "გამოტოვებული კრედიტები"
 
-#: jellyfin_mpv_shim/player.py:2807
+#: jellyfin_mpv_shim/player.py:2833
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "გამოტოვებული შესავალი"
 
-#: jellyfin_mpv_shim/player.py:2941
+#: jellyfin_mpv_shim/player.py:2967
 msgid "Season {0} - Episode {1}"
 msgstr "სეზონი {0} - ეპიზოდი {1}"
 
@@ -2473,15 +2495,15 @@ msgstr "{0} გავიდა."
 msgid "{0} is buffering."
 msgstr "მიმდინარეობს {0}-ის ბუფერში კოპირება."
 
-#: jellyfin_mpv_shim/tray.py:91
+#: jellyfin_mpv_shim/tray.py:101
 msgid "Show Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/tray.py:93
+#: jellyfin_mpv_shim/tray.py:103
 msgid "Show Console"
 msgstr "კონსოლის ჩვენება"
 
-#: jellyfin_mpv_shim/tray.py:95
+#: jellyfin_mpv_shim/tray.py:105
 msgid "Quit"
 msgstr "გასვლა"
 

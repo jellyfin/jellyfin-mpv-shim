@@ -224,6 +224,115 @@ type_text("Z")
 fake.key("mpvtk_k_ESC")
 ok(last_event("commit") == nil, "ESC reverts rather than committing")
 
+-- ========================================================= clipboard
+
+-- mpv's clipboard/text is not universal: --clipboard-backends defaults to
+-- win32,mac,wayland,vo and the x11 backend only arrived in 0.41, so an
+-- X11 session under mpv 0.40 answers "property unavailable" both ways.
+-- Copy and paste were pcall'd, and mp.set_property signals failure by
+-- RETURNING nil rather than raising -- so both silently did nothing.
+
+local function subprocess_calls()
+    local out = {}
+    for _, c in ipairs(fake.log.commands) do
+        if type(c) == "table" and c.name == "subprocess" then
+            out[#out + 1] = c
+        end
+    end
+    return out
+end
+
+-- The fallback follows the session, because a Wayland session usually
+-- also answers xclip through XWayland -- a different clipboard.
+local WANT_SET, WANT_GET, WANT_PKG
+if os.getenv("WAYLAND_DISPLAY") then
+    WANT_SET, WANT_GET, WANT_PKG = "wl-copy", "wl-paste", "wl-clipboard"
+else
+    WANT_SET, WANT_GET, WANT_PKG = "xclip", "xclip", "xclip"
+end
+
+local function select_all(id)
+    click(id)
+    fake.key("mpvtk_k_ctrl_a")
+end
+
+-- Working mpv property: nothing external is spawned.
+fake.unavailable = {}
+fake.log.commands = {}
+scene({ textbox("clip1", "copy me") })
+select_all("clip1")
+fake.key("mpvtk_k_ctrl_c")
+eq(fake.log.props["clipboard/text"], "copy me", "ctrl+c uses mpv's clipboard")
+eq(#subprocess_calls(), 0, "a working mpv clipboard spawns nothing")
+
+-- Property unavailable: fall back to the desktop's own tool.
+fake.unavailable = { ["clipboard/text"] = true }
+fake.log.commands = {}
+fake.subprocess = function() return { status = 0, stdout = "" } end
+scene({ textbox("clip2", "fallback") })
+select_all("clip2")
+fake.key("mpvtk_k_ctrl_c")
+local calls = subprocess_calls()
+ok(#calls > 0, "an unavailable clipboard property falls back to a helper")
+if #calls > 0 then
+    local argv = calls[1].args
+    eq(argv[1], "sh", "the copy goes through a shell")
+    ok(argv[3] and argv[3]:find(WANT_SET, 1, true) ~= nil,
+       "the fallback matches the session", argv[3])
+    -- xclip/xsel/wl-copy fork a child that keeps owning the selection, and
+    -- mpv makes pipes for the child whether or not we capture them -- the
+    -- forked copy inherits those and holds them until the clipboard is
+    -- replaced, so an unredirected copy never returns. Measured on 0.40.
+    ok(argv[3] and argv[3]:find(">/dev/null", 1, true) ~= nil,
+       "the copy's pipes are closed before the tool forks", argv[3])
+    eq(calls[1].stdin_data, "fallback", "the text is piped to it")
+    eq(calls[1].capture_stdout, false, "copy does not capture stdout")
+end
+
+-- Paste, same fallback, reading back.
+fake.log.commands = {}
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "pasted" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clip3", "") })
+click("clip3")
+fake.key("mpvtk_k_ctrl_v")
+local ch = last_event("change")
+ok(ch ~= nil and ch.value == "pasted", "ctrl+v falls back to a helper",
+   ch and ch.value or "no change event")
+
+-- Nothing at all: the user gets told which package to install, rather
+-- than a text field that silently ignores ctrl+v.
+fake.subprocess = nil       -- every helper fails, as if not installed
+fake.reset_events()
+scene({ textbox("clip4", "") })
+click("clip4")
+fake.key("mpvtk_k_ctrl_v")
+local warn = last_event("clipboard")
+ok(warn ~= nil, "no clipboard at all reports it")
+if warn then
+    eq(warn.op, "paste", "the report says which operation failed")
+    eq(warn.need, WANT_PKG, "it names the package to install")
+end
+
+-- Once per session: a nag on every failed paste is worse than silence.
+fake.reset_events()
+fake.key("mpvtk_k_ctrl_v")
+ok(last_event("clipboard") == nil, "the clipboard notice does not repeat")
+
+-- A cut whose copy failed would just destroy the text.
+scene({ textbox("clip5", "precious") })
+fake.reset_events()
+select_all("clip5")
+fake.key("mpvtk_k_ctrl_x")
+local cut = last_event("change")
+ok(cut == nil, "cut keeps the text when the copy could not happen",
+   cut and cut.value or "")
+
+fake.unavailable = {}
+fake.subprocess = nil
+
 -- ========================================================== teardown
 
 scene({})

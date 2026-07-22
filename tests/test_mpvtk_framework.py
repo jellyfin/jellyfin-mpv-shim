@@ -825,6 +825,39 @@ class TestNavPolish(unittest.TestCase):
         app._dispatch({"t": "nav", "active": False})
         self.assertEqual(got, [True, False])
 
+    def test_clipboard_event_dispatch(self):
+        """The renderer reports a copy/paste that found no clipboard at all,
+        so the app can name the package to install instead of leaving a text
+        field that silently ignores ctrl+v."""
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        got = []
+        app.on_clipboard_error = lambda op, need: got.append((op, need))
+        app._dispatch({"t": "clipboard", "op": "paste",
+                       "need": "wl-clipboard"})
+        self.assertEqual(got, [("paste", "wl-clipboard")])
+
+    def test_clipboard_event_without_a_package_to_suggest(self):
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        got = []
+        app.on_clipboard_error = lambda op, need: got.append((op, need))
+        app._dispatch({"t": "clipboard", "op": "copy"})
+        self.assertEqual(got, [("copy", None)])
+
+    def test_a_clipboard_event_with_no_handler_is_harmless(self):
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        app._dispatch({"t": "clipboard", "op": "paste", "need": "xclip"})
+
+    def test_a_failing_clipboard_handler_does_not_escape(self):
+        """It runs on the loop thread; an exception here would take the UI
+        down over a failed paste."""
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+
+        def boom(op, need):
+            raise RuntimeError("nope")
+
+        app.on_clipboard_error = boom
+        app._dispatch({"t": "clipboard", "op": "paste", "need": "xclip"})
+
 
 class TestEllipsisEpsilon(unittest.TestCase):
     def test_exactly_fitting_button_label_survives(self):

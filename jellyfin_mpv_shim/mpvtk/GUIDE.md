@@ -194,6 +194,7 @@ handlers registered during layout:
 | select | id, index, value | dropdown or menu item chosen |
 | dismiss | id | menu/dialog click-away or ESC |
 | scroll | id, offset, max | watched scrolls, ≤ every 150ms |
+| clipboard | op, need | a textbox copy/paste found no clipboard at all (`MpvtkApp.on_clipboard_error`); once per renderer |
 | debug_state | … | reply to the `state` debug hook |
 
 Click handlers opt into the modifier payload by declaring one
