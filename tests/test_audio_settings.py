@@ -356,5 +356,47 @@ class SettingsFormTest(unittest.TestCase):
         self.assertNotIn("audio_output", Settings.__annotations__)
 
 
+class DeviceProfileChannelsTest(unittest.TestCase):
+    """MaxAudioChannels in the device profile.
+
+    This has drifted twice from values copied without checking: 6 from Kodi's
+    profile, and 2 for live TV. Both silently capped audio, because the field
+    does not stop a transcode -- it caps the audio *inside* one. At
+    StreamBuilder.cs's channelsExceedsLimit, a track above the limit stops
+    being eligible for stream-copy and gets re-encoded and downmixed instead.
+
+    Downmixing is the client's job here (see audio_mode), so the profile
+    should not ask the server to do it.
+    """
+
+    def _video_transcode_profiles(self, **kw):
+        from jellyfin_mpv_shim.utils import get_profile
+
+        return [p for p in get_profile(**kw)["TranscodingProfiles"]
+                if p.get("Type") == "Video"]
+
+    def test_video_transcodes_allow_full_surround(self):
+        for profile in self._video_transcode_profiles():
+            self.assertEqual(profile["MaxAudioChannels"], "8")
+
+    def test_live_tv_is_not_capped_below_the_main_profile(self):
+        # jellyfin-web uses one physicalAudioChannels for its live TV
+        # (Context: Streaming) profile and its regular one alike -- there is
+        # no server-side precedent for a live-TV-specific stereo cap.
+        profiles = self._video_transcode_profiles(is_tv=True)
+        self.assertTrue(any(p.get("Context") == "Streaming" for p in profiles),
+                        "live TV profile missing")
+        for profile in profiles:
+            self.assertEqual(profile["MaxAudioChannels"], "8")
+
+    def test_direct_play_declares_no_channel_limit(self):
+        # A channel condition here *would* force a transcode. The wildcard
+        # direct-play profiles must stay unconditional.
+        from jellyfin_mpv_shim.utils import get_profile
+
+        for profile in get_profile()["DirectPlayProfiles"]:
+            self.assertNotIn("MaxAudioChannels", profile)
+
+
 if __name__ == "__main__":
     unittest.main()

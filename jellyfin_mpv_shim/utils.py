@@ -161,7 +161,18 @@ def get_profile(
                 "Protocol": "hls",
                 "AudioCodec": audio_transcode_codecs,
                 "VideoCodec": transcode_codecs,
-                "MaxAudioChannels": "6",
+                # 8, not 6. This only ever applies to a stream the server is
+                # already transcoding -- MaxAudioChannels exists on
+                # TranscodingProfile only, and the DirectPlayProfiles below
+                # carry no channel condition, so it cannot force a transcode.
+                # What it *does* do is cap the audio: at StreamBuilder.cs's
+                # channelsExceedsLimit, a 7.1 track that could have been
+                # stream-copied alongside a video transcode instead gets
+                # re-encoded and downmixed to the limit. 6 (inherited from
+                # Kodi's profile) therefore quietly cost 7.1 audio on every
+                # video transcode. Downmixing is mpv's job here, not the
+                # server's -- see audio_mode in conf.py.
+                "MaxAudioChannels": "8",
             },
             {"Container": "jpeg", "Type": "Photo"},
         ],
@@ -329,7 +340,13 @@ def get_profile(
                 "VideoCodec": "h264",
                 "Context": "Streaming",
                 "Protocol": "hls",
-                "MaxAudioChannels": "2",
+                # Matches the main video profile above, and jellyfin-web,
+                # which uses one physicalAudioChannels for its live TV
+                # (Context: Streaming) profile and its regular one alike.
+                # This used to be "2", which had no precedent on the server
+                # side: jellyfin-web only drops to 2 when the *browser*
+                # cannot do surround, which is not a limit mpv shares.
+                "MaxAudioChannels": "8",
                 "MinSegments": "1",
                 "BreakOnNonKeyFrames": True,
             },
