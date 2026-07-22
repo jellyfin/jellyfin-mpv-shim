@@ -42,10 +42,8 @@ shown — open Jellyfin in a browser where you are already signed in, go to your
 *Quick Connect*, and enter the code. Quick Connect must be enabled by an administrator on the
 server.
 
-The application runs with a notification icon by default. You can use this to edit the server settings,
-view the application log, open the config folder, and open the application menu. Unlike Plex MPV Shim,
-authorization tokens for your server are stored on your device, but you are able to cast to the player
-regardless of location.
+The application runs with a notification icon by default, you can disable this in the settings page if
+you would like the client to not run in the background and listen for casts from mobile/web clients.
 
 Note: Due to the huge number of questions and issues that have been submitted about URLs, I now tolerate
 bare IP addresses and not specifying the port by default. If you want to connect to port 80 instead of
@@ -306,57 +304,6 @@ track, based on what the track actually is.
 
 Run the jellyfin-mpv-shim program with LC_NUMERIC=C.
 
-### Use with gnome-mpv/celluloid (#61)
-
-You can use `gnome-mpv` with MPV Shim, but you must launch `gnome-mpv` separately before MPV Shim. (`gnome-mpv` doesn't support the MPV command options directly.)
-
-Configure MPV Shim with the following options (leave the other ones):
-
-```json
-{
-    "mpv_ext": true,
-    "mpv_ext_ipc": "/tmp/gmpv-socket",
-    "mpv_ext_path": null,
-    "mpv_ext_start": false,
-    "enable_osc": false
-}
-```
-
-Then within `gnome-mpv`, click the application icon (top left) > Preferences. Configure the following Extra MPV Options:
-
-```
---idle --input-ipc-server=/tmp/gmpv-socket
-```
-
-### Heavy Memory Usage
-
-A problem has been identified where MPV can use a ton of RAM after media has been played,
-and this RAM is not always freed when the player goes into idle mode. Some users have
-found that using external MPV lessens the memory leak. To enable external MPV on Windows:
-
-- [Download a copy of MPV](https://sourceforge.net/projects/mpv-player-windows/files/64bit/)
-- Unzip it with 7zip.
-- Configure `mpv_ext` to `true`. (See the config section.)
-- Configure `mpv_ext_path` to `C:\\replace\\with\\path\\to\\mpv.exe`. (Note usage of two `\\`.)
-- Run the program and wait. (You'll probably have to use it for a while.)
-- Let me know if the high memory usage is with `mpv.exe` or the shim itself.
-
-On Linux, the process is similar, except that you don't need to set the `mpv_ext_path` variable.
-On macOS, external MPV is already the default and is the only supported player mode.
-
-In the long term, I may look into a method of terminating MPV when not in use. This will require
-a lot of changes to the software.
-
-### Player Sizing (#91)
-
-MPV by default may force the window size to match the video aspect ratio, instead of allowing
-resizing and centering the video accordingly. Add the following to `mpv.conf` to enable resizing
-of the window freely, if desired:
-
-```
-no-keepaspect-window
-```
-
 ## Development
 
 Build instructions, dev installation, packaging and translation are in
@@ -368,14 +315,16 @@ You can [install the software from flathub](https://flathub.org/apps/details/com
 
 If you are on Linux, you can install via pip. You'll need [libmpv](https://github.com/Kagami/mpv.js#get-libmpv) or `mpv` installed.
 
-```bash
-sudo pip3 install --upgrade jellyfin-mpv-shim
-```
-
-If you would like the library browser and systray features, also install `pystray` and `Pillow`:
+For full library browsing support, install `pystray` and `Pillow`:
 
 ```bash
 sudo pip3 install 'jellyfin-mpv-shim[gui]'
+```
+
+For a minimal install, use:
+
+```bash
+sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
 
 Tkinter is no longer required — the library browser, the playback HUD and the cast screen are
@@ -426,21 +375,39 @@ Display mirroring is not tested on macOS, but may be installable with 'pipx inst
 
 ## Building on Windows
 
-There is a prebuilt version for Windows in the releases section. When
-following these directions, please take care to ensure both the python
-and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
+There is a prebuilt version for Windows in the releases section, so you only need this if you are
+working on the client itself.
 
-If you'd like to build the installer, please install [Inno Setup](https://jrsoftware.org/isinfo.php) to build
-the installer. If you'd like to build a 32 bit version, download the 32 bit version of mpv.dll and
-copy it into a new folder called mpv32. You may also need to edit the batch file for 32 bit builds to point to the right python executable.
+These steps mirror `.github/workflows/main.yml`, which is what actually produces the releases.
+**If this section and the workflow ever disagree, the workflow is right** — check it first.
+
+Make sure Python and libmpv are both 64-bit or both 32-bit; mismatching them fails at runtime.
 
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
     - You can update the project later with `git pull`.
-2. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-3. After installing python3, open `cmd` as admin and run `pip install --upgrade .[all] pywin32`.
-4. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-5. Extract the `mpv-2.dll` from the file and move it to the `jellyfin-mpv-shim` folder.
-6. Open a regular `cmd` prompt. Navigate to the `jellyfin-mpv-shim` folder.
-7. Run `./gen_pkg.sh --skip-build` using the Git for Windows console.
+2. Install [Python 3](https://www.python.org/downloads/) with PATH enabled (CI builds on 3.14) and [7zip](https://www.7-zip.org/).
+3. Install [Inno Setup](https://jrsoftware.org/isinfo.php) — it builds the installer at the end.
+    - CI does this with `winget install --id JRSoftware.InnoSetup -e -s winget`.
+4. Open `cmd` and run `pip install wheel` then `pip install .[all] pywin32`.
+5. Download libmpv from the [shinchiro/mpv-winbuild-cmake releases](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
+   — the `mpv-dev-*` archive, **not** the player build.
+    - 64-bit: `mpv-dev-x86_64-v3-*.7z`. The `v3` builds need a CPU supporting x86-64-v3; for older
+      hardware use the plain `mpv-dev-x86_64-*-git-*.7z` (this is what the "legacy64" release is).
+    - 32-bit: `mpv-dev-i686-*.7z`.
+6. Extract it and move `libmpv-2.dll` into the `jellyfin-mpv-shim` folder, **renaming it to
+   `mpv-2.dll`**. The build scripts look for that name.
+7. In Git Bash, build the PyInstaller bootloader from source:
+   ```bash
+   ./gen_pkg.sh --get-pyinstaller
+   cd pyinstaller/bootloader && python ./waf distclean all && cd .. && pip install .
+   cd ..
+   ```
+    - PyInstaller is not one of the project's dependencies, so this step is what provides it.
+      A stock `pip install pyinstaller` also works, but ships a prebuilt bootloader that some
+      antivirus products flag; building it locally is why CI does it this way.
+8. In Git Bash, run `./gen_pkg.sh --skip-build`.
     - This builds the translation files and downloads the shader packs.
-8. Run `build-win.bat`.
+9. Run `build-win.bat` from `cmd` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for a
+   console-attached debug build).
+    - The 32-bit script reads the same `mpv-2.dll` in the same place — just extract the i686 one
+      instead. There is no separate `mpv32` folder.
