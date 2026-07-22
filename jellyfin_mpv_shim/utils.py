@@ -117,7 +117,6 @@ def get_profile(
     is_remote: bool = False,
     video_bitrate: Optional[int] = None,
     force_transcode: bool = False,
-    is_tv: bool = False,
 ):
     if video_bitrate is None:
         if is_remote:
@@ -329,28 +328,6 @@ def get_profile(
 
     if settings.always_transcode or force_transcode:
         profile["DirectPlayProfiles"] = []
-
-    if is_tv:
-        profile["TranscodingProfiles"].insert(
-            0,
-            {
-                "Container": "ts",
-                "Type": "Video",
-                "AudioCodec": "mp3,aac",
-                "VideoCodec": "h264",
-                "Context": "Streaming",
-                "Protocol": "hls",
-                # Matches the main video profile above, and jellyfin-web,
-                # which uses one physicalAudioChannels for its live TV
-                # (Context: Streaming) profile and its regular one alike.
-                # This used to be "2", which had no precedent on the server
-                # side: jellyfin-web only drops to 2 when the *browser*
-                # cannot do surround, which is not a limit mpv shares.
-                "MaxAudioChannels": "8",
-                "MinSegments": "1",
-                "BreakOnNonKeyFrames": True,
-            },
-        )
 
     return profile
 

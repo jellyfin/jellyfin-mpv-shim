@@ -509,15 +509,14 @@ class DeviceProfileChannelsTest(unittest.TestCase):
         for profile in self._video_transcode_profiles():
             self.assertEqual(profile["MaxAudioChannels"], "8")
 
-    def test_live_tv_is_not_capped_below_the_main_profile(self):
-        # jellyfin-web uses one physicalAudioChannels for its live TV
-        # (Context: Streaming) profile and its regular one alike -- there is
-        # no server-side precedent for a live-TV-specific stereo cap.
-        profiles = self._video_transcode_profiles(is_tv=True)
-        self.assertTrue(any(p.get("Context") == "Streaming" for p in profiles),
-                        "live TV profile missing")
+    def test_every_video_transcode_profile_is_covered(self):
+        # Guards the assertion above against a second video profile being
+        # added later with a lower cap, which is how the old is_tv entry
+        # ended up carrying "2" unnoticed.
+        profiles = self._video_transcode_profiles()
+        self.assertTrue(profiles)
         for profile in profiles:
-            self.assertEqual(profile["MaxAudioChannels"], "8")
+            self.assertIn("MaxAudioChannels", profile)
 
     def test_direct_play_declares_no_channel_limit(self):
         # A channel condition here *would* force a transcode. The wildcard
