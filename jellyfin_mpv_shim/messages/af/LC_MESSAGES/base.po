@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 15:18-0400\n"
+"POT-Creation-Date: 2026-07-22 17:47-0400\n"
 "PO-Revision-Date: 2026-03-04 23:20+0000\n"
 "Last-Translator: Eugene <eugclass@gmail.com>\n"
 "Language-Team: Afrikaans <https://translate.jellyfin.org/projects/jellyfin/"
@@ -409,7 +409,7 @@ msgstr "Vra om Krediete te Oorslaan"
 msgid "Enable thumbnail previews"
 msgstr "Aktiveer duimnaalvoorskoue"
 
-#: jellyfin_mpv_shim/menu.py:609 jellyfin_mpv_shim/mpvtk_browser/config.py:144
+#: jellyfin_mpv_shim/menu.py:609 jellyfin_mpv_shim/mpvtk_browser/config.py:152
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:333
 msgid "Night Mode (Auto Volume Adj)"
 msgstr ""
@@ -824,232 +824,283 @@ msgid "Transcoding"
 msgstr " (Transkodeer )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:73
+msgid "Video Enhancement"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:75
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
 msgstr "Soek om Krediete te Oorslaan"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:76
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:78
 msgid "Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:77
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:79
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:142
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:786
 msgid "Downloads"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:96
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:98
 msgid "Jellyfin UI"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:97
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:99
 msgid "MPV UI with thumbnails"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:98
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:100
 msgid "MPV built-in default"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:101
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
 msgid "Follow display"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:102
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid "100% (no scaling)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:103
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
 msgid "125%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:104
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:106
 msgid "150%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:105
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:107
 msgid "200%"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:108
-msgid "Default (auto)"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:109
-msgid "Force Stereo"
-msgstr ""
-
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:110
-msgid "Optical Surround"
+msgid "Automatic (recommended)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:111
-msgid "HDMI Passthrough"
+msgid "Vulkan"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:114
-msgid "Unset"
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:112
+msgid "Direct3D 11 (Windows only)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:115
-msgid "Dubbed (shows only)"
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:113
+msgid "OpenGL (compatibility)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:116
-msgid "Subbed (shows only)"
+msgid "Default (auto)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:117
-msgid "Dubbed (all)"
+msgid "Force Stereo"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:118
-msgid "Subbed (all)"
+msgid "Optical Surround"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:119
-msgid "Custom (set in config)"
+msgid "HDMI Passthrough"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:122
+msgid "Unset"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:123
+msgid "Dubbed (shows only)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:124
-msgid "Download Folder"
+msgid "Subbed (shows only)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:125
-msgid "Prefer Downloaded Copy"
+msgid "Dubbed (all)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:126
-msgid "Automatically Download Upcoming Episodes"
+msgid "Subbed (all)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:127
+msgid "Custom (set in config)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:132
+msgid "Download Folder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:133
+msgid "Prefer Downloaded Copy"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:134
+msgid "Automatically Download Upcoming Episodes"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:135
 msgid "Include Next Up"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:128
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:136
 msgid "Next Up Entries to Consider"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:129
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:137
 msgid "Episodes to Keep Ahead (0 = off)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:130
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:138
 msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:131
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:139
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
 msgstr "Verwyder Server"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:132
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:140
 msgid "Delete Unwatched After (days, 0 = never)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:133
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:141
 msgid "Check Every (minutes)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:134
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:142
 msgid "Close to Tray (keep running)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:135
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:143
 msgid "Remember Window Size"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:136
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:144
 msgid "Player Controls Style"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:137
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:145
 msgid "Interface Scale"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:138
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:146
 msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:139
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:147
 msgid "Casting Opens the Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:140
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:148
 msgid "Fullscreen Library Browser"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:141
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:149
 msgid "Always Bind Arrow Keys to Player Controls"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:142
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:150
 msgid "Player Controls Activation Key"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:143
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:151
 msgid "Audio Output Mode"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:145
-msgid "Pass Through AC3"
-msgstr ""
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:153
+#, fuzzy
+#| msgid "Video Playback Profiles"
+msgid "Enable Video Playback Profiles"
+msgstr "Video Weergawe Profiele"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:146
-msgid "Pass Through DTS"
-msgstr ""
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:154
+#, fuzzy
+#| msgid "New Group"
+msgid "Profile Group"
+msgstr "Nuwe Groep"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:147
-msgid "Pass Through E-AC3"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:148
-msgid "Pass Through DTS-HD"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:149
-msgid "Pass Through TrueHD"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:150
-msgid "Re-encode Others to AC3"
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:155
+msgid "Remember Last Used Profile"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:156
+msgid "Graphics API for Shaders"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:157
+msgid "Pass Through AC3"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:158
+msgid "Pass Through DTS"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:159
+msgid "Pass Through E-AC3"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:160
+msgid "Pass Through DTS-HD"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:161
+msgid "Pass Through TrueHD"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:162
+msgid "Re-encode Others to AC3"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:168
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:158
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:170
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:160
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:172
 msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:163
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:175
 msgid ""
 "Audio your receiver can't be sent directly is encoded to AC3, which is the "
 "only way surround fits down an optical cable. Turn this off if the encoder "
 "causes audio delay — those tracks become stereo instead."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:168
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:180
+msgid ""
+"\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:182
+msgid ""
+"Leave on Automatic unless video breaks when a profile is loaded. This only "
+"applies while a profile is active, and OpenGL can cost you HDR output."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:186
 msgid ""
 "Evens out loud effects and quiet dialogue. This turns passthrough off while "
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py:223
+#: jellyfin_mpv_shim/mpvtk_browser/config.py:241
 #: jellyfin_mpv_shim/mpvtk_browser/settings.py:179
 msgid "Advanced"
 msgstr ""
@@ -1422,7 +1473,7 @@ msgstr "Outospeel"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 #: jellyfin_mpv_shim/osc_bridge.py:95 jellyfin_mpv_shim/osc_bridge.py:194
 #: jellyfin_mpv_shim/osc_bridge.py:205 jellyfin_mpv_shim/osc_bridge.py:223
-#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:190
+#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:232
 msgid "None (Disabled)"
 msgstr "Geen (Gedeaktiveer)"
 
@@ -2355,27 +2406,27 @@ msgstr "SyncPlay geaktiveer."
 msgid "{0}'s Group"
 msgstr "{0} se Groep"
 
-#: jellyfin_mpv_shim/player.py:959
+#: jellyfin_mpv_shim/player.py:996
 msgid "Please wait, loading..."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:1626
+#: jellyfin_mpv_shim/player.py:1663
 msgid "Skipped Credits"
 msgstr "Oorgeslaande Krediete"
 
-#: jellyfin_mpv_shim/player.py:1628
+#: jellyfin_mpv_shim/player.py:1665
 msgid "Skipped Intro"
 msgstr "Oorgeslaande Inleiding"
 
-#: jellyfin_mpv_shim/player.py:1647
+#: jellyfin_mpv_shim/player.py:1684
 msgid "Seek to Skip Credits"
 msgstr "Soek om Krediete te Oorslaan"
 
-#: jellyfin_mpv_shim/player.py:1649
+#: jellyfin_mpv_shim/player.py:1686
 msgid "Seek to Skip Intro"
 msgstr "Soek om Inleiding te Oorslaan"
 
-#: jellyfin_mpv_shim/player.py:1976
+#: jellyfin_mpv_shim/player.py:2013
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -2383,23 +2434,23 @@ msgstr ""
 "Jou afstandsvideo transkodeer!\n"
 "Druk c om die bandwydte-instellings te stel as dit nie nodig is nie."
 
-#: jellyfin_mpv_shim/player.py:2240
+#: jellyfin_mpv_shim/player.py:2277
 msgid "Next episode is not downloaded."
 msgstr ""
 
-#: jellyfin_mpv_shim/player.py:2832
+#: jellyfin_mpv_shim/player.py:2869
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Credits"
 msgstr "Oorgeslaande Krediete"
 
-#: jellyfin_mpv_shim/player.py:2833
+#: jellyfin_mpv_shim/player.py:2870
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "Oorgeslaande Inleiding"
 
-#: jellyfin_mpv_shim/player.py:2967
+#: jellyfin_mpv_shim/player.py:3004
 msgid "Season {0} - Episode {1}"
 msgstr "Seisoen {0} - Episode {1}"
 
@@ -2575,7 +2626,7 @@ msgstr "Anime4K x2 Perceptual (Vir HD)"
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 Perceptual + Deblur (Vir HD)"
 
-#: jellyfin_mpv_shim/video_profile.py:204
+#: jellyfin_mpv_shim/video_profile.py:246
 msgid "Select Shader Profile"
 msgstr "Selekteer Shaderprofiel"
 
