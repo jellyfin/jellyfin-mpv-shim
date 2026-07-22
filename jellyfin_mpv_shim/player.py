@@ -135,9 +135,11 @@ def audio_spdif_codecs(mode: str, night_mode: bool, enabled=audio_passthrough_en
 
     Empty whenever night mode is on. Passthrough hands the receiver an
     undecoded compressed stream, and a PCM filter cannot run downstream of
-    one -- mpv does not arbitrate between the two, the filter chain simply
-    fails to build ("unsupported conversion: spdif-ac3 -> floatp") and
-    playback proceeds with no audio output at all.
+    one -- mpv does not arbitrate between the two, the chain fails to build
+    ("unsupported conversion: spdif-ac3 -> floatp") and mpv recovers by
+    disabling the filter. So asking for both does not break playback; it
+    makes night mode silently do nothing, which is worse than it sounds
+    because there is no user-visible sign of it.
     """
     if night_mode:
         return []
@@ -155,6 +157,7 @@ def audio_wants_ac3_encode(
     track_codec: Optional[str],
     spdif_codecs,
     encode_others: bool = True,
+    ac3_ok: bool = True,
 ) -> bool:
     """Whether ``lavcac3enc`` belongs in the chain for the current track.
 
@@ -162,17 +165,24 @@ def audio_wants_ac3_encode(
     there would throw away quality for nothing.
 
     The decision is per-track and cannot be made once at startup, which is
-    the trap jellyfin-media-player fell into. Setting audio-spdif and
-    lavcac3enc together silences every file whose codec is being passed
-    through, because the encoder receives an spdif frame it cannot convert.
-    So: pass the track through if we can, and reach for the encoder only for
-    the tracks we can't.
+    the trap jellyfin-media-player fell into. Handing mpv both audio-spdif
+    and lavcac3enc for the same track builds a chain it cannot satisfy
+    ("unsupported conversion: spdif-ac3 -> floatp"); mpv recovers by
+    disabling the filter, so the cost is that the filter silently does not
+    apply -- the encoder, or night mode, quietly stops working. Pass the
+    track through if we can, and reach for the encoder only for the ones we
+    can't.
 
     ``encode_others`` off declines the encoder entirely; those tracks go out
     as stereo PCM, since S/PDIF cannot carry multichannel PCM either. That
     loses surround, but the encoder adds latency on some receivers.
+
+    ``ac3_ok`` is the AC3 passthrough toggle, and it gates this too: the
+    encoder emits an IEC61937 AC3 *bitstream*, not PCM, so a user who
+    unticked AC3 because their receiver cannot decode it must not be sent
+    AC3 by the back door.
     """
-    if mode != "optical" or not encode_others:
+    if mode != "optical" or not encode_others or not ac3_ok:
         return False
     if track_codec and track_codec.lower() in spdif_codecs:
         return False
@@ -403,6 +413,11 @@ class PlayerManager(object):
         # instance. Gates the "Default (auto) touches nothing" fast path in
         # apply_audio_settings.
         self._audio_configured = False
+        # mpv's audio config as it was before we first touched it, so
+        # returning to Default can put it back. See _snapshot_audio_state.
+        self._audio_snapshot = None
+        # Serializes the audio settings read + the mpv writes it implies.
+        self._audio_lock = RLock()
         self._lock = RLock()
         self._tl_lock = RLock()
         self._finished_lock = Lock()
@@ -814,10 +829,21 @@ class PlayerManager(object):
             # This can lead to unwanted skipping of videos
             self._player.resume_playback = False
 
-        # Fresh mpv instance: nothing has been applied to it yet, whatever we
-        # did to the previous one (re-open, crash recovery).
+        # Fresh mpv instance: nothing has been applied to it yet, and the
+        # previous instance's snapshot describes a player that no longer
+        # exists (re-open, crash recovery).
         self._audio_configured = False
-        self.apply_audio_settings()
+        self._audio_snapshot = None
+        try:
+            self.apply_audio_settings()
+        except Exception:
+            # Never abort _init_mpv over audio config. We are past mpv's
+            # construction but before _mpv_alive and the event/key bindings,
+            # so escaping here would leave a live mpv window the shim does
+            # not drive and _ensure_mpv would later start a second one on top
+            # of it. Every other optional property write here is guarded the
+            # same way.
+            log.error("Could not apply audio settings at startup.", exc_info=True)
 
         # Wrapper for on_key_press that ignores None.
         def keypress(key):
@@ -1090,6 +1116,15 @@ class PlayerManager(object):
             # avoid.
             self.put_task(self.apply_audio_filters)
 
+        @self._player.property_observer("current-tracks/audio/codec")
+        def handle_audio_codec_change(_name, _value):
+            # Track switches change the answer as much as file changes do:
+            # moving from an AC3 track (passed through) to a 5.1 AAC one needs
+            # the encoder attached, or the surround is silently lost. Observed
+            # rather than hooked into set_streams so that mpv's own track
+            # cycling is covered too.
+            self.put_task(self.apply_audio_filters)
+
         @self._player.event_callback("end-file")
         def handle_end_file(event):
             # Only interesting while a load is in flight: this is purely a
@@ -1220,13 +1255,43 @@ class PlayerManager(object):
         except Exception:
             log.error("Could not update audio filter %s.", label, exc_info=True)
 
+    # The properties apply_audio_settings writes, and therefore the ones it
+    # has to be able to put back. Keyed by mpv name, valued by the attribute
+    # name the backends expose (both accept underscores).
+    _AUDIO_PROPS = {
+        "audio-channels": "audio_channels",
+        "audio-normalize-downmix": "audio_normalize_downmix",
+        "audio-spdif": "audio_spdif",
+    }
+
+    def _snapshot_audio_state(self):
+        """Record mpv's audio config before we first overwrite it.
+
+        Whatever is in place at this point came from the user's own mpv.conf
+        (or mpv's defaults), and returning to "Default (auto)" has to give it
+        back. Restoring hardcoded defaults instead would silently discard an
+        `audio-spdif=ac3,dts` the user had configured themselves -- and there
+        would be no way to get it back short of restarting.
+        """
+        if self._audio_snapshot is not None:
+            return
+        self._audio_snapshot = {
+            prop: self._mpv_property(prop) for prop in self._AUDIO_PROPS
+        }
+
+    def _restore_audio_state(self):
+        snapshot = self._audio_snapshot or {}
+        for prop, attr in self._AUDIO_PROPS.items():
+            value = snapshot.get(prop)
+            if value is not None:
+                setattr(self._player, attr, value)
+
     def apply_audio_settings(self):
         """Push the audio output mode to mpv.
 
         Called once per mpv instance and again whenever the settings change.
-        In "auto" mode this deliberately sets nothing at all: the point of
-        that mode is that a user who has configured audio in their own
-        mpv.conf gets left alone.
+        In "auto" mode this sets nothing: the point of that mode is that a
+        user who configured audio in their own mpv.conf is left alone.
 
         The per-track half of the job (whether to engage the AC3 encoder)
         happens in apply_audio_filters, because it depends on what is
@@ -1236,59 +1301,82 @@ class PlayerManager(object):
             return
         mode = settings.audio_mode or "auto"
         night = bool(settings.audio_night_mode)
-        try:
-            if mode == "auto" and not night and not self._audio_configured:
-                # Nothing has been applied to this mpv instance and nothing
-                # is being asked for, so leave the player completely alone --
-                # that is the whole contract of "Default (auto)". Once we
-                # *have* touched something the branch below runs instead, so
-                # switching back to Default undoes it rather than stranding
-                # the old settings.
-                return
-            self._audio_configured = True
-            channels = AUDIO_MODE_CHANNELS.get(mode)
-            if channels:
-                self._player.audio_channels = channels
-            elif mode == "auto":
-                # Back to mpv's default. We cannot restore a value from the
-                # user's mpv.conf we have already overwritten, but this at
-                # least does not leave a forced layout behind.
-                self._player.audio_channels = "auto-safe"
-            # Downmix normalization only matters when we are the ones
-            # downmixing, which is exactly the stereo case.
-            self._player.audio_normalize_downmix = mode == "stereo"
-            codecs = audio_spdif_codecs(mode, night)
-            self._player.audio_spdif = ",".join(codecs)
-            self._set_af(AF_NIGHT_MODE, NIGHT_MODE_FILTER if night else None)
-            # The AC3 encoder is re-decided per track; drop any stale one so a
-            # mode change out of optical takes effect without a reload.
-            if mode != "optical":
-                self._set_af(AF_AC3_ENCODE, None)
-            else:
-                self.apply_audio_filters()
-            log.info(
-                "Audio config - mode: %s, channels: %s, passthrough: %s, "
-                "night mode: %s",
-                mode,
-                channels or "unset",
-                ",".join(codecs) or "none",
-                "on" if night else "off",
-            )
-        except _mpv_errors:
-            raise
-        except Exception:
-            log.error("Could not apply audio settings.", exc_info=True)
+        # One lock around the settings read and the writes it implies. Without
+        # it a file loading on the action thread and a toggle on the browser
+        # thread can interleave into a config neither of them asked for, and
+        # nothing re-runs to correct it. Not _lock, which is held across a
+        # whole playback start.
+        with self._audio_lock:
+            try:
+                if mode == "auto" and not night and not self._audio_configured:
+                    # Nothing applied to this mpv instance and nothing asked
+                    # for: leave it completely alone. Once we *have* touched
+                    # it the branch below runs instead, so returning to
+                    # Default undoes our changes rather than stranding them.
+                    return
+                self._snapshot_audio_state()
+                self._audio_configured = True
+                channels = AUDIO_MODE_CHANNELS.get(mode)
+                codecs = audio_spdif_codecs(mode, night)
+                if mode == "auto":
+                    # Hand back whatever the user had, then re-apply only what
+                    # night mode genuinely requires (it cannot run on a
+                    # passthrough stream, so passthrough has to go).
+                    self._restore_audio_state()
+                    if night:
+                        self._player.audio_spdif = ""
+                else:
+                    self._player.audio_channels = channels
+                    # Downmix normalization only matters when we are the ones
+                    # downmixing, which is exactly the stereo case.
+                    self._player.audio_normalize_downmix = mode == "stereo"
+                    self._player.audio_spdif = ",".join(codecs)
+                self._set_af(AF_NIGHT_MODE, NIGHT_MODE_FILTER if night else None)
+                # The AC3 encoder is re-decided per track; drop any stale one
+                # so a mode change out of optical takes effect without a
+                # reload.
+                if mode != "optical":
+                    self._set_af(AF_AC3_ENCODE, None)
+                else:
+                    self._apply_audio_filters_locked()
+                log.info(
+                    "Audio config - mode: %s, channels: %s, passthrough: %s, "
+                    "night mode: %s",
+                    mode,
+                    channels or "restored",
+                    ",".join(codecs) or "none",
+                    "on" if night else "off",
+                )
+            except _mpv_errors:
+                raise
+            except Exception:
+                log.error("Could not apply audio settings.", exc_info=True)
 
     def apply_audio_filters(self):
-        """Decide the AC3 encoder for the track that is loaded now.
+        """Decide the AC3 encoder for the track that is playing now.
 
-        Optical only, and only for tracks we are *not* passing through --
-        setting audio-spdif and lavcac3enc for the same track builds a filter
-        chain mpv cannot satisfy, and the failure mode is silence rather than
-        an error.
+        Runs on every file load *and* every audio-track change: the choice
+        depends on the selected track's codec, so switching from an AC3 track
+        to a 5.1 AAC one has to re-decide or the surround is lost.
         """
         if self._player is None:
             return
+        with self._audio_lock:
+            try:
+                self._apply_audio_filters_locked()
+            except _mpv_errors:
+                raise
+            except Exception:
+                log.error("Could not apply audio filters.", exc_info=True)
+
+    def _apply_audio_filters_locked(self):
+        """apply_audio_filters' body; caller holds ``_audio_lock``.
+
+        Optical only, and only for tracks we are *not* passing through --
+        handing mpv audio-spdif and lavcac3enc for one track builds a chain
+        it cannot satisfy, and it recovers by disabling the filter, so the
+        encoder would simply stop working with nothing to show for it.
+        """
         mode = settings.audio_mode or "auto"
         if mode != "optical":
             return
@@ -1296,7 +1384,8 @@ class PlayerManager(object):
         track_codec = self._mpv_property("current-tracks/audio/codec")
         want = audio_wants_ac3_encode(
             mode, track_codec, codecs,
-            bool(settings.audio_optical_encode_ac3))
+            bool(settings.audio_optical_encode_ac3),
+            bool(settings.audio_passthrough_ac3))
         self._set_af(AF_AC3_ENCODE, AC3_ENCODE_FILTER if want else None)
 
     def set_night_mode(self, enabled: bool):

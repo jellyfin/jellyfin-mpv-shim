@@ -109,10 +109,20 @@ class Ac3EncodeTest(unittest.TestCase):
         self.assertFalse(
             audio_wants_ac3_encode("optical", "AC3", ["ac3", "dts"]))
 
-    def test_encodes_ac3_when_the_user_unticked_ac3_passthrough(self):
-        # Unticking AC3 means "my receiver can't decode it" -- so encode it
-        # rather than passing it through anyway.
-        self.assertTrue(audio_wants_ac3_encode("optical", "ac3", ["dts"]))
+    def test_unticking_ac3_also_refuses_the_ac3_encoder(self):
+        # lavcac3enc emits an IEC61937 AC3 *bitstream*, not PCM
+        # (af_lavcac3enc.c sets AF_FORMAT_S_AC3 and defaults tospdif=yes). So
+        # a receiver that cannot decode AC3 must not be handed AC3 by the
+        # back door. Without this the toggle inverts: untick AC3 and *more*
+        # content goes out as AC3 than before.
+        self.assertFalse(
+            audio_wants_ac3_encode("optical", "ac3", ["dts"], True, False))
+        self.assertFalse(
+            audio_wants_ac3_encode("optical", "aac", ["dts"], True, False))
+
+    def test_ac3_encoder_allowed_when_ac3_passthrough_is_on(self):
+        self.assertTrue(
+            audio_wants_ac3_encode("optical", "aac", ["ac3", "dts"], True, True))
 
     def test_encode_others_off_declines_the_encoder(self):
         # Opt-out for receivers where the AC3 encoder adds audible delay.
@@ -142,19 +152,30 @@ class Ac3EncodeTest(unittest.TestCase):
     def test_never_both_passthrough_and_encode_for_the_same_track(self):
         """The invariant, stated directly over every combination."""
         codecs = ["ac3", "dts", "eac3", "dts-hd", "truehd", "aac", "flac"]
+        # Sweep the passthrough toggles too -- ac3_ok is the axis the
+        # "unticking AC3 sends more AC3" bug lived on.
+        toggle_sets = [ALL_ON, ALL_OFF, lambda c: c != "ac3",
+                       lambda c: c == "ac3"]
         for mode in MODES:
             for night in (False, True):
                 for encode in (False, True):
-                    spdif = audio_spdif_codecs(mode, night, ALL_ON)
-                    for codec in codecs:
-                        passed = codec in spdif
-                        encoded = audio_wants_ac3_encode(
-                            mode, codec, spdif, encode)
-                        self.assertFalse(
-                            passed and encoded,
-                            "%s/%s (night=%s, encode=%s) would both pass "
-                            "through and encode"
-                            % (mode, codec, night, encode))
+                    for enabled in toggle_sets:
+                        spdif = audio_spdif_codecs(mode, night, enabled)
+                        for codec in codecs:
+                            passed = codec in spdif
+                            encoded = audio_wants_ac3_encode(
+                                mode, codec, spdif, encode, enabled("ac3"))
+                            self.assertFalse(
+                                passed and encoded,
+                                "%s/%s (night=%s, encode=%s) would both pass "
+                                "through and encode"
+                                % (mode, codec, night, encode))
+                            # The encoder emits AC3, so it may only run when
+                            # AC3 passthrough is on.
+                            self.assertFalse(
+                                encoded and not enabled("ac3"),
+                                "%s/%s would emit AC3 with AC3 unticked"
+                                % (mode, codec))
 
 
 class ModeTablesTest(unittest.TestCase):
@@ -185,16 +206,46 @@ class ModeTablesTest(unittest.TestCase):
 
 
 class FakePlayer:
-    """Records what apply_audio_settings pushes at mpv."""
+    """Records what apply_audio_settings pushes at mpv.
 
-    def __init__(self):
+    Rejects unknown property names. Real python-mpv routes every attribute
+    through _set_property and raises on an unknown one, and jsonipc only
+    forwards names mpv reported at connect time -- so a fake that accepts
+    anything would let a misspelled property pass here and then be swallowed
+    at runtime by apply_audio_settings' broad except.
+
+    ``initial`` seeds the properties mpv would report before we touch it
+    (i.e. what the user's mpv.conf left behind), so snapshot/restore is
+    exercised rather than short-circuited.
+    """
+
+    # mpv 0.41 defaults, verified with --no-config.
+    DEFAULTS = {
+        "audio_channels": "auto-safe",
+        "audio_normalize_downmix": False,
+        "audio_spdif": "",
+    }
+
+    def __init__(self, initial=None):
         self.props = {}
         self.commands = []
+        self.initial = dict(self.DEFAULTS)
+        self.initial.update(initial or {})
 
     def __setattr__(self, name, value):
-        if name in ("props", "commands"):
+        if name in ("props", "commands", "initial"):
             return object.__setattr__(self, name, value)
+        if name not in self.DEFAULTS:
+            raise AttributeError("mpv has no property %r" % name)
         self.props[name] = value
+
+    def _get_property(self, name):
+        attr = name.replace("-", "_")
+        if attr in self.props:
+            return self.props[attr]
+        if attr in self.initial:
+            return self.initial[attr]
+        raise AttributeError("mpv has no property %r" % name)
 
     def command(self, *args):
         self.commands.append(args)
@@ -216,17 +267,26 @@ class ApplyAudioSettingsTest(unittest.TestCase):
     """The apply path itself, against a fake mpv."""
 
     def setUp(self):
+        import threading
+
         from jellyfin_mpv_shim import player
         from jellyfin_mpv_shim.conf import settings
 
         self.settings = settings
-        self._saved = (settings.audio_mode, settings.audio_night_mode)
+        self._saved = (settings.audio_mode, settings.audio_night_mode,
+                       settings.audio_optical_encode_ac3,
+                       settings.audio_passthrough_ac3)
         self.pm = player.PlayerManager.__new__(player.PlayerManager)
+        # Mirrors what PlayerManager.__init__ sets up; __new__ skips it.
         self.pm._audio_configured = False
+        self.pm._audio_snapshot = None
+        self.pm._audio_lock = threading.RLock()
         self.pm._player = FakePlayer()
 
     def tearDown(self):
-        self.settings.audio_mode, self.settings.audio_night_mode = self._saved
+        (self.settings.audio_mode, self.settings.audio_night_mode,
+         self.settings.audio_optical_encode_ac3,
+         self.settings.audio_passthrough_ac3) = self._saved
 
     def apply(self, mode, night=False):
         self.settings.audio_mode = mode
@@ -277,6 +337,57 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         self.assertEqual(p.props["audio_channels"], "auto-safe")
         self.assertFalse(p.props["audio_normalize_downmix"])
         self.assertEqual(p.filters, [])
+
+    def test_night_mode_in_auto_restores_the_users_mpv_conf(self):
+        """Regression: night mode used to permanently clobber mpv.conf.
+
+        Night mode forces the slow path even in auto mode (it has to clear
+        passthrough). Writing hardcoded defaults there discarded an
+        audio-spdif the user had set themselves, and because _audio_configured
+        was then True, turning night mode back off re-wrote the defaults
+        instead of restoring -- unrecoverable short of a restart.
+        """
+        self.pm._player = FakePlayer({"audio_spdif": "ac3,dts",
+                                      "audio_channels": "7.1,5.1,2.0"})
+        p = self.apply("auto", night=True)
+        # Passthrough has to go while night mode is on -- a PCM filter cannot
+        # sit downstream of a compressed stream.
+        self.assertEqual(p.props["audio_spdif"], "")
+        self.assertIn("jfnight", p.filters)
+        # ...but the layout the user chose is not ours to change.
+        self.assertEqual(p.props["audio_channels"], "7.1,5.1,2.0")
+
+        p = self.apply("auto", night=False)
+        self.assertEqual(p.props["audio_spdif"], "ac3,dts")
+        self.assertEqual(p.props["audio_channels"], "7.1,5.1,2.0")
+        self.assertEqual(p.filters, [])
+
+    def test_returning_to_auto_restores_rather_than_defaults(self):
+        self.pm._player = FakePlayer({"audio_spdif": "truehd"})
+        self.apply("stereo")
+        p = self.apply("auto")
+        self.assertEqual(p.props["audio_spdif"], "truehd")
+
+    def test_optical_attaches_the_encoder_for_a_non_passthrough_track(self):
+        # The only mode with per-track logic, and the only one that can build
+        # a chain mpv refuses. Exercises _mpv_property and the encoder branch.
+        self.pm._mpv_property = lambda prop: "aac"
+        p = self.apply("optical")
+        self.assertEqual(p.props["audio_spdif"], "ac3,dts")
+        self.assertIn("jfac3", p.filters)
+
+    def test_optical_leaves_a_passed_through_track_alone(self):
+        self.pm._mpv_property = lambda prop: "ac3"
+        p = self.apply("optical")
+        self.assertEqual(p.props["audio_spdif"], "ac3,dts")
+        self.assertNotIn("jfac3", p.filters)
+
+    def test_optical_refuses_the_encoder_when_ac3_is_unticked(self):
+        self.settings.audio_passthrough_ac3 = False
+        self.pm._mpv_property = lambda prop: "aac"
+        p = self.apply("optical")
+        self.assertNotIn("jfac3", p.filters)
+        self.assertNotIn("ac3", p.props["audio_spdif"])
 
     def test_leaving_optical_drops_the_ac3_encoder(self):
         self.settings.audio_mode = "optical"
