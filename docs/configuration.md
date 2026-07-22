@@ -316,6 +316,9 @@ use `shader_pack_custom`.
 - `shader_pack_profile` - The default profile to use. (Default: `null`)
   - If you use `shader_pack_remember`, this will be updated when you set a profile through the UI.
 - `shader_pack_subtype` - The profile group to use. The default pack contains `lq` and `hq` groups. Use `hq` if you have a fancy graphics card.
+- `shader_pack_gpu_api` - Graphics API to force while a profile is loaded: `auto`, `vulkan`, `d3d11` or `opengl`. (Default: `auto`)
+  - `auto` leaves MPV's own choice (and anything in your `mpv.conf`) alone. The shader pack's legacy `opengl` request is ignored, because the shaders do not need it and OpenGL can cost you HDR output. The pack's `fbo-format` request is ignored with it — that format name only exists on the OpenGL backend, and MPV's own default asks for the same 16-bit float format on every backend. A profile that names some *other* API is honored, since a profile built around a Direct3D 11 filter cannot run anywhere else.
+  - Set this only if video breaks when you load a profile. `opengl` is the most compatible; on Windows, `d3d11` (the MPV default) and `vulkan` are the ones that handle HDR.
 
 ## Trickplay Thumbnails
 

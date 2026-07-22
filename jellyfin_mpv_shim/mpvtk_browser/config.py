@@ -70,6 +70,8 @@ SECTIONS = [
                         "transcode_hdr", "transcode_hi10p",
                         "transcode_dolby_vision", "force_video_codec",
                         "force_audio_codec"]),
+    (_("Video Enhancement"), ["shader_pack_enable", "shader_pack_subtype",
+                              "shader_pack_remember", "shader_pack_gpu_api"]),
     (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
@@ -103,6 +105,12 @@ LABELED_ENUMS = {
         (_("125%"), 1.25),
         (_("150%"), 1.5),
         (_("200%"), 2.0),
+    ],
+    "shader_pack_gpu_api": [
+        (_("Automatic (recommended)"), "auto"),
+        (_("Vulkan"), "vulkan"),
+        (_("Direct3D 11 (Windows only)"), "d3d11"),
+        (_("OpenGL (compatibility)"), "opengl"),
     ],
     "audio_mode": [
         (_("Default (auto)"), "auto"),
@@ -142,6 +150,10 @@ LABEL_OVERRIDES = {
     "hud_wake_key": _("Player Controls Activation Key"),
     "audio_mode": _("Audio Output Mode"),
     "audio_night_mode": _("Night Mode (Auto Volume Adj)"),
+    "shader_pack_enable": _("Enable Video Playback Profiles"),
+    "shader_pack_subtype": _("Profile Group"),
+    "shader_pack_remember": _("Remember Last Used Profile"),
+    "shader_pack_gpu_api": _("Graphics API for Shaders"),
     "audio_passthrough_ac3": _("Pass Through AC3"),
     "audio_passthrough_dts": _("Pass Through DTS"),
     "audio_passthrough_eac3": _("Pass Through E-AC3"),
@@ -165,6 +177,12 @@ NOTES = {
                                   "surround fits down an optical cable. Turn "
                                   "this off if the encoder causes audio delay "
                                   "— those tracks become stereo instead."),
+    "shader_pack_subtype": _("\"hq\" offers heavier profiles. Pick it if you "
+                             "have a fast graphics card."),
+    "shader_pack_gpu_api": _("Leave on Automatic unless video breaks when a "
+                             "profile is loaded. This only applies while a "
+                             "profile is active, and OpenGL can cost you HDR "
+                             "output."),
     "audio_night_mode": _("Evens out loud effects and quiet dialogue. This "
                           "turns passthrough off while it is enabled, because "
                           "the volume has to be adjusted before your receiver "

@@ -99,11 +99,60 @@ class VideoProfileManager:
         if settings.shader_pack_profile is not None:
             self.load_profile(settings.shader_pack_profile, reset=False)
 
+    @staticmethod
+    def api_setting_override(key: str, pack_value):
+        """The two settings the pack uses to pin itself to OpenGL.
+
+        default-shader-pack 84fc5df (2020, "Fix Windows and external MPV
+        compatibility issues") added `gpu_api: opengl` and
+        `fbo_format: rgba16f` together, and the pairing is the whole story:
+        `rgba16f` is an OpenGL-backend format name. The Direct3D 11 backend
+        calls the same format `rgba16hf` (mpv `video/out/d3d11/ra_d3d11.c`),
+        so on d3d11 the pack's value fails to initialize, MPV falls back to
+        *dumb mode*, and dumb mode disables every user shader — silently.
+        Forcing `opengl` made the format name true again.
+
+        Neither pin is needed now, and both cost something:
+
+        - `fbo_format` is dropped outright. MPV's `auto` already tries
+          16-bit float first (`rgba16f`, `rgba16hf`) on whichever backend
+          is live, which is what the pack was asking for, spelled portably.
+        - `gpu_api: opengl` is dropped, so MPV keeps the API it picked. The
+          shaders do not need OpenGL — MPV cross-compiles user GLSL to
+          SPIR-V, and the pack's profiles run unmodified on Vulkan and
+          compile clean through the d3d11 chain. Forcing OpenGL does cost
+          HDR on Windows, where the autoprobe order is d3d11, then Vulkan,
+          then OpenGL last (mpv `video/out/gpu/context.c`).
+
+        Only that one legacy value is refused. A profile that names some
+        other API means it, rather than inheriting a 2020 workaround — a
+        Direct3D 11 video filter like RTX Video Super Resolution genuinely
+        cannot run on another backend — so those are passed through. The
+        user's `shader_pack_gpu_api` outranks both.
+
+        Returns the value to apply, or None to leave the setting alone.
+        """
+        if key == "fbo_format":
+            log.debug("Ignoring shader pack fbo-format=%s; MPV's auto is portable.",
+                      pack_value)
+            return None
+        choice = (settings.shader_pack_gpu_api or "auto").lower()
+        if choice != "auto":
+            return choice
+        if str(pack_value).lower() == "opengl":
+            log.debug("Ignoring shader pack gpu-api=opengl; leaving MPV's own choice.")
+            return None
+        return pack_value
+
     def process_setting_group(
         self, group_name: str, settings_to_apply: list, shaders_to_apply: list
     ):
         group = self.groups[group_name]
         for key, value in group.get("settings", []):
+            if key in ("gpu_api", "fbo_format"):
+                value = self.api_setting_override(key, value)
+                if value is None:
+                    continue
             if key not in self.defaults:
                 if key not in self.revert_ignore:
                     raise MPVSettingError(
@@ -145,7 +194,22 @@ class VideoProfileManager:
                 if (key, value) in already_set:
                     continue
                 log.info("Set MPV setting {0} to {1}".format(key, value))
-                setattr(self.player, key, value)
+                if key == "gpu_api":
+                    # A pack may ask for an API this build has no context
+                    # for -- a Direct3D 11 profile read on Linux, say. MPV
+                    # rejects the value outright, and losing the rest of
+                    # the profile (and raising into the menu) over that is
+                    # worse than running it on the API we already have.
+                    try:
+                        setattr(self.player, key, value)
+                    except Exception:
+                        log.warning(
+                            "MPV would not switch to gpu-api={0}; keeping the "
+                            "current one.".format(value),
+                            exc_info=True,
+                        )
+                else:
+                    setattr(self.player, key, value)
                 already_set.add((key, value))
 
             # Apply Shaders

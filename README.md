@@ -143,6 +143,10 @@ preconfigured. Try experimenting with video profiles! It may greatly improve you
 
 To use, navigate to the **Video Playback Profiles** option and select a profile.
 
+Profiles leave your graphics API alone, so HDR output keeps working. If video breaks
+when you load one, pick a different API under Settings → Video Enhancement → **Graphics
+API for Shaders** (`shader_pack_gpu_api`); `opengl` is the most compatible.
+
 For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 If you would like to customize the shader pack, there are details in the configuration section.
 
