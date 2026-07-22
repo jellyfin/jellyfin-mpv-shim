@@ -80,6 +80,7 @@ local state = {
     nav_adjust = nil,       -- slider value-adjust mode (ENTER toggles)
     drag = nil,             -- {sc=id, axis, start_m, start_off} scrollbar drag
     scroll = {},            -- id -> offset (px)
+    snap_accum = {},        -- snaps container id -> fractional notch carry
     tb = {},                -- id -> {text, cursor, shift}
     dd = {},                -- id -> {sel}
     focus = nil,            -- focused textbox id
@@ -277,6 +278,16 @@ local function scroll_max(node)
     return math.max(0, node.ch - node.h)
 end
 
+-- Nearest breakpoint index in an explicit snaps list (home sections).
+local function snap_index(snaps, off)
+    local idx, bestd = 1, math.huge
+    for i, s in ipairs(snaps) do
+        local d = math.abs(off - s)
+        if d < bestd then bestd = d; idx = i end
+    end
+    return idx
+end
+
 -- Row-quantized DISPLAY offset for a snapping container (node.snap set by
 -- the grid; see widgets.Scroll). The stored offset in state.scroll stays
 -- continuous — this only maps it to the nearest row boundary for drawing and
@@ -285,7 +296,21 @@ end
 -- Snap stops are {0} ∪ {snap_off + k*snap} ∪ {max}: the top rests flush so
 -- the header stays reachable, and the bottom rests flush so the last partial
 -- row is never left with a gap beneath it.
+--
+-- node.snaps (an explicit list of breakpoints, e.g. home section tops) takes
+-- precedence: the offset snaps to the nearest listed stop, clamped to the
+-- scrollable range.
 local function snap_round(node, off)
+    if node.snaps then
+        local max = scroll_max(node)
+        local best, bestd = clamp(off, 0, max), math.huge
+        for _, s in ipairs(node.snaps) do
+            local sv = clamp(s, 0, max)
+            local d = math.abs(off - sv)
+            if d < bestd then bestd = d; best = sv end
+        end
+        return best
+    end
     local snap = node.snap
     if not snap or snap <= 0 then return off end
     local max = scroll_max(node)
@@ -2484,6 +2509,26 @@ local function on_wheel(dir, axis, e)
         off = node and math.floor(state.scroll[node.id] or 0) or -1,
     }
     if not node then return end
+    -- Explicit breakpoints (home sections): a notch steps to the adjacent
+    -- stop. Hi-res deltas accumulate in a fractional carry so a slow trackpad
+    -- still advances one section per notch's worth of travel; a fling delivers
+    -- many notches in a tick and lands several sections on the coalesced frame.
+    if node.snaps and #node.snaps > 0 then
+        local acc = (state.snap_accum[node.id] or 0) + dir * scale
+        local steps = 0
+        if acc >= 1 then
+            steps = math.floor(acc)
+        elseif acc <= -1 then
+            steps = math.ceil(acc)
+        end
+        state.snap_accum[node.id] = acc - steps
+        if steps ~= 0 then
+            local idx = snap_index(node.snaps, state.scroll[node.id] or 0)
+            local tgt = clamp(idx + steps, 1, #node.snaps)
+            set_scroll(node, node.snaps[tgt])
+        end
+        return
+    end
     -- A snapping container steps by whole rows: one notch (scale ~= 1) moves
     -- exactly one row, a hi-res delta accumulates in the continuous offset and
     -- the snapped display advances once it crosses a row. A fling delivers many

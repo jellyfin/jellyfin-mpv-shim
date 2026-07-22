@@ -123,6 +123,48 @@ class TestLayout(unittest.TestCase):
         # Sub-pixel only: layout rounds each emitted position.
         self.assertLessEqual(abs(row_y - formula), 1)
 
+    def test_snaps_emitted_and_scaled(self):
+        from jellyfin_mpv_shim.mpvtk import scaling
+
+        tree = Column(
+            [VScroll(Column([Image("/x.bgra", 140, 200)]),
+                     id="home", flex=1, snaps=[0, 100, 250])],
+            w=800, h=400, align="stretch",
+        )
+        nodes, _ = layout(tree, 800, 400)
+        home = by_id(nodes, "home")
+        self.assertEqual(home["snaps"], [0, 100, 250])
+        self.assertNotIn("snap", home)  # snaps takes precedence over uniform
+        prev = scaling.scale()
+        try:
+            scaling.set_scale(2.0)
+            scaling.scale_scene(nodes)
+            self.assertEqual(home["snaps"], [0, 200, 500])
+        finally:
+            scaling.set_scale(prev)
+
+    def test_section_offsets_formula_matches_layout(self):
+        # _section_offsets must equal the laid-out top of each section, or a
+        # snap stop lands the heading a few px off.
+        from jellyfin_mpv_shim.mpvtk.layout import measure
+
+        GAP = 20
+
+        def section(i):
+            return Column([Text("H%d" % i, size=24, bold=True, id="h%d" % i),
+                           Image("/x.bgra", 140, 200)], gap=10)
+
+        secs = [section(0), section(1), section(2)]
+        tree = Column(secs, gap=GAP, w=800, h=3000, align="stretch")
+        nodes, _ = layout(tree, 800, 3000)
+        y, offs = 0.0, []
+        for s in secs:
+            offs.append(y)
+            y += measure(s)[1] + GAP
+        for i in range(len(secs)):
+            head_y = by_id(nodes, "h%d" % i)["y"]  # heading = section top
+            self.assertLessEqual(abs(head_y - offs[i]), 1)
+
     def test_no_snap_absent_by_default(self):
         tree = Column([VScroll(Column([Image("/x.bgra", 140, 200)]),
                                id="plain", flex=1)],

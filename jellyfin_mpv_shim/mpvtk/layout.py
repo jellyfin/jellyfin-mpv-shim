@@ -792,7 +792,11 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         node["ch"] = _round(ch)
         if el.follow:
             node["follow"] = True
-        if getattr(el, "snap", None):
+        if getattr(el, "snaps", None):
+            # Explicit unequal breakpoints (home sections). Logical; scale_scene
+            # scales each element. Takes precedence over uniform snap.
+            node["snaps"] = list(el.snaps)
+        elif getattr(el, "snap", None):
             # Row-quantized display offset (see Scroll/renderer.lua snap_round).
             # Logical here; scale_scene converts both to physical, like cw/ch.
             node["snap"] = el.snap

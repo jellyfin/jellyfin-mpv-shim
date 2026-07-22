@@ -109,7 +109,14 @@ class ViewsMixin:
                                   color=theme.SUBTLE_FG)]))
         # pad=0: home carousels bleed to the window edges so their page
         # arrows sit flush against them (see _hscroll_row).
-        return VScroll(Column(rows, gap=20), id="home", flex=1)
+        #
+        # Snap vertical scroll to section headings: the home screen is
+        # bitmap-heavy (a wide carousel strip per section) and scrolled fast,
+        # so a continuous offset repositions every section every frame. Section
+        # heights differ (poster vs landscape rows), so the breakpoints are the
+        # explicit content-y of each section top, not a uniform pitch.
+        return VScroll(Column(rows, gap=20), id="home", flex=1,
+                       snaps=self._section_offsets(rows, 20))
 
     # Item types whose artwork is square, not a 2:3 poster: music, and
     # playlists (whose own Primary image is a square). Rendering them in a

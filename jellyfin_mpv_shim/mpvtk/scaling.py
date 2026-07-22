@@ -92,6 +92,9 @@ def _round(v):
 _PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch",
             "rh", "snap", "snap_off")
 
+# Pixel geometry that arrives as a LIST of numbers (scaled elementwise).
+_PX_LIST_KEYS = ("snaps",)
+
 # Pixel values that live INSIDE nested style dicts. These are the reason
 # this is an explicit table rather than a recursive walk over anything
 # numeric: `hover` also carries colours, and a slider's min/max/value/
@@ -118,6 +121,10 @@ def scale_scene(nodes):
             v = node.get(key)
             if v is not None:
                 node[key] = px(v)
+        for key in _PX_LIST_KEYS:
+            v = node.get(key)
+            if v is not None:
+                node[key] = [px(x) for x in v]
         for nest in _NESTED:
             d = node.get(nest)
             if not isinstance(d, dict):

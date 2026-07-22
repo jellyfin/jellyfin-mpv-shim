@@ -760,6 +760,22 @@ class TilesMixin:
                 + len(hs) * self.GRID_GAP
                 + sum(measure(h)[1] for h in hs))
 
+    def _section_offsets(self, elements, gap, pad=0):
+        """Content-y of each element's top in a ``Column(pad=pad, gap=gap)`` —
+        the snap breakpoints for a variable-height list (home sections, which
+        are heading + carousel of differing heights). Uses the layout engine's
+        own measurement so a stop lands the section heading flush, not a few px
+        off. None entries are skipped to match Column."""
+        from ..mpvtk.layout import measure
+
+        offs, y = [], float(pad)
+        for el in elements:
+            if el is None:
+                continue
+            offs.append(y)
+            y += measure(el)[1] + gap
+        return offs
+
     def _grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
                  on_click=None):

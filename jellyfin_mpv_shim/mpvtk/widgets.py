@@ -796,10 +796,15 @@ class Scroll(Element):
     the library grid, where fast scrolling otherwise smears every visible row
     across the frame and forces a full recomposite per frame (see
     renderer.lua's snap_round).
+
+    ``snaps`` is the same idea for **unequal** breakpoints: an explicit list
+    of logical offsets (e.g. the content-y of each home-screen section
+    heading). The renderer snaps the display to the nearest one, and a wheel
+    notch steps to the adjacent breakpoint. Takes precedence over ``snap``.
     """
 
     def __init__(self, child, axis, scrollbar=False, on_scroll=None,
-                 follow=False, snap=None, snap_off=0, **kw):
+                 follow=False, snap=None, snap_off=0, snaps=None, **kw):
         super().__init__(**kw)
         self.child = child
         self.axis = axis
@@ -808,6 +813,7 @@ class Scroll(Element):
         self.follow = follow
         self.snap = snap
         self.snap_off = snap_off
+        self.snaps = snaps
 
 
 class HScroll(Scroll):
