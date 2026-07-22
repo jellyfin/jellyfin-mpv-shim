@@ -82,5 +82,80 @@ class StartupForceWindowTest(unittest.TestCase):
         self.assertTrue(self._init_options("jellyfin").get("force_window"))
 
 
+class VersionGateTest(unittest.TestCase):
+    """Which mpv acts on a force-window change made while idle."""
+
+    works = staticmethod(player_module.runtime_force_window_works)
+
+    def test_041_and_newer_honour_it(self):
+        for v in ("mpv v0.41.0", "mpv v0.42.0", "mpv v1.0.0",
+                  "mpv v0.41.0-368-g1234567"):
+            with self.subTest(v=v):
+                self.assertTrue(self.works(v))
+
+    def test_040_and_older_do_not(self):
+        for v in ("mpv v0.40.0", "mpv 0.40.0-dirty", "mpv v0.35.1"):
+            with self.subTest(v=v):
+                self.assertFalse(self.works(v))
+
+    def test_an_unreadable_version_is_treated_as_old(self):
+        """The two ways of being wrong are not symmetric: assuming old
+        costs a fallback that works everywhere, assuming new costs a
+        window that will not go away."""
+        for v in ("mpv UNKNOWN", "", None):
+            with self.subTest(v=v):
+                self.assertFalse(self.works(v))
+
+
+class MinimizeReleaseTest(unittest.TestCase):
+    """Minimize is "release the window". On an mpv that cannot drop
+    force-window at runtime the request is silently ignored, so the release
+    has to be a teardown instead — which is only what the idle timer would
+    do a few minutes later anyway."""
+
+    def _player(self, runtime_force_window):
+        pm = h.build_player(player_module)
+        pm._runtime_force_window = runtime_force_window
+        pm._mpv_alive = True
+        pm.mpvtk_active = False
+        pm._video = None
+        pm._loading = False
+        pm._showing_browse_bg = False
+        quits = []
+        pm.idle_quit = lambda reason=None: quits.append(reason)
+        return pm, quits
+
+    def test_a_modern_mpv_just_drops_force_window(self):
+        pm, quits = self._player(True)
+        pm.set_browse_window(False)
+        self.assertFalse(pm._player.force_window)
+        self.assertEqual(quits, [], "tore mpv down when it did not have to")
+
+    def test_an_old_mpv_is_torn_down_instead(self):
+        pm, quits = self._player(False)
+        pm.set_browse_window(False)
+        self.assertEqual(len(quits), 1,
+                         "the window would have stayed on screen")
+
+    def test_nothing_is_torn_down_while_something_is_playing(self):
+        """set_browse_window(False) leaves the window alone during
+        playback; quitting mpv there would stop the video."""
+        pm, quits = self._player(False)
+        pm._video = object()
+        pm.set_browse_window(False)
+        self.assertEqual(quits, [])
+
+    def test_nothing_is_torn_down_mid_load(self):
+        pm, quits = self._player(False)
+        pm._loading = True
+        pm.set_browse_window(False)
+        self.assertEqual(quits, [])
+
+    def test_entering_browse_never_tears_down(self):
+        pm, quits = self._player(False)
+        pm.set_browse_window(True)
+        self.assertEqual(quits, [])
+
+
 if __name__ == "__main__":
     unittest.main()

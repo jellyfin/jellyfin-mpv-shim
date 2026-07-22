@@ -398,6 +398,10 @@ def build_player(player_module, video=None):
     pm._audio_lock = RLock()
     pm._audio_configured = False
     pm._audio_snapshot = None
+    # Whether this mpv honours a runtime force-window change; _init_mpv reads
+    # it off the real version. FakeMPV has none, so assume the modern
+    # behaviour and let the tests that care set it explicitly.
+    pm._runtime_force_window = True
     pm._finished_lock = Lock()
     pm.timeline_trigger = None
     pm.action_trigger = None

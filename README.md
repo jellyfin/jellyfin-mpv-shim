@@ -315,9 +315,11 @@ You can [install the software from flathub](https://flathub.org/apps/details/com
 
 If you are on Linux, you can install via pip. You'll need [libmpv](https://github.com/Kagami/mpv.js#get-libmpv) or `mpv` installed.
 
-MPV 0.41 or newer is recommended. Older versions work, but they can only create
-the player window at startup, never release it afterwards — so minimizing the
-library to the tray leaves an empty window behind until MPV idles out.
+MPV 0.41 or newer is recommended. Older versions work, with two differences:
+minimizing the library to the tray quits MPV rather than just dropping its
+window (it comes back on the next play, or from the tray), and copy/paste in
+text fields needs `wl-clipboard` on Wayland or `xclip`/`xsel` on X11, because
+MPV had no X11 clipboard of its own before 0.41.
 
 For full library browsing support, install `pystray` and `Pillow`:
 

@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import sys
 import time
 import json
@@ -211,6 +212,32 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
 BROWSE_BG_HEX = "#141414"
+
+
+def runtime_force_window_works(version):
+    """Whether this mpv acts on a force-window change made while idle.
+
+    Every mpv *stores* the property; only 0.41 and newer create or destroy
+    the video output for it. Older builds decide at startup and then never
+    revisit it, which is why the window has to be asked for on the command
+    line (see ``_init_mpv``) and why releasing it later does nothing.
+
+    Historically none of this mattered: the window was summoned by loading
+    a file and released by unloading one, so force_window was only ever a
+    flag alongside real media. ``PlayerManager.force_window`` still works
+    that way. The browser stopped loading anything -- deliberately, since
+    reloading a background file tears the video output down and reads as
+    the window closing and reopening -- and inherited the newer behaviour
+    without anyone noticing the version it needs.
+
+    An unreadable version is treated as old, because the two ways of being
+    wrong are not symmetric: assuming old costs a fallback that works
+    everywhere, assuming new costs a window that will not go away.
+    """
+    m = re.search(r"(\d+)\.(\d+)", version or "")
+    if not m:
+        return False
+    return (int(m.group(1)), int(m.group(2))) >= (0, 41)
 
 
 SUBTITLE_POS = {
@@ -817,6 +844,16 @@ class PlayerManager(object):
             loglevel=settings.mpv_log_level,
             **mpv_options,
         )
+
+        try:
+            self._runtime_force_window = runtime_force_window_works(
+                self._player.mpv_version)
+        except Exception:
+            log.debug("could not read the mpv version", exc_info=True)
+            self._runtime_force_window = False
+        if not self._runtime_force_window:
+            log.info("This mpv cannot give up its window on request "
+                     "(needs 0.41+); minimizing will quit mpv instead.")
 
         # The menu object must survive mpv re-creation (crash recovery,
         # idle-quit): its is_menu_shown state gates idle_quit, and callers
@@ -3184,10 +3221,13 @@ class PlayerManager(object):
             self._init_mpv()
 
     @synchronous("_lock")
-    def idle_quit(self):
+    def idle_quit(self, reason="Idle timeout reached"):
         """Quit mpv while idle to free the window / GPU context / memory
         (opt-in via mpv_idle_quit). Re-created on the next play. Gated hard so
-        it never fires while anything still needs the window."""
+        it never fires while anything still needs the window.
+
+        Also the minimize path on an mpv that cannot drop force-window at
+        runtime, which is what ``reason`` distinguishes in the log."""
         if not self._mpv_alive or self._video is not None:
             return
         if self.menu.is_menu_shown or self.syncplay.is_enabled():
@@ -3200,7 +3240,7 @@ class PlayerManager(object):
         if is_using_ext_mpv and not settings.mpv_ext_start:
             # Never kill an mpv the user launched themselves.
             return
-        log.info("Idle timeout reached; quitting mpv to save resources.")
+        log.info("%s; quitting mpv to save resources.", reason)
         self._idle_quit = True
         self.should_send_timeline = False
         player = self._player
@@ -3503,6 +3543,7 @@ class PlayerManager(object):
             if not enabled:
                 return
             self._init_mpv()
+        release_failed = False
         try:
             if enabled:
                 try:
@@ -3587,8 +3628,22 @@ class PlayerManager(object):
                 if not self._video and not self._loading:
                     self._set_force_window(False)
                     self._player.command("stop")
+                    release_failed = not self._runtime_force_window
         except _mpv_errors:
             self._handle_mpv_disconnect()
+            return
+        if release_failed:
+            # This mpv decided about its window at startup and will not
+            # revisit it (see runtime_force_window_works), so the window we
+            # were just asked to give up is still on screen. Quitting mpv
+            # *is* the release here. That is only what the idle timer would
+            # do a few minutes later anyway, and it costs nothing the app
+            # needs: it stays a cast target, and the next play or tray
+            # reopen builds a fresh mpv that asks for its window on the
+            # command line.
+            log.info("Releasing the window by quitting mpv (this mpv "
+                     "cannot drop force-window at runtime).")
+            self.idle_quit(reason="minimized")
 
     def raise_window(self):
         """Best-effort "bring the player window forward" — the tray's Show
