@@ -7,12 +7,24 @@ import logging
 import os.path
 import shutil
 import json
+import sys
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .player import PlayerManager as PlayerManager_type
     from .menu import OSDMenu as OSDMenu_type
+
+# What a pack's optional "platforms" list is matched against. A profile may
+# be built around something that exists on exactly one OS -- RTX Video Super
+# Resolution is a Direct3D 11 video filter, not a shader -- and offering it
+# elsewhere is offering a menu entry that cannot work.
+if sys.platform == "win32":
+    PLATFORM = "windows"
+elif sys.platform == "darwin":
+    PLATFORM = "macos"
+else:
+    PLATFORM = "linux"
 
 profile_name_translation = {
     "Generic (FSRCNNX)": _("Generic (FSRCNNX)"),
@@ -27,6 +39,8 @@ profile_name_translation = {
     "Anime4K x2 Perceptual + Deblur (For HD)": _(
         "Anime4K x2 Perceptual + Deblur (For HD)"
     ),
+    "ArtCNN (Denoise + Sharpen)": _("ArtCNN (Denoise + Sharpen)"),
+    "ArtCNN High (C4F32)": _("ArtCNN High (C4F32)"),
 }
 
 log = logging.getLogger("video_profile")
@@ -98,6 +112,17 @@ class VideoProfileManager:
 
         if settings.shader_pack_profile is not None:
             self.load_profile(settings.shader_pack_profile, reset=False)
+
+    @staticmethod
+    def profile_is_available(profile: dict) -> bool:
+        """Whether this machine can run the profile at all.
+
+        Gating is opt-in: a profile that says nothing about platforms runs
+        everywhere, which is all of them but the few that had to declare
+        themselves. Packs that predate this key are unaffected.
+        """
+        platforms = profile.get("platforms")
+        return platforms is None or PLATFORM in platforms
 
     @staticmethod
     def api_setting_override(key: str, pack_value):
@@ -175,6 +200,16 @@ class VideoProfileManager:
             return False
 
         profile = self.profiles[profile_name]
+        if not self.profile_is_available(profile):
+            # Reachable without the menu: a config.json carried between
+            # machines, or shader_pack_profile remembered on another OS.
+            log.error(
+                "Shader profile {0} needs {1}, so it cannot run here.".format(
+                    profile_name, "/".join(profile["platforms"])
+                )
+            )
+            return False
+
         settings_to_apply = []
         shaders_to_apply = []
         try:
@@ -252,11 +287,13 @@ class VideoProfileManager:
     def menu_action(self):
         selected = 0
         profile_option_list = [(_("None (Disabled)"), self.menu_handle, None)]
-        for i, (profile_name, profile) in enumerate(self.profiles.items()):
+        for profile_name, profile in self.profiles.items():
             if (
                 profile.get("subtype", None) is not None
                 and not settings.shader_pack_subtype in profile["subtype"]
             ):
+                continue
+            if not self.profile_is_available(profile):
                 continue
 
             name = profile["displayname"]
@@ -264,5 +301,7 @@ class VideoProfileManager:
                 name = profile_name_translation[name]
             profile_option_list.append((name, self.menu_handle, profile_name))
             if profile_name == self.current_profile:
-                selected = i + 1
+                # The row it landed on, not its index in the unfiltered
+                # pack -- skipped profiles shift everything after them.
+                selected = len(profile_option_list) - 1
         self.menu.put_menu(_("Select Shader Profile"), profile_option_list, selected)

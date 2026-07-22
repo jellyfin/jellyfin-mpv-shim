@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 17:47-0400\n"
+"POT-Creation-Date: 2026-07-22 18:27-0400\n"
 "PO-Revision-Date: 2025-07-26 19:59+0000\n"
 "Last-Translator: Djwarf <djwar.fettah@outlook.com>\n"
 "Language-Team: Kurdish (Southern) <https://translate.jellyfin.org/projects/"
@@ -1425,7 +1425,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 #: jellyfin_mpv_shim/osc_bridge.py:95 jellyfin_mpv_shim/osc_bridge.py:194
 #: jellyfin_mpv_shim/osc_bridge.py:205 jellyfin_mpv_shim/osc_bridge.py:223
-#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:232
+#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:289
 msgid "None (Disabled)"
 msgstr ""
 
@@ -2480,39 +2480,47 @@ msgstr ""
 msgid " Forced"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:18
+#: jellyfin_mpv_shim/video_profile.py:30
 msgid "Generic (FSRCNNX)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:19
+#: jellyfin_mpv_shim/video_profile.py:31
 msgid "Generic High (FSRCNNX x16)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:20
+#: jellyfin_mpv_shim/video_profile.py:32
 msgid "Anime4K x4 Faithful (For SD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:21
+#: jellyfin_mpv_shim/video_profile.py:33
 msgid "Anime4K x4 Perceptual (For SD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:22
+#: jellyfin_mpv_shim/video_profile.py:34
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:25
+#: jellyfin_mpv_shim/video_profile.py:37
 msgid "Anime4K x2 Faithful (For HD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:26
+#: jellyfin_mpv_shim/video_profile.py:38
 msgid "Anime4K x2 Perceptual (For HD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:27
+#: jellyfin_mpv_shim/video_profile.py:39
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr ""
 
-#: jellyfin_mpv_shim/video_profile.py:246
+#: jellyfin_mpv_shim/video_profile.py:42
+msgid "ArtCNN (Denoise + Sharpen)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:43
+msgid "ArtCNN High (C4F32)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:307
 msgid "Select Shader Profile"
 msgstr ""
 

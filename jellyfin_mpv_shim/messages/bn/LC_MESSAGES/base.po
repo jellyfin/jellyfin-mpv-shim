@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 17:47-0400\n"
+"POT-Creation-Date: 2026-07-22 18:27-0400\n"
 "PO-Revision-Date: 2026-05-20 10:59+0000\n"
 "Last-Translator: Sarker Siam <siamsarker36@gmail.com>\n"
 "Language-Team: Bengali <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1473,7 +1473,7 @@ msgstr "অটো প্লে"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 #: jellyfin_mpv_shim/osc_bridge.py:95 jellyfin_mpv_shim/osc_bridge.py:194
 #: jellyfin_mpv_shim/osc_bridge.py:205 jellyfin_mpv_shim/osc_bridge.py:223
-#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:232
+#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:289
 msgid "None (Disabled)"
 msgstr "কোনোটিই নেই (অক্ষম)"
 
@@ -2594,39 +2594,47 @@ msgstr "অজানা"
 msgid " Forced"
 msgstr " জবরদস্তি"
 
-#: jellyfin_mpv_shim/video_profile.py:18
+#: jellyfin_mpv_shim/video_profile.py:30
 msgid "Generic (FSRCNNX)"
 msgstr "সাধারণ (FSRCNNX)"
 
-#: jellyfin_mpv_shim/video_profile.py:19
+#: jellyfin_mpv_shim/video_profile.py:31
 msgid "Generic High (FSRCNNX x16)"
 msgstr "উচ্চ মানের সাধারণ (FSRCNNX x16)"
 
-#: jellyfin_mpv_shim/video_profile.py:20
+#: jellyfin_mpv_shim/video_profile.py:32
 msgid "Anime4K x4 Faithful (For SD)"
 msgstr "Anime4K x4 ফেইথফুল (SD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:21
+#: jellyfin_mpv_shim/video_profile.py:33
 msgid "Anime4K x4 Perceptual (For SD)"
 msgstr "Anime4K x4 পারসেপচুয়াল (SD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:22
+#: jellyfin_mpv_shim/video_profile.py:34
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
 msgstr "Anime4K x4 পারসেপচুয়াল + ডিব্লার (SD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:25
+#: jellyfin_mpv_shim/video_profile.py:37
 msgid "Anime4K x2 Faithful (For HD)"
 msgstr "Anime4K x2 ফেইথফুল (HD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:26
+#: jellyfin_mpv_shim/video_profile.py:38
 msgid "Anime4K x2 Perceptual (For HD)"
 msgstr "Anime4K x2 পারসেপচুয়াল (HD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:27
+#: jellyfin_mpv_shim/video_profile.py:39
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 পারসেপচুয়াল + ডিব্লার (HD-এর জন্য)"
 
-#: jellyfin_mpv_shim/video_profile.py:246
+#: jellyfin_mpv_shim/video_profile.py:42
+msgid "ArtCNN (Denoise + Sharpen)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:43
+msgid "ArtCNN High (C4F32)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:307
 msgid "Select Shader Profile"
 msgstr "শেডার প্রোফাইল নির্বাচন করুন"
 

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-22 17:47-0400\n"
+"POT-Creation-Date: 2026-07-22 18:27-0400\n"
 "PO-Revision-Date: 2026-07-06 08:24+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
@@ -1415,7 +1415,7 @@ msgstr "自動播放"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 #: jellyfin_mpv_shim/osc_bridge.py:95 jellyfin_mpv_shim/osc_bridge.py:194
 #: jellyfin_mpv_shim/osc_bridge.py:205 jellyfin_mpv_shim/osc_bridge.py:223
-#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:232
+#: jellyfin_mpv_shim/syncplay.py:675 jellyfin_mpv_shim/video_profile.py:289
 msgid "None (Disabled)"
 msgstr "無（已停用）"
 
@@ -2502,39 +2502,47 @@ msgstr "未知"
 msgid " Forced"
 msgstr " 強制"
 
-#: jellyfin_mpv_shim/video_profile.py:18
+#: jellyfin_mpv_shim/video_profile.py:30
 msgid "Generic (FSRCNNX)"
 msgstr "通用 (FSRCNNX)"
 
-#: jellyfin_mpv_shim/video_profile.py:19
+#: jellyfin_mpv_shim/video_profile.py:31
 msgid "Generic High (FSRCNNX x16)"
 msgstr "通用高畫質 (FSRCNNX x16)"
 
-#: jellyfin_mpv_shim/video_profile.py:20
+#: jellyfin_mpv_shim/video_profile.py:32
 msgid "Anime4K x4 Faithful (For SD)"
 msgstr "Anime4K x4 忠實還原 (SD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:21
+#: jellyfin_mpv_shim/video_profile.py:33
 msgid "Anime4K x4 Perceptual (For SD)"
 msgstr "Anime4K x4 感官優化 (SD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:22
+#: jellyfin_mpv_shim/video_profile.py:34
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
 msgstr "Anime4K x4 感官優化 + 去模糊 (SD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:25
+#: jellyfin_mpv_shim/video_profile.py:37
 msgid "Anime4K x2 Faithful (For HD)"
 msgstr "Anime4K x2 忠實還原 (HD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:26
+#: jellyfin_mpv_shim/video_profile.py:38
 msgid "Anime4K x2 Perceptual (For HD)"
 msgstr "Anime4K x2 感官優化 (HD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:27
+#: jellyfin_mpv_shim/video_profile.py:39
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
 msgstr "Anime4K x2 感官優化 + 去模糊 (HD 適用)"
 
-#: jellyfin_mpv_shim/video_profile.py:246
+#: jellyfin_mpv_shim/video_profile.py:42
+msgid "ArtCNN (Denoise + Sharpen)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:43
+msgid "ArtCNN High (C4F32)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py:307
 msgid "Select Shader Profile"
 msgstr "揀著色器 (Shader) 設定檔"
 
