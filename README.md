@@ -28,7 +28,7 @@ To learn more, keep reading. This README explains everything, including [configu
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/jellyfin/jellyfin-mpv-shim/releases).
-If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/jellyfin/jellyfin-mpv-shim#linux-installation<>). If you are on macOS, see the [macOS Installation](https://github.com/jellyfin/jellyfin-mpv-shim#osx-installation)
+If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/jellyfin/jellyfin-mpv-shim#linux-installation). If you are on macOS, see the [macOS Installation](https://github.com/jellyfin/jellyfin-mpv-shim#osx-installation)
 section below.
 
 To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
@@ -81,7 +81,9 @@ If you find the solution for your case, *please* send me any information you can
 
 ### Menu
 
-Most advanced features are now accessible via normal exposed UI via the Jellyfin custom MPV OSC.
+Most of these are also reachable from the player UI's settings (gear) menu, which is usually
+easier. This menu is the older text-based one, and it still covers a few things the player UI
+does not.
 
 To open the menu, press **c** on your computer or use the navigation controls
 in the mobile/web app.
@@ -137,14 +139,12 @@ feature, your existing `cred.json` is migrated into the `(default)` user automat
 
 ### Shader Packs
 
-Shader packs are a recent feature addition that allows you to easily use advanced video
-shaders and video quality settings. These usually require a lot of configuration to use,
-but MPV Shim's default shader pack comes with [FSRCNNX](https://github.com/igv/FSRCNN-TensorFlow)
-and [Anime4K](https://github.com/bloc97/Anime4K) preconfigured. Try experimenting with video
-profiles! It may greatly improve your experience.
+Shader packs let you use advanced video shaders and video quality settings without the
+configuration they normally require. MPV Shim's default shader pack comes with
+[FSRCNNX](https://github.com/igv/FSRCNN-TensorFlow) and [Anime4K](https://github.com/bloc97/Anime4K)
+preconfigured. Try experimenting with video profiles! It may greatly improve your experience.
 
-Shader Packs are ready to use as of the most recent MPV Shim version. To use, simply
-navigate to the **Video Playback Profiles** option and select a profile.
+To use, navigate to the **Video Playback Profiles** option and select a profile.
 
 For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 If you would like to customize the shader pack, there are details in the configuration section.
@@ -308,6 +308,7 @@ external receiver.
 
 You can use the config file to enable and disable features.
 
+- `auto_play` - Automatically play the next item in the queue. Default: `true`
 - `fullscreen` - Fullscreen the player when starting playback. Default: `false`
   - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
@@ -316,6 +317,11 @@ You can use the config file to enable and disable features.
   - Toggling fullscreen in the player (`f`, or the on-screen control) is remembered: it writes `browser_fullscreen` while browsing and `fullscreen` while something is playing.
 - `close_to_tray` - When enabled, closing the player window minimizes the app to the system tray, keeping it running as a cast target; when disabled, closing exits. Ignored (treated as `false`) when no system tray is available, so the app can't become unreachable. Default: `true`
 - `start_minimized` - Start minimized to the tray instead of opening the library. Also ignored when no tray is available. Default: `false`
+- `remember_window_size` - Persist the window size across launches. Default: `true`
+  - Off means the size is a fixed preference the app always opens at, which is what you want if you deliberately pinned one.
+- `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
+  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
+- `library_image_cache_mb` - Disk budget for cached library artwork. Default: `256`
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
@@ -370,6 +376,47 @@ You can use the config file to enable and disable features.
 - `menu_mouse` - Enable mouse support in the menu. Default: `true`
   - This requires MPV to be compiled with lua support.
 
+### Downloads and Offline Sync
+
+You can download media to watch without a server connection. Downloads are managed from the
+library browser (**Downloads** in the sidebar); these settings control where they go and whether
+episodes are fetched for you automatically.
+
+- `sync_path` - Where downloaded media is stored. Default: `null` (a `downloads` folder in the
+  config directory)
+  - Change this from *Settings → Downloads*, not by hand: moving the store copies the files and
+    updates the catalog. Editing the path directly leaves the existing downloads behind.
+- `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
+- `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`
+  - Applied live when toggled, so you don't need to restart.
+
+Automatic downloads keep upcoming episodes on disk without being asked. This is the only feature
+that writes to your disk unattended, so it is off by default. It runs on a schedule and only while
+nothing is playing.
+
+- `auto_download_enable` - Turn automatic downloads on. Default: `false`
+- `auto_download_next_up` - Follow the server's Next Up across every series. Default: `true`
+- `auto_download_next_up_limit` - How many Next Up entries to consider. Default: `10`
+  - Next Up is as long as your started-series count, which is often 50+ on a real library. The
+    server returns it most-recent-first, so a small limit is the shows you are actually watching.
+- `auto_download_lookahead` - Episodes to keep ahead of the last one you watched, for the series
+  you are working through. `0` disables it. Default: `2`
+- `auto_download_max_gb` - Storage budget for automatic downloads. Default: `20`
+  - Only applies to automatic downloads. Ones you asked for are never counted against it and are
+    never deleted automatically.
+- `auto_download_delete_watched` - Delete automatic downloads once watched. Default: `true`
+- `auto_download_keep_days` - Delete unwatched automatic downloads after this many days. `0` means
+  never expire on age alone. Default: `30`
+- `auto_download_interval_mins` - How often to check. Default: `60`
+
+### Client Certificates
+
+For servers behind mutual-TLS. All three are paths, and unset by default.
+
+- `tls_client_cert` - Client certificate to present to the server. Default: `null`
+- `tls_client_key` - The matching private key. Default: `null`
+- `tls_server_ca` - CA bundle used to verify the server. Default: `null`
+
 ### Shell Command Triggers
 
 You can execute shell commands on media state using the config file:
@@ -378,6 +425,7 @@ You can execute shell commands on media state using the config file:
 - `pre_media_cmd` - Before the player displays. (Will wait for finish.)
 - `stop_cmd` - After stopping the player.
 - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
+- `idle_cmd_delay` - Seconds of inactivity before `idle_cmd` fires. Default: `300`
 - `idle_when_paused` - Consider the player idle when paused. Default: `false`
 - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
 - `mpv_idle_quit` - Quit MPV when idle to free the window, GPU context, and memory; it is re-created automatically on the next playback request, or when the library is reopened from the tray. It never fires while the library browser is on screen. Not applied to an externally-managed MPV you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `true`
@@ -396,7 +444,7 @@ during a transcode. You can configure custom styled subtitle settings through th
 
 ### External MPV
 
-The client now supports using an external copy of MPV, including one that is running prior to starting
+The client supports using an external copy of MPV, including one that is running prior to starting
 the client. This may be useful if your distribution only provides MPV as a binary executable (instead
 of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
 strange behaviour when controlled in this manner. External MPV is currently the only working backend
@@ -545,6 +593,12 @@ Other miscellaneous configuration options. You probably won't have to change the
       but if you have strange files this may not be the case.
 - `lang_filter_sub` - Apply the language filter to subtitle selection. Default: `False`
 - `lang_filter_audio` - Apply the language filter to audio selection. Default: `False`
+- `remember_audio_track` - Reuse your audio track choice for later episodes of the same show. Default: `true`
+- `remember_subtitle_track` - Reuse your subtitle track choice for later episodes. Default: `true`
+- `language_preference` - Track-selection preset, set from *Settings → Subtitles & Languages*. Default: `custom`
+  - One of `unset`, `dubbed_shows`, `subbed_shows`, `dubbed_all`, `subbed_all`, `custom`.
+  - Anything other than `custom` generates `language_config` rules for you; `custom` leaves whatever you wrote there alone. See [Language Config](#language-config-power-user).
+- `preferred_language` - The language the presets above are built around. Default: `eng`
 - `screenshot_dir` - Sets where screenshots go.
   - Default is the desktop on Windows and unset (current directory) on other platforms.
 - `force_set_played` - This forcibly sets items as played when MPV playback finished.
@@ -554,7 +608,7 @@ Other miscellaneous configuration options. You probably won't have to change the
 
 ### Skip Intro Support
 
-It works the same ways as it did on MPV Shim for Plex. Now uses the MediaSegments API!
+Intro and credits detection uses Jellyfin's MediaSegments API.
 
 - `skip_intro_always` - Always skip intros, without asking. Default: `false`
 - `skip_intro_enable` - Offer to skip intros. With the Jellyfin player UI
