@@ -230,10 +230,15 @@ You can adjust the basic transcoder settings via the menu.
   - MPV plays Dolby Vision natively now, so this is off by default. Existing configs are
     migrated off it once, on the first launch after upgrading; re-enable it if your setup
     still needs the SDR transcode.
-  - Dolby Vision tone mapping comes from `vo=gpu-next`, which is no longer experimental. It is
-    MPV's default video output as of **MPV 0.41**; on 0.40 and older the default is still the
-    older `vo=gpu`, which does not tone map Dolby Vision. So on an older MPV, either set
-    `vo=gpu-next` in `mpv.conf` or leave this transcode option on.
+  - Dolby Vision tone mapping comes from `vo=gpu-next`, which is no longer experimental and is
+    MPV's default video output as of **MPV 0.41**. On MPV 0.40 and older the default is still
+    the older `vo=gpu`, which drops the Dolby Vision mapping and renders the base layer — fine
+    for profile 8, wrong-looking for profile 5. The Flatpak and Windows builds ship a current
+    MPV, so this only affects distro/pip installs using an older system `libmpv`.
+  - If that is you, set `vo=gpu-next` in `mpv.conf` (or update MPV). Turning this transcode
+    option back on is *not* a good substitute: Jellyfin does not tone map unless the server
+    admin enabled it — it is off by default and in practice wants a GPU on the server — so
+    without that you get a transcode that still looks wrong.
   - A `vo=gpu` line already in your `mpv.conf` overrides the new default, so remove it if you
     want the newer renderer. The shader packs do not set `vo`, so using them does not opt you out.
 - `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
