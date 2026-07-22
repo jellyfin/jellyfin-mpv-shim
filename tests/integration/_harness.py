@@ -104,7 +104,13 @@ class FakeMPV:
     # Class attr so ``hasattr(mpv, "ShutdownError")`` is true on the module.
     ShutdownError = ShutdownError
 
-    def __init__(self, **_options):
+    def __init__(self, **options):
+        # What _init_mpv asked mpv to start with. Most option plumbing is not
+        # worth re-testing here, but options that must be set *at startup*
+        # are: mpv before 0.41 ignores a runtime force-window while idle, so
+        # a startup-only option is the difference between a window and none.
+        self.init_options = dict(options)
+
         # Scalar player properties with defaults matching an idle player.
         self.playback_abort = True
         self.playback_time = None
@@ -386,6 +392,12 @@ def build_player(player_module, video=None):
     pm.evt_queue = Queue()
     pm._lock = RLock()
     pm._tl_lock = RLock()
+    # Audio state. _init_mpv calls apply_audio_settings, which is wrapped in a
+    # try/except so a half-built mpv can't abort the init -- meaning a missing
+    # attribute here shows up as a logged traceback rather than a failure.
+    pm._audio_lock = RLock()
+    pm._audio_configured = False
+    pm._audio_snapshot = None
     pm._finished_lock = Lock()
     pm.timeline_trigger = None
     pm.action_trigger = None

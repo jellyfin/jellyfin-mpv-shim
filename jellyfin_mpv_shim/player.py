@@ -767,6 +767,33 @@ class PlayerManager(object):
         # option".
         mpv_options["auto_window_resize"] = False
 
+        # The in-window UI has to ask for its window on the command line.
+        #
+        # mpv before 0.41 accepts a runtime force-window change and stores it,
+        # but never acts on it while idle: the VO is created only if the
+        # option was set at startup, and once created it can no longer be
+        # released. Measured on 0.40.0 vs 0.41.0 -- with --idle and no file,
+        # setting force-window over IPC leaves `vo-configured` false on 0.40
+        # and flips it true on 0.41. It is a version difference, not a backend
+        # one; the libmpv path only looked fine here because the installed
+        # libmpv was newer than the mpv binary. So on 0.40 set_browse_window
+        # raised no window at all, and with the browser being the window's
+        # entire content the app came up invisible and the tray's Show
+        # Library Browser had nothing to show.
+        #
+        # First launch takes the window unless start_minimized asked for the
+        # windowless state. A re-open (crash recovery, idle-quit) takes it
+        # only if the browser was on screen: the play path doesn't need this,
+        # because loading a file brings the VO up on its own.
+        #
+        # Only force_window is passed here, not the browse background --
+        # background=color needs mpv 0.38, and an unknown option makes mpv
+        # exit at startup rather than raise something recoverable.
+        # set_browse_window applies the background a moment later.
+        if osc_style == "mpvtk":
+            if self.mpvtk_active if reopen else not settings.start_minimized:
+                mpv_options["force_window"] = True
+
         # Desktop-icon hints. mpv has no "set the window icon" option; on
         # Linux the icon is resolved by matching the window's class against
         # an installed .desktop file, so naming ourselves after ours is the

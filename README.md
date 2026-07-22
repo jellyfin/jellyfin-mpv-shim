@@ -315,6 +315,10 @@ You can [install the software from flathub](https://flathub.org/apps/details/com
 
 If you are on Linux, you can install via pip. You'll need [libmpv](https://github.com/Kagami/mpv.js#get-libmpv) or `mpv` installed.
 
+MPV 0.41 or newer is recommended. Older versions work, but they can only create
+the player window at startup, never release it afterwards — so minimizing the
+library to the tray leaves an empty window behind until MPV idles out.
+
 For full library browsing support, install `pystray` and `Pillow`:
 
 ```bash
