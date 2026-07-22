@@ -1337,6 +1337,12 @@ class UserInterface:
         crashes. See playerManager.on_mpv_terminated."""
         if self._browser is not None:
             try:
+                # NB not strips.shutdown() here: mpv may be re-created
+                # afterward (on_mpv_recreated) and the browser reuses this
+                # store, so the pool must survive. clear() is lock-safe against
+                # a concurrent worker insert, and mpv is dead by contract, so a
+                # strip still composing can't fault. The pool is only really
+                # torn down in browser.shutdown().
                 self._browser.strips.clear()
             except Exception:
                 log.debug("clearing the tile cache failed", exc_info=True)

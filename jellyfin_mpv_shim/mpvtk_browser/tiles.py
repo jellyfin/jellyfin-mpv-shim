@@ -361,10 +361,10 @@ class TilesMixin:
         )
 
     def _image_map(self, items, prefix, geom=None, image_type="Primary",
-                   on_click=None):
+                   on_click=None, async_=False):
         geom = geom or self.geom
         tiles = [self._tile(it, geom, image_type) for it in items]
-        s = self.strips.strip(tiles, geom)
+        s = self.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self._open_item
         for r, it in zip(s["regions"], items):
@@ -745,6 +745,21 @@ class TilesMixin:
 
     GRID_GAP = 12
 
+    def _header_offset(self, header):
+        """Exact content-y of the first tile row that follows ``header`` in a
+        ``Column(pad=CONTENT_PAD, gap=GRID_GAP)``: the top pad, each header
+        item's measured height, and one gap after each. This is the snap offset
+        for a snapping grid — the virtualizer's approximate ``head_h`` would
+        land a stop a few px short and leave the previous row's caption (its
+        year label) peeking at the top edge. ``header`` may be empty (grid
+        fills the scroll), and None entries are dropped to match Column."""
+        from ..mpvtk.layout import measure
+
+        hs = [h for h in header if h is not None]
+        return (self.CONTENT_PAD
+                + len(hs) * self.GRID_GAP
+                + sum(measure(h)[1] for h in hs))
+
     def _grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
                  on_click=None):
@@ -775,7 +790,11 @@ class TilesMixin:
                 rows.append(self._image_map(items[start:start + cols],
                                             "%s-%d" % (prefix, start),
                                             geom, image_type,
-                                            on_click=on_click))
+                                            on_click=on_click,
+                                            # Grid rows share one bounded blank
+                                            # shape, so composite them off the
+                                            # loop thread (see StripStore.strip).
+                                            async_=scroll_id is not None))
             else:
                 rows.append(Spacer(h=geom.strip_h))
         if not items:

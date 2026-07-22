@@ -178,16 +178,28 @@ class ViewsMixin:
             # one person's credits, but "newest first" very much does.
             header.append(self._sort_bar(route))
         # Header height (title + optional filter bar + count) so the
-        # virtualizer can map a scroll offset onto a tile row.
+        # virtualizer can map a scroll offset onto a tile row. Deliberately
+        # approximate: the window has a ±viewport margin, so a few px off is
+        # invisible there (snap_off below needs the exact value instead).
         head_h = 40 + (110 if route["kind"] == "grid" else 0) \
             + (46 if route["kind"] == "person" else 0)
+        geom = self._square_geom(items) or self.geom
         rows = header + self._grid_of(
-            items, "grid", size, geom=self._square_geom(items) or self.geom,
+            items, "grid", size, geom=geom,
             scroll_id="grid", head_h=head_h)
         return VScroll(
             Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP,
                    align="stretch"), id="grid",
             flex=1,
+            # Row-snap the grid: people scroll libraries fast, and a
+            # quantized offset turns per-frame smear (every visible row
+            # repositioned, a full 4K recomposite each frame) into stable,
+            # row-aligned frames.
+            snap=geom.strip_h + self.GRID_GAP,
+            # Exact content-y of the first tile row (not the approximate
+            # head_h): a snap stop landing a few px short leaves the previous
+            # row's caption — its year label — peeking at the top edge.
+            snap_off=self._header_offset(header),
             on_scroll=lambda off, mx: self._on_scroll(
                 "grid", off, mx,
                 lambda o, m: self._on_grid_scroll(route, o, m)),

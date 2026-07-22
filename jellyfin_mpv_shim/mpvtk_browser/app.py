@@ -256,6 +256,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # the libmpv integration passes a MemoryStore-backed one.
         self.strips = strips or StripStore(
             cache_dir=cache_dir("mpvtk-browser-"), geom=self.geom)
+        # Wake our loop when an async row composite lands (see StripStore.strip).
+        # self.invalidate reads self.app at call time, so this survives mpv
+        # re-creation without re-wiring in set_app.
+        self.strips.set_notify(self.invalidate)
         self.thumbs = thumbs      # ThumbnailStore (optional; None -> no art)
         if self.thumbs is not None:
             # Wake our loop when a decoded poster lands, so build() can pump it.
@@ -2231,5 +2235,9 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                             "it may be left incomplete")
         if self.thumbs is not None:
             self.thumbs.shutdown()
+        # Stop the compositor pool before touching its cache either way: a
+        # worker must not insert a buffer into a cache we're about to free
+        # (free_bitmaps) or leave one composing into a dead handle.
+        self.strips.shutdown()
         if free_bitmaps:
             self.strips.clear()

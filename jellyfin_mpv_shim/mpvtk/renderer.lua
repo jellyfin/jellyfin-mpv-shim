@@ -43,6 +43,15 @@ local unpack = unpack or table.unpack  -- Lua 5.1 / 5.2+ compat
 local osd = mp.create_osd_overlay('ass-events')
 
 local TICK = 0.03
+-- Coarser cadence while a wheel gesture is live. Each render marks the whole
+-- OSD dirty; at 4K that recomposite plus the scene push can eat most of a
+-- 33fps budget, and firing them back-to-back starves the script's own event
+-- queue (mpv drops events: "too many queued events") and races the display
+-- (tearing). Capping to ~22fps during a fling leaves the core room to present
+-- cleanly and the queue room to drain, at no cost to a settled screen.
+local SCROLL_TICK = 0.045
+-- How long after the last wheel event we still consider a gesture "live".
+local SCROLL_TICK_WINDOW = 0.3
 local WHEEL_STEP = 80
 local MAX_OVERLAYS = 63
 
@@ -236,6 +245,16 @@ end
 
 local render  -- fwd
 
+-- The minimum spacing between renders right now: coarser while a wheel
+-- gesture is live (see SCROLL_TICK), the normal cadence otherwise.
+local function active_tick()
+    local lock = state.wheel_lock
+    if lock and mp.get_time() - lock.t < SCROLL_TICK_WINDOW then
+        return SCROLL_TICK
+    end
+    return TICK
+end
+
 local function request_render()
     if state.tick_timer == nil then
         state.tick_timer = mp.add_timeout(0, function()
@@ -244,7 +263,7 @@ local function request_render()
         end)
     end
     if not state.tick_timer:is_enabled() then
-        local to = TICK - (mp.get_time() - state.tick_last)
+        local to = active_tick() - (mp.get_time() - state.tick_last)
         if to < 0 then to = 0 end
         state.tick_timer.timeout = to
         state.tick_timer:resume()
@@ -256,6 +275,29 @@ local function scroll_max(node)
         return math.max(0, node.cw - node.w)
     end
     return math.max(0, node.ch - node.h)
+end
+
+-- Row-quantized DISPLAY offset for a snapping container (node.snap set by
+-- the grid; see widgets.Scroll). The stored offset in state.scroll stays
+-- continuous — this only maps it to the nearest row boundary for drawing and
+-- hit-testing (compute_geo/draw_scrollbar), so the picture and clicks agree
+-- while the accumulator underneath is free to move by fractional notches.
+-- Snap stops are {0} ∪ {snap_off + k*snap} ∪ {max}: the top rests flush so
+-- the header stays reachable, and the bottom rests flush so the last partial
+-- row is never left with a gap beneath it.
+local function snap_round(node, off)
+    local snap = node.snap
+    if not snap or snap <= 0 then return off end
+    local max = scroll_max(node)
+    local base = node.snap_off or 0
+    if off <= base * 0.5 then return 0 end
+    if off >= max - snap * 0.5 then return max end
+    local k = math.floor((off - base) / snap + 0.5)
+    if k < 0 then k = 0 end
+    local snapped = base + k * snap
+    if snapped < 0 then return 0 end
+    if snapped > max then return max end
+    return snapped
 end
 
 -- Effective geometry of every scroll container. Scene order guarantees
@@ -273,7 +315,7 @@ local function compute_geo()
                 vx1 = math.max(vx1, p.x1); vy1 = math.max(vy1, p.y1)
                 vx2 = math.min(vx2, p.x2); vy2 = math.min(vy2, p.y2)
             end
-            local off = state.scroll[node.id] or 0
+            local off = snap_round(node, state.scroll[node.id] or 0)
             state.geo[node.id] = {
                 dx = dx + (node.axis == 'x' and off or 0),
                 dy = dy + (node.axis == 'y' and off or 0),
@@ -1287,7 +1329,9 @@ local function draw_scrollbar(ass, node)
     local th = node.h
     local frac = node.h / node.ch
     local thumb_h = math.max(24, th * frac)
-    local off = state.scroll[node.id] or 0
+    -- Snapped, so the thumb tracks the row-aligned content, not the
+    -- continuous accumulator beneath it.
+    local off = snap_round(node, state.scroll[node.id] or 0)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
     local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
     draw_rect(ass, track_x, ty, 6, th,
@@ -2440,8 +2484,15 @@ local function on_wheel(dir, axis, e)
         off = node and math.floor(state.scroll[node.id] or 0) or -1,
     }
     if not node then return end
+    -- A snapping container steps by whole rows: one notch (scale ~= 1) moves
+    -- exactly one row, a hi-res delta accumulates in the continuous offset and
+    -- the snapped display advances once it crosses a row. A fling delivers many
+    -- notches within one render tick, so the coalesced frame jumps N rows at
+    -- once. Everything else keeps the flat pixel step.
+    local step = WHEEL_STEP
+    if node.snap and node.snap > 0 then step = node.snap end
     set_scroll(node,
-        (state.scroll[node.id] or 0) + dir * WHEEL_STEP * scale)
+        (state.scroll[node.id] or 0) + dir * step * scale)
 end
 
 -- Double-click: word-select in a textbox; a 'dbl' event for nodes

@@ -792,6 +792,11 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
         node["ch"] = _round(ch)
         if el.follow:
             node["follow"] = True
+        if getattr(el, "snap", None):
+            # Row-quantized display offset (see Scroll/renderer.lua snap_round).
+            # Logical here; scale_scene converts both to physical, like cw/ch.
+            node["snap"] = el.snap
+            node["snap_off"] = el.snap_off
         if el.on_scroll:
             node["watch"] = True
             _reg(ctx, node["id"], "scroll", el.on_scroll)

@@ -90,7 +90,7 @@ def _round(v):
 # Pixel geometry, uniform across every node type (audited against
 # layout.py's emission and renderer.lua's reads).
 _PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch",
-            "rh")
+            "rh", "snap", "snap_off")
 
 # Pixel values that live INSIDE nested style dicts. These are the reason
 # this is an explicit table rather than a recursive walk over anything

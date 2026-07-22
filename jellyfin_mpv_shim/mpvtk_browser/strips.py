@@ -34,6 +34,7 @@ import logging
 import os
 import threading
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Optional
 
@@ -134,7 +135,8 @@ class StripStore:
     # cannot drift back.
     MAX_ENTRIES = 80
 
-    def __init__(self, cache_dir=None, mem_store=None, geom=None):
+    def __init__(self, cache_dir=None, mem_store=None, geom=None,
+                 notify=None, workers=2):
         self.dir = cache_dir
         self.mem = mem_store  # MemoryStore for the libmpv backend, else None
         self.geom = geom or TileGeom()
@@ -145,10 +147,32 @@ class StripStore:
         # stop()). Without this, clear() iterating while the loop inserts
         # raises "dict changed size during iteration" — caught and logged at
         # the call site, which left half the buffers freed and half not.
+        #
+        # The same lock now also guards inserts from the compositor pool:
+        # strip() composites OFF the loop thread (a full row is 20-140ms at
+        # 4K and that used to stall the build; see thumbnails' pipeline for
+        # the same split) and returns a cheap placeholder, then swaps in the
+        # real bitmap and notify()s when the worker lands it. Eviction still
+        # frees from the LRU tail, so an on-screen strip — requested by the
+        # current build, hence most-recent — is never the one freed.
         self._lock = threading.Lock()
         self._counter = 0
         self.hits = 0
         self.misses = 0
+        # Called (thread-safe, no args) when an async composite lands, so the
+        # owner can wake its render loop and rebuild with the real bitmap.
+        self._notify = notify
+        self._closed = False
+        # Keys currently being composited, so a row that stays on screen
+        # across several builds is only submitted once.
+        self._inflight = set()
+        self._pool = ThreadPoolExecutor(max_workers=workers,
+                                        thread_name_prefix="strip")
+
+    def set_notify(self, notify):
+        """Attach the wake-up callback after construction (mirrors
+        ThumbnailStore.set_notify). A plain assignment: workers only read it."""
+        self._notify = notify
 
     # -- keying -----------------------------------------------------------
 
@@ -172,11 +196,21 @@ class StripStore:
 
     # -- public -----------------------------------------------------------
 
-    def strip(self, tiles, geom=None):
+    def strip(self, tiles, geom=None, async_=False):
         """Composite ``tiles`` into one strip (in ``geom``'s shape, default
         the store's). Returns ``{"src", "iw", "ih", "v", "regions"}`` where each
         region is ``{"x", "y", "w", "h", "key"}`` in image-local coords (the
-        view wraps these with on_click/on_context/id)."""
+        view wraps these with on_click/on_context/id).
+
+        ``async_=True`` composites on a worker pool instead of inline — a full
+        4K row is 20-140ms and stalled the build. On a cache miss it returns a
+        cheap placeholder (blank cards, real hit-regions) immediately and
+        schedules the real bitmap; when the worker lands it, notify() wakes the
+        loop and the next build gets the finished strip (marked
+        ``"placeholder": True`` until then). Used for the virtualized grid,
+        whose rows share one uniform (bounded) blank shape. Carousels keep the
+        inline path (``async_=False``): each is a distinct, up-to-50-tile row,
+        so a per-row blank would cost as much as the composite it defers."""
         g = geom or self.geom
         tiles = list(tiles)
         key = (self._geom_key(g), tuple(self._tile_key(t) for t in tiles))
@@ -187,13 +221,92 @@ class StripStore:
                 self.hits += 1
                 return hit
             self.misses += 1
-        # Composited outside the lock: it is the expensive part and it does
-        # not touch the cache.
+            do_async = async_ and not self._closed
+            if do_async:
+                submit = key not in self._inflight
+                if submit:
+                    self._inflight.add(key)
+        if do_async:
+            if submit:
+                self._pool.submit(self._compose_task, key, tiles, g)
+            return self._placeholder(tiles, g)
+        # Inline path (carousels / headless / torn down): composite now.
+        # Outside the lock — it is the expensive part and touches no cache.
         entry = self._compose(tiles, g)
         with self._lock:
             self._cache[key] = entry
             self._evict()
         return entry
+
+    def _compose_task(self, key, tiles, g):
+        """Pool worker: composite off the loop thread, then insert + notify."""
+        entry = None
+        try:
+            entry = self._compose(tiles, g)
+        except Exception:
+            log.warning("strip composite failed", exc_info=True)
+        with self._lock:
+            self._inflight.discard(key)
+            if entry is None:
+                return
+            if self._closed:
+                # clear() already ran; don't resurrect a freed cache or strand
+                # this buffer in it. Free it right back.
+                self._free(entry["src"])
+                return
+            self._cache[key] = entry
+            self._cache.move_to_end(key)
+            self._evict()
+        if self._notify is not None:
+            try:
+                self._notify()
+            except Exception:
+                log.debug("strip notify failed", exc_info=True)
+
+    def _placeholder(self, tiles, g):
+        """A stand-in entry for a not-yet-composited strip: a blank-card
+        bitmap shared across every row of this shape, wrapped with the real
+        per-tile hit-regions so clicks work before the artwork lands."""
+        n = len(tiles)
+        blank = self._blank_strip(g, n)
+        regions = [
+            {"x": col * (g.tile_w + g.gap), "y": 0,
+             "w": g.tile_w, "h": g.strip_h, "key": t.key}
+            for col, t in enumerate(tiles)
+        ]
+        lw = n * g.tile_w + (n - 1) * g.gap if n else 1
+        return {"src": blank["src"], "iw": blank["iw"], "ih": blank["ih"],
+                "lw": lw, "lh": g.strip_h, "v": blank["v"],
+                "regions": regions, "placeholder": True}
+
+    def _blank_strip(self, g, n):
+        """Blank-card bitmap for a shape (geom, tile count), cached in the same
+        LRU so it's freed like any strip. Shared by every pending row of that
+        shape, so a screenful of placeholders is one composite, not one each."""
+        bkey = ("blank", self._geom_key(g), n)
+        with self._lock:
+            hit = self._cache.get(bkey)
+            if hit is not None:
+                self._cache.move_to_end(bkey)
+                return hit
+        entry = self._compose_blank(n, g)
+        with self._lock:
+            # Another thread may have built the same shape while we composed.
+            hit = self._cache.get(bkey)
+            if hit is not None:
+                self._free(entry["src"])
+                self._cache.move_to_end(bkey)
+                return hit
+            self._cache[bkey] = entry
+            self._evict()
+        return entry
+
+    def shutdown(self):
+        """Stop the compositor pool. Call before clear() on teardown so no
+        worker inserts into a cache that clear() is about to free."""
+        with self._lock:
+            self._closed = True
+        self._pool.shutdown(wait=True)
 
     def bitmap(self, key, image, lsize=None):
         """Cache a single arbitrary image as BGRA (backdrops, logos, art) in
@@ -264,6 +377,30 @@ class StripStore:
         src, iw2, ih2, v = self._store(img)
         return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh,
                 "v": v, "regions": regions}
+
+    def _compose_blank(self, n, g):
+        """A row of empty cards — the placeholder bitmap shown while the real
+        strip composites. Just the card fill + border per tile: no posters,
+        decorations or captions, so it's the cheap part of _compose (the cost
+        that remains, _store of a full-width buffer, is amortized because one
+        blank serves every pending row of this shape)."""
+        from PIL import Image as PILImage, ImageDraw
+
+        from ..mpvtk.scaling import px, raster
+
+        lw = n * g.tile_w + (n - 1) * g.gap if n else 1
+        lh = g.strip_h
+        pg = g.physical()
+        img = PILImage.new("RGBA", raster(lw, lh), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        for col in range(n):
+            x = px(col * (g.tile_w + g.gap))
+            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
+                         fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
+            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
+                         outline=theme.rgb("101012", 255))
+        src, iw2, ih2, v = self._store(img)
+        return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh, "v": v}
 
     def _paint_poster(self, img, dr, x, t, g):
         from PIL import Image as PILImage

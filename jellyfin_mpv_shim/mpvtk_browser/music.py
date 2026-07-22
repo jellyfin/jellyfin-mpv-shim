@@ -220,6 +220,11 @@ class MusicMixin:
                                      scroll_id="music-grid"),
                        pad=self.CONTENT_PAD, gap=self.GRID_GAP),
                 id="music-grid", flex=1,
+                # Row-snap the music library grid (see _render_grid). The tabs
+                # live outside this scroll, so the grid fills it: the first row
+                # sits at the top pad, hence snap_off = CONTENT_PAD.
+                snap=geom.strip_h + self.GRID_GAP,
+                snap_off=self.CONTENT_PAD,
                 on_scroll=lambda off, mx: self._on_scroll(
                     "music-grid", off, mx,
                     lambda o, m: self._on_music_scroll(route, o, m)))

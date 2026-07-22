@@ -7,6 +7,7 @@ file and in-memory storage backends.
 import os
 import struct
 import tempfile
+import threading
 import unittest
 
 from PIL import Image
@@ -109,6 +110,69 @@ class TestStripStore(unittest.TestCase):
         s = self._store()
         out = s.strip([Tile(key="a", title="A", poster=None)])
         self.assertEqual(out["regions"][0]["key"], "a")
+
+    # -- async composite path (grid) --------------------------------------
+
+    def test_async_returns_placeholder_then_real(self):
+        s = self._store()
+        got = threading.Event()
+        s.set_notify(got.set)
+        tiles = [Tile(key="a", title="A", poster=_poster(), poster_tag="p1")]
+        first = s.strip(tiles, async_=True)
+        # Immediately: a placeholder with the real hit-regions/geometry.
+        self.assertTrue(first.get("placeholder"))
+        self.assertEqual([r["key"] for r in first["regions"]], ["a"])
+        self.assertEqual(first["iw"], TileGeom().tile_w)
+        # The worker composites off-thread and notifies.
+        self.assertTrue(got.wait(5), "async composite should notify")
+        second = s.strip(tiles, async_=True)
+        self.assertFalse(second.get("placeholder"),
+                         "the real strip replaces the placeholder")
+        self.assertNotEqual(second["src"], first["src"])
+        self.assertEqual(s.hits, 1)
+
+    def test_async_placeholder_shares_blank_per_shape(self):
+        s = self._store()
+        p1 = s.strip([Tile(key="a", poster=_poster()),
+                      Tile(key="b", poster=_poster())], async_=True)
+        p2 = s.strip([Tile(key="c", poster=_poster()),
+                      Tile(key="d", poster=_poster())], async_=True)
+        self.assertTrue(p1.get("placeholder") and p2.get("placeholder"))
+        # Same shape (2 tiles) -> one shared blank bitmap...
+        self.assertEqual(p1["src"], p2["src"])
+        # ...but each row keeps its own hit-regions.
+        self.assertEqual([r["key"] for r in p2["regions"]], ["c", "d"])
+        s.shutdown()
+
+    def test_async_memory_backend(self):
+        s = self._store(mem=True)
+        got = threading.Event()
+        s.set_notify(got.set)
+        tiles = [Tile(key="a", poster=_poster())]
+        ph = s.strip(tiles, async_=True)
+        self.assertTrue(ph["src"].startswith("&"))
+        self.assertTrue(got.wait(5))
+        real = s.strip(tiles, async_=True)
+        self.assertTrue(real["src"].startswith("&"))
+        self.assertFalse(real.get("placeholder"))
+        s.shutdown()
+        s.clear()
+
+    def test_closed_store_composites_inline(self):
+        # After shutdown the pool is gone; an async request must still return a
+        # finished strip (composited inline), never a stranded placeholder.
+        s = self._store()
+        s.shutdown()
+        out = s.strip([Tile(key="z", poster=_poster())], async_=True)
+        self.assertFalse(out.get("placeholder"))
+        self.assertEqual(out["regions"][0]["key"], "z")
+
+    def test_sync_default_is_unchanged(self):
+        # async_ defaults off: the inline path returns the real strip at once.
+        s = self._store()
+        out = s.strip([Tile(key="a", poster=_poster())])
+        self.assertFalse(out.get("placeholder"))
+        self.assertIn("regions", out)
 
     def test_wide_geom_dimensions(self):
         s = self._store(geom=TileGeom(tile_w=240, tile_h=135, caption_h=44))

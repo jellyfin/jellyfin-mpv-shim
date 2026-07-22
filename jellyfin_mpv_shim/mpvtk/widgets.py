@@ -787,16 +787,27 @@ class Scroll(Element):
     renderer owns this because it is the only side that knows the offset
     and the content height at the same instant; a Python round-trip would
     always be pinning against the *previous* frame's height.
+
+    ``snap`` (logical px, along the scroll axis) turns the container into a
+    row-quantized scroller: the renderer displays and hit-tests the offset
+    snapped to the nearest ``snap_off + k*snap`` boundary, and a wheel notch
+    moves exactly one step. The internal offset stays continuous, so
+    virtualization/paging are unaffected — only what's drawn snaps. Used for
+    the library grid, where fast scrolling otherwise smears every visible row
+    across the frame and forces a full recomposite per frame (see
+    renderer.lua's snap_round).
     """
 
     def __init__(self, child, axis, scrollbar=False, on_scroll=None,
-                 follow=False, **kw):
+                 follow=False, snap=None, snap_off=0, **kw):
         super().__init__(**kw)
         self.child = child
         self.axis = axis
         self.scrollbar = scrollbar
         self.on_scroll = on_scroll
         self.follow = follow
+        self.snap = snap
+        self.snap_off = snap_off
 
 
 class HScroll(Scroll):

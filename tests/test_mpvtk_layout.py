@@ -83,6 +83,55 @@ class TestLayout(unittest.TestCase):
         # laid out in content space (offset 0), so last tile x > viewport
         self.assertEqual(imgs[-1]["x"], 9 * 150)
 
+    def test_snap_emitted_and_scaled(self):
+        from jellyfin_mpv_shim.mpvtk import scaling
+
+        tree = Column(
+            [VScroll(Column([Image("/x.bgra", 140, 200)]),
+                     id="grid", flex=1, snap=271, snap_off=150)],
+            w=800, h=400, align="stretch",
+        )
+        nodes, _ = layout(tree, 800, 400)
+        grid = by_id(nodes, "grid")
+        self.assertEqual(grid["snap"], 271)
+        self.assertEqual(grid["snap_off"], 150)
+        # scale_scene converts snap/snap_off to physical like cw/ch.
+        prev = scaling.scale()
+        try:
+            scaling.set_scale(2.0)
+            scaling.scale_scene(nodes)
+            self.assertEqual(grid["snap"], 542)
+            self.assertEqual(grid["snap_off"], 300)
+        finally:
+            scaling.set_scale(prev)
+
+    def test_header_offset_formula_matches_layout(self):
+        # The snap offset (_header_offset) must equal the laid-out y of the
+        # first row after the header, or a snap stop lands short and the
+        # previous row's caption peeks. Guards that exact arithmetic.
+        from jellyfin_mpv_shim.mpvtk.layout import measure
+
+        PAD, GAP = 16, 12
+        header = [Text("Title", size=26, bold=True),
+                  Row([Text("a"), Text("b")], gap=10, align="center"),
+                  Text("12 of 40", size=14)]
+        tree = Column([*header, Image("/x.bgra", 140, 200, id="row0")],
+                      pad=PAD, gap=GAP, w=800, h=2000, align="stretch")
+        nodes, _ = layout(tree, 800, 2000)
+        row_y = by_id(nodes, "row0")["y"]
+        formula = PAD + len(header) * GAP + sum(measure(h)[1] for h in header)
+        # Sub-pixel only: layout rounds each emitted position.
+        self.assertLessEqual(abs(row_y - formula), 1)
+
+    def test_no_snap_absent_by_default(self):
+        tree = Column([VScroll(Column([Image("/x.bgra", 140, 200)]),
+                               id="plain", flex=1)],
+                      w=800, h=400, align="stretch")
+        nodes, _ = layout(tree, 800, 400)
+        grid = by_id(nodes, "plain")
+        self.assertNotIn("snap", grid)
+        self.assertNotIn("snap_off", grid)
+
     def test_handlers_registry(self):
         clicked = []
         tree = Row(
