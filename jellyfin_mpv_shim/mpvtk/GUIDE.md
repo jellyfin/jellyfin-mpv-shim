@@ -3,8 +3,9 @@
 A declarative UI toolkit that renders inside the mpv window. Python
 owns application state and layout; a Lua engine inside mpv owns all
 per-frame interaction. This document is the durable context for anyone
-(including future us) building on it. Companion docs: `README.md`
-(spike history + findings), `PARITY.md` (Tk-browser gap analysis).
+(including future us) building on it. Companion doc: `README.md`
+(rationale, architecture overview, and the constraints of building on
+mpv's OSD primitives).
 
 ## 1. Architecture
 
@@ -213,9 +214,19 @@ renderer's LIVE offset instead of trailing the throttled scroll event
 
 - Rasterize at display size with Pillow; `rawimage.bgra_bytes` /
   `write_bgra` produce premultiplied BGRA.
-- **Never let a crop exceed the source pixels: mpv mmaps the file and
-  reading past EOF is a silent SIGBUS crash of mpv.** Layout refuses to
+- **Never let a crop exceed the source pixels.** Layout refuses to
   stretch images; the renderer clamps crops to iw/ih. Keep it that way.
+  The failure mode is version-dependent, and the clamp is required on
+  all of them: on the **`&<address>` memory path (libmpv, every mpv
+  version)** overlay-add `memcpy_pic`s from the pointer with no bounds
+  check → a hard **SIGSEGV**; on the **file path with mpv ≤ 0.41** the
+  file is `mmap`'d 0→`offset+h*stride`, so a past-EOF read is a silent
+  **SIGBUS** (and the map grows with the crop offset, a real cost for
+  far-scrolled strips); on the **file path with mpv ≥ 0.42** the source
+  is `fseek`+`fread` (no mmap), so a past-EOF read degrades to a soft
+  `overlay-add: could not open or read` failure and the offset cost
+  disappears. The memory path is the unforgiving one — the clamp is
+  load-bearing there on every build.
 - **Strips**: composite whole tile rows into ONE image (captions,
   badges, progress baked in) and declare tile hit-regions via ImageMap.
   This is what makes tiles scale: a screenful is 2–8 overlays (budget
@@ -333,15 +344,28 @@ renderer's LIVE offset instead of trailing the throttled scroll event
 - **F12** toggles the input-diagnostics HUD (wheel count/scale/target,
   mouse state). INFO logs time strip composition and render pushes.
 
-## 8. Integrating the real browser (the road from here)
+## 8. The real browser (`mpvtk_browser/`)
 
-- `library_browser/repository.py` and `thumbnails.py` are UI-agnostic:
-  point the strip compositor at real posters (decode on the existing
-  worker pool; recomposite-on-arrival via content keys + invalidate).
-- Views become `build()` branches on a route stack (see PARITY.md for
-  the full component mapping and build order).
-- The mpv-rendered browser lives near `playerManager` (same process as
-  the player), not in the gui_mgr multiprocessing side; `--idle
+The toolkit here is app-agnostic; `jellyfin_mpv_shim.mpvtk_browser` is
+the application built on it — the Jellyfin library browser, rendered in
+the player's own mpv window. How it lands against the model above:
+
+- **Data layer is UI-agnostic and owned by the app.**
+  `mpvtk_browser/repository.py` (live `JellyfinClient`) and
+  `thumbnails.py` are the single source of truth; the strip compositor
+  points at real posters decoded on a worker pool and recomposites on
+  arrival via content keys + `invalidate()`.
+- **Views are `build()` branches on a route stack** (`views.py` — home,
+  grid, detail, series/season, search; state lives in the route dict,
+  every mutation ends in `invalidate()`).
+- **Same process as the player.** It lives near `playerManager`, not in
+  the gui_mgr `multiprocessing` side — so there is no separate child and
+  the libmpv memory-image path (§5) is available. `--idle
   --force-window` gives browse-before-play in the same window.
-- Remote/keyboard spatial navigation is the one net-new capability
-  left, and the main reason to render in mpv for the 10-foot case.
+- **Spatial (10ft) navigation** (§2) is the net-new capability this
+  architecture unlocks and the main reason to render in mpv for the
+  remote/keyboard case.
+
+The browser replaced an earlier Tkinter browser package (removed on
+reaching parity). Note: `mpvtk_browser/__init__.py` still cites a
+`MIGRATION.md` that does not exist — a leftover pointer, not a doc.

@@ -8,7 +8,8 @@ round-trips; semantic events (clicks, edits, selections) come back and
 typically result in a new scene being pushed.
 
 Works identically over python-mpv-jsonipc and libmpv (app.py backends).
-Spike status: see README.md in this directory.
+See README.md for rationale and constraints, GUIDE.md for the developer
+reference; mpvtk_browser/ is the full app built on this toolkit.
 """
 
 from .app import MpvtkApp

@@ -1,15 +1,40 @@
-# mpvtk — declarative UI rendered inside the mpv window
+# mpvtk — declarative UI framework rendered inside the mpv window
 
-> Start with **GUIDE.md** (architecture, protocol, widget catalog,
-> constraints, testing) and **PARITY.md** (Tk-browser gap analysis and
-> what's left). This file is the spike log: how we got here and what
-> was learned the hard way.
+A full declarative UI toolkit — widget tree, layout engine, and an
+in-mpv renderer — that draws application UI directly into the mpv
+window using only mpv's OSD primitives (`osd-overlay` ASS + bitmap
+`overlay-add`). `mpvtk_browser/` is the real workload built on it: a
+complete Jellyfin library browser (home, tiles/strips, search, music,
+downloads, settings, cast, dialogs) rendered entirely this way.
 
-Spike exploring rendering the library-browser-class UI directly in the
-mpv window, inverting the usual "embed mpv in a toolkit" architecture:
-mpv owns the window and swapchain; the UI is OSD data composited in
-mpv's own render pass. The video path is untouched (native VO, direct
-scanout, HDR passthrough all intact).
+> **This file** is the overview: why the framework exists, the
+> architecture, and the constraints of building UI on OSD primitives.
+> **GUIDE.md** is the durable developer reference (protocol, full widget
+> catalog, renderer internals, testing). Start here, then go there.
+
+## Why this exists
+
+The goal was to render the library-browser UI *on top of the video*,
+sharing one window with the player. The conventional answer — embed
+mpv in a desktop toolkit (Tkinter) and/or overlay a native child
+window — has primitives for this on Windows and X11, but it breaks
+down where it matters:
+
+- **Process isolation.** mpv runs isolated from Tkinter for
+  thread-cleanliness reasons; punching a shared, correctly-Z-ordered,
+  DPI-correct native surface across that boundary is fragile.
+- **Wayland.** There is no Tkinter-in-mpv-window story on Wayland, and
+  we're unwilling to give up high-quality rendering on the future of
+  Linux desktop just for a UI-polish feature.
+- **DPI-aware scaling** and similar per-platform surface headaches.
+
+So mpvtk **inverts the usual "embed mpv in a toolkit" architecture**:
+mpv owns the window and swapchain, and the UI is OSD data composited in
+mpv's *own* render pass. The video path is untouched — native VO,
+direct scanout, and HDR passthrough all stay intact — and there is no
+cross-process surface to keep in sync, because the UI *is* mpv output.
+The cost is that everything must be expressible in mpv's OSD
+primitives; the constraints that flow from that are catalogued below.
 
 ## Architecture
 
@@ -43,7 +68,12 @@ app.py       → JSON over script-message ──►  renderer.lua
   and libmpv are identical (`--backend` in the demo; 13/13 selftest
   checks pass on both).
 
-## Round 2: strips, infinite scroll, context menus, metrics
+## Scaling to a real app: compositing, virtualization, popups
+
+These are the techniques that take the model from "draws widgets" to
+"runs a full library browser" — how the overlay budget, z-order, and
+scroll cost are kept survivable at app scale.
+
 
 - **Strip compositing (`ImageMap`)**: whole tile rows are baked into one
   BGRA file — posters, captions, progress bars, unwatched badges,
@@ -82,11 +112,34 @@ app.py       → JSON over script-message ──►  renderer.lua
   overlay-add — remove-before-add produced one-frame holes visible as
   tile flicker while scrolling.
 
-Hard-won crash lesson: mpv **mmaps** overlay files — a crop that reads
-past EOF is a silent SIGBUS process death. Image nodes never stretch
-past their pixel size and the renderer clamps crops to `iw`/`ih`.
+Hard-won crash lesson: a crop that reads past the end of an image
+source can kill the process, so image nodes never stretch past their
+pixel size and the renderer clamps every crop to `iw`/`ih`. The exact
+failure mode is **version-dependent**, and the clamp is required on all
+of them:
 
-## Spike findings
+- **File source, mpv ≤ 0.41**: the file is `mmap`'d from 0 to
+  `offset + h*stride`, so reading past EOF touches mapped-but-absent
+  pages → **silent SIGBUS**. This map also grows with `offset`, so a
+  far-scrolled tall strip re-mmaps a region proportional to scroll
+  depth on every re-issue (a real jsonipc-path cost).
+- **File source, mpv ≥ 0.42**: no mmap — the source is `fseek`+`fread`
+  (commit `3cd66d2fd7`). A past-EOF crop is now a **short read → soft
+  command failure** (`overlay-add: could not open or read`), not a
+  crash, and the offset-proportional cost is gone (a seek is constant).
+  Note ≥ 0.42 also *mutates a passed `@fd`'s file position* — we use
+  filenames, not `@fd`, so this doesn't touch us.
+- **`&<address>` memory source (libmpv), all versions**: `overlay-add`
+  `memcpy_pic`s straight from the pointer with **no bounds check**, so
+  an OOB crop is a hard **SIGSEGV** regardless of mpv version. The
+  clamp is load-bearing here on every build; only the *file*-path
+  SIGBUS is what 0.42 defuses.
+
+## Constraints & hard-won lessons
+
+These are inherent properties of building UI on mpv's OSD primitives —
+not bugs to fix, but the shape of the box we're working inside.
+
 
 1. **overlay-add bitmaps composite ABOVE all script ASS** (verified on
    mpv 0.41; the thumbfast "hole punch" comment suggests the opposite —
@@ -113,6 +166,21 @@ past their pixel size and the renderer clamps crops to `iw`/`ih`.
 6. Wheel events walk up the scroll chain by axis: vertical wheel over a
    tile row scrolls the page; horizontal (or shift+) wheel scrolls the
    row.
+7. **Smooth scrolling is fundamentally not on the table; scrolling is
+   hard-stepped by design.** `overlay-add`'s bitmap path was never built
+   for continuously-moving UI. Each re-issue runs mpv's internal
+   `recreate_overlays`, which re-atlases and re-copies *every* active
+   overlay (not just the changed one), and mpv copies the bitmap ~3×
+   more before it blends (ingest → atlas → `sub_bitmaps_copy` →
+   per-render `sub_bitmaps_copy`). There is **no client-side lever** to
+   collapse that; all we can do is shrink source area (we're at display
+   res) and overlay count (strip compositing → 2–8/screen). We've done
+   both, plus sticky-slot no-op suppression so an unchanged strip is
+   never re-issued. Consequently every scroll tick moves by a whole step
+   rather than a pixel — the copy cost is paid once per step instead of
+   once per frame. At 4K the per-step copy is still visibly a beat
+   behind; that's the ceiling of the OSD-bitmap approach, not a bug to
+   chase.
 
 ## Demo / selftest
 
@@ -128,7 +196,7 @@ asserts on renderer state and Python-side model updates.
 
 Unit tests for the layout engine: `python3 -m unittest tests.test_mpvtk_layout`.
 
-## Not yet built (deliberately out of scope for the spike)
+## Not yet built (deliberately out of scope)
 
 - Modal dialogs (the menu/popup floating-layer + occluder mechanism
   generalizes to them).
