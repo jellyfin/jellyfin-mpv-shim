@@ -75,7 +75,8 @@ class TestTrayMenuShape(unittest.TestCase):
         self.assertIn(
             "default=True", entry[0],
             "The tray's Show Library Browser item is no longer the default "
-            "action; clicking the icon will do nothing on Windows/macOS.")
+            "action; clicking the icon will do nothing on the backends that "
+            "support a primary click (win32, gtk, xorg).")
 
     def test_only_one_default_item(self):
         # pystray takes the first default item; a second one is dead config

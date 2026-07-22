@@ -402,9 +402,12 @@ Make sure Python and libmpv are both 64-bit or both 32-bit; mismatching them fai
    cd pyinstaller/bootloader && python ./waf distclean all && cd .. && pip install .
    cd ..
    ```
-    - PyInstaller is not one of the project's dependencies, so this step is what provides it.
-      A stock `pip install pyinstaller` also works, but ships a prebuilt bootloader that some
-      antivirus products flag; building it locally is why CI does it this way.
+    - PyInstaller is only needed to produce the `.exe`. It is not a dependency of the
+      application, and nobody running the client needs it.
+    - A stock `pip install pyinstaller` also works, but ships a prebuilt bootloader that
+      antivirus products have a long history of flagging. Building it locally gives the
+      installer a bootloader that isn't already on every heuristic blocklist, which is why CI
+      does it this way.
 8. In Git Bash, run `./gen_pkg.sh --skip-build`.
     - This builds the translation files and downloads the shader packs.
 9. Run `build-win.bat` from `cmd` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for a

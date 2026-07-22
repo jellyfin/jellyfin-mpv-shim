@@ -83,11 +83,21 @@ class TrayProcess(Process):
             # having to right-click and pick from a list to get the app back is
             # a poor greeting. It stays in the menu as well.
             #
-            # Only some backends honour it -- pystray exposes that as
-            # Icon.HAS_DEFAULT_ACTION (true on Windows and macOS, false on
-            # Linux/AppIndicator, where a left click opens the menu by
-            # convention). Where it isn't honoured this is simply the first
-            # menu entry, so there is nothing to guard.
+            # Honoured only where the backend can report a primary click --
+            # pystray's Icon.HAS_DEFAULT_ACTION. That is win32, gtk and xorg;
+            # appindicator and darwin both set it False. So in practice this
+            # helps on Windows, and on Linux only under PYSTRAY_BACKEND=gtk or
+            # xorg.
+            #
+            # It is not a pystray shortcoming on appindicator: the Indicator
+            # GObject exposes no signals at all (only a *secondary* activate
+            # target, i.e. middle click), so there is no primary click to hook.
+            # StatusNotifierItem does define Activate, but libappindicator
+            # never surfaces it -- which is why Qt apps on the same desktop can
+            # tell the buttons apart and this cannot.
+            #
+            # Where it isn't honoured this is simply the first menu entry, so
+            # there is nothing to guard.
             MenuItem(_("Show Library Browser"), send("show"), default=True),
             MenuItem(_("Configure Servers"), send("show_preferences")),
             MenuItem(_("Show Console"), send("show_console")),
