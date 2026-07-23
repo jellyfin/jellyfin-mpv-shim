@@ -77,6 +77,45 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         self.assertIsNone(chk.new_version)
         self.assertEqual(player.ui_calls, [])
 
+    def test_no_notify_when_running_ahead_of_the_latest_release(self):
+        # The regression: string inequality told anyone on a pre-release that
+        # the older stable tag was an update, every day, forever.
+        player = FakePlayer(with_ui=True)
+        chk = UpdateChecker(player)
+        with mock.patch.object(uc, "requests") as rq, \
+                mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
+                mock.patch.object(uc.settings, "check_updates", True), \
+                mock.patch.object(uc.settings, "notify_updates", True):
+            rq.get.return_value = _Resp("2.10.0")
+            chk.check()
+        self.assertIsNone(chk.new_version)
+        self.assertEqual(player.ui_calls, [])
+
+    def test_notifies_when_a_pre_release_is_superseded(self):
+        player = FakePlayer(with_ui=True)
+        chk = UpdateChecker(player)
+        with mock.patch.object(uc, "requests") as rq, \
+                mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
+                mock.patch.object(uc.settings, "check_updates", True), \
+                mock.patch.object(uc.settings, "notify_updates", True):
+            rq.get.return_value = _Resp("3.0.0")
+            chk.check()
+        self.assertEqual(chk.new_version, "3.0.0")
+
+    def test_version_is_taken_from_the_last_path_segment(self):
+        # Not a fixed offset into the URL: the tags dropping their "v" must
+        # not silently start reporting "v3.0.0" as the available version.
+        player = FakePlayer(with_ui=True)
+        chk = UpdateChecker(player)
+        resp = _Resp("99.0.0")
+        resp.headers["location"] = release_url + "tag/99.0.0"
+        with mock.patch.object(uc, "requests") as rq, \
+                mock.patch.object(uc.settings, "check_updates", True), \
+                mock.patch.object(uc.settings, "notify_updates", False):
+            rq.get.return_value = resp
+            chk.check()
+        self.assertEqual(chk.new_version, "99.0.0")
+
     def test_osd_fallback_when_ui_callback_raises(self):
         player = FakePlayer(with_ui=True)
         player.notify_update = lambda *_a: (_ for _ in ()).throw(RuntimeError())

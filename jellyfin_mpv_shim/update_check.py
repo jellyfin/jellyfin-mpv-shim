@@ -6,6 +6,7 @@ import webbrowser
 from .constants import CLIENT_VERSION
 from .conf import settings
 from .i18n import _
+from .version import is_newer
 
 from typing import TYPE_CHECKING
 
@@ -39,10 +40,20 @@ class UpdateChecker:
                 if not response.headers["location"].startswith(release_url):
                     log.warning("Release page does not start with release_url.")
                     continue
-                version = response.headers["location"][len(release_url) + 5 :]
-                if CLIENT_VERSION != version:
+                # .../releases/tag/v2.10.0 -> 2.10.0. Taken from the last path
+                # segment rather than by offset, so the tags dropping their
+                # "v" some day changes nothing here.
+                tag = response.headers["location"].rpartition("/")[2]
+                version = tag[1:] if tag[:1] in ("v", "V") else tag
+                # A difference is not an upgrade: this also runs on
+                # pre-releases and local builds, whose version is *ahead* of
+                # the newest stable tag. /releases/latest never points at a
+                # pre-release, so there is nothing here to opt in or out of.
+                if is_newer(version, CLIENT_VERSION):
                     self.new_version = version
                     break
+                log.info("Up to date (running %s, latest release %s).",
+                         CLIENT_VERSION, version)
             except Exception:
                 log.error("Could not check for updates.", exc_info=True)
         return self.new_version is not None
