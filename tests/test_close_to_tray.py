@@ -63,6 +63,50 @@ class CloseToTrayTest(unittest.TestCase):
         self.ui.on_window_closed()
         self.ui._quit.assert_called_once()
 
+    def test_allow_background_keeps_running_without_a_tray(self):
+        """The opt-in for machines with no tray: the app goes windowless and
+        `jellyfin-mpv-shim stop` is how it ends."""
+        settings.close_to_tray = True
+        self.ui._tray = _Tray(available=False)
+        with mock.patch.object(settings, "allow_background", True), \
+                mock.patch("jellyfin_mpv_shim.mpvtk_browser.ui."
+                           "_PlayerController"):
+            self.ui.on_window_closed()
+        self.browser.minimize.assert_called_once()
+        self.ui._quit.assert_not_called()
+
+    def test_allow_background_does_not_override_close_to_tray(self):
+        """It answers "may it run windowless", not "should closing exit" --
+        someone who turned close-to-tray off still wants the window close to
+        be the end of it."""
+        settings.close_to_tray = False
+        self.ui._tray = _Tray(available=False)
+        with mock.patch.object(settings, "allow_background", True):
+            self.ui.on_window_closed()
+        self.ui._quit.assert_called_once()
+        self.browser.minimize.assert_not_called()
+
+    def test_headless_keeps_running_without_a_tray(self):
+        """A cast target has no library to come back to; staying reachable
+        over the network is the job, so exiting on close is the failure."""
+        settings.close_to_tray = True
+        self.ui._tray = _Tray(available=False)
+        with mock.patch.object(settings, "headless", True), \
+                mock.patch.object(settings, "allow_background", False), \
+                mock.patch("jellyfin_mpv_shim.mpvtk_browser.ui."
+                           "_PlayerController"):
+            self.ui.on_window_closed()
+        self.browser.minimize.assert_called_once()
+        self.ui._quit.assert_not_called()
+
+    def test_headless_still_exits_when_close_to_tray_is_off(self):
+        """Turning it off is how you ask a cast target to quit on close."""
+        settings.close_to_tray = False
+        self.ui._tray = _Tray(available=False)
+        with mock.patch.object(settings, "headless", True):
+            self.ui.on_window_closed()
+        self.ui._quit.assert_called_once()
+
     def test_hiding_stops_playback(self):
         """Music kept playing after the window went away — and because
         set_browse_window() will not release force_window while something is

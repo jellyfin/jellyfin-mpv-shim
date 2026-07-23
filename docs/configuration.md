@@ -117,8 +117,12 @@ You can use the config file to enable and disable features.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
   - Toggling fullscreen in the player (`f`, or the on-screen control) is remembered: it writes `browser_fullscreen` while browsing and `fullscreen` while something is playing.
-- `close_to_tray` - When enabled, closing the player window minimizes the app to the system tray, keeping it running as a cast target; when disabled, closing exits. Ignored (treated as `false`) when no system tray is available, so the app can't become unreachable. Default: `true`
-- `start_minimized` - Start minimized to the tray instead of opening the library. Also ignored when no tray is available. Default: `false`
+- `close_to_tray` - When enabled, closing the player window minimizes the app to the system tray, keeping it running as a cast target; when disabled, closing exits. Ignored (treated as `false`) when no system tray is available, unless `allow_background` or `headless` is set. Default: `true`
+  - In `headless` (cast-target) mode there is no library to come back to and being reachable over the network is the point, so it keeps running with or without a tray. Set this to `false` if you want closing the window to quit.
+- `allow_background` - Permit running with no window and no tray icon: the app stays alive as a cast target but is invisible on the desktop. This is what makes `close_to_tray` and `start_minimized` work on machines with no system tray. Off by default because the only ways out are `jellyfin-mpv-shim stop` and killing the process. Default: `false`
+  - In the settings form this replaces the "Close to Tray" checkbox when no tray is running, since on those machines it is the same question with different consequences.
+- `start_minimized` - Start minimized to the tray instead of opening the library. Ignored when no tray is available unless `allow_background` is set — but passing `--minimized` on the command line is honoured regardless, since that is a decision made for that one launch. Either way, running `jellyfin-mpv-shim` again shows the window. Default: `false`
+  - The settings form only offers this once the toggle above it (`close_to_tray`, or `allow_background` where there is no tray) is enabled, since it is asking the app to start in the state that toggle permits. Turning that toggle back off also turns this one off, so it can't keep acting from a checkbox that is no longer on screen; the form says so when it happens.
 - `remember_window_size` - Persist the window size across launches. Default: `true`
   - Off means the size is a fixed preference the app always opens at, which is what you want if you deliberately pinned one.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`

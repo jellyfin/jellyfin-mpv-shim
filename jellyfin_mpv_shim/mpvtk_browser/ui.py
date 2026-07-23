@@ -1177,17 +1177,60 @@ class UserInterface:
         if self.stop_callback is not None:
             self.stop_callback()
 
+    def _can_run_windowless(self):
+        """True if the app may keep running with no window on screen.
+
+        Either the tray can bring it back, or the user set allow_background
+        and accepted that `jellyfin-mpv-shim stop` is the way out. Anything
+        else would leave a process nobody can see or reach.
+
+        Cast-target mode is the exception: there is no library to come back
+        to, and staying reachable *over the network* is the entire job. On
+        those machines exiting on window close is the failure, not the
+        safeguard — close_to_tray=False is how you ask for the app to quit.
+        """
+        if settings.headless:
+            return True
+        if self._tray is not None and self._tray.available:
+            return True
+        return bool(settings.allow_background)
+
+    def _may_start_minimized(self):
+        """True if we may come up with no window on screen.
+
+        `--minimized` on the command line counts on its own: it is a decision
+        made for this launch, in a terminal, by someone who can see the log
+        line telling them how to get the window back. The config key is not
+        self-authorizing in the same way — it may have been set on a machine
+        that had a tray at the time — so that path still wants a tray or
+        allow_background.
+
+        Either way there is a way back: launching the app again asks the
+        running copy to surface its window (see single_instance.py).
+        """
+        if self._can_run_windowless():
+            return True
+        from ..args import get_args
+
+        if get_args().start_minimized:
+            log.info("Started minimized with no system tray. Run "
+                     "jellyfin-mpv-shim again to show the window, or "
+                     "jellyfin-mpv-shim stop to exit.")
+            return True
+        return False
+
     def on_window_closed(self):
         """The user closed the mpv window.
 
         With one shared window, closing it means "minimize to tray" — the app
         stays alive as a cast target. But that is only safe if there *is* a
         tray: without one the app would keep running with no way to reach or
-        quit it, so we exit instead."""
+        quit it, so we exit instead — unless allow_background says the user
+        asked for exactly that and knows how to stop it."""
         if not settings.close_to_tray:
             self._quit()
             return
-        if self._tray is None or not self._tray.available:
+        if not self._can_run_windowless():
             log.info("Window closed and no system tray is available; "
                      "exiting rather than becoming unreachable.")
             self._quit()
@@ -1256,17 +1299,20 @@ class UserInterface:
         playerManager.on_mpv_recreated = self.on_mpv_recreated
         playerManager.on_hud_menu = self._browser.open_hud_menu
         # start_minimized: come up in the windowless state — running, castable,
-        # reachable from the tray — instead of opening the library. Without a
-        # tray there'd be no way back, so honour it only when one is up.
-        if settings.start_minimized and self._tray is not None:
-            self._tray.ready.wait(5)
+        # reachable from the tray — instead of opening the library.
+        # Settle whether there is a tray *before* deciding: the tray comes up
+        # in another process a moment after we do, and asking too early both
+        # picks the fallback path and logs advice that is about to be wrong.
         if settings.start_minimized and self._tray is not None \
-                and self._tray.available:
+                and not settings.allow_background:
+            self._tray.ready.wait(5)
+        if settings.start_minimized and self._may_start_minimized():
             browser.minimize()
         else:
             if settings.start_minimized:
-                log.info("start_minimized ignored: no system tray to "
-                         "restore the window from.")
+                log.info("start_minimized ignored: no system tray to restore "
+                         "the window from. Set allow_background to run "
+                         "windowless anyway.")
             browser.enter_browse()  # take the window + hide the OSC
         if browser.headless:
             # Cast-target UX: the backdrop wants the whole screen, and the

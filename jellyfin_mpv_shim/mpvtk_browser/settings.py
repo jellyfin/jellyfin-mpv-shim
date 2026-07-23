@@ -19,6 +19,7 @@ user leaves the tab they belong to.
 
 import logging
 
+from ..conf import settings
 from ..i18n import _
 from ..mpvtk.widgets import (
     Box,
@@ -74,9 +75,21 @@ class SettingsMixin:
                        "title": _("Settings"), "_tab": tab})
 
     def _set_setting(self, key, value):
-        ok = self._config().set_setting(key, value)
+        cfg = self._config()
+        ok = cfg.set_setting(key, value)
         self.set_status((_("Saved: %s") if ok else _("Invalid value: %s"))
                         % key)
+        # getattr: _config_obj may be a stand-in without the table, and a
+        # missing one just means nothing to cascade.
+        if ok and not value and key in getattr(cfg, "TRAY_DEPENDENT", ()):
+            # start_minimized is about to disappear from the form (it is only
+            # offered while this one is on), and leaving it set would leave a
+            # setting still acting at every startup that nobody can see to
+            # undo. Say so rather than resetting it silently.
+            if settings.start_minimized and cfg.set_setting(
+                    "start_minimized", False):
+                self.set_status(_("Saved: %s (also turned off \"%s\")")
+                                % (key, cfg.label_for("start_minimized")))
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:
@@ -366,6 +379,14 @@ class SettingsMixin:
         "the server you turned it on for", which only the browser knows.
         Naming it is what stops the setting reading as global.
         """
+        if key == "allow_background":
+            # Only once it is on: while it is off, closing the window still
+            # exits, and telling someone how to stop an app that stops
+            # normally is noise. When it is on this is the only exit there is.
+            if not settings.allow_background:
+                return None
+            return _("To stop the application, re-launch and uncheck this "
+                     "option or run `jellyfin-mpv-shim stop`.")
         if key != "auto_download_enable":
             return None
         name = self._auto_dl_scope_name()

@@ -114,6 +114,11 @@ class Settings(SettingsBase):
     # (keeping the app alive as a cast target) rather than exiting. Defaults to
     # the historical behaviour; the user is prompted once on first close.
     close_to_tray: bool = True
+    # The same thing for machines with no system tray, where close_to_tray is
+    # ignored because the app would have no way back on screen. Opting in says
+    # "an invisible background process is what I want" -- it is off by default
+    # because the only ways out are `jellyfin-mpv-shim stop` and killing it.
+    allow_background: bool = False
     library_image_cache_mb: int = 256
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None

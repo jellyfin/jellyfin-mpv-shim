@@ -171,6 +171,11 @@ library, and the library cannot be reached from the machine itself: no browsing,
 settings, and no queue view. Casting, playback and the player controls all work normally,
 including transport controls for music.
 
+Closing the window in this mode keeps the app running and castable rather than exiting, with or
+without a system tray — a cast target that quits when someone closes a window has stopped doing
+its job. Set `close_to_tray` to `false` if you would rather it quit, and use
+`jellyfin-mpv-shim stop` to shut one down.
+
 **This is not a security feature.** It stops someone plugging in a mouse and playing random
 things from your library, which is what it is for. It does not stop anyone with real access to
 the machine: the config file is editable, and the systray menu still reaches Settings and the

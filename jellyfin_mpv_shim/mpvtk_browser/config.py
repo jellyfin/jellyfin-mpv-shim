@@ -42,12 +42,26 @@ AUDIO_MODE_ONLY = {
     "audio_optical_encode_ac3": {"optical"},
 }
 
+# Exactly one of these is shown, because they are the same question asked of
+# two different machines: "keep running once the window is gone". With a tray
+# that is close-to-tray and the tray is the way back; without one the app is
+# invisible and only `jellyfin-mpv-shim stop` ends it, which is a different
+# enough deal to need its own opt-in rather than a toggle that silently
+# changes meaning.
+TRAY_DEPENDENT = ("close_to_tray", "allow_background")
+
+# Starting minimized asks the app to come up in the state whichever of the
+# above is on screen permits, so offering it while that one is off is
+# offering a setting that cannot do anything. Shown directly below it.
+BACKGROUND_DEPENDENT = ("start_minimized",)
+
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".
 SECTIONS = [
     (_("Interface"), ["player_name", "browser_fullscreen",
                       "headless", "display_mirror_summon",
-                      "enable_gui", "start_minimized", "close_to_tray",
+                      "enable_gui", "close_to_tray", "allow_background",
+                      "start_minimized",
                       "remember_window_size",
                       "fullscreen", "ui_scale", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
@@ -140,6 +154,7 @@ LABEL_OVERRIDES = {
     "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
     "auto_download_interval_mins": _("Check Every (minutes)"),
     "close_to_tray": _("Close to Tray (keep running)"),
+    "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
     "osc_style": _("Player Controls Style"),
     "ui_scale": _("Interface Scale"),
@@ -215,6 +230,23 @@ def visible_passthrough_keys():
     return [key for codec, key in AUDIO_PASSTHROUGH_KEYS if codec in usable]
 
 
+def tray_available():
+    """True if a system tray icon is actually up right now.
+
+    Not "is pystray importable": the tray can fail to appear for reasons the
+    parent process only learns from the child (missing typelib, no
+    StatusNotifier host), and the form has to reflect what the user has, not
+    what the install implies.
+    """
+    try:
+        from .ui import user_interface
+
+        tray = getattr(user_interface, "_tray", None)
+        return tray is not None and tray.available
+    except Exception:
+        return False
+
+
 def sections():
     """``[(title, [key, ...]), ...]`` — curated groups first, then Advanced
     with everything else that's editable."""
@@ -222,7 +254,8 @@ def sections():
     mode = settings.audio_mode or "auto"
     # Seeded, not built up: an audio toggle hidden because the mode can't use
     # it must not reappear under "Advanced" as an uncurated key.
-    curated = {k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
+    curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
+               | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT))
     out = []
     try:
         shown = set(visible_passthrough_keys())
@@ -230,6 +263,10 @@ def sections():
         # Importing player pulls in mpv; never let that break the whole form.
         shown = set()
     shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
+    keep_running = "close_to_tray" if tray_available() else "allow_background"
+    shown.add(keep_running)
+    if getattr(settings, keep_running, False):
+        shown.update(BACKGROUND_DEPENDENT)
     hidden = curated - shown
     for title, keys in SECTIONS:
         present = [k for k in keys if k in schema and k not in hidden]
