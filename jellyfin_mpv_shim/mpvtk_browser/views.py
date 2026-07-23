@@ -174,10 +174,12 @@ class ViewsMixin:
                              on_toggle=lambda: self._toggle_collections(
                                  route))], gap=10, align="center"))
             header.append(self._grid_filter_bar(route))
-            total = route.get("_total") or 0
-            header.append(Text(_("%(shown)d of %(total)d") % {
-                "shown": len(items), "total": total},
-                size=14, color=theme.SUBTLE_FG))
+            # The count line is redundant with the pagination bar's "of N".
+            if not self._paginated():
+                total = route.get("_total") or 0
+                header.append(Text(_("%(shown)d of %(total)d") % {
+                    "shown": len(items), "total": total},
+                    size=14, color=theme.SUBTLE_FG))
         elif route["kind"] == "person":
             # Sort only. The full filter bar is gated on kind == "grid" and
             # person routes are "person", so a filmography had no ordering
@@ -191,6 +193,8 @@ class ViewsMixin:
         head_h = 40 + (110 if route["kind"] == "grid" else 0) \
             + (46 if route["kind"] == "person" else 0)
         geom = self._square_geom(items) or self.geom
+        if self._paginated():
+            return self._paged_grid(route, size, header, geom)
         rows = header + self._grid_of(
             items, "grid", size, geom=geom,
             scroll_id="grid", head_h=head_h)
@@ -256,6 +260,10 @@ class ViewsMixin:
                      id="grid-fav",
                      on_toggle=lambda: self._toggle_grid_filter(
                          route, "favorite")),
+            # Reflects and writes the GLOBAL paginated setting — a convenient
+            # place to flip it, not a per-view filter.
+            Checkbox(_("Paginated"), self._paginated(), id="grid-paginated",
+                     on_toggle=lambda: self._toggle_paginated()),
             Spacer(),
             Button(_("Shuffle"), id="grid-shuffle",
                    on_click=lambda: self._grid_shuffle(route)),
@@ -280,6 +288,7 @@ class ViewsMixin:
         for k in ("_items", "_total"):
             route.pop(k, None)
         route["_loading"] = False
+        self._reset_pagination(route)
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
@@ -296,6 +305,14 @@ class ViewsMixin:
         f = route.setdefault("_filters", {})
         f[key] = not f.get(key)
         self._reload_grid(route)
+
+    def _toggle_paginated(self):
+        """The inline Paginated checkbox: flip and persist the GLOBAL setting.
+        No reload — the data is unchanged, only how it's presented — but reset
+        the page state so turning it on lands on page 1."""
+        self._config().set_setting("paginated", not self._paginated())
+        self._reset_pagination(self.route)
+        self.invalidate()
 
     def _grid_shuffle(self, route):
         srv = route.get("server") or self.server
@@ -341,6 +358,49 @@ class ViewsMixin:
             route, offset, maximum,
             lambda r: (r.get("_items") or [], r.get("_total") or 0),
             put, fetch)
+
+    def _grid_page_fetcher(self, route):
+        """``fetch(start, limit) -> (items, total)`` for a paginated grid or
+        person route. Sort/filters are bound now, on the loop thread (as
+        _on_grid_scroll does). A Random sort reshuffles server-side per
+        request, so it can't be paged — page the already-loaded items in
+        memory instead."""
+        _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        filters = route.get("_filters") or {}
+        person = route.get("person_id")
+        srv = route.get("server") or self.server
+        if sort_by == "Random":
+            items = route.get("_items") or []
+            return lambda start, limit: (items[start:start + limit], len(items))
+
+        def fetch(start, limit):
+            if person:
+                return self.source.get_person_items(
+                    srv, person, start_index=start, limit=limit,
+                    sort_by=sort_by, sort_order=sort_order)
+            if route.get("_collections"):
+                return self.source.get_movie_collections(
+                    srv, start_index=start, limit=limit, sort_by=sort_by,
+                    sort_order=sort_order, filters=filters)
+            return self.source.get_library_items(
+                srv, route["parent_id"], start_index=start, limit=limit,
+                sort_by=sort_by, sort_order=sort_order, filters=filters)
+        return fetch
+
+    def _paged_grid(self, route, size, header, geom):
+        """Paginated grid/person: one screenful of tiles, no scroll — the
+        bottom pagination bar (build) moves between pages."""
+        head_h = self._header_offset(header)
+        ps = self._page_size(route, size, head_h, geom)
+        page_items = self._ensure_page(
+            route, ps, self._grid_page_fetcher(route),
+            seed=route.get("_items"))
+        if page_items is None:
+            body = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
+        else:
+            body = self._grid_of(page_items, "grid", size, geom=geom)
+        return Column(header + body, pad=self.CONTENT_PAD, gap=self.GRID_GAP,
+                      align="stretch", flex=1)
 
     # --------------------------------------------------- detail / series / etc
 

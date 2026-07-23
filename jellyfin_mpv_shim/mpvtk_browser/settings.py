@@ -96,6 +96,11 @@ class SettingsMixin:
             self._seed_auto_download_server()
         if ok and key.startswith("audio_"):
             self._apply_audio_settings()
+        if ok and key in ("scroll_wheel_pixels", "snapped_scrolling"):
+            # Wheel step / snapped toggle apply live -- the renderer just
+            # re-derives, no reload needed.
+            if self.app is not None and hasattr(self.app, "push_scroll_config"):
+                self.app.push_scroll_config()
         self.invalidate()
 
     def _apply_audio_settings(self):

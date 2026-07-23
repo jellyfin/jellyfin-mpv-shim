@@ -8270,3 +8270,169 @@ class TestCastingDoesNotSummonTheBrowser(unittest.TestCase):
         self.b._browsing = True
         self.b.display_item("srv1", "m1")
         self.assertEqual(self.b.route.get("item_id"), "m1")
+
+
+class TestScrollRerenderThreshold(unittest.TestCase):
+    """Continuous (sub-row) wheel scrolling arrives as many small offset
+    steps. The virtualized window must still be rebuilt as the view drifts, or
+    rows fall out of the built window and render as blank spacers. The rebuild
+    threshold is measured from the last RENDER, not the previous event."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.n = 0
+        self.b.invalidate = lambda: setattr(self, "n", self.n + 1)
+
+    def test_threshold_is_distance_since_last_render(self):
+        step = self.b.SCROLL_STEP
+        # First event always renders (no baseline yet).
+        self.b._on_scroll("grid", 80, 100000)
+        self.assertEqual(self.n, 1)
+        # +80 (< SCROLL_STEP from the render at 80): no rebuild.
+        self.b._on_scroll("grid", 160, 100000)
+        self.assertEqual(self.n, 1)
+        # 160 is now >= SCROLL_STEP from the last render (80): rebuild, and the
+        # baseline moves to here.
+        self.b._on_scroll("grid", 80 + step + 1, 100000)
+        self.assertEqual(self.n, 2)
+
+    def test_slow_subrow_scroll_keeps_rebuilding(self):
+        # 80px steps never span SCROLL_STEP between adjacent events, yet a long
+        # slow scroll must keep the window fresh -- the old per-event compare
+        # rebuilt exactly once and then went stale (the empty-void bug).
+        off = 0
+        for _ in range(20):            # 1600px of travel
+            off += 80
+            self.b._on_scroll("grid", off, 100000)
+        # Baseline advances to each crossing, so the cadence is ~1 rebuild per
+        # (SCROLL_STEP rounded up to a step) -- here ~10. The point is it stays
+        # proportional to travel; the old per-event compare rebuilt just once.
+        self.assertGreaterEqual(
+            self.n, 6,
+            "slow sub-row scrolling stopped rebuilding the window")
+
+
+class TestPagination(unittest.TestCase):
+    """The paginate-tile-grids engine (settings.paginated). Exercised at the
+    method level -- the render path needs a real geom/source, but the paging,
+    clamping, prefetch, cache pruning and bar are pure route-dict logic."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b.invalidate = lambda: None
+        # Run async fetches inline so a page is populated by the time the
+        # call returns (the real pool would need a join).
+        def sync(work, on_done, epoch, on_error=None, always=None):
+            try:
+                res = work()
+            except Exception as e:      # noqa: BLE001
+                if on_error:
+                    on_error(e)
+            else:
+                on_done(res)
+            finally:
+                if always:
+                    always()
+        self.b.run_async = sync
+
+    def _fetch_of(self, total):
+        """A fetch(start, limit) over a synthetic list of `total` ints."""
+        data = list(range(total))
+        return lambda start, limit: (data[start:start + limit], total)
+
+    def test_page_count_ceils(self):
+        self.assertEqual(self.b._page_count({"_total": 250}, 24), 11)
+        self.assertEqual(self.b._page_count({"_total": 48}, 24), 2)
+        self.assertEqual(self.b._page_count({"_total": 0}, 24), None)
+        self.assertIsNone(self.b._page_count({}, 24))
+
+    def test_ensure_page_loads_current_and_neighbours(self):
+        route = {"kind": "grid", "_total": 250, "_page": 2}
+        items = self.b._ensure_page(route, 10, self._fetch_of(250))
+        self.assertEqual(items, list(range(20, 30)), "page 2 (0-based) items")
+        self.assertEqual(route["_npages"], 25)
+        # current + both neighbours prefetched, nothing else.
+        self.assertEqual(sorted(route["_pages"]), [1, 2, 3])
+
+    def test_ensure_page_clamps_out_of_range(self):
+        route = {"kind": "grid", "_total": 30, "_page": 99}
+        items = self.b._ensure_page(route, 10, self._fetch_of(30))
+        self.assertEqual(route["_page"], 2, "clamped to the last page")
+        self.assertEqual(items, list(range(20, 30)))
+
+    def test_ensure_page_prunes_far_pages(self):
+        route = {"kind": "grid", "_total": 1000, "_page": 0}
+        self.b._ensure_page(route, 10, self._fetch_of(1000))
+        route["_page"] = 50
+        self.b._ensure_page(route, 10, self._fetch_of(1000))
+        # Only a window around the current page is retained.
+        self.assertEqual(sorted(route["_pages"]), [49, 50, 51])
+
+    def test_ensure_page_seeds_page0_without_a_fetch(self):
+        fetched = []
+        def fetch(start, limit):
+            fetched.append(start)
+            return (list(range(start, start + limit)), 100)
+        route = {"kind": "grid", "_total": 100, "_page": 0}
+        seed = list(range(100))
+        items = self.b._ensure_page(route, 10, fetch, seed=seed)
+        self.assertEqual(items, list(range(10)))
+        self.assertNotIn(0, fetched, "page 0 came from the seed, not a fetch")
+
+    def test_ps_change_drops_the_cache(self):
+        route = {"kind": "grid", "_total": 250, "_page": 2}
+        self.b._ensure_page(route, 10, self._fetch_of(250))
+        self.assertEqual(route["_page_size"], 10)
+        self.b._ensure_page(route, 24, self._fetch_of(250))
+        self.assertEqual(route["_page_size"], 24)
+        # Rebuilt at the new size: pages hold 24 items, not 10.
+        self.assertEqual(len(route["_pages"][2]), 24)
+
+    def test_reset_pagination(self):
+        route = {"_pages": {1: []}, "_page_size": 10, "_npages": 5,
+                 "_page_loading": {1}, "_page": 4}
+        self.b._reset_pagination(route)
+        self.assertEqual(route["_page"], 0)
+        for k in ("_pages", "_page_size", "_npages", "_page_loading"):
+            self.assertNotIn(k, route)
+
+    def test_page_jump_parses_1_based(self):
+        route = {"kind": "grid"}
+        self.b._page_jump(route, "7")
+        self.assertEqual(route["_page"], 6)
+        self.b._page_jump(route, "  bogus ")
+        self.assertEqual(route["_page"], 6, "an unparseable jump is ignored")
+        self.b._page_jump(route, "0")
+        self.assertEqual(route["_page"], 0, "page 0 in the box clamps to first")
+
+    def test_bar_hidden_unless_paginated_and_pageable(self):
+        route = {"kind": "grid", "_npages": 10, "_page": 0}
+        self.b._paginated = lambda: False
+        self.assertIsNone(self.b._pagination_bar(route, 1280))
+        self.b._paginated = lambda: True
+        self.assertIsNone(self.b._pagination_bar({"kind": "detail",
+                                                  "_npages": 10}, 1280))
+        self.assertIsNone(self.b._pagination_bar({"kind": "grid"}, 1280),
+                          "no page count yet -> no bar")
+        bar = self.b._pagination_bar(route, 1280)
+        self.assertIsNotNone(bar)
+
+
+class TestPaginatedToggle(unittest.TestCase):
+    """The inline Paginated checkbox writes the global setting."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b.invalidate = lambda: None
+
+    def test_toggle_writes_global_setting(self):
+        saved = {}
+
+        class Cfg:
+            def set_setting(self, k, v):
+                saved[k] = v
+                return True
+        self.b._config = lambda: Cfg()
+        self.b._paginated = lambda: False
+        self.b._toggle_paginated()
+        self.assertEqual(saved, {"paginated": True}, "flips the global flag")

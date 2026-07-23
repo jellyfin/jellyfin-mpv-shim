@@ -49,6 +49,8 @@ ICON_PATHS = {
     'arrow_back': 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z',
     'chevron_left': 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
     'chevron_right': 'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+    'first_page': 'M18.41 16.59 13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z',
+    'last_page': 'M5.59 7.41 10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z',
     'vertical_align_top': 'M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z',
     'vertical_align_bottom': 'M16 13h-3V3h-2v10H8l4 4 4-4zM4 19v2h16v-2H4z',
     'keyboard_arrow_up': 'M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z',

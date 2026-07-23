@@ -333,6 +333,67 @@ ok(cut == nil, "cut keeps the text when the copy could not happen",
 fake.unavailable = {}
 fake.subprocess = nil
 
+-- =========================================================== wheel
+
+-- The wheel drives on_wheel with scale 1 -- a discrete notch, the trackball
+-- case. Default (continuous) scrolling moves the stored offset by a flat
+-- pixel step and lets the DISPLAY snap; snapped_scrolling steps whole detents.
+
+local function wheel(id, steps, dir)
+    fake.send("mpvtk-debug", fake.token({
+        cmd = "wheel", id = id, dir = dir or 1, steps = steps or 1,
+        axis = "y" }))
+end
+
+-- Continuous mode: an equal-row grid scrolls by a SUB-row step, not a whole
+-- row per notch -- this is what stops a trackball overshooting.
+scene({ vscroll("grid", 100, 1000, { snap = 240, bar = true }) })
+wheel("grid", 1)
+eq(offset("grid"), 80, "one notch scrolls a sub-row pixel step, not a row")
+
+-- Least-common-denominator: the step is rounded so a whole number of notches
+-- spans exactly one row (240 / round(240/80) = 80), consistently.
+scene({ vscroll("grid2", 100, 1000, { snap = 240, bar = true }) })
+wheel("grid2", 3)
+eq(offset("grid2"), 240, "three notches land exactly one row down")
+wheel("grid2", 3)
+eq(offset("grid2"), 480, "and the next three land the next row -- same cadence")
+
+-- A row the raw step does not divide is made consistent by rounding the detent
+-- count DOWN (floor): 200 / floor(200/80)=2 -> a 100px step, 2 notches/row --
+-- not the 3 tiny notches round() would have given. WHEEL_STEP is a floor on
+-- granularity, so the step only grows.
+scene({ vscroll("grid3", 100, 1000, { snap = 200, bar = true }) })
+wheel("grid3", 1)
+eq(offset("grid3"), 100, "the step grows to divide the row, never shrinks")
+wheel("grid3", 1)
+eq(offset("grid3"), 200, "two notches still span exactly one row")
+
+-- A plain (non-snapping) container keeps the flat pixel step.
+scene({ vscroll("plainw", 100, 1000) })
+wheel("plainw", 1)
+eq(offset("plainw"), 80, "a non-snapping container scrolls the flat step")
+
+-- The pixel step is configurable (scroll_wheel_pixels): 120px over a 240 row
+-- is 2 notches/row.
+fake.send("mpvtk-wheel", fake.token({ px = 120 }))
+scene({ vscroll("grid4", 100, 1000, { snap = 240, bar = true }) })
+wheel("grid4", 1)
+eq(offset("grid4"), 120, "the wheel step follows scroll_wheel_pixels")
+fake.send("mpvtk-wheel", fake.token({ px = 80 }))
+
+-- snapped_scrolling: each notch jumps a whole row, the old stepped behavior.
+fake.send("mpvtk-wheel", fake.token({ snapped = true }))
+scene({ vscroll("grid5", 100, 1000, { snap = 240, bar = true }) })
+wheel("grid5", 1)
+eq(offset("grid5"), 240, "snapped_scrolling steps a whole row per notch")
+
+-- ...and on the home page's uneven breakpoints, one notch = one section.
+scene({ vscroll("home", 100, 1000, { snaps = { 0, 130, 400, 640 } }) })
+wheel("home", 1)
+eq(offset("home"), 130, "snapped_scrolling steps one breakpoint on the home page")
+fake.send("mpvtk-wheel", fake.token({ snapped = false }))
+
 -- ========================================================== teardown
 
 scene({})

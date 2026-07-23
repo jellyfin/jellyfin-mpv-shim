@@ -128,6 +128,12 @@ You can use the config file to enable and disable features.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Disk budget for cached library artwork. Default: `256`
+- `scroll_wheel_pixels` - Pixels a single wheel notch scrolls in the library browser. Default: `80`
+  - The scrollbar glides continuously while the content snaps to the nearest row (or home-screen section), so a trackpad or trackball no longer overshoots whole rows. On an equal-row grid the step is rounded so a whole number of notches spans one row. Raise it to scroll faster, lower it for finer control.
+- `snapped_scrolling` - Make each wheel notch jump exactly one row (or one home-screen section) instead of gliding. Default: `false`
+  - An accessibility escape hatch that restores the older stepped scrolling.
+- `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
+  - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
   - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`

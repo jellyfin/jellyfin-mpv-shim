@@ -89,7 +89,8 @@ SECTIONS = [
     (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
-    (_("Library Browser"), ["library_image_cache_mb"]),
+    (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
+                            "snapped_scrolling", "paginated"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
                       "auto_download_enable", "auto_download_next_up",
                       "auto_download_next_up_limit",
@@ -182,6 +183,18 @@ LABEL_OVERRIDES = {
 NOTES = {
     "osc_style": _("MPV keybinds are used by default. Press ENTER to drive "
                    "the player controls by keyboard."),
+    "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. The scrollbar "
+                             "glides while the content snaps to the nearest "
+                             "row, so a trackpad or trackball no longer "
+                             "overshoots. Raise it to scroll faster, lower it "
+                             "for finer control."),
+    "snapped_scrolling": _("Make each wheel notch jump exactly one row (or one "
+                           "home-screen section) instead of gliding. Turn this "
+                           "on if you prefer the older stepped scrolling."),
+    "paginated": _("Page the library and music tile grids instead of "
+                   "scrolling: each page is one screenful with First / "
+                   "Previous / Next / Last controls and a page number you can "
+                   "type into. Easier than precise scrolling on a trackpad."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "

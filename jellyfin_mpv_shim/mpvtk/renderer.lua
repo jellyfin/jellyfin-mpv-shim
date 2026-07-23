@@ -66,6 +66,7 @@ local state = {
     accent = '7aa2f7',
     accent_soft = '223055',
     active = true,          -- false while yielded to playback (see mpvtk-active)
+    snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
     -- video, summoned by nav keys / mouse motion, auto-hides
     phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1 },
@@ -1458,9 +1459,14 @@ local function draw_scrollbar(ass, node)
     local th = node.h
     local frac = node.h / node.ch
     local thumb_h = math.max(24, th * frac)
-    -- Snapped, so the thumb tracks the row-aligned content, not the
-    -- continuous accumulator beneath it.
-    local off = snap_round(node, state.scroll[node.id] or 0)
+    -- Default: the thumb rides the continuous offset, so it glides a notch at
+    -- a time even while the content only steps on detent crossings -- the
+    -- feedback that keeps sub-row scrolling from feeling dead. In
+    -- snapped_scrolling the offset already sits on a detent, so track it
+    -- row-aligned to match.
+    local off = state.snapped
+        and snap_round(node, state.scroll[node.id] or 0)
+        or clamp(state.scroll[node.id] or 0, 0, maxs)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
     local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
     draw_rect(ass, track_x, ty, 6, th,
@@ -2634,33 +2640,52 @@ local function on_wheel(dir, axis, e)
         off = node and math.floor(state.scroll[node.id] or 0) or -1,
     }
     if not node then return end
-    -- Explicit breakpoints (home sections): a notch steps to the adjacent
-    -- stop. Hi-res deltas accumulate in a fractional carry so a slow trackpad
-    -- still advances one section per notch's worth of travel; a fling delivers
-    -- many notches in a tick and lands several sections on the coalesced frame.
-    if node.snaps and #node.snaps > 0 then
-        local acc = (state.snap_accum[node.id] or 0) + dir * scale
-        local steps = 0
-        if acc >= 1 then
-            steps = math.floor(acc)
-        elseif acc <= -1 then
-            steps = math.ceil(acc)
+    -- snapped_scrolling (accessibility): each notch steps exactly one detent
+    -- and the display snaps with it -- one home-screen section, or one grid
+    -- row. This is the old stepped behavior, kept as an opt-in.
+    if state.snapped then
+        if node.snaps and #node.snaps > 0 then
+            -- Explicit breakpoints (home sections): a notch steps to the
+            -- adjacent stop; a hi-res/coalesced delta carries the fraction so a
+            -- fling lands several sections on one frame.
+            local acc = (state.snap_accum[node.id] or 0) + dir * scale
+            local steps = 0
+            if acc >= 1 then
+                steps = math.floor(acc)
+            elseif acc <= -1 then
+                steps = math.ceil(acc)
+            end
+            state.snap_accum[node.id] = acc - steps
+            if steps ~= 0 then
+                local idx = snap_index(node.snaps, state.scroll[node.id] or 0)
+                local tgt = clamp(idx + steps, 1, #node.snaps)
+                set_scroll(node, node.snaps[tgt])
+            end
+            return
         end
-        state.snap_accum[node.id] = acc - steps
-        if steps ~= 0 then
-            local idx = snap_index(node.snaps, state.scroll[node.id] or 0)
-            local tgt = clamp(idx + steps, 1, #node.snaps)
-            set_scroll(node, node.snaps[tgt])
-        end
+        local step = WHEEL_STEP
+        if node.snap and node.snap > 0 then step = node.snap end
+        set_scroll(node, (state.scroll[node.id] or 0) + dir * step * scale)
         return
     end
-    -- A snapping container steps by whole rows: one notch (scale ~= 1) moves
-    -- exactly one row, a hi-res delta accumulates in the continuous offset and
-    -- the snapped display advances once it crosses a row. A fling delivers many
-    -- notches within one render tick, so the coalesced frame jumps N rows at
-    -- once. Everything else keeps the flat pixel step.
+    -- Default: every container scrolls by a flat pixel step (the value the
+    -- settings page has always used), and compute_geo/draw snap the CONTENT to
+    -- the nearest breakpoint. The stored offset stays continuous so the
+    -- scrollbar glides while the picture steps -- a trackpad/trackball can't
+    -- overshoot a whole row. For an equal-row grid (node.snap) the step is
+    -- quantized so a whole number of notches spans exactly one row: a row
+    -- height WHEEL_STEP does not divide would otherwise advance 2-3-2-3.
+    -- Home sections (node.snaps, unequal) just take the raw step and land on
+    -- the nearest breakpoint.
+    --
+    -- floor, not round: round the detent count DOWN so a tall row never turns
+    -- into four tiny notches. WHEEL_STEP is then a MINIMUM granularity -- the
+    -- quantized step only ever grows to divide the row evenly, never shrinks.
     local step = WHEEL_STEP
-    if node.snap and node.snap > 0 then step = node.snap end
+    if node.snap and node.snap > 0 then
+        local n = math.max(1, math.floor(node.snap / WHEEL_STEP))
+        step = node.snap / n
+    end
     set_scroll(node,
         (state.scroll[node.id] or 0) + dir * step * scale)
 end
@@ -3486,6 +3511,23 @@ mp.register_script_message('mpvtk-scale', function(json)
     NAV_LEAD = sc(_SCALE_BASE.NAV_LEAD)
     NAV_TAIL = sc(_SCALE_BASE.NAV_TAIL)
     FOLLOW_SLACK = sc(_SCALE_BASE.FOLLOW_SLACK)
+    request_render()
+end)
+
+mp.register_script_message('mpvtk-wheel', function(json)
+    -- scroll_wheel_pixels + snapped_scrolling (see conf.py). px is the LOGICAL
+    -- notch step; it becomes the base WHEEL_STEP scales from, so a later (or
+    -- earlier) mpvtk-scale still lands the right physical value.
+    local t = utils.parse_json(json)
+    if not t then return end
+    local px = tonumber(t.px)
+    if px and px > 0 then
+        _SCALE_BASE.WHEEL_STEP = px
+        WHEEL_STEP = math.floor(px * state.scale + 0.5)
+    end
+    if t.snapped ~= nil then
+        state.snapped = t.snapped and true or false
+    end
     request_render()
 end)
 

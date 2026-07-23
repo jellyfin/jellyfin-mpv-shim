@@ -76,6 +76,8 @@ ICON_NAMES = [
     "arrow_back",
     "chevron_left",
     "chevron_right",
+    "first_page",
+    "last_page",
     "vertical_align_top",
     "vertical_align_bottom",
     "keyboard_arrow_up",

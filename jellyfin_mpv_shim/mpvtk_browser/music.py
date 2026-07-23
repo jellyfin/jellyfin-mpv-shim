@@ -13,6 +13,7 @@ from ..i18n import _
 from ..mpvtk.widgets import (
     Box,
     Button,
+    Checkbox,
     Column,
     Icon,
     Row,
@@ -129,6 +130,9 @@ class MusicMixin:
         for k in ("_data", "_total"):
             route.pop(k, None)
         route["_loading"] = False
+        # Each tab is its own paginated result set (page 3 of Albums is not
+        # page 3 of Artists); the item cache above is per tab, this isn't.
+        self._reset_pagination(route)
         # A new tab starts at the top; a stale offset would virtualize the
         # wrong window and show a screenful of blank rows.
         self._scroll_off.pop("music-grid", None)
@@ -191,7 +195,26 @@ class MusicMixin:
             self._music_tab(route, _("Songs"), "songs"),
             self._music_tab(route, _("Genres"), "genres"),
         ], gap=8)
+        # Paginated toggle on the right (global setting, same as the library
+        # filter bar) — a filter box could later sit beside it.
+        tabbar = Row([tabs, Spacer(),
+                      Checkbox(_("Paginated"), self._paginated(),
+                               id="music-paginated",
+                               on_toggle=lambda: self._toggle_paginated())],
+                     pad=12, align="center")
         data = route.get("_data")
+        tab = route.get("_tab")
+        # Paginate the server-paged tile tabs. Songs is a list and genres is a
+        # single unpaged request, so both keep scrolling; clear any page count
+        # left over from an album tab or the bottom bar would linger.
+        if (self._paginated() and data is not None
+                and tab not in ("songs", "genres")):
+            geom = self.geom_square
+            return Column([tabbar,
+                           self._paged_music_grid(route, size, geom,
+                                                         tabbar)],
+                          flex=1, align="stretch")
+        route.pop("_npages", None)
         if data is None:
             body = self._busy()
         elif route.get("_tab") == "songs":
@@ -228,7 +251,45 @@ class MusicMixin:
                 on_scroll=lambda off, mx: self._on_scroll(
                     "music-grid", off, mx,
                     lambda o, m: self._on_music_scroll(route, o, m)))
-        return Column([Row([tabs], pad=12), body], flex=1, align="stretch")
+        return Column([tabbar, body], flex=1, align="stretch")
+
+    def _music_page_fetcher(self, route):
+        """``fetch(start, limit) -> (items, total)`` for a paginated music
+        tab. Only the server-paged tile tabs reach here (songs/genres are
+        handled without pagination in _render_music)."""
+        srv = route.get("server") or self.server
+        parent = route["parent_id"]
+        tab = route.get("_tab", "albums")
+
+        def fetch(start, limit):
+            if tab == "albumartists":
+                return self.source.get_album_artists(
+                    srv, parent, start_index=start, limit=limit)
+            if tab == "artists":
+                return self.source.get_artists(
+                    srv, parent, start_index=start, limit=limit)
+            return self.source.get_music_albums(
+                srv, parent, start_index=start, limit=limit)
+        return fetch
+
+    def _paged_music_grid(self, route, size, geom, tabbar):
+        """One screenful of album/artist tiles, no scroll — the bottom
+        pagination bar moves between pages. The tab bar sits above the grid
+        (unlike the library grid's in-scroll header), so its measured height
+        is what the page-size math reserves."""
+        from ..mpvtk.layout import measure
+
+        head_h = measure(tabbar)[1]
+        ps = self._page_size(route, size, head_h, geom)
+        page_items = self._ensure_page(
+            route, ps, self._music_page_fetcher(route),
+            seed=route.get("_data"))
+        if page_items is None:
+            rows = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
+        else:
+            rows = self._grid_of(page_items, "music", size, geom=geom)
+        return Column(rows, pad=self.CONTENT_PAD, gap=self.GRID_GAP,
+                      align="stretch", flex=1)
 
     def _music_header_text(self, item, route, tracks):
         """Title / metadata / overview for an album or artist page.

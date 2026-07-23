@@ -351,6 +351,20 @@ class MpvtkApp:
             "script-message", "mpvtk-scale", json.dumps({"s": scaling.scale()})
         )
 
+    def push_scroll_config(self):
+        """Forward the wheel step (px per notch) and the snapped-scrolling
+        toggle to the renderer. Both are safe to re-push live: the renderer
+        just re-derives its step and thumb-tracking, no cached state to drop.
+        Sent on ready and again whenever the Library Browser settings change."""
+        from ..conf import settings
+
+        self.backend.command(
+            "script-message", "mpvtk-wheel", json.dumps({
+                "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),
+                "snapped": bool(getattr(settings, "snapped_scrolling", False)),
+            })
+        )
+
     def _resolve_scale(self):
         """settings.ui_scale, or the display's own factor when unset.
 
@@ -490,6 +504,7 @@ class MpvtkApp:
                 self._push_metrics()
                 self.push_theme()
                 self.push_scale()
+                self.push_scroll_config()
                 self.ready.set()
             return
         if t == "debug_state":

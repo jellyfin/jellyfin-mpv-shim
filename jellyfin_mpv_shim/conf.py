@@ -120,6 +120,23 @@ class Settings(SettingsBase):
     # because the only ways out are `jellyfin-mpv-shim stop` and killing it.
     allow_background: bool = False
     library_image_cache_mb: int = 256
+    # Pixels a single wheel notch scrolls in the library browser. This is the
+    # step the settings page has always used; applying it everywhere lets the
+    # scrollbar glide continuously while the content snaps to the nearest row
+    # (or home-screen section), so a trackpad/trackball no longer overshoots
+    # whole rows. On an equal-row grid the step is rounded so a whole number of
+    # notches spans one row (consistent, not a 2-3-2-3 cadence). Raise it to
+    # scroll faster, lower it for finer control.
+    scroll_wheel_pixels: int = 80
+    # Accessibility escape hatch: restore one-notch-one-detent stepping (each
+    # wheel notch jumps exactly one row / one home-screen section, and the
+    # scrollbar snaps with it) instead of the continuous-pixel behavior above.
+    snapped_scrolling: bool = False
+    # Accessibility: page the library and music tile grids instead of scrolling.
+    # Each page is one screenful (no scrolling within it) with a bottom bar to
+    # move between pages; adjacent pages are prefetched so paging is instant.
+    # Global — applies to every tile grid at once.
+    paginated: bool = False
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
     work_offline: bool = False

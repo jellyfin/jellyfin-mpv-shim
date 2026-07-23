@@ -121,6 +121,23 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
     # Horizontal padding of ordinary page content.
     CONTENT_PAD = 16
 
+    # Pagination (settings.paginated). A page is one screenful of tiles with a
+    # bottom bar instead of a scrollbar. Heights below are the fixed chrome/bar
+    # heights the page-size math subtracts so a page fits without scrolling;
+    # they mirror the real widgets (_chrome h=60, _banner/_download_bar, the
+    # now-playing bar) and only need to be close — the row count rounds down, so
+    # an over-estimate just shows one fewer row rather than clipping.
+    PAGINATION_BAR_H = 48
+    CHROME_H = 60
+    BANNER_H = 48
+    DLBAR_H = 44
+    # Cap a page's tile count so a huge window can't blow the 63-overlay budget
+    # (a non-scrolling page composites every tile at once).
+    PAGE_MAX = 60
+    # Route kinds that paginate. The music songs list and genre grids stay
+    # scrolling (a list, and an unpaged single request).
+    PAGEABLE_KINDS = {"grid", "person", "music"}
+
     # How long shutdown() waits for a long job (a download-store move) to
     # finish before giving up on it. Long enough to cover a same-drive move,
     # short enough not to hang a quit.
@@ -230,6 +247,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # snapshot read once per build; _scroll_off is the throttled
         # on_scroll copy, used only as a fallback. See _offset().
         self._scroll_off = {}
+        # Offset each container was last re-rendered at -- the baseline the
+        # SCROLL_STEP threshold measures against, so slow sub-row scrolling
+        # accumulates to a rebuild instead of never crossing the gap between
+        # two adjacent events.
+        self._scroll_rendered = {}
         self._live_offsets = None
         # Startup-PIN lock screen state. _locked is True while the gate is
         # actually gating: tray commands that would navigate (Configure
@@ -373,6 +395,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         windowed rows that were far past the end and the view rendered
         empty: "7 items" in the header and nothing below it."""
         self._scroll_off.clear()
+        self._scroll_rendered.clear()
 
     def go_back(self):
         if len(self.nav_stack) > 1:
@@ -677,6 +700,170 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # and the list is silently capped for the rest of the session.
         self.run_async(lambda: fetch(start), done, ep, on_error=failed,
                        always=clear_guard)
+
+    # ---------------------------------------------------------- pagination
+
+    def _paginated(self):
+        """The global paginate-tile-grids toggle (settings.paginated).
+
+        Read live so the Settings toggle takes effect on the next frame; a
+        missing key (test stand-ins) reads as off."""
+        try:
+            from ..conf import settings
+            return bool(getattr(settings, "paginated", False))
+        except Exception:
+            return False
+
+    def _content_h(self, route, size):
+        """Vertical space the route content actually gets — the window minus
+        the chrome and bars that sit above/below it in ``build``. Mirrors
+        build()'s own conditions so a paginated page can size itself to fit."""
+        h = size[1]
+        if route.get("kind") not in CHROME_FREE:
+            h -= self.CHROME_H
+            if self._update or self._offline:
+                h -= self.BANNER_H
+            if self._dl_status and self._dl_status.get("pending"):
+                h -= self.DLBAR_H
+        h -= self.PAGINATION_BAR_H
+        if (self._now_playing is not None
+                and route.get("kind") not in NO_NOW_PLAYING):
+            from .music import NOW_PLAYING_BAR_H
+            h -= NOW_PLAYING_BAR_H
+        return max(1, h)
+
+    def _page_size(self, route, size, head_h, geom):
+        """Tiles per page = columns × rows that fit under the header. Rounds
+        the row count DOWN so a page never overflows its slot (which would
+        clip the last row or force a scroll); capped at PAGE_MAX for the
+        overlay budget."""
+        avail = self._content_h(route, size) - head_h - self.CONTENT_PAD
+        pitch = geom.strip_h + self.GRID_GAP
+        rows = max(1, int((avail + self.GRID_GAP) // pitch)) if pitch > 0 else 1
+        cols = self._cols(size[0], geom)
+        return max(1, min(cols * rows, self.PAGE_MAX))
+
+    def _page_count(self, route, ps):
+        total = route.get("_total")
+        if not total or ps <= 0:
+            return None
+        return max(1, -(-total // ps))         # ceil
+
+    def _ensure_page(self, route, ps, fetch, seed=None):
+        """Make the current page's items available at page size ``ps`` and
+        return them (or None while a fetch is in flight).
+
+        ``fetch(start, limit) -> (items, total)`` gets a page from the source;
+        ``seed`` is an already-loaded head of the list (the initial-load chunk)
+        used to fill page 0 without a second request. The current page and the
+        pages on either side are fetched, so Next/Previous land instantly; the
+        cache is pruned to that window so a deep library doesn't accumulate
+        every page it visited."""
+        if route.get("_page_size") != ps:
+            route["_page_size"] = ps
+            route["_pages"] = {}
+            route["_page_loading"] = set()
+        pages = route["_pages"]
+        npages = self._page_count(route, ps)
+        cur = route.get("_page") or 0
+        if npages is not None:
+            cur = max(0, min(cur, npages - 1))
+        route["_page"] = cur
+        route["_npages"] = npages
+        if seed and cur == 0 and 0 not in pages and len(seed) >= ps:
+            pages[0] = list(seed[:ps])
+        self._fetch_page(route, cur, ps, fetch)
+        for nb in (cur + 1, cur - 1):
+            if nb >= 0 and (npages is None or nb < npages):
+                self._fetch_page(route, nb, ps, fetch, prefetch=True)
+        keep = {cur - 1, cur, cur + 1}
+        for p in [p for p in pages if p not in keep]:
+            pages.pop(p, None)
+        return pages.get(cur)
+
+    def _fetch_page(self, route, page, ps, fetch, prefetch=False):
+        pages = route["_pages"]
+        loading = route["_page_loading"]
+        if page in pages or page in loading:
+            return
+        loading.add(page)
+        ep = self._epoch
+        start = page * ps
+
+        def done(res):
+            items, total = res
+            route["_pages"][page] = list(items)
+            if total:
+                route["_total"] = total
+
+        def failed(_exc):
+            # A prefetch nobody asked for stays silent; a page the user is
+            # waiting on says so (mirrors _page_more's toast rule).
+            if not prefetch and route is self.route:
+                self.set_status(_("Could not load this page."))
+
+        def clear():
+            route["_page_loading"].discard(page)
+
+        self.run_async(lambda: fetch(start, ps), done, ep,
+                       on_error=failed, always=clear)
+
+    def _reset_pagination(self, route):
+        """Drop the page cache and return to page 1. Called whenever the
+        underlying result set changes (sort, filter, collections toggle, music
+        tab) — page 3 of one ordering is nothing like page 3 of another."""
+        for k in ("_pages", "_page_size", "_page_loading", "_npages"):
+            route.pop(k, None)
+        route["_page"] = 0
+
+    def _page_go(self, route, page):
+        """Jump to a page (0-based); _ensure_page clamps into range next
+        frame, so an out-of-range target from Last/typing is harmless."""
+        route["_page"] = page
+        self.invalidate()
+
+    def _page_jump(self, route, text):
+        """The page-number box: a 1-based page to go to."""
+        try:
+            n = int(str(text).strip())
+        except (TypeError, ValueError):
+            return
+        self._page_go(route, max(0, n - 1))
+
+    def _pagination_bar(self, route, w):
+        """`Page [n] of N     |◀ ◀ ▶ ▶|` — the bottom bar that replaces the
+        scrollbar in paginated mode. None unless paginated, on a pageable
+        route, and a page count is known (set by _ensure_page this frame)."""
+        if not self._paginated() or route.get("kind") not in self.PAGEABLE_KINDS:
+            return None
+        npages = route.get("_npages")
+        if not npages:
+            return None
+        cur = route.get("_page") or 0
+
+        def nav(icon, node_id, target, tip):
+            # Square page buttons, not the flat translucent playback-HUD
+            # treatment: this is library chrome, not an overlay on video.
+            # justify="center" as well as align: with a fixed width and no
+            # label the lone icon would otherwise pack against the left edge.
+            return Button("", id=node_id, icon=icon, w=32, h=32, pad=0,
+                          justify="center", tip=tip,
+                          on_click=lambda: self._page_go(route, target))
+
+        return Row([
+            Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+            # force: the box tracks the current page, so paging with the
+            # buttons updates the number rather than leaving a stale edit.
+            TextBox("pg-jump", text=str(cur + 1), w=64, force=True,
+                    on_submit=lambda s: self._page_jump(route, s)),
+            Text(_("of %d") % npages, size=15, color=theme.SUBTLE_FG),
+            Spacer(),
+            nav("first_page", "pg-first", 0, _("First page")),
+            nav("chevron_left", "pg-prev", cur - 1, _("Previous page")),
+            nav("chevron_right", "pg-next", cur + 1, _("Next page")),
+            nav("last_page", "pg-last", npages - 1, _("Last page")),
+        ], pad=8, gap=8, align="center", h=self.PAGINATION_BAR_H,
+            bg=theme.PANEL_BG)
 
     def _offline_fallback(self, route):
         """A failed *home* load with downloads present drops to the offline
@@ -1793,6 +1980,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             if dlbar is not None:
                 children.append(dlbar)
         children.append(content)
+        # After content: _render_route (above) ran _ensure_page and set the
+        # page count this bar reads. Sits above the now-playing bar.
+        pbar = self._pagination_bar(route, w)
+        if pbar is not None:
+            children.append(pbar)
         if (self._now_playing is not None
                 and route["kind"] not in NO_NOW_PLAYING):
             children.append(self._now_playing_bar(w))
@@ -2067,13 +2259,19 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def _on_scroll(self, scroll_id, offset, maximum, then=None):
         """Record a scroll offset (for virtualization) and run ``then``
-        (paging). Only re-renders when the offset moved enough to change the
-        materialized window."""
-        prev = self._scroll_off.get(scroll_id)
+        (paging). Only re-renders when the offset has moved a window's worth
+        SINCE THE LAST RE-RENDER -- measured from the last rendered position,
+        not the previous event. Continuous (sub-row) scrolling arrives in many
+        small steps; comparing adjacent events would let a slow scroll drift a
+        whole window without ever crossing the gap, and the virtualized rows
+        would fall out of the built window as blank spacers until a bigger
+        (coalesced) jump finally tripped it."""
         self._scroll_off[scroll_id] = offset
         if then is not None:
             then(offset, maximum)
-        if prev is None or abs(offset - prev) >= self.SCROLL_STEP:
+        base = self._scroll_rendered.get(scroll_id)
+        if base is None or abs(offset - base) >= self.SCROLL_STEP:
+            self._scroll_rendered[scroll_id] = offset
             self.invalidate()
 
     def notify_update(self, version, url):
