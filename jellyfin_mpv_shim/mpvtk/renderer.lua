@@ -3142,12 +3142,49 @@ local function nav_activate()
     end
 end
 
+-- Linear focus order for Tab: the scene is built in document order, and
+-- nav_candidates() preserves state.nodes order, so "next candidate in the
+-- list" is reading order — the same sequence a form's fields sit in. Unlike
+-- the arrow keys (spatial, container-aware) this is a flat cycle that wraps,
+-- so Tab always reaches every field/button regardless of layout.
+local function nav_tab(dir)
+    phud_touch()
+    -- A popup owns the keyboard while open; leave arrows/ENTER to drive it.
+    if state.dd_open or active_menu() or state.tb_menu then return end
+    local cands = nav_candidates()
+    if #cands == 0 then return end
+    set_nav_mode(true)
+    -- Anchor on the edited field if any, else the spatial-nav highlight.
+    local anchor = state.focus or state.nav
+    local idx
+    for i, c in ipairs(cands) do
+        if c.id == anchor then idx = i; break end
+    end
+    local nxt
+    if idx == nil then
+        nxt = (dir > 0) and cands[1] or cands[#cands]
+    else
+        nxt = cands[((idx - 1 + dir) % #cands) + 1]
+    end
+    -- Landing on a textbox focuses it for immediate typing (form behaviour);
+    -- focus_textbox commits and unbinds any field we are leaving. For
+    -- everything else, blur() commits/leaves the old field first.
+    if nxt.t == 'textbox' then
+        focus_textbox(nxt)
+    else
+        blur()
+    end
+    nav_set(nxt)
+end
+
 local NAV_KEYS = {
     { 'UP', function() nav_move(0, -1) end },
     { 'DOWN', function() nav_move(0, 1) end },
     { 'LEFT', function() nav_move(-1, 0) end },
     { 'RIGHT', function() nav_move(1, 0) end },
     { 'ENTER', function() nav_activate() end },
+    { 'TAB', function() nav_tab(1) end },
+    { 'shift+TAB', function() nav_tab(-1) end },
 }
 
 local function bind_nav_keys()
