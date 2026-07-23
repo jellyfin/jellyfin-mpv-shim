@@ -212,6 +212,10 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
 BROWSE_BG_HEX = "#141414"
+# mpv's own defaults, restored by browse_yield() when video takes the window
+# back. Kept here so the browse background can't leak into playback.
+MPV_DEFAULT_BACKGROUND = "tiles"
+MPV_DEFAULT_BACKGROUND_HEX = "#000000"
 
 
 def runtime_force_window_works(version):
@@ -3720,9 +3724,9 @@ class PlayerManager(object):
         """Hand the window from the in-window browser back to playback.
 
         Undoes only the parts of set_browse_window() that would harm video —
-        the stretched aspect and the non-fullscreen browse window. It must not
-        touch force_window/keep_open: playback is still starting up here and
-        tearing the window down would kill it."""
+        the stretched aspect, the browse background and the non-fullscreen
+        browse window. It must not touch force_window/keep_open: playback is
+        still starting up here and tearing the window down would kill it."""
         if not self._mpv_alive:
             return
         self._showing_browse_bg = False
@@ -3730,6 +3734,17 @@ class PlayerManager(object):
             self._player.keepaspect = True
             if settings.fullscreen and not self.fullscreen_disable:
                 self._player.fs = True
+            try:
+                # set_browse_window() paints the window in the UI's dark grey,
+                # and these are global vo options that outlive the file change
+                # — so without this, video plays with #141414 letterbox bars
+                # instead of mpv's black for the rest of the process's life.
+                # Audio keeps the browser up and never reaches browse_yield,
+                # so music still gets the UI-matching background.
+                self._player.background = MPV_DEFAULT_BACKGROUND
+                self._player.background_color = MPV_DEFAULT_BACKGROUND_HEX
+            except Exception:
+                pass  # older mpv where background is the color option
         except _mpv_errors:
             self._handle_mpv_disconnect()
         except Exception:
