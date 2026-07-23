@@ -65,7 +65,10 @@ DETAIL_FIELDS = (
 # movies are grouped into collections for a library request. We render whatever
 # it returns and only request collections explicitly via the Movies-library
 # "Collections" toggle (get_movie_collections) — no client-side exclusion.
-EXCLUDED_COLLECTION_TYPES = {"musicvideos", "books", "livetv"}
+# "musicvideos" is NOT excluded: a MusicVideo is an ordinary video item
+# (it is in PLAYABLE_TYPES and plays through the normal video player), so a
+# music-video library browses and plays like any other video library.
+EXCLUDED_COLLECTION_TYPES = {"books", "livetv"}
 
 # Item types that open the detail/play view rather than drilling deeper.
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
