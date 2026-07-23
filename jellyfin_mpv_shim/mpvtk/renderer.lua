@@ -1896,7 +1896,14 @@ local text_keys_bound = false
 
 local function tb_state(node)
     local tb = state.tb[node.id]
-    if tb == nil or node.force then
+    -- force=true tracks the scene value (the page box follows Next/Prev/Last)
+    -- — but never while the box is focused. tb_state is called on every draw
+    -- AND from the key handlers, so an unconditional force would rebuild from
+    -- node.text on each keystroke: typed characters would never accumulate and
+    -- ENTER would submit the current page instead of the one just typed. Same
+    -- shape as sl_state's mid-gesture guard.
+    local editing = state.focus == node.id
+    if tb == nil or (node.force and not editing) then
         tb = { text = node.text or '', cursor = #(node.text or ''),
                shift = 0 }
         state.tb[node.id] = tb

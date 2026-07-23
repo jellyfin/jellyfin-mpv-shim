@@ -854,8 +854,13 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             Text(_("Page"), size=15, color=theme.SUBTLE_FG),
             # force: the box tracks the current page, so paging with the
             # buttons updates the number rather than leaving a stale edit.
+            # on_commit as well as on_submit: ENTER jumps, and so does clicking
+            # (or tabbing) out of the box. on_commit only fires when the value
+            # actually changed from focus-time, and ENTER marks it agreed, so
+            # the two never double-fire for one edit.
             TextBox("pg-jump", text=str(cur + 1), w=64, force=True,
-                    on_submit=lambda s: self._page_jump(route, s)),
+                    on_submit=lambda s: self._page_jump(route, s),
+                    on_commit=lambda s: self._page_jump(route, s)),
             Text(_("of %d") % npages, size=15, color=theme.SUBTLE_FG),
             Spacer(),
             nav("first_page", "pg-first", 0, _("First page")),
