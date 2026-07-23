@@ -139,11 +139,6 @@ Profiles leave your graphics API alone, so HDR output keeps working. If video br
 when you load one, pick a different API under Settings → Video Enhancement → **Graphics
 API for Shaders** (`shader_pack_gpu_api`); `opengl` is the most compatible.
 
-If a profile leaves you with no usable picture at all, launch with `--reset-shaders`. The
-remembered profile is reapplied at startup, so the broken state comes back every launch and
-there may be no window to press `k` in; the flag clears both the remembered profile and the
-graphics API override, then starts normally.
-
 For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 If you would like to customize the shader pack, there are details in the configuration section.
 
@@ -158,7 +153,7 @@ instructions for instructions on how to enable it.
 Casting an item from another Jellyfin client shows it on your display before you play it,
 similar to Chromecast. **This is on by default and needs no configuration** — the item's page
 opens in the library browser, and you can drive it from there with the remote's arrow keys.
-Casting never starts or interrupts playback; it only navigates.
+Display mirroring doesn't interrupt playback.
 
 ### Cast-target mode (`headless`)
 
@@ -167,11 +162,6 @@ to `true` in the config file. The player then shows a "Ready to cast" backdrop i
 library, and the library cannot be reached from the machine itself: no browsing, no search, no
 settings, and no queue view. Casting, playback and the player controls all work normally,
 including transport controls for music.
-
-Closing the window in this mode keeps the app running and castable rather than exiting, with or
-without a system tray — a cast target that quits when someone closes a window has stopped doing
-its job. Set `close_to_tray` to `false` if you would rather it quit, and use
-`jellyfin-mpv-shim stop` to shut one down.
 
 **This is not a security feature.** It stops someone plugging in a mouse and playing random
 things from your library, which is what it is for. It does not stop anyone with real access to
@@ -334,39 +324,22 @@ text fields needs `wl-clipboard` on Wayland or `xclip`/`xsel` on X11, because
 MPV had no X11 clipboard of its own before 0.41.
 
 ```bash
-sudo pip3 install --upgrade jellyfin-mpv-shim
+pip3 install --upgrade jellyfin-mpv-shim
 ```
 
-That is the whole application: the library browser, the playback HUD and the cast screen are all
-drawn inside the player's own mpv window, and Pillow (which rasterizes them) is a required
-dependency. Tkinter is *not* required — if you previously installed `python3-tk` only for this
-application, you can remove it.
-
-The one piece that is optional is the system tray icon:
+This installs the main UI, tkinter is not needed anymore. By default the application does not run
+in the background on Linux unless you enable it in settings or install the optional systray support:
 
 ```bash
-sudo pip3 install 'jellyfin-mpv-shim[systray]'
-```
-
-It additionally needs PyGObject and an AppIndicator typelib **from your
-distribution** — pystray reaches the system library through `gi`, and neither piece can come from
-pip. On Debian and Ubuntu:
-
-```bash
+pip3 install 'jellyfin-mpv-shim[systray]'
+# Requires gi and appindicator, e.g. on Debian:
 sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1
 ```
 
-Install the *Ayatana* package specifically. pystray also accepts the older
-`gir1.2-appindicator3-0.1` (Canonical's libappindicator, unmaintained since 2017) and prefers it
-when both are installed, so having the old one present is worse than not having it at all.
+You must use a virtualenv with `--system-site-packages` enabled for systray support.
+With pipx, use `pipx install --system-site-packages 'jellyfin-mpv-shim[systray]'`.
 
-Because `gi` comes from the distribution rather than pip, a virtualenv only sees it when created
-with `--system-site-packages` — for pipx, `pipx install --system-site-packages
-'jellyfin-mpv-shim[systray]'`. Without it everything else still works; you just lose the tray,
-which means closing the library window quits the application instead of leaving it running as a
-cast target.
-
-Discord rich presence support:
+Discord rich presence support (must be enabled in config) can be installed with:
 
 ```bash
 sudo pip3 install jellyfin-mpv-shim[discord]
@@ -381,9 +354,9 @@ FFmpeg, libass and libplacebo, and its README lists the build dependencies for y
 true in MPV's own meson options), so no extra configuration is needed. Afterwards run
 `sudo ldconfig` so the new library is picked up.
 
-> Older versions of this guide told you to run `echo --enable-libmpv-shared > mpv_options`.
-> **Don't** — that was a flag for MPV's old waf build. mpv-build uses meson now, and meson
-> rejects the flag, so it breaks the build rather than doing nothing.
+Note, if it has been a while since you have compiled mpv, modern copies of `mpv-build` don't
+support `--enable-libmpv-shared` in the `mpv_options` file, you can clear the file as `libmpv`
+is now enabled by default.
 
 ## <h2 id="osx-installation">macOS Installation</h2>
 Currently on macOS only the external MPV backend seems to be working. I cannot test on macOS, so please report any issues you find.
