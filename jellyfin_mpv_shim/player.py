@@ -458,6 +458,10 @@ class PlayerManager(object):
         self.last_seek = None
         self.warned_about_transcode = False
         self.fullscreen_disable = False
+        # The geometry option value mpv currently holds. Tracked rather than
+        # read back, because writing it is a resize command (see
+        # _sync_window_geometry) and a redundant write is not free.
+        self._geometry_armed = None
         self.update_check = UpdateChecker(self)
         self.menu = None
         self.osc_bridge = OscBridge(self)
@@ -782,16 +786,19 @@ class PlayerManager(object):
         width = max(320, int(settings.window_width or 1280))
         height = max(240, int(settings.window_height or 720))
         mpv_options["geometry"] = "%dx%d" % (width, height)
+        self._geometry_armed = mpv_options["geometry"]
         if settings.window_maximized:
             mpv_options["window_maximized"] = True
-        # geometry is an INITIAL size, but mpv re-applies it on every VO
-        # reconfig — so a window the user resized snapped back to the stored
-        # size on the next file. The option is dropped before media is loaded
-        # (see _play_media); this keeps mpv from filling the gap by
-        # resizing to each video's native size instead, which is the behavior
-        # geometry had been masking. Both are needed: per mpv's own docs,
-        # auto-window-resize "does not have any impact on the --geometry
-        # option".
+        # geometry is documented as an INITIAL size, but X11 re-applies it on
+        # every VO reconfig (rc = geo.win whenever geometry.wh_valid), so a
+        # window the user resized snapped back to the stored size on the next
+        # file. _sync_window_geometry keeps the armed value equal to the live
+        # size so that re-apply is a no-op; it must never be *cleared* at
+        # runtime — see the comment there. auto-window-resize is the other
+        # half: without it mpv fills the gap by resizing to each video's
+        # native size, which is what geometry had been masking. Both are
+        # needed — per mpv's own docs, auto-window-resize "does not have any
+        # impact on the --geometry option".
         mpv_options["auto_window_resize"] = False
 
         # The in-window UI has to ask for its window on the command line.
@@ -1839,15 +1846,9 @@ class PlayerManager(object):
         self._load_failed.clear()
         self._load_completed.clear()
         self._load_error_detail = None
-        # geometry is documented as the INITIAL window size, but mpv re-applies
-        # it on every VO reconfig — so a window the user had resized snapped
-        # back to the stored size on each new file. Drop it before handing mpv
-        # any media; _set_force_window re-arms it when the window is destroyed,
-        # which is the only time it is wanted again.
-        try:
-            self._player.geometry = ""
-        except Exception:
-            log.debug("Could not clear the window geometry", exc_info=True)
+        # Keep the armed geometry equal to the window's live size, so X11's
+        # re-apply on the coming VO reconfig lands on the size the user has.
+        self._sync_window_geometry()
         clear_mpv_errors()
         self._loading = True
         # Tell the UI a load is in flight. Until this existed the window just
@@ -2082,14 +2083,21 @@ class PlayerManager(object):
             # Releasing force_window IS the minimize — mpv destroys the
             # window rather than the WM iconifying it — so this is the last
             # moment its size can be read. Persist it for the next launch and
-            # re-arm the geometry option for the next window, which is what
-            # makes raising from the tray come back where the user left it.
+            # note it for the next window, which is what makes raising from
+            # the tray come back where the user left it.
             self._save_window_geometry()
-            self._rearm_window_geometry()
+            size = self._reopen_window_size()
         self._player.force_window = value
+        if not value:
+            # Only once the window is gone. Writing geometry while it still
+            # exists is a resize *command* (see _sync_window_geometry), and on
+            # Windows and X11 that write also forces mpv's own
+            # window-maximized option to false — which is the flag that
+            # re-maximizes the window when it comes back.
+            self._rearm_window_geometry(size)
 
-    def _rearm_window_geometry(self):
-        """Point the geometry option at the size the window has right now.
+    def _reopen_window_size(self):
+        """The size the next window should open at, read while this one lives.
 
         Separate from _save_window_geometry, which persists to settings and
         is gated on remember_window_size: reopening from the tray mid-session
@@ -2107,8 +2115,53 @@ class PlayerManager(object):
         if width < 320 or height < 240:
             width = max(320, int(settings.window_width or 1280))
             height = max(240, int(settings.window_height or 720))
+        return width, height
+
+    def _sync_window_geometry(self):
+        """Re-arm the geometry option at the window's *current* size.
+
+        The obvious move here — clearing geometry so it cannot be re-applied —
+        is what caused the window to jump on playback. Writing the option at
+        runtime is not bookkeeping: every VO treats it as a resize command
+        (w32_common and x11_common un-maximize the window first and force a
+        reset to the computed size; wayland_common calls set_geometry with
+        resize=true). With the option cleared, that computed size is whatever
+        mpv currently has, i.e. the video's native size — or 960x540 while the
+        browser is idle, since that is the dummy size mpv gives a forced
+        window. So a maximized window un-maximized itself and shrank to the
+        video, and playing from an empty browser landed on mpv's default size.
+
+        Arming the live size instead keeps X11's re-apply on reconfig a no-op
+        without ever commanding a resize. While maximized or fullscreen there
+        is no floating size to record, and the write itself would un-maximize,
+        so leave the last armed value alone.
+        """
         try:
-            self._player.geometry = "%dx%d" % (width, height)
+            if self._player.fullscreen or self._player.window_maximized:
+                return
+            width = int(self._player.osd_width or 0)
+            height = int(self._player.osd_height or 0)
+        except Exception:
+            log.debug("Could not read the window size", exc_info=True)
+            return
+        if width < 320 or height < 240:
+            # Torn down, or not mapped yet: a nonsense size is worse than the
+            # one already armed.
+            return
+        self._rearm_window_geometry((width, height))
+
+    def _rearm_window_geometry(self, size):
+        """Write the geometry option, if it isn't already what we want.
+
+        Skipping the redundant write matters: see _sync_window_geometry for
+        what a write does to a live window.
+        """
+        want = "%dx%d" % size
+        if want == self._geometry_armed:
+            return
+        try:
+            self._player.geometry = want
+            self._geometry_armed = want
         except Exception:
             log.debug("Could not re-arm the window geometry", exc_info=True)
 
