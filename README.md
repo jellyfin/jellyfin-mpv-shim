@@ -291,6 +291,12 @@ config directory, so copies pointed at different folders coexist by design. Laun
 copy with the *same* config directory instead raises the window of the one already running,
 which is what makes the desktop launcher and the tray behave sensibly.
 
+To shut one down, run `jellyfin-mpv-shim stop` (with the same `--config` folder, if you used
+one). It reaches the instance owning that directory over the same channel a second launch uses
+to raise the window, so it stops the right copy without hunting for a process id, and the app
+runs its normal shutdown rather than being killed. It exits non-zero only if an instance is
+holding the lock but not answering.
+
 ### Audio Passthrough
 
 This is built in now — see [Audio Output](docs/configuration.md#audio-output). Set `audio_mode` to `hdmi` or

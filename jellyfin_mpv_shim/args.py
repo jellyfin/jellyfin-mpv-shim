@@ -12,7 +12,7 @@ _args = None
 
 #: Accepted values for the positional command. Not passed to argparse as
 #: choices= — see _build_parser.
-COMMANDS = ("add", "clear")
+COMMANDS = ("add", "clear", "stop")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -98,7 +98,9 @@ def _build_parser() -> argparse.ArgumentParser:
         # every normal launch. metavar keeps the usage line unchanged;
         # get_args validates the values itself below.
         metavar="{%s}" % ",".join(COMMANDS),
-        help="add: prompt to add a server; clear: remove all stored credentials",
+        help="add: prompt to add a server; clear: remove all stored "
+        "credentials; stop: shut down the copy already running against this "
+        "configuration directory",
     )
     return parser
 

@@ -6,6 +6,11 @@ released automatically if the process crashes, so there is no stale-lock
 takeover logic to race. The lock lives in the config directory, so two
 instances pointed at different config dirs coexist by design.
 
+The same channel carries the ``stop`` command, which is why it exists as a
+subcommand rather than a signal: it reaches exactly the instance owning *this*
+configuration directory, without needing to find a pid or guess which of
+several copies to kill.
+
 Two files are used so Windows' mandatory region locks never interact with
 content reads: ``instance.lock.guard`` is only ever locked (never read), and
 ``instance.lock`` carries the primary's activation endpoint — a loopback
@@ -39,6 +44,8 @@ class SingleInstance:
         # Set by the owner once the UI exists; called when a second launch is
         # blocked, on a listener thread.
         self.on_activate = lambda: None
+        # Called on a listener thread when another launch runs `stop`.
+        self.on_stop = lambda: None
         self._sock = None
         self._guard_fd = None
         self._token = secrets.token_hex(16).encode("ascii")
@@ -152,18 +159,51 @@ class SingleInstance:
         except (OSError, ValueError):
             return None
 
-    def _handoff_to_existing(self) -> bool:
+    def _request(self, command: bytes) -> bool:
+        """Send one command to the running primary. True if it acknowledged.
+
+        ``SHOW`` goes on the wire in the original wordless form so a newer
+        client can still activate an older running copy across an upgrade —
+        that instance would reject anything with a command word appended,
+        because it compares the whole payload against its token."""
         info = self._read_lock()
         if not info:
             return False
         port, token = info
+        payload = token if command == b"SHOW" else token + b" " + command
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=2) as conn:
-                conn.sendall(_MAGIC + token + b"\n")
+                conn.sendall(_MAGIC + payload + b"\n")
                 reply = conn.recv(8)
         except OSError:
             return False  # primary has no listener (or it's wedged)
-        if reply.startswith(_MAGIC):
+        return reply.startswith(_MAGIC)
+
+    def request_stop(self) -> bool:
+        """Ask the instance owning this config directory to shut down.
+
+        Returns False both when nothing is running and when something holds
+        the lock but will not answer; the caller has the lock state needed to
+        tell those apart."""
+        return self._request(b"STOP")
+
+    def is_running(self) -> bool:
+        """True if another process holds the election lock right now.
+
+        Takes and immediately drops the lock, so it must not be called by an
+        instance that intends to *be* the primary — use acquire() for that."""
+        fd = self._try_lock()
+        if fd is False:
+            return True
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        return False
+
+    def _handoff_to_existing(self) -> bool:
+        if self._request(b"SHOW"):
             log.info("%s is already running; asked it to show its window.",
                      APP_NAME)
             return True
@@ -189,14 +229,25 @@ class SingleInstance:
         try:
             conn.settimeout(5)
             data = conn.recv(64)
-            if data.startswith(_MAGIC) and \
-                    data[len(_MAGIC):].strip() == self._token:
-                conn.sendall(_MAGIC + b"OK")
-                try:
-                    self.on_activate()
-                except Exception:
-                    log.error("Single-instance activate handler failed",
-                              exc_info=True)
+            if not data.startswith(_MAGIC):
+                return
+            parts = data[len(_MAGIC):].strip().split()
+            if not parts or parts[0] != self._token:
+                return
+            # No command word is the original wire format: activate.
+            command = parts[1] if len(parts) > 1 else b"SHOW"
+            handler = {b"SHOW": self.on_activate, b"STOP": self.on_stop}.get(command)
+            if handler is None:
+                log.debug("Ignoring unknown instance command %r", command)
+                return
+            # Acknowledge first: a stop handler tears this process down, and
+            # the client should not sit waiting on the shutdown sequence.
+            conn.sendall(_MAGIC + b"OK")
+            try:
+                handler()
+            except Exception:
+                log.error("Single-instance %s handler failed",
+                          command.decode("ascii", "replace"), exc_info=True)
         except OSError:
             pass
         finally:

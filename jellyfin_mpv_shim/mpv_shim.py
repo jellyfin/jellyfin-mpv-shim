@@ -82,14 +82,34 @@ def main():
         # Context already set, ignore
         pass
 
-    # If we're not the first launch, ask the running instance to surface its
-    # window (un-minimize) and exit, rather than starting a second copy.
     from .single_instance import SingleInstance
 
+    # `stop` is a request to the *other* process, so it must run before we try
+    # to become the primary ourselves — and before any of the services below
+    # start, since this launch is never going to play anything.
+    if "stop" in args.command:
+        single = SingleInstance()
+        if single.request_stop():
+            log.info("Asked the running instance to shut down.")
+            return
+        if single.is_running():
+            log.error("%s is running but did not respond to the stop request. "
+                      "It may be wedged; terminate it manually.", APP_NAME)
+            sys.exit(1)
+        log.info("%s is not running.", APP_NAME)
+        return
+
+    # If we're not the first launch, ask the running instance to surface its
+    # window (un-minimize) and exit, rather than starting a second copy.
     single = SingleInstance()
     if not single.acquire():
         log.info("Another instance is already running; exiting.")
         return
+
+    # Created before anything can request a stop, so a `stop` arriving during
+    # startup is honoured rather than acknowledged and dropped.
+    halt = Event()
+    single.on_stop = halt.set
 
     user_interface = None
     use_gui = False
@@ -148,7 +168,6 @@ def main():
         log.info("Tip: Open the JSON file in VS Code to see what is wrong.")
 
     try:
-        halt = Event()
         user_interface.stop_callback = halt.set
         try:
             while not halt.wait(timeout=1):
