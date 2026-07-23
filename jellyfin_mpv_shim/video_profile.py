@@ -46,6 +46,33 @@ profile_name_translation = {
 log = logging.getLogger("video_profile")
 
 
+def reset_saved_shader_settings():
+    """Put the persisted shader settings back to their defaults.
+
+    The two settings that can leave a machine unable to show video are the
+    remembered profile (reapplied at startup by VideoProfileManager, before
+    anyone can reach a menu to turn it off) and a forced graphics API. The
+    ``k`` keybind clears the first, but that needs a visible window to press
+    it in -- which is exactly what a bad gpu-api takes away. This is the same
+    escape hatch from the command line.
+
+    Returns ``[(key, old_value), ...]`` for what actually changed, so the
+    caller can say what it did rather than claiming a reset that was a no-op.
+    """
+    changed = []
+    if settings.shader_pack_profile is not None:
+        changed.append(("shader_pack_profile", settings.shader_pack_profile))
+        settings.shader_pack_profile = None
+    # Compared case-insensitively against the default the same way
+    # api_setting_override() reads it, so "AUTO" is not reported as a change.
+    if (settings.shader_pack_gpu_api or "auto").lower() != "auto":
+        changed.append(("shader_pack_gpu_api", settings.shader_pack_gpu_api))
+        settings.shader_pack_gpu_api = "auto"
+    if changed:
+        settings.save()
+    return changed
+
+
 class MPVSettingError(Exception):
     """Raised when MPV does not support a required setting."""
 

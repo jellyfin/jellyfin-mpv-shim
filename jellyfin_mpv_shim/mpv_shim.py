@@ -61,6 +61,19 @@ def main():
 
     log = root_logger
 
+    # Before anything builds a player: the settings this clears are applied
+    # while one is being constructed, so clearing them afterwards would not
+    # help the launch that had to ask for it.
+    if args.reset_shaders:
+        from .video_profile import reset_saved_shader_settings
+
+        changed = reset_saved_shader_settings()
+        if changed:
+            for key, old in changed:
+                log.info("Reset %s (was %s).", key, old)
+        else:
+            log.info("Shader settings were already at their defaults.")
+
     # `kill -USR1 <pid>` dumps every thread's stack. The only time a hang is
     # diagnosable is while it is hanging, and by then it is too late to add
     # instrumentation.
@@ -103,6 +116,13 @@ def main():
     # window (un-minimize) and exit, rather than starting a second copy.
     single = SingleInstance()
     if not single.acquire():
+        if args.reset_shaders:
+            # That copy loaded the old values at startup and will write them
+            # back when it next saves, quietly undoing this.
+            log.warning(
+                "The running copy still has the old shader settings loaded. "
+                "Run `%s stop` and start it again for the reset to stick.",
+                APP_NAME)
         log.info("Another instance is already running; exiting.")
         return
 

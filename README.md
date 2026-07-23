@@ -33,17 +33,10 @@ section below.
 To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
 URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
 include the subdirectory and port number if applicable. You can then cast your media
-from another Jellyfin application.
+from another Jellyfin application. You can also use quick connect, which is easier and faster.
 
-If your account has no password (for example, users who sign in through an SSO provider), use
-**Quick Connect** instead of typing a password. In the GUI, enter the server URL and click
-**Quick Connect**; on the CLI, pass `--quick-connect` (optionally with `--server URL`). A code is
-shown — open Jellyfin in a browser where you are already signed in, go to your user menu →
-*Quick Connect*, and enter the code. Quick Connect must be enabled by an administrator on the
-server.
-
-The application runs with a notification icon by default, you can disable this in the settings page if
-you would like the client to not run in the background and listen for casts from mobile/web clients.
+The application runs with a notification icon by default on Windows and if installed on Linux. If
+you would like the application to run in the background without the notification icon, enable it in settings.
 
 Note: Due to the huge number of questions and issues that have been submitted about URLs, I now tolerate
 bare IP addresses and not specifying the port by default. If you want to connect to port 80 instead of
@@ -69,10 +62,9 @@ Please note the following issues with controlling SyncPlay:
 
 Music playback works, but gapless playback is not planned at this time.
 
-The shader packs feature is sensitive to graphics hardware. It may simply just not work on your computer.
-You may be able to use the log files to get some more diagnostic information. If you're really unlucky,
-you'll have to disable the feature by pressing `k` to restore basic functionality.
-If you find the solution for your case, *please* send me any information you can provide, as every test case helps.
+The shader packs feature is sensitive to graphics hardware. If the application fails to launch, use
+`--reset-shaders` command line argument to reset the shader configuration. If it's merely garbled graphics
+you can press `k` to disable the last used shader config.
 
 ## Advanced Features
 
@@ -146,6 +138,11 @@ To use, navigate to the **Video Playback Profiles** option and select a profile.
 Profiles leave your graphics API alone, so HDR output keeps working. If video breaks
 when you load one, pick a different API under Settings → Video Enhancement → **Graphics
 API for Shaders** (`shader_pack_gpu_api`); `opengl` is the most compatible.
+
+If a profile leaves you with no usable picture at all, launch with `--reset-shaders`. The
+remembered profile is reapplied at startup, so the broken state comes back every launch and
+there may be no window to press `k` in; the flag clears both the remembered profile and the
+graphics API override, then starts normally.
 
 For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 If you would like to customize the shader pack, there are details in the configuration section.

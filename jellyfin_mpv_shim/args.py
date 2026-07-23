@@ -61,6 +61,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "(overrides ui_scale; not saved to the config)",
     )
     parser.add_argument(
+        "--reset-shaders",
+        dest="reset_shaders",
+        action="store_true",
+        help="clear the remembered video playback profile and the graphics "
+        "API override, then start normally (recovery for when a profile "
+        "leaves MPV unable to show video)",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="surface debug-level application log messages (does not affect mpv verbosity)",
