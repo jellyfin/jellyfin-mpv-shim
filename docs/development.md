@@ -7,11 +7,13 @@ If you'd like to run the application without installing it, run `./run.py`.
 The project is written entirely in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
-The project is dependent on `python-mpv`, `python-mpv-jsonipc`, and `jellyfin-apiclient-python`. If you are
-using Windows and would like mpv to maximize properly, `pywin32` is also needed. The GUI
-component uses `pystray`, but there is a fallback cli mode. The library browser, the playback
-HUD and the cast screen are all drawn inside the player's own mpv window and need `Pillow`; no
-Tk, no webview and no second window are required.
+The project is dependent on `python-mpv`, `python-mpv-jsonipc`, `jellyfin-apiclient-python`,
+`requests` and `Pillow`. The library browser, the playback HUD and the cast screen are all drawn
+inside the player's own mpv window and rasterized with Pillow, which is why that one is required
+rather than optional; no Tk, no webview and no second window are involved. If you are
+using Windows and would like mpv to maximize properly, `pywin32` is also needed. The systray icon
+uses `pystray` (`[systray]`) and is optional — without it the app still runs, it just cannot stay
+alive in the background once its window closes.
 
 This project is based Plex MPV Shim, which is based on https://github.com/wnielson/omplex, which
 is available under the terms of the MIT License. The project was ported to python3, modified to

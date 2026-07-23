@@ -37,10 +37,10 @@ Current Dependencies:
  - `python-mpv` - Provides `libmpv` playback backend.
  - `python-mpv-jsonipc` - Provides `mpv` playback backend. (First-Party)
  - `jellyfin-apiclient-python` - Provides API client to Jellyfin. (First-Party)
- - `pillow` - Provides image processing for trickplay thumbnails, the systray icon, and display mirroring. (Optional)
+ - `requests` - HTTP for everything outside the API client.
+ - `pillow` - Rasterizes the in-player library browser, the playback HUD, the cast screen and trickplay thumbnails. **Required** since those replaced the Tk UI: without it the app can only fall back to the CLI, which is a different product rather than a degraded one.
  - `pywin32` - Allows window management on Windows. (Optional)
- - `pystray` - Provides systray icon. (Optional)
- - `pystray` - Provides the systray icon. (Optional)
+ - `pystray` - Provides the systray icon. (Optional, `[systray]`)
  - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview

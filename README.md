@@ -325,21 +325,38 @@ window (it comes back on the next play, or from the tray), and copy/paste in
 text fields needs `wl-clipboard` on Wayland or `xclip`/`xsel` on X11, because
 MPV had no X11 clipboard of its own before 0.41.
 
-For full library browsing support, install `pystray` and `Pillow`:
-
-```bash
-sudo pip3 install 'jellyfin-mpv-shim[gui]'
-```
-
-For a minimal install, use:
-
 ```bash
 sudo pip3 install --upgrade jellyfin-mpv-shim
 ```
 
-Tkinter is no longer required — the library browser, the playback HUD and the cast screen are
-all drawn inside the player's own mpv window. If you previously installed `python3-tk` only for
-this application, you can remove it.
+That is the whole application: the library browser, the playback HUD and the cast screen are all
+drawn inside the player's own mpv window, and Pillow (which rasterizes them) is a required
+dependency. Tkinter is *not* required — if you previously installed `python3-tk` only for this
+application, you can remove it.
+
+The one piece that is optional is the system tray icon:
+
+```bash
+sudo pip3 install 'jellyfin-mpv-shim[systray]'
+```
+
+It additionally needs PyGObject and an AppIndicator typelib **from your
+distribution** — pystray reaches the system library through `gi`, and neither piece can come from
+pip. On Debian and Ubuntu:
+
+```bash
+sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1
+```
+
+Install the *Ayatana* package specifically. pystray also accepts the older
+`gir1.2-appindicator3-0.1` (Canonical's libappindicator, unmaintained since 2017) and prefers it
+when both are installed, so having the old one present is worse than not having it at all.
+
+Because `gi` comes from the distribution rather than pip, a virtualenv only sees it when created
+with `--system-site-packages` — for pipx, `pipx install --system-site-packages
+'jellyfin-mpv-shim[systray]'`. Without it everything else still works; you just lose the tray,
+which means closing the library window quits the application instead of leaving it running as a
+cast target.
 
 Discord rich presence support:
 
@@ -372,13 +389,13 @@ To install the CLI version:
 5. Install jellyfin-mpv-shim. `pipx install jellyfin-mpv-shim`
 6. Run `jellyfin-mpv-shim`.
 
-If you'd like to install the GUI version:
+If you'd like the menu bar icon as well:
 
 1. Install mpv. `brew install mpv`
 2. Install python3. `brew install python`
 3. Install pipx. `brew install pipx`
 4. Set path `pipx ensurepath`
-5. Install jellyfin-mpv-shim and pystray. `pipx install 'jellyfin-mpv-shim[gui]'`
+5. Install jellyfin-mpv-shim and pystray. `pipx install 'jellyfin-mpv-shim[systray]'`
 6. Run `jellyfin-mpv-shim`.
 
 Display mirroring is not tested on macOS, but may be installable with 'pipx install 'jellyfin-mpv-shim[mirror]'`.
