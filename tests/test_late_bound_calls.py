@@ -422,3 +422,81 @@ class TestDaemonSlotsExist(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPageContextCallsResolve(unittest.TestCase):
+    """``self.ctx.<field>.<method>()`` inside a Page.
+
+    The surface step 6 created, and one this file did not cover until it had
+    already let a bug through: ``ctx.nav`` was wired to the raw ``Navigator``
+    rather than a navigate/go_back facade, so every page's ``ctx.nav.navigate``
+    was an AttributeError waiting for a click -- the season switcher, "To
+    Series", "Go to Series". Nothing raised, because they are all lambdas and
+    no test clicked them.
+
+    Resolution is dynamic on purpose: the context is built by the shell, so
+    asking a real ``_page_context()`` what it actually holds is the only check
+    that cannot drift from production wiring.
+    """
+
+    PAGES_DIR = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "jellyfin_mpv_shim", "mpvtk_browser", "pages")
+
+    @classmethod
+    def _ctx(cls):
+        from tests.test_mpvtk_browser_shell import FakeSource
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        return MpvtkBrowser(app=None, source=FakeSource())._page_context()
+
+    def _refs(self):
+        """(file, line, field, attr) for every self.ctx.FIELD.ATTR."""
+        out = []
+        for name in sorted(os.listdir(self.PAGES_DIR)):
+            if not name.endswith(".py") or name == "__init__.py":
+                continue
+            path = os.path.join(self.PAGES_DIR, name)
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                # self.ctx.FIELD.ATTR
+                if not (isinstance(node, ast.Attribute)
+                        and isinstance(node.value, ast.Attribute)
+                        and isinstance(node.value.value, ast.Attribute)
+                        and node.value.value.attr == "ctx"):
+                    continue
+                out.append((name, node.lineno, node.value.attr, node.attr))
+        return out
+
+    def test_there_are_references_to_check(self):
+        self.assertGreater(len(self._refs()), 5)
+
+    def test_every_reference_resolves(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            LibrarySource, OfflineLibrarySource)
+
+        ctx = self._ctx()
+        bad = []
+        for name, line, field, attr in self._refs():
+            if field == "shell":
+                continue          # counted and pinned by test_page_contract
+            if field == "source":
+                # Against the REAL sources, not the test fake: a page must
+                # name something one of them actually provides. Either is
+                # enough -- offline legitimately lacks some, and the callers
+                # guard with getattr/try.
+                if hasattr(LibrarySource, attr) or hasattr(
+                        OfflineLibrarySource, attr):
+                    continue
+                bad.append("%s:%d ctx.source.%s" % (name, line, attr))
+                continue
+            target = getattr(ctx, field, None)
+            if target is None:
+                continue          # None in a bare browser (controller); the
+                # controller surface is checked by the classes above
+            if not hasattr(target, attr):
+                bad.append("%s:%d ctx.%s.%s" % (name, line, field, attr))
+        self.assertEqual(
+            bad, [],
+            "These reach for context members that do not exist:\n  "
+            + "\n  ".join(bad))

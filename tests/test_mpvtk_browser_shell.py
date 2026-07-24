@@ -8364,7 +8364,10 @@ class TestPagination(unittest.TestCase):
             finally:
                 if always:
                     always()
-        self.b.run_async = sync
+        # On the AsyncRunner, not the shell's run_async forwarder: Paginator
+        # holds the runner directly, so patching the forwarder would leave
+        # its fetches on the real pool and the assertions racing them.
+        self.b._async.run = sync
 
     def _fetch_of(self, total):
         """A fetch(start, limit) over a synthetic list of `total` ints."""
@@ -8467,3 +8470,57 @@ class TestPaginatedToggle(unittest.TestCase):
         self.b._paginated = lambda: False
         self.b._toggle_paginated()
         self.assertEqual(saved, {"paginated": True}, "flips the global flag")
+
+
+class TestPageNavigationHandlersActuallyRun(unittest.TestCase):
+    """Click the navigation buttons the converted pages build.
+
+    Every one of these went through ``ctx.nav.navigate``, which did not exist
+    -- ctx.nav was wired to the raw Navigator. Nothing caught it because they
+    are all lambdas and no test had ever clicked them. Static resolution now
+    covers the class (test_late_bound_calls.TestPageContextCallsResolve);
+    these cover the behaviour.
+    """
+
+    def _browser(self, route):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate(route)
+        return b
+
+    def test_go_to_series_from_an_episode_detail(self):
+        b = self._browser({"kind": "detail", "server": "srv1",
+                           "item_id": "ep1", "title": "Ep"})
+        b.route["_data"] = {"item": {"Id": "ep1", "Type": "Episode",
+                                     "Name": "Ep", "SeriesId": "sh1",
+                                     "SeriesName": "Show"}}
+        _n, handlers = build_scene(b)
+        self.assertIn("act-series", handlers, "no Go to Series button")
+        handlers["act-series"]["click"]()
+        self.assertEqual(b.route.get("kind"), "series")
+        self.assertEqual(b.route.get("item_id"), "sh1")
+
+    def test_to_series_from_a_season(self):
+        b = self._browser({"kind": "season", "server": "srv1",
+                           "item_id": "sea1", "series_id": "sh1",
+                           "title": "Season 1"})
+        _n, handlers = build_scene(b)
+        self.assertIn("season-to-series", handlers)
+        handlers["season-to-series"]["click"]()
+        self.assertEqual(b.route.get("kind"), "series")
+        self.assertEqual(b.route.get("item_id"), "sh1")
+
+    def test_the_season_switcher_navigates(self):
+        b = self._browser({"kind": "season", "server": "srv1",
+                           "item_id": "sea1", "series_id": "sh1",
+                           "title": "Season 1"})
+        b.route["_data"] = {
+            "episodes": [],
+            "seasons": [{"Id": "sea1", "Name": "Season 1"},
+                        {"Id": "sea2", "Name": "Season 2"}]}
+        _n, handlers = build_scene(b)
+        self.assertIn("season-switch", handlers, "no season dropdown")
+        handlers["season-switch"]["select"](1, "Season 2")
+        self.assertEqual(b.route.get("item_id"), "sea2")

@@ -85,6 +85,8 @@ from .navigator import Navigator
 from .scroll_state import ScrollState
 from .tile_renderer import TileRenderer
 from .item_actions import ItemActions
+from . import pagination
+from .pagination import Paginator
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
@@ -135,13 +137,13 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
     # they mirror the real widgets (_chrome h=60, _banner/_download_bar, the
     # now-playing bar) and only need to be close — the row count rounds down, so
     # an over-estimate just shows one fewer row rather than clipping.
-    PAGINATION_BAR_H = 48
+    PAGINATION_BAR_H = pagination.PAGINATION_BAR_H
     CHROME_H = 60
     BANNER_H = 48
     DLBAR_H = 44
     # Cap a page's tile count so a huge window can't blow the 63-overlay budget
     # (a non-scrolling page composites every tile at once).
-    PAGE_MAX = 60
+    PAGE_MAX = pagination.PAGE_MAX
     # Route kinds that paginate. The music songs list and genre grids stay
     # scrolling (a list, and an unpaged single request).
     PAGEABLE_KINDS = {"grid", "person", "music"}
@@ -311,6 +313,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # through and never snapshotted -- see item_actions.py. `dialogs` is
         # a namespace rather than self so the only shell surface it can
         # reach is the two dialogs it actually opens.
+        self._pages = Paginator(
+            run=self._async,
+            content_h=lambda route, size: self._content_h(route, size),
+            is_current=lambda route: route is self.route,
+            status=lambda msg: self.set_status(msg),
+            invalidate=lambda: self.invalidate(),
+            enabled=pagination.enabled_from_settings,
+            cols=lambda w, geom: self.tiles.cols(w, geom))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=SimpleNamespace(
@@ -405,6 +415,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if not self._nav.push(route, reset=reset, force=force):
             return          # refused by the headless lockdown
         self._reset_scroll()
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def _reload_route(self, route):
+        """Re-run a route's loader in place: the data changed, the screen did
+        not. A sort or filter change, the collections toggle. Distinct from
+        navigate(), which pushes a new screen, and from go_back()."""
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
@@ -639,82 +657,22 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 self._offline_fallback(route)
         self.run_async(work, on_done, ep, on_error=failed)
 
-    # How close to the bottom of a scroller a page request is triggered.
-    PAGE_SLOP = 800
+    # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
+    # thin forwarders while unconverted routes still call them as methods.
+    PAGE_SLOP = pagination.PAGE_SLOP
 
     def _page_more(self, route, offset, maximum, get, put, fetch, error=None):
-        """One page of an infinite-scroll list.
-
-        ``get(route)`` returns ``(items, total)``, ``put(route, items, total)``
-        writes them back, and ``fetch(start_index)`` asks the server for the
-        next page as ``(new_items, total)``. Three views used to carry a copy
-        of this, and each learned its invariants separately:
-
-        * **Only page the route that is on screen.** ``route is not
-          self.route`` — a scroll event can arrive for a view being left.
-        * **``_loading`` guards re-entry**, and must not survive a failure, or
-          the list never requests anything again for the rest of the session.
-          (``run_async`` runs ``on_error`` regardless of epoch for this
-          reason.)
-        * **An in-range page that comes back empty ends the list.** A random
-          sort that reshuffles per request, or a filter the server applies
-          differently than we do, otherwise gets re-asked on every scroll
-          event forever.
-        * **Never page from an empty list** — that is start_index=0, i.e. the
-          initial load, and the loader owns it.
-        """
-        if route is not self.route or route.get("_loading"):
-            return
-        items, total = get(route)
-        if not items or len(items) >= total:
-            return
-        if maximum - offset >= self.PAGE_SLOP:
-            return                       # only page in near the bottom
-        route["_loading"] = True
-        ep = self._epoch
-        start = len(items)
-
-        def done(res):
-            new, total2 = res
-            cur, _t = get(route)
-            merged = list(cur) + list(new)
-            put(route, merged, total2 if new else len(merged))
-
-        def failed(_exc):
-            # The toast is about a list. Nobody asked for this page — it was
-            # triggered by scrolling — so reporting it over whatever screen
-            # the user moved to is noise. (An edit the user *pressed a button*
-            # for is the opposite case; see _edit_call.)
-            if route is self.route:
-                self.set_status(error or _("Could not load more items."))
-
-        def clear_guard():
-            route["_loading"] = False
-
-        # clear_guard is `always`, not part of done/failed: a page dropped for
-        # being stale runs neither, and a _loading left set means this route
-        # never pages again — scroll to the bottom, click a tile, come back,
-        # and the list is silently capped for the rest of the session.
-        self.run_async(lambda: fetch(start), done, ep, on_error=failed,
-                       always=clear_guard)
-
-    # ---------------------------------------------------------- pagination
+        self._pages.more(route, offset, maximum, get, put, fetch, error)
 
     def _paginated(self):
-        """The global paginate-tile-grids toggle (settings.paginated).
-
-        Read live so the Settings toggle takes effect on the next frame; a
-        missing key (test stand-ins) reads as off."""
-        try:
-            from ..conf import settings
-            return bool(getattr(settings, "paginated", False))
-        except Exception:
-            return False
+        return self._pages.enabled()
 
     def _content_h(self, route, size):
         """Vertical space the route content actually gets — the window minus
         the chrome and bars that sit above/below it in ``build``. Mirrors
-        build()'s own conditions so a paginated page can size itself to fit."""
+        build()'s own conditions so a paginated page can size itself to fit.
+
+        Stays here: only the shell knows which of its bars are up."""
         h = size[1]
         if route.get("kind") not in CHROME_FREE:
             h -= self.CHROME_H
@@ -730,102 +688,23 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         return max(1, h)
 
     def _page_size(self, route, size, head_h, geom):
-        """Tiles per page = columns × rows that fit under the header. Rounds
-        the row count DOWN so a page never overflows its slot (which would
-        clip the last row or force a scroll); capped at PAGE_MAX for the
-        overlay budget."""
-        avail = self._content_h(route, size) - head_h - self.CONTENT_PAD
-        pitch = geom.strip_h + self.GRID_GAP
-        rows = max(1, int((avail + self.GRID_GAP) // pitch)) if pitch > 0 else 1
-        cols = self._cols(size[0], geom)
-        return max(1, min(cols * rows, self.PAGE_MAX))
+        return self._pages.page_size(route, size, head_h, geom,
+                                     self.CONTENT_PAD)
 
     def _page_count(self, route, ps):
-        total = route.get("_total")
-        if not total or ps <= 0:
-            return None
-        return max(1, -(-total // ps))         # ceil
+        return self._pages.page_count(route, ps)
 
     def _ensure_page(self, route, ps, fetch, seed=None):
-        """Make the current page's items available at page size ``ps`` and
-        return them (or None while a fetch is in flight).
-
-        ``fetch(start, limit) -> (items, total)`` gets a page from the source;
-        ``seed`` is an already-loaded head of the list (the initial-load chunk)
-        used to fill page 0 without a second request. The current page and the
-        pages on either side are fetched, so Next/Previous land instantly; the
-        cache is pruned to that window so a deep library doesn't accumulate
-        every page it visited."""
-        if route.get("_page_size") != ps:
-            route["_page_size"] = ps
-            route["_pages"] = {}
-            route["_page_loading"] = set()
-        pages = route["_pages"]
-        npages = self._page_count(route, ps)
-        cur = route.get("_page") or 0
-        if npages is not None:
-            cur = max(0, min(cur, npages - 1))
-        route["_page"] = cur
-        route["_npages"] = npages
-        if seed and cur == 0 and 0 not in pages and len(seed) >= ps:
-            pages[0] = list(seed[:ps])
-        self._fetch_page(route, cur, ps, fetch)
-        for nb in (cur + 1, cur - 1):
-            if nb >= 0 and (npages is None or nb < npages):
-                self._fetch_page(route, nb, ps, fetch, prefetch=True)
-        keep = {cur - 1, cur, cur + 1}
-        for p in [p for p in pages if p not in keep]:
-            pages.pop(p, None)
-        return pages.get(cur)
-
-    def _fetch_page(self, route, page, ps, fetch, prefetch=False):
-        pages = route["_pages"]
-        loading = route["_page_loading"]
-        if page in pages or page in loading:
-            return
-        loading.add(page)
-        ep = self._epoch
-        start = page * ps
-
-        def done(res):
-            items, total = res
-            route["_pages"][page] = list(items)
-            if total:
-                route["_total"] = total
-
-        def failed(_exc):
-            # A prefetch nobody asked for stays silent; a page the user is
-            # waiting on says so (mirrors _page_more's toast rule).
-            if not prefetch and route is self.route:
-                self.set_status(_("Could not load this page."))
-
-        def clear():
-            route["_page_loading"].discard(page)
-
-        self.run_async(lambda: fetch(start, ps), done, ep,
-                       on_error=failed, always=clear)
+        return self._pages.ensure(route, ps, fetch, seed)
 
     def _reset_pagination(self, route):
-        """Drop the page cache and return to page 1. Called whenever the
-        underlying result set changes (sort, filter, collections toggle, music
-        tab) — page 3 of one ordering is nothing like page 3 of another."""
-        for k in ("_pages", "_page_size", "_page_loading", "_npages"):
-            route.pop(k, None)
-        route["_page"] = 0
+        self._pages.reset(route)
 
     def _page_go(self, route, page):
-        """Jump to a page (0-based); _ensure_page clamps into range next
-        frame, so an out-of-range target from Last/typing is harmless."""
-        route["_page"] = page
-        self.invalidate()
+        self._pages.go(route, page)
 
     def _page_jump(self, route, text):
-        """The page-number box: a 1-based page to go to."""
-        try:
-            n = int(str(text).strip())
-        except (TypeError, ValueError):
-            return
-        self._page_go(route, max(0, n - 1))
+        self._pages.jump(route, text)
 
     def _pagination_bar(self, route, w):
         """`Page [n] of N     |◀ ◀ ▶ ▶|` — the bottom bar that replaces the
@@ -966,7 +845,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         return PageContext(
             source=self.source,
             server=self.server,
-            nav=self._nav,
+            # A facade, NOT the raw Navigator. navigate() here is the headless
+            # choke point -- it also resets scroll, bumps the epoch, loads and
+            # repaints -- and Navigator.push does none of that. Step 6a wired
+            # the Navigator itself by mistake, which made every page's
+            # navigate() an AttributeError waiting for a click;
+            # tests/test_late_bound_calls.py now resolves these statically.
+            nav=SimpleNamespace(
+                navigate=lambda route, **kw: self.navigate(route, **kw),
+                go_back=lambda: self.go_back(),
+                reload=lambda route: self._reload_route(route)),
             run=self._async,
             art=self._art_context(),
             player=self.controller,
