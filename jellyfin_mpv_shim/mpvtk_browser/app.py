@@ -60,7 +60,6 @@ import logging
 import threading
 import time
 
-from concurrent.futures import ThreadPoolExecutor
 from ..i18n import _
 from ..mpvtk.layout import natural_size
 from ..mpvtk.rawimage import cache_dir
@@ -79,6 +78,7 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
+from .async_runner import AsyncRunner
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
@@ -294,10 +294,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             log.warning("could not enumerate servers", exc_info=True)
         self.server = self._pick_server(servers, server_uuid)
 
-        self._epoch = 0
-        self._lock = threading.RLock()
-        self._pool = ThreadPoolExecutor(max_workers=4,
-                                        thread_name_prefix="mpvtk-api")
+        # Epoch + lock + worker pool, one mechanism with one owner. The
+        # properties below keep `self._epoch` / `self._pool` reading exactly
+        # as before for the mixins and tests that use them.
+        self._async = AsyncRunner(invalidate=self.invalidate)
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
@@ -546,11 +546,28 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self._nav_mode = active
             self.invalidate()
 
+    # -- the async machinery, owned by AsyncRunner ------------------------
+    #
+    # These delegate rather than reimplement. `_epoch` and `_pool` stay
+    # readable as attributes because ~30 dispatchers across the mixins do
+    # `ep = self._epoch` on the loop thread, and several tests substitute a
+    # synchronous pool; changing those is churn, not clarity.
+
+    @property
+    def _epoch(self):
+        return self._async.epoch
+
+    @property
+    def _pool(self):
+        return self._async.pool
+
+    @_pool.setter
+    def _pool(self, value):
+        self._async.pool = value
+
     def _bump_epoch(self):
         """Invalidate every in-flight async result. Returns the new epoch."""
-        with self._lock:
-            self._epoch += 1
-            return self._epoch
+        return self._async.bump()
 
     # -------------------------------------------------------- async model
 
@@ -560,66 +577,20 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def run_async(self, work, on_done, epoch, on_error=None, always=None):
         """Run ``work()`` off the loop thread; apply ``on_done(result)`` only
-        if the epoch still matches (the user hasn't navigated away). ``on_done``
-        mutates state under the lock, then the loop is woken to rebuild.
+        if the epoch still matches (the user hasn't navigated away).
 
-        ``on_error(exc)`` runs when ``work()`` raises. Without one a failure
-        only logs, which left the route's data at None and the view spinning
-        forever — an unreachable server looked like a hang.
-
-        **``on_error`` is deliberately not epoch-gated.** A rollback undoes an
-        optimistic edit in the *route dict it captured*, or clears a paging
-        guard — neither is a claim about what is currently on screen. Gating
-        it meant navigating away before the failure landed dropped the
-        rollback, so the route dict kept a change the server had refused and
-        showed it again on the way back.
-
-        That puts the burden on the handler: **anything in an ``on_error``
-        that touches the live screen must check for itself.** Two do, both by
-        testing ``route is self.route`` — ``_route_async`` before the offline
-        fallback (``set_source`` discards the nav stack) and ``_page_more``
-        before its toast. ``_edit_call``'s toast is deliberately unguarded:
-        the user pressed a button and the server refused, so they should be
-        told wherever they now are.
-
-        ``always()`` runs after every outcome — success, failure, *and a
-        result dropped because the epoch moved*. Use it for a guard that must
-        not outlive the call. ``on_error`` alone is not enough: a stale
-        success calls neither callback, so a flag cleared only in ``on_done``
-        stays set forever (that was ``_page_more``'s ``_loading``, which
-        silently killed infinite scroll for a route once you paged and then
-        clicked into an item)."""
-        def task():
-            try:
-                try:
-                    result = work()
-                except Exception as exc:
-                    log.warning("async work failed", exc_info=True)
-                    if on_error is None:
-                        return
-                    with self._lock:
-                        try:
-                            on_error(exc)
-                        except Exception:
-                            log.warning("async on_error failed", exc_info=True)
-                    return
-                with self._lock:
-                    if epoch != self._epoch:
-                        return  # superseded by a newer navigation
-                    try:
-                        on_done(result)
-                    except Exception:
-                        log.warning("async on_done failed", exc_info=True)
-            finally:
-                if always is not None:
-                    with self._lock:
-                        try:
-                            always()
-                        except Exception:
-                            log.warning("async always failed", exc_info=True)
-                self.invalidate()
-
-        self._pool.submit(task)
+        The contract — why ``on_error`` is not epoch-gated, why ``always``
+        exists, why every callback is individually guarded — lives with the
+        implementation in ``async_runner.py``. Two callers rely on the
+        "``on_error`` runs regardless of epoch" clause and guard the live
+        screen themselves by testing ``route is self.route``: ``_route_async``
+        before the offline fallback (``set_source`` discards the nav stack)
+        and ``_page_more`` before its toast. ``_edit_call``'s toast is
+        deliberately unguarded — the user pressed a button and the server
+        refused, so they should be told wherever they now are.
+        """
+        self._async.run(work, on_done, epoch,
+                        on_error=on_error, always=always)
 
     def _route_async(self, route, work, on_done, ep):
         """run_async for a route's data, recording a failure on the route so
@@ -2426,7 +2397,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         knows that, this does not. See mpvtk_browser.ui.stop().
         """
         self._shutdown_evt.set()   # also stops the downloads poller
-        self._pool.shutdown(wait=False, cancel_futures=True)
+        self._async.shutdown(wait=False, cancel_futures=True)
         # Relocating the download store copies the whole thing and has no
         # cancellation check, so a quit mid-move would kill it partway
         # through. Give it a bounded chance to finish rather than yanking

@@ -152,6 +152,73 @@ class TestComponentsAreLeaves(unittest.TestCase):
             "take a callback instead:\n  " + "\n  ".join(offenders))
 
 
+class TestOneOwnerForSharedMachinery(unittest.TestCase):
+    """Certain state must have exactly one owning module.
+
+    ``app.py``'s docstring already asserts this for the epoch — "``_epoch``
+    and ``_lock`` live *only* here" — but nothing enforced it, and a claim in
+    prose is exactly the kind of thing a decomposition erodes one mixin at a
+    time. Now the claim is checked.
+
+    The counted thing is *ownership*, not use: mixins legitimately READ the
+    epoch (``ep = self._epoch``) on the loop thread and hand it to
+    ``run_async``. What must not spread is the machinery — the lock, the
+    pool, and the code that advances the counter.
+    """
+
+    BROWSER = os.path.join(PKG, "mpvtk_browser")
+
+    def _browser_modules(self):
+        for name in sorted(os.listdir(self.BROWSER)):
+            if name.endswith(".py"):
+                yield name, os.path.join(self.BROWSER, name)
+
+    def _modules_defining(self, predicate):
+        found = set()
+        for name, path in self._browser_modules():
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            if predicate(tree, name):
+                found.add(name)
+        return found
+
+    @staticmethod
+    def _assigns(tree, attr):
+        """Does this module ASSIGN self.<attr> anywhere?"""
+        for node in ast.walk(tree):
+            targets = []
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+            elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+                targets = [node.target]
+            for target in targets:
+                if (isinstance(target, ast.Attribute)
+                        and target.attr == attr
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id == "self"):
+                    return True
+        return False
+
+    def test_the_epoch_counter_has_one_writer(self):
+        writers = self._modules_defining(
+            lambda tree, _n: self._assigns(tree, "_epoch"))
+        self.assertLessEqual(
+            writers, {"async_runner.py", "app.py"},
+            "Only the async runner may advance the epoch; every other module "
+            "reads it and passes it to run_async. Writers found: %s"
+            % sorted(writers))
+
+    def test_the_async_lock_has_one_owner(self):
+        owners = self._modules_defining(
+            lambda tree, _n: self._assigns(tree, "_lock"))
+        # strips.py and thumbnails.py own their own, unrelated caches' locks.
+        owners -= {"strips.py", "thumbnails.py"}
+        self.assertLessEqual(
+            owners, {"async_runner.py"},
+            "The async lock belongs to the runner. Owners found: %s"
+            % sorted(owners))
+
+
 class TestNoTopLevelMutableClassState(unittest.TestCase):
     """A mutable class attribute is shared by every instance.
 

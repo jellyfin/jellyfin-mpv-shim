@@ -248,7 +248,7 @@ and independently revertible.
 | # | step | risk | prerequisite |
 |---|---|---|---|
 | 1 | Extract `components/` (pure functions out of `tiles.py`, dialog builders) | very low | none — they barely use `self` |
-| 2 | Extract `AsyncRunner` (epoch + pool + `run_async`/`_route_async`/`_page_more`) | low | none |
+| 2 | Extract `AsyncRunner` (epoch + lock + pool + `run_async`) | low | none |
 | 3 | Extract `Navigator` (route stack + headless policy) | low | `tests/test_mpvtk_headless.py` already pins the policy |
 | 4 | **Cover `ui.py`'s `PlayerController`** | — | *blocks 5*; it is at 41.6% and is the seam |
 | 5 | Formalise `PlayerGateway` from `_PlayerController` | medium | 4 |
@@ -260,6 +260,18 @@ Steps 1–3 are mechanical and could be done in an afternoon each. Step 4 is
 test-writing, not refactoring, and is the one that must not be skipped: it is
 the least-covered code in the branch and everything after it depends on that
 boundary holding still.
+
+> **Revised while doing step 2.** This table originally put `_route_async`
+> and `_page_more` in `AsyncRunner`. They do not belong there: both read
+> `self.route`, write `route["_error"]` / `route["_loading"]`, and
+> `_route_async` calls `_offline_fallback`. They are *route* helpers that
+> happen to use the runner, so they stay on the shell now and move to the
+> `Page` base class in step 6. `AsyncRunner` is exactly epoch + lock + pool +
+> `run_async`.
+>
+> The tell is the same one §1.4 uses for components: a thing that needs
+> `route` is not part of the async mechanism, however much it looks like it
+> from the call site.
 
 ---
 
