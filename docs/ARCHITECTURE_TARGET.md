@@ -253,7 +253,7 @@ and independently revertible.
 | 4 | ~~**Cover `ui.py`'s `PlayerController`**~~ **done** | — | was *blocking 5*; 41.6% → 67.2% |
 | 5 | Formalise `PlayerGateway` from `_PlayerController` | medium | 4 |
 | 6a | `Page` + `PageContext` + registry, first route converted | medium | 1–3, 5 |
-| 6b | **Extract the art-dependent components** (`TilesMixin` → a `TileRenderer`) | medium | 6a |
+| 6b | **Extract `TileRenderer` + `ScrollState`** (see §3.1) | medium | 6a |
 | 6c | Convert the remaining route kinds, one at a time | medium | 6b |
 | 7 | Extract `MpvSession` from `player.py` | medium-high | integration matrix green on both backends |
 | 8 | Make `run_action` single-context | high | 7 |
@@ -295,6 +295,44 @@ boundary holding still.
 > per-page shell cost collapses. Its own dependencies are almost all
 > *sibling helpers inside `tiles.py`* rather than shell state, which is what
 > makes the extraction tractable.
+
+### 3.1 What else is missing, measured
+
+"Is `TileRenderer` the only thing in the way?" is answerable rather than a
+judgement call. Taking every unconverted route's loader and renderer, and
+counting the **direct** `self.X` each touches (not the transitive closure —
+a page calls `ctx.nav.navigate(...)` and stops, it does not inherit
+`navigate`'s own needs), the demand splits cleanly:
+
+* **29 names are needed by more than one route.** Those are shared
+  infrastructure and want a home.
+* **63 are needed by exactly one route.** Those are that page's own state —
+  `_login_error`, `_do_login`, `_pe_sel`, `_music_header_text` — and become
+  page fields when it converts. They are not missing modules, and treating
+  them as such would invent seven single-caller services.
+
+The 29 group into six homes, ordered by how much they unblock:
+
+| home | names | route-uses | status |
+|---|---|---|---|
+| `components/chrome.py` | `_busy`, `CONTENT_PAD`, `_paragraph`, `_body_w` | 28 | **done** |
+| `TileRenderer` | `_grid_of`, `_track_list`, `_tile_row`, `GRID_GAP`, `_paged_grid`, `_banner_box`, `_backdrop_node`, `_art_cell`, `_square_geom` | 32 | 6b part 2 |
+| **`ScrollState`** | `_on_scroll`, `_on_grid_scroll`, `_header_offset`, `_paginated` | 17 | **missing** |
+| `components/controls.py` | `_sort_bar`, `_grid_filter_bar`, `_toggle_collections`, `_action_btn` | 8 | small |
+| `components/detail.py` | `_people_row`, `_meta_line` | 4 | small |
+| per-family page bases | `_music_action_bar`, `_music_header_text`; `_pe_sel`, `_pe_set_sel`, `_select_click` | 11 | shared by *one family* of routes each — a `MusicPage` / `SelectionPage` base, not a global service |
+
+`_play_list` (3 routes) needs no new home: it wraps `controller.play_list`,
+so a page calls `ctx.player.play_list(...)` through the gateway that already
+exists.
+
+**`ScrollState` is the one genuinely missing module.** It owns
+`_scroll_off`, `_scroll_rendered` and `_live_offsets` — the virtualization
+bookkeeping every list-shaped page needs and no page should own privately,
+because the renderer is the authority and the shell reads it once per frame
+(`build()` → `scroll_offsets()`). Extract it alongside `TileRenderer`; the
+tile grid is its largest consumer, so doing them together avoids threading a
+callback between two half-built objects.
 
 ---
 
