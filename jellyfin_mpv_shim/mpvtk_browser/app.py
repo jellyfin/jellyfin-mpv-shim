@@ -924,13 +924,22 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def _art_context(self):
         """Render resources a page may use. A namespace rather than the
-        browser, so a page cannot reach past it into the shell's state."""
+        browser, so a page cannot reach past it into the shell's state.
+
+        ``tiles`` and ``scroll`` are the two services step 6b extracted, and
+        they are here rather than as their own ``PageContext`` fields because
+        both answer questions about *what the renderer is drawing* — tile
+        geometry and where a container is scrolled to. Reaching them through
+        ``art`` is also what keeps the context at nine fields, which the
+        contract test caps.
+        """
         from types import SimpleNamespace
 
         return SimpleNamespace(
             strips=self.strips, thumbs=self.thumbs,
             geom=self.geom, geom_wide=self.geom_wide,
-            geom_square=self.geom_square)
+            geom_square=self.geom_square,
+            tiles=self.tiles, scroll=self._scroll)
 
     def _page_context(self):
         """Build the dependency bundle handed to every page.

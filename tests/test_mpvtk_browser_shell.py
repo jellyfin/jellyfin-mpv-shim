@@ -6733,7 +6733,7 @@ class TestTileAndMetaParity(unittest.TestCase):
         # Tile captions are baked into the strip bitmap, so catch them at
         # the boundary where _people_row hands its tiles over.
         seen = []
-        self.b._tile_row = lambda title, items, rid, **kw: seen.extend(items)
+        self.b.tiles.tile_row = lambda title, items, rid, **kw: seen.extend(items)
         self.b._people_row(
             [{"Id": "p1", "Name": "A Director", "Type": "Director"},
              {"Id": "p2", "Name": "An Actor", "Type": "Actor",

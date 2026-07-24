@@ -27,7 +27,7 @@ from ..mpvtk.widgets import (
     VScroll,
 )
 from . import components, home_sections, theme
-from .components import chrome
+from .components import chrome, controls, detail
 
 log = logging.getLogger("mpvtk_browser.views")
 
@@ -127,21 +127,8 @@ class ViewsMixin:
         return VScroll(Column(rows, gap=20), id="home", flex=1,
                        snaps=components.section_offsets(rows, 20))
 
-    # Item types whose artwork is square, not a 2:3 poster: music, and
-    # playlists (whose own Primary image is a square). Rendering them in a
-    # poster frame pillarboxes the art.
-    SQUARE_TYPES = {"Playlist", "MusicAlbum", "MusicArtist", "Audio",
-                    "MusicGenre"}
-
     def _square_geom(self, items):
-        """``geom_square`` when every item's art is square, else None.
-
-        A strip is composited at one tile size, so this is a per-grid
-        decision, not per-tile — hence "every item"."""
-        types = {i.get("Type") for i in items or ()}
-        if types and types <= self.SQUARE_TYPES:
-            return self.geom_square
-        return None
+        return self.tiles.square_geom(items)
 
     def _row_shape(self, hr):
         """(geom, image_type) for a home row, classified like the Tk browser:
@@ -413,26 +400,7 @@ class ViewsMixin:
 
     # --------------------------------------------------- detail / series / etc
 
-    def _meta_line(self, item):
-        parts = []
-        if item.get("ProductionYear"):
-            parts.append(str(item["ProductionYear"]))
-        rt = item.get("RunTimeTicks")
-        if rt:
-            # h:mm:ss, like Tk and jellyfin-web. "112 min" makes you do the
-            # arithmetic to know whether it fits in an evening.
-            parts.append(self._fmt_ticks(rt))
-        if item.get("OfficialRating"):
-            parts.append(str(item["OfficialRating"]))
-        if item.get("CommunityRating"):
-            parts.append("★ %.1f" % item["CommunityRating"])
-        # Genres are already fetched (repository asks for them); Tk showed up
-        # to three here and dropping them lost the quickest read on what a
-        # thing actually is.
-        genres = ", ".join(item.get("Genres") or [])
-        if genres:
-            parts.append(genres)
-        return "   ·   ".join(parts)
+    _meta_line = staticmethod(detail.meta_line)
 
 
 
@@ -558,14 +526,7 @@ class ViewsMixin:
                     Dropdown(node_id, names, selected=selected, w=300,
                              on_select=on_select)], gap=8, align="center")
 
-    @staticmethod
-    def _fmt_ticks(ticks):
-        """h:mm:ss / m:ss — a bare minutes:seconds rendered a 1h20m resume
-        offset as "80:00"."""
-        secs = int((ticks or 0) // 10000000)
-        h, m, sec = secs // 3600, (secs % 3600) // 60, secs % 60
-        return ("%d:%02d:%02d" % (h, m, sec) if h
-                else "%d:%02d" % (m, sec))
+    _fmt_ticks = staticmethod(detail.fmt_ticks)
 
     def _play_buttons(self, route, item, server, trailers=None):
         ud = item.get("UserData") or {}
@@ -637,30 +598,7 @@ class ViewsMixin:
                 item, server, offset_ticks=t.get("_start_ticks") or 0,
                 srcid=srcid, aid=aid, sid=sid))
 
-    def _action_btn(self, icon, text, node_id, cb, on=False, primary=False,
-                    size=16):
-        """An icon+label action button.
-
-        ``primary`` is the accent-filled call to action (Play, Next Up);
-        ``on`` is a *toggle* that happens to share the accent fill (Watched,
-        Favorite). Both use white on blue — black on blue read as disabled.
-
-        Every button in an action row must come from here, icon or not: the
-        plain Button widget defaults to a 20px label against this one's 16,
-        which made the odd trailing button ~5px taller than its neighbours.
-        """
-        accent = on or primary
-        fg = theme.ACCENT_FG if accent else theme.TEXT_FG
-        children = []
-        if icon:
-            children.append(Icon(icon, size + 2, color=fg))
-        children.append(Text(text, size=size, color=fg))
-        return Row(children,
-                   id=node_id, gap=7, pad=10,
-                   bg=theme.ACCENT if accent else theme.BUTTON_BG,
-                   hover={"fill": theme.ACCENT_HOVER if accent
-                          else theme.BUTTON_ACTIVE},
-                   radius=6, align="center", on_click=cb)
+    _action_btn = staticmethod(controls.action_btn)
 
     def _common_actions(self, item, server, prefix):
         """Watched / Favorite / Download buttons shared by detail/series/
@@ -881,22 +819,7 @@ class ViewsMixin:
         return "   ·   ".join(p for p in parts if p)
 
     def _people_row(self, people, server):
-        # Every credited person, not just Actor/Director/Writer — Producer,
-        # GuestStar and Composer were silently dropped. Copied, not
-        # mutated: these DTOs are shared with whatever else holds the item.
-        # Role, then Type. A crew member has no Role — their job IS the Type
-        # (Director, Writer, Producer) — so `Role or ""` captioned every one
-        # of them blank. Type is read before it is overwritten below.
-        cast = [dict(p, Type="Person",
-                     _subtitle=(p.get("Role") or p.get("Type") or ""))
-                for p in people][:24]
-        if not cast:
-            return None
-        # Portrait, not square: Jellyfin serves person Primary images at
-        # 2:3 like every other poster, so a square tile letterboxed or
-        # cropped every face. geom_square is for album art.
-        return self._tile_row(_("Cast & Crew"), cast, "detail-people",
-                              geom=self.geom)
+        return detail.people_row(self.tiles, people)
 
 
     def _render_detail(self, route, size):

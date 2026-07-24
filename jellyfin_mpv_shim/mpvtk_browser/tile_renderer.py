@@ -126,6 +126,26 @@ class TileRenderer:
     def body_w(self, w):
         return chrome.body_width(w, chrome.CONTENT_PAD)
 
+    #: Item types whose artwork is square, not a 2:3 poster: music, and
+    #: playlists (whose own Primary image is a square). Rendering them in a
+    #: poster frame pillarboxes the art.
+    SQUARE_TYPES = {"Playlist", "MusicAlbum", "MusicArtist", "Audio",
+                    "MusicGenre"}
+
+    def square_geom(self, items):
+        """``geom_square`` when every item's art is square, else None.
+
+        A strip is composited at one tile size, so this is a per-grid
+        decision, not per-tile — hence "every item".
+
+        Was ``ViewsMixin._square_geom``; it is a question about artwork
+        geometry, and the geometries live here.
+        """
+        types = {i.get("Type") for i in items or ()}
+        if types and types <= self.SQUARE_TYPES:
+            return self.art.geom_square
+        return None
+
     def _request_image(self, key, url, box):
         """Return a cached decoded PIL image for ``key`` (poster/backdrop/…),
         or None while it loads — requesting it once from the thumbnail pool.
