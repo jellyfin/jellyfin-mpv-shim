@@ -17,12 +17,19 @@ import logging
 import os
 import threading
 import time
+from typing import TYPE_CHECKING, Optional, cast
 
 from ..clients import clientManager
 from ..conf import settings
 from ..i18n import _
 from .player_gateway import (PlayerGateway, _collect_servers,
                              _saved_servers_exist)
+
+if TYPE_CHECKING:
+    # Annotation-only: both are built inside _attach, which imports them
+    # lazily so this module stays importable without player.py.
+    from ..mpvtk.app import MpvtkApp
+    from .app import MpvtkBrowser
 
 log = logging.getLogger("mpvtk_browser.ui")
 
@@ -33,9 +40,9 @@ class UserInterface:
         self.open_player_menu = lambda: None
         self.stop_callback = None
         self.gui_ready = None
-        self._app = None
-        self._browser = None
-        self._thread = None
+        self._app: Optional["MpvtkApp"] = None
+        self._browser: Optional["MpvtkBrowser"] = None
+        self._thread: Optional[threading.Thread] = None
         self._tray = None
         # True while we are deliberately tearing the render loop down (mpv
         # idle-quit / reconnect), so _run doesn't mistake it for a window
@@ -399,9 +406,13 @@ class UserInterface:
 
     def _run(self):
         from ..player import _mpv_errors, bound_ipc_replies
-        app = self._app
+        # _attach sets both before it starts the thread this runs on, so
+        # state the invariant rather than add a guard that would turn a
+        # wiring bug into a loop that silently never starts.
+        app = cast("MpvtkApp", self._app)
+        browser = cast("MpvtkBrowser", self._browser)
         try:
-            app.run(self._browser.build)
+            app.run(browser.build)
         except _mpv_errors:
             # Not a crash: the window went away under us. This is also the
             # earliest hard evidence that the IPC socket is dead, and the

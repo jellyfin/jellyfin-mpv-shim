@@ -10,6 +10,7 @@ calls these; ``SettingsMixin`` renders what comes back.
 """
 
 import json
+from typing import Any
 
 from ..i18n import _
 from ..sync.db import (ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD, is_auto)
@@ -191,9 +192,13 @@ def group_downloads(rows, playlists, playlist_items, owned):
     # Automatic downloads are lifted out before the series/movies grouping so
     # they appear once, under the source that fetched them, rather than mixed
     # into the shows the user chose to download by hand.
-    auto = {}
-    series = {}
-    loose = []
+    # The catalog rows are sqlite dicts and the groups are display nodes, so
+    # both sides are honestly untyped JSON-ish mappings. "children" starts as
+    # a dict keyed by season and is replaced by the sorted list below, which
+    # is why the group value type cannot be narrower than Any.
+    auto: dict[Any, list[Any]] = {}
+    series: dict[Any, dict[str, Any]] = {}
+    loose: list[dict[str, Any]] = []
     for r in rows:
         if owned.get(r.get("item_id")) in live:
             continue                 # counted under its playlist

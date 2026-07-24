@@ -68,3 +68,40 @@ jellyfin_mpv_shim = [
 # mpvtk loads renderer.lua relative to its own __file__, so it has to land in
 # the subpackage directory — the top-level "*.lua" glob does not reach here.
 "jellyfin_mpv_shim.mpvtk" = ["*.lua"]
+
+# --- mypy ------------------------------------------------------------------
+# The gate is tools/mypy_gate.sh, which fails only on findings that are not in
+# tools/mypy-baseline.txt. This section is where a module graduates OUT of that
+# baseline: once its findings are at zero it gets check_untyped_defs, so the
+# bodies of its unannotated functions are checked from then on and a regression
+# is a NEW finding rather than one more line of baseline.
+#
+# It is deliberately NOT global. The browser's mixin modules are mid-refactor
+# into page objects, and their findings are almost all "Mixin has no attribute
+# X" — cross-mixin self references that the refactor resolves structurally.
+# Turning the flag on for them now would bury the modules that are actually
+# clean.
+[tool.mypy]
+
+# None of the C-extension/API dependencies ship stubs or a py.typed marker, so
+# every import of one is otherwise a finding in whatever module imports it —
+# noise about the dependency, not about our code.
+[[tool.mypy.overrides]]
+module = ["jellyfin_apiclient_python.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "jellyfin_mpv_shim.mpvtk_browser.async_runner",
+    "jellyfin_mpv_shim.mpvtk_browser.components.*",
+    "jellyfin_mpv_shim.mpvtk_browser.downloads",
+    "jellyfin_mpv_shim.mpvtk_browser.hud",
+    "jellyfin_mpv_shim.mpvtk_browser.navigator",
+    "jellyfin_mpv_shim.mpvtk_browser.pages.*",
+    "jellyfin_mpv_shim.mpvtk_browser.player_gateway",
+    "jellyfin_mpv_shim.mpvtk_browser.repository",
+    "jellyfin_mpv_shim.mpvtk_browser.strips",
+    "jellyfin_mpv_shim.mpvtk_browser.thumbnails",
+    "jellyfin_mpv_shim.mpvtk_browser.ui",
+]
+check_untyped_defs = true

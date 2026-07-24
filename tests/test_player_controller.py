@@ -418,6 +418,82 @@ class TestOnlineDelegation(unittest.TestCase):
         self.assertFalse(CTL().set_favorite("s1", "m1", True))
 
 
+class TestTransportActionsActuallyRun(unittest.TestCase):
+    """Seek was broken for a whole commit and every check here missed it.
+
+    Extracting PlayerGateway out of ui.py left ``import time`` behind, so
+    ``_ui_seek`` raised ``NameError`` — and ``_act`` wraps actions in
+    ``try/except Exception: log.error(...)``, so every HUD scrub, chapter
+    jump, ±10s button and music-bar seek silently did nothing but write a log
+    line. ``pm._last_ui_seek_time`` was never set either, so the
+    seek-to-skip-intro exemption stopped applying.
+
+    Nothing caught it: 1858 unit tests passed, the swallow sweep skips these
+    (no ``try`` of their own), the late-bound-call tests check receiver
+    *attributes* rather than module globals, and seeking renders nothing so
+    the snapshots were unmoved. Only ``mypy --check-untyped-defs`` did, which
+    is now wired into ``tools/mypy_gate.sh``.
+
+    These tests are the behavioural half: they assert the action reaches the
+    player, which is the thing a swallowed exception hides.
+    """
+
+    def _player(self):
+        """A PlayerManager stand-in that records what it is asked to do, with
+        run_action's fast path (lock free -> run inline)."""
+        import jellyfin_mpv_shim.player as player_mod
+
+        calls = []
+
+        class FakePlayer:
+            _last_ui_seek_time = 0.0
+
+            @staticmethod
+            def run_action(fn):
+                fn(pm)          # the free-lock fast path
+
+            @staticmethod
+            def seek(secs, absolute=False):
+                calls.append(("seek", secs, absolute))
+
+            @staticmethod
+            def play_next():
+                calls.append(("next",))
+
+        pm = FakePlayer()
+        original = player_mod.playerManager
+        player_mod.playerManager = pm
+        self.addCleanup(setattr, player_mod, "playerManager", original)
+        return pm, calls
+
+    def test_an_absolute_seek_reaches_the_player(self):
+        pm, calls = self._player()
+        CTL().seek(42)
+        self.assertEqual(calls, [("seek", 42.0, True)],
+                         "the seek never reached the player")
+
+    def test_a_relative_seek_reaches_the_player(self):
+        pm, calls = self._player()
+        CTL().seek_relative(-10)
+        self.assertEqual(calls, [("seek", -10.0, False)])
+
+    def test_a_seek_stamps_the_skip_intro_exemption(self):
+        """HUD-originated seeks are exempt from seek-to-skip-intro for a
+        couple of seconds, so scrubbing does not warp to the end of the
+        intro. The stamp is what the player checks."""
+        pm, _calls = self._player()
+        CTL().seek(5)
+        self.assertGreater(pm._last_ui_seek_time, 0.0,
+                           "the exemption timestamp was never written")
+
+    def test_a_plain_transport_action_still_works(self):
+        # Guards the harness itself: if run_action were mis-faked, the two
+        # tests above could pass for the wrong reason.
+        pm, calls = self._player()
+        CTL().next()
+        self.assertEqual(calls, [("next",)])
+
+
 class TestSwitchUserReturnsThreeDistinctThings(unittest.TestCase):
     """``switch_user`` returns a source, ``False`` for a bad PIN, or ``None``
     when the switch worked but there is nothing to browse.

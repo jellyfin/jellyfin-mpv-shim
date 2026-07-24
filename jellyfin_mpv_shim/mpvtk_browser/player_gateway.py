@@ -36,6 +36,7 @@ watching). Three deliberately do not:
 
 import logging
 import os
+import time
 
 from ..clients import clientManager
 from ..conf import settings

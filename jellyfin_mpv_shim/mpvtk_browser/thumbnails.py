@@ -24,6 +24,7 @@ import threading
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from typing import Optional
 
 import requests
 from PIL import Image
@@ -125,7 +126,8 @@ class ThumbnailStore:
         self._session.mount("https://", adapter)
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="thumb")
-        self._results = queue.Queue()
+        self._results: "queue.Queue[tuple[str, Optional[Image.Image]]]" = \
+            queue.Queue()
 
         # key -> PIL.Image, LRU-evicted by approximate byte size.
         self._mem = MemoryCache(max_mem_mb * 1024 * 1024, _image_bytes)
@@ -287,9 +289,16 @@ class ThumbnailStore:
             with open(url, "rb") as fh:
                 data = fh.read()
 
-        image = Image.open(BytesIO(data))
+        # Annotated as the base class: open() hands back an ImageFile and
+        # convert() a plain Image, and the name is reused for both.
+        image: Image.Image = Image.open(BytesIO(data))
         image = image.convert("RGB")
-        image.thumbnail(box, Image.LANCZOS)
+        # The checker is wrong below, not the code: PIL installs its filter
+        # constants onto its own module with setattr() at import time, so they
+        # exist at runtime and are invisible to any static analysis. Spelling
+        # it Resampling.LANCZOS instead would require Pillow >= 9.1, which this
+        # project does not pin.
+        image.thumbnail(box, Image.LANCZOS)  # type: ignore[attr-defined]
         return image
 
     def _load_remote(self, key, url):

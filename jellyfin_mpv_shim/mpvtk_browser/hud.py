@@ -16,6 +16,7 @@ parity (MIGRATION.md Phase 9).
 
 import logging
 import time
+from typing import Optional
 
 from ..conf import settings
 from ..i18n import _
@@ -24,6 +25,7 @@ from ..mpvtk.widgets import (
     Button,
     Column,
     Dropdown,
+    Element,
     Gradient,
     Image,
     Menu,
@@ -317,6 +319,10 @@ def _menu_rows(b, st):
     ``st`` is the osc_bridge state blob ({} when unavailable)."""
     kind = b._hud_menu
     rows = []
+    # Declared up front because the name is reused by two loops with
+    # different element types: the sub-style pairs are always labelled,
+    # _ASPECTS carries a None for the entry labelled _("Auto") at use.
+    label: Optional[str]
 
     def leaf(fn):
         def run():
@@ -649,7 +655,9 @@ def build_hud(b, size):
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.
-    heading = Text(st.get("title") or "", size=sz(20), bold=True, flex=1)
+    # Element, not Text: an episode gets a two-line Column instead.
+    heading: Element = Text(st.get("title") or "", size=sz(20), bold=True,
+                            flex=1)
     context = _episode_context(st)
     if context:
         # Series and SxEy go on their own line above the episode title,
@@ -728,7 +736,7 @@ def _preview_float(b, secs, dur, size, chapters):
         return None
     w, h = size
     entry = _trickplay_frame(b, secs)
-    rows = []
+    rows: list[Element] = []          # the frame Image plus its Text captions
     if entry is not None:
         rows.append(Image(entry["src"], entry["iw"], entry["ih"],
                           v=entry.get("v", 0)))

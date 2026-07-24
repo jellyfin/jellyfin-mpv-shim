@@ -14,6 +14,7 @@ import os
 import random
 
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Optional, cast
 
 from jellyfin_apiclient_python import JellyfinClient
 
@@ -132,11 +133,11 @@ class LibrarySource:
         # load needs before it can build its task list, so they are cached
         # rather than paid on every back-navigation. Refreshed whenever the
         # settings screen reads them, and rewritten on save.
-        self._home_prefs = {}
+        self._home_prefs: dict[str, Any] = {}
         # uuid -> whether this server offers Live TV to this user. Derived for
         # free from the /Views response get_libraries already fetches; see
         # has_live_tv for why that answer is authoritative.
-        self._has_live_tv = {}
+        self._has_live_tv: dict[str, bool] = {}
         for info in servers:
             try:
                 conn = ServerConn(info, device_id, player_name, verify_ssl)
@@ -476,7 +477,7 @@ class LibrarySource:
     @staticmethod
     def _filter_params(filters):
         """Translate the UI's filter dict into Jellyfin query params."""
-        params = {}
+        params: dict[str, str] = {}
         if not filters:
             return params
         active = []
@@ -1026,7 +1027,8 @@ class OfflineLibrarySource:
 
     def __init__(self, catalog_path):
         self.catalog_path = catalog_path
-        self.root = os.path.dirname(catalog_path) if catalog_path else None
+        self.root: Optional[str] = (os.path.dirname(catalog_path)
+                                    if catalog_path else None)
         self._snap = _OfflineSnapshot()
         self.reload()
 
@@ -1058,9 +1060,12 @@ class OfflineLibrarySource:
         # observe a half-populated list or a torn mix of attributes.
         by_id = {r["item_id"]: r for r in rows}
         items = []
-        series_server = {}  # series_id -> server_id (for series artwork)
-        season_server = {}  # season_id -> server_id (for season artwork)
-        season_series = {}  # season_id -> series_id (artwork fallback)
+        # series_id -> server_id (for series artwork)
+        series_server: dict[str, Any] = {}
+        # season_id -> server_id (for season artwork)
+        season_server: dict[str, Any] = {}
+        # season_id -> series_id (artwork fallback)
+        season_series: dict[str, Any] = {}
         for row in rows:
             item = self._item_from_row(row)
             if item is not None:
@@ -1132,6 +1137,7 @@ class OfflineLibrarySource:
 
     def _series_list(self, snap=None):
         snap = snap or self._snap
+        episodes_by_series: dict[str, list[Any]]
         episodes_by_series, names, order = {}, {}, []
         for item in snap.items:
             if item.get("Type") != "Episode":
@@ -1180,7 +1186,9 @@ class OfflineLibrarySource:
         if "primary" not in sections:
             return []
         snap = self._snap
-        rows = []
+        # Heterogeneous by design: titles and item lists go in first, the
+        # slot/kind ints are stamped on below.
+        rows: list[dict[str, Any]] = []
         movies = [i for i in snap.items if i.get("Type") == "Movie"]
         if movies:
             rows.append({"title": _("Downloaded Movies"), "items": movies,
@@ -1261,7 +1269,7 @@ class OfflineLibrarySource:
         return [], 0
 
     def get_genres(self, server_uuid, parent_id=None):
-        genres = set()
+        genres: set[str] = set()
         for i in self._snap.items:
             genres.update(i.get("Genres") or [])
         return sorted(genres)
@@ -1311,6 +1319,7 @@ class OfflineLibrarySource:
 
     def get_seasons(self, server_uuid, series_id):
         snap = self._snap
+        episodes_by_key: dict[str, list[Any]]
         seen, episodes_by_key, order = {}, {}, []
         for item in snap.items:
             if item.get("Type") != "Episode" or item.get("SeriesId") != series_id:
@@ -1529,10 +1538,13 @@ class OfflineLibrarySource:
         return None
 
     def _representative(self, types, snap):
+        # Every call site is downstream of _art_path_uncached's "no root"
+        # early return, so root is a path here — cast rather than re-test.
+        root = cast(str, self.root)
         for row in snap.rows.values():
             if row.get("type") in types and row.get("file_path"):
                 path = self._in_dir(os.path.join(
-                    self.root, os.path.dirname(row["file_path"])), "poster.jpg")
+                    root, os.path.dirname(row["file_path"])), "poster.jpg")
                 if path:
                     return path
         return None

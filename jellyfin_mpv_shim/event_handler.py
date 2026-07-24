@@ -20,7 +20,7 @@ NAVIGATION_DICT = {
     "GoToSettings": "settings",
 }
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
     from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
@@ -89,7 +89,7 @@ def start_playback(
 class EventHandler(object):
     mirror = None
     # Set by the in-window browser: (client, item_id) -> open that item.
-    display_content = None
+    display_content: Optional[Callable[..., Any]] = None
 
     def handle_event(
         self,

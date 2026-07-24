@@ -428,7 +428,13 @@ class StripStore:
             poster = t.poster
             if poster.size != (g.tile_w, g.tile_h):
                 poster = poster.copy()
-                poster.thumbnail((g.tile_w, g.tile_h), PILImage.LANCZOS)
+                # The checker is wrong below, not the code: PIL installs its
+                # filter constants onto its own module with setattr() at
+                # import time, so they exist at runtime and are invisible to
+                # any static analysis. Spelling it Resampling.LANCZOS instead
+                # would require Pillow >= 9.1, which this project does not pin.
+                lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
+                poster.thumbnail((g.tile_w, g.tile_h), lanczos)
             px = x + (g.tile_w - poster.width) // 2
             py = (g.tile_h - poster.height) // 2
             img.paste(poster, (px, py))
