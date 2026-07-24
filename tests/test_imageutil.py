@@ -17,6 +17,7 @@ sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 from PIL import Image  # noqa: E402
 
 from jellyfin_mpv_shim import imageutil  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import components  # noqa: E402
 
 
 class TestHelpers(unittest.TestCase):
@@ -96,7 +97,7 @@ class TestTheCouplingIsGone(unittest.TestCase):
         browser using helpers that no longer live in a feature module."""
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
-        out = MpvtkBrowser._compose_banner(
+        out = components.compose_banner(
             Image.new("RGBA", (400, 200), (10, 20, 30, 255)),
             (300, 120), title="A Title", meta="2020",
             context="The Show")

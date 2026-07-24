@@ -9,7 +9,7 @@ import time
 import unittest
 
 from jellyfin_mpv_shim.mpvtk.layout import layout
-from jellyfin_mpv_shim.mpvtk_browser import home_sections
+from jellyfin_mpv_shim.mpvtk_browser import components, home_sections
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
@@ -3356,8 +3356,8 @@ class TestBanner(unittest.TestCase):
         from PIL import Image as PILImage
         b = MpvtkBrowser(app=None, source=FakeSource())
         art = PILImage.new("RGB", (800, 800), (40, 40, 40))
-        plain = b._compose_banner(art, (600, 225))
-        titled = b._compose_banner(art, (600, 225), title="The Show",
+        plain = components.compose_banner(art, (600, 225))
+        titled = components.compose_banner(art, (600, 225), title="The Show",
                                    meta="2020 · 45 min")
         self.assertEqual(titled.size, (600, 225))
         self.assertNotEqual(plain.tobytes(), titled.tobytes())
@@ -4307,24 +4307,24 @@ class TestWatchedState(unittest.TestCase):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
 
     def test_a_series_without_userdata_is_not_watched(self):
-        self.assertFalse(self.b._is_watched({"Id": "s1", "Type": "Series"}))
+        self.assertFalse(components.is_watched({"Id": "s1", "Type": "Series"}))
 
     def test_a_series_with_no_unplayed_count_is_not_watched(self):
-        self.assertFalse(self.b._is_watched(
+        self.assertFalse(components.is_watched(
             {"Id": "s1", "Type": "Series", "UserData": {}}))
 
     def test_zero_unplayed_is_watched(self):
-        self.assertTrue(self.b._is_watched(
+        self.assertTrue(components.is_watched(
             {"Id": "s1", "Type": "Series",
              "UserData": {"UnplayedItemCount": 0}}))
 
     def test_remaining_episodes_are_not_watched(self):
-        self.assertFalse(self.b._is_watched(
+        self.assertFalse(components.is_watched(
             {"Id": "s1", "Type": "Series",
              "UserData": {"UnplayedItemCount": 3}}))
 
     def test_played_flag_still_wins_for_movies(self):
-        self.assertTrue(self.b._is_watched(
+        self.assertTrue(components.is_watched(
             {"Id": "m1", "Type": "Movie", "UserData": {"Played": True}}))
 
     def test_toggling_an_untouched_series_marks_it_watched(self):
@@ -6708,23 +6708,23 @@ class TestTileAndMetaParity(unittest.TestCase):
         """A bare "S1E1" on a Continue Watching tile does not say which show
         it belongs to, which is the one thing you need there."""
         self.assertEqual(
-            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show",
+            components.episode_subtitle({"Type": "Episode", "SeriesName": "The Show",
                               "ParentIndexNumber": 1, "IndexNumber": 2}),
             "The Show · S1E2")
 
     def test_an_episode_with_no_numbering_still_names_the_show(self):
         self.assertEqual(
-            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show"}),
+            components.episode_subtitle({"Type": "Episode", "SeriesName": "The Show"}),
             "The Show")
 
     def test_an_episode_with_no_series_name_still_shows_the_number(self):
         self.assertEqual(
-            self.b._subtitle({"Type": "Episode", "ParentIndexNumber": 1,
+            components.episode_subtitle({"Type": "Episode", "ParentIndexNumber": 1,
                               "IndexNumber": 2}), "S1E2")
 
     def test_a_movie_tile_is_unchanged(self):
         self.assertEqual(
-            self.b._subtitle({"Type": "Movie", "ProductionYear": 2001}),
+            components.episode_subtitle({"Type": "Movie", "ProductionYear": 2001}),
             "2001")
 
     def test_a_crew_member_is_captioned_with_their_job(self):

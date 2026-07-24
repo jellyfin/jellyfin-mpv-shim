@@ -42,22 +42,6 @@ class TilesMixin:
 
     # -------------------------------------------------------- tile helpers
 
-    # These five delegate to components/ (step 1 of
-    # docs/ARCHITECTURE_TARGET.md §3). They never used `self`, so being
-    # methods only made them look coupled to the browser. Kept as thin
-    # forwarders for now so no call site changes in the same commit as the
-    # move; the tidy pass removes them.
-    _subtitle = staticmethod(components.episode_subtitle)
-    _is_watched = staticmethod(components.is_watched)
-    _glyph = staticmethod(components.placeholder_glyph)
-    _heading_for = staticmethod(components.heading_for)
-    _wrap_pil = staticmethod(components.wrap_pil)
-    _compose_banner = staticmethod(components.compose_banner)
-
-    @staticmethod
-    def _section_offsets(elements, gap, pad=0):
-        return components.section_offsets(elements, gap, pad)
-
     # A thumbnail fetch that fails transiently is retried on a later
     # repaint, but not immediately: a server that is down or slow would
     # otherwise get a fresh burst on every scroll frame. Attempts are
@@ -215,7 +199,7 @@ class TilesMixin:
             # a shallow banner doesn't ask the server for a squashed image.
             img = self._request_image(key, url, (pbox[0], pbox[0]))
             if img is not None:
-                b = self.strips.bitmap(key, self._compose_banner(
+                b = self.strips.bitmap(key, components.compose_banner(
                     img, pbox, title, meta, context), lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
@@ -230,11 +214,11 @@ class TilesMixin:
         return Tile(
             key=item.get("Id", ""),
             title=item.get("Name", ""),
-            subtitle=self._subtitle(item),
+            subtitle=components.episode_subtitle(item),
             poster=poster,
             poster_tag=tag,
-            glyph=self._glyph(item),
-            watched=self._is_watched(item),
+            glyph=components.placeholder_glyph(item),
+            watched=components.is_watched(item),
             badge=int(ud.get("UnplayedItemCount") or 0),
             progress=(pos / rt) if (pos and rt) else 0.0,
             downloaded=self._is_downloaded(item),
@@ -297,7 +281,7 @@ class TilesMixin:
         """``[(label, icon, action-key)]`` for this item's type."""
         t = item.get("Type")
         ud = item.get("UserData") or {}
-        watched = self._is_watched(item)
+        watched = components.is_watched(item)
         fav = bool(ud.get("IsFavorite"))
         out = []
         if t in self.MENU_PLAYABLE:

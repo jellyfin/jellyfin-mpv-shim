@@ -26,7 +26,7 @@ from ..mpvtk.widgets import (
     Text,
     VScroll,
 )
-from . import home_sections, theme
+from . import components, home_sections, theme
 
 log = logging.getLogger("mpvtk_browser.views")
 
@@ -116,7 +116,7 @@ class ViewsMixin:
         # heights differ (poster vs landscape rows), so the breakpoints are the
         # explicit content-y of each section top, not a uniform pitch.
         return VScroll(Column(rows, gap=20), id="home", flex=1,
-                       snaps=self._section_offsets(rows, 20))
+                       snaps=components.section_offsets(rows, 20))
 
     # Item types whose artwork is square, not a 2:3 poster: music, and
     # playlists (whose own Primary image is a square). Rendering them in a
@@ -691,7 +691,7 @@ class ViewsMixin:
             self._action_btn(
                 "check", _("Watched"), prefix + "-watched",
                 lambda: self._act_watched(item, server),
-                on=self._is_watched(item)),
+                on=components.is_watched(item)),
             self._action_btn(
                 "favorite", _("Favorite"), prefix + "-fav",
                 lambda: self._act_favorite(item, server),
@@ -813,7 +813,7 @@ class ViewsMixin:
     def _act_watched(self, item, server):
         ud = item.setdefault("UserData", {})
         was_played, was_count = ud.get("Played"), ud.get("UnplayedItemCount")
-        new = not self._is_watched(item)
+        new = not components.is_watched(item)
         ud["Played"] = new
         if item.get("Type") in ("Series", "Season"):
             ud["UnplayedItemCount"] = 0 if new else 1
@@ -933,7 +933,7 @@ class ViewsMixin:
         w = size[0]
         server = route.get("server") or self.server
         bw, bh = self._banner_box(w)
-        title, context = self._heading_for(item)
+        title, context = components.heading_for(item)
         meta = self._meta_line(item)
         banner = self._backdrop_node(item, (bw, bh), "detail-bd",
                                      title=title, meta=meta, context=context)
