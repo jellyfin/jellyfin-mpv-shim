@@ -60,3 +60,68 @@ To compile all `*.po` files to `*.mo`:
 ./gen_pkg.sh --skip-build
 ```
 
+## Testing
+
+Two suites, deliberately separate.
+
+**Fast suite** — stdlib `unittest`, no mpv, no display, no extra packages:
+
+```bash
+python3 -m unittest discover tests
+```
+
+**Integration matrix** — fake and real mpv, run once per backend in its own
+process (`player.py` selects its backend at import time, so a subprocess is
+the only clean way to get a pristine import per backend):
+
+```bash
+python3 tests/integration/run_integration.py           # full matrix
+python3 tests/integration/run_integration.py --list    # what it will run
+```
+
+Real-mpv legs run under `xvfb-run` when it is available, both to keep ~25
+windows off your desktop and because a real window manager may ignore the
+requested geometry. See `tests/integration/README.md`.
+
+### Coverage
+
+No third-party dependency: `tools/coverage_report.py` uses `sys.monitoring`
+(CPython 3.12+), the same mechanism modern coverage.py uses.
+
+```bash
+tools/coverage_all.sh                  # union across every measurable leg
+tools/coverage_all.sh --sort=missing   # biggest gaps first
+```
+
+A driver script rather than one command because no single process sees
+everything — each mpv backend needs its own interpreter, so the legs are run
+separately and their results unioned. A plain
+`tools/coverage_report.py` run measures only the fast suite and will badly
+understate `player.py`.
+
+To find what to test before touching a module:
+
+```bash
+tools/coverage_report.py --merge <dir>/merged.json --functions mpvtk_browser/ui.py
+```
+
+Line coverage only, not branch coverage — treat it as "was this reached at
+all". The report flags the modules where that distinction matters most.
+
+### Structural and characterization tests
+
+Beyond the behavioural tests, three kinds of check exist to catch what review
+and hand-testing miss:
+
+- `tests/test_source_invariants.py` — whole-tree AST rules (an orphaned
+  docstring, a shared mutable class attribute).
+- `tests/test_scene_snapshots.py` — the exact node list `layout()` pushes to
+  the renderer, pinned per screen. Because the UI is declarative, an identical
+  node list means identical pixels. Regenerate an intended change with
+  `python3 tests/test_scene_snapshots.py --update`, then review the diff.
+- `tests/integration/test_harness_isolation.py` — fails when the test harness
+  drifts from `PlayerManager.__init__`.
+
+`docs/REFACTORING_METHOD.md` explains how these are meant to be used together
+during the decomposition described in `docs/ARCHITECTURE_TARGET.md`.
+

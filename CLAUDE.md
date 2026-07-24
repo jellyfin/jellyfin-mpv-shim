@@ -55,7 +55,7 @@ Both backends are aliased as `mpv` in the module. The two have different excepti
 
 ## Configuration system
 
-`conf.py:Settings` declares every config key as a typed class attribute; defaults live there. `settings_base.py:SettingsBase` is a small homegrown pydantic-lite — it only reads `__annotations__` and uses the `object_types` lookup table to coerce values. **If you add a config key, the type annotation must be one of the entries in `object_types` (`bool`, `int`, `str`, `float`, or their `Optional[...]` forms)** — anything else will `KeyError` at load time. The single global instance is `conf.settings`. The README's "Configuration" section is the user-facing reference for the keys; keep them in sync.
+`conf.py:Settings` declares every config key as a typed class attribute; defaults live there. `settings_base.py:SettingsBase` is a small homegrown pydantic-lite — it only reads `__annotations__` and uses the `object_types` lookup table to coerce values. **If you add a config key, the type annotation must be one of the entries in `object_types` (`bool`, `int`, `str`, `float`, `list`, or the `Optional[...]` forms of the first four)** — anything else will `KeyError` at load time. The single global instance is `conf.settings`. The README's "Configuration" section is the user-facing reference for the keys; keep them in sync.
 
 Config and credentials live in a per-platform path resolved by `conffile.py` (typically `~/.config/jellyfin-mpv-shim/` on Linux, `%appdata%\jellyfin-mpv-shim\` on Windows, `~/Library/Application Support/jellyfin-mpv-shim/` on macOS).
 
