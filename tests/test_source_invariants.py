@@ -68,6 +68,90 @@ class TestNoOrphanedDocstrings(unittest.TestCase):
             "__doc__:\n  " + "\n  ".join(offenders))
 
 
+class TestComponentsAreLeaves(unittest.TestCase):
+    """``mpvtk_browser/components/`` is the bottom of the UI stack.
+
+    A component takes data plus render resources plus callbacks, and returns
+    a widget tree. It must not know about the app shell, the route dict, the
+    data source or navigation — those are precisely the couplings that made
+    the browser a 360-method object, and the only thing keeping them out is
+    a rule someone has to remember.
+
+    So the rule is a test. See docs/ARCHITECTURE_TARGET.md §1.4 for the
+    distinction being enforced: a component may need ``art`` and callbacks,
+    but never ``nav``, ``source`` or ``route``.
+    """
+
+    #: Sibling modules a component may never import.
+    FORBIDDEN_IMPORTS = {"app", "views", "settings", "auth", "dialogs",
+                         "music", "queue_edit", "cast", "ui", "repository"}
+
+    #: Names that give away shell coupling if a component references them.
+    FORBIDDEN_NAMES = {"nav_stack", "navigate", "go_back", "run_async",
+                       "_route_async", "_bump_epoch", "_load_route"}
+
+    @staticmethod
+    def _component_sources():
+        base = os.path.join(PKG, "mpvtk_browser", "components")
+        if not os.path.isdir(base):
+            return []
+        out = []
+        for name in sorted(os.listdir(base)):
+            if name.endswith(".py"):
+                path = os.path.join(base, name)
+                out.append(("mpvtk_browser/components/" + name, path))
+        return out
+
+    def test_the_package_exists(self):
+        self.assertTrue(
+            self._component_sources(),
+            "mpvtk_browser/components/ has no modules yet — this is step 1 "
+            "of docs/ARCHITECTURE_TARGET.md §3 and the invariant it "
+            "establishes.")
+
+    def test_components_do_not_import_the_shell(self):
+        offenders = []
+        for rel, path in self._component_sources():
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.ImportFrom):
+                    # Relative sibling import: `from .app import X` has
+                    # module="app"; `from ..conf import settings` is fine.
+                    if node.level == 1 and node.module:
+                        names.append(node.module.split(".")[0])
+                elif isinstance(node, ast.Import):
+                    names += [a.name.split(".")[-1] for a in node.names]
+                for name in names:
+                    if name in self.FORBIDDEN_IMPORTS:
+                        offenders.append("%s:%d imports %s"
+                                         % (rel, node.lineno, name))
+        self.assertEqual(
+            offenders, [],
+            "Components must not depend on the shell or the data layer:\n  "
+            + "\n  ".join(offenders))
+
+    def test_components_do_not_reference_shell_state(self):
+        offenders = []
+        for rel, path in self._component_sources():
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Attribute)
+                        and node.attr in self.FORBIDDEN_NAMES):
+                    offenders.append("%s:%d touches .%s"
+                                     % (rel, node.lineno, node.attr))
+                elif (isinstance(node, ast.Name)
+                        and node.id in self.FORBIDDEN_NAMES):
+                    offenders.append("%s:%d references %s"
+                                     % (rel, node.lineno, node.id))
+        self.assertEqual(
+            offenders, [],
+            "Components must not reach for navigation or the async runner; "
+            "take a callback instead:\n  " + "\n  ".join(offenders))
+
+
 class TestNoTopLevelMutableClassState(unittest.TestCase):
     """A mutable class attribute is shared by every instance.
 
