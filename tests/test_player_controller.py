@@ -1,4 +1,4 @@
-"""``_PlayerController`` — the browser's boundary to everything else.
+"""``PlayerGateway`` — the browser's boundary to everything else.
 
 Step 4 of ``docs/ARCHITECTURE_TARGET.md`` §3, and a hard prerequisite for
 steps 5+. Coverage put ``ui.py`` at **41.6%**, the lowest of any module the
@@ -36,9 +36,9 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from jellyfin_mpv_shim.mpvtk_browser import ui as ui_mod  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import player_gateway as gw_mod  # noqa: E402
 
-CTL = ui_mod._PlayerController
+CTL = gw_mod.PlayerGateway
 
 
 class Boom(Exception):
@@ -150,9 +150,9 @@ def _controller_methods():
     """
     import ast
 
-    tree = ast.parse(inspect.getsource(ui_mod))
+    tree = ast.parse(inspect.getsource(gw_mod))
     cls = next(n for n in ast.walk(tree)
-               if isinstance(n, ast.ClassDef) and n.name == "_PlayerController")
+               if isinstance(n, ast.ClassDef) and n.name == "PlayerGateway")
     guarded, defined, rethrowing = [], set(), []
     for fn in cls.body:
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -212,17 +212,17 @@ class _Sandbox:
             module = importlib.import_module(mod_name)
             self._saved.append((module, attr, getattr(module, attr, None)))
             setattr(module, attr, BrokenService())
-        # ui.py bound clientManager at import time, so the module global has
+        # player_gateway bound clientManager at import time, so the module global has
         # to be replaced too or the sweep tests the real one.
-        self._ui_saved = ui_mod.clientManager
-        ui_mod.clientManager = BrokenService()
+        self._ui_saved = gw_mod.clientManager
+        gw_mod.clientManager = BrokenService()
         return self
 
     def __exit__(self, *exc):
         for module, attr, original in self._saved:
             if original is not None:
                 setattr(module, attr, original)
-        ui_mod.clientManager = self._ui_saved
+        gw_mod.clientManager = self._ui_saved
         return False
 
 
@@ -318,9 +318,9 @@ class TestOfflineWatchedQueue(unittest.TestCase):
         self.addCleanup(setattr, manager_mod, "syncManager", original)
 
     def _offline(self):
-        original = ui_mod.clientManager
-        ui_mod.clientManager = types.SimpleNamespace(clients={})
-        self.addCleanup(setattr, ui_mod, "clientManager", original)
+        original = gw_mod.clientManager
+        gw_mod.clientManager = types.SimpleNamespace(clients={})
+        self.addCleanup(setattr, gw_mod, "clientManager", original)
 
     def test_a_downloaded_item_is_queued_and_marked(self):
         db = self.FakeDB(complete={"m1"})
@@ -390,9 +390,9 @@ class TestOnlineDelegation(unittest.TestCase):
                     raise Boom("nope")
 
         client = types.SimpleNamespace(jellyfin=Jellyfin())
-        original = ui_mod.clientManager
-        ui_mod.clientManager = types.SimpleNamespace(clients={"s1": client})
-        self.addCleanup(setattr, ui_mod, "clientManager", original)
+        original = gw_mod.clientManager
+        gw_mod.clientManager = types.SimpleNamespace(clients={"s1": client})
+        self.addCleanup(setattr, gw_mod, "clientManager", original)
         return calls
 
     def test_watched_reaches_the_server(self):
@@ -412,9 +412,9 @@ class TestOnlineDelegation(unittest.TestCase):
     def test_favorite_offline_is_a_refusal(self):
         """Favorites have no offline queue, so this must be a refusal rather
         than a silent no-op — the caller rolls its optimistic heart back."""
-        original = ui_mod.clientManager
-        ui_mod.clientManager = types.SimpleNamespace(clients={})
-        self.addCleanup(setattr, ui_mod, "clientManager", original)
+        original = gw_mod.clientManager
+        gw_mod.clientManager = types.SimpleNamespace(clients={})
+        self.addCleanup(setattr, gw_mod, "clientManager", original)
         self.assertFalse(CTL().set_favorite("s1", "m1", True))
 
 
@@ -439,10 +439,10 @@ class TestSwitchUserReturnsThreeDistinctThings(unittest.TestCase):
         self.addCleanup(setattr, users_mod, "userManager", original)
 
     def _clients(self):
-        original = ui_mod.clientManager
-        ui_mod.clientManager = types.SimpleNamespace(
+        original = gw_mod.clientManager
+        gw_mod.clientManager = types.SimpleNamespace(
             switch_user=lambda uid: None, clients={}, credentials=[])
-        self.addCleanup(setattr, ui_mod, "clientManager", original)
+        self.addCleanup(setattr, gw_mod, "clientManager", original)
 
     def test_an_unknown_user_is_refused(self):
         self._users(exists=False)

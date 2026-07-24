@@ -124,6 +124,12 @@ class WiringHarness(unittest.TestCase):
 
         self._patch("jellyfin_mpv_shim.player", "playerManager", self.player)
         self._patch("jellyfin_mpv_shim.player", "is_using_ext_mpv", False)
+        # clientManager is now imported by BOTH the gateway (for service
+        # calls) and ui.py (the composition root, which loads credentials and
+        # wires on_server_connected). Patch both or half the wiring runs
+        # against the real singleton.
+        self._patch("jellyfin_mpv_shim.mpvtk_browser.player_gateway",
+                    "clientManager", self.clients)
         self._patch("jellyfin_mpv_shim.mpvtk_browser.ui", "clientManager",
                     self.clients)
         self._patch("jellyfin_mpv_shim.sync.manager", "syncManager", self.sync)

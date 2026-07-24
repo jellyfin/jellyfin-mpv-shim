@@ -189,7 +189,7 @@ class TestTheBackdropActuallyRenders(unittest.TestCase):
         real_roll = cast_mod._random_backdrop_url
         self.addCleanup(
             lambda: setattr(cast_mod, "_random_backdrop_url", real_roll))
-        cast_mod._random_backdrop_url = lambda: (
+        cast_mod._random_backdrop_url = lambda _gw: (
             rolls.append(1) or (None if len(rolls) == 1
                                 else "http://srv/random.jpg"))
         b._composite({"idle": True}, (800, 600))

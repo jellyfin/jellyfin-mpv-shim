@@ -278,6 +278,102 @@ class TestOneOwnerForSharedMachinery(unittest.TestCase):
             % sorted(owners))
 
 
+class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
+    """The browser talks to the player through ``PlayerGateway``, not by
+    importing ``playerManager`` wherever it is convenient.
+
+    Step 5 of ``docs/ARCHITECTURE_TARGET.md`` §3. Before it, ``ui.py`` held
+    61 of the browser's 68 cross-package imports — which is what made it the
+    boundary in practice — but two other modules had quietly grown their own
+    direct line to a singleton. Each of those is a place the eventual page
+    objects could not be constructed without dragging ``player.py`` in.
+
+    Deliberately narrow. This forbids reaching for the *live singletons*; it
+    says nothing about importing constants or data-layer types, which are
+    shape dependencies rather than service ones:
+
+    * ``config.py`` imports ``AUDIO_PASSTHROUGH_CODECS`` — a tuple.
+    * ``downloads.py`` imports status/origin constants from ``sync.db``.
+    * ``repository.py`` imports ``SyncDB`` because the offline catalog *is*
+      the data source it wraps. That is the data layer, not a service call.
+    """
+
+    BROWSER = os.path.join(PKG, "mpvtk_browser")
+
+    #: singleton name -> modules allowed to import it directly.
+    #:
+    #: ``ui.py`` is allowed for three of them because what remains in it after
+    #: the extraction is ``UserInterface``, the **composition root**: it
+    #: builds the browser and wires callbacks *onto* playerManager
+    #: (``on_mpv_gone``, ``on_playstate``, …), attaches the renderer to the
+    #: live mpv handle, and registers the event handler. Routing that through
+    #: the gateway would mean ten pass-through setters whose only job is to
+    #: assign an attribute — more indirection, not less coupling. A
+    #: composition root touching what it composes is the normal exception.
+    #:
+    #: What the rule is actually protecting is the *page and view* code, which
+    #: must be constructible without ``player.py``.
+    SINGLETONS = {
+        "playerManager": {"player_gateway.py", "ui.py"},
+        "clientManager": {"player_gateway.py", "ui.py"},
+        "userManager": {"player_gateway.py", "ui.py"},
+        "syncManager": {"player_gateway.py", "config.py"},
+        "eventHandler": {"player_gateway.py", "ui.py"},
+    }
+
+    def test_no_view_module_reaches_a_singleton(self):
+        """The half that matters most, stated separately so it cannot be
+        weakened by adding a name to the allowlist above: nothing that draws
+        a screen may import a live service."""
+        views = {"app.py", "views.py", "tiles.py", "dialogs.py", "hud.py",
+                 "music.py", "queue_edit.py", "settings.py", "auth.py",
+                 "cast.py", "strips.py", "thumbnails.py", "navigator.py",
+                 "async_runner.py"}
+        offenders = []
+        for singleton in self.SINGLETONS:
+            for name in sorted(self._imports_of(singleton) & views):
+                offenders.append("%s imports %s" % (name, singleton))
+        self.assertEqual(
+            offenders, [],
+            "View code must reach services through the gateway it is given, "
+            "or a page cannot be built without player.py:\n  "
+            + "\n  ".join(offenders))
+
+    def _imports_of(self, singleton):
+        found = set()
+        for name in sorted(os.listdir(self.BROWSER)):
+            if not name.endswith(".py"):
+                continue
+            path = os.path.join(self.BROWSER, name)
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ImportFrom):
+                    continue
+                if any(a.name == singleton for a in node.names):
+                    found.add(name)
+        return found
+
+    def test_each_singleton_has_a_single_importer(self):
+        offenders = []
+        for singleton, allowed in self.SINGLETONS.items():
+            actual = self._imports_of(singleton)
+            extra = actual - allowed
+            for name in sorted(extra):
+                offenders.append("%s imports %s directly" % (name, singleton))
+        self.assertEqual(
+            offenders, [],
+            "The browser reaches live services through PlayerGateway. A "
+            "direct import is a dependency the page objects cannot be "
+            "constructed without:\n  " + "\n  ".join(offenders))
+
+    def test_the_gateway_module_exists(self):
+        self.assertTrue(
+            os.path.exists(os.path.join(self.BROWSER, "player_gateway.py")),
+            "mpvtk_browser/player_gateway.py does not exist yet — this is "
+            "step 5 of docs/ARCHITECTURE_TARGET.md §3.")
+
+
 class TestNoTopLevelMutableClassState(unittest.TestCase):
     """A mutable class attribute is shared by every instance.
 

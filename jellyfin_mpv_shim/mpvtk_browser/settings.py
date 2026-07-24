@@ -106,12 +106,10 @@ class SettingsMixin:
     def _apply_audio_settings(self):
         """Audio settings apply live -- a mode change takes effect without a
         restart, and mid-playback without a reload."""
-        try:
-            from ..player import playerManager
-
-            playerManager.apply_audio_settings()
-        except Exception:
-            log.error("Could not apply audio settings.", exc_info=True)
+        # Through the gateway, not playerManager directly: a settings page
+        # must be constructible without player.py (see
+        # tests/test_source_invariants.py).
+        self._safe(lambda c: c.apply_audio_settings())
 
     def _seed_auto_download_server(self):
         """Switching auto-download on means "for the server I am looking at".

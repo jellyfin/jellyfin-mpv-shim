@@ -25,12 +25,10 @@ import datetime
 import hashlib
 import logging
 import math
-import random
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
-from ..clients import clientManager
 from ..i18n import _
 from ..imageutil import apply_dark_gradient, pil_font, scale_to_cover
 
@@ -137,11 +135,13 @@ def _rating(item: dict) -> str:
     return ""
 
 
-def _random_backdrop_url() -> Optional[str]:
-    if not clientManager.clients:
+def _random_backdrop_url(gateway) -> Optional[str]:
+    """A backdrop from any connected server. ``gateway`` supplies the client
+    so this module never reaches for clientManager itself."""
+    client = gateway.any_client() if gateway is not None else None
+    if client is None:
         return None
     try:
-        client = random.choice(list(clientManager.clients.values()))
         params = {
             "SortBy": "Random",
             "Limit": 1,
@@ -255,8 +255,8 @@ class CastMixin:
         ep = self._epoch
 
         def work():
-            from ..clients import clientManager
-            client = clientManager.clients.get(server_uuid)
+            client = (self.controller.client_for(server_uuid)
+                      if self.controller is not None else None)
             if client is None:
                 raise LookupError("no client for server %r" % server_uuid)
             item = client.jellyfin.get_item(item_id)
@@ -322,7 +322,7 @@ class CastMixin:
                 # server to do it).
                 with self._cast_lock:
                     resolved = self._cast_backdrop_key is not None
-                url = None if resolved else _random_backdrop_url()
+                url = None if resolved else _random_backdrop_url(self.controller)
             else:
                 title = data.get("title") or ""
                 overview = data.get("overview") or ""

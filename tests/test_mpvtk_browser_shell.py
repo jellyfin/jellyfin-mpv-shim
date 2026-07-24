@@ -6957,7 +6957,7 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
         # clientManager`), so patching jellyfin_mpv_shim.clients would not
         # reach it. syncManager and userManager are imported inside their
         # methods, so those patch at the source module.
-        self._patch("jellyfin_mpv_shim.mpvtk_browser.ui", "clientManager",
+        self._patch("jellyfin_mpv_shim.mpvtk_browser.player_gateway", "clientManager",
                     type("C", (), {"clients": {"srv1": Client()}})())
         ctl = self._controller()
         for call in (lambda: ctl.sync_join("srv1", "g1"),
