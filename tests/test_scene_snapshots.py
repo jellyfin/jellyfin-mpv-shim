@@ -49,6 +49,13 @@ SCREENS = {
              "title": "Movies"},
     "search": {"kind": "search", "server": "s1", "term": "a"},
     "settings": {"kind": "settings", "server": "s1"},
+    # Added for the components extraction: these are the screens that
+    # exercise the banner/backdrop path (_compose_banner, _wrap_pil), which
+    # the four above never reach.
+    "detail": {"kind": "detail", "item_id": "m1", "server": "s1"},
+    "series": {"kind": "series", "item_id": "sh1", "server": "s1"},
+    "season": {"kind": "season", "item_id": "se1", "series_id": "sh1",
+               "server": "s1"},
 }
 
 
@@ -83,6 +90,15 @@ class TestSceneSnapshots(unittest.TestCase):
 
     def test_settings(self):
         self._check("settings")
+
+    def test_detail(self):
+        self._check("detail")
+
+    def test_series(self):
+        self._check("series")
+
+    def test_season(self):
+        self._check("season")
 
     def test_every_screen_has_a_snapshot(self):
         # Adding a SCREENS entry without generating its baseline would
