@@ -82,7 +82,8 @@ from . import theme
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
-from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
+from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
+                     TileGeom)
 from .dialogs import DialogsMixin
 from .auth import AuthMixin
 from .settings import SettingsMixin
@@ -145,9 +146,25 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
-        # Before anything is built: the toolkit's accented widgets read the
-        # palette at construction time.
-        theme.apply_to_toolkit()
+        # Before anything is built: apply the user's chosen theme (palette +
+        # mpv browse background), then hand the accent to the toolkit's
+        # accented widgets, which read the palette at construction time.
+        from ..conf import settings as _settings
+        self._theme_cfg = theme.apply(getattr(_settings, "theme", "default"))
+        try:
+            from .. import player as _player
+            _player.BROWSE_BG_HEX = self._theme_cfg["browse_bg"]
+        except Exception:
+            pass
+        # Glow is theme-driven (Nebula on, Default off); the toolkit forwards
+        # it to the renderer alongside the accent.
+        theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))
+        log.info(
+            "theme: %s (accent %s, glow %s)",
+            self._theme_cfg.get("name", "?"),
+            getattr(theme, "ACCENT", "?"),
+            self._theme_cfg.get("glow", False),
+        )
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
         # Settings accessor (settings_schema/get_settings/set_setting). None ->
@@ -266,9 +283,31 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # rendered by build(), which is why neither is a dialog builder.
         self._starting = None
         self._load_error = None
-        self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
-        self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
-        self.geom_square = SQUARE_GEOM        # 1:1 (music)
+        # Cover size: the theme's default, overridden by the Cover Size setting
+        # if set. Posters/square scale; the landscape (library) tile is the
+        # theme's own shape (Nebula uses a less-wide crop).
+        _cs = (getattr(_settings, "poster_scale", None)
+               or self._theme_cfg.get("poster_scale", 1.0))
+        _lw, _lh = self._theme_cfg.get("tile_landscape", (240, 135))
+        self.geom = geom or POSTER_GEOM.scaled(_cs)          # 2:3
+        self.geom_wide = TileGeom(tile_w=_lw, tile_h=_lh,
+                                  caption_h=LANDSCAPE_GEOM.caption_h)  # 16:9-ish
+        self.geom_square = SQUARE_GEOM.scaled(_cs)           # 1:1
+        # Tile caption font is theme-controlled and, when set, does NOT scale
+        # with the cover (jellyfin-web-style: big art, modest labels), so long
+        # titles fit more before they clip. The category headings are separate
+        # (heading_size) and untouched.
+        _tts = self._theme_cfg.get("tile_title_size")
+        _tss = self._theme_cfg.get("tile_sub_size")
+        if _tts or _tss:
+            import dataclasses as _dc
+
+            def _cap(g):
+                return _dc.replace(g, title_size=_tts or g.title_size,
+                                   sub_size=_tss or g.sub_size)
+            self.geom = _cap(self.geom)
+            self.geom_wide = _cap(self.geom_wide)
+            self.geom_square = _cap(self.geom_square)
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         self._downloaded = set()
         self._downloaded_series = set()
@@ -2088,7 +2127,9 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             # when the button stops saying what it does, and it was the
             # only mode with neither a label nor a tip.
             return Button("" if compact else label, id=node_id, icon=icon,
-                          on_click=cb, tip=label if compact else None)
+                          on_click=cb, tip=label if compact else None,
+                          bg=theme.BUTTON_BG, border=theme.ACCENT, border_w=1,
+                          radius=9, hover={"fill": theme.BUTTON_ACTIVE})
 
         left = []
         if len(self.nav_stack) > 1:
@@ -2134,7 +2175,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             # The textbox submits on Enter, but a visible button is the
             # discoverable affordance (and the only one with a pointer).
             Button("", id="nav-search-go", icon="search", size=18,
-                   tip=_("Search"),
+                   tip=_("Search"), bg=theme.BUTTON_BG, border=theme.ACCENT,
+                   border_w=1, radius=9, hover={"fill": theme.BUTTON_ACTIVE},
                    on_click=lambda: self._search(
                        self._search_box.get("term", ""))),
             nav_button(_("SyncPlay"), "nav-syncplay", "groups",

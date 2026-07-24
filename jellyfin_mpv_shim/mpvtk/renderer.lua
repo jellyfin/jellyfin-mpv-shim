@@ -65,6 +65,7 @@ local state = {
     -- its own so the UI doesn't end up with two unrelated accents.
     accent = '7aa2f7',
     accent_soft = '223055',
+    glow = false,           -- themed title/selection glow (mpvtk-theme message)
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
@@ -504,6 +505,8 @@ local function draw_rect(ass, x, y, w, h, o)
     if o.bc then
         ass:append(string.format('\\bord%.1f', o.bw or 1))
         ass:append('\\3c' .. ass_color(o.bc) .. '\\3a&H00&')
+        -- o.blur turns the hard border into a soft glow (Nebula selection).
+        if o.blur then ass:append(string.format('\\blur%.1f', o.blur)) end
     end
     if o.clip then ass:append(clip_tag(o.clip)) end
     ass:append('}')
@@ -1590,13 +1593,19 @@ render = function()
         if node.t == 'rect' then
             local hs = hover_style(node)
             if node.ring then
-                -- hit-rect over a bitmap: only a hover ring, outside
+                -- hit-rect over a bitmap: a soft hover GLOW outside the image
+                -- bounds. No clip — the row viewport would chop the blurred
+                -- edges back into a hard box (the old "generic box" selection).
                 if hs and hs.bc then
-                    draw_rect(ass, ex - 2, ey - 2,
-                        node.w + 4, node.h + 4, {
-                            bc = hs.bc, bw = hs.bw or 3,
-                            radius = 3, clip = clip,
-                        })
+                    if state.glow then
+                        draw_rect(ass, ex - 6, ey - 6, node.w + 12,
+                            node.h + 12, { bc = hs.bc, bw = 6, radius = 9,
+                            blur = 16 })
+                    else
+                        draw_rect(ass, ex - 2, ey - 2, node.w + 4, node.h + 4,
+                            { bc = hs.bc, bw = hs.bw or 3, radius = 3,
+                            clip = clip })
+                    end
                 end
             elseif hs and hs.circle then
                 -- round translucent wash centered on the button —
@@ -1617,17 +1626,30 @@ render = function()
             end
         elseif node.t == 'text' then
             local hs = hover_style(node)
+            -- Nebula: a soft violet glow behind titles/headings, drawn as a
+            -- blurred accent-coloured border (libass \bord + \blur). Scoped to
+            -- bold, sizeable text so body labels/buttons stay crisp.
+            local extra
+            if state.glow and node.bold and (node.size or 0) >= 22 then
+                extra = '\\bord2\\blur10\\3c' .. ass_color(state.accent)
+            end
             draw_text(ass, node, ex, ey, clip, node.text,
-                (hs and hs.c) or node.c)
+                (hs and hs.c) or node.c, extra)
         elseif node.t == 'img' then
             draw_image(node, ex, ey, clip, idx)
             local hs = hover_style(node)
             if hs and hs.bc then
                 -- bitmaps sit above ASS: the ring must be fully outside
-                draw_rect(ass, ex - 2, ey - 2, node.w + 4, node.h + 4, {
-                    bc = hs.bc, bw = hs.bw or 3,
-                    radius = 3, clip = clip,
-                })
+                if state.glow then
+                    draw_rect(ass, ex - 6, ey - 6, node.w + 12, node.h + 12, {
+                        bc = hs.bc, bw = 6,
+                        radius = 9, blur = 16,
+                    })
+                else
+                    draw_rect(ass, ex - 2, ey - 2, node.w + 4, node.h + 4, {
+                        bc = hs.bc, bw = hs.bw or 3, radius = 3, clip = clip,
+                    })
+                end
             end
         elseif node.t == 'textbox' then
             draw_textbox(ass, node, ex, ey, clip)
@@ -1688,9 +1710,17 @@ render = function()
             if state.nav_adjust and not node.aadj then
                 ring = 'ffffff'
             end
-            draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
-                bc = ring, bw = 3, radius = 4, clip = clip,
-            })
+            -- Glow theme: wide + heavily blurred + NO clip (the row viewport
+            -- would chop the blur back into a hard box). Else the plain box.
+            if state.glow then
+                draw_rect(ass, ex - 6, ey - 6, node.w + 12, node.h + 12, {
+                    bc = ring, bw = 6, radius = 9, blur = 16,
+                })
+            else
+                draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
+                    bc = ring, bw = 3, radius = 4, clip = clip,
+                })
+            end
         end
     end
     if state.dd_open then
@@ -3477,6 +3507,7 @@ mp.register_script_message('mpvtk-theme', function(json)
     if not t then return end
     state.accent = t.accent or state.accent
     state.accent_soft = t.soft or state.accent_soft
+    state.glow = t.glow == true
     request_render()
 end)
 

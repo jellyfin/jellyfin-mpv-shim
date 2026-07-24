@@ -213,6 +213,13 @@ class SettingsMixin:
                     # the settings it qualifies follow directly below.
                     rows.append(Text(note, size=14,
                                      color=theme.SUBTLE_FG, wrap=True))
+            if title == _("Theme"):
+                # Theme, cover size and interface scale are all applied at
+                # startup, so a restart is what makes a change here show up.
+                rows.append(Text(
+                    _("Theme, Cover Size and Interface Scale take effect "
+                      "after you restart the app."),
+                    size=15, bold=True, color=theme.ACCENT, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,

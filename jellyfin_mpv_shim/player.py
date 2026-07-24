@@ -211,6 +211,9 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
 
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
+# Stock default; the theme system overrides it at startup from the active
+# theme's browse background (MpvtkBrowser.__init__), so an untouched install
+# keeps this value and Nebula sets its own.
 BROWSE_BG_HEX = "#141414"
 # mpv's own defaults, restored by browse_yield() when video takes the window
 # back. Kept here so the browse background can't leak into playback.

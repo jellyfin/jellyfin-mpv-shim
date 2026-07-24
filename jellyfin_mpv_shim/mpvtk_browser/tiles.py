@@ -42,19 +42,49 @@ class TilesMixin:
 
     # -------------------------------------------------------- tile helpers
 
+    def _within_series(self):
+        """True while browsing a single series/season, where repeating the
+        series name on every episode tile is just noise — the episode's own
+        name is the useful label there (like jellyfin-web)."""
+        return (getattr(self, "route", None) or {}).get("kind") in (
+            "series", "season")
+
+    def _title(self, item):
+        # In a CROSS-series list (Recently Added, Continue Watching, search) an
+        # episode leads with its SERIES name — what jellyfin-web shows — so you
+        # can tell which show it belongs to; its own name drops to the subtitle.
+        # Inside a series/season browse the series is redundant (every tile is
+        # the same show), so the episode keeps its own name. Everything else
+        # keeps its own name too.
+        if (item.get("Type") == "Episode" and item.get("SeriesName")
+                and not self._within_series()):
+            return item["SeriesName"]
+        return item.get("Name", "")
+
     def _subtitle(self, item):
         if item.get("_subtitle") is not None:
             return item["_subtitle"]      # pseudo-items (chapters)
         if item.get("Type") == "Episode":
-            # Lead with the series. A bare "S1E1" on a Continue Watching or
-            # Next Up tile does not say which show it belongs to, which is
-            # the one thing you need there.
-            series = item.get("SeriesName") or ""
+            # Season 0 reads as "Special" (matching jellyfin-web), not "S0Ex";
+            # regular episodes use the "S1E1" shorthand.
             s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
-            if s is not None and e is not None:
-                se = "S%dE%d" % (s, e)
-                return "%s · %s" % (series, se) if series else se
-            return series
+            name = item.get("Name") or ""
+            if s == 0:
+                season = _("Special")
+            elif s is not None and e is not None:
+                season = "S%dE%d" % (s, e)
+            else:
+                season = ""
+            if self._within_series():
+                # The episode name is the TITLE here; the subtitle keeps the
+                # show name + episode number (like jellyfin-web / the default
+                # look), so the series stays visible without repeating it as
+                # every tile's title.
+                series = item.get("SeriesName") or ""
+                return " · ".join(p for p in (series, season) if p)
+            # Cross-series: the series is the title, so the subtitle carries
+            # the episode number and its name.
+            return " · ".join(p for p in (season, name) if p)
         if item.get("Type") == "Program":
             # The channel, not the year: "On Now" is a list of things airing
             # right now, so which channel to turn to is the useful half. Guide
@@ -221,20 +251,30 @@ class TilesMixin:
         occlude punch would show the window background rather than the
         artwork. Returns a placeholder Box while the art loads or if the
         item has none, in which case the caller still draws its own heading."""
-        spec = None
+        # box is logical (it came off the surface width); the bitmap and
+        # everything baked into it are physical.
+        pbox = raster(*box)
+        owner_id = itype = tag = url = None
         if self.server is not None:
-            spec = self.source.backdrop_spec(item)
-        if spec:
-            owner_id, tag = spec
-            # box is logical (it came off the surface width); the bitmap and
-            # everything baked into it are physical.
-            pbox = raster(*box)
-            key = make_key(owner_id, "Backdrop", tag, pbox[0], pbox[1])
+            bspec = self.source.backdrop_spec(item)
+            if bspec:
+                owner_id, itype, tag = bspec[0], "Backdrop", bspec[1]
+                url = self.source.backdrop_url(self.server, item, width=pbox[0],
+                                               height=pbox[1], fill=True)
+            else:
+                # No backdrop (typical for episodes, whose art is a 16:9 still)
+                # — fall back to the item's own still/poster so the detail
+                # header is never a blank box.
+                ispec = self.source.image_spec(item, "Thumb")
+                if ispec:
+                    owner_id, itype, tag = ispec
+                    url = self.source.image_url(self.server, owner_id, itype,
+                                                tag, pbox[0], pbox[1], fill=True)
+        if url:
+            key = make_key(owner_id, itype, tag, pbox[0], pbox[1])
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
-            url = self.source.backdrop_url(self.server, item, width=pbox[0],
-                                           height=pbox[1], fill=True)
             # Request at the *source* aspect and crop to the banner below, so
             # a shallow banner doesn't ask the server for a squashed image.
             img = self._request_image(key, url, (pbox[0], pbox[0]))
@@ -349,7 +389,7 @@ class TilesMixin:
         poster, tag = self._poster_for(item, geom, image_type)
         return Tile(
             key=item.get("Id", ""),
-            title=item.get("Name", ""),
+            title=self._title(item),
             subtitle=self._subtitle(item),
             poster=poster,
             poster_tag=tag,
@@ -664,7 +704,8 @@ class TilesMixin:
         against the window's left and right sides; the title is indented to
         line up with the content instead."""
         geom = geom or self.geom
-        heading = Text(title, size=24, bold=True)
+        heading = Text(title, size=(theme.active() or {}).get(
+            "heading_size", 24), bold=True)
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
             # the first tile instead.
@@ -681,14 +722,39 @@ class TilesMixin:
             gap=10,
         )
 
+    def _arrow_bitmap(self, direction):
+        """A round, translucent carousel page button (◀/▶) as a PIL bitmap at
+        physical size. Drawn as a BITMAP (not an ASS box) so it composites
+        above the poster strip and alpha-blends — its transparent corners show
+        the artwork underneath, with no occlusion rect whose corners would
+        reveal the dark window background (the old "black angles")."""
+        from PIL import Image as PILImage, ImageDraw
+
+        w = px(self.ARROW_W)
+        ss = 3  # supersample then downscale for smooth, anti-aliased edges
+        big_w = w * ss
+        big = PILImage.new("RGBA", (big_w, big_w), (0, 0, 0, 0))
+        d = ImageDraw.Draw(big)
+        d.ellipse([0, 0, big_w - 1, big_w - 1],
+                  fill=theme.rgb(theme.BUTTON_BG, 165))
+        s = big_w * 0.20
+        c = big_w / 2.0
+        lw = max(2, int(round(big_w * 0.09)))
+        base = c + s * 0.5 if direction < 0 else c - s * 0.5
+        tip = c - s * 0.5 if direction < 0 else c + s * 0.5
+        d.line([(base, c - s), (tip, c), (base, c + s)],
+               fill=theme.rgb(theme.TEXT_FG, 255), width=lw, joint="curve")
+        return big.resize((w, w), PILImage.LANCZOS)
+
     def _hscroll_row(self, content, row_id, h, count, geom, bleed=False):
         """An HScroll with ◀ ▶ page buttons floating over its edges.
 
         The arrows genuinely overlay the poster strip: a Stack layers them on
-        top, and ``occlude=True`` punches their rect out of the strip bitmap
-        below so the ASS button draws in the hole (bitmaps otherwise composite
-        above all script ASS — GUIDE §6). They hold-repeat while pressed, and
-        are omitted when the row doesn't overflow.
+        top. Each is a round translucent BITMAP (see ``_arrow_bitmap``) which
+        composites above the strip and alpha-blends — so, unlike the old
+        ASS-button arrows, it needs no occluder and its round corners reveal
+        the artwork rather than the dark window background. They page the row
+        on click, and are omitted when the row doesn't overflow.
 
         The strip is inset by RING_PAD so a tile's hover ring has room inside
         the viewport; the renderer clips it to the container, and without the
@@ -704,29 +770,28 @@ class TilesMixin:
             # moves — pointer paging arrows would only cover artwork
             return Row([scroll], h=h)
 
-        def arrow(icon, node_id, direction, anchor):
-            # Square, and small enough to cover as little artwork as
-            # possible — the occlusion punch reads as a notch, so a tall
-            # slab looked wrong. Flex spacers centre the glyph (Box only
-            # centres on its cross axis).
-            return Box([Spacer(flex=1), Icon(icon, 22), Spacer(flex=1)],
-                       id=node_id, w=self.ARROW_W, h=self.ARROW_W,
-                       align="center", direction="row",
-                       bg=theme.BUTTON_BG, alpha=230,
-                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
-                       anchor=anchor, dx=(self.RING_PAD if anchor == "w"
-                                          else -self.RING_PAD),
-                       # "w"/"e" centre on the whole strip, which includes the
-                       # caption block under the tile; shift up by half of it
-                       # so the arrow sits on the artwork.
-                       dy=-(geom.strip_h - geom.tile_h) / 2,
-                       occlude=True, repeat=True,
-                       on_click=lambda: self._page_row(row_id, direction))
+        def arrow(node_id, direction, anchor):
+            # A round, translucent BITMAP button (see _arrow_bitmap). Bitmaps
+            # composite above the poster strip and alpha-blend, so the round
+            # corners reveal the artwork rather than the dark window bg.
+            img = self._arrow_bitmap(direction)
+            key = ("carousel-arrow", direction, px(self.ARROW_W))
+            b = self.strips.bitmap(key, img,
+                                   lsize=(self.ARROW_W, self.ARROW_W))
+            return Image(
+                b["src"], b["iw"], b["ih"], v=b.get("v", 0),
+                w=b["lw"], h=b["lh"], id=node_id,
+                on_click=lambda: self._page_row(row_id, direction),
+                anchor=anchor,
+                dx=(self.RING_PAD if anchor == "w" else -self.RING_PAD),
+                # Shift up by half the caption block so the arrow sits on the
+                # artwork, not the title below it.
+                dy=-(geom.strip_h - geom.tile_h) / 2)
 
         return Stack([
             scroll,
-            arrow("chevron_left", row_id + "-pl", -1, "w"),
-            arrow("chevron_right", row_id + "-pr", 1, "e"),
+            arrow(row_id + "-pl", -1, "w"),
+            arrow(row_id + "-pr", 1, "e"),
         ], h=h)
 
     def _page_row(self, row_id, direction):
