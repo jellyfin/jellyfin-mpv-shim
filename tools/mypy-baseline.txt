@@ -7,7 +7,6 @@ jellyfin_mpv_shim/event_handler.py: error: Argument 2 to "start_playback" has in
 jellyfin_mpv_shim/event_handler.py: error: Need type annotation for "bindings" (hint: "bindings: dict[<type>, <type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/event_handler.py: error: Skipping analyzing "jellyfin_apiclient_python": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 jellyfin_mpv_shim/event_handler.py: error: Unsupported operand types for / ("None" and "int")  [operator]
-jellyfin_mpv_shim/event_handler.py: note: Left operand is of type "Any | None"
 jellyfin_mpv_shim/imageutil.py: error: Module has no attribute "LANCZOS"  [attr-defined]
 jellyfin_mpv_shim/imageutil.py: error: Module has no attribute "NEAREST"  [attr-defined]
 jellyfin_mpv_shim/media.py: error: Argument 3 to "get_profile" has incompatible type "int | None"; expected "bool"  [arg-type]
@@ -21,20 +20,17 @@ jellyfin_mpv_shim/media.py: error: Need type annotation for "subtitle_uid" (hint
 jellyfin_mpv_shim/media.py: error: Need type annotation for "subtitle_url" (hint: "subtitle_url: dict[<type>, <type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/media.py: error: Skipping analyzing "jellyfin_apiclient_python": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 jellyfin_mpv_shim/media.py: error: Value of type "None" is not indexable  [index]
-jellyfin_mpv_shim/media.py: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 jellyfin_mpv_shim/menu.py: error: Argument 1 to "add" of "set" has incompatible type "None"; expected "str"  [arg-type]
 jellyfin_mpv_shim/menu.py: error: Need type annotation for "menu_list" (hint: "menu_list: list[<type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/menu.py: error: Need type annotation for "menu_stack"  [var-annotated]
 jellyfin_mpv_shim/menu.py: error: playerManager_type? has no attribute "get_osd_settings"  [attr-defined]
 jellyfin_mpv_shim/menu.py: error: Variable "jellyfin_mpv_shim.player.playerManager" is not valid as a type  [valid-type]
-jellyfin_mpv_shim/menu.py: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#variables-vs-type-aliases
 jellyfin_mpv_shim/mpvtk/app.py: error: Skipping analyzing "mpv": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 jellyfin_mpv_shim/mpvtk/app.py: error: Skipping analyzing "python_mpv_jsonipc": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 jellyfin_mpv_shim/mpvtk_browser/app.py: error: Definition of "ROUTES" in base class "AuthMixin" is incompatible with definition in base class "MusicMixin"  [misc]
 jellyfin_mpv_shim/mpvtk_browser/app.py: error: Definition of "ROUTES" in base class "AuthMixin" is incompatible with definition in base class "QueueEditMixin"  [misc]
 jellyfin_mpv_shim/mpvtk_browser/app.py: error: Definition of "ROUTES" in base class "AuthMixin" is incompatible with definition in base class "ViewsMixin"  [misc]
 jellyfin_mpv_shim/mpvtk_browser/player_gateway.py: error: Skipping analyzing "jellyfin_apiclient_python.api": module is installed, but missing library stubs or py.typed marker  [import-untyped]
-jellyfin_mpv_shim/mpvtk_browser/player_gateway.py: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
 jellyfin_mpv_shim/mpvtk_browser/repository.py: error: Need type annotation for "_has_live_tv" (hint: "_has_live_tv: dict[<type>, <type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/mpvtk_browser/repository.py: error: Need type annotation for "_home_prefs" (hint: "_home_prefs: dict[<type>, <type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/mpvtk_browser/repository.py: error: Skipping analyzing "jellyfin_apiclient_python": module is installed, but missing library stubs or py.typed marker  [import-untyped]
@@ -58,9 +54,6 @@ jellyfin_mpv_shim/rich_presence.py: error: Incompatible default for parameter "s
 jellyfin_mpv_shim/rich_presence.py: error: Incompatible types in assignment (expression has type "list[int]", target has type "int | str | None")  [assignment]
 jellyfin_mpv_shim/rich_presence.py: error: Item "None" of "Any | None" has no attribute "register_event"  [union-attr]
 jellyfin_mpv_shim/rich_presence.py: error: Item "None" of "Any | None" has no attribute "set_activity"  [union-attr]
-jellyfin_mpv_shim/rich_presence.py: note: PEP 484 prohibits implicit Optional. Accordingly, mypy has changed its default to no_implicit_optional=True
-jellyfin_mpv_shim/rich_presence.py: note: Perhaps you meant "typing.Callable" instead of "callable"?
-jellyfin_mpv_shim/rich_presence.py: note: Use https://github.com/hauntsaninja/no_implicit_optional to automatically upgrade your codebase
 jellyfin_mpv_shim/session_reporter.py: error: Need type annotation for "_queue"  [var-annotated]
 jellyfin_mpv_shim/syncplay.py: error: Argument 2 to "Media" has incompatible type "Any | None"; expected "list[Any]"  [arg-type]
 jellyfin_mpv_shim/syncplay.py: error: Argument 2 to "play" of "PlayerManager" has incompatible type "Any | None"; expected "int"  [arg-type]

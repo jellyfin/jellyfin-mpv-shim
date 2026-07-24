@@ -81,6 +81,8 @@ from . import theme
 from . import navigator
 from .async_runner import AsyncRunner
 from .navigator import Navigator
+from .pages import PAGES
+from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
@@ -909,6 +911,58 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             cls._ROUTES_CACHE = merged
         return cls._ROUTES_CACHE
 
+
+    # ------------------------------------------------------------- pages
+
+    def _art_context(self):
+        """Render resources a page may use. A namespace rather than the
+        browser, so a page cannot reach past it into the shell's state."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            strips=self.strips, thumbs=self.thumbs,
+            geom=self.geom, geom_wide=self.geom_wide,
+            geom_square=self.geom_square)
+
+    def _page_context(self):
+        """Build the dependency bundle handed to every page.
+
+        Rebuilt per call rather than cached: `source` and `server` are swapped
+        by set_source at arbitrary moments (a reconnect, a user switch), and a
+        page holding a stale source would browse a server the user has left.
+        """
+        return PageContext(
+            source=self.source,
+            server=self.server,
+            nav=self._nav,
+            run=self._async,
+            art=self._art_context(),
+            player=self.controller,
+            status=self.set_status,
+            invalidate=self.invalidate,
+            # Shrinking escape hatch -- see pages/base.py. Counted by
+            # tests/test_page_contract.py; it can only go down.
+            shell=self,
+        )
+
+    def _page_for(self, route):
+        """The Page serving ``route``, or None if its kind is still a mixin.
+
+        Cached on the route dict so load() and render() share one instance and
+        a page can keep state on itself rather than in the route.
+        """
+        cls = PAGES.get(route.get("kind"))
+        if cls is None:
+            return None
+        page = route.get("_page")
+        if page is None or type(page) is not cls:
+            page = cls(self._page_context(), route)
+            route["_page"] = page
+        else:
+            # Refresh the context: see _page_context on why it is not cached.
+            page.ctx = self._page_context()
+        return page
+
     def _load_route(self, route, epoch=None):
         """Dispatch to the route kind's loader, if it has one.
 
@@ -940,11 +994,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if self.server is None:
             return
         route.pop("_error", None)
+        # ep is read here, on the loop thread, and handed down: a loader
+        # that read it later would be racing the navigation it guards.
+        ep = self._epoch if epoch is None else epoch
+        page = self._page_for(route)
+        if page is not None:
+            page.load(ep)
+            return
         loader = (self._routes().get(route["kind"]) or (None, None))[0]
         if loader is not None:
-            # ep is read here, on the loop thread, and handed down: a loader
-            # that read it later would be racing the navigation it guards.
-            ep = self._epoch if epoch is None else epoch
             getattr(self, loader)(route, ep)
 
     def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
@@ -2210,8 +2268,9 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                        "title": _("Queue")})
 
     def _render_route(self, route, size):
+        page = self._page_for(route)
         renderer = (self._routes().get(route["kind"]) or (None, None))[1]
-        if renderer is None:
+        if page is None and renderer is None:
             return self._busy()
         # A load that failed with nothing to show says so and offers a
         # retry. Without this the route's data stayed None and the view
@@ -2220,6 +2279,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 and route.get("_data") is None
                 and not route.get("_items")):
             return self._error_retry(route)
+        if page is not None:
+            return page.render(size)
         return getattr(self, renderer)(route, size)
 
     def _error_retry(self, route):

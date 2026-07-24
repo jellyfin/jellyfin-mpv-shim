@@ -17,16 +17,23 @@
 # "forgotten move" class -- a lambda calling a method that no longer exists
 # -- because the callback parameters are unannotated, so mypy infers Any.
 # tests/test_late_bound_calls.py covers that. See docs/REFACTORING_METHOD.md
-# §1.5 for the measurement behind that split.
+# §1.4 for the measurement behind that split.
 set -u
 
 cd "$(dirname "$0")/.." || exit 1
 BASELINE="tools/mypy-baseline.txt"
 
-# Strip line numbers: a finding that merely moved down a file is not new.
+# Errors only, line numbers stripped.
+#
+# Notes are excluded deliberately. mypy emits follow-on notes ("See
+# https://mypy.readthedocs.io/...") whose presence depends on which modules
+# it happened to follow, so adding a new module can make a note appear
+# against an untouched file. That fired on the first real use of this gate
+# and was pure noise -- an error is a finding, a note is commentary on one.
+#
+# Line numbers go because a finding that merely moved down a file is not new.
 normalise() {
-    sed -E 's/^([^:]+):[0-9]+:/\1:/' | sed -E 's/^([^:]+): (error|note):/\1: \2:/' \
-        | grep -E "^[^ ].*: (error|note):" | sort -u
+    grep -E "^[^ ].*: error:" | sed -E 's/^([^:]+):[0-9]+:/\1:/' | sort -u
 }
 
 current="$(mypy jellyfin_mpv_shim/ 2>&1 | normalise)"

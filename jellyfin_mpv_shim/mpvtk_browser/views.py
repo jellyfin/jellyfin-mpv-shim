@@ -55,7 +55,6 @@ class ViewsMixin:
         "grid": ("_load_grid", "_render_grid"),
         "home": ("_load_home", "_render_home"),
         "person": ("_load_person", "_render_grid"),
-        "search": ("_load_search", "_render_search"),
         "season": ("_load_season", "_render_season"),
         "series": ("_load_series", "_render_series"),
     }
@@ -1062,63 +1061,6 @@ class ViewsMixin:
         self.navigate({"kind": "search", "server": self.server,
                        "term": term, "title": _("Search")})
 
-    def _render_search(self, route, size):
-        term = route.get("term", "")
-        if not term:
-            return self._error(_("Type in the search box above."))
-        data = route.get("_data")
-        if data is None:
-            return self._busy()
-        items = data.get("items") or []
-        people = data.get("people") or []
-        rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
-        if people:
-            rows.append(self._tile_row(_("People"), people, "search-people",
-                                       geom=self.geom))
-        # Group by type, each with its natural tile shape (like the Tk browser).
-        groups = [
-            (_("Movies"), ("Movie",), self.geom, "Primary"),
-            (_("Shows"), ("Series",), self.geom, "Primary"),
-            (_("Episodes"), ("Episode",), self.geom_wide, "Thumb"),
-            (_("Videos"), ("Video", "MusicVideo"), self.geom_wide, "Primary"),
-            (_("Albums"), ("MusicAlbum",), self.geom_square, "Primary"),
-            (_("Artists"), ("MusicArtist",), self.geom_square, "Primary"),
-        ]
-        used = set()
-        for label, types_, geom, itype in groups:
-            group = [it for it in items if it.get("Type") in types_]
-            if group:
-                used.update(types_)
-                rows.append(self._tile_row(
-                    label, group, "search-" + label, geom=geom,
-                    image_type=itype))
-        songs = [it for it in items if it.get("Type") == "Audio"]
-        if songs:
-            server = route.get("server") or self.server
-            ids = [s.get("Id") for s in songs]
-            rows.append(Text(_("Songs"), size=24, bold=True))
-            # Deliberately NOT virtualized. Virtualizing needs head_h — the
-            # height of everything above the table — to map a scroll offset
-            # onto a row, and here that is the People row plus up to six
-            # carousels, i.e. not knowable at build time. The old fixed 120
-            # was out by roughly 10x, and the VScroll had no on_scroll at all,
-            # so the window computed at offset 0 was the only one ever
-            # materialized: every song past the first screenful drew blank,
-            # permanently. Search is capped at 60 results across all types and
-            # this table has no art cells, so there is nothing to virtualize
-            # away — no overlays, just text rows.
-            rows.append(self._track_list(
-                songs, "search-song",
-                lambda i: self._play_list(ids, server, i, audio=True),
-                menu=True))
-        other = [it for it in items
-                 if it.get("Type") not in used and it.get("Type") != "Audio"]
-        if other:
-            rows.append(self._tile_row(_("Other"), other, "search-other"))
-        if not items and not people:
-            rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=12,
-                              align="stretch"), id="search", flex=1)
 
     # ---------------------------------------- route loaders
 
@@ -1276,21 +1218,6 @@ class ViewsMixin:
             }
         self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 
-    def _load_search(self, route, ep):
-        srv = route.get("server") or self.server
-        term = route.get("term", "")
-
-        def work():
-            if not term:
-                return {"items": [], "people": []}
-            items = self.source.search(srv, term)
-            people = []
-            try:
-                people = self.source.search_people(srv, term)
-            except Exception:
-                pass
-            return {"items": items, "people": people}
-        self._route_async(route, work, lambda d: route.__setitem__("_data", d), ep)
 
     def _load_person(self, route, ep):
         srv = route.get("server") or self.server
