@@ -82,6 +82,7 @@ from . import navigator
 from .async_runner import AsyncRunner
 from .navigator import Navigator
 from .scroll_state import ScrollState
+from .tile_renderer import TileRenderer
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
@@ -265,10 +266,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
         self.geom_square = SQUARE_GEOM        # 1:1 (music)
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
-        self._downloaded = set()
-        self._downloaded_series = set()
-        self._downloaded_seasons = set()
-        self._downloaded_playlists = set()
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
         self.strips = strips or StripStore(
@@ -298,6 +295,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # -- the tests do, and set_app-style rewiring could -- would be
         # ignored and the view would stop repainting on scroll.
         self._scroll = ScrollState(lambda: self.invalidate())
+        # Every callback is late-bound for the same reason as the scroll
+        # state's: `source`/`server` are swapped by set_source at arbitrary
+        # moments, and `app` is replaced when mpv is re-created.
+        self.tiles = TileRenderer(
+            art=self, scroll=self._scroll,
+            on_open=lambda item: self._open_item(item),
+            nav_mode=lambda: self._nav_mode,
+            get_app=lambda: self.app)
+        self.tiles.on_context = lambda *a, **k: self._open_tile_menu(*a, **k)
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
@@ -1982,9 +1988,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                 # The unpack stays inside the guard: a controller that cannot
                 # answer (no sync db, or a stub) returns None, and that must
                 # leave the badges alone rather than raise on a pool thread.
-                (self._downloaded, self._downloaded_series,
-                 self._downloaded_seasons,
-                 self._downloaded_playlists) = self.controller.downloaded_ids()
+                self.tiles.set_downloaded(*self.controller.downloaded_ids())
             except Exception:
                 return
             self.invalidate()

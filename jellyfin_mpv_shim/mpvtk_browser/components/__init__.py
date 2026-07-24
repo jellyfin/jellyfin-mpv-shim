@@ -16,6 +16,8 @@ from .labels import (
     is_watched,
     placeholder_glyph,
     section_offsets,
+    track_artists,
+    track_duration,
 )
 from .banner import compose_banner, wrap_pil
 
@@ -26,5 +28,7 @@ __all__ = [
     "is_watched",
     "placeholder_glyph",
     "section_offsets",
+    "track_artists",
+    "track_duration",
     "wrap_pil",
 ]

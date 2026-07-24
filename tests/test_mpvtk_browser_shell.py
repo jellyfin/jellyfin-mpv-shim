@@ -1602,20 +1602,20 @@ class TestTileShapes(unittest.TestCase):
         self.assertTrue(by_id["row-libs-pr"].get("rpt"))
 
     def test_downloaded_and_glyph(self):
-        self.b._downloaded = {"m1"}
-        t = self.b._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
+        self.b.tiles._downloaded = {"m1"}
+        t = self.b.tiles._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
                          self.b.geom)
         self.assertTrue(t.downloaded)
         self.assertEqual(t.glyph, "A")
-        t2 = self.b._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
+        t2 = self.b.tiles._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
                           self.b.geom)
         self.assertEqual(t2.glyph, "♪")
 
     def test_watched_series_fallback(self):
-        t = self.b._tile({"Id": "s1", "Type": "Series",
+        t = self.b.tiles._tile({"Id": "s1", "Type": "Series",
                           "UserData": {"UnplayedItemCount": 0}}, self.b.geom)
         self.assertTrue(t.watched)
-        t2 = self.b._tile({"Id": "s2", "Type": "Series",
+        t2 = self.b.tiles._tile({"Id": "s2", "Type": "Series",
                            "UserData": {"UnplayedItemCount": 3}}, self.b.geom)
         self.assertFalse(t2.watched)
 
@@ -3999,7 +3999,7 @@ class TestThumbnailRetry(unittest.TestCase):
                               thumbs=self.thumbs)
 
     def _ask(self):
-        return self.b._request_image("k1", "http://s/img", (10, 10))
+        return self.b.tiles._request_image("k1", "http://s/img", (10, 10))
 
     def test_transient_failure_is_retried_once_the_backoff_passes(self):
         self.assertIsNone(self._ask())
@@ -4011,15 +4011,15 @@ class TestThumbnailRetry(unittest.TestCase):
                          "must cool off before retrying")
 
         # ...and once the backoff elapses, it asks again
-        attempts, _when = self.b._img_retry["k1"]
-        self.b._img_retry["k1"] = (attempts, 0.0)
+        attempts, _when = self.b.tiles._img_retry["k1"]
+        self.b.tiles._img_retry["k1"] = (attempts, 0.0)
         self.assertIsNone(self._ask())
         self.assertEqual(len(self.thumbs.requests), 2, "never retried")
 
         self.thumbs.resolve("k1", "IMG")
         self.assertEqual(self._ask(), "IMG")
         self.assertEqual(len(self.thumbs.requests), 2)
-        self.assertNotIn("k1", self.b._img_retry)
+        self.assertNotIn("k1", self.b.tiles._img_retry)
 
     def test_a_permanent_miss_is_not_retried(self):
         """The server saying "no such image" is an answer, not a failure
@@ -4028,7 +4028,7 @@ class TestThumbnailRetry(unittest.TestCase):
         self.thumbs.gone.add("k1")
         self.thumbs.resolve("k1", None)
         for _ in range(3):
-            self.b._img_retry.pop("k1", None)    # even with no cooldown
+            self.b.tiles._img_retry.pop("k1", None)    # even with no cooldown
             self.assertIsNone(self._ask())
         self.assertEqual(len(self.thumbs.requests), 1)
 
@@ -4038,7 +4038,7 @@ class TestThumbnailRetry(unittest.TestCase):
             key = self.thumbs.requests[-1][0]
             if key in self.thumbs._cbs:
                 self.thumbs.resolve(key, None)
-            self.b._img_retry["k1"] = (self.b._img_retry["k1"][0], 0.0)
+            self.b.tiles._img_retry["k1"] = (self.b.tiles._img_retry["k1"][0], 0.0)
             self._ask()
         self.assertLessEqual(len(self.thumbs.requests),
                              self.b.IMG_MAX_ATTEMPTS + 1,
@@ -4062,8 +4062,8 @@ class TestTrackListArtWindowing(unittest.TestCase):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
         self.b._size = (1280, 720)
         self.built = []
-        self.b._art_cell = lambda tr, size=28: self.built.append(
-            tr.get("Id")) or self.b._art_placeholder(size)
+        self.b.tiles.art_cell = lambda tr, size=28: self.built.append(
+            tr.get("Id")) or self.b.tiles._art_placeholder(size)
 
     def _tracks(self, n):
         return [{"Id": "t%d" % i, "Name": "Track %d" % i,
@@ -4291,7 +4291,7 @@ class TestBodyWidth(unittest.TestCase):
     def test_grid_columns_leave_room_for_the_scrollbar(self):
         geom = self.b.geom
         for w in range(600, 1930, 7):
-            cols = self.b._cols(w, geom)
+            cols = self.b.tiles.cols(w, geom)
             used = cols * geom.tile_w + (cols - 1) * geom.gap
             self.assertLessEqual(
                 used, self.b._body_w(w),
@@ -5756,13 +5756,13 @@ class TestRemoveDownloadButton(unittest.TestCase):
         self.assertNotIn("act-undownload", node_ids)
 
     def test_a_downloaded_item_offers_removal(self):
-        self.b._downloaded = {"m1"}
+        self.b.tiles._downloaded = {"m1"}
         node_ids, _h = self._btns({"Id": "m1", "Type": "Movie"})
         self.assertIn("act-undownload", node_ids)
         self.assertNotIn("act-download", node_ids)
 
     def test_removing_deletes_by_item_id(self):
-        self.b._downloaded = {"m1"}
+        self.b.tiles._downloaded = {"m1"}
         _n, h = self._btns({"Id": "m1", "Name": "A", "Type": "Movie"})
         h["act-undownload"]["click"]()
         _n2, h2 = build_scene(self.b)
@@ -5770,7 +5770,7 @@ class TestRemoveDownloadButton(unittest.TestCase):
         self.assertEqual(self.deleted, [{"item_id": "m1"}])
 
     def test_removing_a_series_deletes_by_series_id(self):
-        self.b._downloaded_series = {"sh1"}
+        self.b.tiles._downloaded_series = {"sh1"}
         _n, h = self._btns({"Id": "sh1", "Name": "Show", "Type": "Series"})
         h["act-undownload"]["click"]()
         _n2, h2 = build_scene(self.b)
@@ -6072,8 +6072,8 @@ class TestSongsTabArt(unittest.TestCase):
         # to a placeholder, so the rendered scene can't tell "art column,
         # nothing loaded yet" from "no art column".
         self.art_for = []
-        b._art_cell = lambda tr, size=28: self.art_for.append(
-            tr.get("Id")) or b._art_placeholder(size)
+        b.tiles.art_cell = lambda tr, size=28: self.art_for.append(
+            tr.get("Id")) or b.tiles._art_placeholder(size)
         b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
                     "title": "Music"})
         b._set_music_tab(b.route, tab)
@@ -6217,7 +6217,7 @@ class TestOfflineGates(unittest.TestCase):
     def test_remove_download_is_still_offered_offline(self):
         """Reclaiming space is exactly what you want offline."""
         b = self._browser(True)
-        b._downloaded = {"m1"}
+        b.tiles._downloaded = {"m1"}
         btn = b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d")
         self.assertIn("d-undownload", ids(layout(btn, 1280, 720)[0]))
 
@@ -6782,7 +6782,7 @@ class TestFailuresAreVisible(unittest.TestCase):
     def test_a_failed_download_removal_says_so(self):
         b = self._browser(delete_download=self._boom)
         b.nav_stack = [{"kind": "detail", "server": "srv1"}]
-        b._downloaded = {"m1"}
+        b.tiles._downloaded = {"m1"}
         b._remove_download({"Id": "m1", "Type": "Movie"})
         self.assertIn("could not be removed", b.status.lower())
 
@@ -7726,7 +7726,7 @@ class TestPlaylistPageDownloadButton(unittest.TestCase):
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
         b._pool = _SyncPool()
-        b._downloaded = {"P"}
+        b.tiles._downloaded = {"P"}
         b.nav_stack = [{"kind": "playlist", "server": "srv1", "item_id": "P",
                         "title": "Mix", "_data": []}]
         nodes, _h = build_scene(b)
@@ -8092,7 +8092,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
         self.b._pool = _SyncPool()
 
     def test_a_downloaded_playlist_reads_as_downloaded(self):
-        self.b._downloaded_playlists = {"P"}
+        self.b.tiles._downloaded_playlists = {"P"}
         self.assertTrue(self.b._is_downloaded({"Id": "P",
                                                "Type": "Playlist"}))
 
@@ -8104,7 +8104,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
         """A season is never itself a downloads row — manager.download
         expands it into its episodes — so _is_downloaded had no branch that
         could ever return True for one."""
-        self.b._downloaded_seasons = {"sea1"}
+        self.b.tiles._downloaded_seasons = {"sea1"}
         self.assertTrue(self.b._is_downloaded({"Id": "sea1",
                                                "Type": "Season"}))
 
@@ -8115,7 +8115,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
     def test_a_downloaded_season_offers_remove_not_download(self):
         """The visible consequence: se-undownload was unrenderable, so a
         fully downloaded season showed "Download" forever."""
-        self.b._downloaded_seasons = {"sea1"}
+        self.b.tiles._downloaded_seasons = {"sea1"}
         item = {"Id": "sea1", "Type": "Season", "SeriesId": "sh1"}
         btn = self.b._download_btn(item, "srv1", "se")
         _n, h = layout(btn, 1280, 720)
@@ -8127,7 +8127,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
         call had never once been made."""
         got = {}
         self.ctl.delete_download = lambda **kw: got.update(kw)
-        self.b._downloaded_seasons = {"sea1"}
+        self.b.tiles._downloaded_seasons = {"sea1"}
         self.b.nav_stack = [{"kind": "season", "server": "srv1"}]
         self.b._remove_download({"Id": "sea1", "Type": "Season",
                                  "SeriesId": "sh1"})
@@ -8136,9 +8136,9 @@ class TestDownloadStateAndPush(unittest.TestCase):
     def test_the_push_hook_refreshes_the_badges(self):
         self.ctl.downloaded_ids = lambda: ({"m1"}, set(), {"sea1"}, {"P"})
         self.b.on_downloads_changed()
-        self.assertEqual(self.b._downloaded, {"m1"})
-        self.assertEqual(self.b._downloaded_seasons, {"sea1"})
-        self.assertEqual(self.b._downloaded_playlists, {"P"})
+        self.assertEqual(self.b.tiles._downloaded, {"m1"})
+        self.assertEqual(self.b.tiles._downloaded_seasons, {"sea1"})
+        self.assertEqual(self.b.tiles._downloaded_playlists, {"P"})
 
     def test_the_controller_reports_playlists(self):
         import jellyfin_mpv_shim.sync.manager as mgr

@@ -22,7 +22,7 @@ from ..mpvtk.widgets import (
     Text,
     VScroll,
 )
-from . import theme
+from . import components, theme
 from .repository import PLAYLIST_SUPPORTED_TYPES
 
 
@@ -35,6 +35,11 @@ NOW_PLAYING_BAR_H = 64
 
 class MusicMixin:
 
+    # Pure formatters; see components/labels.py.
+    _duration = staticmethod(components.track_duration)
+    _artists = staticmethod(components.track_artists)
+
+
     # kind -> (loader, renderer) method names. Merged into
     # one dispatch table by core's _routes().
     ROUTES = {
@@ -45,14 +50,7 @@ class MusicMixin:
         "playlist": ("_load_playlist", "_render_playlist"),
     }
 
-    @staticmethod
-    def _duration(item):
-        secs = (item.get("RunTimeTicks") or 0) // 10000000
-        return "%d:%02d" % (secs // 60, secs % 60) if secs else ""
 
-    @staticmethod
-    def _artists(item):
-        return ", ".join(item.get("Artists") or item.get("AlbumArtists") or [])
 
     def _play_shuffle(self, ids, server, audio=True):
         import random

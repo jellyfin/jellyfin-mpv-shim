@@ -99,3 +99,21 @@ def section_offsets(elements, gap, pad=0):
         offs.append(y)
         y += measure(el)[1] + gap
     return offs
+
+
+def track_duration(item):
+    """``m:ss`` for a track, or "" when the server gave no runtime.
+
+    Was ``MusicMixin._duration``; moved so the track table can be rendered
+    without a MusicMixin (see tile_renderer.TileRenderer.track_list).
+    """
+    secs = (item.get("RunTimeTicks") or 0) // 10000000
+    return "%d:%02d" % (secs // 60, secs % 60) if secs else ""
+
+
+def track_artists(item):
+    """Comma-joined artist names, falling back to album artists.
+
+    Was ``MusicMixin._artists``.
+    """
+    return ", ".join(item.get("Artists") or item.get("AlbumArtists") or [])
