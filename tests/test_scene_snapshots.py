@@ -107,6 +107,43 @@ class TestSceneSnapshots(unittest.TestCase):
             with self.subTest(name):
                 load(name)
 
+    def test_capture_is_reproducible(self):
+        """Two captures of one screen must be identical.
+
+        This is the guard that would have caught the flake this harness
+        shipped with: the detail pane renders "Ends at HH:MM" from
+        ``datetime.now()``, so its baseline rotted within the minute and the
+        test failed for a reason that had nothing to do with any change.
+        A snapshot that fails for reasons unrelated to the diff is worse than
+        no snapshot, because people learn to regenerate on red.
+
+        Catches any other source of per-run drift too — a set iteration
+        order, an id derived from an address, a counter that survives.
+        """
+        for name in ("detail", "home"):
+            with self.subTest(name):
+                first = snapshot(build_browser(), SCREENS[name])
+                second = snapshot(build_browser(), SCREENS[name])
+                self.assertEqual(dumps(first), dumps(second),
+                                 "%s does not render reproducibly" % name)
+
+    def test_the_clock_is_actually_frozen(self):
+        """Directly assert the mechanism, not just its effect.
+
+        Without this, someone removing the frozen_clock() wrapper would only
+        see a failure if a run happened to straddle a minute boundary — an
+        intermittent that is very easy to blame on something else.
+        """
+        nodes = snapshot(build_browser(), SCREENS["detail"])
+        texts = " ".join(str(n.get("text", "")) for n in nodes)
+        self.assertIn("Ends at", texts,
+                      "the detail pane no longer renders a clock-derived "
+                      "string; this test has lost its subject")
+        import datetime as _dt
+        self.assertIn("Ends at 04:33", texts,
+                      "expected the time derived from the frozen clock "
+                      "(%s); the freeze is not in effect" % _dt.time(3, 4, 5))
+
     def test_snapshots_are_not_trivially_small(self):
         # A screen that renders as a bare spinner produces a handful of nodes
         # and would pass forever without asserting anything. This is the guard

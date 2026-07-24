@@ -32,12 +32,61 @@ Regenerate the committed baselines after an INTENDED UI change::
     python3 tests/test_scene_snapshots.py --update
 """
 
+import contextlib
+import datetime
 import json
 import os
 import re
+import time
 
 SNAPSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             "snapshots")
+
+#: Wall clock every snapshot is captured at. Arbitrary but fixed.
+FROZEN = datetime.datetime(2020, 1, 2, 3, 4, 5)
+FROZEN_TS = FROZEN.timestamp()
+
+
+class _FrozenDatetime(datetime.datetime):
+    """``datetime`` whose ``now``/``utcnow``/``today`` do not move."""
+
+    @classmethod
+    def now(cls, tz=None):
+        return FROZEN if tz is None else FROZEN.replace(tzinfo=tz)
+
+    @classmethod
+    def utcnow(cls):
+        return FROZEN
+
+    @classmethod
+    def today(cls):
+        return FROZEN
+
+
+@contextlib.contextmanager
+def frozen_clock():
+    """Pin wall-clock time for the duration of a capture.
+
+    Screens render clock-derived text — the detail pane's "Ends at HH:MM" is
+    ``datetime.now() + remaining``. Without this the baseline rots within the
+    minute and every snapshot test becomes a flake, which is worse than no
+    snapshot at all because people learn to regenerate on red.
+
+    Deliberately NOT a normalizer that masks time-shaped strings: masking
+    would also hide a genuine change to how a time is formatted or which
+    clock it came from. Freezing keeps the assertion exact.
+
+    ``time.monotonic`` is left alone — it feeds timers and back-off, never
+    rendered text, and stopping it can hang a poll loop.
+    """
+    real_dt, real_time = datetime.datetime, time.time
+    datetime.datetime = _FrozenDatetime
+    time.time = lambda: FROZEN_TS
+    try:
+        yield
+    finally:
+        datetime.datetime = real_dt
+        time.time = real_time
 
 # A file path into a temp dir, or "&<address>" from MemoryStore.
 _VOLATILE_SRC = re.compile(r"^(&\d+|.*/[^/]*\.bgra)$")
@@ -77,10 +126,11 @@ def snapshot(browser, route, size=(1280, 720)):
     """
     from jellyfin_mpv_shim.mpvtk.layout import layout
 
-    browser.nav_stack = [dict(route)]
-    browser._load_route(browser.route)
-    browser._pool.shutdown(wait=True)
-    nodes, _handlers = layout(browser.build(size), *size)
+    with frozen_clock():
+        browser.nav_stack = [dict(route)]
+        browser._load_route(browser.route)
+        browser._pool.shutdown(wait=True)
+        nodes, _handlers = layout(browser.build(size), *size)
     return normalize(nodes)
 
 
