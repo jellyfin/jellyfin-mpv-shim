@@ -34,6 +34,7 @@ class FakeVideo:
         self.client = FakeClient()
         self.item = {"Id": "item1", "UserData": {"IsFavorite": False}}
         self.parent = FakeParent()
+        self.secondary_sid = None
         self.subtitle_seq = {3: 1}      # embedded: jellyfin idx 3 -> mpv sid 1
         self.subtitle_url = {4: "https://server/sub.srt"}  # external
         self.subtitle_enc = {5}         # burn-in (requires transcode)
@@ -100,6 +101,9 @@ class FakePlayerManager:
     def set_streams(self, aid, sid):
         self.streams = (aid, sid)
 
+    def set_secondary_subtitle(self, sub_uid):
+        self.secondary = sub_uid
+
     def restart_playback(self):
         self.restarted += 1
 
@@ -154,6 +158,27 @@ class StateBuildTests(unittest.TestCase):
         self.assertTrue(audio[0]["selected"])
         self.assertFalse(audio[1]["selected"])
 
+    def test_secondary_subtitle_streams(self):
+        # sid=4 (the external track) is the primary. The secondary picker
+        # offers None + only mpv-renderable tracks that aren't the primary:
+        # embedded 3 stays, the primary 4 and the burn-in 5 drop out.
+        state = self._state(FakePlayerManager(FakeVideo()))
+        sub2 = state["secondary_subtitles"]
+        self.assertEqual(sub2[0]["id"], -1)
+        self.assertTrue(sub2[0]["selected"])   # nothing chosen yet
+        ids = [s["id"] for s in sub2]
+        self.assertEqual(ids, [-1, 3])
+        self.assertNotIn(4, ids)               # can't dup the primary
+        self.assertNotIn(5, ids)               # burn-in can't be secondary
+
+    def test_secondary_subtitle_marks_selection(self):
+        video = FakeVideo()
+        video.secondary_sid = 3
+        state = self._state(FakePlayerManager(video))
+        by_id = {s["id"]: s for s in state["secondary_subtitles"]}
+        self.assertTrue(by_id[3]["selected"])
+        self.assertFalse(by_id[-1]["selected"])
+
     def test_quality_current(self):
         state = self._state(FakePlayerManager(FakeVideo()))
         quality = state["quality"]
@@ -184,6 +209,12 @@ class ActionDispatchTests(unittest.TestCase):
         self.assertIn(pm.set_streams, funcs)
         self.assertEqual(pm.tasks[0][1], (None, 5))
         self.assertEqual(pm.timeline_handles, 1)
+
+    def test_set_secondary_sub_queues_secondary(self):
+        pm = FakePlayerManager(FakeVideo())
+        OscBridge(pm).handle_action(["set-secondary-sub", "3"])
+        self.assertEqual(pm.tasks[0][0], pm.set_secondary_subtitle)
+        self.assertEqual(pm.tasks[0][1], (3,))
 
     def test_set_audio(self):
         pm = FakePlayerManager(FakeVideo())

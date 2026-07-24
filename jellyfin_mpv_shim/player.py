@@ -2758,6 +2758,79 @@ class PlayerManager(object):
                 log.warning("PlayerManager::subtitle index %s not in embedded or "
                             "external maps; leaving current selection.", sub_uid)
 
+        self._apply_secondary_subtitle()
+
+    def _apply_secondary_subtitle(self):
+        """Push the video's secondary-subtitle choice onto mpv's secondary-sid.
+
+        Purely client-side: mpv renders it above the primary track, so it only
+        applies to subtitles mpv has itself (embedded text, or an external file
+        it can fetch) — a burn-in/transcode track can never be a secondary. The
+        same track can't be shown twice, so a secondary that matches the primary
+        is treated as off. Not @synchronous — always called under _lock."""
+        video = self._video
+        if video is None:
+            return
+        sec = getattr(video, "secondary_sid", None)
+        track = None
+        if sec is not None and sec != -1 and sec != video.sid:
+            if sec in video.subtitle_seq:
+                track = video.subtitle_seq[sec]
+            elif sec in video.subtitle_url:
+                track = self._ensure_external_sub(sec)
+        try:
+            self._player.secondary_sid = track if track is not None else "no"
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            log.warning("PlayerManager::could not set secondary subtitle",
+                        exc_info=True)
+
+    def _ensure_external_sub(self, sub_id: int):
+        """mpv track id for an external subtitle, loading it if needed WITHOUT
+        disturbing the primary selection (sub_add ``auto``, unlike
+        load_external_sub's implicit select). Returns None if it can't load."""
+        if sub_id in self.external_subtitles:
+            return self.external_subtitles[sub_id]
+        try:
+            sub_url = self._video.subtitle_url[sub_id]
+        except (KeyError, AttributeError):
+            return None
+        try:
+            self._player.sub_add(sub_url, "auto")
+        except (SystemError,) + _mpv_errors:
+            log.info("PlayerManager::could not load external secondary subtitle")
+            return None
+        track = self._external_track_id(sub_url)
+        if track is not None:
+            self.external_subtitles[sub_id] = track
+            self.external_subtitles_rev[track] = sub_id
+        return track
+
+    def _external_track_id(self, sub_url: str):
+        """The mpv track id of a just-added external subtitle, matched back by
+        the filename it was added with (sub_add doesn't return the id on either
+        backend)."""
+        try:
+            tracks = self._player.track_list or []
+        except Exception:
+            return None
+        for tr in tracks:
+            if (tr.get("type") == "sub"
+                    and tr.get("external-filename") == sub_url):
+                return tr.get("id")
+        return None
+
+    @synchronous("_lock")
+    def set_secondary_subtitle(self, sub_uid: int):
+        """Select (or, with -1/None, clear) the secondary subtitle track."""
+        video = self._video
+        if not video:
+            return
+        video.secondary_sid = None if sub_uid is None or sub_uid == -1 else sub_uid
+        self._apply_secondary_subtitle()
+        self.timeline_handle()
+
     @synchronous("_lock")
     def set_streams(self, audio_uid: int, sub_uid: int):
         video = self._video

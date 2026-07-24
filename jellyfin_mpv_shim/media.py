@@ -76,6 +76,10 @@ class Video(object):
         self.client = parent.client
         self.aid = aid
         self.sid = sid
+        # Client-side mpv secondary subtitle (rendered above the primary one).
+        # Purely a local overlay choice — the server is never told about it and
+        # it never forces a transcode — so it lives here, not in set_streams.
+        self.secondary_sid: Optional[int] = None
         self.explicit_tracks = explicit_tracks
         self.item = self.client.jellyfin.get_item(item_id)
 

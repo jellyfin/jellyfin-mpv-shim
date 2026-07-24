@@ -164,6 +164,43 @@ def _option_picker(b, node_id, icon, tip, options, verb):
             b, verb, opts[i]["id"]))
 
 
+def _secondary_available(st, subs):
+    """Whether the subtitle picker should offer 'Secondary…': a primary track
+    is active AND there is a second, mpv-renderable track to pick. A secondary
+    with no primary is just a differently-placed primary, so it's suppressed."""
+    sub2 = st.get("secondary_subtitles") or []
+    primary_on = any(s.get("id", -1) != -1 and s.get("selected") for s in subs)
+    return len(sub2) > 1 and primary_on
+
+
+def _subtitle_picker(b, st, subs):
+    """The primary subtitle dropdown, with a trailing 'Secondary…' entry that
+    opens the secondary-track submenu (see _menu_rows' 'secondary_sub'). Custom
+    rather than _option_picker because that last row opens a menu instead of
+    setting a track."""
+    labels = [o.get("label") or "" for o in subs]
+    ids = [o.get("id") for o in subs]
+    sel = next((i for i, o in enumerate(subs) if o.get("selected")), 0)
+    secondary = _secondary_available(st, subs)
+    if secondary:
+        # Show the current secondary alongside the entry, like the gear menu's
+        # with_current does for its submenus.
+        cur = next((o.get("label") for o in st.get("secondary_subtitles") or []
+                    if o.get("selected") and o.get("id", -1) != -1), None)
+        labels.append("%s  ·  %s" % (_("Secondary…"), cur) if cur
+                      else _("Secondary…"))
+
+    def on_select(i, v):
+        if secondary and i == len(labels) - 1:
+            _open_hud_menu(b, "secondary_sub", anchor="hud-sub")
+        else:
+            _hud_action(b, "set-sub", ids[i])
+
+    return Dropdown("hud-sub", labels, selected=sel, force=True,
+                    trigger_icon="closed_caption", tip=_("Subtitle Track"),
+                    on_select=on_select)
+
+
 def _chapters(b):
     if b.controller is None or not hasattr(b.controller, "chapters"):
         return []
@@ -219,8 +256,7 @@ def _pickers(b, menu_state, pos, chapters, tiers):
                                   _("Audio Track"), audio, "set-audio"))
     subs = st.get("subtitles") or []
     if len(subs) > 1:  # more than just "None"
-        out.append(_option_picker(b, "hud-sub", "closed_caption",
-                                  _("Subtitle Track"), subs, "set-sub"))
+        out.append(_subtitle_picker(b, st, subs))
     quality = st.get("quality") or {}
     if quality.get("options") and tiers["quality"]:
         out.append(_option_picker(b, "hud-quality", "hd",
@@ -343,10 +379,11 @@ def _menu_rows(b, st):
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
-    if getattr(b, "_hud_menu_anchor", None) != "hud-syncplay":
-        # opened from the gear: submenus can step back to its root.
-        # The top bar's SyncPlay button opens its sheet standalone
-        # (like the lua OSC's drop-down), so no Back there.
+    if getattr(b, "_hud_menu_anchor", None) not in ("hud-syncplay", "hud-sub"):
+        # opened from the gear: submenus can step back to its root. The top
+        # bar's SyncPlay button and the subtitle dropdown's Secondary… entry
+        # open their sheets standalone (like the lua OSC's drop-downs), so no
+        # Back there — they weren't reached through the gear root.
         rows.append((_("Back"), "arrow_back",
                      lambda: _open_hud_menu(b, "root")))
     if kind == "quality":
@@ -370,6 +407,9 @@ def _menu_rows(b, st):
     elif kind in ("sub_size", "sub_position", "sub_color"):
         option_rows(sub_style.get(kind[4:]),
                     "set-" + kind.replace("_", "-"))
+    elif kind == "secondary_sub":
+        option_rows({"options": st.get("secondary_subtitles")},
+                    "set-secondary-sub")
     elif kind == "syncplay":
         sp = st.get("syncplay") or {}
         rows.append((_("None (Disabled)"),

@@ -62,6 +62,7 @@ class OscBridge:
             "has_next": bool(getattr(parent, "has_next", False)),
         }
         state["subtitles"] = self._subtitle_streams(video)
+        state["secondary_subtitles"] = self._secondary_subtitle_streams(video)
         state["audio"] = self._audio_streams(video)
         state["quality"] = self._quality(video)
         state["sub_style"] = self._sub_style()
@@ -121,6 +122,42 @@ class OscBridge:
             if sid in video.subtitle_enc:
                 item["aside"] = _("Transcode")
             elif sid in video.subtitle_url:
+                item["aside"] = _("External")
+            items.append(item)
+        return items
+
+    def _secondary_subtitle_streams(self, video):
+        """The secondary-subtitle options: None plus every subtitle mpv can
+        render itself (embedded text or external). Burn-in/transcode tracks
+        (subtitle_enc) are excluded — the server can only burn one in — as is
+        whichever track is currently the primary, since mpv can't show the same
+        track twice. Returns just ``None`` (a single item) when nothing else
+        qualifies; the HUD hides the picker in that case."""
+        selected = getattr(video, "secondary_sid", None)
+        primary = video.sid
+        items = [{
+            "id": -1,
+            "label": _("None"),
+            "selected": selected is None or selected == -1,
+        }]
+        for stream in (video.media_source.get("MediaStreams") or []):
+            if stream.get("Type") != "Subtitle":
+                continue
+            sid = stream.get("Index")
+            if sid in video.subtitle_enc or sid == primary:
+                continue
+            if (
+                settings.lang_filter_sub
+                and sid != selected
+                and stream.get("Language") not in lang_filter
+            ):
+                continue
+            item = {
+                "id": sid,
+                "label": get_sub_display_title(stream),
+                "selected": sid == selected,
+            }
+            if sid in video.subtitle_url:
                 item["aside"] = _("External")
             items.append(item)
         return items
@@ -241,6 +278,8 @@ class OscBridge:
         try:
             if verb == "set-sub":
                 pm.put_task(pm.set_streams, None, int(arg))
+            elif verb == "set-secondary-sub":
+                pm.put_task(pm.set_secondary_subtitle, int(arg))
             elif verb == "set-audio":
                 pm.put_task(pm.set_streams, int(arg), None)
             elif verb == "set-quality":
