@@ -320,7 +320,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             status=lambda msg: self.set_status(msg),
             invalidate=lambda: self.invalidate(),
             enabled=pagination.enabled_from_settings,
-            cols=lambda w, geom: self.tiles.cols(w, geom))
+            cols=lambda w, geom: self.tiles.cols(w, geom),
+            set_enabled=lambda v: self._config().set_setting("paginated", v))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=SimpleNamespace(
@@ -833,7 +834,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             strips=self.strips, thumbs=self.thumbs,
             geom=self.geom, geom_wide=self.geom_wide,
             geom_square=self.geom_square,
-            tiles=self.tiles, scroll=self._scroll)
+            tiles=self.tiles, scroll=self._scroll, pages=self._pages)
 
     def _page_context(self):
         """Build the dependency bundle handed to every page.

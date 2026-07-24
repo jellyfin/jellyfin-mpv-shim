@@ -15,6 +15,13 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
 
+
+def grid_scroll(b, route, offset, maximum):
+    """The grid/person infinite-scroll handler, which moved onto GridPage in
+    6c. Reached through the page the shell would build for that route."""
+    b._page_for(route)._on_scroll_end(offset, maximum)
+
+
 def detail_page(b, route):
     """A DetailPage bound to ``route`` — the seam the detail screen's private
     helpers (track pickers, media-info line, scenes row) moved to in 6c.
@@ -1747,7 +1754,7 @@ class TestDetailActions(unittest.TestCase):
         h["person-sort"]["select"](want, SORTS[want][0])
 
         self.b.route["_total"] = 500          # more to page in
-        self.b._on_grid_scroll(self.b.route, 100000, 100001)
+        grid_scroll(self.b, self.b.route, 100000, 100001)
         self.assertEqual(self.b.source.person_sorts[-1],
                          ("PremiereDate", "Descending"),
                          "page 2 reverted to the default sort")
@@ -1960,7 +1967,7 @@ class TestGridFilters(unittest.TestCase):
         result sets interleave into duplicates and skips."""
         _n, h = self._grid()
         h["grid-genre"]["select"](1, "Action")
-        self.b._on_grid_scroll(self.b.route, 100000, 100001)
+        grid_scroll(self.b, self.b.route, 100000, 100001)
         self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
         self.assertGreater(self._last_query()["start_index"], 0,
                            "no second page was actually fetched")
@@ -2128,14 +2135,14 @@ class TestRandomSortDoesNotPage(unittest.TestCase):
         b, route, calls = self._grid("Random")
         self.assertEqual(route["_total"], 20,
                          "a Random grid still thinks it has 500 items")
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(calls, [0], "Random paged and will duplicate items")
 
     def test_a_normal_sort_still_pages(self):
         """The cap must not leak into the other nine sorts."""
         b, route, calls = self._grid("Name")
         self.assertEqual(route["_total"], 500)
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(calls, [0, 20], "a Name-sorted grid stopped paging")
 
 
@@ -4542,22 +4549,22 @@ class TestGridPaging(unittest.TestCase):
 
     def test_a_failed_page_does_not_deadlock_paging(self):
         b, route, calls = self._grid(fail=True)
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertFalse(route.get("_loading"),
                          "_loading stuck: the grid can never page again")
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(len(calls), 2, "second page attempt never happened")
 
     def test_an_empty_page_ends_the_list(self):
         b, route, calls = self._grid(page_result=([], 100))
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(route["_total"], 20, "total not clamped to loaded")
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(len(calls), 1, "re-requested an empty page")
 
     def test_a_normal_page_appends(self):
         b, route, calls = self._grid(page_result=([{"Id": "x"}], 100))
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         self.assertEqual(len(route["_items"]), 21)
         self.assertEqual(route["_total"], 100)
 
@@ -4605,7 +4612,8 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
         b._pool = _SyncPool()
         b.server = "srv1"
         b.nav_stack = [route]
-        scroll = {"grid": b._on_grid_scroll, "music": b._on_music_scroll,
+        scroll = {"grid": lambda r, o, m: grid_scroll(b, r, o, m),
+                  "music": b._on_music_scroll,
                   "genre": b._on_genre_scroll}[view]
         return b, route, calls, scroll, read
 
@@ -7858,7 +7866,7 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
             ("grid",
              {"kind": "grid", "server": "srv1", "parent_id": "lib1",
               "_items": list(items), "_total": 99},
-             lambda r: b._on_grid_scroll(r, 0, 100)),
+             lambda r: grid_scroll(b, r, 0, 100)),
             ("music",
              {"kind": "music", "server": "srv1", "parent_id": "lib1",
               "_tab": "albums", "_data": list(items), "_total": 99},
@@ -7987,7 +7995,7 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
                  "_items": [{"Id": "x"}], "_total": 99}
         b.nav_stack = [route]
-        b._on_grid_scroll(route, 0, 100)
+        grid_scroll(b, route, 0, 100)
         b.navigate({"kind": "settings", "server": "srv1", "_tab": "general"})
         b.status = ""
         b._pool.drain()
@@ -8017,7 +8025,7 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
                  "_items": [{"Id": "x"}], "_total": 99}
         b.nav_stack = [route]
-        b._on_grid_scroll(route, 10_000, 10_000)
+        grid_scroll(b, route, 10_000, 10_000)
         self.assertTrue(route["_loading"], "the page was never dispatched")
         b.navigate({"kind": "home", "server": "srv1"})
         b._pool.drain()

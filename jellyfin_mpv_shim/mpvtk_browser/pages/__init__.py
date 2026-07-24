@@ -13,6 +13,7 @@ consulted first, which is exactly the silent-winner hazard
 
 from .base import Page, PageContext
 from .detail import DetailPage
+from .grid import GridPage, PersonPage
 from .home import HomePage
 from .search import SearchPage
 from .season import SeasonPage
@@ -21,6 +22,8 @@ from .series import SeriesPage
 #: kind -> Page subclass.
 PAGES = {
     DetailPage.kind: DetailPage,
+    GridPage.kind: GridPage,
+    PersonPage.kind: PersonPage,
     HomePage.kind: HomePage,
     SearchPage.kind: SearchPage,
     SeasonPage.kind: SeasonPage,

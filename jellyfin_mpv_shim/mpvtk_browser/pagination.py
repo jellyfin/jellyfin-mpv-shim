@@ -59,7 +59,7 @@ class Paginator:
     """Infinite-scroll and fixed-page paging over a route's result set."""
 
     def __init__(self, run, content_h, is_current, status, invalidate,
-                 enabled, cols):
+                 enabled, cols, set_enabled=None):
         #: An :class:`~.async_runner.AsyncRunner`.
         self.run = run
         #: ``content_h(route, size)`` -> the vertical space this route's
@@ -76,6 +76,18 @@ class Paginator:
         self.enabled = enabled
         #: ``cols(width, geom)`` -- tiles across, from the tile renderer.
         self._cols = cols
+        #: ``set_enabled(bool)`` -- persist the global setting.
+        self._set_enabled = set_enabled or (lambda _v: None)
+
+    def toggle(self, route):
+        """The inline Paginated checkbox: flip and persist the GLOBAL setting.
+
+        No reload -- the data is unchanged, only how it is presented -- but
+        reset the page state so turning it on lands on page 1.
+        """
+        self._set_enabled(not self.enabled())
+        self.reset(route)
+        self._invalidate()
 
     # -- infinite scroll ---------------------------------------------------
 
