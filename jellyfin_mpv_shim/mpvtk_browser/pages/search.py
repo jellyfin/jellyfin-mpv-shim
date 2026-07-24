@@ -9,8 +9,8 @@ nothing" checkable rather than asserted.
 Body is moved verbatim from ``ViewsMixin._load_search`` / ``_render_search``.
 The only edits are ``self.X`` -> ``self.ctx.X``. It originally spent nine
 ``ctx.shell`` uses -- the entire budget -- on the tile and chrome helpers;
-step 6c's prep gave those real homes, so one remains: starting playback of a
-track list, which is still shell orchestration (spinner + async launch).
+step 6c's two prep commits gave every one of them a real home, and it now
+reaches the shell for nothing.
 """
 
 from ...i18n import _
@@ -92,8 +92,8 @@ class SearchPage(Page):
             # away — no overlays, just text rows.
             rows.append(tiles.track_list(
                 songs, "search-song",
-                lambda i: self.ctx.shell._play_list(ids, server, i,
-                                                    audio=True),
+                lambda i: self.ctx.actions.play_list(ids, server, i,
+                                                     audio=True),
                 menu=True))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]

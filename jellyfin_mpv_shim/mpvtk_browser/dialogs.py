@@ -22,7 +22,7 @@ from ..mpvtk.widgets import (
     TextBox,
     VScroll,
 )
-from . import theme
+from . import components, theme
 
 
 class DialogsMixin:
@@ -216,14 +216,7 @@ class DialogsMixin:
 
     # -------------------------------------------------------- downloads
 
-    @staticmethod
-    def _human_size(n):
-        n = float(n or 0)
-        for unit in ("B", "KB", "MB", "GB", "TB"):
-            if n < 1024 or unit == "TB":
-                return ("%d %s" % (n, unit) if unit == "B"
-                        else "%.1f %s" % (n, unit))
-            n /= 1024
+    _human_size = staticmethod(components.human_size)
 
     def _open_download(self, item):
         server = self.route.get("server") or self.server

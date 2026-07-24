@@ -13,6 +13,7 @@ callbacks, but never ``nav``, ``source`` or ``route``.
 from .labels import (
     episode_subtitle,
     heading_for,
+    human_size,
     is_watched,
     placeholder_glyph,
     section_offsets,
@@ -25,6 +26,7 @@ __all__ = [
     "compose_banner",
     "episode_subtitle",
     "heading_for",
+    "human_size",
     "is_watched",
     "placeholder_glyph",
     "section_offsets",

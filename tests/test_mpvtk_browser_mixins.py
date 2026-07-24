@@ -168,11 +168,11 @@ class TestRouteTable(unittest.TestCase):
         MpvtkBrowser._routes()          # populate the base's cache first
 
         class Sub(MpvtkBrowser):
-            ROUTES = {"a-new-kind": (None, "_render_detail")}
+            ROUTES = {"a-new-kind": (None, "_render_grid")}
 
         self.assertIn("a-new-kind", Sub._routes(),
                       "the subclass inherited the base's cached table")
-        self.assertIn("detail", Sub._routes(), "the base's kinds were lost")
+        self.assertIn("grid", Sub._routes(), "the base's kinds were lost")
         self.assertNotIn("a-new-kind", MpvtkBrowser._routes(),
                          "the subclass leaked into the base's table")
 

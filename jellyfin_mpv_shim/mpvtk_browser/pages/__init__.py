@@ -12,13 +12,19 @@ consulted first, which is exactly the silent-winner hazard
 """
 
 from .base import Page, PageContext
+from .detail import DetailPage
 from .home import HomePage
 from .search import SearchPage
+from .season import SeasonPage
+from .series import SeriesPage
 
 #: kind -> Page subclass.
 PAGES = {
+    DetailPage.kind: DetailPage,
     HomePage.kind: HomePage,
     SearchPage.kind: SearchPage,
+    SeasonPage.kind: SeasonPage,
+    SeriesPage.kind: SeriesPage,
 }
 
 __all__ = ["PAGES", "Page", "PageContext"]

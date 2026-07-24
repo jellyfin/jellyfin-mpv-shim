@@ -19,8 +19,15 @@ exposes the browser and pages may use it *for those helpers only*.
 
 That is a strangler-fig seam, not a loophole, and the difference is that it is
 counted: ``tests/test_page_contract.py`` pins the number of ``ctx.shell``
-references and fails if it grows. It can only go down. When it reaches zero
-the attribute goes away and ``PageContext`` is the whole dependency surface.
+references and fails if it grows. It can only go down.
+
+As of step 6c the page budget is **zero** — every converted page takes what
+it needs from its context. One use remains, in this file: ``route_async``
+below. That one is not transitional. Recording a load failure has to decide
+whether this route is *still the screen* before dropping the user to the
+offline home, and only the shell knows that. It is pinned by
+``BASE_SHELL_USES`` rather than budgeted, so the framework's hatch cannot
+quietly become the place new coupling goes.
 
 Converting a route is mechanical:
 

@@ -117,3 +117,17 @@ def track_artists(item):
     Was ``MusicMixin._artists``.
     """
     return ", ".join(item.get("Artists") or item.get("AlbumArtists") or [])
+
+
+def human_size(n):
+    """Byte count as a short human string.
+
+    Was ``DialogsMixin._human_size``; the detail page's media-info line
+    wants it too, and a second copy is how the two drift.
+    """
+    n = float(n or 0)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return ("%d %s" % (n, unit) if unit == "B"
+                    else "%.1f %s" % (n, unit))
+        n /= 1024

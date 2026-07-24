@@ -14,6 +14,22 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
 
+
+def detail_page(b, route):
+    """A DetailPage bound to ``route`` — the seam the detail screen's private
+    helpers (track pickers, media-info line, scenes row) moved to in 6c.
+
+    Mutates ``route`` to carry its kind and returns the page cached on it, so
+    per-route caching (``_def_tracks``) behaves as it does in production."""
+    route.setdefault("kind", "detail")
+    return b._page_for(route)
+
+
+def series_page(b, route=None):
+    """A SeriesPage, likewise, for ``_series_actions``."""
+    return b._page_for(route if route is not None else {"kind": "series"})
+
+
 def home_page(b):
     """The HomePage serving a home route, built the way the shell builds it.
 
@@ -4129,7 +4145,7 @@ class TestTrackDefaults(unittest.TestCase):
 
     def test_server_default_subtitle_is_preselected(self):
         item = _sub_item(default_sid=4)
-        _aid, sid = self.b._effective_tracks(self.route, item)
+        _aid, sid = detail_page(self.b, self.route)._effective_tracks(item)
         self.assertEqual(sid, 4, "showed None instead of the server default")
 
     def test_language_config_beats_the_server_default(self):
@@ -4138,7 +4154,7 @@ class TestTrackDefaults(unittest.TestCase):
         item = _sub_item(default_sid=4)
         real, lc.apply = lc.apply, lambda rules, src, it: (None, 3)
         self.addCleanup(lambda: setattr(lc, "apply", real))
-        _aid, sid = self.b._effective_tracks(self.route, item)
+        _aid, sid = detail_page(self.b, self.route)._effective_tracks(item)
         self.assertEqual(sid, 3, "language_config must win")
 
     def test_explicit_none_is_not_overwritten_by_the_default(self):
@@ -4146,7 +4162,7 @@ class TestTrackDefaults(unittest.TestCase):
         untouched picker (None) falls back to the default."""
         item = _sub_item(default_sid=4)
         self.route["_sid"] = -1
-        _aid, sid = self.b._effective_tracks(self.route, item)
+        _aid, sid = detail_page(self.b, self.route)._effective_tracks(item)
         self.assertEqual(sid, -1)
 
     def test_picking_audio_still_carries_the_subtitle_default(self):
@@ -4155,21 +4171,21 @@ class TestTrackDefaults(unittest.TestCase):
         DefaultSubtitleStreamIndex and subtitles came up off."""
         item = _sub_item(default_sid=4)
         self.route["_aid"] = 1
-        aid, sid = self.b._effective_tracks(self.route, item)
+        aid, sid = detail_page(self.b, self.route)._effective_tracks(item)
         self.assertEqual((aid, sid), (1, 4))
 
     def test_no_subtitle_streams_reports_no_choice(self):
         """An item with no subtitles must not send a spurious index —
         that would mark the play explicit for no reason."""
         item = _sub_item(default_sid=None, subs=())
-        _aid, sid = self.b._effective_tracks(self.route, item)
+        _aid, sid = detail_page(self.b, self.route)._effective_tracks(item)
         self.assertIsNone(sid)
 
     def test_picker_shows_the_default_not_none(self):
         item = _sub_item(default_sid=4)
         from jellyfin_mpv_shim.mpvtk.widgets import Column
 
-        rows = self.b._track_pickers(self.route, item)
+        rows = detail_page(self.b, self.route)._track_pickers(item)
         self.assertTrue(rows, "expected pickers")
         nodes, _h = layout(Column(rows), 1280, 720)
         dd = [n for n in nodes if n.get("id") == "dt-sub"]
@@ -4188,7 +4204,7 @@ class TestTrackDefaults(unittest.TestCase):
         lc.apply = lambda rules, src, it: (calls.append(1), (None, None))[1]
         self.addCleanup(lambda: setattr(lc, "apply", real))
         for _ in range(5):
-            self.b._effective_tracks(self.route, item)
+            detail_page(self.b, self.route)._effective_tracks(item)
         self.assertEqual(len(calls), 1, "should be cached on the route")
 
 
@@ -5128,28 +5144,28 @@ class TestMediaInfoLine(unittest.TestCase):
                 "RunTimeTicks": 72000000000}
 
     def test_it_includes_audio_size_and_bitrate(self):
-        line = self.b._media_info_line(self._item(), {})
+        line = detail_page(self.b, {})._media_info_line(self._item())
         self.assertIn("EAC3 5.1", line)
         self.assertIn("GB", line)
         self.assertIn("Mbps", line)
 
     def test_video_range_type_wins_over_range(self):
         """VideoRange only says "HDR"; VideoRangeType says which."""
-        self.assertIn("HDR10", self.b._media_info_line(self._item(), {}))
+        self.assertIn("HDR10", detail_page(self.b, {})._media_info_line(self._item()))
 
     def test_it_shows_when_playback_would_end(self):
-        self.assertIn("Ends at", self.b._media_info_line(self._item(), {}))
+        self.assertIn("Ends at", detail_page(self.b, {})._media_info_line(self._item()))
 
     def test_sdr_is_not_called_out(self):
         item = self._item()
         item["MediaSources"][0]["MediaStreams"][0] = {
             "Type": "Video", "DisplayTitle": "1080p", "VideoRange": "SDR",
             "VideoRangeType": "SDR"}
-        self.assertNotIn("SDR", self.b._media_info_line(item, {}))
+        self.assertNotIn("SDR", detail_page(self.b, {})._media_info_line(item))
 
     def test_a_sourceless_item_is_empty_not_broken(self):
         self.assertEqual(
-            self.b._media_info_line({"Id": "m1", "Type": "Movie"}, {}), "")
+            detail_page(self.b, {})._media_info_line({"Id": "m1", "Type": "Movie"}), "")
 
 
 class TestCastRow(unittest.TestCase):
@@ -5459,7 +5475,7 @@ class TestScenesRow(unittest.TestCase):
         self.assertIn("Scenes", texts, "chapter row never reached the page")
 
     def test_a_chapter_click_seeks_to_its_start(self):
-        row = self.b._scenes_row(self.b.route, self.item, "srv1")
+        row = detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1")
         self.assertIsNotNone(row)
         nodes, handlers = layout(row, 1280, 720)
         rects = [n for n in nodes
@@ -5474,7 +5490,7 @@ class TestScenesRow(unittest.TestCase):
         self.b.route["_srcid"] = "src1"
         self.b.route["_aid"] = 3
         self.b.route["_sid"] = 4
-        row = self.b._scenes_row(self.b.route, self.item, "srv1")
+        row = detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1")
         nodes, handlers = layout(row, 1280, 720)
         rects = [n for n in nodes
                  if n["t"] == "rect" and "detail-scenes" in str(n.get("id"))]
@@ -5485,14 +5501,14 @@ class TestScenesRow(unittest.TestCase):
 
     def test_a_single_chapter_is_not_a_row(self):
         self.item["Chapters"] = [{"Name": "All", "StartPositionTicks": 0}]
-        self.assertIsNone(self.b._scenes_row(self.b.route, self.item, "srv1"))
+        self.assertIsNone(detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1"))
         nodes, _h = build_scene(self.b)
         self.assertNotIn("Scenes",
                          [n.get("text") for n in nodes if n.get("text")])
 
     def test_no_chapters_is_not_a_row(self):
         self.item.pop("Chapters")
-        self.assertIsNone(self.b._scenes_row(self.b.route, self.item, "srv1"))
+        self.assertIsNone(detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1"))
 
 
 class TestNextUp(unittest.TestCase):
@@ -5973,7 +5989,7 @@ class TestSeriesExtras(unittest.TestCase):
                       [n.get("text") for n in nodes if n.get("text")])
 
     def test_the_shuffle_button_is_on_the_page(self):
-        row = self.b._series_actions({"Id": "sh1", "Type": "Series"},
+        row = series_page(self.b)._series_actions({"Id": "sh1", "Type": "Series"},
                                      "srv1", "sh1")
         nodes, _h = layout(row, 1280, 720)
         self.assertIn("sa-shuffle", ids(nodes))
@@ -6256,7 +6272,7 @@ class TestVersionPickerDedups(unittest.TestCase):
         item = {"Id": "m1", "MediaSources": [
             {"Id": "s%d" % i, "Name": n, "MediaStreams": []}
             for i, n in enumerate(source_names)]}
-        controls = b._track_pickers({"kind": "detail"}, item)
+        controls = detail_page(b, {"kind": "detail"})._track_pickers(item)
         for n in layout(Column(list(controls)), 1280, 720)[0]:
             if n.get("id") == "dt-version":
                 return n.get("items")
@@ -6344,7 +6360,10 @@ class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
         nodes, handlers = build_scene(b)
         self.assertIn("sa-trailer", ids(nodes))
         played = []
-        b._play_list = lambda ids_, srv, i, **kw: played.append(list(ids_))
+        # ItemActions.play_list, not the shell forwarder: the page calls its
+        # own service now.
+        b._actions.play_list = lambda ids_, srv, i, **kw: played.append(
+            list(ids_))
         handlers["sa-trailer"]["click"]()
         self.assertEqual(played, [["tr1"]])
 
@@ -6446,7 +6465,7 @@ class TestMediaInfoKeepsTheCodec(unittest.TestCase):
         b = MpvtkBrowser(app=None, source=FakeSource())
         item = {"MediaSources": [{"Id": "s1", "MediaStreams": [
             dict(video, Type="Video")]}]}
-        return b._media_info_line(item, {"kind": "detail"})
+        return detail_page(b, {"kind": "detail"})._media_info_line(item)
 
     def test_codec_and_resolution_when_the_server_gives_no_title(self):
         line = self._line({"Codec": "hevc", "Width": 1920, "Height": 1080})

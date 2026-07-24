@@ -45,10 +45,20 @@ PAGES_DIR = os.path.join(REPO, "jellyfin_mpv_shim", "mpvtk_browser", "pages")
 #: Lower it whenever an extraction removes uses — the test tells you to.
 #:
 #: 9 -> 1: step 6c's prep put the tile builders and chrome behind ``ctx.art``
-#: and ``components/``, which was all SearchPage had been reaching for. The
-#: one that remains is starting playback of a track list, which is still
-#: shell orchestration (loading spinner, then an un-epoch-gated launch).
-SHELL_USE_BUDGET = 1
+#: and ``components/``, which was all SearchPage had been reaching for.
+#: 1 -> 0: ItemActions gave the last one (starting a track list) a home.
+#:
+#: Zero here does NOT mean the hatch is gone. ``base.py`` is excluded from
+#: the count below because it is the framework rather than a page, and it
+#: still has one use — see BASE_SHELL_USES, which pins it so the exclusion
+#: cannot quietly become a hiding place.
+SHELL_USE_BUDGET = 0
+
+#: ``Page.route_async`` calls ``ctx.shell._route_async``. That one is not
+#: transitional: recording a load failure has to decide whether this route is
+#: *still the screen* before dropping the user to the offline home, and only
+#: the shell knows. It is pinned rather than budgeted — it may not grow.
+BASE_SHELL_USES = 1
 
 
 def _page_sources():
@@ -185,6 +195,23 @@ class TestTheEscapeHatchIsShrinking(unittest.TestCase):
             "needs is genuinely missing, extract the helper rather than "
             "raising this number.\n  %s"
             % (len(uses), SHELL_USE_BUDGET, "\n  ".join(uses)))
+
+    def test_the_framework_hatch_does_not_grow(self):
+        """base.py is excluded from _page_sources, so its shell uses would
+        otherwise be invisible. Pin them."""
+        path = os.path.join(PAGES_DIR, "base.py")
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), filename=path)
+        uses = [n for n in ast.walk(tree)
+                if isinstance(n, ast.Attribute)
+                and isinstance(n.value, ast.Attribute)
+                and n.value.attr == "shell"]
+        self.assertEqual(
+            len(uses), BASE_SHELL_USES,
+            "pages/base.py touches the shell %d times, pinned at %d. The "
+            "framework's own hatch is excluded from SHELL_USE_BUDGET; that "
+            "exclusion is not a place to put new coupling."
+            % (len(uses), BASE_SHELL_USES))
 
     def test_the_budget_is_not_slack(self):
         """A budget nobody tightens is a budget nobody respects."""
