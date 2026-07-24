@@ -27,6 +27,7 @@ from ..mpvtk.widgets import (
     VScroll,
 )
 from . import components, home_sections, theme
+from .components import chrome
 
 log = logging.getLogger("mpvtk_browser.views")
 
@@ -47,6 +48,15 @@ _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 class ViewsMixin:
+
+    # Content-area primitives now live in components/chrome.py; these stay as
+    # thin aliases until every caller is a Page taking them from its context.
+    _error = staticmethod(chrome.error)
+    _paragraph = staticmethod(chrome.paragraph)
+
+    def _body_w(self, w):
+        return chrome.body_width(w, self.CONTENT_PAD)
+
 
     # kind -> (loader, renderer) method names. Merged into
     # one dispatch table by core's _routes().
@@ -424,37 +434,7 @@ class ViewsMixin:
             parts.append(genres)
         return "   ·   ".join(parts)
 
-    def _body_w(self, w):
-        """Usable text width inside a padded, scrollable content column.
 
-        The window width minus the content padding AND the scrollbar the
-        scroll view reserves. Wrapping at ``w - 2*pad`` — the padding alone
-        — makes every line 10px wider than the space it actually gets, so
-        the tail of each line runs under the scrollbar, and which words land
-        there changes with the window size. That is what made resizing look
-        like the wrapping was unstable."""
-        from ..mpvtk.layout import SCROLLBAR_W
-
-        return max(120, w - 2 * self.CONTENT_PAD - SCROLLBAR_W)
-
-    def _paragraph(self, text, size, max_w, color=None):
-        """Wrapped body text (overviews).
-
-        The layout engine wraps *within* a paragraph, so blank-line breaks
-        are handled here. The gap is a full line height: at anything less
-        the paragraph break reads as tighter than the wrapped lines around
-        it, which looks like a mistake rather than a break."""
-        from ..mpvtk.layout import LINE_H
-
-        paras = [p.strip() for p in (text or "").replace("\r", "").split("\n")
-                 if p.strip()]
-        color = color or theme.TEXT_FG
-        if len(paras) <= 1:
-            return Text(paras[0] if paras else "", size=size, color=color,
-                        wrap=True, w=max_w)
-        return Column([Text(p, size=size, color=color, wrap=True, w=max_w)
-                       for p in paras],
-                      gap=round(size * LINE_H), w=max_w)
 
     def _sel_source(self, sources, route):
         if not sources:
@@ -918,9 +898,6 @@ class ViewsMixin:
         return self._tile_row(_("Cast & Crew"), cast, "detail-people",
                               geom=self.geom)
 
-    def _error(self, msg):
-        return Box([Text(msg, size=20, color=theme.SUBTLE_FG)],
-                   pad=24, flex=1, align="center", direction="row")
 
     def _render_detail(self, route, size):
         data = route.get("_data")

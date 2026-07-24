@@ -185,6 +185,29 @@ class TestTheEscapeHatchIsShrinking(unittest.TestCase):
             % (len(uses), SHELL_USE_BUDGET))
 
 
+class TestChromeConstantsDoNotDrift(unittest.TestCase):
+    """``CONTENT_PAD`` exists in two places during the transition.
+
+    The shell still owns one for its unconverted mixins;
+    ``components/chrome.py`` owns the one pages use. They must agree, or a
+    converted page lays out at a different padding from an unconverted one
+    and the seam becomes visible on screen.
+
+    Caught during the extraction: the first draft of chrome.py used 24, and
+    the real value is 16.
+    """
+
+    def test_the_two_content_pads_agree(self):
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        self.assertEqual(
+            chrome.CONTENT_PAD, MpvtkBrowser.CONTENT_PAD,
+            "components.chrome.CONTENT_PAD (%r) and "
+            "MpvtkBrowser.CONTENT_PAD (%r) have drifted; converted and "
+            "unconverted screens would pad differently"
+            % (chrome.CONTENT_PAD, MpvtkBrowser.CONTENT_PAD))
+
+
 class TestPageContextIsSmall(unittest.TestCase):
     """The point of the context is that it is small enough to fake.
 

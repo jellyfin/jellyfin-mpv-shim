@@ -27,11 +27,16 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
+from .components import chrome
 
 log = logging.getLogger("mpvtk_browser.auth")
 
 
 class AuthMixin:
+
+    # See components/chrome.py.
+    _busy = staticmethod(chrome.busy)
+
 
     # kind -> (loader, renderer) method names. Merged into
     # one dispatch table by core's _routes().
@@ -595,8 +600,3 @@ class AuthMixin:
             self.set_source(source)
         self.run_async(work, done, ep)
 
-    def _busy(self):
-        return Box(
-            [Spacer(), Row([Spacer(), Busy(), Spacer()]), Spacer()],
-            flex=1, direction="column", align="stretch",
-        )

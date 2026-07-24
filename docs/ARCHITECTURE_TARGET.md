@@ -252,7 +252,9 @@ and independently revertible.
 | 3 | Extract `Navigator` (route stack + headless policy) | low | `tests/test_mpvtk_headless.py` already pins the policy |
 | 4 | ~~**Cover `ui.py`'s `PlayerController`**~~ **done** | — | was *blocking 5*; 41.6% → 67.2% |
 | 5 | Formalise `PlayerGateway` from `_PlayerController` | medium | 4 |
-| 6 | Convert route kinds to `Page` classes, one at a time | medium | 1–3, 5 |
+| 6a | `Page` + `PageContext` + registry, first route converted | medium | 1–3, 5 |
+| 6b | **Extract the art-dependent components** (`TilesMixin` → a `TileRenderer`) | medium | 6a |
+| 6c | Convert the remaining route kinds, one at a time | medium | 6b |
 | 7 | Extract `MpvSession` from `player.py` | medium-high | integration matrix green on both backends |
 | 8 | Make `run_action` single-context | high | 7 |
 
@@ -272,6 +274,27 @@ boundary holding still.
 > The tell is the same one §1.4 uses for components: a thing that needs
 > `route` is not part of the async mechanism, however much it looks like it
 > from the call site.
+
+> **Revised again while doing step 6, and this time the test said so.**
+> Step 1 extracted the *pure* helpers — the seven functions that used `self`
+> zero times. What it left behind is the much larger set that needs `art`
+> (strips, thumbs, the poster cache, tile geometry) but not `route` or `nav`:
+> `_tile_row`, `_grid_of`, `_track_list`, `_image_map`, `_art_cell`. Those
+> are components by §1.4's test; they just aren't *pure*.
+>
+> That matters because pages cannot be converted without them. Measuring the
+> five remaining `ViewsMixin` renderers against `PageContext` gives **50 new
+> `ctx.shell` uses against a budget of 9** — the escape hatch would become
+> the primary interface and `Page` would be the mixins with an extra hop.
+> `tests/test_page_contract.py`'s budget is what surfaced this, before any
+> of it was written.
+>
+> So 6b is inserted: turn `TilesMixin` into a `TileRenderer` that holds `art`
+> and a scroll-offset callback, and make it `PageContext.art`. Pages then say
+> `ctx.art.tile_row(...)` instead of `ctx.shell._tile_row(...)`, and the
+> per-page shell cost collapses. Its own dependencies are almost all
+> *sibling helpers inside `tiles.py`* rather than shell state, which is what
+> makes the extraction tractable.
 
 ---
 
