@@ -42,11 +42,22 @@ class TilesMixin:
 
     # -------------------------------------------------------- tile helpers
 
+    def _within_series(self):
+        """True while browsing a single series/season, where repeating the
+        series name on every episode tile is just noise — the episode's own
+        name is the useful label there (like jellyfin-web)."""
+        return (getattr(self, "route", None) or {}).get("kind") in (
+            "series", "season")
+
     def _title(self, item):
-        # An episode tile leads with its SERIES name (what jellyfin-web shows on
-        # Recently Added / Continue Watching); the episode's own name drops to
-        # the subtitle. Everything else keeps its own name.
-        if item.get("Type") == "Episode" and item.get("SeriesName"):
+        # In a CROSS-series list (Recently Added, Continue Watching, search) an
+        # episode leads with its SERIES name — what jellyfin-web shows — so you
+        # can tell which show it belongs to; its own name drops to the subtitle.
+        # Inside a series/season browse the series is redundant (every tile is
+        # the same show), so the episode keeps its own name. Everything else
+        # keeps its own name too.
+        if (item.get("Type") == "Episode" and item.get("SeriesName")
+                and not self._within_series()):
             return item["SeriesName"]
         return item.get("Name", "")
 
@@ -54,9 +65,8 @@ class TilesMixin:
         if item.get("_subtitle") is not None:
             return item["_subtitle"]      # pseudo-items (chapters)
         if item.get("Type") == "Episode":
-            # The series is the TITLE now, so the subtitle identifies the
-            # episode. Season 0 reads as "Special" (matching jellyfin-web), not
-            # "S0Ex"; regular episodes keep the "S1E1" shorthand.
+            # Season 0 reads as "Special" (matching jellyfin-web), not "S0Ex";
+            # regular episodes use the "S1E1" shorthand.
             s, e = item.get("ParentIndexNumber"), item.get("IndexNumber")
             name = item.get("Name") or ""
             if s == 0:
@@ -65,6 +75,12 @@ class TilesMixin:
                 season = "S%dE%d" % (s, e)
             else:
                 season = ""
+            if self._within_series():
+                # The episode name is the TITLE here, so the subtitle is just
+                # its season/episode number.
+                return season
+            # Cross-series: the series is the title, so the subtitle carries
+            # the episode number and its name.
             return " · ".join(p for p in (season, name) if p)
         if item.get("Type") == "Program":
             # The channel, not the year: "On Now" is a list of things airing
