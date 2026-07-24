@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 import re
 
 bad_patterns = (
@@ -85,3 +86,29 @@ def configure_log_file(destination: str, level: str = "info"):
     handler.setFormatter(CustomFormatter(True))
     handler.setLevel(lvl)
     root_logger.addHandler(handler)
+
+
+class RingLogHandler(logging.Handler):
+    """Keeps the last N formatted log lines in memory for in-app log views.
+
+    The browser runs in *this* process and reads the ring directly, so the
+    log viewer needs no IPC and no separate copy of the buffer."""
+
+    def __init__(self, capacity=2000):
+        super().__init__()
+        self.lines = deque([], capacity)
+
+    def emit(self, record):
+        try:
+            self.lines.append(self.format(record))
+        except Exception:
+            pass
+
+
+ring_handler = RingLogHandler()
+ring_handler.setFormatter(CustomFormatter())
+root_logger.addHandler(ring_handler)
+
+
+def recent_log_lines():
+    return list(ring_handler.lines)

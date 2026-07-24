@@ -1,0 +1,403 @@
+"""Settings-schema helpers for the mpvtk browser's Settings view.
+
+Classifies the
+``conf.Settings`` annotations the Tk browser's form uses, and reads/writes
+the in-process ``conf.settings`` singleton directly (no IPC — the mpvtk
+browser runs in the player's process).
+"""
+
+import typing
+
+from ..conf import Settings, settings
+from ..i18n import _
+
+# Structured / non-scalar config that the flat form can't express, plus
+# internal bookkeeping. Everything else is editable.
+# client_uuid is the device identity the server keys sessions on; editing it
+# free-text orphans every session and playstate the server has recorded.
+# config_version is migration bookkeeping; editing it re-runs or skips
+# one-time upgrades.
+# window_width/height/maximized are remembered window *state*, rewritten on
+# every exit — editing them in a form the app then overwrites is a setting
+# that appears not to work. The preference that governs them,
+# remember_window_size, stays visible.
+_HIDDEN = {"language_config", "client_uuid", "config_version",
+           "window_width", "window_height", "window_maximized"}
+
+# Passthrough toggles, in the order they should appear, paired with the mpv
+# codec name that decides whether the current audio mode offers them at all.
+# The mode -> codec mapping itself lives in player.py (AUDIO_PASSTHROUGH_CODECS)
+# so there is one place that knows what a cable can carry.
+AUDIO_PASSTHROUGH_KEYS = [
+    ("ac3", "audio_passthrough_ac3"),
+    ("dts", "audio_passthrough_dts"),
+    ("eac3", "audio_passthrough_eac3"),
+    ("dts-hd", "audio_passthrough_dts_hd"),
+    ("truehd", "audio_passthrough_truehd"),
+]
+
+# Audio settings that only mean something in particular modes. Hidden
+# elsewhere rather than shown as a control that quietly does nothing.
+AUDIO_MODE_ONLY = {
+    "audio_optical_encode_ac3": {"optical"},
+}
+
+# Exactly one of these is shown, because they are the same question asked of
+# two different machines: "keep running once the window is gone". With a tray
+# that is close-to-tray and the tray is the way back; without one the app is
+# invisible and only `jellyfin-mpv-shim stop` ends it, which is a different
+# enough deal to need its own opt-in rather than a toggle that silently
+# changes meaning.
+TRAY_DEPENDENT = ("close_to_tray", "allow_background")
+
+# Starting minimized asks the app to come up in the state whichever of the
+# above is on screen permits, so offering it while that one is off is
+# offering a setting that cannot do anything. Shown directly below it.
+BACKGROUND_DEPENDENT = ("start_minimized",)
+
+# Curated groups, mirroring the Tk browser's form. Anything not listed shows
+# under "Advanced".
+SECTIONS = [
+    (_("Interface"), ["player_name", "browser_fullscreen",
+                      "headless", "display_mirror_summon",
+                      "enable_gui", "close_to_tray", "allow_background",
+                      "start_minimized",
+                      "remember_window_size",
+                      "fullscreen", "ui_scale", "enable_osc", "osc_style",
+                      "hud_grab_keys", "hud_wake_key", "raise_mpv",
+                      "check_updates", "notify_updates"]),
+    (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
+                     "remote_kbps", "direct_paths", "remote_direct_paths",
+                     "playback_timeout"]),
+    # Passthrough keys are listed in full here; sections() drops the ones the
+    # selected mode cannot carry.
+    (_("Audio"), ["audio_mode", "audio_night_mode"]
+                 + [k for _c, k in AUDIO_PASSTHROUGH_KEYS]
+                 + ["audio_optical_encode_ac3"]),
+    (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
+                                  "subtitle_position", "language_preference",
+                                  "preferred_language", "remember_audio_track",
+                                  "remember_subtitle_track", "lang_filter",
+                                  "lang_filter_sub", "lang_filter_audio"]),
+    (_("Transcoding"), ["allow_transcode_to_h265", "prefer_transcode_to_h265",
+                        "transcode_hevc", "transcode_av1", "transcode_4k",
+                        "transcode_hdr", "transcode_hi10p",
+                        "transcode_dolby_vision", "force_video_codec",
+                        "force_audio_codec"]),
+    (_("Video Enhancement"), ["shader_pack_enable", "shader_pack_subtype",
+                              "shader_pack_remember", "shader_pack_gpu_api"]),
+    (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
+                                 "skip_credits_enable", "skip_credits_always",
+                                 "skip_intro_on_seek"]),
+    (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
+                            "snapped_scrolling", "paginated"]),
+    (_("Downloads"), ["sync_path", "prefer_downloaded",
+                      "auto_download_enable", "auto_download_next_up",
+                      "auto_download_next_up_limit",
+                      "auto_download_lookahead", "auto_download_max_gb",
+                      "auto_download_delete_watched",
+                      "auto_download_keep_days",
+                      "auto_download_interval_mins"]),
+]
+
+# Free-text is wrong for these: an unlisted value silently breaks the feature.
+ENUMS = {
+    "subtitle_position": ["top", "bottom", "middle"],
+    "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
+    "shader_pack_subtype": ["lq", "hq"],
+}
+
+# Enums whose stored value isn't presentable: [(label, value), ...].
+LABELED_ENUMS = {
+    "osc_style": [
+        (_("Jellyfin UI"), "mpvtk"),
+        (_("MPV UI with thumbnails"), "mpv"),
+        (_("MPV built-in default"), "default"),
+    ],
+    "ui_scale": [
+        (_("Follow display"), None),
+        (_("100% (no scaling)"), 1.0),
+        (_("125%"), 1.25),
+        (_("150%"), 1.5),
+        (_("200%"), 2.0),
+    ],
+    "shader_pack_gpu_api": [
+        (_("Automatic (recommended)"), "auto"),
+        (_("Vulkan"), "vulkan"),
+        (_("Direct3D 11 (Windows only)"), "d3d11"),
+        (_("OpenGL (compatibility)"), "opengl"),
+    ],
+    "audio_mode": [
+        (_("Default (auto)"), "auto"),
+        (_("Force Stereo"), "stereo"),
+        (_("Optical Surround"), "optical"),
+        (_("HDMI Passthrough"), "hdmi"),
+    ],
+    "language_preference": [
+        (_("Unset"), "unset"),
+        (_("Dubbed (shows only)"), "dubbed_shows"),
+        (_("Subbed (shows only)"), "subbed_shows"),
+        (_("Dubbed (all)"), "dubbed_all"),
+        (_("Subbed (all)"), "subbed_all"),
+        (_("Custom (set in config)"), "custom"),
+    ],
+}
+
+LABEL_OVERRIDES = {
+    "sync_path": _("Download Folder"),
+    "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "auto_download_enable": _("Automatically Download Upcoming Episodes"),
+    "auto_download_next_up": _("Include Next Up"),
+    "auto_download_next_up_limit": _("Next Up Entries to Consider"),
+    "auto_download_lookahead": _("Episodes to Keep Ahead (0 = off)"),
+    "auto_download_max_gb": _("Storage Limit for Automatic Downloads (GB)"),
+    "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
+    "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
+    "auto_download_interval_mins": _("Check Every (minutes)"),
+    "close_to_tray": _("Close to Tray (keep running)"),
+    "allow_background": _("Keep Running in Background"),
+    "remember_window_size": _("Remember Window Size"),
+    "osc_style": _("Player Controls Style"),
+    "ui_scale": _("Interface Scale"),
+    "headless": _("Cast-target mode (no library browsing)"),
+    "display_mirror_summon": _("Casting Opens the Library Browser"),
+    "browser_fullscreen": _("Fullscreen Library Browser"),
+    "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
+    "hud_wake_key": _("Player Controls Activation Key"),
+    "audio_mode": _("Audio Output Mode"),
+    "audio_night_mode": _("Night Mode (Auto Volume Adj)"),
+    "shader_pack_enable": _("Enable Video Playback Profiles"),
+    "shader_pack_subtype": _("Profile Group"),
+    "shader_pack_remember": _("Remember Last Used Profile"),
+    "shader_pack_gpu_api": _("Graphics API for Shaders"),
+    "audio_passthrough_ac3": _("Pass Through AC3"),
+    "audio_passthrough_dts": _("Pass Through DTS"),
+    "audio_passthrough_eac3": _("Pass Through E-AC3"),
+    "audio_passthrough_dts_hd": _("Pass Through DTS-HD"),
+    "audio_passthrough_truehd": _("Pass Through TrueHD"),
+    "audio_optical_encode_ac3": _("Re-encode Others to AC3"),
+}
+
+# Explanatory line rendered under a setting, for the ones whose default
+# isn't self-explanatory from the label alone.
+NOTES = {
+    "osc_style": _("MPV keybinds are used by default. Press ENTER to drive "
+                   "the player controls by keyboard."),
+    "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. The scrollbar "
+                             "glides while the content snaps to the nearest "
+                             "row, so a trackpad or trackball no longer "
+                             "overshoots. Raise it to scroll faster, lower it "
+                             "for finer control."),
+    "snapped_scrolling": _("Make each wheel notch jump exactly one row (or one "
+                           "home-screen section) instead of gliding. Turn this "
+                           "on if you prefer the older stepped scrolling."),
+    "paginated": _("Page the library and music tile grids instead of "
+                   "scrolling: each page is one screenful with First / "
+                   "Previous / Next / Last controls and a page number you can "
+                   "type into. Easier than precise scrolling on a trackpad."),
+    "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
+                  "scale your desktop reports, which is 100% on X11."),
+    "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
+                    "mpv.conf) decide. Pick a mode only if you are sending "
+                    "audio to a receiver."),
+    "audio_optical_encode_ac3": _("Audio your receiver can't be sent directly "
+                                  "is encoded to AC3, which is the only way "
+                                  "surround fits down an optical cable. Turn "
+                                  "this off if the encoder causes audio delay "
+                                  "— those tracks become stereo instead."),
+    "shader_pack_subtype": _("\"hq\" offers heavier profiles. Pick it if you "
+                             "have a fast graphics card."),
+    "shader_pack_gpu_api": _("Leave on Automatic unless video breaks when a "
+                             "profile is loaded. This only applies while a "
+                             "profile is active, and OpenGL can cost you HDR "
+                             "output."),
+    "audio_night_mode": _("Evens out loud effects and quiet dialogue. This "
+                          "turns passthrough off while it is enabled, because "
+                          "the volume has to be adjusted before your receiver "
+                          "gets the audio."),
+}
+
+_ACRONYMS = {"gui": "GUI", "ssl": "SSL", "tls": "TLS", "osc": "OSC",
+             "mpv": "MPV", "hdr": "HDR", "av1": "AV1", "h265": "H265",
+             "hevc": "HEVC", "kbps": "kbps", "url": "URL", "ipc": "IPC",
+             "uuid": "UUID", "svp": "SVP", "id": "ID", "4k": "4K",
+             "hi10p": "Hi10P", "ui": "UI"}
+
+
+def label_for(key):
+    if key in LABEL_OVERRIDES:
+        return LABEL_OVERRIDES[key]
+    return " ".join(_ACRONYMS.get(w, w.capitalize()) for w in key.split("_"))
+
+
+def visible_passthrough_keys():
+    """The passthrough toggles the current audio mode can actually use.
+
+    S/PDIF has the bandwidth for AC3 and DTS core only, so offering TrueHD
+    beside them would be offering a setting that silently does nothing. In
+    "Default" and "Force Stereo" nothing is passed through at all.
+    """
+    from ..player import AUDIO_PASSTHROUGH_CODECS
+
+    usable = AUDIO_PASSTHROUGH_CODECS.get(settings.audio_mode or "auto", ())
+    return [key for codec, key in AUDIO_PASSTHROUGH_KEYS if codec in usable]
+
+
+def tray_available():
+    """True if a system tray icon is actually up right now.
+
+    Not "is pystray importable": the tray can fail to appear for reasons the
+    parent process only learns from the child (missing typelib, no
+    StatusNotifier host), and the form has to reflect what the user has, not
+    what the install implies.
+    """
+    try:
+        from .ui import user_interface
+
+        tray = getattr(user_interface, "_tray", None)
+        return tray is not None and tray.available
+    except Exception:
+        return False
+
+
+def sections():
+    """``[(title, [key, ...]), ...]`` — curated groups first, then Advanced
+    with everything else that's editable."""
+    schema = settings_schema()
+    mode = settings.audio_mode or "auto"
+    # Seeded, not built up: an audio toggle hidden because the mode can't use
+    # it must not reappear under "Advanced" as an uncurated key.
+    curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
+               | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT))
+    out = []
+    try:
+        shown = set(visible_passthrough_keys())
+    except Exception:
+        # Importing player pulls in mpv; never let that break the whole form.
+        shown = set()
+    shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
+    keep_running = "close_to_tray" if tray_available() else "allow_background"
+    shown.add(keep_running)
+    if getattr(settings, keep_running, False):
+        shown.update(BACKGROUND_DEPENDENT)
+    hidden = curated - shown
+    for title, keys in SECTIONS:
+        present = [k for k in keys if k in schema and k not in hidden]
+        curated.update(present)
+        if present:
+            out.append((title, present))
+    advanced = sorted(k for k in schema if k not in curated)
+    if advanced:
+        out.append((_("Advanced"), advanced))
+    return out
+
+
+def _classify(ann):
+    if ann is bool:
+        return "bool"
+    if ann is int:
+        return "int"
+    if ann is float:
+        return "float"
+    if ann is str:
+        return "str"
+    if typing.get_origin(ann) is typing.Union:
+        non_none = [a for a in typing.get_args(ann) if a is not type(None)]
+        if len(non_none) == 1:
+            return _classify(non_none[0])
+    return "skip"  # lists / structured configs — not editable in the flat form
+
+
+def is_nullable(key):
+    """True when the key's annotation is Optional[...].
+
+    settings_schema() collapses Optional[float] to "float" (the form only
+    needs the editor kind), but a nullable key can legitimately be set back
+    to None -- ui_scale's "Follow display" is exactly that -- and coerce()
+    would otherwise raise on it.
+    """
+    ann = Settings.__annotations__.get(key)
+    return (typing.get_origin(ann) is typing.Union
+            and type(None) in typing.get_args(ann))
+
+
+def settings_schema():
+    """``{key: "bool"|"int"|"float"|"str"}`` for the editable settings."""
+    out = {}
+    for key, ann in Settings.__annotations__.items():
+        if key.startswith("_") or key in _HIDDEN:
+            continue
+        kind = _classify(ann)
+        if kind != "skip":
+            out[key] = kind
+    return out
+
+
+def get_settings():
+    return settings.dict()
+
+
+def coerce(kind, value):
+    if kind == "bool":
+        return bool(value)
+    if kind == "int":
+        return int(value)
+    if kind == "float":
+        return float(value)
+    return str(value)
+
+
+def materialize_language_preset():
+    """The language dropdown writes language_config rules (README-style): a
+    preset generates rules, Unset clears them, Custom leaves them alone.
+
+    Without it, choosing "Dubbed (shows only)" persists a
+    string that nothing reads and track selection never changes."""
+    from ..language_config import preset_rules, parse_language_config
+
+    pref = settings.language_preference
+    if pref == "custom":
+        return
+    if pref == "unset":
+        settings.language_config = None
+        return
+    settings.language_config = parse_language_config(
+        preset_rules(pref, settings.preferred_language))
+
+
+def set_setting(key, value):
+    """Coerce ``value`` to the key's declared type, apply, and persist.
+    Returns True on success, False if the value was invalid for the type.
+
+    ``sync_path`` is *not* handled here — moving the download store is a long
+    filesystem operation, see relocate_downloads()."""
+    schema = settings_schema()
+    kind = schema.get(key)
+    if kind is None:
+        return False
+    try:
+        if value is None and is_nullable(key):
+            setattr(settings, key, None)
+        else:
+            setattr(settings, key, coerce(kind, value))
+    except (ValueError, TypeError):
+        return False
+    if key in ("language_preference", "preferred_language"):
+        try:
+            materialize_language_preset()
+        except Exception:  # a bad preset must not block the save
+            pass
+    settings.save()
+    return True
+
+
+def relocate_downloads(new_path, progress=None):
+    """Move the download store to ``new_path`` and persist the *resolved*
+    path. Returns (ok, message). Blocking — call from a worker."""
+    from ..sync.manager import syncManager
+
+    ok, message = syncManager.relocate(new_path or None, progress=progress)
+    if ok:
+        settings.sync_path = syncManager.root if new_path else None
+        settings.save()
+    return ok, message

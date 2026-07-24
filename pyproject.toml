@@ -17,22 +17,29 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
-    "jellyfin-apiclient-python>=1.13.0",
+    "jellyfin-apiclient-python>=1.15.0",
     "python-mpv-jsonipc>=1.2.2",
     "requests",
+    # Not optional since the in-player library browser replaced the Tk one:
+    # every tile, the playback HUD and the cast screen are rasterized with
+    # Pillow, and logging in at all now goes through that browser. Without it
+    # the app falls back to the CLI, which is a materially different product.
+    "pillow",
 ]
 
 [project.urls]
 Homepage = "https://github.com/jellyfin/jellyfin-mpv-shim"
 
 [project.optional-dependencies]
-gui = ["pystray", "pillow"]
-mirror = ["pillow"]
+systray = ["pystray"]
+# Deprecated alias for `systray`. Kept because `jellyfin-mpv-shim[gui]` is in
+# every version of the install instructions people have already copied, and an
+# unknown extra is only a warning — the install would silently lack the tray.
+gui = ["pystray"]
 discord = ["pypresence"]
 all = [
     "pystray",
     "pypresence",
-    "pillow",
     "pywin32; sys_platform == 'win32'",
 ]
 
@@ -58,3 +65,6 @@ jellyfin_mpv_shim = [
     "default_shader_pack/**/*",
     "integration/**/*",
 ]
+# mpvtk loads renderer.lua relative to its own __file__, so it has to land in
+# the subpackage directory — the top-level "*.lua" glob does not reach here.
+"jellyfin_mpv_shim.mpvtk" = ["*.lua"]

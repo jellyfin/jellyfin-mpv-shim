@@ -117,7 +117,6 @@ def get_profile(
     is_remote: bool = False,
     video_bitrate: Optional[int] = None,
     force_transcode: bool = False,
-    is_tv: bool = False,
 ):
     if video_bitrate is None:
         if is_remote:
@@ -161,10 +160,33 @@ def get_profile(
                 "Protocol": "hls",
                 "AudioCodec": audio_transcode_codecs,
                 "VideoCodec": transcode_codecs,
-                "MaxAudioChannels": "6",
+                # 8, not 6. This only ever applies to a stream the server is
+                # already transcoding -- MaxAudioChannels exists on
+                # TranscodingProfile only, and the DirectPlayProfiles below
+                # carry no channel condition, so it cannot force a transcode.
+                # What it *does* do is cap the audio: at StreamBuilder.cs's
+                # channelsExceedsLimit, a 7.1 track that could have been
+                # stream-copied alongside a video transcode instead gets
+                # re-encoded and downmixed to the limit. 6 (inherited from
+                # Kodi's profile) therefore quietly cost 7.1 audio on every
+                # video transcode. Downmixing is mpv's job here, not the
+                # server's -- see audio_mode in conf.py.
+                "MaxAudioChannels": "8",
             },
             {"Container": "jpeg", "Type": "Photo"},
         ],
+        # No Container / AudioCodec on these entries ON PURPOSE. An empty
+        # container in a DirectPlayProfile means "any" to the server
+        # (ContainerHelper.ContainsContainer treats empty as accept-all), so
+        # this declares that mpv can direct-play every container and codec —
+        # which, being ffmpeg-backed, it effectively can. Do NOT "tighten" this
+        # into an explicit list: the moment it is enumerated, anything left off
+        # (DSD, APE, WavPack, TAK, tracker modules, whatever this mpv build
+        # happens to support) silently transcodes to mp3 instead of direct
+        # playing. This is also why the shim does not use the /Audio/universal
+        # endpoint jellyfin-web uses for music — that endpoint has no wildcard
+        # and forces exactly that enumeration. The PlaybackInfo round trip this
+        # profile drives is ~20ms; it is not worth trading for a transcode risk.
         "DirectPlayProfiles": [{"Type": "Video"}, {"Type": "Audio"}, {"Type": "Photo"}],
         "ResponseProfiles": [],
         "ContainerProfiles": [],
@@ -306,22 +328,6 @@ def get_profile(
 
     if settings.always_transcode or force_transcode:
         profile["DirectPlayProfiles"] = []
-
-    if is_tv:
-        profile["TranscodingProfiles"].insert(
-            0,
-            {
-                "Container": "ts",
-                "Type": "Video",
-                "AudioCodec": "mp3,aac",
-                "VideoCodec": "h264",
-                "Context": "Streaming",
-                "Protocol": "hls",
-                "MaxAudioChannels": "2",
-                "MinSegments": "1",
-                "BreakOnNonKeyFrames": True,
-            },
-        )
 
     return profile
 

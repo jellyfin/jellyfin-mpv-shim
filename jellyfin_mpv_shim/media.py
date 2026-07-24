@@ -19,6 +19,40 @@ if TYPE_CHECKING:
     from jellyfin_apiclient_python import JellyfinClient as JellyfinClient_type
 
 
+# Pluggable video constructor so downloaded items can resolve to a local
+# OfflineVideo without media.py importing the sync package (avoids a cycle).
+_video_factory = None
+
+
+def set_video_factory(factory):
+    global _video_factory
+    _video_factory = factory
+
+
+def build_video(item_id, parent, aid=None, sid=None, srcid=None,
+                explicit_tracks=False):
+    if _video_factory is not None:
+        try:
+            video = _video_factory(item_id, parent, aid, sid, srcid,
+                                   explicit_tracks=explicit_tracks)
+            if video is not None:
+                return video
+        except Exception:
+            log.warning("Offline video factory failed for %s", item_id,
+                        exc_info=True)
+    # Fully offline with no downloaded copy: the remote fallback would just
+    # crash on client=None (killing the caller — historically the action
+    # thread, mid auto-advance). Callers must handle a None video.
+    if parent.client is None:
+        log.warning(
+            "Item %s is not downloaded and there is no server connection.",
+            item_id,
+        )
+        return None
+    return Video(item_id, parent, aid, sid, srcid,
+                 explicit_tracks=explicit_tracks)
+
+
 class Intro(object):
     def __init__(self, type, start, end):
         self.type: str = type  # "Intro" or "Outro"
@@ -35,12 +69,18 @@ class Video(object):
         aid: Optional[int] = None,
         sid: Optional[int] = None,
         srcid: Optional[str] = None,
+        explicit_tracks: bool = False,
     ):
         self.item_id = item_id
         self.parent = parent
         self.client = parent.client
         self.aid = aid
         self.sid = sid
+        # Client-side mpv secondary subtitle (rendered above the primary one).
+        # Purely a local overlay choice — the server is never told about it and
+        # it never forces a transcode — so it lives here, not in set_streams.
+        self.secondary_sid: Optional[int] = None
+        self.explicit_tracks = explicit_tracks
         self.item = self.client.jellyfin.get_item(item_id)
 
         self.is_tv = self.item.get("Type") == "Episode"
@@ -99,6 +139,12 @@ class Video(object):
 
             if not sub.get("IsExternal"):
                 index += 1
+
+        # A deliberate selection in the library browser is final: its pickers
+        # already defaulted to language_config (then the server default), so
+        # the chosen aid/sid stand as-is — including sid=None meaning "no subs".
+        if self.explicit_tracks:
+            return
 
         # language_config overrides cast-time aid/sid; the user explicitly
         # opted into preferences and the menu is the runtime escape hatch.
@@ -167,19 +213,36 @@ class Video(object):
         else:
             return settings.remote_kbps
 
-    def terminate_transcode(self):
-        if not self.is_transcode:
-            return
+    def _close_live_stream(self, live_stream_id: str):
+        """Release the server-side live stream (and its tuner).
 
-        # Live TV streams are torn down server-side by closing the live stream;
-        # that closes the transcode as a side effect, so we skip the second call.
+        Not the apiclient's ``close_live_stream``: that sends the id as a JSON
+        body, but the server binds it from the query string
+        (``CloseLiveStream([FromQuery, Required] string liveStreamId)``), so
+        the request fails model validation and the tuner is never released.
+        """
+        self.client.jellyfin._post(
+            "LiveStreams/Close", params={"liveStreamId": live_stream_id}
+        )
+
+    def terminate_transcode(self):
+        # Closing the live stream is deliberately NOT gated on is_transcode:
+        # a live source that direct-streams (the usual HDHomeRun path) still
+        # holds a tuner server-side. There is no reaper for a leaked stream —
+        # it is freed only by an explicit close, a stop report carrying the
+        # LiveStreamId, or a server restart — so on a single-tuner box a leak
+        # means no more live TV until the server comes back. Closing the live
+        # stream tears down any transcode with it, hence the early return.
         live_stream_id = (self.media_source or {}).get("LiveStreamId")
         if live_stream_id:
             try:
-                self.client.jellyfin.close_live_stream(live_stream_id)
+                self._close_live_stream(live_stream_id)
                 return
             except Exception:
                 log.warning("Closing live stream failed.", exc_info=True)
+
+        if not self.is_transcode:
+            return
 
         play_session_id = (self.playback_info or {}).get("PlaySessionId")
         if play_session_id is None:
@@ -352,7 +415,13 @@ class Video(object):
             weight = (media_source.get("SupportsDirectPlay") or 0) * 50000 + (
                 media_source.get("Bitrate") or 0
             ) / 1000
-            if weight > weight_selected:
+            # "selected is None" and not just a higher weight: a live TV source
+            # reports neither SupportsDirectPlay nor a Bitrate, so it weighs 0
+            # and could never beat the starting 0 — leaving nothing selected
+            # even when it was the only source on offer. Callers dereference
+            # this immediately, and the retry below only covers a queue of more
+            # than one source, which a live channel never has.
+            if selected is None or weight > weight_selected:
                 weight_selected = weight
                 selected = media_source
         if preferred_selected:
@@ -499,9 +568,18 @@ class Video(object):
         return url
 
     def get_duration(self):
-        ticks = self.item.get("RunTimeTicks")
-        if ticks:
-            return ticks / 10000000
+        # The MediaSource comes first because the Item DTO is unreliable for
+        # remote shortcuts: a library scan never probes a .strm (the probe is
+        # gated on the item not being a shortcut), so the Item carries no
+        # RunTimeTicks. The server does probe it, but only during the
+        # PlaybackInfo request, and that runtime lands on the MediaSource —
+        # the Item we fetched earlier stays stale. Reading only the Item left
+        # every .strm with no duration, which disabled the player's near-end
+        # finish check and stranded the queue on a frozen last frame.
+        for source in ((self.media_source or {}), self.item):
+            ticks = source.get("RunTimeTicks")
+            if ticks:
+                return ticks / 10000000
 
     def set_played(self, watched: bool = True):
         self.client.jellyfin.item_played(self.item_id, watched)
@@ -536,6 +614,7 @@ class Media(object):
         sid: Optional[int] = None,
         srcid: Optional[str] = None,
         queue_override: bool = True,
+        explicit_tracks: bool = False,
     ):
         if queue_override:
             self.queue = [
@@ -548,9 +627,19 @@ class Media(object):
         self.seq = seq
         self.user_id = user_id
 
-        self.video = Video(self.queue[seq]["Id"], self, aid, sid, srcid)
-        self.is_tv = self.video.is_tv
-        self.is_local = is_local_domain(client)
+        self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid,
+                                 explicit_tracks=explicit_tracks)
+        # build_video returns None when fully offline and this item has no
+        # downloaded copy. Keep the Media constructible so callers can detect
+        # the unplayable item via .video is None (get_next().video, play())
+        # instead of crashing here on the action thread.
+        self.is_tv = self.video.is_tv if self.video is not None else False
+        try:
+            self.is_local = is_local_domain(client) if client is not None else True
+        except Exception:
+            # Offline / unreachable server — locality only affects bitrate and
+            # transcode decisions, which local playback ignores anyway.
+            self.is_local = True
         self.has_next = seq < len(queue) - 1
         self.has_prev = seq > 0
 
@@ -574,9 +663,22 @@ class Media(object):
                 queue_override=False,
             )
 
-    def get_from_key(self, item_id: str):
+    def get_from_key(self, key: str):
+        """Locate a queue entry by PlaylistItemId, else by item Id.
+
+        PlaylistItemId first because it is the precise identifier: a queue
+        may hold the same item twice, and matching on Id alone always jumps
+        to the first copy. Id is still accepted — the websocket remote and
+        the Tk browser both address entries that way."""
+        if key is None:
+            return None
         for i, video in enumerate(self.queue):
-            if video["Id"] == item_id:
+            if video.get("PlaylistItemId") == key:
+                return Media(
+                    self.client, self.queue, i, self.user_id, queue_override=False
+                )
+        for i, video in enumerate(self.queue):
+            if video["Id"] == key:
                 return Media(
                     self.client, self.queue, i, self.user_id, queue_override=False
                 )
@@ -587,7 +689,7 @@ class Media(object):
             return self.video
 
         if index < len(self.queue):
-            return Video(self.queue[index]["Id"], self)
+            return build_video(self.queue[index]["Id"], self)
 
         log.error("Media::get_video couldn't find video at index %s" % index)
 
@@ -597,12 +699,19 @@ class Media(object):
             for id_num in items
         ]
         if append:
-            self.queue.extend(items)
+            new_queue = self.queue + items
         else:
-            self.queue = (
+            new_queue = (
                 self.queue[0 : self.seq + 1] + items + self.queue[self.seq + 1 :]
             )
-        self.has_next = self.seq < len(self.queue) - 1
+        # Ordering constraint for lock-free readers on other threads: the finished
+        # callback checks has_next *before* reading queue/seq (via get_next). So
+        # publish the fully-built queue first (assignment is atomic in CPython),
+        # then flip has_next -- any reader that observes has_next=True is then
+        # guaranteed to also see the just-queued item. Never mutate self.queue in
+        # place; a reader could otherwise observe a half-updated list.
+        self.queue = new_queue
+        self.has_next = self.seq < len(new_queue) - 1
 
     def replace_queue(self, sp_items, seq):
         """Update queue for SyncPlay.

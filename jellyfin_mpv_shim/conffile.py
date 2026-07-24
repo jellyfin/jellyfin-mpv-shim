@@ -53,8 +53,9 @@ def confdir(app: str):
 
 def get(app: str, conf_file: str, create: bool = False):
     conf_folder = confdir(app)
-    if not os.path.isdir(conf_folder):
-        os.makedirs(conf_folder)
+    # exist_ok: two processes starting simultaneously would otherwise race
+    # between the isdir check and makedirs and one hits FileExistsError.
+    os.makedirs(conf_folder, exist_ok=True)
     conf_file = os.path.join(conf_folder, conf_file)
     if create and not os.path.isfile(conf_file):
         open(conf_file, "w").close()
@@ -63,6 +64,5 @@ def get(app: str, conf_file: str, create: bool = False):
 
 def get_dir(app: str, subfolder: str):
     conf_folder = os.path.join(confdir(app), subfolder)
-    if not os.path.isdir(conf_folder):
-        os.makedirs(conf_folder)
+    os.makedirs(conf_folder, exist_ok=True)
     return conf_folder

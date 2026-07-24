@@ -9,9 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `--skip-build` does prep only (translations + shader pack), no sdist/wheel. Use this on Windows or when you only want `.mo` files.
   - `--install` runs `pip3 install .[all]` (with `sudo` if available; add `--local` to skip sudo).
   - `--get-pyinstaller` / `--gen-fingerprint` are CI helpers for the Windows build cache.
-- Regenerate translation template and merge into existing `.po` files: `./regen_pot.sh`
+- Regenerate translation template and merge into existing `.po` files (also folds in `master`'s translations so volunteer work isn't lost on a feature branch): `./regen_pot.sh`
 - Windows build (after `gen_pkg.sh --skip-build`): `build-win.bat` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for debug). Installer is built with Inno Setup from `Jellyfin MPV Shim.iss`.
-- There is no test suite and no linter config — code style is `black` (per the README badge), but `black` is not wired into the repo.
+- Run the test suite (stdlib unittest, no extra deps): `python3 -m unittest discover tests`. It covers pure-logic pieces (credential cleaning, SyncPlay teardown, wait_property, queue inserts, menu indexing); playback/server behavior still needs hand testing against a real server.
+- There is no linter config.
 
 The Python build uses PEP 517 / pyproject.toml with `setuptools` as the backend. The full build path requires the `build` package (`pip install build`); `pip install .[all]` and `pip install -e .` both work without it.
 
@@ -35,8 +36,12 @@ The core singletons (each is a module-level instance, not a class you should ins
 - `playerManager` (`player.py`) — wraps MPV (libmpv or external via JSON IPC; see below), owns the current playlist (a `Media` from `media.py`), and exposes the operations the rest of the app calls (`play`, `seek`, `set_streams`, `menu_action`, …). This module is the largest and most central.
 - `timelineManager` (`timeline.py`) — background thread that periodically posts playback progress to Jellyfin and fires the `idle_cmd` / `idle_ended_cmd` shell hooks.
 - `actionThread` (`action_thread.py`) — background thread that pumps `playerManager.update()` so MPV property changes from the player thread can trigger Python work without re-entering MPV's callback context.
-- `user_interface` — selected at startup: `gui_mgr.user_interface` if `enable_gui` and the GUI deps import cleanly, otherwise `cli_mgr.user_interface`. The GUI module uses `multiprocessing` and event threads to work around tkinter/pystray quirks (per CONTRIBUTING.md).
-- `mirror` (`display_mirror/`) — optional Chromecast-like preview window, only loaded if `display_mirroring` is enabled and `Jinja2` + `pywebview` are installed. When present, `mirror.run()` becomes the main loop; otherwise main blocks on a `halt` Event.
+- `user_interface` — selected at startup: `mpvtk_browser.ui.user_interface` if `enable_gui` and Pillow imports cleanly, otherwise `cli_mgr.user_interface`. There is no second window and no browser subprocess; the tray is the only child process (`tray.py`, because pystray needs the main thread on macOS).
+- **Cast screen** (`mpvtk_browser/cast.py`) — the Chromecast-like preview (idle "Ready to cast" backdrop + `DisplayContent` item preview) is a browser **route**, not a separate UI. Backdrop + gradient + text are baked into one full-window bitmap because mpv composites overlay bitmaps *above* all script ASS (mpvtk GUIDE §6), so text drawn as a node would be hidden. It was `display_mirror.py`, which attached its own `MpvtkApp` and ran its own loop — two owners of one window, which is why `display_mirroring` had to fall back to the Tk browser.
+- **`headless`** (`conf.py`) — cast-target mode: the cast screen is the only page and the library is unreachable from the machine. Enforced at the single choke point `MpvtkBrowser.navigate()` (plus `enter_browse`, `on_nav_command`, `display_item` and the now-playing bar's Queue button). `tests/test_mpvtk_headless.py` enumerates every door and has a catch-all so a newly added route is refused by default. Not a security boundary — the tray still reaches Settings, deliberately.
+- **Home screen sections** (`mpvtk_browser/home_sections.py`) — the home screen's rows are user-configurable and the layout is **stored on the server**, not in `conf.py`: DisplayPreferences under id `usersettings` and client `emby` (jellyfin-web's legacy namespace — any other client string reads a different, empty preference set), keys `homesection0`..`homesection9`. `home_sections.py` is pure logic (resolve/serialize/defaults); the I/O is `LibrarySource.get_home_prefs` / `save_home_layout`. Two encoding rules are load-bearing for interop and easy to regress: an **empty slot means that slot's default, not "none"** (only the literal `"none"` blanks a slot), and a slot holding its own default is written back as `""`. Section types the shim can't draw (Live TV, recordings, books) are preserved on save rather than rewritten, so configuring the shim never degrades the same user's web home screen. Editing UI is the Settings → Home Screen tab.
+  - The per-library "Latest" rows are one request each **with** `ParentId`, which bypasses the server's own `LatestItemsExcludes` handling — so that exclusion ("Display in home screen sections") is applied client-side in `get_home_rows`. Continue Watching / Next Up must keep passing **no** `ParentId`, which is what lets the server apply it for them.
+- **Library browser** (`mpvtk_browser/`) — renders *inside the player's mpv window*, in the main process, attached to `playerManager`'s mpv. There is no longer a choice of UI: the Tkinter browser and its `browser_ui` setting were removed (see `mpvtk/MIGRATION.md` for the history). **Nothing in the package imports tkinter, and `tests/test_no_tkinter.py` enforces that.**
 
 `menu.py` draws the in-player config menu by writing OSD text on MPV and consuming key/remote events; `mouse.lua` is loaded into MPV to forward mouse hits back. `syncplay.py` implements the SyncPlay timing loop using the time-sync support in `jellyfin-apiclient-python`'s `timesync_manager`. `bulk_subtitle.py` and `video_profile.py` are menu-driven features (season-wide subtitle changes, shader-pack profile switching).
 
@@ -61,7 +66,7 @@ This project's policy (CONTRIBUTING.md) is that **everything beyond the four req
 ## i18n
 
 User-facing strings use gettext via `i18n.py`'s `_()`. After adding/changing strings:
-1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files.
+1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
 2. `./gen_pkg.sh --skip-build` (or `gen_pkg.sh` itself) compiles `.po` → `.mo`. `.mo` files are gitignored and regenerated at build time.
 
 Translations are managed via Weblate (jellyfin/jellyfin-mpv-shim project); commits like "Translated using Weblate (...)" come from there — don't hand-edit `.po` files for in-flight translations.

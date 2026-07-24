@@ -36,5 +36,8 @@ function client_message_handler(event)
     end
 end
 
-mp.add_key_binding("MOUSE_MOVE", "shim_mouse_move_handler", mouse_handler)
+-- No binding is installed at load time: the handler fires a script-message on
+-- every mouse move, which is pure noise (and wakes the Python side) whenever
+-- the OSD menu is closed -- which is almost always. The bindings are added on
+-- "shim-menu-enable True" and removed again on False.
 mp.register_event("client-message", client_message_handler)

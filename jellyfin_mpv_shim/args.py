@@ -10,6 +10,10 @@ from .constants import APP_NAME, CLIENT_VERSION
 
 _args = None
 
+#: Accepted values for the positional command. Not passed to argparse as
+#: choices= — see _build_parser.
+COMMANDS = ("add", "clear", "stop")
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -34,11 +38,35 @@ def _build_parser() -> argparse.ArgumentParser:
         help="enable or disable the GUI (overrides config)",
     )
     parser.add_argument(
+        "--minimized",
+        dest="start_minimized",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="start with the library browser minimized to the system tray (overrides config)",
+    )
+    parser.add_argument(
         "--mpv-loglevel",
         dest="mpv_loglevel",
         choices=("fatal", "error", "warn", "info", "debug"),
         default=None,
         help="override mpv_log_level for this run",
+    )
+    parser.add_argument(
+        "--scale",
+        dest="ui_scale",
+        metavar="FACTOR",
+        type=float,
+        default=None,
+        help="scale the in-player UI by FACTOR for this run, e.g. 1.5 or 2 "
+        "(overrides ui_scale; not saved to the config)",
+    )
+    parser.add_argument(
+        "--reset-shaders",
+        dest="reset_shaders",
+        action="store_true",
+        help="clear the remembered video playback profile and the graphics "
+        "API override, then start normally (recovery for when a profile "
+        "leaves MPV unable to show video)",
     )
     parser.add_argument(
         "--debug",
@@ -71,8 +99,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         nargs="*",
-        choices=("add", "clear"),
-        help="add: prompt to add a server; clear: remove all stored credentials",
+        # Deliberately no choices=: with nargs="*", argparse before 3.11
+        # validates the *empty list* against choices when no positional is
+        # given, so declaring them here makes running with no arguments at
+        # all die with "invalid choice: []" on Python 3.9/3.10 — which is
+        # every normal launch. metavar keeps the usage line unchanged;
+        # get_args validates the values itself below.
+        metavar="{%s}" % ",".join(COMMANDS),
+        help="add: prompt to add a server; clear: remove all stored "
+        "credentials; stop: shut down the copy already running against this "
+        "configuration directory",
     )
     return parser
 
@@ -81,5 +117,14 @@ def get_args() -> argparse.Namespace:
     """Parse argv on first call, cache the result thereafter."""
     global _args
     if _args is None:
-        _args = _build_parser().parse_args()
+        parser = _build_parser()
+        _args = parser.parse_args()
+        # The choices= check argparse cannot do for us (see _build_parser).
+        # parser.error exits 2 with a usage line, matching what argparse
+        # would have printed for a bad positional.
+        unknown = [c for c in (_args.command or []) if c not in COMMANDS]
+        if unknown:
+            parser.error("argument command: invalid choice: %s (choose from %s)"
+                         % (", ".join(repr(c) for c in unknown),
+                            ", ".join(repr(c) for c in COMMANDS)))
     return _args
