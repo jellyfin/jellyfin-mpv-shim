@@ -296,6 +296,80 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
                         "on_mpv_gone is not bound to this UserInterface")
 
 
+class TestDetachFromInsideTheRenderLoop(unittest.TestCase):
+    """on_mpv_gone is reachable ON the render-loop thread.
+
+    A now-playing-bar button dispatches on that thread; _PlayerController._act
+    calls run_action, whose fast path executes the player method INLINE when
+    the lock is free; a dead handle takes it through _handle_mpv_disconnect ->
+    _notify_mpv_gone -> on_mpv_gone. _join_render_loop then joined the thread
+    it was running on, which raises "cannot join current thread".
+
+    _notify_mpv_gone swallows that, so the symptom was not a crash but a
+    half-finished detach: _browser.app kept pointing at the dead handle and
+    _thread held a reference to the loop forever. Both are asserted here.
+    """
+
+    def _ui(self):
+        ui = ui_mod.UserInterface()
+        ui._app = None
+        ui._browser = type("B", (), {"app": "still-attached"})()
+        return ui
+
+    def _detach_on(self, ui, thread_factory):
+        result = {}
+
+        def body():
+            try:
+                ui.on_mpv_gone()
+                result["exc"] = None
+            except Exception as exc:      # pragma: no cover - the bug
+                result["exc"] = exc
+
+        thread = thread_factory(body)
+        ui._thread = thread
+        thread.start()
+        thread.join(timeout=5)
+        return result
+
+    def test_detaching_from_the_loop_thread_does_not_raise(self):
+        ui = self._ui()
+        result = self._detach_on(
+            ui, lambda body: threading.Thread(target=body, name="mpvtk-browser"))
+        self.assertIsNone(result["exc"])
+
+    def test_the_detach_completes_rather_than_aborting_half_way(self):
+        ui = self._ui()
+        self._detach_on(
+            ui, lambda body: threading.Thread(target=body, name="mpvtk-browser"))
+        self.assertIsNone(ui._browser.app,
+                          "the browser was left pushing to a dead handle")
+        self.assertIsNone(ui._thread, "the render loop reference leaked")
+
+    def test_a_foreign_thread_still_joins_normally(self):
+        # The fix must not turn every detach into a no-op join: a real
+        # foreign caller (timeline thread on idle-quit) still has to WAIT for
+        # the loop, or it frees buffers mpv is mid-composite on.
+        ui = self._ui()
+        started = threading.Event()
+        release = threading.Event()
+
+        def loop():
+            started.set()
+            release.wait(5)
+
+        thread = threading.Thread(target=loop, name="mpvtk-browser")
+        ui._thread = thread
+        thread.start()
+        started.wait(5)
+        ui.RENDER_LOOP_JOIN = 0.2
+        ui.on_mpv_gone()                      # from the MAIN thread
+        self.assertIsNotNone(ui._thread,
+                             "a live foreign loop must stay tracked")
+        release.set()
+        thread.join(timeout=5)
+
+
 class TestNoCallbackEscapesCoverage(unittest.TestCase):
     """The half that stops this file going stale.
 

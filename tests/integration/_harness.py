@@ -473,6 +473,12 @@ def build_player(player_module, video=None):
     pm.on_load_error = None
     pm.on_mpv_terminated = None
     pm._showing_browse_bg = False
+    # Window bookkeeping the force-window paths read before they write:
+    # _rearm_window_geometry compares against _geometry_armed, and
+    # clear_stats()/toggle_stats() read _stats_shown. Both are plain
+    # constructor state, so the fake mirrors the constructor's initial value.
+    pm._geometry_armed = None
+    pm._stats_shown = False
 
     pm.menu = _FakeMenu()
     pm.syncplay = _FakeSyncplay()

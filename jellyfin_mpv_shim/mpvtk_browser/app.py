@@ -1602,13 +1602,13 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             self._pool.submit(lambda: self._safe(lambda c: c.check_updates()))
 
     def enter_browse(self):
+        """Show the browser: take the window + hide the OSC, then render.
+        mpvtk-active yes also drops the renderer out of HUD mode."""
         if self.headless and self.route.get("kind") not in self.HEADLESS_ROUTES:
             # Playback ended and something is putting us back on a library
             # page. In headless the only page to come back to is the cast
             # screen.
             self.show_cast()
-        """Show the browser: take the window + hide the OSC, then render.
-        mpvtk-active yes also drops the renderer out of HUD mode."""
         self._browsing = True
         self._minimized = False
         self._hud_shown = False

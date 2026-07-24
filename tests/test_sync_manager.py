@@ -19,6 +19,21 @@ from jellyfin_mpv_shim.sync.manager import SyncManager
 from jellyfin_mpv_shim.sync.db import (SyncDB, STATUS_PENDING, STATUS_COMPLETE)
 
 
+import contextlib
+
+
+@contextlib.contextmanager
+def _short_join_timeout(seconds=0.1):
+    """Shrink the worker-join timeout so a "worker won't stop" test doesn't
+    actually wait the production 10s."""
+    original = manager_module.STOP_JOIN_TIMEOUT
+    manager_module.STOP_JOIN_TIMEOUT = seconds
+    try:
+        yield
+    finally:
+        manager_module.STOP_JOIN_TIMEOUT = original
+
+
 class FakeJellyfin:
     def download_url(self, item_id):
         return "http://example/download/%s" % item_id
@@ -338,6 +353,56 @@ class RelocateTest(TmpTest):
         self.assertFalse(ok)
         self.assertIn("in progress", msg)
         self.assertEqual(m.root, self.tmp)  # unchanged
+
+    def test_refuse_when_the_worker_will_not_stop(self):
+        """The _active_item check is sampled BEFORE stop(), and the chunk loop
+        only notices _stop between chunks — a stalled connection parks it in a
+        socket read for up to the 60s read timeout, well past
+        STOP_JOIN_TIMEOUT. stop() used to log a warning and let the move
+        proceed anyway, so the tree was renamed out from under an open .part
+        handle while _open_and_run started a SECOND worker on the same rows at
+        the new root: two writers interleaving into one file.
+        """
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self._seed_download(m)
+        # A worker that ignores _stop, exactly like one parked in a socket read.
+        stuck = threading.Event()
+        self.addCleanup(stuck.set)
+        worker = threading.Thread(target=lambda: stuck.wait(30), daemon=True)
+        worker.start()
+        m._worker = worker
+
+        with _short_join_timeout():
+            ok, msg = m.relocate(os.path.join(self.tmp, "drive2"))
+
+        self.assertFalse(ok)
+        self.assertIn("still finishing", msg)
+        # Nothing moved, and the catalog is open again where the files are.
+        self.assertEqual(os.path.abspath(m.root), os.path.abspath(old))
+        self.assertTrue(os.path.exists(
+            os.path.join(old, "srv", "keep", "media.mkv")))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "drive2",
+                                                     "catalog.db")))
+        # And the guard was released, or every later enqueue/delete no-ops.
+        self.assertFalse(m._relocating)
+        self.assertIsNotNone(m.db.get("keep"))
+
+    def test_stop_reports_whether_the_worker_unwound(self):
+        # relocate's refusal rests on this return value, so assert it directly
+        # rather than only through the path above.
+        m = make_manager(self.tmp, self.addCleanup)
+        self.assertTrue(m.stop(), "a quiescent manager should report a clean stop")
+
+        m2 = make_manager(self.tmp, self.addCleanup)
+        stuck = threading.Event()
+        self.addCleanup(stuck.set)
+        worker = threading.Thread(target=lambda: stuck.wait(30), daemon=True)
+        worker.start()
+        m2._worker = worker
+        with _short_join_timeout():
+            self.assertFalse(m2.stop())
 
     def test_refuse_target_with_existing_catalog(self):
         old = os.path.join(self.tmp, "old")

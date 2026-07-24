@@ -181,5 +181,84 @@ class TestStripStore(unittest.TestCase):
         self.assertEqual(out["ih"], 135 + 44)
 
 
+class TestBitmapConcurrentMiss(unittest.TestCase):
+    """bitmap() drops its lock across _store(), so two callers can both miss
+    and both allocate. cast.py's compositor runs on the browser's shared pool
+    and resubmits the same (data, size) on a resize tick, so this is reachable
+    rather than theoretical -- and the loser's buffer used to be overwritten in
+    the cache without being freed, stranding a full-window BGRA (~8 MB at
+    1080p) that nothing would ever evict.
+
+    _blank_strip already re-checked and freed; bitmap() did not.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mpvtk-bitmap-")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _race(self, store, n=6):
+        """Fire n concurrent bitmap() calls for one key, all released at once
+        so they overlap inside _store()."""
+        img = Image.new("RGB", (64, 48), (10, 20, 30))
+        go = threading.Barrier(n)
+        out = []
+        lock = threading.Lock()
+
+        def work():
+            go.wait()
+            entry = store.bitmap("same-key", img)
+            with lock:
+                out.append(entry)
+
+        threads = [threading.Thread(target=work) for _ in range(n)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        return out
+
+    def test_file_backend_leaves_no_orphan_files(self):
+        store = StripStore(cache_dir=self.tmp)
+        entries = self._race(store)
+        # Every caller gets the SAME entry -- the winner's.
+        self.assertEqual(len({e["src"] for e in entries}), 1)
+        # And exactly one bitmap exists on disk: the losers freed theirs.
+        self.assertEqual(
+            [n for n in os.listdir(self.tmp) if n.endswith(".bgra")],
+            [os.path.basename(entries[0]["src"])])
+
+    def test_memory_backend_leaves_no_orphan_buffers(self):
+        mem = MemoryStore()
+        store = StripStore(cache_dir=None, mem_store=mem)
+        entries = self._race(store)
+        self.assertEqual(len({e["src"] for e in entries}), 1)
+        store.clear()
+        # clear() frees what the cache holds. Anything still resident is a
+        # buffer the race allocated and nothing owns.
+        self.assertEqual(_live_buffers(mem), 0)
+
+    def test_the_surviving_entry_is_the_cached_one(self):
+        # The winner must be what a later lookup returns, or callers holding
+        # the returned dict and callers re-requesting disagree about iw/ih --
+        # which is the SIGBUS the renderer's crop bound warns about.
+        store = StripStore(cache_dir=self.tmp)
+        entries = self._race(store)
+        again = store.bitmap("same-key", Image.new("RGB", (64, 48)))
+        self.assertIs(again, entries[0])
+
+
+def _live_buffers(mem):
+    """Buffers a MemoryStore still holds, however it names its container."""
+    for attr in ("_buffers", "_bufs", "_store", "_images"):
+        got = getattr(mem, attr, None)
+        if isinstance(got, dict):
+            return len(got)
+    raise AssertionError("MemoryStore's buffer container was renamed; "
+                         "update this helper")
+
+
 if __name__ == "__main__":
     unittest.main()

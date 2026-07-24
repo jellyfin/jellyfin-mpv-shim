@@ -1449,6 +1449,22 @@ class UserInterface:
         if thread is None or not thread.is_alive():
             self._thread = None
             return True
+        if thread is threading.current_thread():
+            # We ARE the render loop. This is reachable: a now-playing bar
+            # button runs on this thread, run_action's fast path executes the
+            # player method inline, and a dead handle takes it through
+            # _handle_mpv_disconnect -> _notify_mpv_gone -> on_mpv_gone.
+            # join() would raise "cannot join current thread", which
+            # _notify_mpv_gone swallows -- so the detach silently stopped
+            # half-done, leaving _browser.app pointing at the dead handle and
+            # _thread holding a reference to us forever.
+            #
+            # The loop is already unwinding by the time it gets here (quit()
+            # was enqueued above), and it cannot race itself, so treating this
+            # as "gone" is both safe and what the caller means.
+            log.debug("detaching from inside the render loop; not joining self")
+            self._thread = None
+            return True
         thread.join(timeout=self.RENDER_LOOP_JOIN)
         if thread.is_alive():
             log.warning("mpvtk render loop did not stop within %.0fs; "

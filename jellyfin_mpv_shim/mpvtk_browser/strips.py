@@ -329,6 +329,19 @@ class StripStore:
         lw, lh = lsize if lsize is not None else (dip(w), dip(h))
         entry = {"src": src, "iw": w, "ih": h, "lw": lw, "lh": lh, "v": v}
         with self._lock:
+            # Re-check, exactly as _blank_strip does. The lock is dropped
+            # across _store() above, so two callers can both miss and both
+            # allocate -- and cast.py's compositor runs on the browser's
+            # shared 4-worker pool, which submits the same (data, size) again
+            # on a resize tick. Overwriting the first entry without freeing it
+            # stranded a full-window BGRA buffer (~8 MB at 1080p) that nothing
+            # would ever evict: a ctypes buffer on libmpv, an unlinked
+            # strip*.bgra on jsonipc.
+            hit = self._cache.get(ck)
+            if hit is not None:
+                self._free(src)
+                self._cache.move_to_end(ck)
+                return hit
             self._cache[ck] = entry
             self._evict()
         return entry

@@ -166,7 +166,26 @@ class SyncManager:
         # _relocating keeps enqueue/delete off the (closed) catalog until we
         # reopen at the destination.
         self._relocating = True
-        self.stop()
+        if not self.stop():
+            # The worker is still alive and still holds an open .part handle.
+            # The _active_item check above is not enough on its own: it is
+            # sampled before stop(), and the chunk loop only notices _stop
+            # between chunks -- a stalled connection parks it in a socket read
+            # for up to the 60s read timeout. Moving the tree out from under
+            # that handle means the abandoned worker keeps appending while
+            # _open_and_run starts a SECOND worker on the same rows at the new
+            # root: two writers interleaving into one .part, which is the
+            # corruption _generation was introduced to prevent and does not
+            # cover mid-_stream.
+            #
+            # Reopen where the files still are and refuse the move.
+            self.root = old_root
+            try:
+                self._open_and_run()
+            finally:
+                self._relocating = False
+            return False, _("A download is still finishing. Wait for it to "
+                            "stop, then try again.")
         try:
             self._move_tree(old_root, new_root, progress)
         except Exception:
@@ -282,15 +301,25 @@ class SyncManager:
             progress(min(copied, total), total)
 
     def stop(self):
+        """Stop the download worker and close the catalog.
+
+        Returns True if the worker actually unwound. False means it is still
+        running and still owns an open ``.part`` handle -- callers that are
+        about to touch the store's files (relocate) MUST NOT proceed on a
+        False. Shutdown paths can ignore it: the thread is a daemon and the
+        process is going away regardless.
+        """
         self._stop = True
         self._wake.set()
         # Join the worker so it isn't killed mid-write, then close the catalog.
-        # The chunk loop polls self._stop every chunk and every wait() is woken,
-        # so this returns quickly.
+        # The chunk loop polls self._stop every chunk, but a chunk can take up
+        # to the 60s read timeout to arrive, so this join genuinely can expire.
+        joined = True
         worker = self._worker
         if worker is not None and worker.is_alive():
             worker.join(timeout=STOP_JOIN_TIMEOUT)
             if worker.is_alive():
+                joined = False
                 log.warning("Download worker did not stop within %ds.",
                             STOP_JOIN_TIMEOUT)
         if self.db is not None:
@@ -298,6 +327,7 @@ class SyncManager:
                 self.db.close()
             except Exception:
                 log.debug("Closing catalog on stop failed.", exc_info=True)
+        return joined
 
     # -- queries (also used by the browser via IPC) ------------------------
 
