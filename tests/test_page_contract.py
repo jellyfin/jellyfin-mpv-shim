@@ -106,8 +106,11 @@ class TestTheRegistryAndTheTablesAgree(unittest.TestCase):
         claimed = set()
         for base in type.mro(MpvtkBrowser):
             claimed |= set(base.__dict__.get("ROUTES") or {})
+        # Shrinks as 6c converts kinds. When it reaches zero the conversion
+        # is done: retire this test, the ROUTES fallback in _load_route /
+        # _render_route, and the now-empty mixin tables together.
         self.assertGreater(
-            len(claimed), 5,
+            len(claimed), 0,
             "the ROUTES fallback is empty — either the conversion is "
             "complete (retire this test and the fallback) or it broke")
 
@@ -255,8 +258,13 @@ class TestPageContextIsSmall(unittest.TestCase):
 
     def test_it_has_few_fields(self):
         fields = set(PageContext.__dataclass_fields__)
+        # 10 -> 11 for `dialogs` (step 6c, the queue/playlist-edit batch).
+        # Raising this is allowed only for a genuine architectural layer, not
+        # for one page's convenience: dialogs render in the shell ABOVE the
+        # page and outlive navigation, so no page can own one. If a future
+        # field is really "screen X needs Y", extract Y instead.
         self.assertLessEqual(
-            len(fields), 10,
+            len(fields), 11,
             "PageContext has grown to %d fields: %s. Adding a field per page "
             "recreates the god object behind an indirection."
             % (len(fields), sorted(fields)))
@@ -266,7 +274,7 @@ class TestPageContextIsSmall(unittest.TestCase):
         job, and a page that swapped its own source would browse a server the
         user has left."""
         ctx = PageContext(source=None, server=None, nav=None, run=None,
-                          art=None, player=None, actions=None,
+                          art=None, player=None, actions=None, dialogs=None,
                           status=lambda _s: None, invalidate=lambda: None)
         with self.assertRaises(Exception):
             ctx.source = "something else"

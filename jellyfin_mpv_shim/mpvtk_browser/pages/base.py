@@ -78,6 +78,11 @@ class PageContext:
     #: are orchestrated actions (optimistic write, rollback, dialog, toast),
     #: not the raw capability the gateway exposes.
     actions: Any
+    #: The shell's dialog layer: ``confirm``, ``message``, ``add_to``,
+    #: ``open_download``. A distinct layer rather than a page convenience —
+    #: a dialog renders in the shell, ABOVE whatever page is showing, and
+    #: outlives navigation. A page asks for one; it never draws one.
+    dialogs: Any
     #: Transient user-facing status (the toast). ``status(str)``.
     status: Callable[[str], None]
     #: Wake the render loop after writing state from any thread.

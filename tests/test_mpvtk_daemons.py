@@ -144,17 +144,25 @@ class TestShutdownStopsEverything(unittest.TestCase):
 
         pkg = os.path.dirname(inspect.getfile(app_mod))
         offenders = []
-        for mod in ("app", "settings", "music", "views", "tiles", "dialogs",
-                    "auth", "queue_edit"):
-            with open(os.path.join(pkg, mod + ".py")) as fh:
-                tree = ast.parse(fh.read())
+        # Discovered, not listed: a hardcoded list stops covering code the
+        # moment it moves, and step 6c moved most of this package into
+        # pages/. It also breaks outright when a module is deleted, which is
+        # how this was noticed.
+        sources = [os.path.join(root, fn)
+                   for root, _d, files in os.walk(pkg)
+                   if "__pycache__" not in root
+                   for fn in sorted(files) if fn.endswith(".py")]
+        for path in sources:
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 if (isinstance(node, ast.Call)
                         and isinstance(node.func, ast.Attribute)
                         and node.func.attr == "clear"
                         and isinstance(node.func.value, ast.Attribute)
                         and node.func.value.attr == "_shutdown_evt"):
-                    offenders.append(f"{mod}:{node.lineno}")
+                    offenders.append("%s:%d" % (
+                        os.path.relpath(path, pkg), node.lineno))
         self.assertEqual(offenders, [])
 
 
@@ -176,9 +184,16 @@ class TestTheContractIsInTheCode(unittest.TestCase):
         import os
         from jellyfin_mpv_shim.mpvtk_browser import app as app_mod
         pkg = os.path.dirname(inspect.getfile(app_mod))
-        for mod in ("app", "settings"):
-            with open(os.path.join(pkg, mod + ".py")) as fh:
-                tree = ast.parse(fh.read())
+        # The whole package: a daemon slot's method can live anywhere, and
+        # naming two modules meant a moved one silently became "no such
+        # method" instead of being checked.
+        sources = [os.path.join(root, fn)
+                   for root, _d, files in os.walk(pkg)
+                   if "__pycache__" not in root
+                   for fn in sorted(files) if fn.endswith(".py")]
+        for path in sources:
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef) and node.name == name:
                     return node

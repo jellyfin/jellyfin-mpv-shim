@@ -33,6 +33,11 @@ def apply_server_moves(order, moves):
     return order
 
 
+def editor_page(b, route):
+    """The PlaylistEditPage for a route — the seam _pe_move moved to in 6c."""
+    return b._page_for(route)
+
+
 class PlaylistMoveTest(unittest.TestCase):
     def _editor(self, n=5, selected=()):
         ctl = FakeController()
@@ -64,21 +69,21 @@ class PlaylistMoveTest(unittest.TestCase):
     def test_move_up_single(self):
         b, route = self._editor(selected=[2])
         before = self._ids(route)
-        b._pe_move(route, "up")
+        editor_page(b, route)._move("up")
         self.assertEqual(self._ids(route), ["p0", "p2", "p1", "p3", "p4"])
         self._check_replay(route, before)
 
     def test_move_down_single(self):
         b, route = self._editor(selected=[1])
         before = self._ids(route)
-        b._pe_move(route, "down")
+        editor_page(b, route)._move("down")
         self.assertEqual(self._ids(route), ["p0", "p2", "p1", "p3", "p4"])
         self._check_replay(route, before)
 
     def test_a_contiguous_block_moves_together(self):
         b, route = self._editor(selected=[1, 2])
         before = self._ids(route)
-        b._pe_move(route, "down")
+        editor_page(b, route)._move("down")
         self.assertEqual(self._ids(route), ["p0", "p3", "p1", "p2", "p4"])
         self._check_replay(route, before)
 
@@ -87,7 +92,7 @@ class PlaylistMoveTest(unittest.TestCase):
         keeping their relative order."""
         b, route = self._editor(selected=[0, 3])
         before = self._ids(route)
-        b._pe_move(route, "down")
+        editor_page(b, route)._move("down")
         self._check_replay(route, before)
 
     def test_top_and_bottom(self):
@@ -95,14 +100,14 @@ class PlaylistMoveTest(unittest.TestCase):
             with self.subTest(where=where):
                 b, route = self._editor(selected=[1, 3])
                 before = self._ids(route)
-                b._pe_move(route, where)
+                editor_page(b, route)._move(where)
                 self._check_replay(route, before)
 
     def test_at_the_edge_it_does_not_emit_a_no_op(self):
         """Moving the top row up must do nothing at all — not emit a move
         that reorders the rest around it."""
         b, route = self._editor(selected=[0])
-        b._pe_move(route, "up")
+        editor_page(b, route)._move("up")
         self.assertEqual(self._emitted(), [])
         self.assertEqual(self._ids(route), ["p0", "p1", "p2", "p3", "p4"])
 
@@ -111,7 +116,7 @@ class PlaylistMoveTest(unittest.TestCase):
         entire selection, so rows 1..n never moved."""
         b, route = self._editor(n=6, selected=[0, 4])
         before = self._ids(route)
-        b._pe_move(route, "down")
+        editor_page(b, route)._move("down")
         self.assertNotEqual(self._ids(route), before,
                             "an edge row froze the whole selection")
         self._check_replay(route, before)
@@ -127,7 +132,7 @@ class PlaylistMoveTest(unittest.TestCase):
             with self.subTest(trial=trial, n=n, sel=sorted(sel), where=where):
                 b, route = self._editor(n=n, selected=sel)
                 before = self._ids(route)
-                b._pe_move(route, where)
+                editor_page(b, route)._move(where)
                 self._check_replay(route, before)
 
 

@@ -96,7 +96,6 @@ from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
 from .dialogs import DialogsMixin
 from .auth import AuthMixin
 from .settings import SettingsMixin
-from .queue_edit import QueueEditMixin
 from .music import MusicMixin
 from .views import ViewsMixin, SORTS
 from .tiles import TilesMixin
@@ -125,7 +124,7 @@ CHROME_FREE = {"login", "locked", "connecting", "cast"}
 NO_NOW_PLAYING = {"login", "locked", "connecting"}
 
 
-class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
+class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
                    MusicMixin, ViewsMixin, TilesMixin, CastMixin):
 
     # Horizontal padding of ordinary page content.
@@ -322,11 +321,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             enabled=pagination.enabled_from_settings,
             cols=lambda w, geom: self.tiles.cols(w, geom),
             set_enabled=lambda v: self._config().set_setting("paginated", v))
+        self._dialogs = SimpleNamespace(
+            confirm=lambda *a, **k: self._confirm(*a, **k),
+            message=lambda *a, **k: self._message(*a, **k),
+            add_to=lambda item, server=None: self._open_add_to(item, server),
+            open_download=lambda item: self._open_download(item))
         self._actions = ItemActions(
             services=self, run=self._async,
-            dialogs=SimpleNamespace(
-                confirm=lambda *a, **k: self._confirm(*a, **k),
-                open_download=lambda item: self._open_download(item)),
+            dialogs=self._dialogs,
             on_launch=lambda audio, title: self._start(audio=audio,
                                                        title=title),
             on_downloads_changed=lambda: self._refresh_downloaded())
@@ -855,11 +857,22 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             nav=SimpleNamespace(
                 navigate=lambda route, **kw: self.navigate(route, **kw),
                 go_back=lambda: self.go_back(),
-                reload=lambda route: self._reload_route(route)),
+                reload=lambda route: self._reload_route(route),
+                # Re-run a loader WITHOUT bumping the epoch or repainting:
+                # for an error path putting back what the server really has,
+                # where a bump would cancel unrelated in-flight work.
+                load=lambda route: self._load_route(route),
+                # Is this route still the screen? An error path that lands
+                # after the user navigated away must not repaint or reload
+                # over whatever they are looking at now.
+                is_current=lambda route: route is self.route,
+                after_playlist_deleted=lambda pid:
+                    self.after_playlist_deleted(pid)),
             run=self._async,
             art=self._art_context(),
             player=self.controller,
             actions=self._actions,
+            dialogs=self._dialogs,
             status=self.set_status,
             invalidate=self.invalidate,
             # Shrinking escape hatch -- see pages/base.py. Counted by

@@ -98,19 +98,34 @@ class ItemActions:
         self.run.run(lambda: work(ctl), lambda _r: None, self.run.epoch,
                      on_error=failed)
 
-    def _edit(self, fn, error):
+    def edit(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
 
-        The swallowing variant made an "Add to Queue" the server rejected
-        look exactly like one that worked.
+        The swallowing variant made an "Add to Queue" the server rejected look
+        exactly like one that worked. ``on_error`` undoes whatever the view
+        already showed optimistically — leaving a rejected change on screen is
+        worse than never showing it.
         """
+        msg = error or _("The change could not be applied.")
+
         def work():
             fn(self.services.controller)
 
-        def failed(_exc):
-            self.services.set_status(error)
+        def done(_ok):
+            if on_ok is not None:
+                on_ok()
 
-        self.run.run(work, lambda _ok: None, self.run.epoch, on_error=failed)
+        def failed(_exc):
+            if on_error is not None:
+                on_error()
+            self.services.set_status(msg)
+
+        self.run.run(work, done, self.run.epoch, on_error=failed)
+
+    def skip_to(self, playlist_item_id):
+        """Jump the player to a queue entry."""
+        if playlist_item_id and self.services.controller is not None:
+            self._fire(lambda c: c.skip_to(playlist_item_id))
 
     # -- playback ----------------------------------------------------------
 
@@ -184,7 +199,7 @@ class ItemActions:
     def queue_items(self, ids, server):
         # An edit, not a swallowed client call: this is a button press, so a
         # rejected "Add to Queue" must not look like one that worked.
-        self._edit(
+        self.edit(
             lambda c: c.queue_items(server, [i for i in ids if i]),
             error=_("Those items could not be added to the queue."))
 

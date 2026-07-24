@@ -17,6 +17,14 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
 
+
+def editor_page(b, route):
+    """The QueuePage / PlaylistEditPage for a route — the seam the queue and
+    playlist-editor helpers moved to in 6c. Selection and item state still
+    live in the route dict, so the page can be rebuilt at will."""
+    return b._page_for(route)
+
+
 def music_page(b, route=None):
     """The MusicLibraryPage (or album/artist/genre page) for a route — the
     seam the music screens' helpers moved to in 6c."""
@@ -2049,8 +2057,8 @@ class TestPlaylistEdit(unittest.TestCase):
         self._open_edit()
         route = self.b.route
         first = route["_items"][0]["PlaylistItemId"]
-        self.b._pe_set_sel(route, {0})
-        self.b._pe_move(route, "down")
+        editor_page(self.b, route).set_selection({0})
+        editor_page(self.b, route)._move("down")
         self.assertEqual(route["_items"][1]["PlaylistItemId"], first)
         self.assertEqual(route["_sel"], {1})
         self.assertIn("playlist_move_many",
@@ -2059,9 +2067,9 @@ class TestPlaylistEdit(unittest.TestCase):
     def test_remove_drops_row_and_calls_api(self):
         self._open_edit()
         route = self.b.route
-        self.b._pe_set_sel(route, {1})
+        editor_page(self.b, route).set_selection({1})
         n0 = len(route["_items"])
-        self.b._pe_remove(route)
+        editor_page(self.b, route)._remove()
         self.assertEqual(len(route["_items"]), n0 - 1)
         self.assertIn("playlist_remove",
                       [c[0] for c in getattr(self.ctl, "transport", [])])
@@ -2096,8 +2104,8 @@ class TestPlaylistEdit(unittest.TestCase):
         self._open_edit()
         route = self.b.route
         ids0 = [i["PlaylistItemId"] for i in route["_items"]]
-        self.b._pe_set_sel(route, {1, 2})
-        self.b._pe_move(route, "top")
+        editor_page(self.b, route).set_selection({1, 2})
+        editor_page(self.b, route)._move("top")
         self.assertEqual([i["PlaylistItemId"] for i in route["_items"]],
                          [ids0[1], ids0[2], ids0[0]])
         self.assertEqual(route["_sel"], {0, 1})
@@ -2105,8 +2113,8 @@ class TestPlaylistEdit(unittest.TestCase):
     def test_bulk_remove_sends_one_call(self):
         self._open_edit()
         route = self.b.route
-        self.b._pe_set_sel(route, {0, 2})
-        self.b._pe_remove(route)
+        editor_page(self.b, route).set_selection({0, 2})
+        editor_page(self.b, route)._remove()
         self.assertEqual(len(route["_items"]), 1)
         calls = [c for c in self.ctl.transport if c[0] == "playlist_remove"]
         self.assertEqual(len(calls), 1)
@@ -2647,7 +2655,7 @@ class TestDoubleClickToPlay(unittest.TestCase):
         _nodes, h = self._queue()
         h["q-1"]["click"]({"shift": False, "ctrl": False})
         self.assertNotIn("skip_to", [c[0] for c in self.ctl.transport])
-        self.assertTrue(self.b._pe_sel(self.b.route), "the click did not select")
+        self.assertTrue(editor_page(self.b, self.b.route).selection(), "the click did not select")
 
     def test_a_non_selectable_list_is_unchanged(self):
         """There the row click already plays; adding a double-click would
@@ -2775,8 +2783,8 @@ class TestQueueView(unittest.TestCase):
         self.b._open_queue()
         route = self.b.route
         first = route["_data"]["entries"][0]["pid"]
-        self.b._select_click(route, 0, None)
-        self.b._queue_move(route, "down")
+        editor_page(self.b, route).click_row(0, None)
+        editor_page(self.b, route)._move("down")
         self.assertEqual(route["_data"]["entries"][1]["pid"], first)
         self.assertIn("queue_reorder", [c[0] for c in self.ctl.transport])
 
@@ -2788,7 +2796,7 @@ class TestQueueView(unittest.TestCase):
         h["q-0"]["click"]({})
         h["q-1"]["click"]({"shift": True})
         self.assertEqual(route["_sel"], {0, 1})
-        self.b._queue_move(route, "bottom")
+        editor_page(self.b, route)._move("bottom")
         self.assertEqual([e["pid"] for e in route["_data"]["entries"]],
                          [pids[2], pids[0], pids[1]])
 
@@ -5428,7 +5436,7 @@ class TestPlaylistDeleteNavigation(unittest.TestCase):
         ]
 
     def test_deleting_backs_out_of_the_playlist(self):
-        self.b._pe_delete(self.b.route)
+        editor_page(self.b, self.b.route)._delete()
         self.assertEqual(self.deleted, ["P"])
         kinds = [r["kind"] for r in self.b.nav_stack]
         self.assertNotIn("playlist", kinds, "left on the deleted playlist")
@@ -5438,7 +5446,7 @@ class TestPlaylistDeleteNavigation(unittest.TestCase):
     def test_the_route_we_land_on_refetches(self):
         """The grid we came from still listed the deleted playlist, because
         it was rendered from its cached _items."""
-        self.b._pe_delete(self.b.route)
+        editor_page(self.b, self.b.route)._delete()
         ids = [i.get("Id") for i in self.b.route.get("_items") or []]
         self.assertNotIn("P", ids, "still lists the deleted playlist")
         self.assertTrue(ids, "landed on an unloaded route")
@@ -5448,7 +5456,7 @@ class TestPlaylistDeleteNavigation(unittest.TestCase):
             raise OSError("server said no")
 
         self.ctl.playlist_delete = boom
-        self.b._pe_delete(self.b.route)
+        editor_page(self.b, self.b.route)._delete()
         self.assertEqual(self.b.route["kind"], "playlist_edit",
                          "walked out of a playlist that still exists")
         self.assertIn("could not be deleted", self.b.status)
@@ -5618,8 +5626,8 @@ class TestPlaylistReorderBatch(unittest.TestCase):
     def test_a_multi_row_move_is_one_ordered_batch(self):
         route = self.b.route
         before = [e["PlaylistItemId"] for e in route["_items"]]
-        self.b._pe_set_sel(route, {0, 1})
-        self.b._pe_move(route, "down")
+        editor_page(self.b, route).set_selection({0, 1})
+        editor_page(self.b, route)._move("down")
         self.assertEqual(len(self.batches), 1, "not a single batch")
         self.assertEqual(
             self._replay(before, self.batches[0]),
@@ -5628,8 +5636,8 @@ class TestPlaylistReorderBatch(unittest.TestCase):
 
     def test_the_batch_targets_the_shown_positions(self):
         route = self.b.route
-        self.b._pe_set_sel(route, {3})
-        self.b._pe_move(route, "top")
+        editor_page(self.b, route).set_selection({3})
+        editor_page(self.b, route)._move("top")
         self.assertEqual(self.batches[0], [("e3", 0)])
 
     def test_a_failed_reorder_resyncs_instead_of_lying(self):
@@ -5638,8 +5646,8 @@ class TestPlaylistReorderBatch(unittest.TestCase):
 
         self.ctl.playlist_move_many = boom
         route = self.b.route
-        self.b._pe_set_sel(route, {0})
-        self.b._pe_move(route, "down")
+        editor_page(self.b, route).set_selection({0})
+        editor_page(self.b, route)._move("down")
         self.assertIn("could not be reordered", self.b.status)
         self.assertEqual([i["PlaylistItemId"] for i in route["_items"]],
                          ["e0", "e1", "e2", "e3", "e4"],
@@ -5650,8 +5658,8 @@ class TestPlaylistReorderBatch(unittest.TestCase):
         and must not derail the rows that can."""
         self.entries[1].pop("PlaylistItemId")
         self.b.route["_items"] = list(self.entries)
-        self.b._pe_set_sel(self.b.route, {0, 1})
-        self.b._pe_move(self.b.route, "down")
+        editor_page(self.b, self.b.route).set_selection({0, 1})
+        editor_page(self.b, self.b.route)._move("down")
         named = [m[0] for m in self.batches[0]]
         self.assertNotIn(None, named, "emitted a move for an unaddressable row")
         self.assertTrue(named, "emitted nothing at all")
@@ -6211,7 +6219,7 @@ class TestQueueRemovalReportsFailure(unittest.TestCase):
         def boom(pids):
             raise RuntimeError("nope")
         b, route = self._browser(boom)
-        b._queue_remove_selected(route)
+        editor_page(b, route)._remove_selected()
         self.assertIn("could not be removed", b.status.lower())
 
     def test_it_re_reads_the_queue_either_way(self):
@@ -6225,7 +6233,7 @@ class TestQueueRemovalReportsFailure(unittest.TestCase):
                 seen = []
                 real = b.controller.get_queue
                 b.controller.get_queue = lambda: (seen.append(1) or real())
-                b._queue_remove_selected(route)
+                editor_page(b, route)._remove_selected()
                 self.assertTrue(seen, "the queue was never re-read")
                 self.assertNotEqual(
                     [e["pid"] for e in route["_data"]["entries"]],
@@ -6234,7 +6242,7 @@ class TestQueueRemovalReportsFailure(unittest.TestCase):
 
     def test_a_successful_removal_is_silent(self):
         b, route = self._browser(lambda pids: None)
-        b._queue_remove_selected(route)
+        editor_page(b, route)._remove_selected()
         self.assertNotIn("could not", b.status.lower())
 
 
@@ -6575,7 +6583,9 @@ class TestNonContiguousMoves(unittest.TestCase):
     row was already at the edge no-opped for the whole selection."""
 
     def _move(self, items, sel, where):
-        return MpvtkBrowser._block_move(list(items), set(sel), where)
+        from jellyfin_mpv_shim.mpvtk_browser.pages import queue_edit as qe
+
+        return qe.block_move(list(items), set(sel), where)
 
     ABC = ["a", "b", "c", "d", "e"]
 
@@ -7688,7 +7698,7 @@ class TestEditFailuresAreVisible(unittest.TestCase):
             {"kind": "playlist", "server": "srv1", "item_id": "P"},
             {"kind": "playlist_edit", "server": "srv1", "item_id": "P"},
         ]
-        b._pe_delete(b.route)
+        editor_page(b, b.route)._delete()
         self.assertEqual(b.route["kind"], "playlist_edit",
                          "navigated away from a playlist that still exists")
         self.assertIn("could not be deleted", b.status)
@@ -7810,7 +7820,7 @@ class TestOptimisticRollback(unittest.TestCase):
         route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
                  "_items": list(items), "_sel": {0}}
         b.nav_stack = [route]
-        b._pe_remove(route)
+        editor_page(b, route)._remove()
         self.assertEqual([i["Id"] for i in route["_items"]], ["a", "b"],
                          "rows stayed gone after a refused remove")
 
@@ -7819,7 +7829,7 @@ class TestOptimisticRollback(unittest.TestCase):
         route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
                  "title": "Old", "_newname": "New"}
         b.nav_stack = [route]
-        b._pe_rename(route)
+        editor_page(b, route)._rename()
         self.assertEqual(route["title"], "Old")
 
     def test_visibility_reverts(self):
@@ -7829,7 +7839,7 @@ class TestOptimisticRollback(unittest.TestCase):
         route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
                  "_public": False, "_public_known": True}
         b.nav_stack = [route]
-        b._pe_toggle_public(route)
+        editor_page(b, route)._toggle_public()
         self.assertFalse(route["_public"])
 
     def test_queue_reorder_reverts(self):
@@ -7840,7 +7850,7 @@ class TestOptimisticRollback(unittest.TestCase):
                  "_data": {"entries": list(entries), "current_id": "a"},
                  "_sel": {0}}
         b.nav_stack = [route]
-        b._queue_move(route, "down")
+        editor_page(b, route)._move("down")
         self.assertEqual([e["pid"] for e in route["_data"]["entries"]],
                          ["p1", "p2"], "queue kept an order the player refused")
 
@@ -7849,7 +7859,7 @@ class TestOptimisticRollback(unittest.TestCase):
         route = {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
                  "title": "Old", "_newname": "New"}
         b.nav_stack = [route]
-        b._pe_rename(route)
+        editor_page(b, route)._rename()
         self.assertEqual(route["title"], "New")
 
 
@@ -7912,7 +7922,7 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         b = self._browser(playlist_remove=self._boom)
         route = self._edit_route()
         b.nav_stack = [route]
-        b._pe_remove(route)
+        editor_page(b, route)._remove()
         self.assertEqual([i["Id"] for i in route["_items"]], ["b"])
         # walk away -> the epoch moves -> only *then* does the call fail
         b.navigate({"kind": "home", "server": "srv1"})
@@ -7927,7 +7937,7 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         b = self._browser(playlist_remove=self._boom)
         route = self._edit_route()
         b.nav_stack = [route]
-        b._pe_remove(route)
+        editor_page(b, route)._remove()
         b.navigate({"kind": "home", "server": "srv1"})
         b._pool.drain()
         b.go_back()

@@ -17,6 +17,7 @@ from .grid import GridPage, PersonPage
 from .music import MusicLibraryPage
 from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
 from .playlist import PlaylistPage
+from .queue_edit import PlaylistEditPage, QueuePage
 from .home import HomePage
 from .search import SearchPage
 from .season import SeasonPage
@@ -30,7 +31,9 @@ PAGES = {
     GridPage.kind: GridPage,
     MusicGenrePage.kind: MusicGenrePage,
     MusicLibraryPage.kind: MusicLibraryPage,
+    PlaylistEditPage.kind: PlaylistEditPage,
     PlaylistPage.kind: PlaylistPage,
+    QueuePage.kind: QueuePage,
     PersonPage.kind: PersonPage,
     HomePage.kind: HomePage,
     SearchPage.kind: SearchPage,

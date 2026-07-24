@@ -16,9 +16,29 @@ from jellyfin_mpv_shim.mpvtk_browser import app as app_mod
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 PKG = os.path.dirname(inspect.getfile(app_mod))
-MODULES = [m for m in ["app", "dialogs", "auth", "settings", "queue_edit",
-                       "music", "views", "tiles"]
-           if os.path.exists(os.path.join(PKG, m + ".py"))]
+def _mixin_modules():
+    """Top-level modules that actually define a browser mixin.
+
+    Discovered by what they contain, not by a hardcoded list: the previous
+    list was filtered by os.path.exists, so a renamed or deleted module
+    dropped out of the duplicate-member scan silently rather than failing.
+    Scoped by "defines a *Mixin class" because that is this file's subject —
+    names shared across the browser's MRO. pages/ is not part of the MRO.
+    """
+    out = []
+    for fn in sorted(os.listdir(PKG)):
+        if not fn.endswith(".py") or fn == "__init__.py":
+            continue
+        with open(os.path.join(PKG, fn), encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), filename=fn)
+        if any(isinstance(n, ast.ClassDef)
+               and (n.name.endswith("Mixin") or n.name == "MpvtkBrowser")
+               for n in tree.body):
+            out.append(fn[:-3])
+    return out
+
+
+MODULES = _mixin_modules()
 
 
 def _members(module):
