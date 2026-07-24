@@ -7,13 +7,16 @@ exercises the art context), and it is one of the seven screens pinned by
 nothing" checkable rather than asserted.
 
 Body is moved verbatim from ``ViewsMixin._load_search`` / ``_render_search``.
-The only edits are ``self.X`` -> ``self.ctx.X`` (a real dependency) or
-``self.ctx.shell.X`` (a helper not yet extracted; see ``base.PageContext``).
+The only edits are ``self.X`` -> ``self.ctx.X``. It originally spent nine
+``ctx.shell`` uses -- the entire budget -- on the tile and chrome helpers;
+step 6c's prep gave those real homes, so one remains: starting playback of a
+track list, which is still shell orchestration (spinner + async launch).
 """
 
 from ...i18n import _
 from ...mpvtk.widgets import Column, Text, VScroll
 from .. import theme
+from ..components import chrome
 from .base import Page
 
 
@@ -40,21 +43,21 @@ class SearchPage(Page):
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
     def render(self, size):
-        shell = self.ctx.shell
         art = self.ctx.art
+        tiles = art.tiles
         route = self.route
         term = route.get("term", "")
         if not term:
-            return shell._error(_("Type in the search box above."))
+            return chrome.error(_("Type in the search box above."))
         data = route.get("_data")
         if data is None:
-            return shell._busy()
+            return chrome.busy()
         items = data.get("items") or []
         people = data.get("people") or []
         rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
         if people:
-            rows.append(shell._tile_row(_("People"), people, "search-people",
-                                        geom=art.geom))
+            rows.append(tiles.tile_row(_("People"), people, "search-people",
+                                       geom=art.geom))
         # Group by type, each with its natural tile shape (like the Tk browser).
         groups = [
             (_("Movies"), ("Movie",), art.geom, "Primary"),
@@ -69,7 +72,7 @@ class SearchPage(Page):
             group = [it for it in items if it.get("Type") in types_]
             if group:
                 used.update(types_)
-                rows.append(shell._tile_row(
+                rows.append(tiles.tile_row(
                     label, group, "search-" + label, geom=geom,
                     image_type=itype))
         songs = [it for it in items if it.get("Type") == "Audio"]
@@ -87,15 +90,16 @@ class SearchPage(Page):
             # permanently. Search is capped at 60 results across all types and
             # this table has no art cells, so there is nothing to virtualize
             # away — no overlays, just text rows.
-            rows.append(shell._track_list(
+            rows.append(tiles.track_list(
                 songs, "search-song",
-                lambda i: shell._play_list(ids, server, i, audio=True),
+                lambda i: self.ctx.shell._play_list(ids, server, i,
+                                                    audio=True),
                 menu=True))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]
         if other:
-            rows.append(shell._tile_row(_("Other"), other, "search-other"))
+            rows.append(tiles.tile_row(_("Other"), other, "search-other"))
         if not items and not people:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=shell.CONTENT_PAD, gap=12,
+        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
                               align="stretch"), id="search", flex=1)

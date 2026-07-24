@@ -15,6 +15,12 @@ nodes — are component-shaped but still close over ``self.strips`` /
 ``self._posters``, so extracting them is its own step. Pretending they were
 already extracted would be a lie; leaving the hatch uncounted would let it
 become the new normal. So it is counted, and the number may only go down.
+
+It has done its job once already. Measuring the five ``ViewsMixin``
+renderers against the context gave 50 shell uses against a budget of 9,
+which is what stopped the conversion and produced steps 6b (TileRenderer,
+ScrollState) and 6c's prep (chrome, controls, detail). Afterwards the worst
+route needs 11 names, nearly all of them its own private helpers.
 """
 
 import ast
@@ -37,7 +43,12 @@ PAGES_DIR = os.path.join(REPO, "jellyfin_mpv_shim", "mpvtk_browser", "pages")
 #: **This may only decrease.** Raising it means a new page leaned on the shell
 #: instead of on its context, which is the thing this whole step is undoing.
 #: Lower it whenever an extraction removes uses — the test tells you to.
-SHELL_USE_BUDGET = 9
+#:
+#: 9 -> 1: step 6c's prep put the tile builders and chrome behind ``ctx.art``
+#: and ``components/``, which was all SearchPage had been reaching for. The
+#: one that remains is starting playback of a track list, which is still
+#: shell orchestration (loading spinner, then an un-epoch-gated launch).
+SHELL_USE_BUDGET = 1
 
 
 def _page_sources():

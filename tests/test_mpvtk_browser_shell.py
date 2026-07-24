@@ -13,6 +13,15 @@ from jellyfin_mpv_shim.mpvtk_browser import components, home_sections
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
+
+def home_page(b):
+    """The HomePage serving a home route, built the way the shell builds it.
+
+    _row_shape moved onto the page in step 6c; this is the seam its tests
+    now go through."""
+    return b._page_for({"kind": "home"})
+
+
 class FakeSource:
     """Minimal LibrarySource stand-in for the shell tests."""
 
@@ -1543,16 +1552,16 @@ class TestTileShapes(unittest.TestCase):
     def test_row_shape_classification(self):
         from jellyfin_mpv_shim.mpvtk_browser.strips import (
             POSTER_GEOM, LANDSCAPE_GEOM, SQUARE_GEOM)
-        g, _it = self.b._row_shape({"collection_type": "movies", "items": []})
+        g, _it = home_page(self.b)._row_shape({"collection_type": "movies", "items": []})
         self.assertIs(g, POSTER_GEOM)
-        g, _it = self.b._row_shape({"collection_type": "music", "items": []})
+        g, _it = home_page(self.b)._row_shape({"collection_type": "music", "items": []})
         self.assertIs(g, SQUARE_GEOM)
-        g, it = self.b._row_shape(
+        g, it = home_page(self.b)._row_shape(
             {"collection_type": None, "items": [{"Type": "Episode"}]})
         self.assertIs(g, LANDSCAPE_GEOM)
         self.assertEqual(it, "Thumb")
         # collection-type wins over a stray episode in the row
-        g, _it = self.b._row_shape(
+        g, _it = home_page(self.b)._row_shape(
             {"collection_type": "tvshows", "items": [{"Type": "Episode"}]})
         self.assertIs(g, POSTER_GEOM)
 
@@ -4214,14 +4223,14 @@ class TestPlaylistTileShape(unittest.TestCase):
         self.assertIsNone(self.b._square_geom([]))
 
     def test_playlists_home_row_is_square(self):
-        geom, itype = self.b._row_shape(
+        geom, itype = home_page(self.b)._row_shape(
             {"collection_type": "playlists", "items": [
                 {"Id": "p1", "Type": "Playlist"}]})
         self.assertIs(geom, self.b.geom_square)
         self.assertEqual(itype, "Primary")
 
     def test_an_untyped_playlist_row_is_still_square(self):
-        geom, _t = self.b._row_shape(
+        geom, _t = home_page(self.b)._row_shape(
             {"collection_type": None,
              "items": [{"Id": "p1", "Type": "Playlist"}]})
         self.assertIs(geom, self.b.geom_square)

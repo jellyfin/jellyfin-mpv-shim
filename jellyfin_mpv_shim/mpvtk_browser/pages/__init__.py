@@ -12,10 +12,12 @@ consulted first, which is exactly the silent-winner hazard
 """
 
 from .base import Page, PageContext
+from .home import HomePage
 from .search import SearchPage
 
 #: kind -> Page subclass.
 PAGES = {
+    HomePage.kind: HomePage,
     SearchPage.kind: SearchPage,
 }
 
