@@ -78,7 +78,9 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
+from . import navigator
 from .async_runner import AsyncRunner
+from .navigator import Navigator
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
@@ -321,7 +323,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.status = ""
         self._size = None         # last window size seen by build()
 
-        self.nav_stack = [self._default_route()]
+        self._nav = Navigator(self._default_route,
+                              is_headless=lambda: self.headless)
         self._load_route(self.route)
 
     # ------------------------------------------------------------ routing
@@ -329,11 +332,17 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
     def _default_route(self):
         """Where the browser lands when it has nowhere specific to go.
 
-        Every direct ``nav_stack`` assignment must come through here.
-        ``navigate()`` enforces the headless lockdown, but assigning the
-        stack bypasses it entirely — which is exactly how a successful
-        connect put a headless box on the library: ``set_source`` reset the
-        stack to home itself, and the refusal never ran.
+        Handed to the Navigator as a callback rather than a value, because
+        every stack-emptying path backfills through it and it must reflect
+        the headless flag *at that moment*. That is what makes
+        ``Navigator.replace`` safe to leave unfiltered.
+
+        This used to carry a warning that every direct ``nav_stack``
+        assignment must come through here — a successful connect once put a
+        headless box on the library because ``set_source`` reset the stack
+        itself and the refusal never ran. The stack is now private to the
+        Navigator, so the warning is an invariant instead
+        (``tests/test_source_invariants.py``).
         """
         if self.headless:
             return {"kind": "cast"}
@@ -341,30 +350,41 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     @property
     def route(self):
-        return self.nav_stack[-1]
+        return self._nav.route
 
-    # Routes headless mode still allows. Everything else is the library.
-    HEADLESS_ROUTES = {"cast", "connecting", "locked"}
+    @property
+    def nav_stack(self):
+        """The live route stack. Read freely; every WRITE goes through the
+        Navigator, which is what makes the headless lockdown hold."""
+        return self._nav.stack
+
+    @nav_stack.setter
+    def nav_stack(self, routes):
+        # Kept as a settable attribute because tests and the snapshot harness
+        # place the browser on a screen directly. It routes through
+        # Navigator.replace rather than rebinding a list, so there is still
+        # exactly one owner.
+        self._nav.replace(routes)
+
+    #: Kept as a class attribute: tests/test_mpvtk_headless.py reads it, and
+    #: it is the published name for "what headless still allows".
+    HEADLESS_ROUTES = navigator.HEADLESS_ROUTES
 
     def navigate(self, route, reset=False, force=False):
-        """Go to ``route``.
+        """Go to ``route``, then load and repaint it.
 
-        In headless mode this is the single choke point for the lockdown:
-        every way into the library ends up here (a tile click, the tray's
+        Every way into the library ends up here — a tile click, the tray's
         "Show Library Browser", a remote's GoHome, the now-playing bar's
-        Queue button, a DisplayContent from a phone), so refusing here is
-        what makes the mode mean something rather than hiding one entry
-        point and leaving five others open.
+        Queue button, a DisplayContent from a phone — which is what lets the
+        headless lockdown mean something rather than hiding one entry point
+        and leaving five others open. The refusal itself is the Navigator's
+        (see navigator.py); this method's job is that a refusal skips the
+        load and the repaint too.
 
         ``force`` is for the screens headless itself needs to reach.
         """
-        if (self.headless and not force
-                and route.get("kind") not in self.HEADLESS_ROUTES):
-            log.debug("headless: refusing navigation to %r", route.get("kind"))
-            return
-        if reset:
-            self.nav_stack = []
-        self.nav_stack.append(route)
+        if not self._nav.push(route, reset=reset, force=force):
+            return          # refused by the headless lockdown
         self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
@@ -398,8 +418,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._scroll_rendered.clear()
 
     def go_back(self):
-        if len(self.nav_stack) > 1:
-            left = self.nav_stack.pop()
+        left = self._nav.pop()
+        if left is not None:
             self._reset_scroll()
             self._bump_epoch()
             # Stale-while-revalidate: refresh Home on return (watched/resume
@@ -424,10 +444,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         checked, so nothing was ever pruned and deleting a playlist left the
         user sitting on its now-dead page. The route we land on also has to
         re-fetch, or the grid we came from still lists the playlist."""
-        self.nav_stack = [
-            r for r in self.nav_stack
-            if playlist_id not in (r.get("item_id"), r.get("parent_id"))
-        ] or [self._default_route()]
+        self._nav.prune(
+            lambda r: playlist_id not in (r.get("item_id"), r.get("parent_id")))
         route = self.route
         route.pop("_data", None)
         route.pop("_items", None)
@@ -533,7 +551,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         if self._menu is not None:
             self._close_menu()
             return True
-        if len(self.nav_stack) > 1:
+        if self._nav.can_go_back:
             self.go_back()
             return True
         return False
@@ -1852,7 +1870,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                         for r in self.nav_stack))
         self.server = server
         if not stay:
-            self.nav_stack = [self._default_route()]
+            self._nav.reset_to_default()
         self._bump_epoch()
         self._load_route(self.route)
         self._refresh_downloaded()
@@ -2062,7 +2080,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
                           on_click=cb, tip=label if compact else None)
 
         left = []
-        if len(self.nav_stack) > 1:
+        if self._nav.can_go_back:
             left.append(nav_button(_("Back"), "nav-back", "arrow_back",
                                    self.go_back))
         left.append(nav_button(

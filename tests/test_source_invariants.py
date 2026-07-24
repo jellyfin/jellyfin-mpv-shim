@@ -208,6 +208,65 @@ class TestOneOwnerForSharedMachinery(unittest.TestCase):
             "reads it and passes it to run_async. Writers found: %s"
             % sorted(writers))
 
+    def test_the_route_stack_is_mutated_in_one_place(self):
+        """The headless lockdown is only as good as the stack's privacy.
+
+        ``_default_route``'s docstring used to carry this as a warning —
+        "every direct ``nav_stack`` assignment must come through here" —
+        because a successful connect once put a headless box on the library:
+        ``set_source`` reset the stack itself, so the refusal never ran.
+        Prose does not survive a decomposition; this does.
+
+        Reading the stack is fine and common (two mixins check its depth to
+        decide whether to draw a back button). What is forbidden is mutating
+        it in place from outside the Navigator.
+        """
+        offenders = []
+        for name, path in self._browser_modules():
+            if name == "navigator.py":
+                continue
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                # nav_stack.append(...) / .pop() / .insert(...) / .clear()
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr in ("append", "pop", "insert",
+                                               "clear", "remove", "extend")
+                        and isinstance(node.func.value, ast.Attribute)
+                        and node.func.value.attr == "nav_stack"):
+                    offenders.append("%s:%d nav_stack.%s(...)"
+                                     % (name, node.lineno, node.func.attr))
+        self.assertEqual(
+            offenders, [],
+            "The route stack must only be mutated by the Navigator, which "
+            "is where the headless lockdown lives:\n  "
+            + "\n  ".join(offenders))
+
+    def test_the_headless_route_policy_has_one_definition(self):
+        """One set of allowed routes, in the module that enforces it.
+
+        Two copies would drift, and the copy that drifted would be the one
+        some door happened to consult.
+        """
+        definers = set()
+        for name, path in self._browser_modules():
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Assign):
+                    continue
+                if not isinstance(node.value, (ast.Set, ast.List, ast.Tuple)):
+                    continue
+                for target in node.targets:
+                    label = getattr(target, "id", getattr(target, "attr", ""))
+                    if label == "HEADLESS_ROUTES":
+                        definers.add(name)
+        self.assertEqual(
+            definers, {"navigator.py"},
+            "HEADLESS_ROUTES must be defined once, in navigator.py "
+            "(app.py may alias it). Found in: %s" % sorted(definers))
+
     def test_the_async_lock_has_one_owner(self):
         owners = self._modules_defining(
             lambda tree, _n: self._assigns(tree, "_lock"))
