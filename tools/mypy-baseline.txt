@@ -23,7 +23,6 @@ jellyfin_mpv_shim/menu.py: error: playerManager_type? has no attribute "get_osd_
 jellyfin_mpv_shim/menu.py: error: Variable "jellyfin_mpv_shim.player.playerManager" is not valid as a type  [valid-type]
 jellyfin_mpv_shim/mpvtk/app.py: error: Skipping analyzing "mpv": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 jellyfin_mpv_shim/mpvtk/app.py: error: Skipping analyzing "python_mpv_jsonipc": module is installed, but missing library stubs or py.typed marker  [import-untyped]
-jellyfin_mpv_shim/mpvtk_browser/app.py: error: Definition of "ROUTES" in base class "AuthMixin" is incompatible with definition in base class "MusicMixin"  [misc]
 jellyfin_mpv_shim/mpvtk_browser/app.py: error: Definition of "ROUTES" in base class "AuthMixin" is incompatible with definition in base class "QueueEditMixin"  [misc]
 jellyfin_mpv_shim/mpvtk_browser/pages/search.py: error: Need type annotation for "used" (hint: "used: set[<type>] = ...")  [var-annotated]
 jellyfin_mpv_shim/mpvtk/layout.py: error: Need type annotation for "_kern" (hint: "_kern: dict[<type>, <type>] = ...")  [var-annotated]

@@ -61,6 +61,8 @@ class ItemActions:
         self._on_launch = on_launch
         #: Called after a download is deleted, to re-read the badges.
         self._on_downloads_changed = on_downloads_changed or (lambda: None)
+        #: Cached edit-capability probe; see can_edit.
+        self._edit_ok = None
 
     # -- plumbing ----------------------------------------------------------
 
@@ -280,6 +282,28 @@ class ItemActions:
 
         self._fire(work)
         self.services.invalidate()
+
+    # -- capability --------------------------------------------------------
+
+    def can_edit(self):
+        """Whether the apiclient can edit playlists/collections.
+
+        Fails OPEN: only a probe that positively answers False hides the
+        affordances. An inconclusive probe (a controller without the method)
+        hiding every edit control is a worse failure than showing one that
+        errors — and the API call is the real check anyway.
+
+        Cached: this is read from build(), i.e. once a repaint.
+
+        Was ``TilesMixin._edit_apis``.
+        """
+        if self._edit_ok is None:
+            try:
+                answer = self.services.controller.edit_apis()
+            except Exception:
+                answer = None
+            self._edit_ok = answer is not False
+        return self._edit_ok
 
     # -- downloads ---------------------------------------------------------
 

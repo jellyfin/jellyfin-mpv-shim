@@ -356,7 +356,19 @@ class TestRouteTablesResolve(unittest.TestCase):
         return out
 
     def test_there_are_routes_to_check(self):
-        self.assertGreater(len(self._tables()), 10)
+        """Guards against the scan silently matching nothing.
+
+        The threshold tracks what is left in the tables: step 6c is moving
+        kinds out of ROUTES and into pages/, and the registry has its own
+        contract test (tests/test_page_contract.py). Every kind still has to
+        be served by exactly one of the two, which is what the total below
+        checks."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages import PAGES
+
+        self.assertGreater(len(self._tables()) + len(PAGES), 15)
+        self.assertGreater(len(self._tables()), 0,
+                           "no ROUTES left -- delete this class instead of "
+                           "letting it pass on an empty scan")
 
     def test_every_loader_and_renderer_exists(self):
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser

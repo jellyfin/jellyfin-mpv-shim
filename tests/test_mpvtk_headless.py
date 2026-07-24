@@ -248,7 +248,19 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
     """The catch-all. Every route kind the browser declares must either be
     on the headless allow-list or be refused by navigate(). A new route
     added later is refused by default — this asserts that stays true, so
-    the failure mode is a locked box, never an open one."""
+    the failure mode is a locked box, never an open one.
+
+    "Declares" means BOTH sources: the mixins' ROUTES tables and the page
+    registry. Step 6c moves kinds from the first to the second, and a sweep
+    that only read ROUTES quietly stopped covering every kind it converted —
+    twelve of them — which is precisely the silent narrowing this class
+    exists to prevent."""
+
+    @staticmethod
+    def _every_kind(b):
+        from jellyfin_mpv_shim.mpvtk_browser.pages import PAGES
+
+        return sorted(set(b._routes()) | set(PAGES))
 
     def test_every_declared_route_is_either_allowed_or_refused(self):
         b = MpvtkBrowser(app=None, source=FakeSource(),
@@ -259,7 +271,7 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
         b.show_cast()
 
         leaked = []
-        for kind in b._routes():
+        for kind in self._every_kind(b):
             if kind in b.HEADLESS_ROUTES:
                 continue
             b.nav_stack = [{"kind": "cast"}]
@@ -278,8 +290,14 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
                          {"cast", "connecting", "locked"})
 
     def test_the_scan_saw_the_routes(self):
+        """The lockdown sweep above iterates b._routes(), which only lists
+        kinds still served by a ROUTES table. Pages are enumerated separately
+        so a converted route cannot drop out of the sweep unnoticed -- that
+        would be a headless escape nobody tested."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages import PAGES
+
         b = MpvtkBrowser(app=None, source=FakeSource())
-        self.assertGreater(len(b._routes()), 10)
+        self.assertGreater(len(b._routes()) + len(PAGES), 15)
 
     def test_no_new_code_path_assigns_nav_stack_behind_navigate(self):
         """navigate() is where the lockdown lives, so anything assigning

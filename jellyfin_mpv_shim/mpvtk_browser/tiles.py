@@ -176,19 +176,7 @@ class TilesMixin:
         return out
 
     def _edit_apis(self):
-        """Whether the apiclient can edit playlists/collections.
-
-        Fails OPEN: only a probe that positively answers False hides the
-        affordances. An inconclusive probe (a controller without the
-        method) hiding every edit control is a worse failure than showing
-        one that errors — and the API call is the real check anyway."""
-        if self._edit_apis_ok is None:
-            try:
-                answer = self.controller.edit_apis()
-            except Exception:
-                answer = None
-            self._edit_apis_ok = answer is not False
-        return self._edit_apis_ok
+        return self._actions.can_edit()
 
     def _tile_menu_node(self):
         m = self._menu

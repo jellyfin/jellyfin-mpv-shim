@@ -16,6 +16,18 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
 
+
+def music_page(b, route=None):
+    """The MusicLibraryPage (or album/artist/genre page) for a route — the
+    seam the music screens' helpers moved to in 6c."""
+    return b._page_for(route if route is not None else b.route)
+
+
+def music_scroll(b, route, offset, maximum):
+    """The music library's infinite-scroll handler, now on the page."""
+    b._page_for(route)._on_scroll_end(offset, maximum)
+
+
 def grid_scroll(b, route, offset, maximum):
     """The grid/person infinite-scroll handler, which moved onto GridPage in
     6c. Reached through the page the shell would build for that route."""
@@ -2255,7 +2267,7 @@ class TestMusicPaging(unittest.TestCase):
         self.b.navigate({"kind": "music", "server": "srv1",
                          "parent_id": "lib1", "title": "Music"})
         self.assertEqual(len(self.b.route["_data"]), 100)
-        self.b._on_music_scroll(self.b.route, 9500, 10000)
+        music_scroll(self.b, self.b.route, 9500, 10000)
         self.assertEqual(calls, [0, 100])
         self.assertEqual(len(self.b.route["_data"]), 120)
 
@@ -2264,7 +2276,7 @@ class TestMusicPaging(unittest.TestCase):
                          "parent_id": "lib1", "title": "Music"})
         self.b.route["_total"] = 500
         before = len(self.b.route["_data"])
-        self.b._on_music_scroll(self.b.route, 100, 10000)
+        music_scroll(self.b, self.b.route, 100, 10000)
         self.assertEqual(len(self.b.route["_data"]), before)
 
 
@@ -3054,7 +3066,7 @@ class TestPhase2Views(unittest.TestCase):
         for tab in ("mtab-albums", "mtab-artists", "mtab-genres"):
             self.assertIn(tab, ids(nodes))
         # switch to artists -> reload -> renders
-        self.b._set_music_tab(self.b.route, "artists")
+        music_page(self.b)._set_tab("artists")
         self.assertEqual(self.b.route["_tab"], "artists")
 
     def test_album_tracklist_and_play(self):
@@ -4613,8 +4625,8 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
         b.server = "srv1"
         b.nav_stack = [route]
         scroll = {"grid": lambda r, o, m: grid_scroll(b, r, o, m),
-                  "music": b._on_music_scroll,
-                  "genre": b._on_genre_scroll}[view]
+                  "music": lambda r, o, m: music_scroll(b, r, o, m),
+                  "genre": lambda r, o, m: music_scroll(b, r, o, m)}[view]
         return b, route, calls, scroll, read
 
     VIEWS = ("grid", "music", "genre")
@@ -6109,7 +6121,7 @@ class TestSongsTabArt(unittest.TestCase):
             tr.get("Id")) or b.tiles._art_placeholder(size)
         b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
                     "title": "Music"})
-        b._set_music_tab(b.route, tab)
+        music_page(b)._set_tab(tab)
         return b
 
     def test_the_songs_tab_shows_per_row_art(self):
@@ -6149,8 +6161,8 @@ class TestMusicTabsAreCached(unittest.TestCase):
     def test_going_back_to_a_tab_does_not_refetch(self):
         b = self._browser()
         route = b.route
-        b._set_music_tab(route, "artists")
-        b._set_music_tab(route, "albums")
+        music_page(b, route)._set_tab("artists")
+        music_page(b, route)._set_tab("albums")
         self.assertEqual(self.calls, ["albums", "artists"],
                          "the albums tab was fetched twice: %r" % self.calls)
 
@@ -6158,20 +6170,20 @@ class TestMusicTabsAreCached(unittest.TestCase):
         b = self._browser()
         route = b.route
         first = list(route["_data"])
-        b._set_music_tab(route, "artists")
-        b._set_music_tab(route, "albums")
+        music_page(b, route)._set_tab("artists")
+        music_page(b, route)._set_tab("albums")
         self.assertEqual(route["_data"], first)
 
     def test_a_tab_never_opened_is_still_fetched(self):
         b = self._browser()
-        b._set_music_tab(b.route, "artists")
+        music_page(b)._set_tab("artists")
         self.assertIn("artists", self.calls)
 
     def test_the_cache_dies_with_the_route(self):
         """It lives in the route dict, so it cannot go stale across a
         reload or outlive the page."""
         b = self._browser()
-        b._set_music_tab(b.route, "artists")
+        music_page(b)._set_tab("artists")
         b.navigate({"kind": "music", "server": "srv1", "parent_id": "lib1",
                     "title": "Music"})
         self.assertNotIn("_tab_cache", {k: v for k, v in b.route.items()
@@ -6520,7 +6532,8 @@ class TestNoDeadButtons(unittest.TestCase):
 
     def test_the_artist_bar_drops_play_when_the_songs_failed_to_load(self):
         b = self._browser()
-        bar = b._music_action_bar("srv1", [], "art1", "art")
+        bar = music_page(b, {"kind": "artist", "item_id": "art1"}) \
+            .action_bar("srv1", [], "art1", "art")
         present = ids(layout(bar, 1280, 720)[0])
         for dead in ("art-play", "art-shuffle", "art-queue"):
             self.assertNotIn(dead, present, "%s is a dead click" % dead)
@@ -6532,7 +6545,8 @@ class TestNoDeadButtons(unittest.TestCase):
         half-played track restarts from zero."""
         b = self._browser()
         got = {}
-        b._play_list = lambda ids_, srv, i, **kw: got.update(kw)
+        # ItemActions.play_list: the page calls its own service.
+        b._actions.play_list = lambda ids_, srv, i, **kw: got.update(kw)
         b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
                     "title": "Album"})
         _n, handlers = build_scene(b)
@@ -7870,12 +7884,12 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
             ("music",
              {"kind": "music", "server": "srv1", "parent_id": "lib1",
               "_tab": "albums", "_data": list(items), "_total": 99},
-             lambda r: b._on_music_scroll(r, 0, 100)),
+             lambda r: music_scroll(b, r, 0, 100)),
             ("genre",
              {"kind": "music_genre", "server": "srv1", "parent_id": "lib1",
               "item_id": "g1",
               "_data": {"albums": list(items), "total": 99}},
-             lambda r: b._on_genre_scroll(r, 0, 100)),
+             lambda r: music_scroll(b, r, 0, 100)),
         ]
 
     def setUp(self):

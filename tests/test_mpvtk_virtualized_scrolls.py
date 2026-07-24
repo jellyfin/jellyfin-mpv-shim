@@ -20,8 +20,10 @@ import unittest
 from jellyfin_mpv_shim.mpvtk_browser import app as app_mod
 
 PKG = os.path.dirname(inspect.getfile(app_mod))
-MODULES = ["app", "dialogs", "auth", "settings", "queue_edit", "music",
-           "views", "tiles"]
+#: Discovered, not listed. A hardcoded list silently stopped covering the
+#: virtualized lists when step 6c moved them into pages/ -- the invariant
+#: went unenforced for exactly the screens that had just been rewritten.
+#: Anything new under the package is checked from the day it lands.
 
 
 def _kwargs(call):
@@ -88,11 +90,16 @@ def _scroll_containers(tree):
 
 def _all_modules():
     trees = {}
-    for mod in MODULES:
-        path = os.path.join(PKG, mod + ".py")
-        if os.path.exists(path):
-            with open(path) as fh:
-                trees[mod] = ast.parse(fh.read())
+    for root, _dirs, files in os.walk(PKG):
+        if "__pycache__" in root:
+            continue
+        for fn in sorted(files):
+            if not fn.endswith(".py"):
+                continue
+            path = os.path.join(root, fn)
+            name = os.path.relpath(path, PKG)[:-3].replace(os.sep, ".")
+            with open(path, encoding="utf-8") as fh:
+                trees[name] = ast.parse(fh.read(), filename=path)
     return trees
 
 
