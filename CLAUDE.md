@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `--get-pyinstaller` / `--gen-fingerprint` are CI helpers for the Windows build cache.
 - Regenerate translation template and merge into existing `.po` files (also folds in `master`'s translations so volunteer work isn't lost on a feature branch): `./regen_pot.sh`
 - Windows build (after `gen_pkg.sh --skip-build`): `build-win.bat` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for debug). Installer is built with Inno Setup from `Jellyfin MPV Shim.iss`.
-- Run the test suite (stdlib unittest, no extra deps): `python3 -m unittest discover tests`. It covers pure-logic pieces (credential cleaning, SyncPlay teardown, wait_property, queue inserts, menu indexing); playback/server behavior still needs hand testing against a real server.
+- Run the test suite (stdlib unittest, no extra deps): `xvfb-run -a python3 -m unittest discover tests`. It covers pure-logic pieces (credential cleaning, SyncPlay teardown, wait_property, queue inserts, menu indexing); playback/server behavior still needs hand testing against a real server.
+  - **Use `xvfb-run`.** `player.py` creates its `playerManager` singleton at module scope and `PlayerManager.__init__` ends with `_init_mpv()`, so *importing* the module opens a real mpv window. Eight unit modules import it, including pure-AST ones like `test_no_tkinter` (which imports every module to prove none pulls tkinter). Without a nested X server they land on your desktop and steal clicks. The integration matrix needs it for the same reason, more so: `xvfb-run -a python3 tests/integration/run_integration.py`.
 - There is no linter config.
 
 The Python build uses PEP 517 / pyproject.toml with `setuptools` as the backend. The full build path requires the `build` package (`pip install build`); `pip install .[all]` and `pip install -e .` both work without it.
