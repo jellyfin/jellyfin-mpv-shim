@@ -239,8 +239,8 @@ class TestPageContextIsSmall(unittest.TestCase):
         job, and a page that swapped its own source would browse a server the
         user has left."""
         ctx = PageContext(source=None, server=None, nav=None, run=None,
-                          art=None, player=None, status=lambda _s: None,
-                          invalidate=lambda: None)
+                          art=None, player=None, actions=None,
+                          status=lambda _s: None, invalidate=lambda: None)
         with self.assertRaises(Exception):
             ctx.source = "something else"
 

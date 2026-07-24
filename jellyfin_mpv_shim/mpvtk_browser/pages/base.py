@@ -66,6 +66,11 @@ class PageContext:
     art: Any
     #: The player and everything outside the package. A ``PlayerGateway``.
     player: Any
+    #: What the user does *to* an item: play, mark watched, download. An
+    #: ``item_actions.ItemActions``. Separate from ``player`` because these
+    #: are orchestrated actions (optimistic write, rollback, dialog, toast),
+    #: not the raw capability the gateway exposes.
+    actions: Any
     #: Transient user-facing status (the toast). ``status(str)``.
     status: Callable[[str], None]
     #: Wake the render loop after writing state from any thread.

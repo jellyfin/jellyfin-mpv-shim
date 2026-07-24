@@ -8,6 +8,8 @@ See ``docs/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
 """
 
 from ...i18n import _
+from . import controls
+from .labels import is_watched
 
 
 def fmt_ticks(ticks):
@@ -73,3 +75,49 @@ def people_row(tiles, people):
     # cropped every face. geom_square is for album art.
     return tiles.tile_row(_("Cast & Crew"), cast, "detail-people",
                           geom=tiles.art.geom)
+
+
+def download_button(actions, tiles, item, server, prefix):
+    """Download, or Remove when it's already downloaded.
+
+    The button used to always say Download, so pressing it on a complete
+    item did nothing visible and there was no way to reclaim the space
+    outside Settings -> Downloads.
+
+    Takes the two services it needs rather than a shell: ``actions`` to run
+    the effect, ``tiles`` because the downloaded-id sets live with the badge
+    that draws from them.
+
+    Was ``ViewsMixin._download_btn``.
+    """
+    if not tiles.is_downloaded(item):
+        if actions.offline:
+            # Nothing to fetch from. Tk swapped the button out rather
+            # than offering a download with no server behind it.
+            return None
+        return controls.action_btn(
+            "file_download", _("Download"), prefix + "-download",
+            lambda: actions.open_download(item))
+    return controls.action_btn(
+        "delete", _("Remove Download"), prefix + "-undownload",
+        lambda: actions.confirm_remove_download(item))
+
+
+def common_actions(actions, tiles, item, server, prefix):
+    """Watched / Favorite / Download — the buttons detail, series, season
+    and playlist all carry.
+
+    Was ``ViewsMixin._common_actions``.
+    """
+    ud = item.get("UserData") or {}
+    return [
+        controls.action_btn(
+            "check", _("Watched"), prefix + "-watched",
+            lambda: actions.toggle_watched(item, server),
+            on=is_watched(item)),
+        controls.action_btn(
+            "favorite", _("Favorite"), prefix + "-fav",
+            lambda: actions.toggle_favorite(item, server),
+            on=bool(ud.get("IsFavorite"))),
+        download_button(actions, tiles, item, server, prefix),
+    ]

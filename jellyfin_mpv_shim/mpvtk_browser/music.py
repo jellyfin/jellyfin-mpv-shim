@@ -53,30 +53,13 @@ class MusicMixin:
 
 
     def _play_shuffle(self, ids, server, audio=True):
-        import random
-        ids = [i for i in ids if i]
-        random.shuffle(ids)
-        self._play_list(ids, server, 0, audio=audio)
+        self._actions.play_shuffle(ids, server, audio)
 
     def _queue_items(self, ids, server):
-        # _edit_call, not _client_call: this is a button press, and
-        # _client_call swallows, so a rejected "Add to Queue" looked exactly
-        # like one that worked (the controller swallowed too — both halves
-        # are fixed).
-        self._edit_call(
-            lambda c: c.queue_items(server, [i for i in ids if i]),
-            error=_("Those items could not be added to the queue."))
+        self._actions.queue_items(ids, server)
 
     def _instant_mix(self, seed_id, server):
-        ep = self._epoch
-
-        def work():
-            return self.source.get_instant_mix(server, seed_id)
-
-        def done(items):
-            self._play_list([i.get("Id") for i in items], server, 0,
-                            audio=True)
-        self.run_async(work, done, ep)
+        self._actions.instant_mix(seed_id, server)
 
     def _music_action_bar(self, server, ids, seed_id, prefix="ma", items=None):
         """Play / Shuffle / Queue / Instant Mix for a set of track ids.

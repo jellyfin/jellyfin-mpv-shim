@@ -59,6 +59,7 @@ one-frame glitch that the next build heals. Don't "fix" it by locking
 import logging
 import threading
 import time
+from types import SimpleNamespace
 
 from ..i18n import _
 from ..mpvtk.layout import natural_size
@@ -83,6 +84,7 @@ from .async_runner import AsyncRunner
 from .navigator import Navigator
 from .scroll_state import ScrollState
 from .tile_renderer import TileRenderer
+from .item_actions import ItemActions
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
@@ -304,6 +306,19 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             nav_mode=lambda: self._nav_mode,
             get_app=lambda: self.app)
         self.tiles.on_context = lambda *a, **k: self._open_tile_menu(*a, **k)
+        # The action counterpart to TileRenderer. `services=self` is a live
+        # provider (source/controller/offline/invalidate/set_status), read
+        # through and never snapshotted -- see item_actions.py. `dialogs` is
+        # a namespace rather than self so the only shell surface it can
+        # reach is the two dialogs it actually opens.
+        self._actions = ItemActions(
+            services=self, run=self._async,
+            dialogs=SimpleNamespace(
+                confirm=lambda *a, **k: self._confirm(*a, **k),
+                open_download=lambda item: self._open_download(item)),
+            on_launch=lambda audio, title: self._start(audio=audio,
+                                                       title=title),
+            on_downloads_changed=lambda: self._refresh_downloaded())
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
@@ -955,6 +970,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             run=self._async,
             art=self._art_context(),
             player=self.controller,
+            actions=self._actions,
             status=self.set_status,
             invalidate=self.invalidate,
             # Shrinking escape hatch -- see pages/base.py. Counted by
@@ -1596,64 +1612,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
 
     def _play(self, item, server, offset_ticks=None, srcid=None, aid=None,
               sid=None):
-        """Yield/keep-browse and start a single ``item``. Episodes queue the
-        rest of the season so autoplay-next chains them (like the Tk browser)."""
-        self._start(audio=item.get("Type") == "Audio",
-                    title=item.get("Name") or "")
-        if self.controller is None:
-            return
-        if item.get("Type") == "Episode" and item.get("SeriesId"):
-            srv, iid, series = server, item.get("Id"), item.get("SeriesId")
+        self._actions.play(item, server, offset_ticks=offset_ticks,
+                           srcid=srcid, aid=aid, sid=sid)
 
-            # Queue fetch AND playback start on the same worker: the fetch
-            # decides the queue the start consumes, and splitting them put
-            # the start back on the loop thread via on_done.
-            def work(ctl):
-                try:
-                    q = self.source.get_series_queue(
-                        srv, series, start_item_id=iid)
-                    ids = [e.get("Id") for e in q if e.get("Id")] or [iid]
-                except Exception:
-                    log.debug("series queue fetch failed", exc_info=True)
-                    ids = [iid]
-                ctl.play_list(ids, srv, 0, offset_ticks=offset_ticks,
-                              srcid=srcid, aid=aid, sid=sid)
-
-            self._play_async(work)
-        else:
-            self._play_async(
-                lambda ctl: ctl.play(item, server, offset_ticks=offset_ticks,
-                                     srcid=srcid, aid=aid, sid=sid))
-
-    def _play_list(self, ids, server, start_index=0, audio=False,
-                   items=None):
-        """Play a whole list from ``start_index`` (album/playlist/song).
-
-        ``items`` (the DTOs behind ``ids``) supplies the resume offset for
-        the entry actually being started, as the Tk browser does —
-        without it, clicking a half-watched entry restarted it from zero.
-
-        The chosen entry is re-located by id after dropping empty ones:
-        filtering first and trusting the caller's index shifted the queue
-        out from under the entry that was clicked."""
-        start_id = ids[start_index] if 0 <= start_index < len(ids) else None
-        offset = None
-        title = ""
-        if items is not None and 0 <= start_index < len(items):
-            offset = ((items[start_index].get("UserData") or {})
-                      .get("PlaybackPositionTicks")) or None
-            # Names the spinner before the queue is even resolved.
-            title = items[start_index].get("Name") or ""
-        ids = [i for i in ids if i]
-        if not ids:
-            return
-        try:
-            pos = ids.index(start_id)
-        except ValueError:
-            pos = 0
-        self._start(audio=audio, title=title)
-        self._play_async(
-            lambda ctl: ctl.play_list(ids, server, pos, offset_ticks=offset))
+    def _play_list(self, ids, server, start_index=0, audio=False, items=None):
+        self._actions.play_list(ids, server, start_index, audio, items)
 
     # ------------------------------------------------- browse <-> playback
 
@@ -2312,6 +2275,13 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
         self._update = {"version": version, "url": url}
         self.invalidate()
+
+    @property
+    def offline(self):
+        """Whether the browser is on the offline source. Read-only;
+        ``set_offline`` is the single writer, and services read it live
+        through here rather than reaching for ``_offline``."""
+        return self._offline
 
     def set_offline(self, offline):
         offline = bool(offline)

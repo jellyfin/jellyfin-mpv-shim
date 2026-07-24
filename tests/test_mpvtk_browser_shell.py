@@ -6695,7 +6695,10 @@ class TestSeasonPageNextUp(unittest.TestCase):
     def test_it_plays_the_next_episode_of_the_series(self):
         b, _r = self._season()
         played = []
-        b._play = lambda item, server, **kw: played.append(item.get("Id"))
+        # ItemActions.play, not the shell forwarder: Next Up is an action and
+        # now calls its own service rather than bouncing off the shell.
+        b._actions.play = lambda item, server, **kw: played.append(
+            item.get("Id"))
         _n, handlers = build_scene(b)
         handlers["se-nextup"]["click"]()
         self.assertTrue(played, "Next Up played nothing")

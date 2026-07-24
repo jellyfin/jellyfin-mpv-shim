@@ -516,65 +516,15 @@ class ViewsMixin:
     _action_btn = staticmethod(controls.action_btn)
 
     def _common_actions(self, item, server, prefix):
-        """Watched / Favorite / Download buttons shared by detail/series/
-        season."""
-        ud = item.get("UserData") or {}
-        return [
-            self._action_btn(
-                "check", _("Watched"), prefix + "-watched",
-                lambda: self._act_watched(item, server),
-                on=components.is_watched(item)),
-            self._action_btn(
-                "favorite", _("Favorite"), prefix + "-fav",
-                lambda: self._act_favorite(item, server),
-                on=bool(ud.get("IsFavorite"))),
-            self._download_btn(item, server, prefix),
-        ]
+        return detail.common_actions(self._actions, self.tiles, item, server,
+                                     prefix)
 
     def _download_btn(self, item, server, prefix):
-        """Download, or Remove when it's already downloaded.
-
-        The button used to always say Download, so pressing it on a
-        complete item did nothing visible and there was no way to reclaim
-        the space outside Settings -> Downloads."""
-        if not self._is_downloaded(item):
-            if self._offline:
-                # Nothing to fetch from. Tk swapped the button out rather
-                # than offering a download with no server behind it.
-                return None
-            return self._action_btn(
-                "file_download", _("Download"), prefix + "-download",
-                lambda: self._open_download(item))
-        return self._action_btn(
-            "delete", _("Remove Download"), prefix + "-undownload",
-            lambda: self._confirm(
-                _("Delete the downloaded copy of %s?")
-                % item.get("Name", ""),
-                lambda: self._remove_download(item),
-                title=_("Delete Download"), yes=_("Delete")))
+        return detail.download_button(self._actions, self.tiles, item, server,
+                                      prefix)
 
     def _remove_download(self, item):
-        """Delete this item's download, then refresh the badges."""
-        iid, t = item.get("Id"), item.get("Type")
-        ep = self._epoch
-
-        def work():
-            if t == "Series":
-                self.controller.delete_download(series_id=iid)
-            elif t == "Season":
-                self.controller.delete_download(
-                    series_id=item.get("SeriesId"), season_id=iid)
-            elif t == "Playlist":
-                self.controller.delete_download(playlist_id=iid)
-            else:
-                self.controller.delete_download(item_id=iid)
-
-        def done(_ok):
-            self._refresh_downloaded()
-
-        def failed(_exc):
-            self.set_status(_("The download could not be removed."))
-        self.run_async(work, done, ep, on_error=failed)
+        self._actions.remove_download(item)
 
     def _detail_actions(self, item, server):
         btns = self._common_actions(item, server, "act")
@@ -588,26 +538,7 @@ class ViewsMixin:
         return Row(btns, gap=8, align="center")
 
     def _play_next_up(self, series_id, server):
-        ep = self._epoch
-
-        def work():
-            item = self.source.get_next_up(server, series_id)
-            if item is None:
-                # A series nobody has started has no "next up" — the button
-                # did nothing at all. Start at the beginning, as Tk does.
-                first = self.source.get_series_queue(server, series_id,
-                                                     limit=1)
-                item = first[0] if first else None
-            return item
-
-        def done(item):
-            if item:
-                # Resume where it was left: Next Up on a part-watched
-                # episode restarted it from zero.
-                offset = ((item.get("UserData") or {})
-                          .get("PlaybackPositionTicks")) or None
-                self._play(item, server, offset_ticks=offset)
-        self.run_async(work, done, ep)
+        self._actions.play_next_up(series_id, server)
 
     def _series_actions(self, item, server, series_id, trailers=None):
         btns = [self._action_btn(
@@ -628,59 +559,13 @@ class ViewsMixin:
         return Row(btns, gap=8, align="center")
 
     def _shuffle_series(self, series_id, server):
-        """Shuffle the whole show, like Tk's series-page Shuffle."""
-        ep = self._epoch
-
-        def work():
-            return [e.get("Id") for e in
-                    self.source.get_series_queue(server, series_id,
-                                                 limit=200)
-                    if e.get("Id")]
-
-        def done(ids):
-            if ids:
-                self._play_shuffle(ids, server, audio=False)
-        self.run_async(work, done, ep)
+        self._actions.shuffle_series(series_id, server)
 
     def _act_watched(self, item, server):
-        ud = item.setdefault("UserData", {})
-        was_played, was_count = ud.get("Played"), ud.get("UnplayedItemCount")
-        new = not components.is_watched(item)
-        ud["Played"] = new
-        if item.get("Type") in ("Series", "Season"):
-            ud["UnplayedItemCount"] = 0 if new else 1
-
-        def work():
-            # Roll the optimistic flip back if nothing recorded it (offline
-            # un-watching, or nothing downloaded to queue against). Leaving
-            # the tick up meant the UI claimed a change that never happened
-            # and quietly reverted on the next reload.
-            ok = self.controller.set_watched(server, item.get("Id"), new)
-            if ok is False:
-                ud["Played"] = was_played
-                if was_count is None:
-                    ud.pop("UnplayedItemCount", None)
-                else:
-                    ud["UnplayedItemCount"] = was_count
-                self.invalidate()
-        self._pool.submit(lambda: self._safe(lambda _c: work()))
-        self.invalidate()
+        self._actions.toggle_watched(item, server)
 
     def _act_favorite(self, item, server):
-        ud = item.setdefault("UserData", {})
-        was = ud.get("IsFavorite")
-        new = not bool(was)
-        ud["IsFavorite"] = new
-
-        def work():
-            # Roll back when nothing recorded it, as _act_watched does —
-            # offline the heart used to lie until the next reload.
-            if self.controller.set_favorite(server, item.get("Id"),
-                                            new) is False:
-                ud["IsFavorite"] = was
-                self.invalidate()
-        self._pool.submit(lambda: self._safe(lambda _c: work()))
-        self.invalidate()
+        self._actions.toggle_favorite(item, server)
 
     def _media_info_line(self, item, route):
         """Codec/resolution/audio/size line plus "Ends at", like
