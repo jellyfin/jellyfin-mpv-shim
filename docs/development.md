@@ -108,9 +108,19 @@ tools/coverage_report.py --merge <dir>/merged.json --functions mpvtk_browser/ui.
 Line coverage only, not branch coverage — treat it as "was this reached at
 all". The report flags the modules where that distinction matters most.
 
+### Type checking
+
+```bash
+tools/mypy_gate.sh            # fails only on NEW findings
+tools/mypy_gate.sh --update   # re-baseline after intentional changes
+```
+
+Baselined because the tree carries ~90 pre-existing findings from code that
+predates any type checking. Sub-second, so it belongs beside the unit suite.
+
 ### Structural and characterization tests
 
-Beyond the behavioural tests, three kinds of check exist to catch what review
+Beyond the behavioural tests, four kinds of check exist to catch what review
 and hand-testing miss:
 
 - `tests/test_source_invariants.py` — whole-tree AST rules (an orphaned
@@ -119,6 +129,11 @@ and hand-testing miss:
   the renderer, pinned per screen. Because the UI is declarative, an identical
   node list means identical pixels. Regenerate an intended change with
   `python3 tests/test_scene_snapshots.py --update`, then review the diff.
+- `tests/test_late_bound_calls.py` — every name resolved only at call time
+  (lambda receivers, `self.controller.X`, `ROUTES` loader/renderer strings,
+  `_start_daemon` slots) must exist and match the signature. This is the one
+  that catches a forgotten call site after a method moves; mypy does not, see
+  `docs/REFACTORING_METHOD.md` §1.4.
 - `tests/integration/test_harness_isolation.py` — fails when the test harness
   drifts from `PlayerManager.__init__`.
 

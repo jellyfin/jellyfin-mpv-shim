@@ -75,7 +75,7 @@ Three things the sweep needed, all of which generalise to the next one:
 
 ---
 
-## 1. The four kinds of signal
+## 1. The five kinds of signal
 
 ### 1.1 Characterization snapshots — "the pixels did not move"
 
@@ -153,7 +153,41 @@ Use it as a pre-flight: **if the method you are about to move is at zero,
 write a test for it first.** Moving untested code is how a "pure move" turns
 out not to have been one.
 
-### 1.4 Fault injection — "the error paths still work"
+### 1.4 mypy — "the types still line up", with a caveat
+
+`tools/mypy_gate.sh` runs mypy against a committed baseline and fails only on
+*new* findings. The tree has ~90 pre-existing ones, almost all
+`var-annotated` / `assignment` noise in code never written to be
+type-checked; fixing them is a separate project and blocking on them would
+just get the check ignored. The run takes under a second.
+
+```
+tools/mypy_gate.sh            # check
+tools/mypy_gate.sh --update   # re-baseline after intentional changes
+```
+
+**It does not catch the failure mode this refactor actually produces**, and
+that was measured rather than assumed. Renaming a gateway method and leaving
+`self._safe(lambda c: c.check_updates())` behind:
+
+| check | result |
+|---|---|
+| `mypy` | 0 findings |
+| `tests/test_late_bound_calls.py` | 4 findings, with file:line |
+
+The reason is that the callback parameters are unannotated, so mypy infers
+`Any` for `c` and stops caring. In an isolated file, annotating the seam
+(`fn: Callable[[Gateway], Any]`) *does* make mypy catch it — precisely, with
+a "maybe you meant" suggestion. Applying the same annotation in-repo did
+**not** make it fire, and the reason was not chased down. So: annotating the
+seams is a promising direction, not a solved one, and until someone
+investigates it, the AST checks are what covers this.
+
+Use mypy for what it demonstrably does catch here — genuine type errors in
+new code, wrong argument types to typed APIs, `None` handling — and do not
+retire anything in §1.2 on the strength of it.
+
+### 1.5 Fault injection — "the error paths still work"
 
 This is the one that addresses hand-testing's real blind spot, and the one
 the repo does not have yet.
