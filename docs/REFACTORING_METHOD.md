@@ -20,9 +20,14 @@ reach, and reserving hand-testing for what only hands can judge.
 From `tools/coverage_all.sh` (union of the unit suite, both fake-mpv backends
 and the real-mpv legs — 64.4% overall):
 
+> **Step 4 is done.** `ui.py` is now at **67.2%** (`_PlayerController` 80.9%,
+> `UserInterface` 79.6%), so the gate below is cleared and steps 5+ are
+> unblocked. The table is kept as the *reason* the gate existed; re-measure
+> with `tools/coverage_all.sh` rather than trusting these numbers.
+
 | module | cover | why it matters here |
 |---|---|---|
-| `mpvtk_browser/ui.py` | **41.6%** | the browser↔player boundary the refactor formalises |
+| `mpvtk_browser/ui.py` | **41.6%** → 67.2% | the browser↔player boundary the refactor formalises |
 | `media.py` | 29.9% | stream/path/transcode decisions |
 | `menu.py` | 32.5% | OSD menu |
 | `syncplay.py` | 34.4% | timing loop |
@@ -40,6 +45,33 @@ hand-testing skips.
 **Therefore step 4 of the sequencing table is a hard prerequisite, not a
 nice-to-have.** Covering `_PlayerController` is cheap (it is ~90 thin
 delegating methods) and it is the safety net everything else hangs from.
+
+**How it was actually covered**, because the technique generalises. The class
+has one shape — lazily import a singleton, delegate, catch `Exception`,
+return a documented fallback — so the valuable assertion is not 99 individual
+delegation tests but that the *contract holds uniformly*. One sweep
+substitutes a broken collaborator and calls all 40 guarded methods, asserting
+none propagates. That is the property step 5's `PlayerGateway` must preserve,
+and it covers methods nobody thought to write out.
+
+Three things the sweep needed, all of which generalise to the next one:
+
+* **Exclude what reaches outside the process.** The first run called
+  `open_config_folder`, which does `subprocess.Popen(["xdg-open", …])`, and
+  opened a file manager window mid-test. `SIDE_EFFECTING` names those, and a
+  companion test fails if a name in it stops existing — otherwise the
+  exclusion silently becomes a hole.
+* **Model the failure realistically.** The first fake raised on *attribute
+  access*; twelve methods "failed" as a result. They were right and the fake
+  was wrong: `syncManager.db` and `clientManager.clients` are plain data
+  attributes that cannot raise, which is exactly why those methods read them
+  outside their `try`. Raising a non-`AttributeError` from `__getattr__` also
+  defeats `getattr(obj, "db", None)`. The honest model is *traversal
+  succeeds, calls fail*.
+* **Separate contracts.** `_sync` catches only to log and then re-raises, and
+  `add_user`/`rename_user` never catch at all — catching there made the field
+  clear and nothing happen. Those are pinned by their own tests, and the
+  sweep detects re-raising from the AST rather than being told.
 
 ---
 

@@ -250,7 +250,7 @@ and independently revertible.
 | 1 | Extract `components/` (pure functions out of `tiles.py`, dialog builders) | very low | none — they barely use `self` |
 | 2 | Extract `AsyncRunner` (epoch + lock + pool + `run_async`) | low | none |
 | 3 | Extract `Navigator` (route stack + headless policy) | low | `tests/test_mpvtk_headless.py` already pins the policy |
-| 4 | **Cover `ui.py`'s `PlayerController`** | — | *blocks 5*; it is at 41.6% and is the seam |
+| 4 | ~~**Cover `ui.py`'s `PlayerController`**~~ **done** | — | was *blocking 5*; 41.6% → 67.2% |
 | 5 | Formalise `PlayerGateway` from `_PlayerController` | medium | 4 |
 | 6 | Convert route kinds to `Page` classes, one at a time | medium | 1–3, 5 |
 | 7 | Extract `MpvSession` from `player.py` | medium-high | integration matrix green on both backends |

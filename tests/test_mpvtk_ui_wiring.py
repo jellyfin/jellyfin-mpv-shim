@@ -370,6 +370,161 @@ class TestDetachFromInsideTheRenderLoop(unittest.TestCase):
         thread.join(timeout=5)
 
 
+class _FakeApp:
+    """A renderer stand-in. ``run`` records the build callable it was handed
+    and returns, so the loop thread starts and exits cleanly."""
+
+    def __init__(self):
+        self.ran_with = None
+
+    def run(self, build):
+        self.ran_with = build
+
+    def quit(self):
+        pass
+
+
+class _FakeBrowser:
+    """Enough browser for the mpv-lifecycle handlers to drive."""
+
+    def __init__(self):
+        self.app = "old-app"
+        self.calls = []
+        self.strips = self
+
+    def set_app(self, app):
+        self.app = app
+        self.calls.append("set_app")
+
+    def clear(self):                       # strips.clear()
+        self.calls.append("strips.clear")
+
+    def reassert_window_state(self):
+        self.calls.append("reassert")
+
+    def invalidate(self):
+        self.calls.append("invalidate")
+
+    def build(self, size):                 # the render loop's callback
+        return None
+
+
+class TestMpvLifecycleHandlers(unittest.TestCase):
+    """gone -> terminated -> recreated, the sequence behind idle-quit and
+    crash recovery.
+
+    These were among the least-covered functions in the whole branch, which
+    is the wrong place for a gap: mpv is torn down and rebuilt underneath a
+    live UI, and getting the ordering wrong is a segfault (freeing buffers a
+    live compositor still reads) or a silent double render loop (two threads
+    inside the non-reentrant build()).
+    """
+
+    def _ui(self, browser=None):
+        ui = ui_mod.UserInterface()
+        ui._browser = browser if browser is not None else _FakeBrowser()
+        ui._app = None
+        ui._thread = None
+        return ui
+
+    def test_gone_detaches_and_stops_pushing(self):
+        ui = self._ui()
+        ui.on_mpv_gone()
+        self.assertTrue(ui._detaching)
+        self.assertIsNone(ui._browser.app,
+                          "the browser must stop pushing to a dead handle")
+
+    def test_terminated_frees_the_tile_buffers_but_not_the_pool(self):
+        """Freeing at on_mpv_gone time released memory a live compositor was
+        still reading — a segfault on quit. It has to happen here, and it
+        must be clear() rather than shutdown(): mpv may be re-created and the
+        browser reuses the same store."""
+        ui = self._ui()
+        ui.on_mpv_terminated()
+        self.assertIn("strips.clear", ui._browser.calls)
+
+    def test_terminated_survives_a_store_that_throws(self):
+        browser = _FakeBrowser()
+        browser.clear = lambda: (_ for _ in ()).throw(RuntimeError("nope"))
+        ui = self._ui(browser)
+        ui.on_mpv_terminated()          # must not propagate
+
+    def test_recreated_rewires_through_set_app(self):
+        """A bare assignment would leave the fresh renderer without the
+        browser's nav/HUD callbacks, so its events would go nowhere."""
+        ui = self._ui()
+        fake_app = _FakeApp()
+        with self._attaching(lambda: fake_app):
+            ui.on_mpv_recreated()
+        self.assertIs(ui._browser.app, fake_app)
+        self.assertIn("set_app", ui._browser.calls)
+        self.assertIn("reassert", ui._browser.calls)
+        self.assertFalse(ui._detaching)
+        thread = ui._thread
+        if thread is not None:
+            thread.join(timeout=2)
+        # The new loop must drive the BROWSER's build, or the fresh renderer
+        # renders nothing.
+        self.assertEqual(fake_app.ran_with, ui._browser.build)
+
+    def test_recreated_is_a_no_op_without_a_browser(self):
+        ui = self._ui()
+        ui._browser = None
+        with self._attaching(_FakeApp):
+            ui.on_mpv_recreated()       # must not raise
+        self.assertIsNone(ui._app)
+
+    def test_a_failed_attach_leaves_the_ui_detached(self):
+        """If attaching throws we must not go on to start a render loop
+        against a handle we do not have."""
+        ui = self._ui()
+        ui._detaching = True
+
+        def boom():
+            raise RuntimeError("no handle")
+
+        with self._attaching(boom):
+            ui.on_mpv_recreated()
+        self.assertIsNone(ui._app)
+        self.assertNotIn("set_app", ui._browser.calls)
+
+    def test_a_wedged_old_loop_blocks_a_second_one(self):
+        """Two render loops would both call build(), which is not reentrant.
+        Better to not re-attach than to race."""
+        ui = self._ui()
+        release = threading.Event()
+        self.addCleanup(release.set)
+        stuck = threading.Thread(target=lambda: release.wait(10),
+                                 name="mpvtk-browser", daemon=True)
+        stuck.start()
+        ui._thread = stuck
+        ui.RENDER_LOOP_JOIN = 0.1
+        with self._attaching(_FakeApp):
+            ui.on_mpv_recreated()
+        self.assertIs(ui._thread, stuck, "the survivor must stay tracked")
+        self.assertNotIn("set_app", ui._browser.calls,
+                         "a second loop was started alongside a live one")
+
+    @staticmethod
+    def _attaching(factory):
+        """Patch MpvtkApp.attach so no real mpv is needed."""
+        import contextlib
+
+        from jellyfin_mpv_shim.mpvtk import app as mpvtk_app
+
+        @contextlib.contextmanager
+        def ctx():
+            original = mpvtk_app.MpvtkApp.attach
+            mpvtk_app.MpvtkApp.attach = staticmethod(
+                lambda *a, **k: factory())
+            try:
+                yield
+            finally:
+                mpvtk_app.MpvtkApp.attach = original
+
+        return ctx()
+
+
 class TestNoCallbackEscapesCoverage(unittest.TestCase):
     """The half that stops this file going stale.
 
