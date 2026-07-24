@@ -14,7 +14,7 @@ import os
 import random
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from jellyfin_apiclient_python import JellyfinClient
 
@@ -1520,15 +1520,15 @@ class OfflineLibrarySource:
                 "playlist", item_id), name)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
-            return self._representative(("Movie",), snap)
+            return self._representative(("Movie",), snap, self.root)
         if item_id == "offline:videos":
-            return self._representative(("Video",), snap)
+            return self._representative(("Video",), snap, self.root)
         if item_id == "offline:tv":
             for series_id in snap.series_server:
                 path = self._art_path(series_id, "Primary", snap)
                 if path:
                     return path
-            return self._representative(("Episode",), snap)
+            return self._representative(("Episode",), snap, self.root)
         if item_id == "offline:playlists":
             for pid in snap.playlist_server:
                 path = self._art_path(pid, image_type, snap)
@@ -1537,10 +1537,18 @@ class OfflineLibrarySource:
             return None
         return None
 
-    def _representative(self, types, snap):
-        # Every call site is downstream of _art_path_uncached's "no root"
-        # early return, so root is a path here — cast rather than re-test.
-        root = cast(str, self.root)
+    def _representative(self, types, snap, root: str):
+        """Artwork from any downloaded item of ``types``, as a stand-in for a
+        synthetic library tile.
+
+        ``root`` is passed in rather than read from ``self``: every caller is
+        downstream of ``_art_path_uncached``'s "no root" early return, so it
+        is known non-None there. Taking it as an argument puts that in the
+        signature instead of in a comment — a fourth call site from somewhere
+        that had not checked would previously have produced
+        ``os.path.join(None, ...)``, and no amount of casting would have
+        caught it.
+        """
         for row in snap.rows.values():
             if row.get("type") in types and row.get("file_path"):
                 path = self._in_dir(os.path.join(
