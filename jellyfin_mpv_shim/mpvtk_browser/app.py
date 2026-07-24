@@ -81,6 +81,7 @@ from . import theme
 from . import navigator
 from .async_runner import AsyncRunner
 from .navigator import Navigator
+from .scroll_state import ScrollState
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
@@ -247,16 +248,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._search_box = {"term": ""}
         # Live text of the "new user" box in Settings → Servers & Users.
         self._newuser = {"name": ""}
-        # Scroll offsets: _live_offsets is the renderer's authoritative
-        # snapshot read once per build; _scroll_off is the throttled
-        # on_scroll copy, used only as a fallback. See _offset().
-        self._scroll_off = {}
-        # Offset each container was last re-rendered at -- the baseline the
-        # SCROLL_STEP threshold measures against, so slow sub-row scrolling
-        # accumulates to a rebuild instead of never crossing the gap between
-        # two adjacent events.
-        self._scroll_rendered = {}
-        self._live_offsets = None
         # Startup-PIN lock screen state. _locked is True while the gate is
         # actually gating: tray commands that would navigate (Configure
         # Servers, Show Console) are swallowed while it is set, so they
@@ -302,6 +293,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         # properties below keep `self._epoch` / `self._pool` reading exactly
         # as before for the mixins and tests that use them.
         self._async = AsyncRunner(invalidate=self.invalidate)
+        # Late-bound on purpose. Passing the bound method captures whatever
+        # `invalidate` is at construction, so anything that later replaces it
+        # -- the tests do, and set_app-style rewiring could -- would be
+        # ignored and the view would stop repainting on scroll.
+        self._scroll = ScrollState(lambda: self.invalidate())
         self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
@@ -407,17 +403,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         except Exception:
             return False
 
-    def _reset_scroll(self):
-        """Forget recorded scroll offsets on a route change.
-
-        Scroll container ids are per-view ("grid", "playlist", …), not per
-        route, so a deep scroll in one library used to carry into the next
-        view opened under the same id. The renderer clamps its own offset to
-        the new (shorter) content, but our copy didn't — so virtualization
-        windowed rows that were far past the end and the view rendered
-        empty: "7 items" in the header and nothing below it."""
-        self._scroll_off.clear()
-        self._scroll_rendered.clear()
 
     def go_back(self):
         left = self._nav.pop()
@@ -911,6 +896,23 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             cls._ROUTES_CACHE = merged
         return cls._ROUTES_CACHE
 
+
+    # -- scroll state, owned by ScrollState -------------------------------
+    #
+    # Thin forwarders: ~10 call sites across the mixins pass `self._on_scroll`
+    # as a callback, and rewriting those is the page conversion's job, not
+    # this extraction's.
+
+    SCROLL_STEP = ScrollState.STEP
+
+    def _offset(self, scroll_id):
+        return self._scroll.offset(scroll_id)
+
+    def _on_scroll(self, scroll_id, offset, maximum, then=None):
+        self._scroll.on_scroll(scroll_id, offset, maximum, then)
+
+    def _reset_scroll(self):
+        self._scroll.reset()
 
     # ------------------------------------------------------------- pages
 
@@ -1995,12 +1997,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._size = size
         # One synchronous read per frame: the renderer's live scroll offsets,
         # which virtualization windows against (see _offset).
-        self._live_offsets = None
-        if self.app is not None and hasattr(self.app, "scroll_offsets"):
-            try:
-                self._live_offsets = self.app.scroll_offsets()
-            except Exception:
-                log.debug("scroll_offsets failed", exc_info=True)
+        self._scroll.refresh(self.app)
         # Load feedback outranks everything, including the yield to video:
         # that yield is exactly what left a blank window during a load, and a
         # failed start has no video to show through.
@@ -2296,38 +2293,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
             Spacer(),
         ], flex=1, direction="column", align="stretch", gap=14)
 
-    def _offset(self, scroll_id):
-        """Live scroll offset for a container.
-
-        The renderer owns scroll state and clamps it to the *current* content,
-        so its value is the only one that can't be stale — read it
-        synchronously at build time and fall back to the throttled on_scroll
-        copy only when the property isn't available (mpv < 0.36)."""
-        live = self._live_offsets
-        if live is not None and scroll_id in live:
-            return float(live[scroll_id] or 0.0)
-        return float(self._scroll_off.get(scroll_id, 0.0))
-
-    # Re-render once the view has scrolled about this far, so the virtualized
-    # window is refreshed well before the user reaches its edge.
-    SCROLL_STEP = 120
-
-    def _on_scroll(self, scroll_id, offset, maximum, then=None):
-        """Record a scroll offset (for virtualization) and run ``then``
-        (paging). Only re-renders when the offset has moved a window's worth
-        SINCE THE LAST RE-RENDER -- measured from the last rendered position,
-        not the previous event. Continuous (sub-row) scrolling arrives in many
-        small steps; comparing adjacent events would let a slow scroll drift a
-        whole window without ever crossing the gap, and the virtualized rows
-        would fall out of the built window as blank spacers until a bigger
-        (coalesced) jump finally tripped it."""
-        self._scroll_off[scroll_id] = offset
-        if then is not None:
-            then(offset, maximum)
-        base = self._scroll_rendered.get(scroll_id)
-        if base is None or abs(offset - base) >= self.SCROLL_STEP:
-            self._scroll_rendered[scroll_id] = offset
-            self.invalidate()
 
     def notify_update(self, version, url):
         """Registered as playerManager.notify_update: show the update notice

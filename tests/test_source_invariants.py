@@ -267,6 +267,33 @@ class TestOneOwnerForSharedMachinery(unittest.TestCase):
             "HEADLESS_ROUTES must be defined once, in navigator.py "
             "(app.py may alias it). Found in: %s" % sorted(definers))
 
+    def test_scroll_bookkeeping_has_one_owner(self):
+        """The renderer is the authority on where a container is scrolled;
+        ``ScrollState`` is the only thing that mirrors it.
+
+        Ten of the eighteen unconverted routes need this, and a second copy
+        would drift from the thing actually drawing — which is precisely the
+        "windowed rows far past the end, view renders empty" bug
+        ``ScrollState.reset``'s docstring records.
+        """
+        offenders = []
+        for name, path in self._browser_modules():
+            if name == "scroll_state.py":
+                continue
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Attribute)
+                        and node.attr in ("_scroll_off", "_scroll_rendered",
+                                          "_live_offsets")):
+                    offenders.append("%s:%d touches .%s"
+                                     % (name, node.lineno, node.attr))
+        self.assertEqual(
+            offenders, [],
+            "Scroll offsets belong to ScrollState; go through its API "
+            "(offset / on_scroll / forget / reset):\n  "
+            + "\n  ".join(offenders))
+
     def test_the_async_lock_has_one_owner(self):
         owners = self._modules_defining(
             lambda tree, _n: self._assigns(tree, "_lock"))

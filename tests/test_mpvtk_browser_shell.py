@@ -3734,7 +3734,7 @@ class TestTrackListVirtualization(unittest.TestCase):
     def test_window_follows_the_scroll_offset(self):
         top = self._row_ids(self.b._track_list(
             self.tracks, "t", lambda i: None, scroll_id="album"))
-        self.b._scroll_off["album"] = 6000
+        self.b._scroll.on_scroll("album", 6000, 100000)
         bottom = self._row_ids(self.b._track_list(
             self.tracks, "t", lambda i: None, scroll_id="album"))
         self.assertTrue(top and bottom)
@@ -3786,7 +3786,7 @@ class TestListWidthsAreStable(unittest.TestCase):
         self.b.route["_data"] = tracks
         seen = set()
         for off in (0, 3000, 9000):
-            self.b._scroll_off["playlist"] = off
+            self.b._scroll.on_scroll("playlist", off, 100000)
             widths = self._row_widths("pl-")
             self.assertTrue(widths)
             seen.add(round(max(widths)))
@@ -4080,7 +4080,7 @@ class TestTrackListArtWindowing(unittest.TestCase):
 
     def test_scrolling_moves_the_window(self):
         tracks = self._tracks(300)
-        self.b._scroll_off["playlist"] = 100 * self.b.TRACK_ROW_H + 70
+        self.b._scroll.on_scroll("playlist", 100 * self.b.TRACK_ROW_H + 70, 100000)
         self.b._track_list(tracks, "pl", on_play=lambda i: None,
                            art=True, scroll_id="playlist", head_h=70)
         self.assertNotIn("t0", self.built)

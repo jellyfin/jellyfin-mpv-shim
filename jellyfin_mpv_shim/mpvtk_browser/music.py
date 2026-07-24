@@ -135,8 +135,7 @@ class MusicMixin:
         self._reset_pagination(route)
         # A new tab starts at the top; a stale offset would virtualize the
         # wrong window and show a screenful of blank rows.
-        self._scroll_off.pop("music-grid", None)
-        self._scroll_off.pop("music-songs", None)
+        self._scroll.forget("music-grid", "music-songs")
         self._bump_epoch()
         hit = cache.get(tab)
         if hit is not None:
