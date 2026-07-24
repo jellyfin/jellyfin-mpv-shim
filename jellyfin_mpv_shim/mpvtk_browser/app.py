@@ -293,6 +293,21 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self.geom_wide = TileGeom(tile_w=_lw, tile_h=_lh,
                                   caption_h=LANDSCAPE_GEOM.caption_h)  # 16:9-ish
         self.geom_square = SQUARE_GEOM.scaled(_cs)           # 1:1
+        # Tile caption font is theme-controlled and, when set, does NOT scale
+        # with the cover (jellyfin-web-style: big art, modest labels), so long
+        # titles fit more before they clip. The category headings are separate
+        # (heading_size) and untouched.
+        _tts = self._theme_cfg.get("tile_title_size")
+        _tss = self._theme_cfg.get("tile_sub_size")
+        if _tts or _tss:
+            import dataclasses as _dc
+
+            def _cap(g):
+                return _dc.replace(g, title_size=_tts or g.title_size,
+                                   sub_size=_tss or g.sub_size)
+            self.geom = _cap(self.geom)
+            self.geom_wide = _cap(self.geom_wide)
+            self.geom_square = _cap(self.geom_square)
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         self._downloaded = set()
         self._downloaded_series = set()

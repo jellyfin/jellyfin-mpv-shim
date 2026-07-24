@@ -6732,14 +6732,15 @@ class TestTileAndMetaParity(unittest.TestCase):
                               "IndexNumber": 2}), "S1E2")
 
     def test_inside_a_season_the_episode_keeps_its_own_name(self):
-        """Browsing one series/season, the series name would just repeat down
-        every tile, so the episode leads with its own name and the subtitle is
-        the episode number (like jellyfin-web) — not the series name."""
+        """Browsing one series/season, the series name should not repeat as
+        every tile's title, so the episode leads with its own name; the show
+        name stays in the subtitle (with the episode number), like the default
+        look."""
         self.b.nav_stack = [{"kind": "season", "server": None}]
         ep = {"Type": "Episode", "SeriesName": "The Show", "Name": "Pilot",
               "ParentIndexNumber": 1, "IndexNumber": 2}
         self.assertEqual(self.b._title(ep), "Pilot")
-        self.assertEqual(self.b._subtitle(ep), "S1E2")
+        self.assertEqual(self.b._subtitle(ep), "The Show · S1E2")
 
     def test_a_movie_tile_is_unchanged(self):
         self.assertEqual(

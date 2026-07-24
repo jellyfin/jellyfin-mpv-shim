@@ -76,9 +76,12 @@ class TilesMixin:
             else:
                 season = ""
             if self._within_series():
-                # The episode name is the TITLE here, so the subtitle is just
-                # its season/episode number.
-                return season
+                # The episode name is the TITLE here; the subtitle keeps the
+                # show name + episode number (like jellyfin-web / the default
+                # look), so the series stays visible without repeating it as
+                # every tile's title.
+                series = item.get("SeriesName") or ""
+                return " · ".join(p for p in (series, season) if p)
             # Cross-series: the series is the title, so the subtitle carries
             # the episode number and its name.
             return " · ".join(p for p in (season, name) if p)

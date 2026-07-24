@@ -28,6 +28,8 @@ DEFAULT = {
     "poster_scale": 1.0,  # tile-geometry multiplier
     "heading_size": 24,   # carousel section-title font size
     "tile_landscape": (240, 135),  # (w, h) of the library/landscape tile
+    "tile_title_size": None,  # tile caption font; None = stock (scales w/ cover)
+    "tile_sub_size": None,
 }
 
 # --- "Nebula": deep-violet, glowing, bigger covers --------------------------
@@ -48,6 +50,10 @@ NEBULA = {
     "poster_scale": 1.4,
     "heading_size": 30,
     "tile_landscape": (380, 248),
+    # Caption font is fixed (does NOT grow with the bigger covers) so long
+    # titles fit before they clip — jellyfin-web-style big art, modest labels.
+    "tile_title_size": 13,
+    "tile_sub_size": 11,
 }
 
 THEMES = {"default": DEFAULT, "nebula": NEBULA}
