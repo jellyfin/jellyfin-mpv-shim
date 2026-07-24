@@ -91,8 +91,23 @@ class TileGeom:
             sub_size=px(self.sub_size), badge_size=px(self.badge_size),
         )
 
+    def scaled(self, f):
+        """A copy scaled by factor ``f`` — the theme default or the user's
+        Cover Size setting. Gap is kept so rows keep their rhythm as art grows."""
+        if not f or abs(f - 1.0) < 1e-6:
+            return self
+        r = lambda v: max(1, int(round(v * f)))
+        return TileGeom(
+            tile_w=r(self.tile_w), tile_h=r(self.tile_h), gap=self.gap,
+            caption_h=r(self.caption_h), title_size=r(self.title_size),
+            sub_size=r(self.sub_size), badge_size=r(self.badge_size),
+        )
+
 
 # Tile shapes, matching the Tk browser's poster_box/thumb_box/square_box.
+# Base (stock) tile shapes. The active theme + the user's "Cover Size" setting
+# scale these at the view layer (app.py via TileGeom.scaled); a theme may also
+# override the landscape tile outright (Nebula uses a less-wide crop).
 POSTER_GEOM = TileGeom(tile_w=150, tile_h=225, caption_h=46)        # 2:3
 LANDSCAPE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)     # 16:9
 SQUARE_GEOM = TileGeom(tile_w=170, tile_h=170, caption_h=44)        # 1:1
@@ -369,7 +384,7 @@ class StripStore:
             # never accumulates across a long strip.
             lx = col * (g.tile_w + g.gap)
             self._paint_poster(img, dr, px(lx), t, pg)
-            self._paint_decorations(dr, px(lx), t, pg)
+            self._paint_decorations(img, dr, px(lx), t, pg)
             self._paint_caption(dr, px(lx), t, pg)
             regions.append(
                 {"x": lx, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
@@ -393,44 +408,76 @@ class StripStore:
         pg = g.physical()
         img = PILImage.new("RGBA", raster(lw, lh), (0, 0, 0, 0))
         dr = ImageDraw.Draw(img)
+        rounded = bool((theme.active() or {}).get("rounded"))
+        r = _px(14) if rounded else 0
         for col in range(n):
             x = px(col * (g.tile_w + g.gap))
-            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
-                         fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
-            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
-                         outline=theme.rgb("101012", 255))
+            box = [x, 0, x + pg.tile_w - 1, pg.tile_h - 1]
+            if rounded:
+                dr.rounded_rectangle(box, radius=r,
+                                     fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
+                dr.rounded_rectangle(box, radius=r,
+                                     outline=theme.rgb("101012", 255))
+            else:
+                dr.rectangle(box, fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
+                dr.rectangle(box, outline=theme.rgb("101012", 255))
         src, iw2, ih2, v = self._store(img)
         return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh, "v": v}
 
     def _paint_poster(self, img, dr, x, t, g):
-        from PIL import Image as PILImage
+        from PIL import Image as PILImage, ImageDraw, ImageOps
 
-        # Opaque card behind the poster (letterbox fill for odd aspects).
-        dr.rectangle(
-            [x, 0, x + g.tile_w - 1, g.tile_h - 1],
-            fill=theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
-                           else theme.CARD_BG, 255),
-        )
+        # The "card look" is theme-driven. Rounded themes (Nebula) draw
+        # jellyfin-web-style rounded corners and cover-crop the art; the stock
+        # look (Default) is a square opaque card with letterboxed art — an
+        # untouched install renders exactly as upstream.
+        rounded = bool((theme.active() or {}).get("rounded"))
+        r = _px(14) if rounded else 0
+        box = [x, 0, x + g.tile_w - 1, g.tile_h - 1]
+        card_fill = theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
+                              else theme.CARD_BG, 255)
+        if rounded:
+            # Corners left transparent so the window background shows through —
+            # that transparency is what gives the card its rounded silhouette.
+            dr.rounded_rectangle(box, radius=r, fill=card_fill)
+        else:
+            dr.rectangle(box, fill=card_fill)
         if t.poster is not None:
             poster = t.poster
-            if poster.size != (g.tile_w, g.tile_h):
-                poster = poster.copy()
-                poster.thumbnail((g.tile_w, g.tile_h), PILImage.LANCZOS)
-            px = x + (g.tile_w - poster.width) // 2
-            py = (g.tile_h - poster.height) // 2
-            img.paste(poster, (px, py))
+            if rounded:
+                if poster.size != (g.tile_w, g.tile_h):
+                    # Cover-crop (object-fit: cover): scale to FILL the tile and
+                    # crop the overflow, so odd-aspect art fills the frame
+                    # edge-to-edge instead of letterboxing.
+                    poster = ImageOps.fit(
+                        poster, (g.tile_w, g.tile_h), PILImage.LANCZOS,
+                        centering=(0.5, 0.5))
+                # Clip the poster to the same rounded rect so its corners match.
+                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+                ImageDraw.Draw(mask).rounded_rectangle(
+                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                img.paste(poster, (x, 0), mask)
+            else:
+                # Stock: contain/letterbox, centered.
+                if poster.size != (g.tile_w, g.tile_h):
+                    poster = poster.copy()
+                    poster.thumbnail((g.tile_w, g.tile_h), PILImage.LANCZOS)
+                ox = x + (g.tile_w - poster.width) // 2
+                oy = (g.tile_h - poster.height) // 2
+                img.paste(poster, (ox, oy))
         elif t.glyph:
             # A muted centered glyph (first initial / ♪) so blank tiles read.
             gsize = max(_px(24), g.tile_h // 4)
             dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
                     font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
                     fill=theme.rgb(theme.SUBTLE_FG))
-        dr.rectangle(
-            [x, 0, x + g.tile_w - 1, g.tile_h - 1],
-            outline=theme.rgb("101012", 255),
-        )
+        if rounded:
+            dr.rounded_rectangle(box, radius=r,
+                                 outline=theme.rgb("101012", 255))
+        else:
+            dr.rectangle(box, outline=theme.rgb("101012", 255))
 
-    def _paint_decorations(self, dr, x, t, g):
+    def _paint_decorations(self, img, dr, x, t, g):
         # NB every bare offset in here is a logical constant being drawn
         # into a physical bitmap, so it goes through _px(). g is already
         # physical (see _compose); mixing the two silently is how a scaled
@@ -468,13 +515,37 @@ class StripStore:
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
             bar = _px(6)
-            dr.rectangle([x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
-                         fill=theme.rgb(theme.PROGRESS_TRACK, 200))
-            dr.rectangle(
-                [x, g.tile_h - bar,
-                 x + int((g.tile_w - 1) * frac), g.tile_h - 1],
-                fill=theme.rgb(theme.ACCENT, 255),
-            )
+            if bool((theme.active() or {}).get("rounded")):
+                from PIL import Image as PILImage, ImageChops, ImageDraw
+                r = _px(14)
+                # Draw the bar into its own layer, then clip it to the card's
+                # rounded silhouette (the same rounded rect the poster uses) so
+                # its ends follow the corner curve instead of poking square
+                # past the rounded bottom corners.
+                layer = PILImage.new("RGBA", (g.tile_w, g.tile_h),
+                                     (0, 0, 0, 0))
+                ld = ImageDraw.Draw(layer)
+                ld.rectangle([0, g.tile_h - bar, g.tile_w - 1, g.tile_h - 1],
+                             fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                ld.rectangle(
+                    [0, g.tile_h - bar,
+                     int((g.tile_w - 1) * frac), g.tile_h - 1],
+                    fill=theme.rgb(theme.ACCENT, 255),
+                )
+                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+                ImageDraw.Draw(mask).rounded_rectangle(
+                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                layer.putalpha(ImageChops.multiply(layer.getchannel("A"), mask))
+                img.paste(layer, (x, 0), layer)
+            else:
+                # Stock: a plain square bar across the bottom edge.
+                dr.rectangle(
+                    [x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
+                    fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                dr.rectangle(
+                    [x, g.tile_h - bar,
+                     x + int((g.tile_w - 1) * frac), g.tile_h - 1],
+                    fill=theme.rgb(theme.ACCENT, 255))
 
     def _paint_caption(self, dr, x, t, g):
         if t.title:

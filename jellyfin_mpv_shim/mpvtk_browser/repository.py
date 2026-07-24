@@ -398,6 +398,10 @@ class LibrarySource:
                 # renders. LIST_FIELDS is what the other browse calls use.
                 latest = api.user_items("/Latest", {
                     "ParentId": lib.get("Id"),
+                    # Collapse recently-added episodes into their series poster
+                    # (what jellyfin-web's "Recently Added" does) instead of
+                    # listing bare episodes as landscape thumbnails.
+                    "GroupItems": True,
                     "Limit": 16,
                     "Fields": LIST_FIELDS,
                     "EnableImageTypes": "Primary,Thumb,Backdrop",
@@ -900,6 +904,13 @@ class LibrarySource:
         usable image (caller shows a placeholder).
         """
         tags = item.get("ImageTags") or {}
+        # In a poster (2:3) context, an episode's OWN Primary is a wide 16:9
+        # still — borrow the series poster so recently-added specials/episodes
+        # match the surrounding series tiles instead of letterboxing a landscape
+        # thumb. Episode lists ask for "Thumb", so they keep their stills.
+        if (image_type == "Primary" and item.get("Type") == "Episode"
+                and item.get("SeriesId") and item.get("SeriesPrimaryImageTag")):
+            return item["SeriesId"], "Primary", item["SeriesPrimaryImageTag"]
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
 

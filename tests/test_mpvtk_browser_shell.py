@@ -1549,7 +1549,11 @@ class TestTileShapes(unittest.TestCase):
         self.assertIs(g, SQUARE_GEOM)
         g, it = self.b._row_shape(
             {"collection_type": None, "items": [{"Type": "Episode"}]})
-        self.assertIs(g, LANDSCAPE_GEOM)
+        # assertEqual, not assertIs: the landscape tile geometry is now
+        # theme-driven (a theme may widen it), so the browser builds its own
+        # TileGeom rather than handing back the module singleton. Under the
+        # default theme it is value-equal to LANDSCAPE_GEOM.
+        self.assertEqual(g, LANDSCAPE_GEOM)
         self.assertEqual(it, "Thumb")
         # collection-type wins over a stray episode in the row
         g, _it = self.b._row_shape(
@@ -1582,24 +1586,28 @@ class TestTileShapes(unittest.TestCase):
         self.assertEqual(left["w"], left["h"])
         self.assertLess(left["h"], strip["h"] / 2)
 
-    def test_arrows_punch_through_the_strip_bitmap(self):
-        """An ASS button can't composite over a bitmap; it needs an occluder
-        node so the renderer subtracts its rect from the strip below."""
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
-        nodes, _h = build_scene(self.b)
-        occ = [n for n in nodes if n["t"] == "occ"]
-        self.assertEqual(len(occ), 2, "one occluder per arrow")
-
-    def test_arrows_hold_repeat(self):
+    def test_arrows_are_bitmaps_that_compose_above_the_strip(self):
+        """The page arrows are round translucent BITMAPS, not ASS buttons.
+        Bitmaps composite above the strip and alpha-blend, so — unlike the old
+        ASS-button arrows — they need no occluder punched out of the strip."""
         many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
                      Name="Library %d" % i) for i in range(30)]
         self.b.route["_data"] = {"libraries": many, "rows": []}
         nodes, _h = build_scene(self.b)
         by_id = {n["id"]: n for n in nodes}
-        self.assertTrue(by_id["row-libs-pl"].get("rpt"))
-        self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+        self.assertEqual(by_id["row-libs-pl"]["t"], "img")
+        self.assertEqual(by_id["row-libs-pr"]["t"], "img")
+        self.assertEqual([n for n in nodes if n["t"] == "occ"], [],
+                         "bitmap arrows compose above the strip, no occluder")
+
+    def test_arrows_page_the_row_on_click(self):
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        by_id = {n["id"]: n for n in nodes}
+        self.assertTrue(by_id["row-libs-pl"].get("click"))
+        self.assertTrue(by_id["row-libs-pr"].get("click"))
 
     def test_downloaded_and_glyph(self):
         self.b._downloaded = {"m1"}
@@ -6706,16 +6714,17 @@ class TestTileAndMetaParity(unittest.TestCase):
 
     def test_an_episode_tile_names_its_show(self):
         """A bare "S1E1" on a Continue Watching tile does not say which show
-        it belongs to, which is the one thing you need there."""
-        self.assertEqual(
-            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show",
-                              "ParentIndexNumber": 1, "IndexNumber": 2}),
-            "The Show · S1E2")
+        it belongs to, which is the one thing you need there. The show now
+        leads as the tile TITLE (like jellyfin-web), with the episode id in
+        the subtitle beneath it."""
+        ep = {"Type": "Episode", "SeriesName": "The Show",
+              "ParentIndexNumber": 1, "IndexNumber": 2}
+        self.assertEqual(self.b._title(ep), "The Show")
+        self.assertEqual(self.b._subtitle(ep), "S1E2")
 
     def test_an_episode_with_no_numbering_still_names_the_show(self):
-        self.assertEqual(
-            self.b._subtitle({"Type": "Episode", "SeriesName": "The Show"}),
-            "The Show")
+        ep = {"Type": "Episode", "SeriesName": "The Show"}
+        self.assertEqual(self.b._title(ep), "The Show")
 
     def test_an_episode_with_no_series_name_still_shows_the_number(self):
         self.assertEqual(

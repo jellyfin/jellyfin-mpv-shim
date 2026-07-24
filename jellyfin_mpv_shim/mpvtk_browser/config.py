@@ -63,9 +63,10 @@ SECTIONS = [
                       "enable_gui", "close_to_tray", "allow_background",
                       "start_minimized",
                       "remember_window_size",
-                      "fullscreen", "ui_scale", "enable_osc", "osc_style",
+                      "fullscreen", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
                       "check_updates", "notify_updates"]),
+    (_("Theme"), ["theme", "poster_scale", "ui_scale"]),
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
                      "playback_timeout"]),
@@ -121,6 +122,17 @@ LABELED_ENUMS = {
         (_("150%"), 1.5),
         (_("200%"), 2.0),
     ],
+    "theme": [
+        (_("Default"), "default"),
+        (_("Nebula (violet, glowing)"), "nebula"),
+    ],
+    "poster_scale": [
+        (_("Theme default"), None),
+        (_("Small"), 1.0),
+        (_("Medium"), 1.2),
+        (_("Large"), 1.4),
+        (_("Extra Large"), 1.7),
+    ],
     "shader_pack_gpu_api": [
         (_("Automatic (recommended)"), "auto"),
         (_("Vulkan"), "vulkan"),
@@ -159,6 +171,8 @@ LABEL_OVERRIDES = {
     "remember_window_size": _("Remember Window Size"),
     "osc_style": _("Player Controls Style"),
     "ui_scale": _("Interface Scale"),
+    "theme": _("Theme"),
+    "poster_scale": _("Cover Size"),
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
@@ -197,6 +211,10 @@ NOTES = {
                    "type into. Easier than precise scrolling on a trackpad."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
+    "theme": _("Palette, glow, and default cover size. Takes effect after a "
+               "restart."),
+    "poster_scale": _("Overrides the theme's cover size. Takes effect after a "
+                      "restart."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
                     "mpv.conf) decide. Pick a mode only if you are sending "
                     "audio to a receiver."),

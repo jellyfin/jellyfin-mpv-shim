@@ -147,6 +147,17 @@ You can use the config file to enable and disable features.
   - Artwork is re-fetched from the server at the larger size, so scaling up
     stays sharp. Art from **offline sync** is the exception: it was downloaded
     at 1x and will be upscaled.
+- `theme` - Visual theme for the library browser. Default: `default`
+  - `default` - The stock look, unchanged from earlier versions.
+  - `nebula` - A deep-violet, glowing theme with rounded, cover-cropped cards
+    and larger covers.
+  - Sets the palette, glow, cover style and default cover size; the Cover Size
+    and Interface Scale settings can still override the sizing.
+  - Read once at startup; changing it requires a restart.
+- `poster_scale` - Overrides the active theme's default cover size. Default: `null`
+  - `null` keeps the theme's own size; a number (e.g. `1.0`, `1.4`, `1.7`)
+    scales the cover tiles.
+  - Read once at startup; changing it requires a restart.
 - `osc_style` - Which on-screen controller to use. Default: `mpvtk`
   - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
     browser inside the player window: top bar (back, title, SyncPlay),
