@@ -255,6 +255,8 @@ and independently revertible.
 | 6a | `Page` + `PageContext` + registry, first route converted | medium | 1–3, 5 |
 | 6b | **Extract `TileRenderer` + `ScrollState`** (see §3.1) | medium | 6a |
 | 6c | Convert the remaining route kinds, one at a time | medium | 6b |
+| 6c-prep | `ItemActions`, `Paginator`, `components/{controls,detail}` | medium | 6b |
+| 6d | The five loaderless kinds — see §3.2 | **open question** | 6c |
 | 7 | Extract `MpvSession` from `player.py` | medium-high | integration matrix green on both backends |
 | 8 | Make `run_action` single-context | high | 7 |
 
@@ -335,6 +337,54 @@ tile grid is its largest consumer, so doing them together avoids threading a
 callback between two half-built objects.
 
 ---
+
+### 3.2 Where 6c stopped, and why the line falls there
+
+**14 of 19 route kinds are `Page`s. The 5 that are not are exactly the 5 that
+never had a loader.**
+
+That is not a coincidence and it is not where effort ran out. `ROUTES` maps a
+kind to `(loader, renderer)`, and every converted kind had both:
+
+| converted (14) | `(loader, renderer)` |
+|---|---|
+| home, search, detail, series, season, grid, person, music, album, artist, music_genre, playlist, queue, playlist_edit | both |
+
+| not converted (5) | `(loader, renderer)` |
+|---|---|
+| settings, login, locked, connecting, cast | `(None, renderer)` |
+
+A `Page` is *fetch, then draw*: `load()` gets what the screen needs, `render()`
+turns it into a widget tree, and `PageContext` is the set of things a screen
+needs to do that. The five holdouts do not fetch. They draw **application
+state the shell already owns**, which is why they never needed a loader:
+
+- **`cast`** renders one baked bitmap produced by a compositor that runs on
+  the pool and is driven by websocket events (`display_cast_item`). The
+  renderer is ~15 lines reading `_cast_entry` / `_cast_size`. The state, the
+  compositor and the entry points are all shell.
+- **`login` / `locked` / `connecting`** are the session state machine. Their
+  handlers do not load data, they *replace the data source and reset the
+  navigation stack* — `set_source`, `set_offline`, `show_login`,
+  `show_connecting`, `connect_failed`. That is the shell's identity
+  management; a page that could swap the source is not a page.
+- **`settings`** is the closest call. Its five tab renderers are genuine page
+  work, but they sit directly on config writes, source swaps (work-offline,
+  remove-server), user management, download management and two pollers.
+
+Converting them is possible, but only by extracting three more services of
+roughly `ItemActions`' size — a session/auth service, the cast compositor, and
+a settings-operations service — because the budget (rightly) refuses to let a
+page reach the shell for any of it.
+
+**The open question is whether that is worth doing, or whether these five are
+correctly shell-owned.** There is a real argument for the latter: they are app
+*states*, not library screens, and the `ROUTES` fallback that serves them is
+three lines in `_load_route` / `_render_route`. Forcing them through an
+abstraction built for "fetch, then draw" may cost more clarity than it buys.
+
+Either way the escape hatch stayed at **zero** throughout 6c, so nothing here
+is a debt that is quietly growing; it is a boundary with a reason.
 
 ## 4. Prose that belongs here, not at the call site
 
