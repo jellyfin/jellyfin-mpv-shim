@@ -3368,7 +3368,7 @@ class TestDownloadsGrouping(unittest.TestCase):
     so exercise it against a fake catalog rather than only the view."""
 
     def _controller(self, rows, playlists=(), owned=None):
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         class FakeDB:
             def list(self_inner):
@@ -3389,7 +3389,7 @@ class TestDownloadsGrouping(unittest.TestCase):
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        return _PlayerController()
+        return PlayerGateway()
 
     def test_size_comes_from_the_real_columns(self):
         """The catalog stores size_bytes/downloaded_bytes; reading a "size"
@@ -5618,7 +5618,7 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
     disk used with no UI path to reclaim it."""
 
     def _controller(self, rows, playlists=(), owned=None):
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         class FakeDB:
             def list(self_inner):
@@ -5639,7 +5639,7 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        return _PlayerController()
+        return PlayerGateway()
 
     def test_an_orphaned_row_still_appears(self):
         rows = [{"item_id": "m1", "name": "A Movie", "type": "Movie",
@@ -5810,7 +5810,7 @@ class TestPinStartupSeeding(unittest.TestCase):
     def test_list_users_exposes_it(self):
         """The dialog can only seed what the controller reports."""
         import jellyfin_mpv_shim.users as users_mod
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         class FakeUM:
             active_id = "u1"
@@ -5824,7 +5824,7 @@ class TestPinStartupSeeding(unittest.TestCase):
 
         real, users_mod.userManager = users_mod.userManager, FakeUM()
         self.addCleanup(lambda: setattr(users_mod, "userManager", real))
-        got = _PlayerController().list_users()
+        got = PlayerGateway().list_users()
         self.assertTrue(got[0]["require_startup"])
 
 
@@ -6903,12 +6903,12 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
     raises. Restoring the swallows in ui.py leaves every one of them green.
     That is precisely the shape MIGRATION.md records: "a delete-rollback whose
     test passed because it stubbed the controller and bypassed _edit
-    entirely." These drive the real _PlayerController.
+    entirely." These drive the real PlayerGateway.
     """
 
     def _controller(self):
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
-        return _PlayerController()
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        return PlayerGateway()
 
     def _patch(self, module_path, name, obj):
         import importlib
@@ -7613,14 +7613,14 @@ class TestEditFailuresAreVisible(unittest.TestCase):
 
     def test_edit_raises_so_callers_can_react(self):
         import jellyfin_mpv_shim.clients as clients_mod
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         real = clients_mod.clientManager.clients
         clients_mod.clientManager.clients = {}
         self.addCleanup(lambda: setattr(clients_mod.clientManager,
                                         "clients", real))
         with self.assertRaises(Exception):
-            _PlayerController().playlist_delete("srv1", "P")
+            PlayerGateway().playlist_delete("srv1", "P")
 
     def test_a_failed_delete_keeps_you_on_the_playlist(self):
         ctl = FakeController()
@@ -8142,7 +8142,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
 
     def test_the_controller_reports_playlists(self):
         import jellyfin_mpv_shim.sync.manager as mgr
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         class FakeDB:
             def list_playlists(self):
@@ -8165,7 +8165,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
 
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        got = _PlayerController().downloaded_ids()
+        got = PlayerGateway().downloaded_ids()
         self.assertEqual(got, ({"m1"}, {"sh1"}, {"sea1"}, {"P"}))
 
 

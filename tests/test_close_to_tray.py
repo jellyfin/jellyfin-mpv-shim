@@ -70,7 +70,7 @@ class CloseToTrayTest(unittest.TestCase):
         self.ui._tray = _Tray(available=False)
         with mock.patch.object(settings, "allow_background", True), \
                 mock.patch("jellyfin_mpv_shim.mpvtk_browser.ui."
-                           "_PlayerController"):
+                           "PlayerGateway"):
             self.ui.on_window_closed()
         self.browser.minimize.assert_called_once()
         self.ui._quit.assert_not_called()
@@ -94,7 +94,7 @@ class CloseToTrayTest(unittest.TestCase):
         with mock.patch.object(settings, "headless", True), \
                 mock.patch.object(settings, "allow_background", False), \
                 mock.patch("jellyfin_mpv_shim.mpvtk_browser.ui."
-                           "_PlayerController"):
+                           "PlayerGateway"):
             self.ui.on_window_closed()
         self.browser.minimize.assert_called_once()
         self.ui._quit.assert_not_called()
@@ -114,7 +114,7 @@ class CloseToTrayTest(unittest.TestCase):
         settings.close_to_tray = True
         self.ui._tray = _Tray()
         with mock.patch(
-            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+            "jellyfin_mpv_shim.mpvtk_browser.ui.PlayerGateway"
         ) as ctl:
             self.ui.on_window_closed()
         ctl.return_value.stop_for_close.assert_called_once_with()
@@ -127,7 +127,7 @@ class CloseToTrayTest(unittest.TestCase):
         order = []
         self.browser.minimize.side_effect = lambda: order.append("minimize")
         with mock.patch(
-            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+            "jellyfin_mpv_shim.mpvtk_browser.ui.PlayerGateway"
         ) as ctl:
             ctl.return_value.stop_for_close.side_effect = (
                 lambda: order.append("stop"))
@@ -139,7 +139,7 @@ class CloseToTrayTest(unittest.TestCase):
         settings.close_to_tray = False
         self.ui._tray = _Tray()
         with mock.patch(
-            "jellyfin_mpv_shim.mpvtk_browser.ui._PlayerController"
+            "jellyfin_mpv_shim.mpvtk_browser.ui.PlayerGateway"
         ) as ctl:
             self.ui.on_window_closed()
         ctl.return_value.stop_for_close.assert_not_called()

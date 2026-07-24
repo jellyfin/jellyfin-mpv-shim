@@ -27,13 +27,6 @@ from .player_gateway import (PlayerGateway, _collect_servers,
 log = logging.getLogger("mpvtk_browser.ui")
 
 
-# Moved to player_gateway.py (step 5 of docs/ARCHITECTURE_TARGET.md §3).
-# Re-exported under the old name so nothing that reaches for
-# ui._PlayerController breaks in the same commit as the move; the tidy pass
-# retires the alias.
-_PlayerController = PlayerGateway
-
-
 
 class UserInterface:
     def __init__(self):
@@ -105,7 +98,7 @@ class UserInterface:
         self._browser.display_item(uuid, item_id)
 
     def _open_config_folder(self):
-        _PlayerController().open_config_folder()
+        PlayerGateway().open_config_folder()
 
     def _quit(self):
         if self.stop_callback is not None:
@@ -180,7 +173,7 @@ class UserInterface:
         # (set_browse_window's `not self._video` guard), so the window used to
         # stay on screen. Stopping *after* it re-enters minimize() through the
         # stopped playstate, which is where force_window finally drops.
-        _PlayerController().stop_for_close()
+        PlayerGateway().stop_for_close()
 
     def login_servers(self):
         from ..player import playerManager, is_using_ext_mpv
@@ -207,7 +200,7 @@ class UserInterface:
                                settings.player_name,
                                not settings.ignore_ssl_cert)
         browser = MpvtkBrowser(app, source, strips=strips, thumbs=thumbs,
-                               controller=_PlayerController())
+                               controller=PlayerGateway())
         self._browser = browser
         playerManager.mpvtk_active = True
         playerManager.on_playstate = browser.on_playstate
@@ -225,7 +218,7 @@ class UserInterface:
         # Refresh download badges the moment the catalog changes, rather
         # than only when Settings -> Downloads is opened. The push hook has
         # always existed; the browser just never subscribed.
-        _PlayerController().on_downloads_changed(browser.on_downloads_changed)
+        PlayerGateway().on_downloads_changed(browser.on_downloads_changed)
         # mpv is torn down and rebuilt across idle-quit and crash recovery;
         # the renderer is bound to a specific handle, so follow it.
         playerManager.on_mpv_gone = self.on_mpv_gone
@@ -435,7 +428,7 @@ class UserInterface:
         if self._browser is None:
             return
         try:
-            source = _PlayerController().rebuild_source()
+            source = PlayerGateway().rebuild_source()
         except Exception:
             log.debug("rebuild after connect failed", exc_info=True)
             return
@@ -458,7 +451,7 @@ class UserInterface:
             # the login screen. work_offline always arrives here (the connect
             # above was skipped), which is what makes the setting mean
             # something in this UI.
-            offline = _PlayerController().offline_source()
+            offline = PlayerGateway().offline_source()
             if offline is not None:
                 self._browser.set_source(offline)
                 return

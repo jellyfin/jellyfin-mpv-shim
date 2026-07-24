@@ -56,7 +56,7 @@ class FakePlayer:
     def get_mpv():
         return object()
 
-    # enter_browse()/minimize() reach through _PlayerController into these.
+    # enter_browse()/minimize() reach through PlayerGateway into these.
     # Recorded rather than no-op'd so the window handoff stays visible.
     def __getattr__(self, name):
         if name.startswith("_"):
@@ -305,7 +305,7 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
 class TestDetachFromInsideTheRenderLoop(unittest.TestCase):
     """on_mpv_gone is reachable ON the render-loop thread.
 
-    A now-playing-bar button dispatches on that thread; _PlayerController._act
+    A now-playing-bar button dispatches on that thread; PlayerGateway._act
     calls run_action, whose fast path executes the player method INLINE when
     the lock is free; a dead handle takes it through _handle_mpv_disconnect ->
     _notify_mpv_gone -> on_mpv_gone. _join_render_loop then joined the thread

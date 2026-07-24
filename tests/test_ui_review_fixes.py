@@ -13,7 +13,7 @@ Each test class is anchored to one confirmed finding:
 * The offline source publishes one immutable snapshot, synthesizes UserData
   for series/seasons, and memoizes artwork path resolution.
 * Offline watched-marks fan out from a series/season to its downloaded
-  episodes (_PlayerController._queue_offline_watched).
+  episodes (PlayerGateway._queue_offline_watched).
 * backdrop_spec keys header art by the real backdrop tag per source.
 """
 
@@ -27,7 +27,7 @@ from unittest import mock
 
 from jellyfin_mpv_shim.users import UserManager
 from jellyfin_mpv_shim.clients import ClientManager
-from jellyfin_mpv_shim.mpvtk_browser import ui as browser_ui
+from jellyfin_mpv_shim.mpvtk_browser import player_gateway as browser_gw
 from jellyfin_mpv_shim.mpvtk_browser.repository import (
     LibrarySource, OfflineLibrarySource, _OfflineSnapshot,
 )
@@ -166,7 +166,7 @@ def _watch_targets(item_id, server_uuid):
     db = _sync().db
     db.upsert_playstate.side_effect = (
         lambda srv, iid, played=None: written.append((iid, srv)))
-    browser_ui._PlayerController._queue_offline_watched(
+    browser_gw.PlayerGateway._queue_offline_watched(
         server_uuid, item_id, True)
     return written
 

@@ -23,7 +23,7 @@ from test_mpvtk_browser import _make_source, _spawn_handle  # noqa: E402
 
 class FakeController:
     """Records transport calls; opts into the HUD like the real
-    _PlayerController does when osc_style is "mpvtk"."""
+    PlayerGateway does when osc_style is "mpvtk"."""
 
     def __init__(self):
         self.calls = []

@@ -157,7 +157,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin, QueueEditMixin,
         self._config_obj = config
         # Optional bridge to the player (playback + browse/play window state).
         # None in tests -> playable clicks just report status; the window/OSC
-        # handoff is a no-op. See mpvtk_browser.ui._PlayerController.
+        # handoff is a no-op. See mpvtk_browser.player_gateway.PlayerGateway.
         self.controller = controller
         # True while the browser owns the window; False while it has yielded to
         # playback + the OSC. build() pushes an empty scene when not browsing so

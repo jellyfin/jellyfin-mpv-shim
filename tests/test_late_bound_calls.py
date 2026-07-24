@@ -37,7 +37,8 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from jellyfin_mpv_shim.mpvtk_browser import ui as ui_mod  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import (  # noqa: E402
+    player_gateway as gw_mod)
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BROWSER = os.path.join(REPO, "jellyfin_mpv_shim", "mpvtk_browser")
@@ -75,8 +76,8 @@ def _instance_attrs(cls_source_path, class_name):
 
 
 def _controller_api():
-    return set(dir(ui_mod._PlayerController)) | _instance_attrs(
-        os.path.join(BROWSER, "ui.py"), "_PlayerController")
+    return set(dir(gw_mod.PlayerGateway)) | _instance_attrs(
+        os.path.join(BROWSER, "player_gateway.py"), "PlayerGateway")
 
 
 def _player_api():
@@ -147,7 +148,7 @@ class TestLambdaReceiversResolve(unittest.TestCase):
         self.assertEqual(
             bad, [],
             "These lambdas call methods that do not exist on "
-            "_PlayerController. They fail only when the callback runs:\n  "
+            "PlayerGateway. They fail only when the callback runs:\n  "
             + "\n  ".join(bad))
 
     def test_player_lambdas_resolve(self):
@@ -224,8 +225,8 @@ class TestLambdaCallsMatchSignatures(unittest.TestCase):
         import inspect as _inspect
 
         sigs = {}
-        for name in dir(ui_mod._PlayerController):
-            attr = getattr(ui_mod._PlayerController, name, None)
+        for name in dir(gw_mod.PlayerGateway):
+            attr = getattr(gw_mod.PlayerGateway, name, None)
             if not callable(attr):
                 continue
             try:

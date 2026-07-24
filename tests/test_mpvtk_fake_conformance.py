@@ -2,7 +2,7 @@
 
 Almost every mpvtk browser test runs against `FakeSource` (for
 `repository.LibrarySource`) and `FakeController` (for
-`ui._PlayerController`). A fake that is MORE permissive than production
+`player_gateway.PlayerGateway`). A fake that is MORE permissive than production
 hides bugs rather than finding them, in two specific ways this project has
 already been bitten by:
 
@@ -31,7 +31,7 @@ sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     LibrarySource, OfflineLibrarySource)
-from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway  # noqa: E402
 
 from tests.test_mpvtk_browser_shell import (  # noqa: E402
     FakeController, FakeSource)
@@ -110,11 +110,11 @@ class TestFakeSourceMatchesTheRealOne(unittest.TestCase):
 
 class TestFakeControllerMatchesTheRealOne(unittest.TestCase):
     def test_every_explicitly_faked_method_exists_on_the_controller(self):
-        real = set(public_methods(_PlayerController))
+        real = set(public_methods(PlayerGateway))
         extra = sorted(set(public_methods(FakeController)) - real)
         self.assertEqual(
             extra, [],
-            "FakeController defines methods _PlayerController does not: %s"
+            "FakeController defines methods PlayerGateway does not: %s"
             % extra)
 
     def test_the_check_is_not_vacuous(self):
@@ -169,7 +169,7 @@ class TestNothingCallsAControllerMethodThatDoesNotExist(unittest.TestCase):
         return names
 
     def test_every_call_site_names_a_real_controller_method(self):
-        real = set(public_methods(_PlayerController))
+        real = set(public_methods(PlayerGateway))
         called = self._controller_calls()
         missing = sorted(n for n in called if n not in real)
         self.assertEqual(

@@ -256,14 +256,14 @@ class TestMpvtkOfflineFallback(TmpTest):
 
     def _controller(self, catalog_path):
         import jellyfin_mpv_shim.sync.manager as mgr
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         class FakeSync:
             db = type("DB", (), {"path": catalog_path})()
 
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        return _PlayerController()
+        return PlayerGateway()
 
     def _catalog_with_a_movie(self):
         path = os.path.join(self.tmp, "catalog.db")
@@ -316,11 +316,11 @@ class TestMpvtkOfflineFallback(TmpTest):
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
 
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         calls = []
         self._patched_start_playback(calls)
-        ctl = _PlayerController()
+        ctl = PlayerGateway()
 
         ctl.play_list(["m1", "m2"], "offline", 0)
         self.assertEqual(len(calls), 1)
@@ -509,7 +509,7 @@ class TestOfflineWatchedQueue(TmpTest):
 
     def _controller(self, catalog_path):
         import jellyfin_mpv_shim.sync.manager as mgr
-        from jellyfin_mpv_shim.mpvtk_browser.ui import _PlayerController
+        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
 
         db = SyncDB(catalog_path)
         self.addCleanup(db.close)
@@ -520,7 +520,7 @@ class TestOfflineWatchedQueue(TmpTest):
         FakeSync.db = db
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
-        return _PlayerController(), db
+        return PlayerGateway(), db
 
     def _catalog(self):
         path = os.path.join(self.tmp, "catalog.db")
