@@ -571,6 +571,12 @@ class PlayerManager(object):
         # mode, and the cast screen). Guards idle_quit so an on-screen UI
         # never has the window torn out from under it.
         self.mpvtk_active = False
+        # Tracks whether mpv's stats.lua ("Playback Data") overlay is up, so
+        # it can be cleared when the library comes back. It is ASS OSD, which
+        # the in-window browser draws over — but left on, it lingers behind
+        # the library once playback ends. Both the HUD gear entry and the `i`
+        # key funnel through toggle_stats() so this stays truthful.
+        self._stats_shown = False
         # True while the in-window browser's solid background image is the
         # loaded file. Guards against reloading it on top of itself, which
         # tears the video output down and back up (a visible window
@@ -909,6 +915,9 @@ class PlayerManager(object):
         # exists (re-open, crash recovery).
         self._audio_configured = False
         self._audio_snapshot = None
+        # A fresh mpv starts with stats.lua's overlay off — don't let a stale
+        # flag make clear_stats() toggle it back on.
+        self._stats_shown = False
         try:
             self.apply_audio_settings()
         except Exception:
@@ -1098,6 +1107,33 @@ class PlayerManager(object):
                 settings.save()
             if self.menu.profile_manager is not None:
                 self.menu.profile_manager.unload_profile()
+
+        # mpv's stats.lua binds `i`/`I` to its "Playback Data" overlay. Take
+        # them over so the in-window UI stays in charge of that overlay: under
+        # the in-window OSC the overlay is tracked (so it can be cleared when
+        # the library returns) and swallowed while browsing/idle (it is ASS
+        # OSD that would paint behind the library). The classic/lua OSCs and
+        # CLI keep mpv's stock behaviour.
+        def stats_key(oneshot):
+            def handler():
+                if (self.mpvtk_active and self._video is not None
+                        and not self._current_is_audio()):
+                    # A video is on screen under the in-window HUD: track the
+                    # overlay so clear_stats() can hide it when the library
+                    # returns. Audio keeps the browser up (no picture to
+                    # annotate), so it falls through to the swallow below.
+                    self.put_task(self.toggle_stats)
+                elif not self.mpvtk_active:
+                    self._player.command(
+                        "script-binding",
+                        "stats/display-stats" if oneshot
+                        else "stats/display-stats-toggle")
+                # else: browsing / audio / idle under the in-window UI —
+                # swallow it so the overlay isn't painted over the library.
+            return handler
+
+        self._player.on_key_press("i")(stats_key(True))
+        self._player.on_key_press("I")(stats_key(False))
 
         # Fires between episodes.
         @self._player.property_observer("eof-reached")
@@ -2181,6 +2217,26 @@ class PlayerManager(object):
         except _mpv_errors:
             self._handle_mpv_disconnect()
         log.info("stop_and_close: done")
+
+    def toggle_stats(self):
+        """Toggle mpv's "Playback Data" (stats.lua) overlay, tracking its
+        state. Both the HUD gear menu's Playback Data entry and the `i` key
+        route here so ``_stats_shown`` stays truthful and clear_stats() can
+        reliably put it away when the library returns."""
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.command("script-binding", "stats/display-stats-toggle")
+            self._stats_shown = not self._stats_shown
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+
+    def clear_stats(self):
+        """Hide the Playback Data overlay if it is up. Called when returning
+        to the library — the overlay is ASS OSD and otherwise lingers behind
+        the in-window browser after playback ends."""
+        if self._stats_shown:
+            self.toggle_stats()
 
     def stop_to_browser(self):
         """Stop playback but keep the window, so the in-window browser can take

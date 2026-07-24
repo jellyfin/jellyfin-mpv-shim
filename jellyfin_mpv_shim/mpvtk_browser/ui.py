@@ -78,6 +78,9 @@ class _PlayerController:
         # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
         playerManager.set_browse_window(True)
         playerManager.enable_osc(False)
+        # Put away the Playback Data overlay if playback left it up: it is ASS
+        # OSD and would linger behind the library otherwise.
+        playerManager.clear_stats()
 
     def on_minimize(self):
         """Drop to the windowless state. set_browse_window(False) releases
@@ -197,9 +200,10 @@ class _PlayerController:
             pm._player, "video_aspect_override", value))
 
     def toggle_stats(self):
-        """Toggle mpv's stats overlay (the gear menu's Playback Data)."""
-        self._act(lambda pm: pm._player.command(
-            "script-binding", "stats/display-stats-toggle"))
+        """Toggle mpv's stats overlay (the gear menu's Playback Data).
+        Goes through the player's tracked toggle so the overlay is cleared
+        when the library returns (see on_browse_enter -> clear_stats)."""
+        self._act(lambda pm: pm.toggle_stats())
 
     def toggle_night_mode(self):
         """Night mode on/off from the playback HUD's gear menu. Applies to
