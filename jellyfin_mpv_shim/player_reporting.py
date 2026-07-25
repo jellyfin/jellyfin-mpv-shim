@@ -19,43 +19,21 @@ inline, because they used to sit on the advance path between episodes.
 Never drain the reporter while holding ``_tl_lock``: ``_session_playing_safe``
 takes it on the worker.
 
-.. warning::
+**One thing this module deliberately does not do: touch ``pause_ignore``.**
 
-   **Known hazard: ``pause_ignore`` is written from here.**
+   It used to. ``get_timeline_options`` set it to mpv's live pause state,
+   which gave a flag that means "the pause value we just commanded" a second,
+   contradictory meaning -- and the sample was taken twenty-five lines and
+   four mpv property reads before it was written, so it could be badly stale.
+   A stale sample landing on a fresh guard makes the next genuine local pause
+   or unpause compare equal in ``_on_pause_change`` and get swallowed: the
+   local player changes state and the SyncPlay group is never told. Fixed by
+   removing the write; ``tests/test_syncplay_pause_ignore.py`` reproduces it
+   deterministically and will fail if it comes back.
 
-   ``get_timeline_options`` does ``self.pause_ignore = pause``, sampling mpv's
-   live pause state from the timeline thread. That attribute exists for a
-   different purpose: ``set_paused`` sets it to the value it is *about* to
-   write to mpv, so that when mpv's pause observer fires for a change we made,
-   ``_on_pause_change`` recognises it and does not forward it to SyncPlay.
-   Without that guard a pause we performed *because* SyncPlay asked us to gets
-   reported back to SyncPlay as a local pause, and the two bounce.
-
-   So the attribute has two writers with two meanings -- "the value we just
-   commanded" (a one-shot guard) and "the value we last observed" (a periodic
-   latch) -- and the latch can consume the guard. If ``pause_ignore`` is set
-   to mpv's current pause before ``_on_pause_change`` reaches its comparison,
-   a genuinely local pause reads as one of ours and SyncPlay is never told.
-   The user's pause silently fails to propagate to the group.
-
-   The ordering is not a coincidental tick landing in the gap.
-   ``_on_pause_change`` calls ``timeline_handle()`` -- which sets the event
-   the timeline thread waits on -- and *then* compares against
-   ``pause_ignore``. It wakes the writer and reads the value two statements
-   later. The observer nearly always wins, since the woken thread has work to
-   do first, which is presumably why this has only ever shown up as
-   intermittent.
-
-   It is also a lock defect: ``pause_ignore`` is otherwise ``_lock``-owned
-   state (``set_paused``, ``_play_media``, ``finished_callback`` all write it
-   under ``_lock``) and this writes it under ``_tl_lock``. Two locks, one
-   flag.
-
-   Left exactly as it was on purpose. Changing pause semantics while
-   relocating the code would make any regression unbisectable, and there is
-   no test in the suite that stresses transport contention against a report.
-   It belongs with the lock-narrowing pass, together with a test that
-   reproduces it.
+   The remaining SyncPlay defects found in the same trace -- including an
+   ABBA inversion between ``_lock`` and ``_tl_lock`` that this module is one
+   half of -- are written up in ``docs/SYNCPLAY_FINDINGS.md``.
 """
 
 import logging
@@ -103,9 +81,9 @@ class ReportingMixin:
 
     if TYPE_CHECKING:
         # Owned by PlayerManager, not by this mixin. Listed so the coupling
-        # has a length: five pieces of state written, nine read, two methods
-        # called. `pause_ignore` is in the written set -- see the module
-        # docstring's warning, which is the reason that list is worth having.
+        # has a length: four pieces of state written, nine read, two methods
+        # called. It was five until `pause_ignore` came off the list -- which
+        # is the argument for keeping it.
         _player: Any
         _video: Any
         _reporter: Any
@@ -116,7 +94,6 @@ class ReportingMixin:
         repeat_mode: str
         on_playstate: Any
         last_seek: Any
-        pause_ignore: Any
         should_send_timeline: bool
         _last_playback_position: Any
         _last_offline_record: float
@@ -263,7 +240,16 @@ class ReportingMixin:
         else:
             safe_pos = playback_time or 0
         self.last_seek = safe_pos
-        self.pause_ignore = pause
+        # NOT `self.pause_ignore = pause`. That flag means "the pause value we
+        # just commanded" -- set_paused records it so mpv's echo of our own
+        # change is recognised and not announced to SyncPlay as a local pause.
+        # Writing mpv's live state here gave it a second, contradictory
+        # meaning, and the sample was taken twenty-five lines and four mpv
+        # property reads earlier, so it could be badly stale by now.
+        # Overwriting a fresh guard with a stale sample makes the next genuine
+        # local pause or unpause compare equal and get swallowed: the player
+        # changes state and the group is never told. See
+        # tests/test_syncplay_pause_ignore.py.
         options = {
             "VolumeLevel": int(none_fallback(volume, 100)),
             "IsMuted": mute,
