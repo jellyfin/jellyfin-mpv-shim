@@ -175,5 +175,56 @@ class StartupTest(unittest.TestCase):
                       inspect.getsource(PlayerManager))
 
 
+class WindowMixinIsWiredInTest(unittest.TestCase):
+    """Window ownership, geometry and fullscreen live in ``WindowMixin``.
+
+    The tests above drive them through PlayerManager, so they would all still
+    pass if the inheritance went away and the window handling went with it.
+    """
+
+    def test_the_player_inherits_it_and_the_methods_resolve_to_it(self):
+        from jellyfin_mpv_shim.player_window import WindowMixin
+
+        self.assertTrue(issubclass(PlayerManager, WindowMixin))
+        for name in ("set_browse_window", "browse_yield", "force_window",
+                     "raise_window", "set_fullscreen", "toggle_fullscreen",
+                     "_sync_window_geometry", "_rearm_window_geometry",
+                     "_save_window_geometry", "_set_force_window",
+                     "_reopen_window_size"):
+            self.assertIs(getattr(PlayerManager, name),
+                          getattr(WindowMixin, name),
+                          "%s is no longer the mixin's" % name)
+
+    def test_fullscreen_keeps_the_transport_lock(self):
+        """The odd one out: everything else here is unsynchronized, but
+        fullscreen has always run under _lock and callers rely on it."""
+        import inspect
+
+        from jellyfin_mpv_shim.player_window import WindowMixin
+
+        for name in ("set_fullscreen", "toggle_fullscreen"):
+            self.assertIn('synchronous("_lock")',
+                          inspect.getsource(getattr(WindowMixin, name)),
+                          "%s lost its lock" % name)
+
+    def test_importing_it_pulls_in_neither_player_nor_a_backend(self):
+        # Same guard as player_audio / player_reporting: _mpv_errors and
+        # win_utils are read per call so the integration harness's fake-mpv
+        # swap keeps working.
+        import subprocess
+        import sys
+
+        code = ("import sys; sys.argv=[sys.argv[0]];"
+                "import jellyfin_mpv_shim.player_window;"
+                "bad=[m for m in ('jellyfin_mpv_shim.player','mpv',"
+                "'python_mpv_jsonipc') if m in sys.modules];"
+                "print(','.join(bad))")
+        out = subprocess.run([sys.executable, "-c", code],
+                             capture_output=True, text=True, timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(out.stdout.strip(), "",
+                         "player_window captured the backend at import time")
+
+
 if __name__ == "__main__":
     unittest.main()
