@@ -37,7 +37,12 @@ log = logging.getLogger("sync.auto")
 #: Fields needed to enqueue and to judge watched-ness. Matches what the
 #: manager's own expansion asks for; MediaSources is what size estimates and
 #: the container extension come from.
-_FIELDS = "MediaSources,UserData,ParentId"
+#:
+#: UserData is deliberately absent even though watched-ness is judged from it:
+#: it is not an ItemFields value, it rides on the separate EnableUserData query
+#: parameter (which defaults to true). Asking for it here only worked because
+#: the server's comma binder discards names it cannot parse.
+_FIELDS = "MediaSources,ParentId"
 
 _GB = 1 << 30
 

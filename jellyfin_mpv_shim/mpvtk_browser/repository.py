@@ -25,9 +25,15 @@ from . import home_sections
 
 log = logging.getLogger("mpvtk_browser.repository")
 
-# Fields requested for grids/rows. Kept lean for speed. Artists is included so
-# music tiles (e.g. tracks in a playlist) can show the performer.
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview,ProductionYear,Artists"
+# Fields requested for grids/rows. Kept lean for speed.
+#
+# Only names in the server's ItemFields enum belong here. Everything a tile
+# actually renders beyond these — ProductionYear, Artists, Album, RunTimeTicks,
+# the ratings — is an unconditional BaseItemDto property that DtoService sets
+# whether or not it was asked for, so listing it achieves nothing. The comma
+# binder drops names it cannot parse instead of rejecting the request, which is
+# why doing so was invisible; a stricter server would 400 the whole query.
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
 
 # Concurrent home-screen fetches. The rows are independent, so this is bounded
 # only to keep a many-library server from opening a burst of connections at
@@ -41,18 +47,18 @@ HOME_FANOUT = 8
 # tests/integration/test_e2e_offline.py focuses these ids by name.
 OFFLINE_ROW_KIND = "downloaded"
 
-# Fields for music browse (albums/artists/tracks): artist/album labels, track
-# runtime for the tabular list, and counts for artist tiles.
-MUSIC_FIELDS = ("PrimaryImageAspectRatio,Artists,Album,AlbumId,RunTimeTicks,"
-                "ItemCounts,ProductionYear")
+# Fields for music browse (albums/artists/tracks). ItemCounts is what fills in
+# the track/album totals on artist tiles. The artist/album labels and track
+# runtimes these views also draw need no field at all — see LIST_FIELDS.
+MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts"
 
 # Fields requested for the detail view. Intentionally a superset (MediaSources,
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
-# offline-sync feature.
+# offline-sync feature. The ratings, premiere date and production year the view
+# also shows are unconditional properties and need no field — see LIST_FIELDS.
 DETAIL_FIELDS = (
     "Path,Overview,Genres,Studios,People,Taglines,SortName,"
-    "OfficialRating,CommunityRating,CriticRating,ProductionYear,"
-    "MediaSources,MediaStreams,Chapters,ProviderIds,PremiereDate,"
+    "MediaSources,MediaStreams,Chapters,ProviderIds,"
     "PrimaryImageAspectRatio,DateCreated"
 )
 
