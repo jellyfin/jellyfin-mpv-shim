@@ -353,3 +353,52 @@ class TestThePageCacheDoesNotCollideWithPagination(unittest.TestCase):
         b._pages.reset(b.route)
         self.assertIs(b._page_for(b.route), first,
                       "paging rebuilt the Page and lost its state")
+
+
+class TestEveryRouteKindActuallyRenders(unittest.TestCase):
+    """Render every route kind, in both pagination modes, and assert nothing
+    raises.
+
+    This exists because the ``_page`` collision was not caught by anything.
+    ``strict_builds`` (mpvtk/app.py) makes a swallowed build failure loud,
+    but it only fires if some test drives the broken screen — and no test
+    ticked Paginated on a grid, so there was nothing to be loud about. The
+    gap was coverage, not reporting.
+
+    Deliberately a smoke test: it asserts only "did not raise". Anything
+    finer belongs in the per-screen tests. What it buys is that a new route
+    kind, or a new shared-state collision like this one, cannot reach a user
+    without something going red first.
+    """
+
+    #: Enough keys to satisfy every loader's route lookups.
+    ROUTE = {"server": "srv1", "parent_id": "lib1", "item_id": "m1",
+             "person_id": "p1", "series_id": "sh1", "title": "T",
+             "term": "q", "_tab": "albums"}
+
+    #: Kinds whose screen is app state rather than library content, and which
+    #: need a live controller/compositor to render at all. Covered by
+    #: tests/integration/test_mpvtk_auth.py and the cast tests instead.
+    SKIP = {"cast", "connecting", "locked", "login"}
+
+    def _kinds(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser as B
+
+        return sorted((set(PAGES) | set(B._routes())) - self.SKIP)
+
+    def test_there_are_kinds_to_render(self):
+        self.assertGreater(len(self._kinds()), 12)
+
+    def test_every_kind_renders_in_both_pagination_modes(self):
+        from tests.test_mpvtk_browser_shell import (
+            FakeSource, MpvtkBrowser as B, _SyncPool)
+
+        for kind in self._kinds():
+            for paginated in (False, True):
+                with self.subTest(kind=kind, paginated=paginated):
+                    b = B(app=None, source=FakeSource())
+                    b._pool = _SyncPool()
+                    b.server = "srv1"
+                    b._pages.enabled = lambda p=paginated: p
+                    b.navigate(dict(self.ROUTE, kind=kind))
+                    b._render_route(b.route, (1280, 640))

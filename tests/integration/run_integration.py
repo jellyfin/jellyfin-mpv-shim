@@ -108,6 +108,12 @@ def _have_display():
 def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
          label=None):
     env = dict(os.environ)
+    # A build() that raises is swallowed in production so one bad view cannot
+    # kill the UI loop -- the renderer keeps the previous frame. Under test
+    # that is indistinguishable from a screen that simply did not change, so
+    # a frozen browser passes: exactly how a route-key collision shipped with
+    # 1886 tests green. Every leg runs strict.
+    env["JMS_STRICT_BUILDS"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     if extra_env:

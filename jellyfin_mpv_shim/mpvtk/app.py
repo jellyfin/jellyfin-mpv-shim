@@ -227,6 +227,23 @@ class MpvtkApp:
     see :meth:`attach`).
     """
 
+    #: Builds that raised and were swallowed to keep the previous frame.
+    #: Non-zero means a screen is frozen — see _render.
+    build_errors = 0
+    last_build_error = None
+
+    #: Re-raise a failed build instead of swallowing it. Off in production:
+    #: one bad view must not kill the UI loop. On whenever JMS_STRICT_BUILDS
+    #: is set, which tests/integration/run_integration.py does for every leg.
+    #:
+    #: Env-driven rather than set per test, so an integration test added
+    #: later is strict without anyone remembering to opt in — the failure
+    #: this guards is precisely one nobody thinks to check for.
+    #:
+    #: Class-level so instances built with __new__ (tests that skip the mpv
+    #: attach) still have them.
+    strict_builds = False
+
     def __init__(self, backend="jsonipc", geometry="1280x720",
                  mpv_handle=None, ext=None):
         if mpv_handle is not None:
@@ -266,6 +283,11 @@ class MpvtkApp:
         # None when there is nothing to suggest. Fires at most once per
         # renderer, so a handler can show a modal without nagging.
         self.on_clipboard_error = None
+        # build_errors / last_build_error / strict_builds have CLASS-level
+        # defaults (see the class body) so an instance built with __new__ --
+        # which several tests do, to avoid attaching a real mpv -- still
+        # renders. Only the env-driven one is re-read here.
+        self.strict_builds = bool(os.environ.get("JMS_STRICT_BUILDS"))
         self._metrics = None
         self._dirty = False
         self._build = None
@@ -436,14 +458,27 @@ class MpvtkApp:
         t0 = time.perf_counter()
         try:
             tree = self._build(self.logical_size)
-        except Exception:
+        except Exception as exc:
             # Event handlers are already guarded; builds were not, so one
             # exception in any view killed the whole UI loop. Views index
             # into route state populated asynchronously, so this is not
             # theoretical. Keep the last good scene up rather than going
             # black, and let the next invalidate retry.
+            #
+            # RECORDED, not just logged. Keeping the previous frame is right
+            # in production and disastrous under test: a build that raises
+            # every frame looks exactly like a UI that simply never changed,
+            # so a broken screen passes. A route-key collision shipped this
+            # way -- the browser froze the moment you ticked Paginated and
+            # 1886 tests were green. `strict_builds` turns it into a failure
+            # for anything that drives a real render loop; the counter is
+            # for callers that would rather assert after the fact.
+            self.build_errors += 1
+            self.last_build_error = exc
             log.error("scene build failed; keeping the previous frame",
                       exc_info=True)
+            if self.strict_builds:
+                raise
             return
         t1 = time.perf_counter()
         lsize = self.logical_size

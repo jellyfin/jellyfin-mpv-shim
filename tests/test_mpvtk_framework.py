@@ -7,6 +7,7 @@ repeat timers, modifier capture) is covered by the mpvtk selftest
 """
 
 import json
+import inspect
 import unittest
 
 from tests.integration._harness import FakeMPV
@@ -1107,3 +1108,59 @@ class TestRunLoopAlwaysStopsTheBackend(unittest.TestCase):
         app.run(self._build)
         self.assertEqual(self.stopped, [1],
                          "the backend was never stopped on this exit path")
+
+
+class TestABuildFailureIsNotSilentUnderTest(unittest.TestCase):
+    """``_render`` swallows a build exception and keeps the previous frame.
+
+    That is right in production — views index into route state populated
+    asynchronously, so one bad frame must not kill the UI loop — and it is
+    the worst possible behaviour under test, because a screen that raises
+    every frame is indistinguishable from a screen that simply did not
+    change. A route-key collision shipped exactly that way: the browser
+    froze the moment you ticked Paginated, and 1886 tests were green.
+
+    So the swallow is recorded, and strict mode (JMS_STRICT_BUILDS, which
+    the integration runner sets for every leg) turns it into a failure.
+    """
+
+    def _app(self, build, strict):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.size = (1280, 720)
+        app.scale = 1.0
+        app.build_errors = 0
+        app.last_build_error = None
+        app.strict_builds = strict
+        app._dirty = True
+        app._build = build
+        return app
+
+    def _boom(self, _size):
+        raise KeyError("_page")          # the shape of the real bug
+
+    def test_production_keeps_the_frame_but_records_the_failure(self):
+        app = self._app(self._boom, strict=False)
+        app._render()                                  # must not raise
+        self.assertEqual(app.build_errors, 1,
+                         "a swallowed build failure left no trace")
+        self.assertIsInstance(app.last_build_error, KeyError)
+
+    def test_strict_mode_raises_so_a_frozen_screen_fails_the_test(self):
+        app = self._app(self._boom, strict=True)
+        with self.assertRaises(KeyError):
+            app._render()
+        self.assertEqual(app.build_errors, 1)
+
+    def test_strict_defaults_from_the_environment(self):
+        """Read from os.environ at construction rather than set per test, so
+        an integration test added later is strict without anyone opting in."""
+        import os
+        from unittest import mock
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        src = inspect.getsource(MpvtkApp.__init__)
+        self.assertIn("JMS_STRICT_BUILDS", src,
+                      "strict mode is no longer environment-driven; a new "
+                      "integration test would silently opt out")
