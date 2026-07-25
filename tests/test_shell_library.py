@@ -1,0 +1,1340 @@
+"""Browsing video libraries: tiles, grids, detail pages and their actions.
+"""
+
+import unittest
+from jellyfin_mpv_shim.mpvtk.layout import layout
+from jellyfin_mpv_shim.mpvtk_browser import components
+from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+from tests._shell_harness import (
+    FakeController,
+    FakeSource,
+    _SyncPool,
+    build_scene,
+    detail_page,
+    grid_scroll,
+    home_page,
+    ids,
+    menu_pick,
+    music_page,
+    series_page,
+    types,
+)
+
+
+class TestTileShapes(unittest.TestCase):
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def test_row_shape_classification(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            POSTER_GEOM, LANDSCAPE_GEOM, SQUARE_GEOM)
+        g, _it = home_page(self.b)._row_shape({"collection_type": "movies", "items": []})
+        self.assertIs(g, POSTER_GEOM)
+        g, _it = home_page(self.b)._row_shape({"collection_type": "music", "items": []})
+        self.assertIs(g, SQUARE_GEOM)
+        g, it = home_page(self.b)._row_shape(
+            {"collection_type": None, "items": [{"Type": "Episode"}]})
+        self.assertIs(g, LANDSCAPE_GEOM)
+        self.assertEqual(it, "Thumb")
+        # collection-type wins over a stray episode in the row
+        g, _it = home_page(self.b)._row_shape(
+            {"collection_type": "tvshows", "items": [{"Type": "Episode"}]})
+        self.assertIs(g, POSTER_GEOM)
+
+    def test_scroll_arrows_appear_only_when_the_row_overflows(self):
+        # One library fits, so no arrows; a long row gets them, floating over
+        # the strip's left and right edges.
+        self.b.route["_data"] = {"libraries": self.b.source.libraries,
+                                 "rows": []}
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("row-libs-pl", ids(nodes))
+
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        by_id = {n["id"]: n for n in nodes}
+        self.assertIn("row-libs-pl", by_id)
+        self.assertIn("row-libs-pr", by_id)
+        strip = by_id["row-libs"]
+        left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+        pad = tile_renderer.RING_PAD
+        # Inset from the scroll container's edges by the ring padding.
+        self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
+        self.assertAlmostEqual(right["x"] + right["w"],
+                               strip["x"] + strip["w"] - pad, places=1)
+        # Square, and small enough to cover little artwork.
+        self.assertEqual(left["w"], left["h"])
+        self.assertLess(left["h"], strip["h"] / 2)
+
+    def test_arrows_punch_through_the_strip_bitmap(self):
+        """An ASS button can't composite over a bitmap; it needs an occluder
+        node so the renderer subtracts its rect from the strip below."""
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        occ = [n for n in nodes if n["t"] == "occ"]
+        self.assertEqual(len(occ), 2, "one occluder per arrow")
+
+    def test_arrows_hold_repeat(self):
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(30)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        by_id = {n["id"]: n for n in nodes}
+        self.assertTrue(by_id["row-libs-pl"].get("rpt"))
+        self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+
+    def test_downloaded_and_glyph(self):
+        self.b.tiles._downloaded = {"m1"}
+        t = self.b.tiles._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
+                         self.b.geom)
+        self.assertTrue(t.downloaded)
+        self.assertEqual(t.glyph, "A")
+        t2 = self.b.tiles._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
+                          self.b.geom)
+        self.assertEqual(t2.glyph, "♪")
+
+    def test_watched_series_fallback(self):
+        t = self.b.tiles._tile({"Id": "s1", "Type": "Series",
+                          "UserData": {"UnplayedItemCount": 0}}, self.b.geom)
+        self.assertTrue(t.watched)
+        t2 = self.b.tiles._tile({"Id": "s2", "Type": "Series",
+                           "UserData": {"UnplayedItemCount": 3}}, self.b.geom)
+        self.assertFalse(t2.watched)
+
+    def test_season_episodes_are_landscape(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        self.b.navigate({"kind": "season", "server": "srv1", "item_id": "se1",
+                         "series_id": "sh1", "title": "Season 1"})
+        nodes, _h = build_scene(self.b)
+        imgs = [n for n in nodes if n["t"] == "img"]
+        self.assertTrue(imgs)
+        self.assertEqual(imgs[0]["ih"], LANDSCAPE_GEOM.strip_h)
+
+class TestDetailActions(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _detail(self):
+        self.b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1",
+                         "title": "Movie"})
+        return build_scene(self.b)
+
+    def test_action_row_and_pickers_render(self):
+        nodes, _h = self._detail()
+        for nid in ("act-watched", "act-fav", "act-download",
+                    "dt-audio", "dt-sub"):
+            self.assertIn(nid, ids(nodes))
+        # cast row present, single source -> no version picker
+        self.assertNotIn("dt-version", ids(nodes))
+        self.assertTrue(any(k.startswith("detail-people-") for k in _h))
+
+    def test_track_selection_passed_to_play(self):
+        _n, h = self._detail()
+        h["dt-audio"]["select"](0, "English 5.1")     # aid=1
+        h["dt-sub"]["select"](1, "English")           # sid=2 (index 0 = None)
+        _n, h = build_scene(self.b)
+        h["btn-play"]["click"]()
+        self.assertEqual(self.ctl.tracks[-1],
+                         {"srcid": "src1", "aid": 1, "sid": 2})
+
+    def test_mark_watched_from_detail(self):
+        _n, h = self._detail()
+        h["act-watched"]["click"]()
+        self.assertIn("set_watched",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_cast_click_opens_person_route(self):
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.route["kind"], "person")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("img", types(nodes))   # person filmography grid
+
+    def test_cast_tiles_are_portrait_like_every_other_poster(self):
+        """Jellyfin serves person Primary images at 2:3. A square tile
+        letterboxed or cropped every face; geom_square is for album art.
+        Asserted on the laid-out tile, not the geom constant, because the
+        shape on screen is the thing that was wrong."""
+        nodes, _h = self._detail()
+
+        def tile(prefix):
+            hit = [n for n in nodes
+                   if str(n.get("id", "")).startswith(prefix + "-")
+                   and n["t"] == "rect"]
+            self.assertTrue(hit, "no tiles under %s" % prefix)
+            return hit[0]["w"], hit[0]["h"]
+
+        # Against the poster row in the same scene, not against a geom
+        # constant: every geom produces a taller-than-wide tile once the
+        # caption is added, so "is it portrait" cannot tell them apart.
+        self.assertEqual(tile("detail-people"), tile("detail-similar"),
+                         "cast tiles are not the same shape as posters")
+
+    def test_a_filmography_can_be_sorted(self):
+        """The filter bar is gated on kind == "grid" and person routes are
+        "person", so a filmography had no ordering control at all — always
+        by name, however long the credit list."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        self.assertIn("person-sort", h, "no sort control on a filmography")
+
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "PremiereDate")
+        h["person-sort"]["select"](want, SORTS[want][0])
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("PremiereDate", "Descending"))
+
+    def test_a_filmography_defaults_to_name(self):
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("SortName", "Ascending"))
+
+    def test_the_filmography_sort_survives_paging(self):
+        """The sort was read in _on_grid_scroll and then not passed to
+        get_person_items, so page 1 honoured the dropdown and every page
+        after it reverted to SortName — the two orderings interleave into
+        duplicates and skips."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "PremiereDate")
+        h["person-sort"]["select"](want, SORTS[want][0])
+
+        self.b.route["_total"] = 500          # more to page in
+        grid_scroll(self.b, self.b.route, 100000, 100001)
+        self.assertEqual(self.b.source.person_sorts[-1],
+                         ("PremiereDate", "Descending"),
+                         "page 2 reverted to the default sort")
+
+    def test_a_random_filmography_is_capped_to_one_page(self):
+        """Random reshuffles per request, so paging it yields duplicates and
+        skips. The grid caps for exactly this reason; the person route
+        assigned the raw total and had the corruption the cap prevents."""
+        # The server reports far more than it returned in this page — that
+        # gap is what the pager uses to decide there is more to fetch, and
+        # what the cap has to close.
+        self.b.source.get_person_items = (
+            lambda srv, pid, start_index=0, **kw:
+            ([{"Id": "pf%d" % i, "Name": "F%d" % i, "Type": "Movie"}
+              for i in range(20)], 500))
+
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        _nodes, h = build_scene(self.b)
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        rnd = next(i for i, s in enumerate(SORTS) if s[1] == "Random")
+        h["person-sort"]["select"](rnd, SORTS[rnd][0])
+        route = self.b.route
+        self.assertEqual(route["_total"], len(route["_items"]),
+                         "a Random filmography still advertises more pages")
+
+    def test_a_non_random_filmography_still_pages(self):
+        """The cap must be Random-only — capping everything would silently
+        truncate every long credit list at one page."""
+        self.b.source.get_person_items = (
+            lambda srv, pid, start_index=0, **kw:
+            ([{"Id": "pf%d" % i, "Name": "F%d" % i, "Type": "Movie"}
+              for i in range(20)], 500))
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        self.assertEqual(self.b.route["_total"], 500)
+
+    def test_a_filmography_has_no_genre_or_year_filters(self):
+        """They would be filtering one person's credits by genre, and the
+        A-Z strip is meaningless over four films."""
+        self.b._open_item({"Id": "pp1", "Name": "Actor", "Type": "Actor"})
+        nodes, _h = build_scene(self.b)
+        for nid in ("grid-genre", "grid-year", "grid-l-A"):
+            self.assertNotIn(nid, ids(nodes))
+
+    def test_episode_play_queues_season(self):
+        ep = {"Id": "e1", "Type": "Episode", "SeriesId": "sh1"}
+        self.b._play(ep, "srv1")
+        ids_, srv, start = self.ctl.played[-1]
+        self.assertEqual(len(ids_), 3)        # whole-season queue
+        self.assertEqual(start, 0)
+
+    def test_series_actions_next_up(self):
+        self.b.navigate({"kind": "series", "server": "srv1", "item_id": "sh1",
+                         "title": "Show"})
+        _n, h = build_scene(self.b)
+        self.assertIn("sa-nextup", ids(_n))
+        h["sa-nextup"]["click"]()
+        self.assertTrue(self.ctl.played)      # next-up episode played
+
+class TestGridFilters(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def _grid(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        return build_scene(self.b)
+
+    def test_filter_bar_present(self):
+        nodes, _h = self._grid()
+        for nid in ("grid-sort", "grid-genre", "grid-unplayed", "grid-fav",
+                    "grid-shuffle", "grid-l-A", "grid-l-#"):
+            self.assertIn(nid, ids(nodes))
+
+    def test_sort_change_sets_and_reloads(self):
+        _n, h = self._grid()
+        h["grid-sort"]["select"](3, "Community Rating")
+        self.assertEqual(self.b.route["_sort"], 3)
+
+    def test_genre_filter(self):
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")   # index 0 = All Genres
+        self.assertEqual(self.b.route["_filters"]["genre"], "Action")
+
+    def test_unplayed_toggle(self):
+        _n, h = self._grid()
+        h["grid-unplayed"]["click"]()
+        self.assertTrue(self.b.route["_filters"]["unplayed"])
+
+    def test_letter_jump(self):
+        _n, h = self._grid()
+        h["grid-l-M"]["click"]()
+        self.assertEqual(self.b.route["_filters"]["letter"], "M")
+
+    def test_shuffle_plays(self):
+        _n, h = self._grid()
+        h["grid-shuffle"]["click"]()
+        self.assertTrue(self.ctl.played)
+        ids_, _srv, _s = self.ctl.played[-1]
+        self.assertEqual(ids_, ["g0", "g5", "g9"])
+
+    # The tests above assert the browser recorded the choice. These assert
+    # the choice reaches the SOURCE — without them the view could stop
+    # passing filters= entirely and every one of them stays green while no
+    # filter in the app does anything.
+
+    def _last_query(self):
+        self.assertTrue(self.b.source.queries, "the source was never queried")
+        return self.b.source.queries[-1]
+
+    def test_the_sort_reaches_the_source(self):
+        from jellyfin_mpv_shim.mpvtk_browser.views import SORTS
+        _n, h = self._grid()
+        want = next(i for i, s in enumerate(SORTS) if s[1] == "CommunityRating")
+        h["grid-sort"]["select"](want, SORTS[want][0])
+        q = self._last_query()
+        self.assertEqual((q["sort_by"], q["sort_order"]),
+                         ("CommunityRating", "Descending"))
+
+    def test_the_genre_filter_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
+
+    def test_the_unplayed_toggle_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-unplayed"]["click"]()
+        self.assertTrue(self._last_query()["filters"].get("unplayed"))
+
+    def test_the_letter_jump_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-l-M"]["click"]()
+        self.assertEqual(self._last_query()["filters"].get("letter"), "M")
+
+    def test_the_year_filter_reaches_the_source(self):
+        _n, h = self._grid()
+        h["grid-year"]["select"](1, "2020")
+        self.assertEqual(self._last_query()["filters"].get("year"), 2020)
+
+    def test_filters_accumulate_rather_than_replace(self):
+        """Picking a genre then a year must send both — dropping the first
+        would silently widen the result set."""
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        _n, h = build_scene(self.b)
+        h["grid-unplayed"]["click"]()
+        f = self._last_query()["filters"]
+        self.assertEqual(f.get("genre"), "Action")
+        self.assertTrue(f.get("unplayed"))
+
+    def test_paging_carries_the_filters(self):
+        """Page 2 losing them is how the person route shipped: the two
+        result sets interleave into duplicates and skips."""
+        _n, h = self._grid()
+        h["grid-genre"]["select"](1, "Action")
+        grid_scroll(self.b, self.b.route, 100000, 100001)
+        self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
+        self.assertGreater(self._last_query()["start_index"], 0,
+                           "no second page was actually fetched")
+
+class TestTileContextMenu(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_context_opens_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Name": "A", "Type": "Movie"},
+                               100, 200)
+        nodes, _h = build_scene(self.b)
+        self.assertTrue(any(n["t"] == "menu" for n in nodes))
+
+    def test_mark_watched_calls_client_and_updates_item(self):
+        item = {"Id": "m1", "Name": "A", "Type": "Movie",
+                "UserData": {"Played": False}}
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "watched")
+        self.assertTrue(item["UserData"]["Played"])
+        self.assertIsNone(self.b._menu)       # menu closed
+        calls = getattr(self.ctl, "transport", [])
+        self.assertIn("set_watched", [c[0] for c in calls])
+
+    def test_toggle_favorite_calls_client(self):
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"IsFavorite": False}}
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "favorite")
+        self.assertTrue(item["UserData"]["IsFavorite"])
+        self.assertIn("set_favorite",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+
+    def test_menu_play_audio_plays(self):
+        item = {"Id": "s1", "Type": "Audio"}
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "play")
+        self.assertTrue(self.ctl.played)
+
+    def test_dismiss_closes_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.b._close_menu()
+        self.assertIsNone(self.b._menu)
+
+class TestVirtualizedGrid(unittest.TestCase):
+    """Long grids must only composite the rows near the viewport: rendering
+    all of them blew past the strip cache and mpv's 63-overlay budget, which
+    showed as tiles that came back blank after scrolling away and back."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        # A library far taller than one screen.
+        self.b.route["_items"] = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
+            for i in range(600)]
+        self.b.route["_total"] = 600
+
+    def _strip_count(self, nodes):
+        return len([n for n in nodes if n["t"] == "img"])
+
+    def test_only_a_window_of_rows_is_composited(self):
+        nodes, _h = build_scene(self.b)
+        n = self._strip_count(nodes)
+        self.assertGreater(n, 0)
+        self.assertLess(n, 40, "should not materialize every row")
+
+    def test_scrolling_moves_the_window(self):
+        build_scene(self.b)
+        top = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.b._on_scroll("grid", 6000, 20000)
+        bottom = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.assertTrue(top and bottom)
+        self.assertNotEqual(top, bottom)
+
+    def test_scrolling_back_re_materializes_the_original_rows(self):
+        first = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.b._on_scroll("grid", 6000, 20000)
+        build_scene(self.b)
+        self.b._on_scroll("grid", 0, 20000)
+        again = {r["id"] for r in build_scene(self.b)[0] if r["t"] == "img"}
+        self.assertEqual(first, again)
+
+class TestRemoteDisplayContent(unittest.TestCase):
+    """Jellyfin's DisplayContent ("show me this" from a phone) opens the
+    item's page in the browser, which the remote's arrows can then drive.
+    In headless mode it paints the item on the cast screen instead — see
+    tests/test_mpvtk_headless.py."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_opens_the_item_page(self):
+        self.b.display_item("srv1", "m1")
+        self.assertEqual(self.b.route["kind"], "detail")
+        self.assertEqual(self.b.route["item_id"], "m1")
+
+    def test_routes_by_item_type(self):
+        """A series lands on the series page, not a detail page — the same
+        dispatch a click uses."""
+        src = self.b.source
+        src.get_item = lambda s, i: {"Id": i, "Name": "Show", "Type": "Series"}
+        self.b.display_item("srv1", "sh1")
+        self.assertEqual(self.b.route["kind"], "series")
+
+    def test_wakes_a_minimized_client_only_when_asked_to(self):
+        """This used to wake unconditionally. It no longer does by default:
+        the browser being closed to the tray is a deliberate state, and
+        someone idly scrolling a phone should not take over the TV. The
+        route is still set, so the page is waiting when it is opened.
+        See TestCastingDoesNotSummonTheBrowser for the default."""
+        from jellyfin_mpv_shim.conf import settings
+        saved = settings.display_mirror_summon
+        self.addCleanup(
+            lambda: setattr(settings, "display_mirror_summon", saved))
+        settings.display_mirror_summon = True
+        self.b.minimize()
+        self.b.display_item("srv1", "m1")
+        self.assertFalse(self.b.minimized)
+        self.assertTrue(self.b._browsing)
+        self.assertEqual(self.b.route["kind"], "detail")
+
+    def test_never_interrupts_playback(self):
+        """jellyfin-web emits DisplayContent as you browse on the phone, so
+        casting a page while something plays here must not stop it."""
+        self.b._browsing = False        # video playing
+        self.b.display_item("srv1", "m1")
+        self.assertFalse(self.b._browsing, "took the window from playback")
+        self.assertEqual(self.ctl.entered, 0)
+        # The page is waiting when playback ends.
+        self.assertEqual(self.b.route["kind"], "detail")
+
+    def test_a_cast_track_opens_its_album_rather_than_playing(self):
+        """Same reason: DisplayContent is a browse gesture, not a play one."""
+        self.b.source.get_item = lambda s, i: {
+            "Id": i, "Name": "Song", "Type": "Audio", "AlbumId": "al9",
+            "Album": "The Album"}
+        self.b.display_item("srv1", "so1")
+        self.assertEqual(self.b.route["kind"], "album")
+        self.assertEqual(self.b.route["item_id"], "al9")
+        self.assertEqual(self.ctl.played, [], "must not start playback")
+
+    def test_a_cast_track_with_no_album_falls_back(self):
+        self.b.source.get_item = lambda s, i: {
+            "Id": i, "Name": "Song", "Type": "Audio"}
+        self.b.display_item("srv1", "so1")
+        self.assertEqual(self.ctl.played, [], "must not start playback")
+
+    def test_switches_server_when_the_cast_comes_from_another(self):
+        self.b.display_item("srv2", "m1")
+        self.assertEqual(self.b.server, "srv2")
+
+    def test_go_to_settings_opens_the_settings_page(self):
+        """GoToSettings used to alias to GoHome, which predates the browser
+        having a settings page."""
+        self.assertTrue(self.b.on_nav_command("settings"))
+        self.assertEqual(self.b.route["kind"], "settings")
+
+    def test_go_home_resets_to_the_library(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies"})
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertEqual(len(self.b.nav_stack), 1, "should reset the stack")
+
+    def test_unknown_command_is_declined(self):
+        self.assertFalse(self.b.on_nav_command("nope"))
+
+    def test_a_missing_item_is_a_no_op(self):
+        self.b.source.get_item = lambda s, i: None
+        before = self.b.route["kind"]
+        self.b.display_item("srv1", "nope")
+        self.assertEqual(self.b.route["kind"], before)
+
+class TestWatchedState(unittest.TestCase):
+    """`(count or 0) == 0` reads a MISSING unplayed count as "nothing
+    unplayed", i.e. fully watched — so a Series without UserData showed a
+    watched tick and the toggle then marked an unwatched show unwatched."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_a_series_without_userdata_is_not_watched(self):
+        self.assertFalse(components.is_watched({"Id": "s1", "Type": "Series"}))
+
+    def test_a_series_with_no_unplayed_count_is_not_watched(self):
+        self.assertFalse(components.is_watched(
+            {"Id": "s1", "Type": "Series", "UserData": {}}))
+
+    def test_zero_unplayed_is_watched(self):
+        self.assertTrue(components.is_watched(
+            {"Id": "s1", "Type": "Series",
+             "UserData": {"UnplayedItemCount": 0}}))
+
+    def test_remaining_episodes_are_not_watched(self):
+        self.assertFalse(components.is_watched(
+            {"Id": "s1", "Type": "Series",
+             "UserData": {"UnplayedItemCount": 3}}))
+
+    def test_played_flag_still_wins_for_movies(self):
+        self.assertTrue(components.is_watched(
+            {"Id": "m1", "Type": "Movie", "UserData": {"Played": True}}))
+
+    def test_toggling_an_untouched_series_marks_it_watched(self):
+        """The consequence of the bug: the first click was a no-op."""
+        calls = []
+        ctl = FakeController()
+        ctl.set_watched = lambda srv, iid, w: calls.append(w) or True
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b._act_watched({"Id": "s1", "Type": "Series"}, "srv1")
+        self.assertEqual(calls, [True], "first click must mark it WATCHED")
+
+    def test_a_failed_write_rolls_the_optimistic_flip_back(self):
+        ctl = FakeController()
+        ctl.set_watched = lambda srv, iid, w: False
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        item = {"Id": "m1", "Type": "Movie", "UserData": {"Played": False}}
+        b._act_watched(item, "srv1")
+        self.assertFalse(item["UserData"]["Played"],
+                         "UI kept a tick for a change that never happened")
+
+class TestLiveTvActivation(unittest.TestCase):
+    """Clicking an On Now tile.
+
+    A Program is not itself playable — what you watch is the channel carrying
+    it — so the tile has to resolve to ChannelId. Both live types also go
+    straight to playback: there is no detail page for a channel, and nothing
+    to resume.
+    """
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.plays = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: self.plays.append(
+            list(ids))
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_program_plays_its_channel_not_itself(self):
+        self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
+                           "ChannelId": "c1"})
+        self.assertEqual(self.plays, [["c1"]])
+
+    def test_channel_plays_itself(self):
+        self.b._open_item({"Id": "c1", "Name": "BBC One", "Type": "TvChannel"})
+        self.assertEqual(self.plays, [["c1"]])
+
+    def test_program_without_channel_info_falls_back_to_its_own_id(self):
+        # Fails downstream as an unplayable item, which is a better outcome
+        # than a tile that silently does nothing.
+        self.b._open_item({"Id": "p1", "Name": "Orphan", "Type": "Program"})
+        self.assertEqual(self.plays, [["p1"]])
+
+    def test_live_tiles_do_not_open_a_detail_page(self):
+        self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
+                           "ChannelId": "c1"})
+        self.assertNotEqual(self.b.route.get("kind"), "detail")
+
+class TestTileMenuGating(unittest.TestCase):
+    """Every menu entry used to be offered for every item, so right-clicking
+    a cast member offered to play, download and mark a Person watched."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def _actions(self, item):
+        return [e[2] for e in self.b._tile_menu_entries(item)]
+
+    def test_a_movie_gets_the_full_menu(self):
+        acts = self._actions({"Id": "m1", "Type": "Movie"})
+        for expected in ("play", "queue", "watched", "favorite", "addto",
+                         "download"):
+            self.assertIn(expected, acts)
+
+    def test_a_person_gets_nothing_playable(self):
+        acts = self._actions({"Id": "p1", "Type": "Person"})
+        self.assertEqual(acts, [], "offered actions on a Person")
+
+    def test_a_music_genre_is_not_downloadable_or_watchable(self):
+        acts = self._actions({"Id": "g1", "Type": "MusicGenre"})
+        self.assertNotIn("watched", acts)
+        self.assertNotIn("download", acts)
+
+    def test_a_music_genre_cannot_be_favorited(self):
+        """A genre is not a library item — favoriting one posts a
+        non-favoritable id that the server rejects. Tk excluded it."""
+        self.assertNotIn("favorite",
+                         self._actions({"Id": "g1", "Type": "MusicGenre"}))
+        # ...but the types either side of it in MENU_PLAYABLE still can be,
+        # so the exclusion is targeted rather than a blanket loss.
+        for t in ("MusicAlbum", "MusicArtist"):
+            self.assertIn("favorite", self._actions({"Id": "x", "Type": t}), t)
+
+    def test_an_album_can_be_played_and_queued(self):
+        acts = self._actions({"Id": "a1", "Type": "MusicAlbum"})
+        self.assertIn("play", acts)
+        self.assertIn("queue", acts)
+
+    def test_editing_actions_hide_offline(self):
+        self.b._offline = True
+        acts = self._actions({"Id": "m1", "Type": "Movie"})
+        self.assertNotIn("addto", acts)
+        self.assertNotIn("download", acts)
+
+    def test_an_empty_menu_renders_nothing(self):
+        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+                        "server": "srv1", "x": 10, "y": 10}
+        self.assertIsNone(self.b._tile_menu_node())
+
+class TestMenuQueueAndPlay(unittest.TestCase):
+    """Play/Add to Queue on a container must resolve it to its items — the
+    container's own id isn't playable, which is why Play on an album tile
+    used to just navigate."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.queued = []
+        self.ctl.queue_items = lambda srv, ids: self.queued.append(list(ids))
+        self.src = FakeSource()
+        self.src.get_album_tracks = lambda srv, aid: [
+            {"Id": "t1"}, {"Id": "t2"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+
+    def test_queueing_an_album_queues_its_tracks(self):
+        self.b._menu_queue({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(self.queued, [["t1", "t2"]])
+
+    def test_queueing_a_movie_queues_the_movie(self):
+        self.b._menu_queue({"Id": "m1", "Type": "Movie"}, "srv1")
+        self.assertEqual(self.queued, [["m1"]])
+
+    def test_playing_an_album_plays_its_tracks(self):
+        played = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: played.append(list(ids))
+        self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(played, [["t1", "t2"]], "navigated instead of playing")
+
+    def test_an_unresolvable_container_falls_back_to_opening_it(self):
+        self.src.get_album_tracks = lambda srv, aid: []
+        self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
+        self.assertEqual(self.b.route["kind"], "album")
+
+class TestYearFilter(unittest.TestCase):
+    """The repository supported year filtering all along (online and
+    offline); only the picker was missing."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b.server = "srv1"
+
+    def _route(self, **kw):
+        r = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+             "_items": [], "_total": 0,
+             "_filtervals": {"genres": ["Drama"], "years": [2021, 1999]}}
+        r.update(kw)
+        self.b.nav_stack = [r]
+        return r
+
+    def test_the_year_picker_lists_the_available_years(self):
+        self._route()
+        nodes, _h = build_scene(self.b)
+        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        self.assertEqual(dd["items"][1:], ["2021", "1999"])
+
+    def test_choosing_a_year_stores_it_as_an_int(self):
+        route = self._route()
+        _n, handlers = build_scene(self.b)
+        handlers["grid-year"]["select"](1, "2021")
+        self.assertEqual(route["_filters"]["year"], 2021)
+
+    def test_all_years_clears_the_filter(self):
+        route = self._route(_filters={"year": 2021})
+        _n, handlers = build_scene(self.b)
+        handlers["grid-year"]["select"](0, "All Years")
+        self.assertIsNone(route["_filters"].get("year"))
+
+    def test_the_current_year_is_preselected(self):
+        self._route(_filters={"year": 1999})
+        nodes, _h = build_scene(self.b)
+        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        self.assertEqual(dd["sel"], 2)
+
+class TestCollections(unittest.TestCase):
+    """Collections were missing from mpvtk entirely: no Movies-library
+    toggle, no add-to-collection, no remove-from-collection."""
+
+    def setUp(self):
+        self.src = FakeSource()
+        self.calls = []
+        self.src.get_movie_collections = lambda srv, **kw: (
+            self.calls.append(("collections", kw))
+            or ([{"Id": "c1", "Name": "Trilogy", "Type": "BoxSet"}], 1))
+        self.src.get_library_items = lambda srv, parent, **kw: (
+            self.calls.append(("library", kw))
+            or ([{"Id": "m1", "Name": "A Movie", "Type": "Movie"}], 1))
+        self.src.get_collections = lambda srv: [
+            {"Id": "c1", "Name": "Trilogy"}]
+        self.ctl = FakeController()
+        self.added = []
+        self.ctl.collection_add = lambda srv, cid, ids: self.added.append(
+            (cid, list(ids)))
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _movies_grid(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies",
+                         "collection_type": "movies"})
+        return self.b.route
+
+    def test_a_movies_library_offers_the_toggle(self):
+        self._movies_grid()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("grid-collections", ids(nodes))
+
+    def test_a_music_library_does_not(self):
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib2", "title": "Music",
+                         "collection_type": "music"})
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("grid-collections", ids(nodes))
+
+    def test_toggling_queries_collections_instead(self):
+        route = self._movies_grid()
+        self.calls.clear()
+        self.b._toggle_collections(route)
+        kinds = [c[0] for c in self.calls]
+        self.assertIn("collections", kinds)
+        self.assertNotIn("library", kinds, "still queried the library")
+        self.assertEqual([i["Id"] for i in route["_items"]], ["c1"])
+
+    def test_toggling_back_returns_to_the_library(self):
+        route = self._movies_grid()
+        self.b._toggle_collections(route)
+        self.calls.clear()
+        self.b._toggle_collections(route)
+        self.assertIn("library", [c[0] for c in self.calls])
+
+    def test_collections_are_a_separate_window(self):
+        """Two long lists stacked in one dialog was the crowding."""
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, h = build_scene(self.b)
+        self.assertNotIn("add-col-0", ids(nodes), "still stacked inline")
+        self.assertIn("add-collections", h, "no way through to collections")
+        h["add-collections"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("add-col-0", ids(nodes))
+        self.assertIn("Trilogy",
+                      [n.get("text") for n in nodes if n.get("text")])
+
+    def test_adding_to_a_collection_calls_the_api(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-collections"]["click"]()
+        _n, h = build_scene(self.b)
+        h["add-col-0"]["click"]()
+        self.assertEqual(self.added, [("c1", ["m1"])])
+
+    def test_back_returns_to_the_playlist_dialog(self):
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        _n, h = build_scene(self.b)
+        h["add-collections"]["click"]()
+        _n, h = build_scene(self.b)
+        h["addcol-back"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("add-newname", ids(nodes))
+
+    def test_a_source_without_collections_offers_no_way_in(self):
+        """The offline catalog has no collections; the dialog must not
+        break, it just doesn't offer that button."""
+        del self.src.get_collections
+        self.b._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, h = build_scene(self.b)
+        self.assertNotIn("add-collections", h)
+        self.assertIn("add-newname", ids(nodes))
+
+class TestRightClickCrash(unittest.TestCase):
+    """Right-clicking an item with no applicable menu entries (a cast
+    member) built a None menu node, appended it to the scene tree, and
+    took down the whole browser render loop."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def test_right_clicking_a_person_does_not_crash(self):
+        self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
+        build_scene(self.b)          # would raise before the fix
+
+    def test_no_menu_opens_for_a_person(self):
+        self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
+        self.assertIsNone(self.b._menu, "opened an empty menu")
+
+    def test_a_movie_still_opens_its_menu(self):
+        self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
+        self.assertIsNotNone(self.b._menu)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("tilemenu", ids(nodes))
+
+    def test_a_stale_empty_menu_still_renders(self):
+        """Belt and braces: even if _menu is set to something with no
+        entries by another path, the build must survive."""
+        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+                        "server": "srv1", "x": 5, "y": 5}
+        build_scene(self.b)
+
+class TestMediaInfoLine(unittest.TestCase):
+    """The detail page showed only video title/range/container — size,
+    bitrate, audio codec and "Ends at" were all dropped."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def _item(self, **src):
+        base = {"Id": "ms", "Container": "mkv", "Size": 8 * 1024 ** 3,
+                "Bitrate": 12000000, "MediaStreams": [
+                    {"Type": "Video", "DisplayTitle": "1080p HEVC",
+                     "VideoRange": "HDR", "VideoRangeType": "HDR10"},
+                    {"Type": "Audio", "Codec": "eac3",
+                     "ChannelLayout": "5.1"}]}
+        base.update(src)
+        return {"Id": "m1", "Type": "Movie", "MediaSources": [base],
+                "RunTimeTicks": 72000000000}
+
+    def test_it_includes_audio_size_and_bitrate(self):
+        line = detail_page(self.b, {})._media_info_line(self._item())
+        self.assertIn("EAC3 5.1", line)
+        self.assertIn("GB", line)
+        self.assertIn("Mbps", line)
+
+    def test_video_range_type_wins_over_range(self):
+        """VideoRange only says "HDR"; VideoRangeType says which."""
+        self.assertIn("HDR10", detail_page(self.b, {})._media_info_line(self._item()))
+
+    def test_it_shows_when_playback_would_end(self):
+        self.assertIn("Ends at", detail_page(self.b, {})._media_info_line(self._item()))
+
+    def test_sdr_is_not_called_out(self):
+        item = self._item()
+        item["MediaSources"][0]["MediaStreams"][0] = {
+            "Type": "Video", "DisplayTitle": "1080p", "VideoRange": "SDR",
+            "VideoRangeType": "SDR"}
+        self.assertNotIn("SDR", detail_page(self.b, {})._media_info_line(item))
+
+    def test_a_sourceless_item_is_empty_not_broken(self):
+        self.assertEqual(
+            detail_page(self.b, {})._media_info_line({"Id": "m1", "Type": "Movie"}), "")
+
+class TestScenesRow(unittest.TestCase):
+    """Chapter navigation. The row builder existed but nothing called it,
+    and the whole suite stayed green — asserting the builder in isolation
+    proves nothing; the assertion has to be that it REACHES the page."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play = lambda item, srv, **kw: self.played.append(kw)
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+        self.item = {
+            "Id": "m1", "Name": "Movie", "Type": "Movie",
+            "MediaSources": [{"Id": "src1", "MediaStreams": []}],
+            "Chapters": [
+                {"Name": "Opening", "StartPositionTicks": 0},
+                {"Name": "The Middle", "StartPositionTicks": 6000000000},
+                {"Name": "The End", "StartPositionTicks": 12000000000},
+            ]}
+        self.b.nav_stack = [{"kind": "detail", "server": "srv1",
+                             "item_id": "m1", "title": "Movie",
+                             "_data": {"item": self.item, "similar": []}}]
+
+    def test_the_scenes_row_is_on_the_detail_page(self):
+        nodes, _h = build_scene(self.b)
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("Scenes", texts, "chapter row never reached the page")
+
+    def test_a_chapter_click_seeks_to_its_start(self):
+        row = detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1")
+        self.assertIsNotNone(row)
+        nodes, handlers = layout(row, 1280, 720)
+        rects = [n for n in nodes
+                 if n["t"] == "rect" and "detail-scenes" in str(n.get("id"))]
+        self.assertTrue(rects, "no clickable chapter regions")
+        handlers[rects[1]["id"]]["click"]()
+        self.assertEqual(self.played[0].get("offset_ticks"), 6000000000)
+
+    def test_a_chapter_carries_the_selected_tracks(self):
+        """Starting at a chapter must use the same version/tracks the Play
+        button would, not the server's defaults."""
+        self.b.route["_srcid"] = "src1"
+        self.b.route["_aid"] = 3
+        self.b.route["_sid"] = 4
+        row = detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1")
+        nodes, handlers = layout(row, 1280, 720)
+        rects = [n for n in nodes
+                 if n["t"] == "rect" and "detail-scenes" in str(n.get("id"))]
+        handlers[rects[0]["id"]]["click"]()
+        self.assertEqual(
+            (self.played[0].get("srcid"), self.played[0].get("aid"),
+             self.played[0].get("sid")), ("src1", 3, 4))
+
+    def test_a_single_chapter_is_not_a_row(self):
+        self.item["Chapters"] = [{"Name": "All", "StartPositionTicks": 0}]
+        self.assertIsNone(detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1"))
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("Scenes",
+                         [n.get("text") for n in nodes if n.get("text")])
+
+    def test_no_chapters_is_not_a_row(self):
+        self.item.pop("Chapters")
+        self.assertIsNone(detail_page(self.b, self.b.route)._scenes_row(self.item, "srv1"))
+
+class TestNextUp(unittest.TestCase):
+    """Next Up was a dead button on a series nobody had started, and
+    restarted a part-watched episode from zero."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play_list = lambda ids, srv, i, **kw: self.played.append(
+            (list(ids), kw.get("offset_ticks")))
+        self.ctl.play = lambda item, srv, **kw: self.played.append(
+            ([item.get("Id")], kw.get("offset_ticks")))
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def _ep(self, **kw):
+        base = {"Id": "e1", "Type": "Episode", "Name": "Pilot"}
+        base.update(kw)
+        return base
+
+    def test_it_resumes_a_part_watched_episode(self):
+        self.src.get_next_up = lambda srv, sid: self._ep(
+            UserData={"PlaybackPositionTicks": 55000000})
+        self.b._play_next_up("sh1", "srv1")
+        self.assertEqual(self.played[0][1], 55000000, "restarted from zero")
+
+    def test_an_unwatched_episode_starts_at_the_beginning(self):
+        self.src.get_next_up = lambda srv, sid: self._ep()
+        self.b._play_next_up("sh1", "srv1")
+        self.assertIsNone(self.played[0][1])
+
+    def test_a_series_with_no_next_up_starts_at_episode_one(self):
+        """An unstarted series returns no NextUp; the button did nothing."""
+        self.src.get_next_up = lambda srv, sid: None
+        self.src.get_series_queue = lambda srv, sid, **kw: [self._ep(Id="s1e1")]
+        self.b._play_next_up("sh1", "srv1")
+        self.assertTrue(self.played, "Next Up did nothing")
+        self.assertIn("s1e1", self.played[0][0])
+
+    def test_a_genuinely_empty_series_is_a_no_op(self):
+        self.src.get_next_up = lambda srv, sid: None
+        self.src.get_series_queue = lambda srv, sid, **kw: []
+        self.b._play_next_up("sh1", "srv1")
+        self.assertEqual(self.played, [])
+
+class TestSeasonTitles(unittest.TestCase):
+    def _title(self, **row):
+        from jellyfin_mpv_shim.mpvtk_browser.downloads import (
+            season_title)
+
+        return season_title(row)
+
+    def test_season_zero_is_specials(self):
+        self.assertEqual(self._title(parent_index=0), "Specials")
+
+    def test_a_normal_season(self):
+        self.assertEqual(self._title(parent_index=2), "Season 2")
+
+    def test_the_stored_name_wins(self):
+        self.assertEqual(
+            self._title(parent_index=1,
+                        item_json='{"SeasonName": "Book One"}'),
+            "Book One")
+
+    def test_no_index_is_episodes(self):
+        self.assertEqual(self._title(), "Episodes")
+
+    def test_bad_json_falls_back(self):
+        self.assertEqual(self._title(parent_index=3, item_json="{bad"),
+                         "Season 3")
+
+class TestSeriesExtras(unittest.TestCase):
+    def setUp(self):
+        self.ctl = FakeController()
+        self.played = []
+        self.ctl.play_list = lambda ids, s, i, **kw: self.played.append(
+            sorted(ids))
+        self.src = FakeSource()
+        self.src.get_similar = lambda srv, iid, **kw: [
+            {"Id": "s2", "Name": "Other", "Type": "Series"}]
+        self.src.get_series_queue = lambda srv, sid, **kw: [
+            {"Id": "e1"}, {"Id": "e2"}, {"Id": "e3"}]
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+
+    def test_shuffle_plays_the_whole_show(self):
+        self.b._shuffle_series("sh1", "srv1")
+        self.assertEqual(self.played, [["e1", "e2", "e3"]])
+
+    def test_more_like_this_reaches_the_series_page(self):
+        self.b.nav_stack = [{"kind": "series", "server": "srv1",
+                             "item_id": "sh1", "title": "Show"}]
+        self.b._load_route(self.b.route)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("More Like This",
+                      [n.get("text") for n in nodes if n.get("text")])
+
+    def test_the_shuffle_button_is_on_the_page(self):
+        row = series_page(self.b)._series_actions({"Id": "sh1", "Type": "Series"},
+                                     "srv1", "sh1")
+        nodes, _h = layout(row, 1280, 720)
+        self.assertIn("sa-shuffle", ids(nodes))
+
+class TestVersionPickerDedups(unittest.TestCase):
+    """Two sources with the same Name gave two indistinguishable dropdown
+    rows — you could not tell which one you were picking."""
+
+    def _names(self, source_names):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        item = {"Id": "m1", "MediaSources": [
+            {"Id": "s%d" % i, "Name": n, "MediaStreams": []}
+            for i, n in enumerate(source_names)]}
+        controls = detail_page(b, {"kind": "detail"})._track_pickers(item)
+        for n in layout(Column(list(controls)), 1280, 720)[0]:
+            if n.get("id") == "dt-version":
+                return n.get("items")
+        return None
+
+    def test_duplicate_names_are_distinguished(self):
+        self.assertEqual(self._names(["Bluray", "Bluray"]),
+                         ["Bluray", "Bluray (2)"])
+
+    def test_distinct_names_are_untouched(self):
+        self.assertEqual(self._names(["Bluray", "Web"]), ["Bluray", "Web"])
+
+    def test_an_unnamed_source_still_gets_a_number(self):
+        self.assertEqual(self._names([None, None]),
+                         ["Version 1", "Version 2"])
+
+class TestMediaInfoKeepsTheCodec(unittest.TestCase):
+    """Without a DisplayTitle the line collapsed to "1080p", dropping the
+    one thing that decides whether it will direct-play."""
+
+    def _line(self, video):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        item = {"MediaSources": [{"Id": "s1", "MediaStreams": [
+            dict(video, Type="Video")]}]}
+        return detail_page(b, {"kind": "detail"})._media_info_line(item)
+
+    def test_codec_and_resolution_when_the_server_gives_no_title(self):
+        line = self._line({"Codec": "hevc", "Width": 1920, "Height": 1080})
+        self.assertIn("HEVC", line)
+        self.assertIn("1920x1080", line)
+
+    def test_height_alone_still_works(self):
+        self.assertIn("1080p", self._line({"Codec": "h264", "Height": 1080}))
+
+    def test_a_display_title_still_wins(self):
+        line = self._line({"DisplayTitle": "4K HEVC", "Height": 2160})
+        self.assertIn("4K HEVC", line)
+        self.assertNotIn("2160p", line)
+
+class TestNoDeadButtons(unittest.TestCase):
+    """Controls that rendered regardless of whether they could do anything."""
+
+    def _browser(self, src=None):
+        b = MpvtkBrowser(app=None, source=src or FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        return b
+
+    def test_an_empty_playlist_offers_no_play_all(self):
+        src = FakeSource()
+        src.get_playlist_items = lambda srv, pid: []
+        b = self._browser(src)
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        nodes, _h = build_scene(b)
+        present = ids(nodes)
+        self.assertNotIn("pl-play", present, "Play All on an empty playlist")
+        self.assertNotIn("pl-shuffle", present)
+
+    def test_a_playlist_with_tracks_still_offers_them(self):
+        b = self._browser()
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        present = ids(build_scene(b)[0])
+        self.assertIn("pl-play", present)
+        self.assertIn("pl-shuffle", present)
+
+    def test_the_artist_bar_drops_play_when_the_songs_failed_to_load(self):
+        b = self._browser()
+        bar = music_page(b, {"kind": "artist", "item_id": "art1"}) \
+            .action_bar("srv1", [], "art1", "art")
+        present = ids(layout(bar, 1280, 720)[0])
+        for dead in ("art-play", "art-shuffle", "art-queue"):
+            self.assertNotIn(dead, present, "%s is a dead click" % dead)
+        self.assertIn("art-mix", present,
+                      "Instant Mix seeds from the container, not the tracks")
+
+    def test_play_all_on_an_album_carries_the_dtos_so_it_can_resume(self):
+        """_play_list needs the DTOs for the resume offset; without them a
+        half-played track restarts from zero."""
+        b = self._browser()
+        got = {}
+        # ItemActions.play_list: the page calls its own service.
+        b._actions.play_list = lambda ids_, srv, i, **kw: got.update(kw)
+        b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
+                    "title": "Album"})
+        _n, handlers = build_scene(b)
+        handlers["album-play"]["click"]()
+        self.assertIsNotNone(got.get("items"), "no DTOs passed: %r" % got)
+
+    def test_a_music_genre_is_not_offered_as_a_favorite(self):
+        """A genre is not a library item — favoriting one posts an id the
+        server rejects."""
+        b = self._browser()
+        labels = [e[0] for e in b._tile_menu_entries(
+            {"Id": "g1", "Type": "MusicGenre", "Name": "Rock"})]
+        self.assertNotIn("Add to Favorites", labels)
+
+    def test_an_album_is_still_favoritable(self):
+        b = self._browser()
+        labels = [e[0] for e in b._tile_menu_entries(
+            {"Id": "al1", "Type": "MusicAlbum", "Name": "Album"})]
+        self.assertIn("Add to Favorites", labels)
+
+class TestSeasonPageNextUp(unittest.TestCase):
+    """Tk had Play Next Up on the season page. Landing on a season and being
+    able to carry on is the point of the screen; without it you had to go up
+    to the series page to resume."""
+
+    def _season(self, series_id="sh1"):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "season", "server": "srv1", "item_id": "sea1",
+                 "title": "Season 1"}
+        if series_id:
+            route["series_id"] = series_id
+        b.nav_stack = [route]
+        b._load_route(route)
+        return b, route
+
+    def test_the_button_is_on_the_season_page(self):
+        b, _r = self._season()
+        nodes, handlers = build_scene(b)
+        self.assertIn("se-nextup", ids(nodes), "no Next Up on the season page")
+        self.assertIn("se-nextup", handlers)
+
+    def test_it_plays_the_next_episode_of_the_series(self):
+        b, _r = self._season()
+        played = []
+        # ItemActions.play, not the shell forwarder: Next Up is an action and
+        # now calls its own service rather than bouncing off the shell.
+        b._actions.play = lambda item, server, **kw: played.append(
+            item.get("Id"))
+        _n, handlers = build_scene(b)
+        handlers["se-nextup"]["click"]()
+        self.assertTrue(played, "Next Up played nothing")
+
+    def test_a_season_with_no_series_id_does_not_offer_it(self):
+        """Nothing to resume against."""
+        b, _r = self._season(series_id=None)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("se-nextup", ids(nodes))
+
+class TestTileAndMetaParity(unittest.TestCase):
+    """Small captions that carry most of the information on a tile."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+
+    def test_an_episode_tile_names_its_show(self):
+        """A bare "S1E1" on a Continue Watching tile does not say which show
+        it belongs to, which is the one thing you need there."""
+        self.assertEqual(
+            components.episode_subtitle({"Type": "Episode", "SeriesName": "The Show",
+                              "ParentIndexNumber": 1, "IndexNumber": 2}),
+            "The Show · S1E2")
+
+    def test_an_episode_with_no_numbering_still_names_the_show(self):
+        self.assertEqual(
+            components.episode_subtitle({"Type": "Episode", "SeriesName": "The Show"}),
+            "The Show")
+
+    def test_an_episode_with_no_series_name_still_shows_the_number(self):
+        self.assertEqual(
+            components.episode_subtitle({"Type": "Episode", "ParentIndexNumber": 1,
+                              "IndexNumber": 2}), "S1E2")
+
+    def test_a_movie_tile_is_unchanged(self):
+        self.assertEqual(
+            components.episode_subtitle({"Type": "Movie", "ProductionYear": 2001}),
+            "2001")
+
+    def test_a_crew_member_is_captioned_with_their_job(self):
+        """Crew have no Role — their job IS the Type — so `Role or ""`
+        captioned every Director and Writer blank."""
+        # Tile captions are baked into the strip bitmap, so catch them at
+        # the boundary where _people_row hands its tiles over.
+        seen = []
+        self.b.tiles.tile_row = lambda title, items, rid, **kw: seen.extend(items)
+        self.b._people_row(
+            [{"Id": "p1", "Name": "A Director", "Type": "Director"},
+             {"Id": "p2", "Name": "An Actor", "Type": "Actor",
+              "Role": "Some Character"}], "srv1")
+        self.assertEqual([p["_subtitle"] for p in seen],
+                         ["Director", "Some Character"])
+
+    def test_the_people_row_does_not_mutate_the_source_dtos(self):
+        """These DTOs are shared with whatever else holds the item."""
+        people = [{"Id": "p1", "Name": "A Director", "Type": "Director"}]
+        self.b._tile_row = lambda *a, **kw: None
+        self.b._people_row(people, "srv1")
+        self.assertEqual(people[0]["Type"], "Director")
+
+    def test_the_metadata_line_lists_genres(self):
+        line = self.b._meta_line({"ProductionYear": 2001,
+                                  "Genres": ["Drama", "Comedy"]})
+        self.assertIn("Drama, Comedy", line)
+
+    def test_no_genres_leaves_no_empty_separator(self):
+        self.assertEqual(self.b._meta_line({"ProductionYear": 2001}), "2001")
+
+class TestSeriesAddTo(unittest.TestCase):
+    def test_a_series_can_be_added(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        acts = [e[2] for e in b._tile_menu_entries(
+            {"Id": "sh1", "Type": "Series"})]
+        self.assertIn("addto", acts)
+
+    def test_a_season_can_be_added(self):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        acts = [e[2] for e in b._tile_menu_entries(
+            {"Id": "s1", "Type": "Season"})]
+        self.assertIn("addto", acts)
+
+class TestSortModes(unittest.TestCase):
+    def test_critic_and_parental_rating_are_offered(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import SORTS
+
+        labels = [s[0] for s in SORTS]
+        self.assertIn("Critic Rating", labels)
+        self.assertIn("Parental Rating", labels)
+
+
+if __name__ == "__main__":
+    unittest.main()

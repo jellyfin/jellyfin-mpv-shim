@@ -120,7 +120,7 @@ enough to fake, so a page test constructs the page and nothing else.
 
 ### 1.3 What this buys, concretely
 
-- **A page is testable in isolation.** Today `tests/test_mpvtk_browser_shell.py`
+- **A page is testable in isolation.** Today `tests/test_shell_*.py`
   is 8438 lines and 658 tests against the composed object, because that is the
   only thing that can be constructed. It becomes one test file per page.
 - **The route dict stops being a shared mutable bag.** `route["_items"]`,

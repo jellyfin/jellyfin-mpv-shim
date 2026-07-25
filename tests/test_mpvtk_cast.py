@@ -22,7 +22,7 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.cast import _wrap  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore  # noqa: E402
 
-from tests.test_mpvtk_browser_shell import (  # noqa: E402
+from tests._shell_harness import (  # noqa: E402
     FakeController, FakeSource, _SyncPool)
 
 
@@ -235,7 +235,7 @@ class TestTheCastScreenLeavesRoomForTheBar(unittest.TestCase):
                         "title": "Song", "position": 1, "duration": 100})
 
     def test_the_transport_is_on_screen(self):
-        from tests.test_mpvtk_browser_shell import build_scene
+        from tests._shell_harness import build_scene
         b = self._browser()
         self._play_audio(b)
         nodes, _h = build_scene(b, size=(1280, 720))

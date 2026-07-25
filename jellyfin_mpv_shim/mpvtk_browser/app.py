@@ -922,7 +922,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         captured epoch stale, ``run_async`` drops the ``on_done``, and
         because no ``_error`` is set the view spins forever with no retry.
         That was tried, and ``TestNavigationSurvivesAConcurrentBump``
-        (tests/test_mpvtk_browser_shell.py) is what caught it.
+        (tests/test_shell_*.py) is what caught it.
 
         The residue is benign: if a foreign thread bumps *and* navigates in
         between, this load applies into a route dict that is no longer on

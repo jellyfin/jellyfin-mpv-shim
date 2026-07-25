@@ -483,7 +483,7 @@ class TestPageContextCallsResolve(unittest.TestCase):
 
     @classmethod
     def _ctx(cls):
-        from tests.test_mpvtk_browser_shell import FakeSource
+        from tests._shell_harness import FakeSource
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
         return MpvtkBrowser(app=None, source=FakeSource())._page_context()
 

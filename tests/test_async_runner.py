@@ -27,7 +27,7 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from tests.test_mpvtk_browser_shell import FakeSource  # noqa: E402
+from tests._shell_harness import FakeSource  # noqa: E402
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 

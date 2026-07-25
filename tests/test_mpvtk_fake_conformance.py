@@ -33,7 +33,7 @@ from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     LibrarySource, OfflineLibrarySource)
 from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway  # noqa: E402
 
-from tests.test_mpvtk_browser_shell import (  # noqa: E402
+from tests._shell_harness import (  # noqa: E402
     FakeController, FakeSource)
 
 
@@ -80,7 +80,7 @@ class TestFakeSourceMatchesTheRealOne(unittest.TestCase):
         """The reverse of the usual drift: if production grows a parameter
         the fake cannot take, the tests break loudly, which is fine. The
         dangerous direction is the fake accepting a parameter and *ignoring*
-        it — covered by test_mpvtk_browser_shell's recording fakes — but a
+        it — covered by the shell tests' recording fakes — but a
         fake that cannot even accept it means the view is never tested with
         it at all."""
         bad = []

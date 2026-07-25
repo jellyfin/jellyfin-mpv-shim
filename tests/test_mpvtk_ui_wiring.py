@@ -600,7 +600,7 @@ class AuthHarness(unittest.TestCase):
 
     def _browser(self, **ctl):
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
-        from tests.test_mpvtk_browser_shell import (
+        from tests._shell_harness import (
             FakeController, FakeSource, _SyncPool)
         c = FakeController()
         for k, v in ctl.items():

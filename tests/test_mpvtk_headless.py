@@ -29,7 +29,7 @@ sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 
-from tests.test_mpvtk_browser_shell import (  # noqa: E402
+from tests._shell_harness import (  # noqa: E402
     FakeController, FakeSource, _SyncPool, build_scene, ids)
 
 

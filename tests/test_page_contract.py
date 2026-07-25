@@ -313,8 +313,8 @@ class TestThePageCacheDoesNotCollideWithPagination(unittest.TestCase):
     """
 
     def _browser(self, route):
-        from tests.test_mpvtk_browser_shell import (
-            FakeSource, MpvtkBrowser as B, _SyncPool)
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser as B
+        from tests._shell_harness import FakeSource, _SyncPool
 
         b = B(app=None, source=FakeSource())
         b._pool = _SyncPool()
@@ -390,8 +390,8 @@ class TestEveryRouteKindActuallyRenders(unittest.TestCase):
         self.assertGreater(len(self._kinds()), 12)
 
     def test_every_kind_renders_in_both_pagination_modes(self):
-        from tests.test_mpvtk_browser_shell import (
-            FakeSource, MpvtkBrowser as B, _SyncPool)
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser as B
+        from tests._shell_harness import FakeSource, _SyncPool
 
         for kind in self._kinds():
             for paginated in (False, True):
