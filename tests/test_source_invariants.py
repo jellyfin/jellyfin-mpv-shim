@@ -12,6 +12,7 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PKG = os.path.join(REPO, "jellyfin_mpv_shim")
+BROWSER = os.path.join(PKG, "mpvtk_browser")
 
 # Generated / vendored trees that are not ours to hold to these rules.
 SKIP_DIRS = {"messages", "default_shader_pack", "__pycache__"}
@@ -30,6 +31,22 @@ def _parsed():
     for rel, path in _sources():
         with open(path, encoding="utf-8") as fh:
             yield rel, ast.parse(fh.read(), filename=path)
+
+
+def browser_modules():
+    # os.walk, not listdir: pages/, components/ and gateway/ are
+    # subpackages, and a flat scan silently stopped covering them when
+    # the refactor moved code there -- it kept passing while checking a
+    # shrinking fraction of the source.
+    for root, _dirs, files in os.walk(BROWSER):
+        if "__pycache__" in root:
+            continue
+        for name in sorted(files):
+            if not name.endswith(".py"):
+                continue
+            path = os.path.join(root, name)
+            rel = os.path.relpath(path, BROWSER)
+            yield rel.replace(os.sep, "/"), path
 
 
 class TestNoOrphanedDocstrings(unittest.TestCase):
@@ -168,10 +185,8 @@ class TestOneOwnerForSharedMachinery(unittest.TestCase):
 
     BROWSER = os.path.join(PKG, "mpvtk_browser")
 
-    def _browser_modules(self):
-        for name in sorted(os.listdir(self.BROWSER)):
-            if name.endswith(".py"):
-                yield name, os.path.join(self.BROWSER, name)
+    _browser_modules = staticmethod(browser_modules)
+
 
     def _modules_defining(self, predicate):
         found = set()
@@ -367,10 +382,17 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
         """The half that matters most, stated separately so it cannot be
         weakened by adding a name to the allowlist above: nothing that draws
         a screen may import a live service."""
-        views = {"app.py", "views.py", "tiles.py", "dialogs.py", "hud.py",
-                 "music.py", "queue_edit.py", "settings.py", "auth.py",
-                 "cast.py", "strips.py", "thumbnails.py", "navigator.py",
-                 "async_runner.py"}
+        # Derived, not listed. This was 14 bare basenames, which could never
+        # match a page (they are "pages/home.py" now) -- so every page, every
+        # component and the seven new extractions were covered by neither
+        # this test nor a SINGLETONS entry. "View code" is now defined as
+        # everything under mpvtk_browser/ that is not allow-listed above,
+        # which is the property the docstring actually claims.
+        allowed = set()
+        for names in self.SINGLETONS.values():
+            allowed |= names
+        views = {name for name, _p in browser_modules()
+                 if name not in allowed}
         offenders = []
         for singleton in self.SINGLETONS:
             for name in sorted(self._imports_of(singleton) & views):

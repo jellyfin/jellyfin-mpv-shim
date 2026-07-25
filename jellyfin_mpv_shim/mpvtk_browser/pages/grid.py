@@ -243,8 +243,10 @@ class GridPage(Page):
                 self.route.get("person_id"),
                 self.route.get("server") or self.ctx.server)
 
-    def _fetch_at(self, start, limit=None):
-        sort_by, sort_order, filters, person, srv = self._bound_query()
+    def _fetch_at(self, start, limit=None, bound=None):
+        """One page of results. ``bound`` is a _bound_query() tuple captured
+        on the loop thread; omitted only where the caller is already on it."""
+        sort_by, sort_order, filters, person, srv = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -265,6 +267,14 @@ class GridPage(Page):
 
     def _on_scroll_end(self, offset, maximum):
         route = self.route
+        # Bound HERE, on the loop thread, not inside the worker: the
+        # sort/filters a page is fetched with must be the ones it was asked
+        # for, not whatever they are when it lands. Paginator.more runs
+        # `fetch` on a pool worker, so calling _bound_query() in there read
+        # the route dict at landing time -- the epoch guard happens to drop
+        # the stale result today, but the invariant this comment describes
+        # was no longer the thing enforcing it.
+        bound = self._bound_query()
 
         def put(r, items, total):
             r["_items"], r["_total"] = items, total
@@ -272,7 +282,7 @@ class GridPage(Page):
         self._pages.more(
             route, offset, maximum,
             lambda r: (r.get("_items") or [], r.get("_total") or 0),
-            put, lambda start: self._fetch_at(start))
+            put, lambda start: self._fetch_at(start, bound=bound))
 
     def _page_fetcher(self):
         """``fetch(start, limit) -> (items, total)`` for a paginated grid or

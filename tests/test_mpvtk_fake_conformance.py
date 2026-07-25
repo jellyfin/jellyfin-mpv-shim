@@ -138,11 +138,16 @@ class TestNothingCallsAControllerMethodThatDoesNotExist(unittest.TestCase):
 
         pkg = os.path.dirname(mpvtk_browser.__file__)
         names = set()
-        for fn in os.listdir(pkg):
-            if not fn.endswith(".py"):
-                continue
-            with open(os.path.join(pkg, fn)) as fh:
-                tree = ast.parse(fh.read())
+        # os.walk, not listdir: pages/, components/ and gateway/ are
+        # subpackages, and a flat scan silently stopped covering them when
+        # the refactor moved code there.
+        sources = [os.path.join(root, fn)
+                   for root, _d, files in os.walk(pkg)
+                   if "__pycache__" not in root
+                   for fn in sorted(files) if fn.endswith(".py")]
+        for path in sources:
+            with open(path) as fh:
+                tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 # self.controller.NAME(...)
                 if (isinstance(node, ast.Attribute)
@@ -179,7 +184,9 @@ class TestNothingCallsAControllerMethodThatDoesNotExist(unittest.TestCase):
 
     def test_the_scan_found_the_call_sites(self):
         """A scan matching nothing would make the check above vacuous."""
-        self.assertGreater(len(self._controller_calls()), 20)
+        # Raised from 20: a flat scan found 72 and the floor would not have
+        # noticed losing pages/ and gateway/ entirely.
+        self.assertGreater(len(self._controller_calls()), 60)
 
 
 if __name__ == "__main__":

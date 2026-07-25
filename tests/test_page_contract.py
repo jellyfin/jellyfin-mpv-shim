@@ -217,8 +217,20 @@ class TestTheEscapeHatchIsShrinking(unittest.TestCase):
             % (len(uses), BASE_SHELL_USES))
 
     def test_the_budget_is_not_slack(self):
-        """A budget nobody tightens is a budget nobody respects."""
+        """A budget nobody tightens is a budget nobody respects.
+
+        Written as `uses >= budget - 2`, which stopped meaning anything the
+        moment the budget reached 0: the assertion became `>= -2`, which no
+        count can fail. Stated as an exact match instead — at zero there is
+        no slack to allow, and any use at all must move the number.
+        """
         uses = self._shell_uses()
+        if SHELL_USE_BUDGET == 0:
+            self.assertEqual(
+                len(uses), 0,
+                "a page reached for the shell; the budget is zero:\n  "
+                + "\n  ".join(uses))
+            return
         self.assertGreaterEqual(
             len(uses), SHELL_USE_BUDGET - 2,
             "Pages now use the shell only %d times (budget %d). Lower "
@@ -282,3 +294,62 @@ class TestPageContextIsSmall(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestThePageCacheDoesNotCollideWithPagination(unittest.TestCase):
+    """``route`` is a shared dict, and two features wanted the same key.
+
+    ``_page`` has meant "which page NUMBER of a paginated grid" since long
+    before the Page framework existed. Step 6a cached the Page *object* under
+    the same name, so ticking Paginated on a library made ``Paginator.ensure``
+    compare an int against a GridPage:
+
+        TypeError: '<' not supported between instances of 'int' and 'GridPage'
+
+    The renderer keeps the previous frame when ``build()`` raises, so the
+    symptom was the entire browser freezing with nothing logged. Every
+    pagination test called ``_ensure_page`` on a bare dict, never through
+    ``_page_for``, so 1886 tests passed.
+    """
+
+    def _browser(self, route):
+        from tests.test_mpvtk_browser_shell import (
+            FakeSource, MpvtkBrowser as B, _SyncPool)
+
+        b = B(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._pages.enabled = lambda: True      # the Paginated checkbox
+        b.navigate(route)
+        return b
+
+    def test_the_keys_are_distinct(self):
+        self.assertNotEqual(
+            MpvtkBrowser.PAGE_OBJ_KEY, "_page",
+            "the Page cache is back on the pagination key")
+
+    def test_a_paginated_grid_renders(self):
+        b = self._browser({"kind": "grid", "server": "srv1",
+                           "parent_id": "lib1", "title": "Lib"})
+        b._render_route(b.route, (1280, 640))      # raised before the fix
+        self.assertIsInstance(b.route.get("_page"), int,
+                              "_page must stay the page NUMBER")
+
+    def test_a_paginated_music_library_renders(self):
+        b = self._browser({"kind": "music", "server": "srv1",
+                           "parent_id": "lib1", "_tab": "albums",
+                           "title": "Music"})
+        b._render_route(b.route, (1280, 640))
+        self.assertIsInstance(b.route.get("_page"), int)
+
+    def test_paging_does_not_evict_the_page_object(self):
+        """The reverse clobber: Paginator.go writing an int over the cached
+        object rebuilt a fresh Page every frame, defeating the
+        one-instance-per-route contract in _page_for's own docstring."""
+        b = self._browser({"kind": "grid", "server": "srv1",
+                           "parent_id": "lib1", "title": "Lib"})
+        first = b._page_for(b.route)
+        b._pages.go(b.route, 3)
+        b._pages.reset(b.route)
+        self.assertIs(b._page_for(b.route), first,
+                      "paging rebuilt the Page and lost its state")

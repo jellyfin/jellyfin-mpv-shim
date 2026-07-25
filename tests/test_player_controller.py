@@ -335,7 +335,7 @@ class TestOfflineWatchedQueue(unittest.TestCase):
     def _offline(self):
         original = gw_deps.clientManager
         gw_deps.clientManager = types.SimpleNamespace(clients={})
-        self.addCleanup(setattr, gw_mod, "clientManager", original)
+        self.addCleanup(setattr, gw_deps, "clientManager", original)
 
     def test_a_downloaded_item_is_queued_and_marked(self):
         db = self.FakeDB(complete={"m1"})
@@ -407,7 +407,7 @@ class TestOnlineDelegation(unittest.TestCase):
         client = types.SimpleNamespace(jellyfin=Jellyfin())
         original = gw_deps.clientManager
         gw_deps.clientManager = types.SimpleNamespace(clients={"s1": client})
-        self.addCleanup(setattr, gw_mod, "clientManager", original)
+        self.addCleanup(setattr, gw_deps, "clientManager", original)
         return calls
 
     def test_watched_reaches_the_server(self):
@@ -429,7 +429,7 @@ class TestOnlineDelegation(unittest.TestCase):
         than a silent no-op — the caller rolls its optimistic heart back."""
         original = gw_deps.clientManager
         gw_deps.clientManager = types.SimpleNamespace(clients={})
-        self.addCleanup(setattr, gw_mod, "clientManager", original)
+        self.addCleanup(setattr, gw_deps, "clientManager", original)
         self.assertFalse(CTL().set_favorite("s1", "m1", True))
 
 
@@ -533,7 +533,7 @@ class TestSwitchUserReturnsThreeDistinctThings(unittest.TestCase):
         original = gw_deps.clientManager
         gw_deps.clientManager = types.SimpleNamespace(
             switch_user=lambda uid: None, clients={}, credentials=[])
-        self.addCleanup(setattr, gw_mod, "clientManager", original)
+        self.addCleanup(setattr, gw_deps, "clientManager", original)
 
     def test_an_unknown_user_is_refused(self):
         self._users(exists=False)

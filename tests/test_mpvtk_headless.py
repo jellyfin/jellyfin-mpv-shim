@@ -316,12 +316,19 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
 
         pkg = os.path.dirname(inspect.getfile(mpvtk_browser))
         offenders = []
-        for name in sorted(os.listdir(pkg)):
-            if not name.endswith(".py"):
-                continue
-            with open(os.path.join(pkg, name)) as fh:
+        # os.walk, not listdir: pages/, components/ and gateway/ are
+        # subpackages, and a flat scan silently stopped covering them when
+        # the refactor moved code there -- it kept passing while checking a
+        # shrinking fraction of the source.
+        sources = [os.path.join(root, fn)
+                   for root, _d, files in os.walk(pkg)
+                   if "__pycache__" not in root
+                   for fn in sorted(files) if fn.endswith(".py")]
+        for path in sources:
+            name = os.path.relpath(path, pkg).replace(os.sep, "/")
+            with open(path) as fh:
                 src = fh.read()
-            tree = ast.parse(src)
+            tree = ast.parse(src, filename=path)
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Assign):
                     continue

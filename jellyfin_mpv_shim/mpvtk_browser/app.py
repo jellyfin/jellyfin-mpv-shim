@@ -875,6 +875,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             shell=self,
         )
 
+    #: Route-dict key holding the cached Page instance.
+    #:
+    #: NOT "_page". That key has meant "which page NUMBER of a paginated
+    #: grid" since long before the Page framework existed, and step 6a
+    #: claimed it for the object -- so ticking Paginated on a library made
+    #: Paginator.ensure compare an int against a GridPage and raise. The
+    #: renderer keeps the previous frame when build() throws, so the symptom
+    #: was the whole browser silently freezing, with no error anywhere.
+    PAGE_OBJ_KEY = "_page_obj"
+
     def _page_for(self, route):
         """The Page serving ``route``, or None if its kind is still a mixin.
 
@@ -884,10 +894,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         cls = PAGES.get(route.get("kind"))
         if cls is None:
             return None
-        page = route.get("_page")
+        page = route.get(self.PAGE_OBJ_KEY)
         if page is None or type(page) is not cls:
             page = cls(self._page_context(), route)
-            route["_page"] = page
+            route[self.PAGE_OBJ_KEY] = page
         else:
             # Refresh the context: see _page_context on why it is not cached.
             page.ctx = self._page_context()

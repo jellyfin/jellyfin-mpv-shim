@@ -27,6 +27,11 @@ Three pieces of state, and each exists for a different failure:
 """
 
 
+import logging
+
+log = logging.getLogger("mpvtk_browser.scroll_state")
+
+
 class ScrollState:
     """Owns where each scroll container is, and when that warrants a repaint."""
 
@@ -59,7 +64,7 @@ class ScrollState:
         try:
             self._live = app.scroll_offsets()
         except Exception:
-            pass
+            log.debug("scroll_offsets failed", exc_info=True)
 
     def offset(self, scroll_id):
         """Where ``scroll_id`` is scrolled to, in logical pixels."""

@@ -44,11 +44,24 @@ BROWSER = os.path.join(REPO, "jellyfin_mpv_shim", "mpvtk_browser")
 
 
 def _modules():
-    for name in sorted(os.listdir(BROWSER)):
-        if name.endswith(".py"):
-            path = os.path.join(BROWSER, name)
+    """Every module under mpvtk_browser/, subpackages included.
+
+    This was a flat os.listdir. When the refactor moved code into pages/,
+    components/ and gateway/, those became invisible to every scan in this
+    file -- 32 lambda receivers among them -- while the tests kept passing.
+    The file whose subject is "moving methods breaks late-bound names" was
+    itself broken by moving methods.
+    """
+    for root, _dirs, files in os.walk(BROWSER):
+        if "__pycache__" in root:
+            continue
+        for name in sorted(files):
+            if not name.endswith(".py"):
+                continue
+            path = os.path.join(root, name)
+            rel = os.path.relpath(path, BROWSER).replace(os.sep, "/")
             with open(path, encoding="utf-8") as fh:
-                yield name, ast.parse(fh.read(), filename=path)
+                yield rel, ast.parse(fh.read(), filename=path)
 
 
 def _instance_attrs(cls_source_path, class_name):
@@ -151,10 +164,10 @@ class TestLambdaReceiversResolve(unittest.TestCase):
 
     def test_there_are_receivers_to_check(self):
         # If the walk stops matching, everything below passes vacuously.
-        # A floor, not a target. It came down from 51 when step 6c's prune
-        # deleted the dead husk methods that some of these lambdas lived in;
-        # it must never reach zero, which is the failure it exists for.
-        self.assertGreaterEqual(len(_lambda_receiver_refs()), 45)
+        # A floor, not a target. It sat at 45 against an actual 50 while the
+        # scan was a flat listdir; making it recursive found 82, which is
+        # what it should have been seeing all along.
+        self.assertGreater(len(_lambda_receiver_refs()), 70)
 
     def test_controller_lambdas_resolve(self):
         api = _controller_api()
@@ -447,8 +460,6 @@ class TestDaemonSlotsExist(unittest.TestCase):
             "used:\n  " + "\n  ".join(bad))
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class TestPageContextCallsResolve(unittest.TestCase):
@@ -519,11 +530,24 @@ class TestPageContextCallsResolve(unittest.TestCase):
                 continue
             target = getattr(ctx, field, None)
             if target is None:
-                continue          # None in a bare browser (controller); the
-                # controller surface is checked by the classes above
+                # `ctx.player` is None on a browser built without a
+                # controller, and skipping it silently unchecked every
+                # ctx.player.* reference -- the same shape as the
+                # getattr-with-a-default bug this file exists to catch.
+                # Resolve those against the real gateway type instead.
+                if field == "player":
+                    from jellyfin_mpv_shim.mpvtk_browser.gateway import (
+                        PlayerGateway)
+                    if not hasattr(PlayerGateway, attr):
+                        bad.append("%s:%d ctx.player.%s" % (name, line, attr))
+                    continue
+                continue
             if not hasattr(target, attr):
                 bad.append("%s:%d ctx.%s.%s" % (name, line, field, attr))
         self.assertEqual(
             bad, [],
             "These reach for context members that do not exist:\n  "
             + "\n  ".join(bad))
+
+if __name__ == "__main__":
+    unittest.main()
