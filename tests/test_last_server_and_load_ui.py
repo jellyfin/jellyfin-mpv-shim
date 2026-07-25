@@ -174,21 +174,21 @@ class NonPlaybackFailureIsAToastTest(unittest.TestCase):
         self.browser._browsing = True      # audio: the library stays up
 
     def test_an_audio_failure_toasts_instead_of_knocking_out(self):
-        self.browser.on_load_error({"title": "Some Song",
+        self.browser.load.on_load_error({"title": "Some Song",
                                     "detail": "tls: Error decoding",
                                     "timed_out": False, "can_transcode": True})
-        self.assertIsNone(self.browser._load_error,
+        self.assertIsNone(self.browser.load.error,
                           "a failed track took over the whole window")
         self.assertIn("Some Song", self.browser.status)
         self.assertIn("tls: Error decoding", self.browser.status)
 
     def test_the_library_is_still_what_renders(self):
-        self.browser.on_load_error({"title": "Some Song", "timed_out": True,
+        self.browser.load.on_load_error({"title": "Some Song", "timed_out": True,
                                     "can_transcode": False})
         self.assertTrue(self.browser._browsing)
 
     def test_a_timeout_toast_says_timed_out(self):
-        self.browser.on_load_error({"title": "S", "timed_out": True,
+        self.browser.load.on_load_error({"title": "S", "timed_out": True,
                                     "can_transcode": False})
         self.assertIn("Timed out", self.browser.status)
 
@@ -218,8 +218,8 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
     def _slow(self, browser=None):
         """Age the in-flight load past the spinner's grace period."""
         b = browser or self.browser
-        if b._starting is not None:
-            b._starting["at"] = time.time() - (b.SPINNER_DELAY + 1)
+        if b.load.starting is not None:
+            b.load.starting["at"] = time.time() - (b.SPINNER_DELAY + 1)
         return b
 
     def _has_spinner(self):
@@ -238,7 +238,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
     def test_a_load_in_flight_shows_a_spinner(self):
         """Busy animates renderer-side, so it can sit through a 30s stall
         without costing a single repaint from here."""
-        self.browser.on_load_start({"title": "Some Movie"})
+        self.browser.load.on_load_start({"title": "Some Movie"})
         self._slow()
         self.assertTrue(self._has_spinner(),
                         "a slow load shows no spinner")
@@ -250,13 +250,13 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         further — that load then never showed a spinner however long it ran.
         """
         b = self.browser
-        b.on_load_start({"title": "First"})
+        b.load.on_load_start({"title": "First"})
         first_timer = b._spinner_timer
         self.assertIsNotNone(first_timer, "no spinner timer was armed")
 
         # A second start lands while the first timer is still pending.
-        b._starting = None
-        b.on_load_start({"title": "Second"})
+        b.load.starting = None
+        b.load.on_load_start({"title": "Second"})
         # Whether or not a fresh thread was started, the pending one must
         # keep waiting until THIS load is due rather than firing early.
         self._slow()
@@ -265,7 +265,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
 
     def test_the_timer_stops_waiting_when_the_load_resolves(self):
         b = self.browser
-        b.on_load_start({"title": "Movie"})
+        b.load.on_load_start({"title": "Movie"})
         b.on_playstate({"stopped": False, "is_audio": False, "id": "m1",
                         "title": "Movie", "position": 1, "duration": 100})
         timer = b._spinner_timer
@@ -278,12 +278,12 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         """Most starts land well inside the grace period, and a spinner that
         appears and vanishes reads worse than the brief nothing it
         replaces."""
-        self.browser.on_load_start({"title": "Some Movie"})
+        self.browser.load.on_load_start({"title": "Some Movie"})
         self.assertFalse(self._has_spinner(),
                          "the spinner flashed up on a fast load")
 
     def test_no_spinner_once_playback_reports_in(self):
-        self.browser.on_load_start({"title": "Some Movie"})
+        self.browser.load.on_load_start({"title": "Some Movie"})
         self._slow()
         self.browser.on_playstate({"stopped": False, "is_audio": False,
                                    "id": "m1", "title": "Some Movie",
@@ -292,7 +292,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
                          "the spinner outlived the load")
 
     def test_no_spinner_on_the_error_screen(self):
-        self.browser.on_load_error({"title": "X", "timed_out": True,
+        self.browser.load.on_load_error({"title": "X", "timed_out": True,
                                     "can_transcode": True})
         self.assertFalse(self._has_spinner(),
                          "a failed load must not look like it is still trying")
@@ -301,7 +301,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         """_start runs on the click; on_load_start only lands after the
         PlaybackInfo round trip, which is itself part of the wait."""
         self.browser._start(audio=False, title="Clicked Movie")
-        self.assertEqual((self.browser._starting or {}).get("title"),
+        self.assertEqual((self.browser.load.starting or {}).get("title"),
                          "Clicked Movie")
 
     def test_starting_playback_does_not_yield_the_window_yet(self):
@@ -310,7 +310,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         b = build_browser(FakeController())
         b._browsing = True
         b._start(audio=False, title="Movie")
-        self.assertIsNotNone(b._starting)
+        self.assertIsNotNone(b.load.starting)
         self._slow(b)
         self.assertTrue(self._scene_has_spinner(b),
                         "the spinner was thrown away by an early yield")
@@ -321,7 +321,7 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         b._start(audio=False, title="Movie")
         b.on_playstate({"stopped": False, "is_audio": False, "id": "m1",
                         "title": "Movie", "position": 1, "duration": 100})
-        self.assertIsNone(b._starting)
+        self.assertIsNone(b.load.starting)
         self.assertFalse(b._browsing, "the window was never yielded to video")
         self.assertFalse(self._scene_has_spinner(b),
                          "the spinner is still covering the picture")
@@ -342,21 +342,21 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
 
     def test_the_player_title_does_not_blank_the_click_title(self):
         self.browser._start(audio=False, title="Clicked Movie")
-        self.browser.on_load_start({})
-        self.assertEqual((self.browser._starting or {}).get("title"),
+        self.browser.load.on_load_start({})
+        self.assertEqual((self.browser.load.starting or {}).get("title"),
                          "Clicked Movie")
 
     def test_a_load_in_flight_says_so(self):
         """The window used to go blank for the whole load — up to
         playback_timeout — with nothing distinguishing it from a failure."""
-        self.browser.on_load_start({"title": "Some Movie"})
+        self.browser.load.on_load_start({"title": "Some Movie"})
         self._slow()
         text = self._text()
         self.assertTrue(any("Loading" in t for t in text), text)
         self.assertIn("Some Movie", text)
 
     def test_a_failure_shows_the_reason_and_the_retries(self):
-        self.browser.on_load_error({"title": "Some Movie",
+        self.browser.load.on_load_error({"title": "Some Movie",
                                     "detail": "tls: Error decoding",
                                     "timed_out": False, "can_transcode": True})
         text = self._text()
@@ -367,54 +367,54 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         self.assertTrue(any("Transcode" in t for t in text), text)
 
     def test_a_timeout_is_labelled_as_one(self):
-        self.browser.on_load_error({"title": "X", "timed_out": True,
+        self.browser.load.on_load_error({"title": "X", "timed_out": True,
                                     "can_transcode": True})
         self.assertTrue(any("Timed out" in t for t in self._text()))
 
     def test_no_transcode_retry_when_already_transcoding(self):
         """Re-requesting the same transcode would fail the same way."""
-        self.browser.on_load_error({"title": "X", "timed_out": False,
+        self.browser.load.on_load_error({"title": "X", "timed_out": False,
                                     "can_transcode": False})
         self.assertFalse(any("Transcode" in t for t in self._text()))
 
     def test_retry_asks_the_player_and_shows_loading_again(self):
-        self.browser.on_load_error({"title": "X", "timed_out": False,
+        self.browser.load.on_load_error({"title": "X", "timed_out": False,
                                     "can_transcode": True})
-        self.browser._retry_playback(False)
+        self.browser.load.retry(False)
         self.assertEqual(self.controller.retries, [False])
-        self.assertIsNone(self.browser._load_error)
-        self.assertIsNotNone(self.browser._starting,
+        self.assertIsNone(self.browser.load.error)
+        self.assertIsNotNone(self.browser.load.starting,
                              "the error stayed up, so the button reads dead")
 
     def test_transcode_retry_passes_the_flag(self):
-        self.browser.on_load_error({"title": "X", "timed_out": False,
+        self.browser.load.on_load_error({"title": "X", "timed_out": False,
                                     "can_transcode": True})
-        self.browser._retry_playback(True)
+        self.browser.load.retry(True)
         self.assertEqual(self.controller.retries, [True])
 
     def test_cancel_returns_to_browsing(self):
-        self.browser.on_load_error({"title": "X", "timed_out": False,
+        self.browser.load.on_load_error({"title": "X", "timed_out": False,
                                     "can_transcode": True})
-        self.browser._cancel_failed_playback()
-        self.assertIsNone(self.browser._load_error)
+        self.browser.load.cancel_failed()
+        self.assertIsNone(self.browser.load.error)
         self.assertTrue(self.browser._browsing)
 
     def test_playback_starting_clears_the_loading_screen(self):
-        self.browser.on_load_start({"title": "Some Movie"})
+        self.browser.load.on_load_start({"title": "Some Movie"})
         self.browser.on_playstate({"stopped": False, "is_audio": False,
                                    "id": "m1", "title": "Some Movie",
                                    "position": 1, "duration": 100})
-        self.assertIsNone(self.browser._starting)
+        self.assertIsNone(self.browser.load.starting)
 
     def test_the_stop_on_the_failure_path_does_not_bounce_to_the_library(self):
         """The regression that made a failed load look like an unexplained
         bounce back to the library: _play_media's failure path calls stop(),
         whose stopped playstate used to return the browser to browse and
         wipe the error before it was ever seen."""
-        self.browser.on_load_error({"title": "X", "detail": "tls",
+        self.browser.load.on_load_error({"title": "X", "detail": "tls",
                                     "timed_out": True, "can_transcode": True})
         self.browser.on_playstate({"stopped": True})
-        self.assertIsNotNone(self.browser._load_error,
+        self.assertIsNotNone(self.browser.load.error,
                              "the error was erased by the failure's own stop")
         self.assertFalse(self.browser._browsing,
                          "the user was bounced back to the library")
@@ -422,33 +422,33 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
     def test_a_video_failure_stays_a_knockout_even_after_returning_to_browse(self):
         """Ordering-independent: window ownership is latched when the load
         starts, not re-read when the error lands."""
-        self.browser.on_load_start({"title": "Movie"})
+        self.browser.load.on_load_start({"title": "Movie"})
         self.browser._browsing = True          # as stop() would leave it
-        self.browser.on_load_error({"title": "Movie", "timed_out": True,
+        self.browser.load.on_load_error({"title": "Movie", "timed_out": True,
                                     "can_transcode": True})
-        self.assertIsNotNone(self.browser._load_error,
+        self.assertIsNotNone(self.browser.load.error,
                              "a video failure was downgraded to a toast")
 
     def test_cancel_stops_the_load_and_returns_to_browsing(self):
-        self.browser.on_load_start({"title": "Movie"})
-        self.browser._cancel_loading()
+        self.browser.load.on_load_start({"title": "Movie"})
+        self.browser.load.cancel_loading()
         self.assertTrue(self.controller.cancelled,
                         "the player was never told to abandon the load")
-        self.assertIsNone(self.browser._starting)
+        self.assertIsNone(self.browser.load.starting)
         self.assertTrue(self.browser._browsing)
 
     def test_the_loading_screen_offers_a_cancel(self):
-        self.browser.on_load_start({"title": "Movie"})
+        self.browser.load.on_load_start({"title": "Movie"})
         self._slow()
         self.assertIn("Cancel", self._text())
 
     def test_a_stop_does_not_erase_the_error(self):
         """A failed load calls stop() on its way out. Clearing on any stopped
         playstate would wipe the error before its first frame."""
-        self.browser.on_load_error({"title": "X", "timed_out": False,
+        self.browser.load.on_load_error({"title": "X", "timed_out": False,
                                     "can_transcode": True})
         self.browser.on_playstate({"stopped": True})
-        self.assertIsNotNone(self.browser._load_error)
+        self.assertIsNotNone(self.browser.load.error)
 
 
 if __name__ == "__main__":

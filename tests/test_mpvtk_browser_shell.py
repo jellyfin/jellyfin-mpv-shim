@@ -1206,14 +1206,14 @@ class TestPlaybackLifecycle(unittest.TestCase):
         item = {"Id": "m1", "Name": "Alpha", "Type": "Movie"}
         self.b._play(item, "srv1", offset_ticks=123)
         self.assertFalse(self.b._browsing, "browser should leave browse mode")
-        self.assertIsNotNone(self.b._starting, "no loading state to render")
+        self.assertIsNotNone(self.b.load.starting, "no loading state to render")
         self.assertEqual(self.ctl.left, 0,
                          "the window was handed over before there was a "
                          "picture to hand it to")
         self.assertEqual(self.ctl.played, [("m1", "srv1", 123)])
 
         self.b.on_playstate({"stopped": False, "position": 0, "duration": 10})
-        self.assertIsNone(self.b._starting)
+        self.assertIsNone(self.b.load.starting)
         self.assertEqual(self.ctl.left, 1)     # OSC handed back, now
 
     def test_yielded_build_is_empty(self):

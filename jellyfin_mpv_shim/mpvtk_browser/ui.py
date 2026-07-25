@@ -213,8 +213,8 @@ class UserInterface:
         playerManager.on_playstate = browser.on_playstate
         # Loading screen + failure/retry UI. Without these a failed start was
         # a blank window for the whole playback_timeout and then nothing.
-        playerManager.on_load_start = browser.on_load_start
-        playerManager.on_load_error = browser.on_load_error
+        playerManager.on_load_start = browser.load.on_load_start
+        playerManager.on_load_error = browser.load.on_load_error
         # Update notices surface in the browser banner (not the MPV OSD).
         playerManager.notify_update = browser.notify_update
 
