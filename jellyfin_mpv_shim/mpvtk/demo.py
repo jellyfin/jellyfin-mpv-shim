@@ -1087,7 +1087,9 @@ def _selftest(demo, outdir):
     scr = (st or {}).get("scroll") or {}
     check("vscroll-offset", scr.get("page", 0) > 0, str(scr))
     # the property mirror lets Python read offsets synchronously
-    sync = app.scroll_offsets()
+    # None means the renderer could not be asked (mpv < 0.36); the check
+    # below then fails on the sentinel rather than on a missing key.
+    sync = app.scroll_offsets() or {}
     check(
         "scroll-property-sync",
         abs(sync.get("page", -1) - scr.get("page", 0)) < 1,

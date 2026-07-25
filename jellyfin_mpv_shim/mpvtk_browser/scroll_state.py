@@ -15,7 +15,10 @@ Three pieces of state, and each exists for a different failure:
 
 ``_recorded``
     The throttled ``on_scroll`` copy. A fallback for mpv < 0.36, which has no
-    ``user-data`` and so cannot answer the live query at all.
+    ``user-data`` and so cannot answer the live query at all — and *only* for
+    that. It is a whole-snapshot substitute, not a per-id one: consulting it
+    for ids missing from a live snapshot resurrects offsets the renderer has
+    deliberately dropped (see ``offset``).
 
 ``_rendered``
     The offset each container was last *re-rendered* at. This is the baseline
@@ -67,10 +70,21 @@ class ScrollState:
             log.debug("scroll_offsets failed", exc_info=True)
 
     def offset(self, scroll_id):
-        """Where ``scroll_id`` is scrolled to, in logical pixels."""
+        """Where ``scroll_id`` is scrolled to, in logical pixels.
+
+        When the renderer answered at all, it is the only authority — an id
+        it does not list is at the top, not "unknown, use my copy". The
+        renderer drops the state of containers that left the scene, so
+        letting ``_recorded`` fill that gap re-armed an offset the container
+        no longer has: tick Paginated on a scrolled grid and untick it, or
+        change a sort (which drops to the busy screen and takes the scroll
+        container with it), and the returning grid was virtualized around
+        the old offset while the real one sat at 0 — a screenful of blank
+        spacers with no tiles in it.
+        """
         live = self._live
-        if live is not None and scroll_id in live:
-            return float(live[scroll_id] or 0.0)
+        if live is not None:
+            return float(live.get(scroll_id) or 0.0)
         return float(self._recorded.get(scroll_id, 0.0))
 
     # -- events ------------------------------------------------------------

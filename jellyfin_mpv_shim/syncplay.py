@@ -205,10 +205,17 @@ class SyncPlayManager:
                 self.read_callback()
                 self.read_callback = None
 
-        # Server responds with 400 bad request...
         if self.sync_enabled:
             try:
-                self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
+                # PingRequestDto declares `long Ping`, so a fractional value
+                # fails to bind and the whole request comes back 400 -- which
+                # is what the "Server responds with 400 bad request" note that
+                # used to sit here was recording. Every ping this client ever
+                # sent was rejected, so the server fell back to its default
+                # for us and compensated the group's unpause delay with the
+                # wrong latency.
+                self.client.jellyfin.ping_sync_play(
+                    round(ping.total_seconds() * 1000))
             except Exception:
                 log.error("Syncplay ping reporting failed.")
 

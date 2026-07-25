@@ -59,7 +59,7 @@ class Paginator:
     """Infinite-scroll and fixed-page paging over a route's result set."""
 
     def __init__(self, run, content_h, is_current, status, invalidate,
-                 enabled, cols, set_enabled=None):
+                 enabled, cols, set_enabled=None, forget=None):
         #: An :class:`~.async_runner.AsyncRunner`.
         self.run = run
         #: ``content_h(route, size)`` -> the vertical space this route's
@@ -78,15 +78,29 @@ class Paginator:
         self._cols = cols
         #: ``set_enabled(bool)`` -- persist the global setting.
         self._set_enabled = set_enabled or (lambda _v: None)
+        #: ``forget(*scroll_ids)`` -- drop a scroll container's remembered
+        #: offset. See toggle().
+        self._forget = forget or (lambda *_ids: None)
 
-    def toggle(self, route):
+    def toggle(self, route, *scroll_ids):
         """The inline Paginated checkbox: flip and persist the GLOBAL setting.
 
         No reload -- the data is unchanged, only how it is presented -- but
         reset the page state so turning it on lands on page 1.
+
+        ``scroll_ids`` are the scroll containers this view has when it is
+        NOT paginated; a paginated page has none, so they are torn down and
+        rebuilt across the flip and must not carry an offset over. On mpv
+        >= 0.36 ``ScrollState`` gets this right on its own from the
+        renderer's live snapshot -- this is what covers the older builds
+        that have no ``user-data`` to answer with, where the remembered
+        offset is all there is and a stale one virtualizes the returning
+        grid into blank spacers.
         """
         self._set_enabled(not self.enabled())
         self.reset(route)
+        if scroll_ids:
+            self._forget(*scroll_ids)
         self._invalidate()
 
     # -- infinite scroll ---------------------------------------------------

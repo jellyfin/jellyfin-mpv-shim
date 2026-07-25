@@ -145,7 +145,13 @@ class MusicLibraryPage(MusicPage):
         tabbar = Row([tabs, Spacer(),
                       Checkbox(_("Paginated"), pages.enabled(),
                                id="music-paginated",
-                               on_toggle=lambda: pages.toggle(route))],
+                               # "music-songs" is deliberately absent: the
+                               # songs tab is UNPAGED, so its scroller is
+                               # never torn down by this flip and forgetting
+                               # it would jump the list to the top for
+                               # nothing.
+                               on_toggle=lambda: pages.toggle(route,
+                                                              "music-grid"))],
                      pad=12, align="center")
         data = route.get("_data")
         tab = route.get("_tab")

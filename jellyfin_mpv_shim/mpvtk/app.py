@@ -765,12 +765,31 @@ class MpvtkApp:
         """Synchronous snapshot of the renderer's live scroll offsets
         ``{id: px}`` — read it at build() time to window virtualized
         content tightly instead of trailing the throttled ``on_scroll``
-        event. Empty when nothing has scrolled yet (or mpv < 0.36,
-        which lacks ``user-data``)."""
+        event.
+
+        ``{}`` and ``None`` mean different things and callers rely on the
+        distinction. ``{}`` is an *answer*: the renderer is there and
+        nothing is scrolled. ``None`` means it could not be asked at all
+        (mpv < 0.36 has no ``user-data``), so a caller keeping its own copy
+        of scroll positions has to fall back to that. Conflating the two
+        made the fallback outvote the renderer, which is how a container
+        that leaves the scene and comes back got windowed at the offset it
+        had before it left — see ``ScrollState.offset``.
+        """
         v = self.backend.get_property("user-data/mpvtk/scroll")
         if not isinstance(v, dict):
-            return {}
+            return None
+        # libmpv hands node-map values back as strings and jsonipc as
+        # numbers, so coerce rather than trusting either. A value that will
+        # not convert is dropped, not defaulted to 0 — pretending a
+        # container is at the top is worse than saying nothing about it.
+        out = {}
+        for k, px in v.items():
+            try:
+                out[k] = float(px)
+            except (TypeError, ValueError):
+                continue
         if scaling.scale() == 1.0:
-            return v          # identity, and keeps the offsets ints
+            return out
         # Physical on the renderer side; logical for everyone here.
-        return {k: scaling.dip(px) for k, px in v.items()}
+        return {k: scaling.dip(px) for k, px in out.items()}

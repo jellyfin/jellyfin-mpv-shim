@@ -61,7 +61,36 @@ The client-side line numbers below are current for `syncplay.py` and
 
 ## Fixed
 
-Five, all with tests that fail on the previous commit.
+Six, all with tests that fail on the previous commit.
+
+### `Ping` was sent as a float against a `long` DTO
+
+Confirmed on a live server during the 2026-07-25 smoke test, which is what
+this item (then open item 4) was waiting for:
+
+```
+400 Client Error: Bad Request for url: https://.../SyncPlay/Ping
+syncplay: Syncplay ping reporting failed.
+```
+
+`PingRequestDto.Ping` is a `long`
+(`Jellyfin.Api/Models/SyncPlayDtos/PingRequestDto.cs`), and the client posted
+`ping.total_seconds() * 1000` — a fractional number. The model binder refuses
+it before any group state is touched, so **every ping this client ever sent
+was rejected**: the server used its default latency for this session and
+compensated the group's unpause moment with the wrong number. `syncplay.py`
+had carried `# Server responds with 400 bad request...` above the call for
+years without the cause being chased.
+
+Fixed by rounding. The mock now enforces the DTO's type instead of accepting
+anything, so a fake cannot make the one call the real server was rejecting
+look fine: `tests/test_syncplay_protocol.py::TestThePingReport`.
+
+The other half of that finding does not hold, and the trace overstated it.
+The gate on `sync_enabled` is not "false most of the time": `_rearm_sync`
+arms it shortly after every group play and it stays armed through playback,
+which is exactly when the latency matters. It is false only while a
+correction is in flight or the group is paused.
 
 ### pause_ignore was written by the timeline thread
 
@@ -174,20 +203,7 @@ removed from the playlist). The client passes it straight into `Media(...)`
 (`syncplay.py:568`) and `replace_queue` (`:578`), where `sp_items[-1]` selects
 the **last** item in the queue.
 
-### 4. `Ping` is sent as a float against a `long` DTO, and is nearly never sent (relayed — wants context)
-
-`syncplay.py:211` posts `ping.total_seconds() * 1000`, a fractional number,
-where the server DTO declares `long` — which would explain the existing
-`# Server responds with 400 bad request` comment at `syncplay.py:208`. It is
-also gated on `self.sync_enabled`, which is the drift-correction flag and is
-false most of the time. If both hold, the server always uses its default ping
-for this session and the unpause latency compensation is wrong for the whole
-group.
-
-Context needed: confirm the 400 against a real server and check whether the
-apiclient or the server has since changed.
-
-### 5. Blocking I/O on threads that must not block (verified in shape)
+### 4. Blocking I/O on threads that must not block (verified in shape)
 
 * `_on_pause_change` and `_on_seeking` issue **synchronous HTTP** from mpv's
   single event thread (`pause_request`, `play_request`, `seek_request`,
@@ -200,7 +216,7 @@ apiclient or the server has since changed.
   `playback_timeout` (30s default), during which no websocket traffic for that
   server is processed at all, including KeepAlive.
 
-### 6. Smaller items (relayed)
+### 5. Smaller items (relayed)
 
 * `play_done` (`syncplay.py:317`) sends `Ready` without clearing
   `is_buffering` / `last_playback_waiting` the way `on_buffer_done` does, so a
@@ -218,7 +234,7 @@ apiclient or the server has since changed.
 * `timesync.remove_subscriber` uses `set.remove`, which raises if
   `disable_sync_play` runs twice.
 * The client never sends `IgnoreWait`, so it can never excuse itself from a
-  wait it is itself blocking — the escape hatch for items 2 and 4.
+  wait it is itself blocking.
 * Dead handlers remain for messages the server no longer sends
   (`PrepareSession`, `GroupWait`, `CreateGroupDenied`, `JoinGroupDenied`). The
   modern equivalent of the "someone is buffering" notice is
@@ -236,4 +252,6 @@ Items 2 and 3 are queue-handling bugs that want a media mock to test properly.
 Build that shaped by those two rather than speculatively, the way the SyncPlay
 mock was shaped by the protocol findings.
 
-Item 4 wants confirming against a live server before anything changes.
+The 2026-07-25 smoke test put a real group through repeated seeking with no
+misbehaviour, which is what the protocol fixes were aimed at. The one thing
+it surfaced was the `Ping` 400, now fixed above.

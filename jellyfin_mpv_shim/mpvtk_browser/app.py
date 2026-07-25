@@ -322,7 +322,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             invalidate=lambda: self.invalidate(),
             enabled=pagination.enabled_from_settings,
             cols=lambda w, geom: self.tiles.cols(w, geom),
-            set_enabled=lambda v: self._config().set_setting("paginated", v))
+            set_enabled=lambda v: self._config().set_setting("paginated", v),
+            forget=lambda *ids: self._scroll.forget(*ids))
         self._dialogs = SimpleNamespace(
             confirm=lambda *a, **k: self._confirm(*a, **k),
             message=lambda *a, **k: self._message(*a, **k),

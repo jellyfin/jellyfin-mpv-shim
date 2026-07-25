@@ -206,6 +206,36 @@ class TestBufferingIsReported(unittest.TestCase):
             "client is buffering; observed properties were %s" % sorted(observed))
 
 
+class TestThePingReport(ProtocolCase):
+    """``SyncPlay/Ping`` is how the server learns this session's latency, and
+    it uses it to pick the moment a group unpause takes effect for everyone.
+
+    Reported from a live server, and it had been in the source as a shrug for
+    years: ``# Server responds with 400 bad request...``. It does, because
+    ``PingRequestDto.Ping`` is a ``long`` and the client sent a float.
+    """
+
+    def _ping(self, sp, micros):
+        sp.sync_enabled = True       # only armed drift correction pings
+        sp.on_timesync_update(timedelta(0), timedelta(microseconds=micros))
+
+    def test_the_server_accepts_the_ping_the_client_sends(self):
+        group, sp, api = self.group_and_client()
+        self._ping(sp, 12700)
+        self.assertIn(
+            "Ping", api.kinds(),
+            "the ping was rejected -- SyncPlayManager swallows the error and "
+            "logs 'Syncplay ping reporting failed.', which is all the user "
+            "ever sees of it")
+
+    def test_the_reported_ping_is_the_measured_one(self):
+        """Integral, but not by throwing the measurement away."""
+        group, sp, api = self.group_and_client()
+        self._ping(sp, 12700)
+        sent = [kw["ping"] for k, kw in api.calls if k == "Ping"]
+        self.assertEqual(sent, [13])
+
+
 class TestTheGroupStateMachineItself(ProtocolCase):
     """Guards on the mock, so a wrong mock cannot quietly pass the rest."""
 

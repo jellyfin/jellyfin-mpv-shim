@@ -597,5 +597,138 @@ class TestPaginatedToggle(unittest.TestCase):
         self.assertEqual(saved, {"paginated": True}, "flips the global flag")
 
 
+class FakeRenderer:
+    """The renderer's scroll bookkeeping, and only that.
+
+    Two behaviours of ``renderer.lua`` matter here and they are the whole
+    bug between them: ``set_scroll`` publishes an offset clamped to the
+    container that is on screen, and ``reconcile`` DROPS the offset of a
+    container that has left the scene, so one that comes back comes back at
+    the top.
+    """
+
+    def __init__(self):
+        self.scroll = {}
+        self.on_screen = set()
+
+    def invalidate(self):
+        pass
+
+    def scroll_offsets(self):
+        return {k: v for k, v in self.scroll.items() if k in self.on_screen}
+
+
+class _Albums(FakeSource):
+    def get_music_albums(self, server_uuid, parent_id, **kw):
+        start = kw.get("start_index", 0)
+        albums = [{"Id": "al%d" % i, "Name": "Album %d" % i,
+                   "Type": "MusicAlbum"} for i in range(300)]
+        return albums[start:start + kw.get("limit", 300)], len(albums)
+
+
+class TestAReturningScrollContainerStartsAtTheTop(unittest.TestCase):
+    """A virtualized grid that leaves the scene and comes back rendered
+    blank: it was windowed around the offset it had before it left, while
+    the real container had been reset to the top.
+
+    Two ways in, both reported from a real session. Ticking Paginated
+    replaces the scroller with a fixed page and unticking brings it back;
+    changing a sort drops to the busy screen, which takes the scroller with
+    it for as long as the reload is in flight.
+    """
+
+    def _browser(self, source=None):
+        app = FakeRenderer()
+        b = MpvtkBrowser(app=app, source=source or FakeSource())
+        b._pool = _SyncPool()
+        return b, app
+
+    def setUp(self):
+        self._handlers = {}
+
+    def _tiles(self, b, prefix, size=(1280, 720)):
+        nodes, handlers = layout(b.build(size), *size)
+        self._handlers = handlers
+        return [n.get("id") for n in nodes
+                if (n.get("id") or "").startswith(prefix)]
+
+    def _click(self, node_id):
+        """Press a widget in the scene last built by _tiles.
+
+        The Paginated checkbox is pressed rather than ``Paginator.toggle``
+        being called directly: which scroll containers a flip tears down is
+        the view's knowledge, and calling the paginator straight past it
+        would test the argument I passed instead of the wiring.
+        """
+        self._handlers[node_id]["click"]()
+
+    def _paginated_flag(self, b):
+        """Drive the setting through the Paginator without touching the
+        user's real config file."""
+        flag = {"on": False}
+        b._pages.enabled = lambda: flag["on"]
+        b._pages._set_enabled = lambda v: flag.__setitem__("on", v)
+        return flag
+
+    def test_unticking_paginated_shows_the_music_grid_again(self):
+        b, app = self._browser(_Albums())
+        self._paginated_flag(b)
+        b.navigate({"kind": "music", "server": "srv1", "parent_id": "ml",
+                    "title": "Music"})
+        app.on_screen = {"music-grid"}
+        self.assertTrue(self._tiles(b, "music-"))
+
+        # Scroll deep enough that the old window holds no visible row.
+        app.scroll["music-grid"] = 6000
+        b._on_scroll("music-grid", 6000, 11000)
+        self._tiles(b, "music-")                  # rebuild, keep the handlers
+
+        self._click("music-paginated")            # Paginated on
+        app.on_screen = set()                     # the scroller is gone
+        self._tiles(b, "music-")
+
+        self._click("music-paginated")            # Paginated off
+        app.on_screen = {"music-grid"}
+        app.scroll.pop("music-grid", None)        # reconcile dropped it
+        # The FIRST row, not merely some row: a stale offset still draws a
+        # screenful, just the wrong one, and on a library short enough to
+        # run out of rows it draws nothing at all. Both are the same defect
+        # and only this pins it.
+        self.assertIn(
+            "music-0-al0", self._tiles(b, "music-"),
+            "the album grid came back windowed at the offset it had before "
+            "Paginated was ticked, not at the top where it actually is")
+
+    def test_changing_a_sort_shows_the_library_grid_again(self):
+        b, app = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        app.on_screen = {"grid"}
+        app.scroll["grid"] = 1500
+        b._on_scroll("grid", 1500, 8000)
+
+        b._page_for(b.route)._set("_sort", 1)     # busy screen, then reload
+        app.scroll.pop("grid")                    # the scroller left the scene
+        self.assertTrue(
+            self._tiles(b, "grid-0-"),
+            "the library came back blank after a sort change")
+
+    def test_the_toggle_forgets_the_offset_without_a_live_snapshot(self):
+        """mpv < 0.36 has no ``user-data``, so there is no live snapshot to
+        outvote the recorded copy -- the toggle has to drop it itself."""
+        b, _app = self._browser(_Albums())
+        b.app = None                              # nothing to ask
+        self._paginated_flag(b)
+        b.navigate({"kind": "music", "server": "srv1", "parent_id": "ml",
+                    "title": "Music"})
+        b._on_scroll("music-grid", 6000, 11000)
+        self._tiles(b, "music-")
+        self._click("music-paginated")
+        self._tiles(b, "music-")
+        self._click("music-paginated")
+        self.assertEqual(b._scroll.offset("music-grid"), 0.0)
+        self.assertIn("music-0-al0", self._tiles(b, "music-"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -193,7 +193,8 @@ class GridPage(Page):
             # place to flip it, not a per-view filter.
             Checkbox(_("Paginated"), self._pages.enabled(),
                      id="grid-paginated",
-                     on_toggle=lambda: self._pages.toggle(self.route)),
+                     on_toggle=lambda: self._pages.toggle(self.route,
+                                                          "grid")),
             Spacer(),
             Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
         ], gap=10, align="center")

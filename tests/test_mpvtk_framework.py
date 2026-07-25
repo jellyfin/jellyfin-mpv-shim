@@ -341,10 +341,19 @@ class TestScrollOffsets(unittest.TestCase):
         )
         self.assertEqual(app.scroll_offsets(), {"page": 320.0})
 
-    def test_missing_property_is_empty(self):
-        # FakeMPV has no _get_property; the backend swallows it
+    def test_string_values_are_coerced(self):
+        # libmpv hands node-map values back as strings, jsonipc as numbers.
         app = MpvtkApp.attach(FakeMPV(), ext=False)
-        self.assertEqual(app.scroll_offsets(), {})
+        app.backend.get_property = lambda name: {"page": "320", "bad": None}
+        self.assertEqual(app.scroll_offsets(), {"page": 320.0})
+
+    def test_missing_property_is_none_not_empty(self):
+        # FakeMPV has no _get_property; the backend swallows it. None and {}
+        # mean different things to ScrollState: {} is the renderer saying
+        # nothing is scrolled, None is "could not ask" -- only the latter
+        # may be overridden by a caller's own recorded offsets.
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        self.assertIsNone(app.scroll_offsets())
 
 
 if __name__ == "__main__":

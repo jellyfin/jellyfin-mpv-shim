@@ -1,375 +1,227 @@
-# local-ui-mpvtk regression checklist
+# Regression checklist — the `mpvtk-ui-refactor` branch
 
 Tested on: 2026-07-25
 
-Hand-testing pass for the `local-ui-mpvtk` branch (audit fixes + offline sync +
-library browser + mpv-lifecycle). Ordered by risk × how often the path runs.
+Scope: ~50 commits of decomposition on top of `local-ui-mpvtk`. `player.py`
+became `PlayerManager(AudioMixin, ReportingMixin, WindowMixin)` plus
+`mpv_options.py`; the browser shell became `pages/`, `gateway/`,
+`components/`, `Navigator`, `AsyncRunner`, `ScrollState`, `TileRenderer`,
+`Paginator`, `ItemActions`, `HudController`, `LoadFeedback`,
+`window_chrome`; `settings.py` became a package of per-tab mixins. Plus two
+things that are **not** moves and therefore need their own attention: the
+SyncPlay protocol fixes and the scroll-offset fix.
 
-Two automated layers already cover a lot — run them first, they're fast and
-catch most regressions before hand-testing:
-- **Fast unit suite** (pure logic): `python3 -m unittest discover tests`
-- **Integration + concurrency matrix** (fake mpv, real mpv under xvfb, both
-  backends, deterministic race tests): `python3 tests/integration/run_integration.py`
+This list is deliberately much shorter than the 2026-07-13 one
+(`docs/archive/`). That pass was acceptance-testing new features. This one is
+checking that a decomposition changed nothing — a different question, with a
+much narrower set of things worth a human's time. What was dropped and why is
+at the bottom, so the cuts can be argued with.
 
-The flows below still need a **real server and player** — the automated suites
-don't exercise a live Jellyfin, real casting, or a real window on your hardware.
+## Run these first
 
-**Test key flows under BOTH mpv backends** — libmpv (default) and external mpv
-(`mpv_ext: true`). External is the historically under-tested path and several
-bugs were backend-specific; the automated matrix covers both, but confirm the
-real flows (esp. auto-advance, close/recast, idle-quit) on each.
+- Unit suite (~16s): `xvfb-run -a python3 -m unittest discover tests`
+- Integration matrix: `xvfb-run -a python3 tests/integration/run_integration.py`
+
+**Use `xvfb-run` for both.** Importing `player.py` opens a real mpv window,
+and eight unit modules import it.
+
+## What the automation already proves
+
+Knowing this is what makes the cuts below defensible:
+
+- **`tests/test_scene_snapshots.py`** pins the exact node list `layout()`
+  pushes to the renderer for seven screens. A matching snapshot is matching
+  pixels — that is the property a decomposition needs and no behavioural test
+  provides.
+- **`tests/test_late_bound_calls.py`** statically resolves every late-bound
+  call across the seam, so a method that moved and left a caller behind is a
+  test failure, not a runtime `AttributeError` on a screen nobody opened.
+- **`tests/test_page_contract.py`** holds every route to the `Page` contract
+  and caps the `ctx.shell` escape hatch, which can only shrink.
+- **`tests/test_mpv_options.py`** (33) covers the option dict without opening
+  a window; **`tests/test_settings_mixins.py`** the settings package;
+  **`tests/test_player_controller.py`** the browser↔player seam.
+- **The integration matrix** runs the mpv-dependent modules once per backend
+  in a fresh interpreter, so a libmpv-only or jsonipc-only break is reported
+  per leg. This is what covers the `property_observer` bound-method
+  divergence and the per-call backend imports.
+- Each extraction was verified by an **AST leaf-statement diff** against the
+  pre-move file: the moved code is the same statements, not a rewrite.
+
+None of that sees a real server, a real audio device, a real window manager,
+or a second client. That is what the rest of this document is.
 
 # Legend
 
-[ ] Not tested yet
-[-] Didn't bother testing
-[X] Test pass
-[*] Test had issues (subnote explains)
+    [ ] Not tested yet
+    [-] Didn't bother testing
+    [X] Test pass
+    [*] Test had issues (subnote explains)
 
-# REGULAR MPV
+Where a line reads `lib [ ] ext [ ]`, run it on **both** backends — libmpv
+(default) and external mpv (`mpv_ext: true`). External is the historically
+under-tested path and this branch moved code across that boundary.
 
-## Highest risk × frequency
+# 1. Every route still draws — against a real library
 
-### 1. Auto-advance between episodes (online)
-Most-touched path: `finished_callback`, `_video` snapshot, playback epoch, EOF detection.
-- [ ] Multi-episode queue plays straight through; each advances and reports progress.
-- [ ] **Last episode in a queue** played to the very end gets marked watched (it ends via `playback-abort`, not `eof-reached` — the case the EOF fix targets). Test with `force_set_played` **on** and **off**.
-- [ ] Manual next/prev/skip reports the **actual** position (not full duration) — intended change.
-- [ ] The "mark watched" keybind still fully-marks an episode as before.
+Twenty-odd routes became `Page` classes. Snapshots cover seven of them, and
+against fabricated data.
 
-### 2. Cast / remote-control onto an already-playing shim
-Targets the cast-while-playing race (epoch + `wait_property` stale-value fix).
-- [ ] Cast a new item while something is playing → plays the **right** item at the **right** resume position (not the old file seeked to the new offset).
-- [ ] Cast item is not auto-skipped by a stale finished-callback.
+- [ ] Walk each route once: home, library grid, person, detail, series,
+      season, search, playlists, playlist editor, queue editor, music library
+      (all five tabs), album, artist, genre, downloads, settings (all six
+      tabs), cast screen.
+- [ ] **Then grep `log.txt` for `scene build failed`.** This is the important
+      half. A build exception keeps the last good frame in production
+      (`strict_builds` is off), so a broken route looks like a UI that simply
+      did not respond to the click — it does not look like a crash. A silent
+      entry here is a route that never rendered.
+- [ ] Right-click menus on tiles, and the tile menu's actions, on at least a
+      movie, an episode, a series, an album and a track.
 
-### 3. Close the mpv window (OSC 'x') mid-playback
-Teardown moved from mpv's event thread to a queued action-thread task.
-- [ ] Closing mid-playback reports a stop (session clears from the Jellyfin dashboard).
-- [ ] Closing while paused behaves the same.
-- [ ] Closing with the server briefly unreachable doesn't hang or leave a zombie.
+# 2. The player mixins — both backends
 
-### 4. Server reconnect after a network drop
-Client-lifecycle locking + the dead-code health-check reconnect fix (was fully broken before).
-- [ ] Drop the network / stop Jellyfin, wait past a health-check interval, restore → remote control & casting come back **without an app restart**.
-- [ ] App shutdown **while a server is unreachable** exits promptly (no ~100s hang).
-- [ ] Two servers configured, one down → the healthy one stays responsive while the other retries.
+The three mixins share one object and one `RLock`, and each reaches outside
+in ways only real hardware answers for.
 
-## Major new / changed surface
+## AudioMixin
+- [ ] Passthrough: set each `audio_mode` (auto / stereo / optical / HDMI) and
+      confirm the output actually changes on your receiver — this is the one
+      whose failure mode is silence, not an error.  lib [ ] ext [ ]
+- [ ] Night mode on/off during playback; per-type volume still remembered
+      separately for music vs video across a restart.
+- [ ] A file whose audio track the profile can't do (DTS-HD on an optical
+      path) still plays rather than failing to open.
 
-### 5. SyncPlay group leave / rejoin
-Scheduled-command timing fixes; hard to reason about without exercising.
+## ReportingMixin
+- [ ] Progress appears and advances on the Jellyfin dashboard; stopping
+      clears the session.  lib [ ] ext [ ]
+- [ ] Resume position is right after a stop mid-episode.
+- [ ] Discord Rich Presence still shows and clears (optional dep — also
+      confirm the app is fine with `pypresence` absent).
 
-**Re-test needed (2026-07-25).** Five protocol bugs were fixed after this
-section was last signed off — see `docs/SYNCPLAY_FINDINGS.md`. They are
-covered by `tests/test_syncplay_protocol.py` against a fake server, but that
-mock is a port of the server's state machine, not the server, so these want
-two real clients against a real Jellyfin:
-- [ ] Seek in a group → **every** member resumes without anyone pressing play.
-      This is the one that used to hang and get worked around by pausing and
-      unpausing; it hung on fast local files and worked on slow streams.
-- [ ] Another member stops the group → this client stops too, and is **still
-      in the group** afterwards (a later play from another member reaches it).
-- [ ] Throttle the network mid-playback so mpv stalls on its cache → the group
-      pauses for this client instead of leaving it behind and yanking it.
-- [ ] Local pause, then local unpause → both reach the group. The unpause used
-      to be swallowed intermittently.
-- [ ] Group playback still behaves after a client has been left idle long
-      enough for the server to try to resync it.
-- [ ] **Join a group that is already playing** → no crash (this hit an
-  `AttributeError` on the missing `_rearm_sync` — the "Playing Now" path), and
-  unpause / skip-to-sync re-arm work.
-- [ ] Leave a group mid-playback → no phantom pause/seek fires afterward.
-- [ ] Group leader pause-then-quick-unpause → player isn't yanked to a stale position.
-- [-] Leave group 1, join group 2 → no group-1 timing bleeds into group 2.
+## WindowMixin
+- [ ] Fullscreen toggle, `remember_window_size` across a restart, `raise_mpv`
+      on cast.  lib [ ] ext [ ]
+- [ ] **Close the mpv window mid-playback, then cast again** → re-opens,
+      plays, and the next episode auto-advances on EOF. The historic
+      stale-queue bug; the highest-value single item on this page.
+      lib [ ] ext [ ]
+- [ ] idle-quit (`mpv_idle_quit: true`, short `mpv_idle_quit_secs`): fires
+      when idle, does **not** fire while playing / menu open / SyncPlay group
+      active / cast screen up / user-launched external mpv.  lib [ ] ext [ ]
 
-### 5b. MPV process lifecycle (close / re-open / idle-quit) — new this branch
-The re-open path was rebuilt; the big fix was draining the outgoing mpv's
-stale queued tasks so a re-opened player still auto-advances. Test on **both
-backends**.
-- [ ] **Close the mpv window (OSC 'x') mid-playback, then cast/Play again** →
-  it re-opens, plays, AND the next episode **auto-advances** on EOF. (The
-  stale-queue bug specifically broke auto-advance after any re-open — this is
-  the headline regression to confirm, and likely resolves #458.)
-- [ ] Close mpv while paused, then re-cast → same clean re-open.
-- [ ] Close mpv with the server briefly unreachable, then re-cast → no hang,
-  correct re-open, session reported.
-- [ ] **idle-quit** (opt-in): set `mpv_idle_quit: true` and a short
-  `mpv_idle_quit_secs`; let it idle out → mpv quits (window/process gone,
-  resources freed). Then cast → re-opens, plays, auto-advances. Verify on
-  libmpv AND external mpv.
-- [ ] idle-quit does **not** fire while: something is playing, the menu is
-  open, a SyncPlay group is active, the display-mirror window is up, or mpv is
-  a **user-launched** external one (`mpv_ext_start: false`).
-- [ ] Repeated close→reopen cycles → no leaked trickplay threads / no growth,
-  process still exits cleanly on quit.
+# 3. mpv option assembly
 
-### 6. Offline download lifecycle (biggest new-code area)
-- [ ] Queue a season → files land, items show complete.
-- [ ] **Delete an item mid-download** → it stops and cleans up (no orphan file left as "complete").
-- [ ] **Interrupt** a download (kill app / drop network mid-download) then relaunch → **resumes** from `.part`, doesn't restart or error out.
-- [-] Disk full during a download (if simulable) → worker survives, other downloads not wedged.
-- [ ] Delete the download folder under a "complete" item, relaunch → startup reconcile requeues it (no dead path handed to mpv).
-- [ ] Queue against a down server → doesn't busy-spin CPU; other server's playstate still syncs.
+`build_mpv_options` moved wholesale, and the dict's insertion order is
+load-bearing.
 
-### 6b. Change the download folder (Settings → Downloads → Browse…) — new this branch
-- [ ] Change the folder with **no downloads yet** → takes effect, new downloads land in the new folder.
-- [ ] Change with **existing downloads to another drive** → progress bar advances, Save disabled during the move, UI/tray stay responsive (no "not responding"), files + `catalog.db` end up at the new path, old folder gone, downloads still play.
-- [ ] Change to a folder that **already has a `catalog.db`** → refused with a message, nothing moved.
-- [ ] Try to change **while a download is actively transferring** → refused; existing queue untouched.
-- [ ] Clear the folder (blank) → resets to the default `<config>/offline`, moving any downloads back.
-- [ ] Restart after a move → downloads still present at the new folder (path persisted).
-- [ ] After a successful move → a **"Restart required"** prompt appears (the browser keeps the old catalog wiring for live progress until restart). Downloading before restarting shows no progress bar — known, hence the prompt.
+- [ ] Each `osc_style`: `mpvtk` (default), `mpv`, `default` — the right
+      controls appear and take input.  lib [ ] ext [ ]
+- [ ] Shader-pack profiles switch and actually apply (a visible profile, so a
+      silent no-op is visible).
+- [ ] A user `mpv.conf` / `input.conf` in the config dir is still honoured,
+      and a custom `mpv_ext_path` is still used.
 
-### 7. Offline playback
-- [ ] Fully offline / `work_offline`: play a downloaded item to the end.
-- [ ] Auto-advance to a **non-downloaded** next episode → "Next episode is not downloaded", stops gracefully (no crash).
-- [ ] Kill the app mid-episode offline, relaunch → resume position was saved (periodic 30s record).
-- [ ] Watch offline, come back online → watched state / position sync back to the server.
-- [ ] "Delete watched" after watching offline → deletes the items actually watched offline.
+# 4. Playback core — unchanged, but everything moved around it
 
-### 8. Single instance
-- [ ] Launch twice → second launch raises the existing window, no duplicate.
-- [ ] Running in the systray, launch again → surfaces rather than duplicating.
-- [ ] Two instances with different `--config` dirs both run.
-- [ ] Kill the app uncleanly, relaunch → not blocked by a stale lock.
+`_play_media` / `update` / `finished_callback` were deliberately **not**
+split. They are surrounded by moved code, so the paths through them still
+want exercising.
 
-## Lighter touches
+- [ ] Multi-episode queue plays straight through; each advances and reports.
+      lib [ ] ext [ ]
+- [ ] Last episode played to the very end is marked watched (it ends via
+      `playback-abort`, not `eof-reached`). With `force_set_played` on and off.
+- [ ] Cast a new item while something is playing → the **right** item at the
+      **right** resume position, not the old file seeked to the new offset.
+- [ ] Server drops mid-playback and comes back → remote control and casting
+      resume without an app restart.
 
-### 9. Library browser under load
-- [ ] Fast-scroll a large library, change sort mid-scroll, navigate away while a page/thumbnails load → no duplicated/misordered tiles, no stuck "Failed to load".
-- [ ] Long browse session → memory doesn't balloon (thumbnail-cache byte bound).
-- [ ] Open DownloadsPanel during an active season download → updates smoothly, progress % ticks, no flicker.
-- [ ] Server switcher with two same-named servers → both selectable.
+# 5. Scrolling and pagination — a real fix, not a move
 
-### 10. In-player track menus
-- [ ] With a language filter set, open audio/subtitle menu → highlighted row matches the actually-selected track.
+Fixed 2026-07-25 from the smoke test: a virtualized grid that left the scene
+and came back was windowed around the offset it had before it left, while the
+real container had been reset to the top — so it drew a screenful of blank
+spacers. Covered by
+`tests/test_shell_paging.py::TestAReturningScrollContainerStartsAtTheTop`, but
+that models the renderer rather than being it.
 
-# EXTERNAL MPV
+- [ ] **The reported repro**: music tab → tick Paginated → untick → tiles are
+      there. Scroll deep first, which is what armed it.  lib [ ] ext [ ]
+- [ ] Same on a library grid, and on a person's filmography.
+- [ ] Scroll a library deep, change the sort → the grid comes back at the top
+      with tiles, not blank. (The same defect by the other door: the reload
+      drops to the busy screen, which takes the scroller with it.)
+- [ ] Scroll deep, open an item, come back → lands where you left it.
+- [ ] Paginated mode itself: First / Previous / Next / Last, typing a page
+      number, and that the page size follows a window resize.
 
-## Highest risk × frequency
+# 6. SyncPlay
 
-### 1. Auto-advance between episodes (online)
-Most-touched path: `finished_callback`, `_video` snapshot, playback epoch, EOF detection.
-- [ ] Multi-episode queue plays straight through; each advances and reports progress.
-- [ ] **Last episode in a queue** played to the very end gets marked watched (it ends via `playback-abort`, not `eof-reached` — the case the EOF fix targets). Test with `force_set_played` **on** and **off**.
-- [ ] Manual next/prev/skip reports the **actual** position (not full duration) — intended change.
-- [ ] The "mark watched" keybind still fully-marks an episode as before.
+Five protocol fixes plus the ping fix. **Stress-tested 2026-07-25 with
+repeated seeking across a group: solid, no misbehaviour.**
 
-### 2. Cast / remote-control onto an already-playing shim
-Targets the cast-while-playing race (epoch + `wait_property` stale-value fix).
-- [ ] Cast a new item while something is playing → plays the **right** item at the **right** resume position (not the old file seeked to the new offset).
-- [ ] Cast item is not auto-skipped by a stale finished-callback.
+- [X] Seek in a group → every member resumes without anyone pressing play.
+      The one that used to hang and get worked around by pausing and
+      unpausing.
+- [ ] **`log.txt` has no `400 Client Error ... /SyncPlay/Ping`.** The 400 was
+      the one problem the stress test surfaced: `PingRequestDto.Ping` is a
+      `long` and the client sent a float, so every ping this client ever sent
+      was rejected and the server compensated the group's unpause with its
+      default latency instead of ours.
+- [ ] Another member stops the group → this client stops too **and is still
+      in the group** (a later play from another member reaches it).
+- [ ] Throttle the network so mpv stalls on its cache → the group waits for
+      this client instead of leaving it behind and yanking it back.
+- [ ] Local pause, then local unpause → both reach the group. The unpause
+      used to be swallowed intermittently.
+- [ ] Join a group that is already playing; leave a group mid-playback → no
+      phantom pause/seek afterwards.
 
-### 3. Close the mpv window (OSC 'x') mid-playback
-Teardown moved from mpv's event thread to a queued action-thread task.
-- [ ] Closing mid-playback reports a stop (session clears from the Jellyfin dashboard).
-- [ ] Closing while paused behaves the same.
-- [ ] Closing with the server briefly unreachable doesn't hang or leave a zombie.
+Known and **not** fixed: an ABBA lock inversion between `_lock` and `_tl_lock`
+reachable only with SyncPlay enabled, which matches the historic hard hangs.
+See `docs/archive/SYNCPLAY_FINDINGS.md` — it wants a redesign of how timeline
+validity is enforced, not a lock-ordering patch.
 
-### 4. Server reconnect after a network drop
-Client-lifecycle locking + the dead-code health-check reconnect fix (was fully broken before).
-- [ ] Drop the network / stop Jellyfin, wait past a health-check interval, restore → remote control & casting come back **without an app restart**.
-- [ ] App shutdown **while a server is unreachable** exits promptly (no ~100s hang).
-- [ ] Two servers configured, one down → the healthy one stays responsive while the other retries.
+# 7. Settings, now a package of per-tab mixins
 
-## Major new / changed surface
+- [ ] Each of the six tabs opens, and a change on each **persists across a
+      restart** (that is the whole surface: read a value, write a value).
+- [ ] Downloads → change the folder with existing downloads on another drive
+      → progress advances, the UI stays responsive, files and `catalog.db`
+      land at the new path, downloads still play, restart prompt appears.
+- [ ] Logs tab tails the live log and does not wedge on a large one.
+- [ ] Home Screen tab: reorder sections, save, and confirm **jellyfin-web's
+      own home screen for the same user is not degraded** — section types the
+      shim can't draw are meant to be preserved, not rewritten.
 
-### 5b. MPV process lifecycle (close / re-open / idle-quit) — new this branch
-The re-open path was rebuilt; the big fix was draining the outgoing mpv's
-stale queued tasks so a re-opened player still auto-advances. Test on **both
-backends**.
-- [ ] **Close the mpv window (OSC 'x') mid-playback, then cast/Play again** →
-  it re-opens, plays, AND the next episode **auto-advances** on EOF. (The
-  stale-queue bug specifically broke auto-advance after any re-open — this is
-  the headline regression to confirm, and likely resolves #458.)
-- [ ] Close mpv while paused, then re-cast → same clean re-open.
-- [ ] Close mpv with the server briefly unreachable, then re-cast → no hang,
-  correct re-open, session reported.
-- [ ] **idle-quit** (opt-in): set `mpv_idle_quit: true` and a short
-  `mpv_idle_quit_secs`; let it idle out → mpv quits (window/process gone,
-  resources freed). Then cast → re-opens, plays, auto-advances. Verify on
-  libmpv AND external mpv.
-- [ ] idle-quit does **not** fire while: something is playing, the menu is
-  open, a SyncPlay group is active, the display-mirror window is up, or mpv is
-  a **user-launched** external one (`mpv_ext_start: false`).
-- [ ] Repeated close→reopen cycles → no leaked trickplay threads / no growth,
-  process still exits cleanly on quit.
+# 8. Platforms
 
-### 6. UI-review fixes (2026-07) — hand-test items
-Multi-angle review of the browser/gui layer; the pure-logic pieces are covered
-by `tests/test_ui_review_fixes.py`, these need a live session.
-- [ ] **Switch spam**: start a switch to user A (slow server helps), then pick
-  locked user B from the switcher and enter the PIN → the dialog shows
-  "Another user switch is already in progress." and closes cleanly; the window
-  never wedges behind the modal.
-- [ ] **Failed switch recovery**: delete a user from another window right
-  before switching to them → error message, and the UI lands back on
-  home/login instead of an eternal "Connecting…" spinner.
-- [ ] **Add Server during a switch**: kick off Add Server against a slow
-  server, switch users while it authenticates → the new server appears under
-  the ORIGINAL user (check users.json), not the one you switched to.
-- [ ] **Quick Connect twice**: start QC on one server, then start QC on
-  another → the first flow is cancelled (its late authorization does not yank
-  the UI to Home); Cancel always kills the visible flow.
-- [ ] **Server drop while browsing**: with two servers, kill one while
-  scrolled into its library grid → artwork/lazy-load keep working (tiles show
-  placeholders; no wedged scroll), no traceback storm in the log.
-- [ ] **First-page load failure**: open a library while the network blips →
-  status line reads "Failed to load — click here to retry." and clicking it
-  reloads.
-- [ ] **Offline watched state**: offline, a fully-watched downloaded series
-  shows the ✓ badge and "Mark unwatched"; marking a series watched offline
-  marks its downloaded episodes and syncs to the server on reconnect.
-- [ ] **Backdrop cache**: open an item's detail offline, reconnect, reopen →
-  the online backdrop replaces the offline one (no stale header art).
-- [ ] **Browser crash race**: kill -9 the browser process, immediately click
-  the tray's Show → exactly one working window; no orphaned unreachable one.
+- [ ] Windows build runs and the installer works (`gen_pkg.sh --skip-build`
+      then `build-win.bat`). The refactor touched `win_utils` imports.
+- [ ] macOS, which forces `mpv_ext = True`, still launches and plays.
 
-Note: This batch deferred until better offline detection while browsing logic is implemented.
+---
 
-### 7. jellyfin-web parity batch (2026-07) — hand-test items
-Filters/favorites/latest rows/shuffle (batch A), detail-page upgrades (batch
-B), grouped search + A–Z (batch C), and browser-side SyncPlay join. Pure
-logic is covered by `tests/test_browser_features.py`.
-- [ ] **Filters**: in a library grid, Unplayed / Favorites / Genre combine
-  correctly with every sort and with infinite scroll; totals match; offline
-  the same filters work against downloads.
-- [ ] **A–Z strip**: jumping to a letter filters (`#` = non-alphabetic);
-  clicking the active letter clears it.
-- [ ] **Favorites**: right-click add/remove on tiles + the detail/series
-  button stick server-side (check in jellyfin-web); Favorites filter then
-  shows them.
-- [ ] **Home**: per-library "Latest in X" rows appear (replacing the two
-  global Recently Added rows) and match jellyfin-web's home. Row orientation is
-  by **library CollectionType**, not item type: Movies / TV Shows / boxsets →
-  **posters** (a TV row that mixes grouped Series with stray recently-added
-  Episodes stays poster — the bug was one Episode flipping the whole row
-  landscape); home-video / misc (Type=Video/MusicVideo) libraries → **landscape**
-  cards.
-- [ ] **Shuffle**: library-grid Shuffle plays a random queue spanning the
-  whole library (not just loaded pages); series Shuffle shuffles episodes;
-  offline shuffle plays only downloads.
-- [ ] **Detail page**: cast row renders with photos and clicking a person
-  opens their filmography; multi-version items show the Version picker and
-  the track pickers re-source on change; media-info line + "Ends at" look
-  right; Scenes row plays from the chapter offset (thumbnails online,
-  text-only offline).
-- [ ] **Series page cast + similar**: the show overview page (SeriesView) now
-  shows the **Cast & Crew** and **More Like This** rows too (previously
-  movies-only); person tiles open the filmography, similar tiles open the show.
-- [ ] **Search**: results grouped Movies / Shows / Episodes / Videos.
-- [ ] **SyncPlay**: with nothing playing, top-bar SyncPlay → groups list →
-  Join starts playback of the group's queue in mpv and stays in sync; Leave
-  works; joining a group on server B while in a group on server A leaves A
-  first; the button politely refuses offline.
+# Deliberately not re-tested
 
-### 8. Playlist & collection editing (branch local-ui-playlist-edit) — hand-test items
-Needs jellyfin-apiclient-python >= 1.15 (branch add-browse-edit-apis);
-with an older apiclient every edit affordance must be hidden.
-- [ ] **Bulk remove**: playlist → ✏ Edit → shift-click a whole show's worth
-  of episodes → Remove selected → ONE call, all gone server-side (verify in
-  jf-web). The 48-clicks problem this exists to fix.
-- [ ] **Block moves**: select contiguous and non-contiguous sets; Top / Up /
-  Down / Bottom land in the same order in jf-web after a refresh (the
-  sequential-replay invariant is unit-tested; verify a real server agrees).
-- [ ] **Unsupported entries**: a playlist with music entries shows them in
-  the editor (type column) and they can be removed. The ✏ Edit button is
-  still offered when a playlist holds ONLY unsupported entries (no Play All),
-  so the strays can be cleaned out.
-- [ ] **Shuffle playlist**: playlist → 🔀 Shuffle plays the supported items
-  in a random order (Play All keeps playlist order).
-- [ ] **Rename**: ✏ Edit → ✎ Rename → new name applies (verify in jf-web and
-  that the tile/title updates); empty or unchanged name is a no-op.
-- [ ] **Public/Private**: ✏ Edit → the Public checkbox reflects the server's
-  current visibility (loads before it's enabled); toggling it makes the
-  playlist visible to all users / owner-only (verify with a second user).
-- [ ] **Delete playlist**: ✏ Edit → 🗑 Delete playlist → confirm → the
-  playlist is gone in jf-web (videos untouched), and the browser drops back to
-  the playlist list (not a dead editor/detail view). Cancel does nothing; a
-  server refusal shows an error and keeps the editor.
-- [ ] **Add-dialog modes**: Add to playlist… → with the name box empty the
-  primary button says **Add** (adds to the highlighted playlist) and no
-  Private box shows; typing a name flips it to **Create new** and reveals the
-  Private box (default checked). Empty box + nothing selected → Add is a safe
-  no-op. Unchecking Private creates a public playlist.
-- [ ] **Quick remove**: right-click an item inside a playlist → Remove from
-  playlist (single entry, no editor).
-- [ ] **Add to playlist**: right-click any tile → Add to playlist… → picker
-  lists playlists; adding a SERIES expands to its episodes server-side;
-  Create new seeds a playlist with the item.
-- [ ] **Collections toggle**: a **Collections** checkbox appears next to
-  Favorites on **Movie** libraries only (not TV/other, not offline). Checking
-  it switches the grid to list the server's Collections (BoxSets, explicit
-  IncludeItemTypes=BoxSet request); clicking one opens the collection; sort/A–Z
-  apply. Unchecking returns to the movie list. No client-side exclusion — the
-  main movie request renders whatever the server groups.
-- [ ] **Collections**: Add to collection… on movie/series tiles; inside a
-  collection grid, right-click → Remove from collection refreshes the grid;
-  Create new makes the collection (may need a library scan to appear as a
-  tile — that's a Jellyfin quirk, not a bug here).
-- [-] **Failure paths**: pull the network mid-edit → error message and the
-  editor reloads the server's real order; offline mode shows no edit
-  affordances at all.
-  - Offline detection mode switching currently needs more work, current
-    assumption is users will restart on offline if not detected.
+Cut from the 2026-07-13 list, with the reason. Argue with any of these.
 
-### 9. Music — Phase A (playlists + now-playing bar) — hand-test items
-Phase A plays/queues/downloads music **via playlists only** (no album/artist
-browse yet — that's Phase B). Needs a live server.
-- [ ] **Music playlist plays**: a playlist with Audio no longer shows "no
-  supported media"; tiles appear, clicking a track plays the whole playlist as
-  a queue from that track; Play All / Shuffle work.
-- [ ] **No album-art window**: audio playback does NOT pop an mpv window
-  showing embedded cover art (audio-display=no). Video/music-videos unaffected.
-- [ ] **Now-playing bar**: a bottom bar appears while AUDIO plays (and only
-  audio — hidden for video): shows title — artist; ⏮ ⏯ ⏭, seek slider that
-  moves smoothly and scrubs on release, volume slider, ♥ favorite (persists to
-  server), 🔁 repeat. Bar hides on stop / end of queue.
-- [ ] **Repeat**: none → all (queue wraps at end) → one (current track loops
-  via mpv) → none. Heart/repeat glyphs reflect state; RepeatMode shows in the
-  Jellyfin dashboard.
-- [ ] **Transport**: prev/next move within the queue; play/pause toggles and
-  the glyph flips; the bar updates within ~5s even for changes made elsewhere
-  (remote/keys).
-- [ ] **Download a music playlist**: ⬇ Download Playlist grabs the Audio
-  tracks as ONE unit (one "Playlist: X" block in Downloads, not N songs);
-  offline, the playlist plays its downloaded tracks. **(probe: offline audio
-  container/playback — flagged risk.)**
-- [ ] **Music playlist = tabular track list**: a playlist containing ANY Audio
-  renders a tabular list (row per track: small album art, position, title,
-  artist, duration), NOT tiles; clicking a row plays the playlist from that
-  track. Non-music playlists still use tiles.
-- [ ] **Per-type volume persists**: set music volume via the bar, restart →
-  it's remembered; video volume is tracked separately (change video volume via
-  mpv keys, restart → video remembers its own level, music unaffected). Volume
-  slider click-to-set works like seek.
-- [ ] **Downloads scale**: downloading a music playlist shows ONE "Playlist: X
-  · N of M · size" line (no per-song rows, no flicker); with 100+ separate
-  downloads, completing one only rebuilds its section, not the whole list.
-- [ ] **Art placeholders**: tiles with no server art (the Collections tile,
-  most music) show a placeholder — a ♪ for audio, else the item's initial —
-  instead of a blank rectangle; real art replaces it when present.
-- [ ] **Bar polish**: hovering a bar button shows a tooltip; clicking anywhere
-  on the seek track jumps to that spot (not a few-second nudge); the slider no
-  longer flashes white on hover.
-- [ ] **Repeat is music-only**: set repeat one/all during music, then play a
-  VIDEO — the video must NOT loop and the queue must NOT wrap (repeat only
-  applies while audio plays).
-
-### 10. Music — Phase B (library browse) — hand-test items
-The music library now shows as a browse tile → a tabbed view. Needs a live
-server with a Music library.
-- [ ] **Library tabs**: opening a Music library shows tabs Albums (default) /
-  Album Artists / Artists / Songs / Genres; art is square; tabs load lazily on
-  select; infinite-scroll pages a large library.
-- [ ] **Album detail**: clicking an album → header + tabular track list;
-  ▶ Play / 🔀 Shuffle / 📻 Instant Mix work; clicking a track plays the album
-  from that track.
-- [ ] **Artist detail**: clicking an artist → header + their Albums row + More
-  Like This; Play/Shuffle/Instant Mix play the artist's tracks.
-- [ ] **Genres**: a genre opens its albums grid.
-- [ ] **Songs tab / lone song**: the Songs tab plays the clicked track with the
-  rest as a queue; a single Audio elsewhere plays on its own.
-- [ ] **Home Latest**: a Music library's "Latest" row renders square album art.
-- [ ] **Instant Mix**: seeds a radio-style queue from the album/artist (needs
-  the newer apiclient with get_instant_mix; degrades to nothing if absent).
+- **The music Phase A/B feature matrix, playlist and collection editing,
+  the jellyfin-web parity batch, the offline download lifecycle, single
+  instance, the UI-review fixes batch.** These are feature-acceptance
+  matrices for features this branch did not change the behaviour of. Their
+  logic moved into `pages/` and `gateway/` under characterization coverage,
+  and §1's route walk touches each of them once.
+- **Offline playback and the sync/download races.** Covered by the
+  integration matrix's `test_sync_manager_races` and the offline unit
+  modules, and untouched by the decomposition.
+- **Everything already marked `[-]` or deferred on the previous list**
+  (failure paths mid-edit, offline detection while browsing, leave-group-1
+  join-group-2). Still deferred for the same reasons; carrying them forward
+  as unticked boxes just makes the list look unfinished.
+- **The duplicated `REGULAR MPV` / `EXTERNAL MPV` halves.** The previous list
+  repeated sections 1–4 verbatim under both headings, which is 100 lines that
+  drift apart the moment one is edited. Replaced by the `lib [ ] ext [ ]`
+  pairs on the lines where the backend actually matters.

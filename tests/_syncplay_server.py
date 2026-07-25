@@ -467,6 +467,15 @@ class FakeJellyfinApi:
         return [{"GroupId": self.group.group_id, "GroupName": "test"}]
 
     def ping_sync_play(self, ping):
+        # `PingRequestDto.Ping` is a `long` (Jellyfin.Api/Models/SyncPlayDtos/
+        # PingRequestDto.cs), so the model binder refuses a fractional value
+        # and the endpoint answers 400 before any group state is touched.
+        # Modelled, not waved through: a fake that accepts a float makes the
+        # one call the real server was rejecting look fine.
+        if isinstance(ping, bool) or not isinstance(ping, int):
+            raise ValueError(
+                "400 Bad Request: PingRequestDto.Ping is a long, got %r"
+                % (ping,))
         self.calls.append(("Ping", {"ping": ping}))
 
     def new_sync_play_v2(self, *a, **kw):
