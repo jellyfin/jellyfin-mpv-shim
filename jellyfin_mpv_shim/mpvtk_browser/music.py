@@ -10,20 +10,8 @@ state lives in the route dict.
 """
 
 from ..i18n import _
-from ..mpvtk.widgets import (
-    Box,
-    Button,
-    Checkbox,
-    Column,
-    Icon,
-    Row,
-    Slider,
-    Spacer,
-    Text,
-    VScroll,
-)
+from ..mpvtk.widgets import Box, Column, Icon, Row, Slider, Text
 from . import components, theme
-from .repository import PLAYLIST_SUPPORTED_TYPES
 
 
 # Height of the now-playing bar. Shared, because the cast screen has to
@@ -37,9 +25,6 @@ class MusicMixin:
 
     # Pure formatters; see components/labels.py.
     _duration = staticmethod(components.track_duration)
-    _artists = staticmethod(components.track_artists)
-
-
     # kind -> (loader, renderer) method names. Merged into
     # one dispatch table by core's _routes().
     #: Every music kind is now a Page (pages/music*.py, pages/playlist.py).
@@ -49,14 +34,8 @@ class MusicMixin:
 
 
 
-    def _play_shuffle(self, ids, server, audio=True):
-        self._actions.play_shuffle(ids, server, audio)
-
     def _queue_items(self, ids, server):
         self._actions.queue_items(ids, server)
-
-    def _instant_mix(self, seed_id, server):
-        self._actions.instant_mix(seed_id, server)
 
     # -------------------------------------------------- now-playing bar
 

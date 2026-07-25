@@ -11,29 +11,11 @@ image cache — ``_image_done`` runs on a pool thread and writes then
 
 import logging
 
-import time
 
 from ..i18n import _
-from ..mpvtk.scaling import px, raster
-from ..mpvtk.widgets import (
-    Box,
-    Column,
-    HScroll,
-    Icon,
-    Image,
-    ImageMap,
-    Menu,
-    Row,
-    Spacer,
-    Stack,
-    Table,
-    Text,
-    virtual_window,
-)
-from . import components, theme
+from ..mpvtk.widgets import Menu
+from . import components
 from .repository import PLAYABLE_TYPES, PLAYLIST_SUPPORTED_TYPES
-from .strips import Tile
-from .thumbnails import make_key
 
 log = logging.getLogger("mpvtk_browser.tiles")
 
@@ -50,17 +32,8 @@ class TilesMixin:
     def _tile_row(self, *a, **k):
         return self.tiles.tile_row(*a, **k)
 
-    def _grid_of(self, *a, **k):
-        return self.tiles.grid_of(*a, **k)
-
     def _track_list(self, *a, **k):
         return self.tiles.track_list(*a, **k)
-
-    def _art_cell(self, *a, **k):
-        return self.tiles.art_cell(*a, **k)
-
-    def _backdrop_node(self, *a, **k):
-        return self.tiles.backdrop_node(*a, **k)
 
     def _banner_box(self, *a, **k):
         return self.tiles.banner_box(*a, **k)
@@ -68,18 +41,11 @@ class TilesMixin:
     def _is_downloaded(self, item):
         return self.tiles.is_downloaded(item)
 
-    def _header_offset(self, *a, **k):
-        return self.tiles.header_offset(*a, **k)
-
     def _cols(self, *a, **k):
         return self.tiles.cols(*a, **k)
 
     def _tile(self, *a, **k):
         return self.tiles._tile(*a, **k)
-
-    def _poster_for(self, *a, **k):
-        return self.tiles.poster_for(*a, **k)
-
 
     # -------------------------------------------------------- tile helpers
 

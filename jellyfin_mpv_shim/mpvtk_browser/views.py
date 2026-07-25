@@ -1,41 +1,16 @@
-"""The main content routes.
+"""What is left of the main content routes.
 
-Home, grid (a library), detail, series, season and search, plus the
-detail-page pieces: track pickers, action buttons and the media-info line.
-
-State on ``self``: none of its own — every view keeps its data in the route
-dict and every mutation ends with ``invalidate()``. Handlers here run on
-the loop thread and must capture route state *before* dispatching async
-work; reading ``self.route`` inside the callback races navigation.
+Every kind this mixin owned is a Page now (``pages/``). What remains is a
+handful of forwarders that unconverted callers and the tests still reach as
+methods on the browser, plus the SORTS re-export. It shrinks to nothing as
+those callers move; see ``docs/ARCHITECTURE_TARGET.md`` §3.2.
 """
 
-import logging
-
 from ..i18n import _
-from ..mpvtk.scaling import px
-from ..mpvtk.widgets import (
-    Box,
-    Busy,
-    Button,
-    Checkbox,
-    Column,
-    Dropdown,
-    Icon,
-    Row,
-    Spacer,
-    Text,
-    VScroll,
-)
-from . import components, home_sections, theme
-from .components import chrome, controls, detail
-
-log = logging.getLogger("mpvtk_browser.views")
-
-# Grid sort modes now live with the page that owns them; re-exported
-# because app.py and the tests have always imported them from here.
-from .pages.grid import SORTS  # noqa: E402,F401
-
-_LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+from .components import chrome, detail
+# Grid sort modes live with the page that owns them; re-exported because
+# app.py and the tests have always imported them from here.
+from .pages.grid import SORTS  # noqa: F401
 
 
 class ViewsMixin:
@@ -58,38 +33,12 @@ class ViewsMixin:
     def _square_geom(self, items):
         return self.tiles.square_geom(items)
 
-    def _reload_grid(self, route):
-        for k in ("_items", "_total"):
-            route.pop(k, None)
-        route["_loading"] = False
-        self._reset_pagination(route)
-        self._bump_epoch()
-        self._load_route(route)
-        self.invalidate()
-
-    def _set_grid(self, key, route, value):
-        route[key] = value
-        self._reload_grid(route)
-
-    def _set_grid_filter(self, route, key, value):
-        route.setdefault("_filters", {})[key] = value
-        self._reload_grid(route)
-
-    def _toggle_grid_filter(self, route, key):
-        f = route.setdefault("_filters", {})
-        f[key] = not f.get(key)
-        self._reload_grid(route)
-
     def _toggle_paginated(self):
         self._pages.toggle(self.route)
 
     _meta_line = staticmethod(detail.meta_line)
 
 
-
-    _fmt_ticks = staticmethod(detail.fmt_ticks)
-
-    _action_btn = staticmethod(controls.action_btn)
 
     def _common_actions(self, item, server, prefix):
         return detail.common_actions(self._actions, self.tiles, item, server,

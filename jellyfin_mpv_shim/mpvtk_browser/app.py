@@ -664,9 +664,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
     # thin forwarders while unconverted routes still call them as methods.
     PAGE_SLOP = pagination.PAGE_SLOP
 
-    def _page_more(self, route, offset, maximum, get, put, fetch, error=None):
-        self._pages.more(route, offset, maximum, get, put, fetch, error)
-
     def _paginated(self):
         return self._pages.enabled()
 
@@ -689,10 +686,6 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             from .music import NOW_PLAYING_BAR_H
             h -= NOW_PLAYING_BAR_H
         return max(1, h)
-
-    def _page_size(self, route, size, head_h, geom):
-        return self._pages.page_size(route, size, head_h, geom,
-                                     self.CONTENT_PAD)
 
     def _page_count(self, route, ps):
         return self._pages.page_count(route, ps)
