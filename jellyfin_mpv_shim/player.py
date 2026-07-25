@@ -929,385 +929,7 @@ class PlayerManager(object):
             # same way.
             log.error("Could not apply audio settings at startup.", exc_info=True)
 
-        # Wrapper for on_key_press that ignores None.
-        def keypress(key):
-            def wrapper(func):
-                if key is not None:
-                    self._player.on_key_press(key)(func)
-                return func
-
-            return wrapper
-
-        @keypress(settings.kb_stop)
-        def handle_kb_stop():
-            # With the in-window browser, the window IS the library: q should
-            # stop playback and drop back to browsing, not tear mpv down.
-            # Closing the window (CLOSE_WIN) still quits.
-            log.info("handle_stop triggered")
-            if self.mpvtk_active:
-                self.put_task(self.stop_to_browser)
-            else:
-                self.put_task(self.stop_and_close)
-
-        @self._player.on_key_press("STOP")
-        def handle_stop():
-            log.info("handle_stop triggered")
-            self.put_task(self.stop_and_close)
-
-        @self._player.on_key_press("CLOSE_WIN")
-        def handle_close_win():
-            # With the in-window browser, closing the window is "minimize to
-            # tray", not "quit" — but only the UI knows whether a tray is
-            # actually there to minimize into, so it decides. Without that
-            # hook this used to stop playback, which fired a stopped
-            # playstate, which re-opened the browser window immediately.
-            log.info("handle_close_win triggered")
-            # From here mpv may exit at any moment, including between
-            # accepting a command and answering it. Everything below runs
-            # on the action thread, so an unbounded reply wait blocks the
-            # whole shutdown behind it — see bound_ipc_replies.
-            bound_ipc_replies()
-            handler = self.on_window_closed
-            if self.mpvtk_active and handler is not None:
-                self.put_task(handler)
-            else:
-                self.put_task(self.stop_and_close)
-
-        @keypress(settings.kb_prev)
-        def handle_prev():
-            self.put_task(self.play_prev)
-
-        @keypress(settings.kb_next)
-        def handle_next():
-            self.put_task(self.play_next)
-
-        @self._player.on_key_press("PREV")
-        @self._player.on_key_press("XF86_PREV")
-        def handle_media_prev():
-            if settings.media_key_seek:
-                seektime, _x = self.get_seek_times()
-                self.seek(seektime)
-            else:
-                self.put_task(self.play_prev)
-
-        @self._player.on_key_press("NEXT")
-        @self._player.on_key_press("XF86_NEXT")
-        def handle_media_next():
-            if settings.media_key_seek:
-                if self.is_in_intro and settings.skip_intro_on_seek:
-                    self.skip_intro()
-                else:
-                    _x, seektime = self.get_seek_times()
-                    self.seek(seektime)
-            else:
-                self.put_task(self.play_next)
-
-        @keypress(settings.kb_watched)
-        def handle_watched():
-            self.put_task(self.watched_skip)
-
-        @keypress(settings.kb_unwatched)
-        def handle_unwatched():
-            self.put_task(self.unwatched_quit)
-
-        @keypress(settings.kb_menu)
-        def menu_open():
-            if self.do_not_handle_pause:
-                self._player.show_text(_("Please wait, loading..."), 1000, 1)
-                return
-            if getattr(self, "_osc_style_resolved", None) == "mpvtk":
-                # Under the in-window OSC the HUD's gear menu replaces the
-                # OSD menu entirely. The OSD menu is a classic-OSC surface:
-                # drawn as mpv OSD text, it lands *under* the mpvtk overlay
-                # bitmaps and steals the arrow keys from the browser, so it
-                # must not open here even when the HUD declines (browsing,
-                # idle, no video).
-                if self._video is not None and self.on_hud_menu is not None:
-                    try:
-                        self.on_hud_menu()
-                    except Exception:
-                        log.debug("hud menu open failed", exc_info=True)
-                return
-            if not self.menu.is_menu_shown:
-                self.menu.show_menu()
-            else:
-                self.menu.hide_menu()
-
-        @keypress(settings.kb_menu_esc)
-        def menu_back():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("back")
-            elif self._nav_back():
-                pass    # the in-window UI consumed it (dialog / go back)
-            else:
-                self._player.command("set", "fullscreen", "no")
-                self.fullscreen_disable = True
-
-        @keypress(settings.kb_menu_ok)
-        def menu_ok():
-            self.menu.menu_action("ok")
-
-        @keypress(settings.kb_menu_left)
-        def menu_left():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("left")
-            else:
-                self.kb_seek("left")
-
-        @keypress(settings.kb_menu_right)
-        def menu_right():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("right")
-            else:
-                if self.is_in_intro and settings.skip_intro_on_seek:
-                    self.skip_intro()
-                else:
-                    self.kb_seek("right")
-
-        @keypress(settings.kb_menu_up)
-        def menu_up():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("up")
-            else:
-                if self.is_in_intro and settings.skip_intro_on_seek:
-                    self.skip_intro()
-                else:
-                    self.kb_seek("up")
-
-        @keypress(settings.kb_menu_down)
-        def menu_down():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("down")
-            else:
-                self.kb_seek("down")
-
-        @keypress(settings.kb_pause)
-        def handle_pause():
-            if self.menu.is_menu_shown:
-                self.menu.menu_action("ok")
-            else:
-                self.toggle_pause()
-
-        @keypress(settings.kb_fullscreen)
-        def handle_fullscreen():
-            self.toggle_fullscreen()
-
-        # This gives you an interactive python debugger prompt.
-        @keypress(settings.kb_debug)
-        def handle_debug():
-            import pdb
-
-            pdb.set_trace()
-
-        # Kill shader packs (useful for breakage)
-        @keypress(settings.kb_kill_shader)
-        def kill_shaders():
-            if settings.shader_pack_remember:
-                settings.shader_pack_profile = None
-                settings.save()
-            if self.menu.profile_manager is not None:
-                self.menu.profile_manager.unload_profile()
-
-        # mpv's stats.lua binds `i`/`I` to its "Playback Data" overlay. Take
-        # them over so the in-window UI stays in charge of that overlay: under
-        # the in-window OSC the overlay is tracked (so it can be cleared when
-        # the library returns) and swallowed while browsing/idle (it is ASS
-        # OSD that would paint behind the library). The classic/lua OSCs and
-        # CLI keep mpv's stock behaviour.
-        def stats_key(oneshot):
-            def handler():
-                if (self.mpvtk_active and self._video is not None
-                        and not self._current_is_audio()):
-                    # A video is on screen under the in-window HUD: track the
-                    # overlay so clear_stats() can hide it when the library
-                    # returns. Audio keeps the browser up (no picture to
-                    # annotate), so it falls through to the swallow below.
-                    self.put_task(self.toggle_stats)
-                elif not self.mpvtk_active:
-                    self._player.command(
-                        "script-binding",
-                        "stats/display-stats" if oneshot
-                        else "stats/display-stats-toggle")
-                # else: browsing / audio / idle under the in-window UI —
-                # swallow it so the overlay isn't painted over the library.
-            return handler
-
-        self._player.on_key_press("i")(stats_key(True))
-        self._player.on_key_press("I")(stats_key(False))
-
-        # Fires between episodes.
-        @self._player.property_observer("eof-reached")
-        def handle_end(_name, reached_end: bool):
-            # Only act on the True transition: the False transition means a
-            # new file just loaded, and arming the pause-swallow there leaves
-            # a stale "expect pause" that eats the user's first real pause
-            # under SyncPlay.
-            if self._video and reached_end:
-                # Genuine end-of-file (as opposed to the playback-abort path,
-                # which also fires on decode/network failure).
-                self._reached_eof = True
-                self._queue_finished()
-
-        # Fires at the end.
-        @self._player.property_observer("playback-abort")
-        def handle_end_idle(_name, value: bool):
-            if self._video and value and not self._video.parent.has_next:
-                self._queue_finished()
-
-        @self._player.property_observer("seeking")
-        def handle_seeking(_name, value: bool):
-            if self.do_not_handle_pause:
-                return
-
-            # Handle intro skip for any forward seek (including custom key bindings)
-            if value:
-                # Seeking started - store current position
-                self.playback_time_before_seek = self._player.playback_time
-            else:
-                # Seeking ended - check if we should skip intro. Seeks made
-                # from the jellyfin OSC's own controls are exempt (it has an
-                # explicit skip button; scrubbing must not warp to the end
-                # of the intro), and the whole behavior is a setting.
-                if (
-                    settings.skip_intro_on_seek
-                    and time.time() - self._last_ui_seek_time > 2.0
-                    and self.is_in_intro
-                    and self.playback_time_before_seek is not None
-                    and self._player.playback_time is not None
-                    and self._player.playback_time > self.playback_time_before_seek
-                ):
-                    self.skip_intro()
-
-            if self.syncplay.is_enabled():
-                play_time = self._player.playback_time
-                if (
-                    play_time is not None
-                    and self.last_seek is not None
-                    and abs(self.last_seek - play_time) > 10
-                ):
-                    self.syncplay.seek_request(play_time)
-                else:
-                    log.info("SyncPlay Buffering: {0}".format(value))
-                    if value:
-                        self.syncplay.on_buffer()
-                    else:
-                        self.syncplay.on_buffer_done()
-
-        @self._player.property_observer("pause")
-        def pause_handler(_name, value: bool):
-            if self.do_not_handle_pause:
-                return
-
-            if not self._player.playback_abort:
-                self.timeline_handle()
-
-            # Forwarding a pause flip to SyncPlay is only meaningful while
-            # something is actually playing; an idle/torn-down player can
-            # still emit pause events (external mpv, scripts).
-            if value != self.pause_ignore and self._video:
-                if self.syncplay.is_enabled():
-                    if value:
-                        self.syncplay.pause_request()
-                    else:
-                        # Don't allow unpausing locally through MPV.
-                        self.syncplay.play_request()
-                        self.set_paused(True, True)
-
-        @self._player.event_callback("file-loaded")
-        def handle_file_loaded(_event):
-            # Mirrors handle_end_file's generation guard: a file-loaded from
-            # the OUTGOING file (keep_open holds it until the replacement
-            # lands) must not be taken as the incoming one having loaded.
-            if self._loading:
-                self._load_completed.set()
-            # Whether the AC3 encoder belongs in the chain depends on this
-            # file's audio codec. Deferred onto the action thread: issuing mpv
-            # commands from inside an event handler is what put_task exists to
-            # avoid.
-            self.put_task(self.apply_audio_filters)
-
-        @self._player.property_observer("current-tracks/audio/codec")
-        def handle_audio_codec_change(_name, _value):
-            # Track switches change the answer as much as file changes do:
-            # moving from an AC3 track (passed through) to a 5.1 AAC one needs
-            # the encoder attached, or the surround is silently lost. Observed
-            # rather than hooked into set_streams so that mpv's own track
-            # cycling is covered too.
-            self.put_task(self.apply_audio_filters)
-
-        @self._player.event_callback("end-file")
-        def handle_end_file(event):
-            # Only interesting while a load is in flight: this is purely a
-            # shortcut out of the duration wait. Normal end-of-playback stays
-            # with the eof-reached / playback-abort observers, which own the
-            # queue-advance logic.
-            generation = self._load_generation
-            if not self._loading:
-                return
-            reason, detail = end_file_info(event)
-            # Strictly "error". A file being replaced mid-playback ends with
-            # "stop"/"redirect", and treating either as a failure would abort
-            # a perfectly good load; anything unrecognized decodes to None and
-            # falls through to the timeout, which is the safe direction.
-            if reason != "error":
-                return
-            # Re-check the generation after the (slow-ish) decode: a stale
-            # end-file from the outgoing file must not fail the incoming one.
-            if generation != self._load_generation or not self._loading:
-                return
-            log.error("mpv reported a load error: %s", detail or "no detail")
-            self._load_error_detail = detail
-            self._load_failed.set()
-
-        @self._player.event_callback("shutdown")
-        def handle_shutdown(event):
-            # We quit mpv ourselves to save resources — idle_quit already tore
-            # down and there is no session to report. Don't run the stop hook
-            # or re-terminate.
-            if self._idle_quit:
-                return
-            log.info("mpv shutdown event received")
-            # Only flip the flag here; the real teardown does network I/O and
-            # swaps self._video, neither of which belongs on MPV's event
-            # thread (the swap races the timeline thread, and blocking this
-            # thread stalls every other observer). The queued task runs on
-            # the action thread under _lock, serialized against stop()/play().
-            self.should_send_timeline = False
-            self.put_task(self._handle_mpv_shutdown)
-            # The next re-open joins this (see _teardown_player), so a cast
-            # landing right after a user-close can't build the new instance
-            # while this one is still tearing down.
-            self._terminate_thread = Thread(
-                target=self._terminate_mpv, args=(self._player,), daemon=True
-            )
-            self._terminate_thread.start()
-
-        @self._player.event_callback("client-message")
-        def handle_client_message(event):
-            try:
-                # Python-MPV 1.0 uses a class/struct combination now
-                if hasattr(event, "as_dict"):
-                    event = event.as_dict()
-                    if "event" in event:
-                        event["event"] = event["event"].decode("utf-8")
-                    if "args" in event:
-                        event["args"] = [d.decode("utf-8") for d in event["args"]]
-
-                if "event_id" in event:
-                    args = event["event"]["args"]
-                else:
-                    args = event["args"]
-                if len(args) == 0:
-                    return
-                if args[0] == "shim-menu-select":
-                    # Apparently this can happen...
-                    if args[1] == "inf":
-                        return
-                    self.menu.mouse_select(int(args[1]))
-                elif args[0] == "shim-menu-click":
-                    self.menu.menu_action("ok")
-            except Exception:
-                log.warning("Error when processing client-message.", exc_info=True)
+        self._bind_mpv_handlers()
 
         self._showing_browse_bg = False
         if settings.enable_gui:
@@ -1334,6 +956,434 @@ class PlayerManager(object):
                 self.on_mpv_recreated()
             except Exception:
                 log.error("on_mpv_recreated handler failed", exc_info=True)
+
+    # -- mpv key bindings and event handlers -------------------------------
+    #
+    # These were nested inside _init_mpv until they outgrew it: thirty-one
+    # handlers, defined inside a constructor, invisible to every AST-based
+    # invariant test in the suite and impossible to call from a unit test.
+    # None of them closed over anything but `self`, so they are methods that
+    # had been written as closures.
+    #
+    # _bind_mpv_handlers is the whole binding table, in the order the
+    # decorators ran. It re-runs per mpv instance (crash recovery,
+    # idle-quit re-open), which is why no handler may hold state of its own.
+
+    def _bind_key(self, key, func):
+        """Bind one configurable key, ignoring the ones the user cleared.
+
+        Was the `keypress` decorator factory; the None check is the whole of
+        it, and an unset keybind is a supported configuration.
+        """
+        if key is not None:
+            self._player.on_key_press(key)(func)
+
+    def _observe(self, prop, handler):
+        """Register a property observer on either backend.
+
+        Deliberately NOT `property_observer`. That decorator writes an
+        `unobserve_mpv_properties` attribute onto the callback it is given,
+        and a bound method has no __dict__ to write it to -- it raises
+        AttributeError, which is exactly what happens when these handlers stop
+        being plain closures. The underlying registration calls take the
+        handler directly and are what mpv_events.wait_property already uses.
+
+        Discriminated on the class, not the instance: libmpv's __getattr__
+        turns unknown instance attributes into property reads, so an
+        instance-level hasattr would be both wrong and wasteful (same reason
+        as mpv_events).
+        """
+        if hasattr(type(self._player), "bind_property_observer"):
+            self._player.bind_property_observer(prop, handler)
+        else:
+            self._player.observe_property(prop, handler)
+
+    def _bind_mpv_handlers(self):
+        """Attach every key binding and event handler to the current mpv."""
+        p = self._player
+        self._bind_key(settings.kb_stop, self._on_kb_stop)
+        p.on_key_press("STOP")(self._on_stop_key)
+        p.on_key_press("CLOSE_WIN")(self._on_close_win)
+        self._bind_key(settings.kb_prev, self._on_prev_key)
+        self._bind_key(settings.kb_next, self._on_next_key)
+        # Two keydefs, one handler. Previously stacked decorators, which on
+        # libmpv registered the *wrapper* of the inner binding under the outer
+        # keydef and worked only because that wrapper's arguments all default.
+        p.on_key_press("PREV")(self._on_media_prev)
+        p.on_key_press("XF86_PREV")(self._on_media_prev)
+        p.on_key_press("NEXT")(self._on_media_next)
+        p.on_key_press("XF86_NEXT")(self._on_media_next)
+        self._bind_key(settings.kb_watched, self._on_watched_key)
+        self._bind_key(settings.kb_unwatched, self._on_unwatched_key)
+        self._bind_key(settings.kb_menu, self._on_menu_key)
+        self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
+        self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
+        self._bind_key(settings.kb_menu_left, self._on_menu_left)
+        self._bind_key(settings.kb_menu_right, self._on_menu_right)
+        self._bind_key(settings.kb_menu_up, self._on_menu_up)
+        self._bind_key(settings.kb_menu_down, self._on_menu_down)
+        self._bind_key(settings.kb_pause, self._on_pause_key)
+        self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
+        self._bind_key(settings.kb_debug, self._on_debug_key)
+        self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
+        p.on_key_press("i")(self._on_stats_oneshot)
+        p.on_key_press("I")(self._on_stats_toggle)
+        self._observe("eof-reached", self._on_eof_reached)
+        self._observe("playback-abort", self._on_playback_abort)
+        self._observe("seeking", self._on_seeking)
+        self._observe("pause", self._on_pause_change)
+        p.event_callback("file-loaded")(self._on_file_loaded)
+        self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
+        p.event_callback("end-file")(self._on_end_file)
+        p.event_callback("shutdown")(self._on_shutdown_event)
+        p.event_callback("client-message")(self._on_client_message)
+
+    # -- key handlers ------------------------------------------------------
+
+    def _on_kb_stop(self):
+        # With the in-window browser, the window IS the library: q should
+        # stop playback and drop back to browsing, not tear mpv down.
+        # Closing the window (CLOSE_WIN) still quits.
+        log.info("handle_stop triggered")
+        if self.mpvtk_active:
+            self.put_task(self.stop_to_browser)
+        else:
+            self.put_task(self.stop_and_close)
+
+    def _on_stop_key(self):
+        log.info("handle_stop triggered")
+        self.put_task(self.stop_and_close)
+
+    def _on_close_win(self):
+        # With the in-window browser, closing the window is "minimize to
+        # tray", not "quit" — but only the UI knows whether a tray is
+        # actually there to minimize into, so it decides. Without that
+        # hook this used to stop playback, which fired a stopped
+        # playstate, which re-opened the browser window immediately.
+        log.info("handle_close_win triggered")
+        # From here mpv may exit at any moment, including between
+        # accepting a command and answering it. Everything below runs
+        # on the action thread, so an unbounded reply wait blocks the
+        # whole shutdown behind it — see bound_ipc_replies.
+        bound_ipc_replies()
+        handler = self.on_window_closed
+        if self.mpvtk_active and handler is not None:
+            self.put_task(handler)
+        else:
+            self.put_task(self.stop_and_close)
+
+    def _on_prev_key(self):
+        self.put_task(self.play_prev)
+
+    def _on_next_key(self):
+        self.put_task(self.play_next)
+
+    def _on_media_prev(self):
+        if settings.media_key_seek:
+            seektime, _x = self.get_seek_times()
+            self.seek(seektime)
+        else:
+            self.put_task(self.play_prev)
+
+    def _on_media_next(self):
+        if settings.media_key_seek:
+            if self.is_in_intro and settings.skip_intro_on_seek:
+                self.skip_intro()
+            else:
+                _x, seektime = self.get_seek_times()
+                self.seek(seektime)
+        else:
+            self.put_task(self.play_next)
+
+    def _on_watched_key(self):
+        self.put_task(self.watched_skip)
+
+    def _on_unwatched_key(self):
+        self.put_task(self.unwatched_quit)
+
+    def _on_menu_key(self):
+        if self.do_not_handle_pause:
+            self._player.show_text(_("Please wait, loading..."), 1000, 1)
+            return
+        if getattr(self, "_osc_style_resolved", None) == "mpvtk":
+            # Under the in-window OSC the HUD's gear menu replaces the
+            # OSD menu entirely. The OSD menu is a classic-OSC surface:
+            # drawn as mpv OSD text, it lands *under* the mpvtk overlay
+            # bitmaps and steals the arrow keys from the browser, so it
+            # must not open here even when the HUD declines (browsing,
+            # idle, no video).
+            if self._video is not None and self.on_hud_menu is not None:
+                try:
+                    self.on_hud_menu()
+                except Exception:
+                    log.debug("hud menu open failed", exc_info=True)
+            return
+        if not self.menu.is_menu_shown:
+            self.menu.show_menu()
+        else:
+            self.menu.hide_menu()
+
+    def _on_menu_esc(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("back")
+        elif self._nav_back():
+            pass    # the in-window UI consumed it (dialog / go back)
+        else:
+            self._player.command("set", "fullscreen", "no")
+            self.fullscreen_disable = True
+
+    def _on_menu_ok(self):
+        self.menu.menu_action("ok")
+
+    def _on_menu_left(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("left")
+        else:
+            self.kb_seek("left")
+
+    def _on_menu_right(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("right")
+        else:
+            if self.is_in_intro and settings.skip_intro_on_seek:
+                self.skip_intro()
+            else:
+                self.kb_seek("right")
+
+    def _on_menu_up(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("up")
+        else:
+            if self.is_in_intro and settings.skip_intro_on_seek:
+                self.skip_intro()
+            else:
+                self.kb_seek("up")
+
+    def _on_menu_down(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("down")
+        else:
+            self.kb_seek("down")
+
+    def _on_pause_key(self):
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("ok")
+        else:
+            self.toggle_pause()
+
+    def _on_fullscreen_key(self):
+        self.toggle_fullscreen()
+
+    # This gives you an interactive python debugger prompt.
+    def _on_debug_key(self):
+        import pdb
+
+        pdb.set_trace()
+
+    # Kill shader packs (useful for breakage)
+    def _on_kill_shader_key(self):
+        if settings.shader_pack_remember:
+            settings.shader_pack_profile = None
+            settings.save()
+        if self.menu.profile_manager is not None:
+            self.menu.profile_manager.unload_profile()
+
+    # mpv's stats.lua binds `i`/`I` to its "Playback Data" overlay. Take
+    # them over so the in-window UI stays in charge of that overlay: under
+    # the in-window OSC the overlay is tracked (so it can be cleared when
+    # the library returns) and swallowed while browsing/idle (it is ASS
+    # OSD that would paint behind the library). The classic/lua OSCs and
+    # CLI keep mpv's stock behaviour.
+    def _stats_key(self, oneshot):
+        if (self.mpvtk_active and self._video is not None
+                and not self._current_is_audio()):
+            # A video is on screen under the in-window HUD: track the
+            # overlay so clear_stats() can hide it when the library
+            # returns. Audio keeps the browser up (no picture to
+            # annotate), so it falls through to the swallow below.
+            self.put_task(self.toggle_stats)
+        elif not self.mpvtk_active:
+            self._player.command(
+                "script-binding",
+                "stats/display-stats" if oneshot
+                else "stats/display-stats-toggle")
+        # else: browsing / audio / idle under the in-window UI —
+        # swallow it so the overlay isn't painted over the library.
+
+    # Two bindings, because a key handler is called with no arguments and
+    # the oneshot flag is the only thing that differs between them.
+    def _on_stats_oneshot(self):
+        self._stats_key(True)
+
+    def _on_stats_toggle(self):
+        self._stats_key(False)
+
+    # -- property observers and event callbacks ----------------------------
+
+    # Fires between episodes.
+    def _on_eof_reached(self, _name, reached_end: bool):
+        # Only act on the True transition: the False transition means a
+        # new file just loaded, and arming the pause-swallow there leaves
+        # a stale "expect pause" that eats the user's first real pause
+        # under SyncPlay.
+        if self._video and reached_end:
+            # Genuine end-of-file (as opposed to the playback-abort path,
+            # which also fires on decode/network failure).
+            self._reached_eof = True
+            self._queue_finished()
+
+    # Fires at the end.
+    def _on_playback_abort(self, _name, value: bool):
+        if self._video and value and not self._video.parent.has_next:
+            self._queue_finished()
+
+    def _on_seeking(self, _name, value: bool):
+        if self.do_not_handle_pause:
+            return
+
+        # Handle intro skip for any forward seek (including custom key bindings)
+        if value:
+            # Seeking started - store current position
+            self.playback_time_before_seek = self._player.playback_time
+        else:
+            # Seeking ended - check if we should skip intro. Seeks made
+            # from the jellyfin OSC's own controls are exempt (it has an
+            # explicit skip button; scrubbing must not warp to the end
+            # of the intro), and the whole behavior is a setting.
+            if (
+                settings.skip_intro_on_seek
+                and time.time() - self._last_ui_seek_time > 2.0
+                and self.is_in_intro
+                and self.playback_time_before_seek is not None
+                and self._player.playback_time is not None
+                and self._player.playback_time > self.playback_time_before_seek
+            ):
+                self.skip_intro()
+
+        if self.syncplay.is_enabled():
+            play_time = self._player.playback_time
+            if (
+                play_time is not None
+                and self.last_seek is not None
+                and abs(self.last_seek - play_time) > 10
+            ):
+                self.syncplay.seek_request(play_time)
+            else:
+                log.info("SyncPlay Buffering: {0}".format(value))
+                if value:
+                    self.syncplay.on_buffer()
+                else:
+                    self.syncplay.on_buffer_done()
+
+    def _on_pause_change(self, _name, value: bool):
+        if self.do_not_handle_pause:
+            return
+
+        if not self._player.playback_abort:
+            self.timeline_handle()
+
+        # Forwarding a pause flip to SyncPlay is only meaningful while
+        # something is actually playing; an idle/torn-down player can
+        # still emit pause events (external mpv, scripts).
+        if value != self.pause_ignore and self._video:
+            if self.syncplay.is_enabled():
+                if value:
+                    self.syncplay.pause_request()
+                else:
+                    # Don't allow unpausing locally through MPV.
+                    self.syncplay.play_request()
+                    self.set_paused(True, True)
+
+    def _on_file_loaded(self, _event):
+        # Mirrors _on_end_file's generation guard: a file-loaded from
+        # the OUTGOING file (keep_open holds it until the replacement
+        # lands) must not be taken as the incoming one having loaded.
+        if self._loading:
+            self._load_completed.set()
+        # Whether the AC3 encoder belongs in the chain depends on this
+        # file's audio codec. Deferred onto the action thread: issuing mpv
+        # commands from inside an event handler is what put_task exists to
+        # avoid.
+        self.put_task(self.apply_audio_filters)
+
+    def _on_audio_codec_change(self, _name, _value):
+        # Track switches change the answer as much as file changes do:
+        # moving from an AC3 track (passed through) to a 5.1 AAC one needs
+        # the encoder attached, or the surround is silently lost. Observed
+        # rather than hooked into set_streams so that mpv's own track
+        # cycling is covered too.
+        self.put_task(self.apply_audio_filters)
+
+    def _on_end_file(self, event):
+        # Only interesting while a load is in flight: this is purely a
+        # shortcut out of the duration wait. Normal end-of-playback stays
+        # with the eof-reached / playback-abort observers, which own the
+        # queue-advance logic.
+        generation = self._load_generation
+        if not self._loading:
+            return
+        reason, detail = end_file_info(event)
+        # Strictly "error". A file being replaced mid-playback ends with
+        # "stop"/"redirect", and treating either as a failure would abort
+        # a perfectly good load; anything unrecognized decodes to None and
+        # falls through to the timeout, which is the safe direction.
+        if reason != "error":
+            return
+        # Re-check the generation after the (slow-ish) decode: a stale
+        # end-file from the outgoing file must not fail the incoming one.
+        if generation != self._load_generation or not self._loading:
+            return
+        log.error("mpv reported a load error: %s", detail or "no detail")
+        self._load_error_detail = detail
+        self._load_failed.set()
+
+    def _on_shutdown_event(self, event):
+        # We quit mpv ourselves to save resources — idle_quit already tore
+        # down and there is no session to report. Don't run the stop hook
+        # or re-terminate.
+        if self._idle_quit:
+            return
+        log.info("mpv shutdown event received")
+        # Only flip the flag here; the real teardown does network I/O and
+        # swaps self._video, neither of which belongs on MPV's event
+        # thread (the swap races the timeline thread, and blocking this
+        # thread stalls every other observer). The queued task runs on
+        # the action thread under _lock, serialized against stop()/play().
+        self.should_send_timeline = False
+        self.put_task(self._handle_mpv_shutdown)
+        # The next re-open joins this (see _teardown_player), so a cast
+        # landing right after a user-close can't build the new instance
+        # while this one is still tearing down.
+        self._terminate_thread = Thread(
+            target=self._terminate_mpv, args=(self._player,), daemon=True
+        )
+        self._terminate_thread.start()
+
+    def _on_client_message(self, event):
+        try:
+            # Python-MPV 1.0 uses a class/struct combination now
+            if hasattr(event, "as_dict"):
+                event = event.as_dict()
+                if "event" in event:
+                    event["event"] = event["event"].decode("utf-8")
+                if "args" in event:
+                    event["args"] = [d.decode("utf-8") for d in event["args"]]
+
+            if "event_id" in event:
+                args = event["event"]["args"]
+            else:
+                args = event["args"]
+            if len(args) == 0:
+                return
+            if args[0] == "shim-menu-select":
+                # Apparently this can happen...
+                if args[1] == "inf":
+                    return
+                self.menu.mouse_select(int(args[1]))
+            elif args[0] == "shim-menu-click":
+                self.menu.menu_action("ok")
+        except Exception:
+            log.warning("Error when processing client-message.", exc_info=True)
 
     # -- Audio output configuration ---------------------------------------
 

@@ -82,22 +82,59 @@ class BoundIpcRepliesTest(unittest.TestCase):
 
 class WindowCloseTightensTheWaitTest(unittest.TestCase):
     """The close path has to tighten the wait *before* it queues the stop
-    task, since that task is what issues the doomed command."""
+    task, since that task is what issues the doomed command.
 
-    def test_handle_close_win_calls_it_before_queueing(self):
-        import inspect
+    This used to assert on the *source text* of ``_init_mpv``, because the
+    handler was a closure defined inside it and there was no way to call it.
+    Now that it is a method, the ordering is checked by running it — which
+    also means renaming or moving it can no longer quietly void the test.
+    """
+
+    def _closer(self, **attrs):
+        """A PlayerManager with no mpv attached; __new__ skips _init_mpv."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.mpvtk_active = False
+        pm.on_window_closed = None
+        for k, v in attrs.items():
+            setattr(pm, k, v)
+        return pm
+
+    def _record(self, pm):
         from jellyfin_mpv_shim import player
 
-        src = inspect.getsource(player.PlayerManager._init_mpv)
-        start = src.index("def handle_close_win")
-        body = src[start:start + 900]
-        self.assertIn("bound_ipc_replies()", body,
-                      "the close path no longer bounds the reply wait")
-        self.assertLess(
-            body.index("bound_ipc_replies()"), body.index("put_task"),
-            "the wait must be bounded before the stop task is queued — "
-            "that task is the one that issues the command whose reply "
-            "never arrives")
+        calls = []
+        pm.put_task = lambda fn, *a: calls.append(("put_task", fn))
+        return calls, mock.patch.object(
+            player, "bound_ipc_replies",
+            lambda: calls.append(("bound_ipc_replies", None)))
+
+    def test_the_wait_is_bounded_before_the_stop_task_is_queued(self):
+        pm = self._closer()
+        calls, patch = self._record(pm)
+        with patch:
+            pm._on_close_win()
+        self.assertEqual([c[0] for c in calls],
+                         ["bound_ipc_replies", "put_task"],
+                         "the wait must be bounded before the stop task is "
+                         "queued — that task is the one that issues the "
+                         "command whose reply never arrives")
+        self.assertEqual(calls[1][1], pm.stop_and_close)
+
+    def test_it_is_bounded_on_the_minimize_to_tray_path_too(self):
+        # The UI's handler runs on the action thread as well, so it is behind
+        # the same doomed reply wait.
+        handler = lambda: None      # noqa: E731
+        pm = self._closer(mpvtk_active=True, on_window_closed=handler)
+        calls, patch = self._record(pm)
+        with patch:
+            pm._on_close_win()
+        self.assertEqual([c[0] for c in calls],
+                         ["bound_ipc_replies", "put_task"])
+        self.assertIs(calls[1][1], handler,
+                      "closing the window with the in-window UI up must "
+                      "minimize to tray, not stop playback")
 
 
 if __name__ == "__main__":
