@@ -666,8 +666,8 @@ class TestPlaybackHudLayout(unittest.TestCase):
         ctl = HudController()
         b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
         b._browsing = False
-        b._hud_shown = True
-        b._hud_state = {"stopped": False, "is_audio": False,
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
                         "title": "Movie", "position": 50.0,
                         "duration": 100.0, "paused": False}
         return b, ctl
@@ -688,11 +688,11 @@ class TestPlaybackHudLayout(unittest.TestCase):
                          "chapter slits should be the interior chapters")
 
     def _episode(self, b, **kw):
-        st = dict(b._hud_state)
+        st = dict(b.hud.state)
         st.update({"title": "Pilot", "series_name": "The Show",
                    "season": 1, "episode": 2})
         st.update(kw)
-        b._hud_state = st
+        b.hud.state = st
         return b
 
     def test_an_episode_shows_its_series_and_number(self):
@@ -769,7 +769,7 @@ class TestPlaybackHudLayout(unittest.TestCase):
                      if (n.get("text") or "").startswith("0:50 / "))
         self.assertIn("1:40", clock["text"])
         handlers["hud-clock"]["click"]()
-        self.assertTrue(b._hud_tc_remaining)
+        self.assertTrue(b.hud.tc_remaining)
         nodes, _h = build_scene(b, (1280, 720))
         self.assertTrue(any((n.get("text") or "") == "0:50 / -0:50"
                             for n in nodes),
@@ -777,7 +777,7 @@ class TestPlaybackHudLayout(unittest.TestCase):
 
     def test_seek_bar_range_shading(self):
         b, _ctl = self._browser()
-        b._hud_state["ranges"] = [[10.0, 40.0], [90.0, 100.0]]
+        b.hud.state["ranges"] = [[10.0, 40.0], [90.0, 100.0]]
         nodes, _h = build_scene(b, (1280, 720))
         seek = next(n for n in nodes if n.get("id") == "hud-seek")
         self.assertEqual(seek.get("ranges"), [[0.1, 0.4], [0.9, 1.0]])
@@ -801,7 +801,7 @@ class TestPlaybackHudLayout(unittest.TestCase):
 
         b.app = GeoApp()
         handlers["hud-seek"]["hover"](45.0)
-        self.assertEqual(b._hud_hover, 45.0)
+        self.assertEqual(b.hud.hover, 45.0)
         nodes, handlers = build_scene(b, (1280, 720))
         self.assertIn("hud-preview", ids(nodes))
         texts = [n.get("text") for n in nodes if n.get("text")]
@@ -809,14 +809,14 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertIn("Middle", texts,
                       "bubble chapter name missing (45s is in Middle)")
         handlers["hud-seek"]["hover_end"]()
-        self.assertIsNone(b._hud_hover)
+        self.assertIsNone(b.hud.hover)
         nodes, _h = build_scene(b, (1280, 720))
         self.assertNotIn("hud-preview", ids(nodes))
 
     def test_hud_show_hide_adjusts_sub_margin(self):
         b, ctl = self._browser()
-        b._on_hud(True)
-        b._on_hud(False)
+        b.hud.on_hud(True)
+        b.hud.on_hud(False)
         self.assertIn(("hud_sub_margin", (True,)), ctl.transport)
         self.assertIn(("hud_sub_margin", (False,)), ctl.transport)
 
@@ -848,7 +848,7 @@ class TestPlaybackHudLayout(unittest.TestCase):
 
     def test_prev_chapter_within_grace_goes_further_back(self):
         b, ctl = self._browser()
-        b._hud_state["position"] = 41.0  # within 2s of the 40s chapter
+        b.hud.state["position"] = 41.0  # within 2s of the 40s chapter
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["hud-ch-prev"]["click"]()
         self.assertIn(("seek", (0.0,)), ctl.transport)
@@ -883,8 +883,8 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         ctl = HudController()
         b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
         b._browsing = False
-        b._hud_shown = True
-        b._hud_state = {"stopped": False, "is_audio": False,
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
                         "title": "Movie", "position": 50.0,
                         "duration": 100.0, "paused": False,
                         "favorite": False}
@@ -897,7 +897,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         handlers["hud-fav"]["click"]()
         self.assertIn(("hud_action", ("toggle-favorite", None)),
                       ctl.transport)
-        self.assertTrue(b._hud_state["favorite"], "optimistic flip")
+        self.assertTrue(b.hud.state["favorite"], "optimistic flip")
         nodes, _h = build_scene(b, (460, 640))
         self.assertNotIn("hud-fav", ids(nodes),
                          "favorite hides below 560px")
@@ -908,7 +908,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         self.assertIn("hud-settings", ids(nodes))
         self.assertNotIn("hud-menu", ids(nodes))
         handlers["hud-settings"]["click"]()
-        self.assertEqual(b._hud_menu, "root")
+        self.assertEqual(b.hud.menu, "root")
         nodes, handlers = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         labels = menu["items"]
@@ -924,7 +924,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         idx = next(i for i, l in enumerate(labels)
                    if "Playback Speed" in l)
         handlers["hud-menu"]["select"](idx, labels[idx])
-        self.assertEqual(b._hud_menu, "speed")
+        self.assertEqual(b.hud.menu, "speed")
         nodes, handlers = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         # controller has no real speed -> default 1.0 gets the check
@@ -934,19 +934,19 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         two = menu["items"].index("2x")
         handlers["hud-menu"]["select"](two, "2x")
         self.assertIn(("set_speed", (2.0,)), ctl.transport)
-        self.assertIsNone(b._hud_menu, "leaf selection closes the menu")
+        self.assertIsNone(b.hud.menu, "leaf selection closes the menu")
 
     def test_settings_menu_back_and_dismiss(self):
         b, _ctl = self._browser()
-        b._hud_menu = "aspect"
+        b.hud.menu = "aspect"
         nodes, handlers = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         self.assertEqual(menu["items"][0], "Back")
         handlers["hud-menu"]["select"](0, "Back")
-        self.assertEqual(b._hud_menu, "root")
+        self.assertEqual(b.hud.menu, "root")
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["hud-menu"]["dismiss"]()
-        self.assertIsNone(b._hud_menu)
+        self.assertIsNone(b.hud.menu)
 
     def test_top_bar_back_title_syncplay(self):
         b, ctl = self._browser()
@@ -964,16 +964,16 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         # the top SyncPlay button opens its sheet standalone: no Back
         # row, anchored at the button
         handlers["hud-syncplay"]["click"]()
-        self.assertEqual(b._hud_menu, "syncplay")
-        self.assertEqual(b._hud_menu_anchor, "hud-syncplay")
+        self.assertEqual(b.hud.menu, "syncplay")
+        self.assertEqual(b.hud.menu_anchor, "hud-syncplay")
         nodes, _h = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         self.assertNotIn("Back", menu["items"])
         self.assertIn("None (Disabled)", menu["items"])
         # ... while the same sheet from the gear keeps its Back row
-        b._hud_menu = None
-        b._hud_menu_anchor = "hud-settings"
-        b._hud_menu = "syncplay"
+        b.hud.menu = None
+        b.hud.menu_anchor = "hud-settings"
+        b.hud.menu = "syncplay"
         nodes, _h = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         self.assertEqual(menu["items"][0], "Back")
@@ -987,7 +987,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
 
     def test_sub_style_submenu_routes_verb(self):
         b, ctl = self._browser()
-        b._hud_menu = "sub_size"
+        b.hud.menu = "sub_size"
         ctl.menu_state["sub_style"] = {"size": {
             "current": "Normal",
             "options": [{"id": 0, "label": "Small", "selected": False},
@@ -999,7 +999,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         handlers["hud-menu"]["select"](idx, "Small")
         self.assertIn(("hud_action", ("set-sub-size", 0)), ctl.transport)
         # a group the state blob doesn't carry renders only the Back row
-        b._hud_menu = "sub_color"
+        b.hud.menu = "sub_color"
         ctl.menu_state.pop("sub_style")
         nodes, _h = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
@@ -1011,13 +1011,13 @@ class TestHudLifecycleWiring(unittest.TestCase):
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=HudController())
         app = StubHudApp()
-        b._hud_shown = True
+        b.hud.shown = True
         b.set_app(app)
         self.assertEqual(app.on_nav, b._on_nav_mode)
-        self.assertEqual(app.on_hud, b._on_hud)
-        self.assertEqual(app.on_hud_skip, b._on_hud_skip)
+        self.assertEqual(app.on_hud, b.hud.on_hud)
+        self.assertEqual(app.on_hud_skip, b.hud.on_skip)
         self.assertEqual(app.on_clipboard_error, b._on_clipboard_error)
-        self.assertFalse(b._hud_shown,
+        self.assertFalse(b.hud.shown,
                          "a fresh renderer has no summoned HUD")
 
 
@@ -1064,11 +1064,11 @@ class TestClipboardNotice(unittest.TestCase):
         b.reassert_window_state()
         self.assertEqual(app.calls[-1], ("active", True))
         b._browsing = False
-        b._hud_state = {"stopped": False}
+        b.hud.state = {"stopped": False}
         b.reassert_window_state()
         self.assertEqual(app.calls[-1], ("hud", True),
                          "video in flight re-enters HUD mode")
-        b._hud_state = None
+        b.hud.state = None
         b.reassert_window_state()
         self.assertEqual(app.calls[-1], ("active", False))
 

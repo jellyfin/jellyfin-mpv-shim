@@ -4,7 +4,7 @@ Rendered by the browser while it is yielded to video playback, via the
 renderer's attached-but-idle lifecycle (``mpvtk-hud``): playback runs
 clean until an arrow key / ENTER / mouse motion summons the HUD, and
 ~4s without input hides it again (both renderer-side; see
-renderer.lua). The browser owns the summoned flag (``_hud_shown``) and
+renderer.lua). ``hud_control.HudController`` owns the summoned flag and
 calls :func:`build_hud` from ``build()``; playstate comes from the
 same ``push_playstate`` snapshots that feed the audio now-playing bar,
 kept fresh by the shared 1s ticker.
@@ -126,7 +126,7 @@ def _trickplay_frame(b, secs):
            meta["multiplier"], idx)
     # one-slot cache: repaints at the same scrub index (1s ticker while
     # holding still) skip the file read + decode
-    last = getattr(b, "_hud_frame", None)
+    last = b.hud.frame
     if last is not None and last[0] == key:
         return last[1]
     frame = w * h * 4
@@ -146,7 +146,7 @@ def _trickplay_frame(b, secs):
         log.debug("trickplay frame decode failed", exc_info=True)
         return None
     entry = b.strips.bitmap(key, img)
-    b._hud_frame = (key, entry)
+    b.hud.frame = (key, entry)
     return entry
 
 
@@ -269,7 +269,7 @@ def _pickers(b, menu_state, pos, chapters, tiers):
 
 # ------------------------------------------------- settings gear menu
 # The lua OSC's jf_settings_sheet, rebuilt on the Menu widget. One
-# level open at a time (b._hud_menu names it); submenus swap the item
+# level open at a time (b.hud.menu names it); submenus swap the item
 # list in place, with a Back row for keyboard/remote users. Leaf
 # actions route through hud_action verbs where osc_bridge has one;
 # speed/aspect/stats set mpv properties via the controller, exactly
@@ -293,13 +293,13 @@ def _open_hud_menu(b, kind, anchor=None):
         # result lands in a later build via osc_bridge's cache)
         _hud_action(b, "syncplay-refresh")
     if anchor is not None:
-        b._hud_menu_anchor = anchor
-    b._hud_menu = kind
+        b.hud.menu_anchor = anchor
+    b.hud.menu = kind
     b.invalidate()
 
 
 def _close_hud_menu(b):
-    b._hud_menu = None
+    b.hud.menu = None
     b.invalidate()
 
 
@@ -317,7 +317,7 @@ def _ctl_get(b, name, default):
 def _menu_rows(b, st):
     """(label, icon, action) rows for the open settings-menu level.
     ``st`` is the osc_bridge state blob ({} when unavailable)."""
-    kind = b._hud_menu
+    kind = b.hud.menu
     rows = []
     # Declared up front because the name is reused by two loops with
     # different element types: the sub-style pairs are always labelled,
@@ -385,7 +385,7 @@ def _menu_rows(b, st):
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
-    if getattr(b, "_hud_menu_anchor", None) not in ("hud-syncplay", "hud-sub"):
+    if b.hud.menu_anchor not in ("hud-syncplay", "hud-sub"):
         # opened from the gear: submenus can step back to its root. The top
         # bar's SyncPlay button and the subtitle dropdown's Secondary… entry
         # open their sheets standalone (like the lua OSC's drop-downs), so no
@@ -435,7 +435,7 @@ def _menu_rows(b, st):
 def _settings_menu(b, menu_state, size):
     """The open gear menu as a Menu node anchored at the gear button
     (renderer clamps to the screen and flips above near the bottom)."""
-    if not b._hud_menu:
+    if not b.hud.menu:
         return None
     st = menu_state if menu_state and menu_state.get("has_media") else {}
     rows = _menu_rows(b, st)
@@ -443,7 +443,7 @@ def _settings_menu(b, menu_state, size):
         return None
     w, h = size
     x, y = w - 300, h - 160
-    anchor = getattr(b, "_hud_menu_anchor", None) or "hud-settings"
+    anchor = b.hud.menu_anchor or "hud-settings"
     if b.app is not None and hasattr(b.app, "node_rect"):
         rect = b.app.node_rect(anchor)
         if rect is not None:
@@ -460,12 +460,12 @@ def _settings_menu(b, menu_state, size):
 
 
 def _toggle_tc(b):
-    b._hud_tc_remaining = not getattr(b, "_hud_tc_remaining", False)
+    b.hud.tc_remaining = not b.hud.tc_remaining
     b.invalidate()
 
 
 def _toggle_hud_favorite(b):
-    st = b._hud_state or {}
+    st = b.hud.state or {}
     st["favorite"] = not st.get("favorite")   # optimistic, like the np bar
     _hud_action(b, "toggle-favorite")
     b.invalidate()
@@ -483,7 +483,7 @@ def _skip_float(b, size):
     invalidated); and renderer.lua draws the standalone version of this
     button while the HUD is idle, so the two have to land in the same
     place or the handoff between them reads as a jump."""
-    label = (b._hud_state or {}).get("skip_label")
+    label = (b.hud.state or {}).get("skip_label")
     if not label:
         return None
     return Button(
@@ -498,11 +498,11 @@ def build_hud(b, size):
     """The summoned HUD scene. ``b`` is the Browser (playstate snapshot,
     scrub state, controller plumbing); returns the full-window tree."""
     w, h = size
-    st = b._hud_state or {}
+    st = b.hud.state or {}
     pos = st.get("position", 0) or 0
     dur = st.get("duration", 0) or 0
     pp = "play_arrow" if st.get("paused") else "pause"
-    scrub = b._hud_scrub
+    scrub = b.hud.scrub
     chapters = _chapters(b)
 
     # Responsive shrink, mirroring the lua OSC's jellyfin layout:
@@ -545,11 +545,11 @@ def build_hud(b, size):
         ranges=([(max(0.0, a / dur), min(1.0, e / dur))
                  for a, e in (st.get("ranges") or []) if e > a]
                 if dur > 0 else None),
-        on_change=b._hud_scrub_change,
-        on_commit=b._hud_scrub_commit,
-        on_cancel=b._hud_scrub_cancel,
-        on_hover=b._hud_hover_move,
-        on_hover_end=b._hud_hover_end)
+        on_change=b.hud.scrub_change,
+        on_commit=b.hud.scrub_commit,
+        on_cancel=b.hud.scrub_cancel,
+        on_hover=b.hud.hover_move,
+        on_hover_end=b.hud.hover_end)
 
     menu_state = None
     if b.controller is not None and hasattr(b.controller, "hud_menu_state"):
@@ -592,7 +592,7 @@ def build_hud(b, size):
     shown_pos = pos if scrub is None else scrub
     if tiers["clock"]:
         # click toggles total <-> negative-remaining (the lua tc_right)
-        if b._hud_tc_remaining and dur > 0:
+        if b.hud.tc_remaining and dur > 0:
             end_part = "-" + _clock(max(0.0, dur - shown_pos))
         else:
             end_part = _clock(dur)
@@ -701,7 +701,7 @@ def build_hud(b, size):
     if skip is not None:
         children.append(skip)
 
-    preview_at = scrub if scrub is not None else b._hud_hover
+    preview_at = scrub if scrub is not None else b.hud.hover
     preview = _preview_float(b, preview_at, dur, size, chapters)
     if preview is not None:
         children.append(preview)

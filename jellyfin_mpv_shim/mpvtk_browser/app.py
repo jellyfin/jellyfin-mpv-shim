@@ -85,6 +85,7 @@ from .navigator import Navigator
 from .scroll_state import ScrollState
 from .tile_renderer import TileRenderer
 from .item_actions import ItemActions
+from .hud_control import HudController
 from . import pagination
 from .pagination import Paginator
 from .pages import PAGES
@@ -192,18 +193,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         # loop thread and from foreign ones, and "if the thread is None,
         # start it" is not atomic.
         self._poller_lock = threading.Lock()
-        # Playback HUD (video, osc_style "mpvtk"): the renderer owns the
-        # summon/auto-hide lifecycle and reports it via on_hud; True while
-        # the HUD scene should be on screen. _hud_state is the latest video
-        # playstate snapshot feeding its bar (see hud.py).
-        self._hud_shown = False
-        self._hud_state = None
-        # Seek-scrub in flight: the slider's pending target in seconds
-        # (None when not scrubbing). Drives the preview thumbnail and the
-        # clock; committed to a real seek on gesture end (see hud.py).
-        self._hud_scrub = None
-        # Open settings-menu level in the HUD ("root", "speed", …) or None.
-        self._hud_menu = None
+        # Playback HUD state and events (hud_control.py); the renderer owns
+        # the summon/auto-hide lifecycle and reports it there. Built before
+        # set_app below, which wires the renderer's callbacks onto it.
+        self.hud = HudController(
+            get_app=lambda: self.app,
+            get_controller=lambda: self.controller,
+            invalidate=lambda: self.invalidate(),
+            ctl=lambda fn: self._ctl(fn),
+            start_ticker=lambda: self._start_np_ticker())
         # Cast/idle screen state (see cast.py). Present whether or not
         # headless is set — without it, this is what a DisplayContent from a
         # phone renders.
@@ -1037,27 +1035,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         self.app = app
         # a fresh renderer has no HUD state; drop ours so build() doesn't
         # keep pushing a HUD scene at an idle renderer
-        self._hud_shown = False
-        self._hud_scrub = None
-        # True when the scrub gesture itself paused playback (restored
-        # on commit/cancel; an explicit user pause stays paused)
-        self._hud_scrub_paused = False
-        self._hud_menu = None
-        # node the open settings/SyncPlay menu hangs off (see hud.py)
-        self._hud_menu_anchor = "hud-settings"
-        # clock shows remaining time instead of total (click toggles)
-        self._hud_tc_remaining = False
-        # pointer resting on the seek bar: hovered position in seconds
-        # (drives the preview bubble; scrub takes precedence)
-        self._hud_hover = None
+        self.hud.reset()
         if app is None:
             return
         if hasattr(app, "on_nav"):
             app.on_nav = self._on_nav_mode
         if hasattr(app, "on_hud"):
-            app.on_hud = self._on_hud
+            app.on_hud = self.hud.on_hud
         if hasattr(app, "on_hud_skip"):
-            app.on_hud_skip = self._on_hud_skip
+            app.on_hud_skip = self.hud.on_skip
         if hasattr(app, "on_clipboard_error"):
             app.on_clipboard_error = self._on_clipboard_error
 
@@ -1068,129 +1054,22 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         of the way (lua OSC / minimized)."""
         if self._browsing:
             self._set_renderer_active(True)
-        elif self._use_hud() and self._hud_state is not None:
+        elif self.hud.available() and self.hud.state is not None:
             try:
-                self._engage_hud()
+                self.hud.engage()
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:
             self._set_renderer_active(False)
 
-    def _use_hud(self):
-        """Whether yielding to video keeps the renderer attached-but-idle
-        for the playback HUD (osc_style "mpvtk") instead of getting fully
-        out of the way, which is what the lua OSCs need."""
-        c = self.controller
-        return (self.app is not None and hasattr(self.app, "set_hud")
-                and c is not None and getattr(c, "use_hud", None) is not None
-                and c.use_hud())
-
-    def _engage_hud(self):
-        """set_hud(True) with the controller's keyboard policy attached
-        (grab arrows vs. wake-key-only; see hud_grab_keys)."""
-        opts = None
-        get = getattr(self.controller, "hud_key_opts", None)
-        if get is not None:
-            try:
-                opts = get()
-            except Exception:
-                opts = None
-        self.app.set_hud(True, opts)
-
-    def _hud_scrub_change(self, v):
-        if self._hud_scrub is None:
-            # gesture start: pause so the position is inspectable;
-            # commit/cancel restores playback if WE paused it
-            self._hud_scrub_paused = not (self._hud_state or {}).get(
-                "paused")
-            if self._hud_scrub_paused:
-                self._ctl(lambda c: c.set_paused(True))
-        self._hud_scrub = float(v)
-        self.invalidate()
-
-    def _hud_scrub_done(self):
-        self._hud_scrub = None
-        if self._hud_scrub_paused:
-            self._hud_scrub_paused = False
-            self._ctl(lambda c: c.set_paused(False))
-        self.invalidate()
-
-    def _hud_scrub_commit(self, v):
-        self._ctl(lambda c: c.seek(float(v)))
-        self._hud_scrub_done()
-
-    def _hud_scrub_cancel(self):
-        self._hud_scrub_done()
-
-    def _on_hud_skip(self):
-        """The renderer's standalone idle skip button was activated."""
-        self._ctl(lambda c: c.hud_action("skip-segment"))
-
-    def _hud_hover_move(self, v):
-        self._hud_hover = float(v)
-        self.invalidate()
-
-    def _hud_hover_end(self):
-        self._hud_hover = None
-        self.invalidate()
-
-    def open_hud_menu(self):
-        """Summon the HUD with the gear menu open (the player routes
-        the kb_menu key here during playback, replacing the OSD menu
-        under the in-window OSC). Pressing it again closes the menu.
-        Returns True when handled."""
-        if not self._use_hud() or self._hud_state is None:
-            return False
-        try:
-            if self._hud_shown and self._hud_menu:
-                self._hud_menu = None       # kb_menu toggles
-                self.invalidate()
-                return True
-            self._engage_hud()              # no-op when already engaged
-            self.app.summon_hud()
-            self._hud_menu = "root"
-            self._hud_menu_anchor = "hud-settings"
-            self.invalidate()
-            return True
-        except Exception:
-            log.debug("open_hud_menu failed", exc_info=True)
-            return False
-
-    def _on_hud(self, active):
-        """Renderer summoned / auto-hid the playback HUD (loop thread)."""
-        self._hud_shown = bool(active)
-        if self._hud_scrub_paused:
-            self._hud_scrub_done()  # resumes playback the scrub paused
-        self._hud_scrub = None
-        if not active:
-            # keep a menu opened in the same beat as a summon
-            # (open_hud_menu sets it right before the hud event lands)
-            self._hud_menu = None
-        self._hud_hover = None
-        if getattr(self.controller, "hud_sub_margin", None) is not None:
-            # raise bottom subtitles clear of the bar while it shows
-            try:
-                self.controller.hud_sub_margin(bool(active))
-            except Exception:
-                log.debug("hud_sub_margin failed", exc_info=True)
-        if active:
-            # a fresh position snapshot before the bar first paints, then
-            # the shared 1s ticker keeps its clock moving
-            try:
-                self.controller.refresh_playstate()
-            except Exception:
-                log.debug("playstate refresh failed", exc_info=True)
-            self._start_np_ticker()
-        self.invalidate()
-
     def _yield(self):
         self._browsing = False
         if self.controller is not None:
             self.controller.on_browse_leave()
-        if self._use_hud():
+        if self.hud.available():
             # keep the renderer attached: blank scene + summon bindings
             try:
-                self._engage_hud()
+                self.hud.engage()
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:
@@ -1337,6 +1216,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             self.invalidate()
 
         self._start_daemon("_spinner_timer", "mpvtk-spinner", show)
+
+    def open_hud_menu(self):
+        """kb_menu during playback. Forwarded: playerManager holds a
+        reference to this bound method (see ui.py)."""
+        return self.hud.open_menu()
 
     def _clear_load_state(self):
         """Drop the loading/error screens once playback actually reports in.
@@ -1533,7 +1417,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             self.show_cast()
         self._browsing = True
         self._minimized = False
-        self._hud_shown = False
+        self.hud.shown = False
         if self.controller is not None:
             self.controller.on_browse_enter()
         self._set_renderer_active(True)
@@ -1546,7 +1430,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         dropping force_window with nothing playing."""
         self._minimized = True
         self._browsing = False
-        self._hud_shown = False
+        self.hud.shown = False
         self._set_renderer_active(False)
         if self.controller is not None:
             self.controller.on_minimize()
@@ -1588,8 +1472,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             self._follow_cast_to_playback(state, track_changed)
         if not state or state.get("stopped"):
             self._now_playing = None
-            self._hud_state = None
-            if self._hud_shown and getattr(
+            self.hud.state = None
+            if self.hud.shown and getattr(
                     self.controller, "hud_sub_margin", None) is not None:
                 # playback ended with the HUD up: the renderer clears
                 # without an on_hud(False), so restore the margin here
@@ -1597,8 +1481,8 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
                     self.controller.hud_sub_margin(False)
                 except Exception:
                     log.debug("hud_sub_margin failed", exc_info=True)
-            self._hud_shown = False
-            self._hud_menu = None
+            self.hud.shown = False
+            self.hud.menu = None
             if self._load_error is not None:
                 # A failed start owns the window and is explaining why. stop()
                 # is part of that failure path, so returning to browse here
@@ -1627,18 +1511,18 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             self._start_np_ticker()
         else:
             self._now_playing = None
-            self._hud_state = state   # feeds the playback HUD bar
+            self.hud.state = state   # feeds the playback HUD bar
             if self._browsing:
                 self._yield()         # video: yield the window + the OSC
             else:
                 self.invalidate()     # HUD/bar repaint (clock, pause icon)
-            if not self._browsing and self._use_hud():
+            if not self._browsing and self.hud.available():
                 try:
                     # Idempotent HUD-mode engage: covers playback that
                     # starts while minimized/already-yielded and a fresh
                     # renderer after mpv re-creation (a plain _yield only
                     # happens on the browsing -> video transition).
-                    self._engage_hud()
+                    self.hud.engage()
                     # ... and keep the idle skip overlay in sync with the
                     # live skippable segment (the player pushes a
                     # playstate the moment one starts/ends).
@@ -1756,7 +1640,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         def tick():
             while not self._shutdown_evt.wait(1.0):
                 bar = self._now_playing is not None and self._browsing
-                if not bar and not self._hud_shown:
+                if not bar and not self.hud.shown:
                     break
                 try:
                     self.controller.refresh_playstate()
@@ -1878,7 +1762,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
                 and self._spinner_due()):
             return self._loading_scene(size)
         if not self._browsing:
-            if self._hud_shown:
+            if self.hud.shown:
                 # Summoned playback HUD over the video (see hud.py; the
                 # renderer owns the summon/auto-hide lifecycle).
                 return build_hud(self, size)

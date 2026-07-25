@@ -209,7 +209,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
 
         # --- arrow keypress summons; the seek bar wakes focused AND
         # active (adjust mode) so remote arrows scrub immediately
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="summon never reached the browser")
         self._wait(lambda: self._state().get("nav") == "hud-seek",
                    msg="focus did not land on the seek bar: %r"
@@ -235,7 +235,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
             msg="ENTER on play/pause never reached the controller")
 
         # --- ESC hides the HUD (back to idle, still summonable)
-        self._press_until("ESC", lambda: not self.browser._hud_shown,
+        self._press_until("ESC", lambda: not self.browser.hud.shown,
                           msg="ESC did not hide the HUD")
         st = self._state()
         self.assertTrue(st.get("phud_mode"))
@@ -243,9 +243,9 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertFalse(st.get("active"))
 
         # --- summonable again; auto-hides after ~4s without input
-        self._press_until("UP", lambda: self.browser._hud_shown,
+        self._press_until("UP", lambda: self.browser.hud.shown,
                           msg="second summon failed")
-        self._wait(lambda: not self.browser._hud_shown, timeout=8,
+        self._wait(lambda: not self.browser.hud.shown, timeout=8,
                    msg="HUD never auto-hid")
         self.assertTrue(self._state().get("phud_mode"))
 
@@ -274,7 +274,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="renderer never entered HUD-idle")
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="summon failed")
         self._wait(lambda: self._state().get("nav") == "hud-seek",
                    msg="focus never landed on the seek bar")
@@ -283,7 +283,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # a 'change' that must NOT seek, only pause, set the pending
         # scrub target, and float the preview thumbnail.
         self._press_until(
-            "LEFT", lambda: self.browser._hud_scrub is not None,
+            "LEFT", lambda: self.browser.hud.scrub is not None,
             msg="adjust-mode scrub never reached the browser")
         seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
                  and c[0] == "seek"]
@@ -295,7 +295,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="trickplay preview never appeared")
 
         # ENTER commits: exactly one seek at the scrubbed position.
-        target = self.browser._hud_scrub
+        target = self.browser.hud.scrub
         self._keypress("ENTER")
         self._wait(lambda: any(isinstance(c, tuple) and c[0] == "seek"
                                for c in self.ctl.calls),
@@ -304,20 +304,20 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                  and c[0] == "seek"]
         self.assertEqual(len(seeks), 1)
         self.assertAlmostEqual(seeks[0][1], target, delta=2.0)
-        self.assertIsNone(self.browser._hud_scrub)
+        self.assertIsNone(self.browser.hud.scrub)
 
         # Second gesture, abandoned with ESC: no new seek, preview
         # cleared, HUD still up. (The always-adjust bar is still live
         # after the commit — no arming press needed.)
         self._press_until(
-            "LEFT", lambda: self.browser._hud_scrub is not None,
+            "LEFT", lambda: self.browser.hud.scrub is not None,
             msg="second scrub never started")
         # single press: the ESC binding has been stable since summon (no
         # rebind race), and a second ESC would hide the whole HUD
         self._keypress("ESC")
-        self._wait(lambda: self.browser._hud_scrub is None,
+        self._wait(lambda: self.browser.hud.scrub is None,
                    msg="ESC never cancelled the scrub")
-        self.assertTrue(self.browser._hud_shown,
+        self.assertTrue(self.browser.hud.shown,
                         "cancelling a scrub must not hide the HUD")
         seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
                  and c[0] == "seek"]
@@ -348,7 +348,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="renderer never entered HUD-idle")
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="summon failed")
         for nid in ("hud-audio", "hud-sub", "hud-quality", "hud-chapters"):
             self._wait(lambda nid=nid: self.app.node_rect(nid) is not None,
@@ -389,21 +389,21 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="never entered HUD-idle")
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="summon failed")
         self._wait(lambda: self.app.node_rect("hud-seek") is not None,
                    msg="seek bar never materialized")
         # park the pointer on the middle of the seek bar: throttled
         # hover events flow to the browser, which floats the bubble
         self.app.debug(cmd="hover", id="hud-seek")
-        self._wait(lambda: self.browser._hud_hover is not None,
+        self._wait(lambda: self.browser.hud.hover is not None,
                    msg="hover position never reached the browser")
-        self.assertAlmostEqual(self.browser._hud_hover, 15.0, delta=3.0)
+        self.assertAlmostEqual(self.browser.hud.hover, 15.0, delta=3.0)
         self._wait(lambda: self.app.node_rect("hud-preview") is not None,
                    msg="hover bubble never appeared")
         # moving off the bar retracts it
         self.app.debug(cmd="hover", id="hud-pp")
-        self._wait(lambda: self.browser._hud_hover is None,
+        self._wait(lambda: self.browser.hud.hover is None,
                    msg="hover_end never reached the browser")
         self._wait(lambda: self.app.node_rect("hud-preview") is None,
                    msg="hover bubble never cleared")
@@ -417,12 +417,12 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="never entered HUD-idle")
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="summon failed")
         self._wait(lambda: self.app.node_rect("hud-settings") is not None,
                    msg="gear button never materialized")
         self.app.debug(cmd="click", id="hud-settings")
-        self._wait(lambda: self.browser._hud_menu == "root",
+        self._wait(lambda: self.browser.hud.menu == "root",
                    msg="gear click never opened the settings menu")
         self._wait(lambda: self._state().get("menu_open"),
                    msg="menu never reached the renderer")
@@ -431,15 +431,15 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # swaps in its submenu
         self._keypress("DOWN")
         self._press_until(
-            "ENTER", lambda: self.browser._hud_menu == "speed",
+            "ENTER", lambda: self.browser.hud.menu == "speed",
             msg="menu selection never opened the speed submenu")
         # ESC steps back out of the menu without hiding the HUD
         self._wait(lambda: self._state().get("menu_open"),
                    msg="submenu never reached the renderer")
         self._keypress("ESC")
-        self._wait(lambda: self.browser._hud_menu is None,
+        self._wait(lambda: self.browser.hud.menu is None,
                    msg="ESC never dismissed the menu")
-        self.assertTrue(self.browser._hud_shown,
+        self.assertTrue(self.browser.hud.shown,
                         "dismissing the menu must not hide the HUD")
 
     def test_default_no_grab_only_wake_key_summons(self):
@@ -455,18 +455,18 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         for _ in range(3):
             self._keypress("LEFT")
             time.sleep(0.2)
-        self.assertFalse(self.browser._hud_shown,
+        self.assertFalse(self.browser.hud.shown,
                          "LEFT must not summon with grab off")
         # the wake key still summons (it also pause-toggles; not
         # asserted here — a retried press would make the count racy)
-        self._press_until("ENTER", lambda: self.browser._hud_shown,
+        self._press_until("ENTER", lambda: self.browser.hud.shown,
                           msg="wake key never summoned")
         # drop back to idle, then a remote Move (script-message path)
         # summons even though arrows aren't grabbed
-        self._press_until("ESC", lambda: not self.browser._hud_shown,
+        self._press_until("ESC", lambda: not self.browser.hud.shown,
                           msg="could not hide the HUD")
         self.handle.command("script-message", "mpvtk-hud-summon", "nav")
-        self._wait(lambda: self.browser._hud_shown,
+        self._wait(lambda: self.browser.hud.shown,
                    msg="remote summon path failed with grab off")
 
     def test_mouse_summon_leaves_the_arrows_to_mpv(self):
@@ -567,19 +567,19 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # still live — pointer movement summons the full HUD, which
         # carries its own Skip button (the scene node)
         self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
-        self._wait(lambda: self.browser._hud_shown,
+        self._wait(lambda: self.browser.hud.shown,
                    msg="mouse motion never summoned during a segment")
         self._wait(lambda: self.app.node_rect("hud-skip") is not None,
                    msg="the summoned HUD has no Skip button")
 
         # segment ends: label clears, pointer movement still summons
-        self._press_until("ESC", lambda: not self.browser._hud_shown,
+        self._press_until("ESC", lambda: not self.browser.hud.shown,
                           msg="could not hide the HUD again")
         self.browser.on_playstate(dict(VIDEO_STATE))
         self._wait(lambda: not self._state().get("phud_intro"),
                    msg="intro label never cleared")
         self.app.debug(cmd="phud", action="mousemove", x=300, y=300)
-        self._wait(lambda: self.browser._hud_shown,
+        self._wait(lambda: self.browser.hud.shown,
                    msg="mouse motion should summon once the segment "
                        "ended")
 
@@ -598,7 +598,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # keeps drawing until the scene's own hud-skip node lands, so
         # some Skip button is on screen the whole way through
         self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
-        self._wait(lambda: self.browser._hud_shown,
+        self._wait(lambda: self.browser.hud.shown,
                    msg="pointer movement never summoned")
         self.assertTrue(
             self._state().get("phud_skip"),
@@ -608,7 +608,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="the summoned HUD has no Skip button")
 
         # ...and hiding the bar hands it straight back to the overlay
-        self._press_until("ESC", lambda: not self.browser._hud_shown,
+        self._press_until("ESC", lambda: not self.browser.hud.shown,
                           msg="could not hide the HUD")
         self.assertTrue(self._state().get("phud_skip"),
                         "the overlay must resume when the bar hides")
@@ -625,14 +625,14 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="never entered HUD-idle")
-        self._press_until("LEFT", lambda: self.browser._hud_shown,
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
                           msg="never summoned the HUD")
         self.browser.on_playstate(dict(VIDEO_STATE,
                                        skip_label="Skip Intro"))
         self._wait(lambda: self._state().get("phud_skip"),
                    msg="a segment starting under the HUD never armed "
                        "the standalone window")
-        self._press_until("ESC", lambda: not self.browser._hud_shown,
+        self._press_until("ESC", lambda: not self.browser.hud.shown,
                           msg="could not hide the HUD")
         self.assertTrue(self._state().get("phud_skip"),
                         "the offer must survive the bar going away")
@@ -641,21 +641,21 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: not self._state().get("phud_skip"),
                    timeout=15, msg="overlay never auto-hid")
         self.assertTrue(self._state().get("phud_mode"))
-        self.assertFalse(self.browser._hud_shown)
+        self.assertFalse(self.browser.hud.shown)
 
     def test_paused_video_keeps_hud_up(self):
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="renderer never entered HUD-idle")
         self._set_pause(True)
-        self._press_until("RIGHT", lambda: self.browser._hud_shown,
+        self._press_until("RIGHT", lambda: self.browser.hud.shown,
                           msg="summon failed")
         # Auto-hide re-arms instead of hiding while paused.
         time.sleep(5.5)
-        self.assertTrue(self.browser._hud_shown,
+        self.assertTrue(self.browser.hud.shown,
                         "HUD auto-hid while the video was paused")
         self._set_pause(False)
-        self._wait(lambda: not self.browser._hud_shown, timeout=10,
+        self._wait(lambda: not self.browser.hud.shown, timeout=10,
                    msg="HUD never auto-hid after unpausing")
 
 
