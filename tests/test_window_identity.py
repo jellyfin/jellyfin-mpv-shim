@@ -105,24 +105,28 @@ class SettingsFormTest(unittest.TestCase):
 
 
 class TitleTest(unittest.TestCase):
-    """The title is built in player.py; assert on its shape without
-    importing player (which pulls in libmpv)."""
+    """The title mpv is actually constructed with.
 
-    def _title_line(self):
-        path = os.path.join(ROOT, "jellyfin_mpv_shim", "player.py")
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                if 'mpv_options["title"]' in line:
-                    return line
-        self.fail("player.py no longer sets a window title")
+    This used to grep player.py for the line that sets it, because reaching
+    the real value meant importing player -- and that pulls in libmpv and
+    opens a window. Option assembly now lives in mpv_options, which imports
+    neither, so the value can just be read.
+    """
+
+    def _title(self):
+        from jellyfin_mpv_shim.mpv_options import build_mpv_options
+
+        return build_mpv_options("default", [], False, False)["title"]
 
     def test_the_app_name_is_used(self):
-        self.assertIn("USER_APP_NAME", self._title_line())
+        self.assertTrue(self._title().endswith(USER_APP_NAME),
+                        "the title must end with the app name — the Windows "
+                        "window-matching fallback keys on that suffix")
 
     def test_the_media_title_is_expanded_by_mpv(self):
         """mpv evaluates this live, so playback updates the title without
         us pushing anything."""
-        self.assertIn("${?media-title:${media-title} - }", self._title_line())
+        self.assertIn("${?media-title:${media-title} - }", self._title())
 
     def test_the_app_name_is_not_mpv(self):
         self.assertNotEqual(USER_APP_NAME, "mpv")

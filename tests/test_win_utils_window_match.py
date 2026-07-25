@@ -79,15 +79,18 @@ class TitleAgreementTest(unittest.TestCase):
     """The fallback has to agree with the title player.py actually sets."""
 
     def test_the_configured_title_would_be_matched(self):
-        import os
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(root, "jellyfin_mpv_shim", "player.py"),
-                  encoding="utf-8") as fh:
-            line = next(l for l in fh if 'mpv_options["title"]' in l)
+        # Reads the real option rather than grepping for the line that sets
+        # it: mpv_options imports neither player nor a backend.
+        from jellyfin_mpv_shim.mpv_options import build_mpv_options
+
+        template = build_mpv_options("default", [], False, False)["title"]
         # The template ends with the app name; that suffix is what the
         # fallback keys on.
-        self.assertIn("USER_APP_NAME", line)
-        rendered = "Rear Window - %s" % USER_APP_NAME
+        self.assertTrue(template.endswith(USER_APP_NAME))
+        # What mpv renders it to once a file with a media-title is playing.
+        rendered = template.replace("${?media-title:${media-title} - }",
+                                    "Rear Window - ")
+        self.assertEqual(rendered, "Rear Window - %s" % USER_APP_NAME)
         self.assertTrue(win_utils.is_mpv_window(entry(rendered)))
 
 

@@ -149,23 +149,30 @@ class MinimizeOrderTest(_GeometryTest):
 
 
 class StartupTest(unittest.TestCase):
-    """Assert on player.py's source: building an mpv needs libmpv."""
+    """What mpv is actually constructed with at startup."""
 
-    def _source(self):
-        import inspect
-        return inspect.getsource(PlayerManager)
+    def _options(self):
+        from jellyfin_mpv_shim.mpv_options import build_mpv_options
+
+        return build_mpv_options("default", [], False, False)
 
     def test_auto_window_resize_is_disabled(self):
         """The other half of the fix: without it mpv resizes the window to
         each video's native size on reconfig, whatever geometry says."""
-        self.assertIn('mpv_options["auto_window_resize"] = False',
-                      self._source())
+        self.assertIs(self._options()["auto_window_resize"], False)
+
+    def test_a_geometry_is_always_armed(self):
+        """_rearm_window_geometry compares against the armed value to skip
+        redundant writes, so startup has to set one."""
+        self.assertRegex(self._options()["geometry"], r"^\d+x\d+$")
 
     def test_the_armed_value_is_tracked_from_startup(self):
-        """_rearm_window_geometry skips redundant writes by comparing
-        against it; starting it out wrong would let one through."""
+        """_geometry_armed must be seeded from the option actually passed;
+        starting it out wrong would let a redundant resize through."""
+        import inspect
+
         self.assertIn('self._geometry_armed = mpv_options["geometry"]',
-                      self._source())
+                      inspect.getsource(PlayerManager))
 
 
 if __name__ == "__main__":
