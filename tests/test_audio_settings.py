@@ -433,6 +433,30 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         p = self.apply("auto")
         self.assertEqual(p.props.get("audio_device"), "auto")
 
+    def test_default_still_works_on_the_run_after_one_was_chosen(self):
+        """The reported bug, and the reason the device is applied live only.
+
+        A fresh mpv with the setting already saved: if construction had also
+        applied it, the snapshot taken here would record OUR value as the
+        original, and choosing Default would restore the device it was trying
+        to leave. Reproduced by starting from a player whose device is
+        whatever mpv/mpv.conf says, which is what not passing it at
+        construction guarantees.
+        """
+        self.settings.audio_device = "alsa/iec958:CARD=X,DEV=0"
+        # A brand-new mpv, as after a restart. Its device is mpv's own,
+        # because build_mpv_options does not pass ours.
+        self.pm._player = FakePlayer({"audio_device": "auto"})
+        self.pm._device_snapshot = None
+        self.apply("auto")
+        self.assertEqual(self.pm._player.props.get("audio_device"),
+                         "alsa/iec958:CARD=X,DEV=0")
+        # ...and now Default, with no restart in between.
+        self.settings.audio_device = None
+        p = self.apply("auto")
+        self.assertEqual(p.props.get("audio_device"), "auto",
+                         "Default restored the device it was leaving")
+
     def test_exclusive_is_applied_and_cleared(self):
         self.settings.audio_exclusive = True
         p = self.apply("auto")

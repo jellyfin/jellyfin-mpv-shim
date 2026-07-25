@@ -216,13 +216,12 @@ NOTES = {
     # broken for.
     "discord_presence": _("Discord Rich Presence. Takes effect after a "
                           "restart."),
-    "audio_device": _("Leave this on Default unless you are setting up "
-                      "passthrough. A receiver can only decode AC3 or DTS if "
-                      "the bitstream reaches it untouched, and a sound server "
-                      "(PipeWire, PulseAudio) cannot mark a stream as "
-                      "compressed — it arrives as ordinary audio and plays as "
-                      "static. Pick the S/PDIF or HDMI device itself to go "
-                      "straight to the hardware."),
+    "audio_device": _("Leave this to Default unless setting up passthrough. "
+                      "Note some audio servers like Pipewire don't like "
+                      "passthrough and will need to be disabled for a card "
+                      "before it'll let *any* audio through in passthrough "
+                      "mode. In my tests I got silence otherwise, but results "
+                      "may vary."),
     "audio_exclusive": _("Stop anything else using the device while playing. "
                          "Needed for passthrough on some systems, and it "
                          "means other applications will be silent."),

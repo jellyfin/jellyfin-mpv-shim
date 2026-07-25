@@ -150,16 +150,17 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     # Only affects audio-only files — video and music videos are untouched.
     mpv_options["audio_display"] = "no"
 
-    # Output device and exclusive mode. Set at construction as well as live
-    # (apply_audio_settings) because the very first file can be a passthrough
-    # one, and an mpv that has already opened the wrong device would have to
-    # reopen it mid-playback. Both are omitted when unset, which leaves mpv's
-    # default and the user's own mpv.conf alone -- the contract audio_mode's
-    # "auto" has, for the same reason.
-    if settings.audio_device:
-        mpv_options["audio_device"] = settings.audio_device
-    if settings.audio_exclusive:
-        mpv_options["audio_exclusive"] = True
+    # The output device and exclusive mode are deliberately NOT set here, even
+    # though they are plain options. Both are applied live by
+    # apply_audio_settings, which runs from _init_mpv before anything can
+    # play, and which snapshots what mpv had first so that going back to
+    # "Default" can put it back.
+    #
+    # Setting them here as well broke exactly that. mpv would be *constructed*
+    # with the chosen device, so the snapshot taken a moment later recorded
+    # our own value as the original -- and after a restart, choosing Default
+    # restored the device it was trying to leave. One place applies them, and
+    # it is the one that can see what came before.
 
     # Window title. mpv's default is "No file - mpv", which names the
     # wrong application and reports "No file" for what is actually the

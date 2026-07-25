@@ -187,30 +187,27 @@ class TlsTest(SettingsCase):
 
 
 class AudioDeviceTest(SettingsCase):
-    """Set at construction as well as live, because the first file played can
-    be a passthrough one and an mpv that already opened the wrong device would
-    have to reopen it mid-playback."""
+    """The device is applied LIVE, never at construction — and this is the
+    test that says so, because doing both looks harmless and is not.
 
-    def test_unset_passes_nothing(self):
-        # Unset means untouched: an mpv.conf that already names a device must
-        # survive a setting the user never filled in.
-        self.set(audio_device=None, audio_exclusive=False)
+    apply_audio_settings snapshots mpv's device before overwriting it, so
+    that choosing Default later can put it back. Constructing mpv with the
+    device too means that snapshot records our own value as the original: on
+    the next run, Default restored the device it was trying to leave, and the
+    setting could only be undone by editing the config by hand.
+    """
+
+    def test_the_device_is_not_a_construction_option(self):
+        self.set(audio_device="alsa/iec958:CARD=X,DEV=0", audio_exclusive=True)
         opts = self.build("default")
         self.assertNotIn("audio_device", opts)
         self.assertNotIn("audio_exclusive", opts)
 
-    def test_a_chosen_device_is_passed(self):
-        self.set(audio_device="alsa/iec958:CARD=X,DEV=0", audio_exclusive=False)
-        self.assertEqual(self.build("default")["audio_device"],
-                         "alsa/iec958:CARD=X,DEV=0")
-
-    def test_exclusive_is_independent_of_the_device(self):
-        # Exclusive with mpv's own device choice is a legitimate pair on
-        # Windows and macOS.
-        self.set(audio_device=None, audio_exclusive=True)
+    def test_nothing_appears_when_unset_either(self):
+        self.set(audio_device=None, audio_exclusive=False)
         opts = self.build("default")
-        self.assertTrue(opts["audio_exclusive"])
         self.assertNotIn("audio_device", opts)
+        self.assertNotIn("audio_exclusive", opts)
 
 
 class WindowGeometryTest(SettingsCase):
