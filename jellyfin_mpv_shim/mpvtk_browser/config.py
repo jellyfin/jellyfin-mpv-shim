@@ -26,8 +26,9 @@ _HIDDEN = {"language_config", "client_uuid", "config_version",
 
 # Passthrough toggles, in the order they should appear, paired with the mpv
 # codec name that decides whether the current audio mode offers them at all.
-# The mode -> codec mapping itself lives in player.py (AUDIO_PASSTHROUGH_CODECS)
-# so there is one place that knows what a cable can carry.
+# The mode -> codec mapping itself lives in player_audio.py
+# (AUDIO_PASSTHROUGH_CODECS) so there is one place that knows what a cable
+# can carry.
 AUDIO_PASSTHROUGH_KEYS = [
     ("ac3", "audio_passthrough_ac3"),
     ("dts", "audio_passthrough_dts"),
@@ -237,7 +238,9 @@ def visible_passthrough_keys():
     beside them would be offering a setting that silently does nothing. In
     "Default" and "Force Stereo" nothing is passed through at all.
     """
-    from ..player import AUDIO_PASSTHROUGH_CODECS
+    # player_audio, not player: this is a constant, and reaching it through
+    # player would drag libmpv into the browser's settings screen.
+    from ..player_audio import AUDIO_PASSTHROUGH_CODECS
 
     usable = AUDIO_PASSTHROUGH_CODECS.get(settings.audio_mode or "auto", ())
     return [key for codec, key in AUDIO_PASSTHROUGH_KEYS if codec in usable]

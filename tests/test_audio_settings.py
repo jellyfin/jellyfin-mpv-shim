@@ -19,9 +19,10 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from jellyfin_mpv_shim.player import (  # noqa: E402
+from jellyfin_mpv_shim.player_audio import (  # noqa: E402
     AUDIO_MODE_CHANNELS,
     AUDIO_PASSTHROUGH_CODECS,
+    AudioMixin,
     audio_spdif_codecs,
     audio_wants_ac3_encode,
 )
@@ -272,15 +273,18 @@ class ApplyAudioSettingsTest(unittest.TestCase):
     def setUp(self):
         import threading
 
-        from jellyfin_mpv_shim import player
         from jellyfin_mpv_shim.conf import settings
 
         self.settings = settings
         self._saved = (settings.audio_mode, settings.audio_night_mode,
                        settings.audio_optical_encode_ac3,
                        settings.audio_passthrough_ac3)
-        self.pm = player.PlayerManager.__new__(player.PlayerManager)
-        # Mirrors what PlayerManager.__init__ sets up; __new__ skips it.
+        # The mixin, not a PlayerManager: these methods touch nothing else on
+        # the player, so there is no reason to build one (which needs libmpv
+        # and opens a window). PlayerManagerUsesTheMixinTest covers the
+        # wiring that this no longer exercises.
+        self.pm = AudioMixin()
+        # The four attributes PlayerManager.__init__ owns and the mixin reads.
         self.pm._audio_configured = False
         self.pm._audio_snapshot = None
         self.pm._audio_lock = threading.RLock()
@@ -525,6 +529,63 @@ class DeviceProfileChannelsTest(unittest.TestCase):
 
         for profile in get_profile()["DirectPlayProfiles"]:
             self.assertNotIn("MaxAudioChannels", profile)
+
+
+class TheMixinDoesNotCaptureTheBackendTest(unittest.TestCase):
+    """``is_using_ext_mpv`` / ``_mpv_errors`` must stay per-call imports.
+
+    Hoisting them to module scope is the obvious tidy-up and it breaks the
+    integration harness: it swaps a fake mpv in and out by evicting modules
+    from ``sys.modules``, and a module that bound the values at import time
+    keeps handing back the stale backend. That reached the whole-suite leg as
+    "real-mpv smoke test is bound to FakeMPV" and nothing else caught it, so
+    it is pinned here where the cost of finding out is a second rather than a
+    full matrix run.
+    """
+
+    def test_importing_it_pulls_in_neither_player_nor_a_backend(self):
+        import subprocess
+
+        code = ("import sys; sys.argv=[sys.argv[0]];"
+                "import jellyfin_mpv_shim.player_audio;"
+                "bad=[m for m in ('jellyfin_mpv_shim.player','mpv',"
+                "'python_mpv_jsonipc') if m in sys.modules];"
+                "print(','.join(bad))")
+        out = subprocess.run([sys.executable, "-c", code],
+                             capture_output=True, text=True, timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(out.stdout.strip(), "",
+                         "player_audio captured the backend at import time")
+
+
+class PlayerManagerUsesTheMixinTest(unittest.TestCase):
+    """The one thing testing against AudioMixin directly cannot see.
+
+    Everything above drives the mixin, so it would all still pass if
+    PlayerManager stopped inheriting it and the audio settings silently
+    stopped being applied to real playback.
+    """
+
+    def test_the_player_inherits_it_and_the_methods_resolve_to_it(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        self.assertTrue(issubclass(PlayerManager, AudioMixin))
+        for name in ("apply_audio_settings", "apply_audio_filters",
+                     "set_night_mode", "_mpv_property", "_set_af"):
+            self.assertIs(getattr(PlayerManager, name),
+                          getattr(AudioMixin, name),
+                          "%s is no longer the mixin's" % name)
+
+    def test_init_still_creates_the_state_the_mixin_reads(self):
+        # The mixin reads four attributes it does not own. __init__ setting
+        # them is what makes the inheritance valid.
+        import inspect
+
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        src = inspect.getsource(PlayerManager.__init__)
+        for attr in ("_audio_configured", "_audio_snapshot", "_audio_lock"):
+            self.assertIn("self.%s" % attr, src)
 
 
 if __name__ == "__main__":
