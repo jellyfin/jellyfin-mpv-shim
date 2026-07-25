@@ -340,12 +340,27 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
     #:
     #: What the rule is actually protecting is the *page and view* code, which
     #: must be constructible without ``player.py``.
+    #: Paths are relative to mpvtk_browser/ so the gateway package's modules
+    #: are named individually. That is deliberate and it is stricter than
+    #: what it replaced: "player_gateway.py" was one blanket pass covering
+    #: every service. Naming the domain makes each pairing a claim -- the
+    #: queue domain may reach playerManager, the users domain may not -- and
+    #: a new one has to be added here on purpose.
+    #:
+    #: Derived by measuring, not by guessing: I wrote a plausible-looking
+    #: table first and five entries were wrong.
     SINGLETONS = {
-        "playerManager": {"player_gateway.py", "ui.py"},
-        "clientManager": {"player_gateway.py", "ui.py"},
-        "userManager": {"player_gateway.py", "ui.py"},
-        "syncManager": {"player_gateway.py", "config.py"},
-        "eventHandler": {"player_gateway.py", "ui.py"},
+        "playerManager": {"gateway/diagnostics.py", "gateway/hud.py",
+                          "gateway/playback.py", "gateway/queue.py",
+                          "gateway/syncplay.py", "gateway/transport.py",
+                          "gateway/base.py", "ui.py"},
+        "clientManager": {"gateway/deps.py", "ui.py"},
+        "userManager": {"gateway/lock.py", "gateway/playback.py",
+                        "gateway/servers.py", "gateway/users.py", "ui.py"},
+        "syncManager": {"config.py", "gateway/downloads.py",
+                        "gateway/playback.py", "gateway/servers.py",
+                        "gateway/userdata.py"},
+        "eventHandler": {"ui.py"},
     }
 
     def test_no_view_module_reaches_a_singleton(self):
@@ -367,18 +382,28 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
             + "\n  ".join(offenders))
 
     def _imports_of(self, singleton):
+        """Every module under mpvtk_browser/ that imports ``singleton``.
+
+        Walks subpackages. It used to list only the top level, which meant
+        pages/ and gateway/ could have imported anything they liked and this
+        whole class would have kept passing -- the invariant would have gone
+        blind exactly as the code moved into them."""
         found = set()
-        for name in sorted(os.listdir(self.BROWSER)):
-            if not name.endswith(".py"):
+        for root, _dirs, files in os.walk(self.BROWSER):
+            if "__pycache__" in root:
                 continue
-            path = os.path.join(self.BROWSER, name)
-            with open(path, encoding="utf-8") as fh:
-                tree = ast.parse(fh.read(), filename=path)
-            for node in ast.walk(tree):
-                if not isinstance(node, ast.ImportFrom):
+            for name in sorted(files):
+                if not name.endswith(".py"):
                     continue
-                if any(a.name == singleton for a in node.names):
-                    found.add(name)
+                path = os.path.join(root, name)
+                rel = os.path.relpath(path, self.BROWSER).replace(os.sep, "/")
+                with open(path, encoding="utf-8") as fh:
+                    tree = ast.parse(fh.read(), filename=path)
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.ImportFrom):
+                        continue
+                    if any(a.name == singleton for a in node.names):
+                        found.add(rel)
         return found
 
     def test_each_singleton_has_a_single_importer(self):
@@ -394,11 +419,15 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
             "direct import is a dependency the page objects cannot be "
             "constructed without:\n  " + "\n  ".join(offenders))
 
-    def test_the_gateway_module_exists(self):
+    def test_the_gateway_exists(self):
+        """It is a package now — one module per domain behind a composed
+        facade. See mpvtk_browser/gateway/__init__.py."""
+        pkg = os.path.join(self.BROWSER, "gateway")
         self.assertTrue(
-            os.path.exists(os.path.join(self.BROWSER, "player_gateway.py")),
-            "mpvtk_browser/player_gateway.py does not exist yet — this is "
-            "step 5 of docs/ARCHITECTURE_TARGET.md §3.")
+            os.path.isdir(pkg),
+            "mpvtk_browser/gateway/ does not exist — this is step 5 of "
+            "docs/ARCHITECTURE_TARGET.md §3.")
+        self.assertTrue(os.path.exists(os.path.join(pkg, "__init__.py")))
 
 
 class TestNoTopLevelMutableClassState(unittest.TestCase):

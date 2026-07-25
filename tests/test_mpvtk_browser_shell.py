@@ -3421,7 +3421,7 @@ class TestDownloadsGrouping(unittest.TestCase):
     so exercise it against a fake catalog rather than only the view."""
 
     def _controller(self, rows, playlists=(), owned=None):
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         class FakeDB:
             def list(self_inner):
@@ -5672,7 +5672,7 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
     disk used with no UI path to reclaim it."""
 
     def _controller(self, rows, playlists=(), owned=None):
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         class FakeDB:
             def list(self_inner):
@@ -5864,7 +5864,7 @@ class TestPinStartupSeeding(unittest.TestCase):
     def test_list_users_exposes_it(self):
         """The dialog can only seed what the controller reports."""
         import jellyfin_mpv_shim.users as users_mod
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         class FakeUM:
             active_id = "u1"
@@ -6971,7 +6971,7 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
     """
 
     def _controller(self):
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
         return PlayerGateway()
 
     def _patch(self, module_path, name, obj):
@@ -7021,7 +7021,8 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
         # clientManager`), so patching jellyfin_mpv_shim.clients would not
         # reach it. syncManager and userManager are imported inside their
         # methods, so those patch at the source module.
-        self._patch("jellyfin_mpv_shim.mpvtk_browser.player_gateway", "clientManager",
+        self._patch("jellyfin_mpv_shim.mpvtk_browser.gateway.deps",
+                    "clientManager",
                     type("C", (), {"clients": {"srv1": Client()}})())
         ctl = self._controller()
         for call in (lambda: ctl.sync_join("srv1", "g1"),
@@ -7677,7 +7678,7 @@ class TestEditFailuresAreVisible(unittest.TestCase):
 
     def test_edit_raises_so_callers_can_react(self):
         import jellyfin_mpv_shim.clients as clients_mod
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         real = clients_mod.clientManager.clients
         clients_mod.clientManager.clients = {}
@@ -8206,7 +8207,7 @@ class TestDownloadStateAndPush(unittest.TestCase):
 
     def test_the_controller_reports_playlists(self):
         import jellyfin_mpv_shim.sync.manager as mgr
-        from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         class FakeDB:
             def list_playlists(self):

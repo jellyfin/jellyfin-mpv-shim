@@ -211,7 +211,7 @@ class OfflineEndToEndTest(unittest.TestCase):
             "the resume position did not survive into the library view")
 
     def test_marking_watched_offline_lands_on_disk_and_on_screen(self):
-        from jellyfin_mpv_shim.mpvtk_browser import player_gateway as browser_gw
+        from jellyfin_mpv_shim.mpvtk_browser import gateway as browser_gw
         from jellyfin_mpv_shim.sync import manager as sync_manager
         from jellyfin_mpv_shim.mpvtk_browser.repository import (
             OfflineLibrarySource)

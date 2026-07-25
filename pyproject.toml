@@ -98,7 +98,7 @@ module = [
     "jellyfin_mpv_shim.mpvtk_browser.hud",
     "jellyfin_mpv_shim.mpvtk_browser.navigator",
     "jellyfin_mpv_shim.mpvtk_browser.pages.*",
-    "jellyfin_mpv_shim.mpvtk_browser.player_gateway",
+    "jellyfin_mpv_shim.mpvtk_browser.gateway.*",
     "jellyfin_mpv_shim.mpvtk_browser.repository",
     "jellyfin_mpv_shim.mpvtk_browser.strips",
     "jellyfin_mpv_shim.mpvtk_browser.thumbnails",

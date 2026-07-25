@@ -2,7 +2,7 @@
 
 Almost every mpvtk browser test runs against `FakeSource` (for
 `repository.LibrarySource`) and `FakeController` (for
-`player_gateway.PlayerGateway`). A fake that is MORE permissive than production
+`gateway.PlayerGateway`). A fake that is MORE permissive than production
 hides bugs rather than finding them, in two specific ways this project has
 already been bitten by:
 
@@ -31,7 +31,7 @@ sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     LibrarySource, OfflineLibrarySource)
-from jellyfin_mpv_shim.mpvtk_browser.player_gateway import PlayerGateway  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway  # noqa: E402
 
 from tests.test_mpvtk_browser_shell import (  # noqa: E402
     FakeController, FakeSource)

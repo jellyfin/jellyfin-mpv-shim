@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Optional, cast
 from ..clients import clientManager
 from ..conf import settings
 from ..i18n import _
-from .player_gateway import (PlayerGateway, _collect_servers,
+from .gateway import (PlayerGateway, _collect_servers,
                              _saved_servers_exist)
 
 if TYPE_CHECKING:

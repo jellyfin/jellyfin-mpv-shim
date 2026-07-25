@@ -128,7 +128,7 @@ class WiringHarness(unittest.TestCase):
         # calls) and ui.py (the composition root, which loads credentials and
         # wires on_server_connected). Patch both or half the wiring runs
         # against the real singleton.
-        self._patch("jellyfin_mpv_shim.mpvtk_browser.player_gateway",
+        self._patch("jellyfin_mpv_shim.mpvtk_browser.gateway.deps",
                     "clientManager", self.clients)
         self._patch("jellyfin_mpv_shim.mpvtk_browser.ui", "clientManager",
                     self.clients)

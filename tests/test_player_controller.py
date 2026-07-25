@@ -36,7 +36,8 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from jellyfin_mpv_shim.mpvtk_browser import player_gateway as gw_mod  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import gateway as gw_mod  # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser.gateway import deps as gw_deps  # noqa: E402
 
 CTL = gw_mod.PlayerGateway
 
@@ -149,12 +150,26 @@ def _controller_methods():
     ``test_mpvtk_ui_wiring.py`` uses for the callback wiring.
     """
     import ast
+    import os
 
-    tree = ast.parse(inspect.getsource(gw_mod))
-    cls = next(n for n in ast.walk(tree)
-               if isinstance(n, ast.ClassDef) and n.name == "PlayerGateway")
+    # Every module in the gateway package, not inspect.getsource(gw_mod):
+    # the gateway is a package now, and getsource on a package returns only
+    # __init__.py -- which defines PlayerGateway with an EMPTY body, so the
+    # sweep silently covered nothing. test_there_are_guarded_methods_to_sweep
+    # is the floor that caught exactly that.
+    pkg = os.path.dirname(inspect.getfile(gw_mod))
+    members = []
+    for name in sorted(os.listdir(pkg)):
+        if not name.endswith(".py"):
+            continue
+        with open(os.path.join(pkg, name), encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), filename=name)
+        for cls in tree.body:
+            if isinstance(cls, ast.ClassDef):
+                members.extend(cls.body)
+
     guarded, defined, rethrowing = [], set(), []
-    for fn in cls.body:
+    for fn in members:
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         defined.add(fn.name)
@@ -212,17 +227,17 @@ class _Sandbox:
             module = importlib.import_module(mod_name)
             self._saved.append((module, attr, getattr(module, attr, None)))
             setattr(module, attr, BrokenService())
-        # player_gateway bound clientManager at import time, so the module global has
+        # gateway/deps.py binds clientManager at import time, so that global has
         # to be replaced too or the sweep tests the real one.
-        self._ui_saved = gw_mod.clientManager
-        gw_mod.clientManager = BrokenService()
+        self._ui_saved = gw_deps.clientManager
+        gw_deps.clientManager = BrokenService()
         return self
 
     def __exit__(self, *exc):
         for module, attr, original in self._saved:
             if original is not None:
                 setattr(module, attr, original)
-        gw_mod.clientManager = self._ui_saved
+        gw_deps.clientManager = self._ui_saved
         return False
 
 
@@ -318,8 +333,8 @@ class TestOfflineWatchedQueue(unittest.TestCase):
         self.addCleanup(setattr, manager_mod, "syncManager", original)
 
     def _offline(self):
-        original = gw_mod.clientManager
-        gw_mod.clientManager = types.SimpleNamespace(clients={})
+        original = gw_deps.clientManager
+        gw_deps.clientManager = types.SimpleNamespace(clients={})
         self.addCleanup(setattr, gw_mod, "clientManager", original)
 
     def test_a_downloaded_item_is_queued_and_marked(self):
@@ -390,8 +405,8 @@ class TestOnlineDelegation(unittest.TestCase):
                     raise Boom("nope")
 
         client = types.SimpleNamespace(jellyfin=Jellyfin())
-        original = gw_mod.clientManager
-        gw_mod.clientManager = types.SimpleNamespace(clients={"s1": client})
+        original = gw_deps.clientManager
+        gw_deps.clientManager = types.SimpleNamespace(clients={"s1": client})
         self.addCleanup(setattr, gw_mod, "clientManager", original)
         return calls
 
@@ -412,8 +427,8 @@ class TestOnlineDelegation(unittest.TestCase):
     def test_favorite_offline_is_a_refusal(self):
         """Favorites have no offline queue, so this must be a refusal rather
         than a silent no-op — the caller rolls its optimistic heart back."""
-        original = gw_mod.clientManager
-        gw_mod.clientManager = types.SimpleNamespace(clients={})
+        original = gw_deps.clientManager
+        gw_deps.clientManager = types.SimpleNamespace(clients={})
         self.addCleanup(setattr, gw_mod, "clientManager", original)
         self.assertFalse(CTL().set_favorite("s1", "m1", True))
 
@@ -515,8 +530,8 @@ class TestSwitchUserReturnsThreeDistinctThings(unittest.TestCase):
         self.addCleanup(setattr, users_mod, "userManager", original)
 
     def _clients(self):
-        original = gw_mod.clientManager
-        gw_mod.clientManager = types.SimpleNamespace(
+        original = gw_deps.clientManager
+        gw_deps.clientManager = types.SimpleNamespace(
             switch_user=lambda uid: None, clients={}, credentials=[])
         self.addCleanup(setattr, gw_mod, "clientManager", original)
 

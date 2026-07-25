@@ -27,7 +27,7 @@ from unittest import mock
 
 from jellyfin_mpv_shim.users import UserManager
 from jellyfin_mpv_shim.clients import ClientManager
-from jellyfin_mpv_shim.mpvtk_browser import player_gateway as browser_gw
+from jellyfin_mpv_shim.mpvtk_browser import gateway as browser_gw
 from jellyfin_mpv_shim.mpvtk_browser.repository import (
     LibrarySource, OfflineLibrarySource, _OfflineSnapshot,
 )

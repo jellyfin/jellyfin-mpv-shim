@@ -37,8 +37,7 @@ import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
-from jellyfin_mpv_shim.mpvtk_browser import (  # noqa: E402
-    player_gateway as gw_mod)
+from jellyfin_mpv_shim.mpvtk_browser import gateway as gw_mod  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BROWSER = os.path.join(REPO, "jellyfin_mpv_shim", "mpvtk_browser")
@@ -61,23 +60,36 @@ def _instance_attrs(cls_source_path, class_name):
     """
     with open(cls_source_path, encoding="utf-8") as fh:
         tree = ast.parse(fh.read(), filename=cls_source_path)
-    cls = next((n for n in ast.walk(tree)
-                if isinstance(n, ast.ClassDef) and n.name == class_name), None)
-    if cls is None:
-        return set()
+    # class_name=None means every class in the file — the gateway is a
+    # package of mixins, so naming one class would read a twelfth of it.
+    classes = [n for n in ast.walk(tree)
+               if isinstance(n, ast.ClassDef)
+               and (class_name is None or n.name == class_name)]
     found = set()
-    for node in ast.walk(cls):
-        if (isinstance(node, ast.Attribute)
-                and isinstance(node.value, ast.Name)
-                and node.value.id == "self"
-                and isinstance(node.ctx, ast.Store)):
-            found.add(node.attr)
+    for cls in classes:
+        for node in ast.walk(cls):
+            if (isinstance(node, ast.Attribute)
+                    and isinstance(node.value, ast.Name)
+                    and node.value.id == "self"
+                    and isinstance(node.ctx, ast.Store)):
+                found.add(node.attr)
     return found
 
 
 def _controller_api():
-    return set(dir(gw_mod.PlayerGateway)) | _instance_attrs(
-        os.path.join(BROWSER, "player_gateway.py"), "PlayerGateway")
+    """Every name the gateway answers to.
+
+    The gateway is a package of mixins now, so the instance-attribute half
+    has to sweep all of them -- reading one file would quietly shrink the
+    surface this whole file checks against."""
+    import inspect
+
+    api = set(dir(gw_mod.PlayerGateway))
+    pkg = os.path.dirname(inspect.getfile(gw_mod))
+    for fn in sorted(os.listdir(pkg)):
+        if fn.endswith(".py"):
+            api |= _instance_attrs(os.path.join(pkg, fn), None)
+    return api
 
 
 def _player_api():
@@ -139,7 +151,10 @@ class TestLambdaReceiversResolve(unittest.TestCase):
 
     def test_there_are_receivers_to_check(self):
         # If the walk stops matching, everything below passes vacuously.
-        self.assertGreater(len(_lambda_receiver_refs()), 50)
+        # A floor, not a target. It came down from 51 when step 6c's prune
+        # deleted the dead husk methods that some of these lambdas lived in;
+        # it must never reach zero, which is the failure it exists for.
+        self.assertGreaterEqual(len(_lambda_receiver_refs()), 45)
 
     def test_controller_lambdas_resolve(self):
         api = _controller_api()
