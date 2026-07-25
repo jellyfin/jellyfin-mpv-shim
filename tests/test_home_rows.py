@@ -3,9 +3,8 @@
 The rows were fetched strictly serially — Continue Watching, then Next Up,
 then one /Latest per library — so the home screen cost (2 + N) round trips
 end to end before it could draw. jellyfin-web issues the same set
-concurrently. The Latest rows also went through the apiclient's
-get_recently_added helper, which hardcodes a 28-field payload the row never
-renders.
+concurrently. The Latest rows also took get_recently_added's default field
+set, a 28-field payload the row never renders.
 """
 
 import sys
@@ -46,21 +45,19 @@ class FakeApi:
         with self._lock:
             self.concurrent -= 1
 
-    def user_items(self, handler="", params=None):
-        self._enter("user_items%s" % (handler or ""), params)
-        if handler == "/Latest":
-            return list(self.latest_items)
+    def get_resume_items(self, **kwargs):
+        self._enter("get_resume_items", kwargs)
         return {"Items": [{"Id": "r", "Name": "Resume"}]}
 
-    def get_next(self, limit=1, fields=None, enable_image_types=None):
-        self._enter("get_next", {"Fields": fields,
-                                 "EnableImageTypes": enable_image_types})
-        return {"Items": [{"Id": "n", "Name": "NextUp"}]}
+    def get_recently_added(self, **kwargs):
+        self._enter("get_recently_added", kwargs)
+        # /Latest answers with a bare list, not an Items envelope.
+        return list(self.latest_items)
 
-    def get_recently_added(self, *a, **kw):     # must not be used any more
-        raise AssertionError(
-            "get_recently_added hardcodes Fields=info() — a 28-field payload "
-            "including MediaSources/People that the home row never renders")
+    def get_next(self, limit=1, fields=None, enable_image_types=None):
+        self._enter("get_next", {"fields": fields,
+                                 "enable_image_types": enable_image_types})
+        return {"Items": [{"Id": "n", "Name": "NextUp"}]}
 
 
 LIBS = [
@@ -115,16 +112,15 @@ class FanOutTest(HomeRowsHarness):
     def test_one_failing_row_does_not_lose_the_others(self):
         api = FakeApi()
         calls = {"n": 0}
-        original = api.user_items
+        original = api.get_recently_added
 
-        def flaky(handler="", params=None):
-            if handler == "/Latest":
-                calls["n"] += 1
-                if calls["n"] == 1:
-                    raise RuntimeError("server hiccup")
-            return original(handler, params)
+        def flaky(**kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("server hiccup")
+            return original(**kwargs)
 
-        api.user_items = flaky
+        api.get_recently_added = flaky
         rows = self._source(api).get_home_rows("srv", libraries=LIBS)
         titles = [r["title"] for r in rows]
         self.assertIn("Continue Watching", titles)
@@ -180,7 +176,7 @@ class LayoutTest(HomeRowsHarness):
             "srv", libraries=LIBS, layout=[hs.RESUME] + [hs.NONE] * 9)
         self.assertEqual([r["title"] for r in rows], ["Continue Watching"])
         self.assertNotIn("get_next", api.calls)
-        self.assertNotIn("user_items/Latest", api.calls)
+        self.assertNotIn("get_recently_added", api.calls)
 
     def test_unsupported_sections_fetch_nothing(self):
         """Live TV and books are recognised but undrawable; they must not
@@ -207,8 +203,8 @@ class LayoutTest(HomeRowsHarness):
         self._source(api).get_home_rows(
             "srv", libraries=LIBS, layout=[hs.RESUME_AUDIO] + [hs.NONE] * 9)
         params = api.params[0]
-        self.assertEqual(params.get("MediaTypes"), "Audio")
-        self.assertNotIn("IncludeItemTypes", params)
+        self.assertEqual(params.get("media_types"), "Audio")
+        self.assertNotIn("include_item_types", params)
 
     def test_resume_rows_never_carry_a_parent_id(self):
         """ParentId is what disables the server-side "Display in home screen
@@ -218,7 +214,7 @@ class LayoutTest(HomeRowsHarness):
             "srv", libraries=LIBS,
             layout=[hs.RESUME, hs.RESUME_AUDIO] + [hs.NONE] * 8)
         for params in api.params:
-            self.assertNotIn("ParentId", params)
+            self.assertIsNone(params.get("parent_id"))
 
 
 class LatestExcludesTest(HomeRowsHarness):
@@ -242,7 +238,7 @@ class LatestExcludesTest(HomeRowsHarness):
         the round trip."""
         api = FakeApi()
         self._latest_titles(api, {"l1", "l2"})
-        self.assertNotIn("user_items/Latest", api.calls)
+        self.assertNotIn("get_recently_added", api.calls)
 
     def test_no_excludes_keeps_every_library(self):
         api = FakeApi()
@@ -252,21 +248,25 @@ class LatestExcludesTest(HomeRowsHarness):
 class LeanFieldsTest(HomeRowsHarness):
     def _latest_params(self, api):
         return [p for name, p in zip(api.calls, api.params)
-                if name == "user_items/Latest"]
+                if name == "get_recently_added"]
 
-    def test_latest_does_not_use_the_heavy_helper(self):
-        """FakeApi.get_recently_added raises: reaching it is the failure."""
+    def test_latest_overrides_the_default_field_set(self):
+        """get_recently_added defaults to info(), a 28-field payload including
+        MediaSources/People that the home row never renders — the row has to
+        ask for its own fields."""
         api = FakeApi()
         self._source(api).get_home_rows("srv", libraries=LIBS)
-        self.assertIn("user_items/Latest", api.calls)
+        self.assertIn("get_recently_added", api.calls)
+        for params in self._latest_params(api):
+            self.assertIsNotNone(params.get("fields"))
 
     def test_latest_asks_only_for_the_fields_it_renders(self):
         api = FakeApi()
         self._source(api).get_home_rows("srv", libraries=LIBS)
         for params in self._latest_params(api):
-            self.assertEqual(params.get("Fields"), LIST_FIELDS)
-            self.assertNotIn("MediaSources", params.get("Fields", ""))
-            self.assertNotIn("People", params.get("Fields", ""))
+            self.assertEqual(params.get("fields"), LIST_FIELDS)
+            self.assertNotIn("MediaSources", params.get("fields", ""))
+            self.assertNotIn("People", params.get("fields", ""))
 
     def test_home_queries_skip_the_total_record_count(self):
         """Each row is capped, so a separate COUNT(*) over the library is
@@ -274,7 +274,8 @@ class LeanFieldsTest(HomeRowsHarness):
         api = FakeApi()
         self._source(api).get_home_rows("srv", libraries=LIBS)
         counted = [p for p in api.params
-                   if "Limit" in p and p.get("EnableTotalRecordCount") is not False]
+                   if "limit" in p
+                   and p.get("enable_total_record_count") is not False]
         self.assertEqual(counted, [],
                          "a home query still asks for a total record count")
 
@@ -282,7 +283,7 @@ class LeanFieldsTest(HomeRowsHarness):
         """Without this every backdrop tag comes back, often five to ten.
 
         Scoped to the queries we build ourselves. Next Up goes through the
-        apiclient's get_next helper, whose signature has no ImageTypeLimit
+        apiclient's get_next helper, whose signature has no image_type_limit
         parameter — capping it there would mean bypassing the helper for a
         single-row saving, which is not worth the extra surface.
         """
@@ -290,8 +291,8 @@ class LeanFieldsTest(HomeRowsHarness):
         self._source(api).get_home_rows("srv", libraries=LIBS)
         checked = 0
         for name, params in zip(api.calls, api.params):
-            if name.startswith("user_items") and params.get("EnableImageTypes"):
-                self.assertEqual(params.get("ImageTypeLimit"), 1)
+            if name != "get_next" and params.get("enable_image_types"):
+                self.assertEqual(params.get("image_type_limit"), 1)
                 checked += 1
         self.assertGreater(checked, 0, "the assertion matched nothing")
 
@@ -300,7 +301,7 @@ class LeanFieldsTest(HomeRowsHarness):
         self._source(api).get_home_rows("srv", libraries=LIBS)
         nextup = [p for name, p in zip(api.calls, api.params)
                   if name == "get_next"][0]
-        self.assertEqual(nextup.get("Fields"), LIST_FIELDS)
+        self.assertEqual(nextup.get("fields"), LIST_FIELDS)
 
 
 if __name__ == "__main__":
@@ -318,7 +319,7 @@ class SectionsTest(HomeRowsHarness):
         self.assertEqual([r["title"] for r in rows],
                          ["Continue Watching", "Continue Listening",
                           "Next Up"])
-        self.assertNotIn("user_items/Latest", api.calls,
+        self.assertNotIn("get_recently_added", api.calls,
                          "the first batch waited on the Latest fan-out")
 
     def test_latest_fetches_only_the_library_rows(self):

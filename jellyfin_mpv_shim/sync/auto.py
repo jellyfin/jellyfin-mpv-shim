@@ -385,16 +385,11 @@ class AutoDownloader:
         """
         limit = max(1, int(settings.auto_download_next_up_limit or 10))
         try:
-            # Not api.get_next(): /NextUp is a list query and omits
-            # MediaSources unless asked, and the apiclient helper has no
-            # Fields parameter in every version we support. Without the
-            # sizes every candidate fell back to _UNKNOWN_SIZE, so the cap
-            # was being spent against a guess for 100% of Next Up items.
-            result = api.shows("/NextUp", {
-                "UserId": "{UserId}",
-                "Limit": limit,
-                "Fields": _FIELDS,
-            }) or {}
+            # _FIELDS is not optional here: /NextUp is a list query and omits
+            # MediaSources unless asked. Without the sizes every candidate
+            # falls back to _UNKNOWN_SIZE, so the cap would be spent against a
+            # guess for 100% of Next Up items.
+            result = api.get_next(limit=limit, fields=_FIELDS) or {}
         except Exception:
             log.debug("Next Up fetch failed", exc_info=True)
             return []
@@ -412,12 +407,9 @@ class AutoDownloader:
         out = []
         for series_id, last_id in self._series_frontier(server_uuid).items():
             try:
-                result = api.shows("/%s/Episodes" % series_id, {
-                    "UserId": "{UserId}",
-                    "StartItemId": last_id,
-                    "Limit": count + 1,
-                    "Fields": _FIELDS,
-                }) or {}
+                result = api.get_episodes(series_id, start_item_id=last_id,
+                                          limit=count + 1,
+                                          fields=_FIELDS) or {}
             except Exception:
                 log.debug("Lookahead fetch failed for %s", series_id,
                           exc_info=True)

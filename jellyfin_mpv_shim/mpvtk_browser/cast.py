@@ -142,15 +142,12 @@ def _random_backdrop_url(gateway) -> Optional[str]:
     if client is None:
         return None
     try:
-        params = {
-            "SortBy": "Random",
-            "Limit": 1,
-            "IncludeItemTypes": "Movie,Series",
-            "ImageTypes": "Backdrop",
-            "Recursive": True,
-            "MaxOfficialRating": "PG-13",
-        }
-        items = client.jellyfin.user_items(params=params).get("Items") or []
+        items = client.jellyfin.get_random_items(
+            include_item_types="Movie,Series",
+            limit=1,
+            image_types="Backdrop",
+            max_official_rating="PG-13",
+        ).get("Items") or []
         if not items:
             return None
         return _backdrop_url(items[0], client.config.data["auth.server"])

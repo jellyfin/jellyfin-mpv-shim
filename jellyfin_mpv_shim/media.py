@@ -213,18 +213,6 @@ class Video(object):
         else:
             return settings.remote_kbps
 
-    def _close_live_stream(self, live_stream_id: str):
-        """Release the server-side live stream (and its tuner).
-
-        Not the apiclient's ``close_live_stream``: that sends the id as a JSON
-        body, but the server binds it from the query string
-        (``CloseLiveStream([FromQuery, Required] string liveStreamId)``), so
-        the request fails model validation and the tuner is never released.
-        """
-        self.client.jellyfin._post(
-            "LiveStreams/Close", params={"liveStreamId": live_stream_id}
-        )
-
     def terminate_transcode(self):
         # Closing the live stream is deliberately NOT gated on is_transcode:
         # a live source that direct-streams (the usual HDHomeRun path) still
@@ -236,7 +224,7 @@ class Video(object):
         live_stream_id = (self.media_source or {}).get("LiveStreamId")
         if live_stream_id:
             try:
-                self._close_live_stream(live_stream_id)
+                self.client.jellyfin.close_live_stream(live_stream_id)
                 return
             except Exception:
                 log.warning("Closing live stream failed.", exc_info=True)
@@ -438,8 +426,8 @@ class Video(object):
 
         # provided by plugin
         try:
-            skip_intro_data = self.client.jellyfin.media_segments(
-                f"/{media_source_id}?includeSegmentTypes=Outro&includeSegmentTypes=Intro"
+            skip_intro_data = self.client.jellyfin.get_media_segments(
+                media_source_id, include_segment_types=["Outro", "Intro"]
             )
             for intro in skip_intro_data["Items"]:
                 self.intros.append(
@@ -471,19 +459,25 @@ class Video(object):
     def get_chapter_images(self, max_width=400, quality=90):
         for i, item in enumerate(self.item.get("Chapters", [])):
             data = BytesIO()
-            self.client.jellyfin._get_stream(
-                f"Items/{self.item_id}/Images/Chapter/{i}",
+            self.client.jellyfin.get_chapter_image(
                 data,
-                {"tag": item["ImageTag"], "maxWidth": max_width, "quality": quality},
+                self.item_id,
+                i,
+                tag=item["ImageTag"],
+                max_width=max_width,
+                quality=quality,
             )
             yield data.getvalue()
 
     def get_hls_tile_images(self, width, count):
         for i in range(0, count):
             data = BytesIO()
-            self.client.jellyfin._get_stream(
-                f"Videos/{self.item['Id']}/Trickplay/{width}/{i}.jpg?MediaSourceId={self.media_source['Id']}",
+            self.client.jellyfin.get_trickplay_tile(
                 data,
+                self.item["Id"],
+                width,
+                i,
+                media_source_id=self.media_source["Id"],
             )
             yield data.getvalue()
 
@@ -492,10 +486,7 @@ class Video(object):
         if manifest is None:
             # Trickplay data may not be included in default item fields.
             # Re-fetch the item with the Trickplay field explicitly requested.
-            item = self.client.jellyfin.users(
-                "/Items/%s" % self.item_id,
-                params={"Fields": "Trickplay"},
-            )
+            item = self.client.jellyfin.get_item(self.item_id, fields="Trickplay")
             manifest = item.get("Trickplay")
         if (
             manifest is not None

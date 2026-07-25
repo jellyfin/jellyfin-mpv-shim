@@ -249,12 +249,10 @@ class LibrarySource:
         custom.update(home_sections.layout_to_prefs(layout))
         dto["CustomPrefs"] = custom
         # The DTO's own Id/Client round-trip unchanged; the server keys off the
-        # query string, which must match what jellyfin-web uses or we write a
+        # client name, which must match what jellyfin-web uses or we write a
         # preference set only this client can see.
-        api._post("DisplayPreferences/%s" % home_sections.DISPLAY_PREFS_ID,
-                  json=dto,
-                  params={"userId": "{UserId}",
-                          "client": home_sections.DISPLAY_PREFS_CLIENT})
+        api.update_user_settings(dto,
+                                 client=home_sections.DISPLAY_PREFS_CLIENT)
         excludes = self._home_prefs.get(server_uuid, (None, frozenset()))[1]
         self._home_prefs[server_uuid] = (list(layout), excludes)
 
@@ -323,41 +321,35 @@ class LibrarySource:
 
         def resume_row(title, collection_type=None, **extra):
             def fetch():
-                params = {
-                    "Recursive": True,
-                    "Filters": "IsResumable",
-                    "SortBy": "DatePlayed",
-                    "SortOrder": "Descending",
-                    "Limit": 20,
-                    "Fields": LIST_FIELDS,
-                    "EnableImageTypes": "Primary,Thumb,Backdrop",
+                # Deliberately no parent_id: that is what lets the server apply
+                # the user's "Display in home screen sections" exclusions for
+                # us. Scoping this by library would silently bypass them.
+                resume = api.get_resume_items(
+                    limit=20,
+                    fields=LIST_FIELDS,
+                    enable_image_types="Primary,Thumb,Backdrop",
                     # One tag per image type: without it every backdrop tag
                     # comes back, and items routinely carry five to ten.
-                    "ImageTypeLimit": 1,
+                    image_type_limit=1,
                     # The row is capped at 20 anyway, so the server's separate
                     # COUNT(*) over the whole library is pure waste
                     # (jellyfin-web passes this on all three home queries).
-                    "EnableTotalRecordCount": False,
-                }
-                params.update(extra)
-                # Deliberately no ParentId: that is what lets the server apply
-                # the user's "Display in home screen sections" exclusions for
-                # us. Scoping this by library would silently bypass them.
-                resume = api.user_items(params=params) or {}
+                    enable_total_record_count=False,
+                    **extra) or {}
                 return (title, resume.get("Items", []), collection_type)
             return fetch
 
         def video_resume_row():
             # No CollectionType: these mixed rows keep the item-type heuristic.
             return resume_row(_("Continue Watching"),
-                              IncludeItemTypes="Movie,Episode,Video")()
+                              include_item_types="Movie,Episode,Video")()
 
         def audio_resume_row():
-            # MediaTypes rather than IncludeItemTypes, matching jellyfin-web:
-            # it catches Audio and AudioBook without enumerating types. The
-            # music collection_type gives the row square art.
+            # media_types rather than include_item_types, matching
+            # jellyfin-web: it catches Audio and AudioBook without enumerating
+            # types. The music collection_type gives the row square art.
             return resume_row(_("Continue Listening"), collection_type="music",
-                              MediaTypes="Audio")()
+                              media_types="Audio")()
 
         def next_up_row():
             nextup = api.get_next(
@@ -370,41 +362,39 @@ class LibrarySource:
             # an "On Now" strip; the strip is the part that lists anything, so
             # it is the part reproduced here.
             #
-            # api._get rather than a helper: jellyfin-apiclient-python has
-            # get_channels but nothing for Programs. ChannelInfo is what adds
-            # ChannelName/ChannelPrimaryImageTag to each program, which is the
-            # only art most guide data carries.
+            # ChannelInfo is what adds ChannelName/ChannelPrimaryImageTag to
+            # each program, which is the only art most guide data carries.
             #
             # Not jellyfin-web's separate limit=1 probe: an empty row is
             # already dropped by the comprehension below, so probing first
             # would only add a round trip to reach the same result.
-            onnow = api._get("LiveTv/Programs/Recommended", {
-                "IsAiring": True,
-                "Limit": 24,
-                "Fields": LIST_FIELDS + ",ChannelInfo",
-                "EnableImageTypes": "Primary,Thumb,Backdrop",
-                "ImageTypeLimit": 1,
-                "EnableTotalRecordCount": False,
-                "EnableUserData": False,
-            }) or {}
+            onnow = api.get_recommended_programs(
+                is_airing=True,
+                limit=24,
+                fields=LIST_FIELDS + ",ChannelInfo",
+                enable_image_types="Primary,Thumb,Backdrop",
+                image_type_limit=1,
+                enable_total_record_count=False,
+                enable_user_data=False,
+            ) or {}
             return (_("On Now"), onnow.get("Items", []), "livetv")
 
         def latest_row(lib):
             def fetch():
-                # NOT api.get_recently_added: that helper hardcodes
-                # Fields=info(), a 28-field payload including MediaSources,
-                # People, Studios and RecursiveItemCount. MediaSources forces
-                # per-item media-source resolution and the rest add joins —
-                # for 16 items times every library, none of which this row
-                # renders. LIST_FIELDS is what the other browse calls use.
-                latest = api.user_items("/Latest", {
-                    "ParentId": lib.get("Id"),
-                    "Limit": 16,
-                    "Fields": LIST_FIELDS,
-                    "EnableImageTypes": "Primary,Thumb,Backdrop",
-                    "ImageTypeLimit": 1,
-                    "EnableTotalRecordCount": False,
-                })
+                # fields is passed explicitly: the default is info(), a
+                # 28-field payload including MediaSources, People, Studios and
+                # RecursiveItemCount. MediaSources forces per-item media-source
+                # resolution and the rest add joins — for 16 items times every
+                # library, none of which this row renders. LIST_FIELDS is what
+                # the other browse calls use.
+                latest = api.get_recently_added(
+                    parent_id=lib.get("Id"),
+                    limit=16,
+                    fields=LIST_FIELDS,
+                    enable_image_types="Primary,Thumb,Backdrop",
+                    image_type_limit=1,
+                    enable_total_record_count=False,
+                )
                 # /Latest answers with a bare list, not an Items dict.
                 items = (latest.get("Items", []) if isinstance(latest, dict)
                          else (latest or []))
@@ -475,45 +465,43 @@ class LibrarySource:
                 for slot, kind, t, i, c in rows if i]
 
     @staticmethod
-    def _filter_params(filters):
-        """Translate the UI's filter dict into Jellyfin query params."""
-        params: dict[str, str] = {}
+    def _filter_kwargs(filters):
+        """Translate the UI's filter dict into ``get_user_items`` arguments."""
+        kwargs: dict[str, str] = {}
         if not filters:
-            return params
+            return kwargs
         active = []
         if filters.get("unplayed"):
             active.append("IsUnplayed")
         if active:
-            params["Filters"] = ",".join(active)
+            kwargs["filters"] = ",".join(active)
         if filters.get("favorite"):
-            params["IsFavorite"] = "true"
+            kwargs["is_favorite"] = "true"
         if filters.get("genre"):
-            params["Genres"] = filters["genre"]
+            kwargs["genres"] = filters["genre"]
         if filters.get("year"):
-            params["Years"] = str(filters["year"])
+            kwargs["years"] = str(filters["year"])
         letter = filters.get("letter")
         if letter == "#":
-            params["NameLessThan"] = "A"
+            kwargs["name_less_than"] = "A"
         elif letter:
-            params["NameStartsWith"] = letter
-        return params
+            kwargs["name_starts_with"] = letter
+        return kwargs
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
                           filters=None):
         api = self._conn(server_uuid).api
-        params = {
-            "ParentId": parent_id,
-            "SortBy": sort_by,
-            "SortOrder": sort_order,
-            "StartIndex": start_index,
-            "Limit": limit,
-            "Fields": LIST_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary,Thumb,Backdrop",
-        }
-        params.update(self._filter_params(filters))
-        result = api.user_items(params=params) or {}
+        result = api.get_user_items(
+            parent_id=parent_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_movie_collections(self, server_uuid, sort_by="SortName",
@@ -524,37 +512,35 @@ class LibrarySource:
         items from several libraries), mirroring jellyfin-web's Collections
         view. Returns ``(items, total)`` like ``get_library_items``."""
         api = self._conn(server_uuid).api
-        params = {
-            "IncludeItemTypes": "BoxSet",
-            "Recursive": True,
-            "SortBy": sort_by,
-            "SortOrder": sort_order,
-            "StartIndex": start_index,
-            "Limit": limit,
-            "Fields": LIST_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary,Thumb,Backdrop",
-        }
-        params.update(self._filter_params(filters))
-        result = api.user_items(params=params) or {}
+        # get_user_items rather than the apiclient's get_collections: this grid
+        # carries the same filter row as any other, and the collections helper
+        # has no filter arguments.
+        result = api.get_user_items(
+            include_item_types="BoxSet",
+            recursive=True,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_person_items(self, server_uuid, person_id, start_index=0, limit=100,
                          sort_by="SortName", sort_order="Ascending"):
         """A person's filmography (movies + series they appear in)."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "PersonIds": person_id,
-            "Recursive": True,
-            "IncludeItemTypes": "Movie,Series",
-            "SortBy": sort_by,
-            "SortOrder": sort_order,
-            "StartIndex": start_index,
-            "Limit": limit,
-            "Fields": LIST_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary,Thumb,Backdrop",
-        }) or {}
+        result = api.get_items_by_person(
+            person_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop") or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     # -- music browse ------------------------------------------------------
@@ -563,22 +549,22 @@ class LibrarySource:
                      sort_order, start_index, limit, filters=None,
                      extra=None):
         api = self._conn(server_uuid).api
-        params = {
-            "ParentId": parent_id,
-            "IncludeItemTypes": include,
-            "Recursive": True,
-            "SortBy": sort_by,
-            "SortOrder": sort_order,
-            "StartIndex": start_index,
-            "Limit": limit,
-            "Fields": MUSIC_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary",
+        kwargs = {
+            "parent_id": parent_id,
+            "include_item_types": include,
+            "recursive": True,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
+            "start_index": start_index,
+            "limit": limit,
+            "fields": MUSIC_FIELDS,
+            "image_type_limit": 1,
+            "enable_image_types": "Primary",
         }
         if extra:
-            params.update(extra)
-        params.update(self._filter_params(filters))
-        result = api.user_items(params=params) or {}
+            kwargs.update(extra)
+        kwargs.update(self._filter_kwargs(filters))
+        result = api.get_user_items(**kwargs) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_music_albums(self, server_uuid, parent_id, sort_by="SortName",
@@ -598,24 +584,20 @@ class LibrarySource:
                          start_index=0, limit=100, filters=None):
         return self._music_items(server_uuid, "MusicAlbum", parent_id, sort_by,
                                  sort_order, start_index, limit, filters,
-                                 extra={"GenreIds": genre_id})
+                                 extra={"genre_ids": genre_id})
 
     def _artist_list(self, server_uuid, method_name, parent_id, sort_by,
                      sort_order, start_index, limit):
         api = self._conn(server_uuid).api
-        method = getattr(api, method_name, None)
-        if method is None:
-            return [], 0
-        result = method(params={
-            "ParentId": parent_id,
-            "SortBy": sort_by,
-            "SortOrder": sort_order,
-            "StartIndex": start_index,
-            "Limit": limit,
-            "Fields": MUSIC_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary",
-        }) or {}
+        result = getattr(api, method_name)(
+            parent_id=parent_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            fields=MUSIC_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary") or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_album_artists(self, server_uuid, parent_id, sort_by="SortName",
@@ -630,36 +612,21 @@ class LibrarySource:
 
     def get_music_genres(self, server_uuid, parent_id):
         api = self._conn(server_uuid).api
-        try:
-            result = api.get_genres(parent_id,
-                                    include_item_types="MusicAlbum") or {}
-        except TypeError:
-            result = api.get_genres(parent_id) or {}  # older apiclient
+        result = api.get_genres(parent_id,
+                                include_item_types="MusicAlbum") or {}
         return result.get("Items", [])
 
     def get_album_tracks(self, server_uuid, album_id):
         """An album's tracks in disc/track order (children of the album)."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "ParentId": album_id,
-            "SortBy": "ParentIndexNumber,IndexNumber,SortName",
-            "SortOrder": "Ascending",
-            "Fields": MUSIC_FIELDS,
-        }) or {}
+        result = api.get_album_tracks(album_id, fields=MUSIC_FIELDS) or {}
         return result.get("Items", [])
 
     def get_artist_albums(self, server_uuid, artist_id):
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "AlbumArtistIds": artist_id,
-            "IncludeItemTypes": "MusicAlbum",
-            "Recursive": True,
-            "SortBy": "PremiereDate,ProductionYear,SortName",
-            "SortOrder": "Descending",
-            "Fields": MUSIC_FIELDS,
-            "ImageTypeLimit": 1,
-            "EnableImageTypes": "Primary",
-        }) or {}
+        result = api.get_artist_albums(
+            artist_id, fields=MUSIC_FIELDS, image_type_limit=1,
+            enable_image_types="Primary") or {}
         return result.get("Items", [])
 
     def get_items_by_ids(self, server_uuid, ids):
@@ -680,9 +647,7 @@ class LibrarySource:
         for start in range(0, len(unique), CHUNK):
             chunk = unique[start:start + CHUNK]
             try:
-                result = api.user_items(params={
-                    "Ids": ",".join(chunk), "Fields": MUSIC_FIELDS,
-                }) or {}
+                result = api.get_items(chunk, fields=MUSIC_FIELDS) or {}
             except Exception:
                 log.warning("Failed to fetch a metadata batch of %d items",
                             len(chunk), exc_info=True)
@@ -695,39 +660,21 @@ class LibrarySource:
     def get_artist_songs(self, server_uuid, artist_id, limit=500):
         """All audio tracks by an artist (for Play/Shuffle/Add-to-playlist)."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "ArtistIds": artist_id,
-            "IncludeItemTypes": "Audio",
-            "Recursive": True,
-            "SortBy": "AlbumArtist,Album,ParentIndexNumber,IndexNumber,SortName",
-            "Limit": limit,
-            "Fields": MUSIC_FIELDS,
-        }) or {}
+        result = api.get_artist_songs(artist_id, limit=limit,
+                                      fields=MUSIC_FIELDS) or {}
         return result.get("Items", [])
 
     def get_genre_songs(self, server_uuid, parent_id, genre_id, limit=500):
         """All audio tracks in a genre. parent_id may be None (server-wide)."""
         api = self._conn(server_uuid).api
-        params = {
-            "GenreIds": genre_id,
-            "IncludeItemTypes": "Audio",
-            "Recursive": True,
-            "SortBy": "AlbumArtist,Album,ParentIndexNumber,IndexNumber,SortName",
-            "Limit": limit,
-            "Fields": MUSIC_FIELDS,
-        }
-        if parent_id:
-            params["ParentId"] = parent_id
-        result = api.user_items(params=params) or {}
+        result = api.get_genre_songs(genre_id, parent_id=parent_id or None,
+                                     limit=limit, fields=MUSIC_FIELDS) or {}
         return result.get("Items", [])
 
     def get_instant_mix(self, server_uuid, item_id, limit=200):
         api = self._conn(server_uuid).api
-        get = getattr(api, "get_instant_mix", None)
-        if get is None:
-            return []
         try:
-            result = get(item_id, limit=limit) or {}
+            result = api.get_instant_mix(item_id, limit=limit) or {}
         except Exception:
             return []
         return result.get("Items", [])
@@ -739,34 +686,32 @@ class LibrarySource:
         return [g.get("Name") for g in result.get("Items", []) if g.get("Name")]
 
     def get_filter_values(self, server_uuid, parent_id=None):
-        """Filter-picker values: {"genres": [...], "years": [...]}. Years need
-        apiclient >= 1.15 (get_filters); on older versions the year picker is
-        simply empty and the genre fallback path is used."""
+        """Filter-picker values: {"genres": [...], "years": [...]}.
+
+        Years come from Items/Filters; where that is unavailable the year
+        picker is simply empty and only the genre list is offered."""
         api = self._conn(server_uuid).api
-        if hasattr(api, "get_filters"):
-            try:
-                result = api.get_filters(parent_id) or {}
-                # Newest first, deduped, ints — the server returns them in
-                # its own order, and the offline source compares against
-                # ProductionYear directly.
-                years = set()
-                for y in result.get("Years") or []:
-                    try:
-                        years.add(int(y))
-                    except (TypeError, ValueError):
-                        continue
-                return {"genres": result.get("Genres") or [],
-                        "years": sorted(years, reverse=True)}
-            except Exception:
-                log.warning("Items/Filters failed; falling back to genres",
-                            exc_info=True)
+        try:
+            result = api.get_filters(parent_id) or {}
+            # Newest first, deduped, ints — the server returns them in
+            # its own order, and the offline source compares against
+            # ProductionYear directly.
+            years = set()
+            for y in result.get("Years") or []:
+                try:
+                    years.add(int(y))
+                except (TypeError, ValueError):
+                    continue
+            return {"genres": result.get("Genres") or [],
+                    "years": sorted(years, reverse=True)}
+        except Exception:
+            log.warning("Items/Filters failed; falling back to genres",
+                        exc_info=True)
         return {"genres": self.get_genres(server_uuid, parent_id), "years": []}
 
     def get_similar(self, server_uuid, item_id, limit=12):
-        """"More Like This" items (apiclient >= 1.15; empty list before)."""
+        """"More Like This" items."""
         api = self._conn(server_uuid).api
-        if not hasattr(api, "get_similar"):
-            return []
         result = api.get_similar(item_id, limit=limit, fields=LIST_FIELDS) or {}
         return result.get("Items", [])
 
@@ -782,48 +727,33 @@ class LibrarySource:
         return result.get("Items", []) if isinstance(result, dict) else result
 
     def search_people(self, server_uuid, term, limit=20):
-        """People matching a search term (apiclient >= 1.15; empty before)."""
+        """People matching a search term."""
         api = self._conn(server_uuid).api
-        if not hasattr(api, "get_persons"):
-            return []
         result = api.get_persons(search_term=term, limit=limit) or {}
         return result.get("Items", [])
 
     def get_playlists(self, server_uuid, limit=300):
-        """All video playlists, for the add-to-playlist picker."""
+        """All playlists, for the add-to-playlist picker."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "IncludeItemTypes": "Playlist",
-            "Recursive": True,
-            "SortBy": "SortName",
-            "Limit": limit,
-        }) or {}
+        result = api.get_playlists(limit=limit) or {}
         return result.get("Items", [])
 
     def get_collections(self, server_uuid, limit=300):
         """All user collections (BoxSets), for the add-to-collection picker."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "IncludeItemTypes": "BoxSet",
-            "Recursive": True,
-            "SortBy": "SortName",
-            "Limit": limit,
-        }) or {}
+        result = api.get_collections(limit=limit, sort_by="SortName") or {}
         return result.get("Items", [])
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         """Random playable item ids under a library, for shuffle play. The
-        server does the shuffling (SortBy=Random) so the sample spans the whole
-        library, not just the loaded pages."""
+        server does the shuffling so the sample spans the whole library, not
+        just the loaded pages."""
         api = self._conn(server_uuid).api
-        result = api.user_items(params={
-            "ParentId": parent_id,
-            "Recursive": True,
-            "IncludeItemTypes": "Movie,Episode,Video",
-            "SortBy": "Random",
-            "Limit": limit,
-            "EnableImages": False,
-        }) or {}
+        result = api.get_random_items(
+            parent_id=parent_id,
+            include_item_types="Movie,Episode,Video",
+            limit=limit,
+            enable_images=False) or {}
         return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_playlist_items(self, server_uuid, playlist_id):
@@ -839,14 +769,11 @@ class LibrarySource:
 
     def get_playlist(self, server_uuid, playlist_id):
         """A playlist's metadata (``OpenAccess`` visibility + shares), for the
-        editor's Public/Private control. Returns {} if the server or apiclient
-        is too old to expose it."""
+        editor's Public/Private control. Returns {} on servers too old to
+        expose it."""
         api = self._conn(server_uuid).api
-        get = getattr(api, "get_playlist", None)
-        if get is None:
-            return {}
         try:
-            return get(playlist_id) or {}
+            return api.get_playlist(playlist_id) or {}
         except Exception:
             return {}
 

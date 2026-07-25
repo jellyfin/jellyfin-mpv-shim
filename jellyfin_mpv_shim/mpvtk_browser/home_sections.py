@@ -22,9 +22,10 @@ bearing for interop:
 
 from ..i18n import _
 
-#: DisplayPreferences ids. Both are jellyfin-web's, and both must match it
-#: exactly or we read/write a preference set nothing else can see.
-DISPLAY_PREFS_ID = "usersettings"
+#: The DisplayPreferences client namespace. jellyfin-web's, and it must match
+#: exactly or we read/write a preference set nothing else can see. (The
+#: document id, "usersettings", is the apiclient's — get_user_settings and
+#: update_user_settings both address that one document.)
 DISPLAY_PREFS_CLIENT = "emby"
 
 #: jellyfin-web grew from 7 slots to 10. Reading all 10 is harmless against an

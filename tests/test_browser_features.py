@@ -26,31 +26,31 @@ def _offline_source(items):
 
 class FilterParamsTest(unittest.TestCase):
     def test_empty_filters(self):
-        self.assertEqual(LibrarySource._filter_params(None), {})
-        self.assertEqual(LibrarySource._filter_params(
+        self.assertEqual(LibrarySource._filter_kwargs(None), {})
+        self.assertEqual(LibrarySource._filter_kwargs(
             {"unplayed": False, "favorite": False, "genre": None,
              "letter": None}), {})
 
     def test_unplayed_and_favorite(self):
-        params = LibrarySource._filter_params(
+        kwargs = LibrarySource._filter_kwargs(
             {"unplayed": True, "favorite": True})
-        self.assertEqual(params["Filters"], "IsUnplayed")
-        self.assertEqual(params["IsFavorite"], "true")
+        self.assertEqual(kwargs["filters"], "IsUnplayed")
+        self.assertEqual(kwargs["is_favorite"], "true")
 
     def test_genre(self):
-        params = LibrarySource._filter_params({"genre": "Drama"})
-        self.assertEqual(params["Genres"], "Drama")
+        kwargs = LibrarySource._filter_kwargs({"genre": "Drama"})
+        self.assertEqual(kwargs["genres"], "Drama")
 
     def test_letter_and_hash(self):
-        self.assertEqual(LibrarySource._filter_params({"letter": "M"}),
-                         {"NameStartsWith": "M"})
+        self.assertEqual(LibrarySource._filter_kwargs({"letter": "M"}),
+                         {"name_starts_with": "M"})
         # '#' = everything sorting before 'A' (numbers, punctuation).
-        self.assertEqual(LibrarySource._filter_params({"letter": "#"}),
-                         {"NameLessThan": "A"})
+        self.assertEqual(LibrarySource._filter_kwargs({"letter": "#"}),
+                         {"name_less_than": "A"})
 
     def test_year(self):
-        self.assertEqual(LibrarySource._filter_params({"year": 1999}),
-                         {"Years": "1999"})
+        self.assertEqual(LibrarySource._filter_kwargs({"year": 1999}),
+                         {"years": "1999"})
 
 
 class OfflineFiltersTest(unittest.TestCase):
@@ -98,8 +98,8 @@ class OfflineFiltersTest(unittest.TestCase):
 
 
 class ApiVersionGatingTest(unittest.TestCase):
-    """The new endpoints degrade to empty results on an apiclient that
-    predates them (hasattr gates)."""
+    """Filter values degrade to a genre list when Items/Filters is
+    unavailable — the endpoint postdates the servers we still support."""
 
     def _src_with_api(self, api):
         src = LibrarySource.__new__(LibrarySource)
@@ -107,12 +107,6 @@ class ApiVersionGatingTest(unittest.TestCase):
         conn.api = api
         src._conns = {"srv": conn}
         return src
-
-    def test_similar_and_people_empty_on_old_apiclient(self):
-        old_api = mock.Mock(spec=["get_genres"])  # no get_similar/get_persons
-        src = self._src_with_api(old_api)
-        self.assertEqual(src.get_similar("srv", "i1"), [])
-        self.assertEqual(src.search_people("srv", "x"), [])
 
     def test_filter_values_fall_back_to_genres(self):
         old_api = mock.Mock(spec=["get_genres"])

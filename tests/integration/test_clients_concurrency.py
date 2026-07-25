@@ -30,7 +30,8 @@ class FakeJellyfin:
     def __init__(self, sessions):
         self._sessions = sessions
 
-    def _http(self, method, path, opts):
+    def sessions(self, handler="", action="GET", params=None, json=None,
+                 timeout=None, retry=None):
         return self._sessions
 
     def post_capabilities(self, caps):
@@ -239,7 +240,8 @@ class _DynamicJellyfin:
     def __init__(self, sessions_fn):
         self._sessions_fn = sessions_fn
 
-    def _http(self, method, path, opts):
+    def sessions(self, handler="", action="GET", params=None, json=None,
+                 timeout=None, retry=None):
         return self._sessions_fn()
 
     def post_capabilities(self, caps):

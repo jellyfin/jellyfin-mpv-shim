@@ -34,18 +34,18 @@ class FakeApi:
         self._episodes = list(episodes)
         self.calls = []
 
-    def get_next(self, limit=1):
-        # Present but never used: _next_up goes through shows("/NextUp") so
-        # it can ask for Fields (the helper has no such parameter, which is
-        # how every Next Up candidate ended up charged the unknown-size
-        # fallback). Reaching this is the regression.
-        raise AssertionError(
-            "get_next cannot request MediaSources; use shows('/NextUp')")
+    def get_next(self, limit=1, fields=None, enable_image_types=None):
+        # fields is load-bearing: without MediaSources every Next Up
+        # candidate is charged the unknown-size fallback.
+        self.calls.append(("get_next", "/NextUp",
+                           {"Limit": limit, "Fields": fields}))
+        return {"Items": list(self._next_up)}
 
-    def shows(self, handler, params=None):
-        self.calls.append(("shows", handler, params))
-        if handler == "/NextUp":
-            return {"Items": list(self._next_up)}
+    def get_episodes(self, series_id, season_id=None, start_item_id=None,
+                     fields=None, limit=None):
+        self.calls.append(("get_episodes", "/%s/Episodes" % series_id,
+                           {"StartItemId": start_item_id, "Limit": limit,
+                            "Fields": fields}))
         return {"Items": list(self._episodes)}
 
     def get_userdata_for_item(self, item_id):
@@ -306,7 +306,7 @@ class FillTest(AutoTest):
         settings.auto_download_next_up = False
         auto = self._auto(clients={"srv": FakeClient(api)})
         auto.fill(10 * GB)
-        params = next(c[2] for c in api.calls if c[0] == "shows")
+        params = next(c[2] for c in api.calls if c[0] == "get_episodes")
         self.assertEqual(params["StartItemId"], "s1e5")
         # The first result is the episode we already hold.
         self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e6", "s1e7"])

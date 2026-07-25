@@ -65,19 +65,7 @@ class TerminateTranscodeTest(unittest.TestCase):
         video = make_video(media_source={"LiveStreamId": "live-1"},
                            is_transcode=False)
         video.terminate_transcode()
-        video.client.jellyfin._post.assert_called_once_with(
-            "LiveStreams/Close", params={"liveStreamId": "live-1"}
-        )
-
-    def test_close_sends_id_as_query_param_not_body(self):
-        # The server binds liveStreamId with [FromQuery, Required]; a JSON body
-        # fails model validation and the tuner is never released.
-        video = make_video(media_source={"LiveStreamId": "live-2"},
-                           is_transcode=True)
-        video.terminate_transcode()
-        _args, kwargs = video.client.jellyfin._post.call_args
-        self.assertEqual(kwargs.get("params"), {"liveStreamId": "live-2"})
-        self.assertIsNone(kwargs.get("json"))
+        video.client.jellyfin.close_live_stream.assert_called_once_with("live-1")
 
     def test_closing_live_stream_skips_the_transcode_call(self):
         # Closing the live stream tears down its transcode as a side effect.
@@ -91,7 +79,7 @@ class TerminateTranscodeTest(unittest.TestCase):
         video = make_video(media_source={"LiveStreamId": "live-4"},
                            is_transcode=True,
                            playback_info={"PlaySessionId": "sess"})
-        video.client.jellyfin._post.side_effect = RuntimeError("boom")
+        video.client.jellyfin.close_live_stream.side_effect = RuntimeError("boom")
         video.client.config.data = {"app.device_id": "dev"}
         video.terminate_transcode()
         video.client.jellyfin.close_transcode.assert_called_once_with("dev", "sess")
@@ -99,7 +87,7 @@ class TerminateTranscodeTest(unittest.TestCase):
     def test_plain_direct_play_closes_nothing(self):
         video = make_video(media_source={}, is_transcode=False)
         video.terminate_transcode()
-        video.client.jellyfin._post.assert_not_called()
+        video.client.jellyfin.close_live_stream.assert_not_called()
         video.client.jellyfin.close_transcode.assert_not_called()
 
     def test_transcode_without_live_stream_still_closes_transcode(self):

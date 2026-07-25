@@ -95,7 +95,7 @@ def is_local_domain(client: "JellyfinClient_type"):
     # reverse proxy could lie) but the only signal available without enumerating
     # local interface addresses.
     try:
-        endpoint = client.jellyfin._get("System/Endpoint")
+        endpoint = client.jellyfin.get_endpoint_info()
         return bool(endpoint.get("IsInNetwork"))
     except Exception:
         log.warning(

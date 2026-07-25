@@ -29,7 +29,7 @@ MOVIES_VIEW = {"Id": "l1", "Name": "Movies", "CollectionType": "movies"}
 
 
 class FakeApi:
-    """Records every call. _get is what the On Now row uses."""
+    """Records every call. get_recommended_programs is the On Now row."""
 
     def __init__(self, views=(), programs=None):
         self.calls = []
@@ -49,23 +49,25 @@ class FakeApi:
         self._enter("get_views")
         return {"Items": self._views}
 
-    def user_items(self, handler="", params=None):
-        self._enter("user_items%s" % (handler or ""), params)
-        if handler == "/Latest":
-            return []
+    def get_resume_items(self, **kwargs):
+        self._enter("get_resume_items", kwargs)
         return {"Items": []}
+
+    def get_recently_added(self, **kwargs):
+        self._enter("get_recently_added", kwargs)
+        return []
 
     def get_next(self, limit=1, fields=None, enable_image_types=None):
         self._enter("get_next")
         return {"Items": []}
 
-    def _get(self, handler, params=None):
-        self._enter(handler, params)
+    def get_recommended_programs(self, **kwargs):
+        self._enter("get_recommended_programs", kwargs)
         return {"Items": list(self._programs)}
 
     @property
     def live_calls(self):
-        return [c for c in self.calls if "LiveTv" in c]
+        return [c for c in self.calls if "programs" in c]
 
 
 def source_for(api):
@@ -131,10 +133,13 @@ class OnNowRowTest(unittest.TestCase):
         return src.get_home_rows("srv", libraries=libs,
                                  layout=[hs.LIVE_TV])
 
+    def _live_params(self, api):
+        return api.params[api.calls.index("get_recommended_programs")]
+
     def test_row_is_fetched_when_the_server_has_live_tv(self):
         api = FakeApi(views=[LIVE_VIEW])
         rows = self._rows(api)
-        self.assertEqual(api.live_calls, ["LiveTv/Programs/Recommended"])
+        self.assertEqual(api.live_calls, ["get_recommended_programs"])
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["collection_type"], "livetv")
         self.assertEqual(rows[0]["kind"], hs.LIVE_TV)
@@ -143,22 +148,20 @@ class OnNowRowTest(unittest.TestCase):
     def test_asks_only_for_airing_programs(self):
         api = FakeApi(views=[LIVE_VIEW])
         self._rows(api)
-        params = api.params[api.calls.index("LiveTv/Programs/Recommended")]
-        self.assertIs(params["IsAiring"], True)
+        self.assertIs(self._live_params(api)["is_airing"], True)
 
     def test_asks_for_channel_info(self):
         # ChannelInfo is what carries ChannelName/ChannelPrimaryImageTag, which
         # are the tile's subtitle and (usually) its only art.
         api = FakeApi(views=[LIVE_VIEW])
         self._rows(api)
-        params = api.params[api.calls.index("LiveTv/Programs/Recommended")]
-        self.assertIn("ChannelInfo", params["Fields"])
+        self.assertIn("ChannelInfo", self._live_params(api)["fields"])
 
     def test_skips_the_total_record_count(self):
         api = FakeApi(views=[LIVE_VIEW])
         self._rows(api)
-        params = api.params[api.calls.index("LiveTv/Programs/Recommended")]
-        self.assertIs(params["EnableTotalRecordCount"], False)
+        self.assertIs(self._live_params(api)["enable_total_record_count"],
+                      False)
 
     def test_an_empty_row_is_dropped(self):
         # Which is why there is no separate limit=1 probe like jellyfin-web's:
@@ -169,9 +172,9 @@ class OnNowRowTest(unittest.TestCase):
     def test_a_failing_row_does_not_take_the_home_screen_with_it(self):
         api = FakeApi(views=[LIVE_VIEW, MOVIES_VIEW])
 
-        def explode(handler, params=None):
+        def explode(**kwargs):
             raise RuntimeError("no tuner attached")
-        api._get = explode
+        api.get_recommended_programs = explode
         src = source_for(api)
         libs = src.get_libraries("srv")
         rows = src.get_home_rows("srv", libraries=libs,

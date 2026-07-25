@@ -675,15 +675,13 @@ class ClientManager(object):
         return self.quick_connect_wait(client, secret, should_cancel=should_cancel)
 
     def validate_client(self, client: "JellyfinClient", dry_run=False, server=None):
-        # Use the apiclient's lower-level _http to bound retries and timeout
-        # for this specific call. The default 30s × 5 retries can wedge the
-        # health-check thread for ~2.5 minutes if the server is unresponsive.
-        # On exception, fall through to the "not in client list" branch below
-        # to force a reconnect (a timeout is a broken connection).
+        # Retries and timeout are bounded for this specific call: the default
+        # 30s × 5 retries can wedge the health-check thread for ~2.5 minutes if
+        # the server is unresponsive. On exception, fall through to the "not in
+        # client list" branch below to force a reconnect (a timeout is a broken
+        # connection).
         try:
-            client_list = client.jellyfin._http(
-                "GET", "Sessions", {"params": None, "timeout": 10, "retry": 1}
-            )
+            client_list = client.jellyfin.sessions(timeout=10, retry=1)
         except Exception:
             log.warning("Health check session query failed; treating as disconnected.", exc_info=True)
             client_list = []
