@@ -446,439 +446,510 @@ def _base(el, t, x, y, w, h, sc, path):
     return node
 
 
-def _arrange(ctx, el, x, y, w, h, sc, path):
-    if isinstance(el, Text):
-        if el.wrap:
-            lh = el.size * LINE_H
-            lines = _wrap_lines(el, w)
-            # never overflow an assigned height that fits fewer lines
-            fit = max(1, int(h / lh + 0.001))
-            if len(lines) > fit:
-                lines = lines[:fit]
-                lines[-1] = ellipsize(
-                    lines[-1] + "…", el.size, el.bold, w
-                )
-        else:
-            lh = h
-            lines = [ellipsize(el.text, el.size, el.bold, w)]
-        base_id = el.id or path
-        for i, ln in enumerate(lines):
-            node = _base(el, "text", x, y + i * lh, w, lh, sc, path)
-            node["id"] = base_id if i == 0 else "%s.l%d" % (base_id, i)
-            node["text"] = ln
-            node["size"] = el.size
-            node["c"] = el.color
-            node["align"] = el.align
-            if el.bold:
-                node["bold"] = True
-            if el.on_click:
-                node["click"] = True
-                _reg(ctx, node["id"], "click", el.on_click)
-            if el.hover:
-                node["hover"] = el.hover
-            ctx.nodes.append(node)
-        return
-
-    if isinstance(el, Image):
-        # containers may assign a stretched size; images never stretch.
-        # Clamp against the LOGICAL footprint: iw/ih are physical, and at
-        # any scale != 1 comparing them to a logical w/h mixes spaces.
-        w, h = min(w, el.lw), min(h, el.lh)
-        node = _base(el, "img", x, y, w, h, sc, path)
-        node["src"] = el.src
-        node["iw"] = el.iw
-        node["ih"] = el.ih
-        if el.v:
-            node["v"] = el.v
+def _arrange_text(ctx, el, x, y, w, h, sc, path):
+    """A text run: wrapped into lines, or ellipsized to one."""
+    if el.wrap:
+        lh = el.size * LINE_H
+        lines = _wrap_lines(el, w)
+        # never overflow an assigned height that fits fewer lines
+        fit = max(1, int(h / lh + 0.001))
+        if len(lines) > fit:
+            lines = lines[:fit]
+            lines[-1] = ellipsize(
+                lines[-1] + "…", el.size, el.bold, w
+            )
+    else:
+        lh = h
+        lines = [ellipsize(el.text, el.size, el.bold, w)]
+    base_id = el.id or path
+    for i, ln in enumerate(lines):
+        node = _base(el, "text", x, y + i * lh, w, lh, sc, path)
+        node["id"] = base_id if i == 0 else "%s.l%d" % (base_id, i)
+        node["text"] = ln
+        node["size"] = el.size
+        node["c"] = el.color
+        node["align"] = el.align
+        if el.bold:
+            node["bold"] = True
         if el.on_click:
             node["click"] = True
             _reg(ctx, node["id"], "click", el.on_click)
         if el.hover:
             node["hover"] = el.hover
         ctx.nodes.append(node)
-        return
+    return
 
-    if isinstance(el, ImageMap):
-        w, h = min(w, el.lw), min(h, el.lh)
-        node = _base(el, "img", x, y, w, h, sc, path)
-        node["src"] = el.src
-        node["iw"] = el.iw
-        node["ih"] = el.ih
-        if el.v:
-            node["v"] = el.v
-        ctx.nodes.append(node)
-        for i, reg in enumerate(el.regions):
-            rid = reg.get("id") or "%s.r%d" % (node["id"], i)
-            rnode = {
+
+def _arrange_image(ctx, el, x, y, w, h, sc, path):
+    """A bitmap the renderer blits."""
+    w, h = min(w, el.lw), min(h, el.lh)
+    node = _base(el, "img", x, y, w, h, sc, path)
+    node["src"] = el.src
+    node["iw"] = el.iw
+    node["ih"] = el.ih
+    if el.v:
+        node["v"] = el.v
+    if el.on_click:
+        node["click"] = True
+        _reg(ctx, node["id"], "click", el.on_click)
+    if el.hover:
+        node["hover"] = el.hover
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
+    """A grid of bitmap cells sharing one source (the tile strips)."""
+    w, h = min(w, el.lw), min(h, el.lh)
+    node = _base(el, "img", x, y, w, h, sc, path)
+    node["src"] = el.src
+    node["iw"] = el.iw
+    node["ih"] = el.ih
+    if el.v:
+        node["v"] = el.v
+    ctx.nodes.append(node)
+    for i, reg in enumerate(el.regions):
+        rid = reg.get("id") or "%s.r%d" % (node["id"], i)
+        rnode = {
+            "t": "rect",
+            "id": rid,
+            "x": _round(x + reg["x"]),
+            "y": _round(y + reg["y"]),
+            "w": _round(reg["w"]),
+            "h": _round(reg["h"]),
+            "ring": True,
+        }
+        if sc:
+            rnode["sc"] = sc
+        if reg.get("on_click"):
+            rnode["click"] = True
+            if reg.get("repeat"):
+                rnode["rpt"] = True
+            _reg(ctx, rid, "click", reg["on_click"])
+        if reg.get("on_dbl"):
+            rnode["dbl"] = True
+            _reg(ctx, rid, "dbl", reg["on_dbl"])
+        if reg.get("on_context"):
+            rnode["ctx"] = True
+            _reg(ctx, rid, "context", reg["on_context"])
+        rnode["hover"] = reg.get(
+            "hover", {"bc": theme.ACCENT, "bw": 3})
+        ctx.nodes.append(rnode)
+    return
+
+
+def _arrange_textbox(ctx, el, x, y, w, h, sc, path):
+    """An editable single-line field."""
+    node = _base(el, "textbox", x, y, w, h, sc, path)
+    node["text"] = el.text
+    node["ph"] = el.placeholder
+    node["size"] = el.size
+    if el.mask:
+        node["mask"] = True
+    if el.force:
+        node["force"] = True
+    _reg(ctx, node["id"], "change", el.on_change)
+    _reg(ctx, node["id"], "submit", el.on_submit)
+    _reg(ctx, node["id"], "commit", el.on_commit)
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_slider(ctx, el, x, y, w, h, sc, path):
+    """A draggable track (volume, seek, settings)."""
+    node = _base(el, "slider", x, y, w, h, sc, path)
+    node["min"] = el.min
+    node["max"] = el.max
+    node["value"] = el.value
+    if el.force:
+        node["force"] = True
+    if el.marks:
+        node["marks"] = [round(float(m), 4) for m in el.marks]
+    if el.ranges:
+        node["ranges"] = [
+            [round(float(a), 4), round(float(b), 4)]
+            for a, b in el.ranges
+        ]
+    if el.on_hover is not None:
+        node["hoverev"] = True
+    if el.always_adjust:
+        node["aadj"] = True
+    _reg(ctx, node["id"], "change", el.on_change)
+    _reg(ctx, node["id"], "commit", el.on_commit)
+    _reg(ctx, node["id"], "cancel", el.on_cancel)
+    _reg(ctx, node["id"], "hover", el.on_hover)
+    _reg(ctx, node["id"], "hover_end", el.on_hover_end)
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_busy(ctx, el, x, y, w, h, sc, path):
+    """The spinner: no children and nothing to measure, just a marker node."""
+    ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
+    return
+
+
+def _arrange_gradient(ctx, el, x, y, w, h, sc, path):
+    """A vertical colour ramp, used behind text over artwork."""
+    node = _base(el, "grad", x, y, w, h, sc, path)
+    node["c"] = el.color
+    node["a1"] = el.top
+    node["a2"] = el.bottom
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_progress(ctx, el, x, y, w, h, sc, path):
+    """A determinate bar (downloads)."""
+    node = _base(el, "rect", x, y, w, h, sc, path)
+    node["fill"] = el.bg
+    node["radius"] = h / 2
+    ctx.nodes.append(node)
+    fw = w * el.frac
+    if fw >= 1:
+        fill = {
+            "t": "rect",
+            "id": node["id"] + ".fill",
+            "x": _round(x),
+            "y": _round(y),
+            "w": _round(fw),
+            "h": _round(h),
+            "fill": el.fg,
+            "radius": h / 2,
+        }
+        if sc:
+            fill["sc"] = sc
+        ctx.nodes.append(fill)
+    return
+
+
+def _arrange_grid(ctx, el, x, y, w, h, sc, path):
+    """A fixed-column grid with its own track sizing."""
+    cells = _grid_cells(el)
+    widths = _grid_track_widths(el, cells, w)
+    heights = _grid_row_heights(el, cells)
+    rp = float(el.row_pad)
+    cy = y
+    for ri, (row, spec) in enumerate(cells):
+        if spec is not None and (spec.get("bg") or spec.get("id")
+                                 or spec.get("on_click")
+                                 or spec.get("on_dbl")
+                                 or spec.get("hover")):
+            rid = spec.get("id") or "%s.gr%d" % (path, ri)
+            rect = {
                 "t": "rect",
                 "id": rid,
-                "x": _round(x + reg["x"]),
-                "y": _round(y + reg["y"]),
-                "w": _round(reg["w"]),
-                "h": _round(reg["h"]),
-                "ring": True,
-            }
-            if sc:
-                rnode["sc"] = sc
-            if reg.get("on_click"):
-                rnode["click"] = True
-                if reg.get("repeat"):
-                    rnode["rpt"] = True
-                _reg(ctx, rid, "click", reg["on_click"])
-            if reg.get("on_dbl"):
-                rnode["dbl"] = True
-                _reg(ctx, rid, "dbl", reg["on_dbl"])
-            if reg.get("on_context"):
-                rnode["ctx"] = True
-                _reg(ctx, rid, "context", reg["on_context"])
-            rnode["hover"] = reg.get(
-                "hover", {"bc": theme.ACCENT, "bw": 3})
-            ctx.nodes.append(rnode)
-        return
-
-    if isinstance(el, TextBox):
-        node = _base(el, "textbox", x, y, w, h, sc, path)
-        node["text"] = el.text
-        node["ph"] = el.placeholder
-        node["size"] = el.size
-        if el.mask:
-            node["mask"] = True
-        if el.force:
-            node["force"] = True
-        _reg(ctx, node["id"], "change", el.on_change)
-        _reg(ctx, node["id"], "submit", el.on_submit)
-        _reg(ctx, node["id"], "commit", el.on_commit)
-        ctx.nodes.append(node)
-        return
-
-    if isinstance(el, Slider):
-        node = _base(el, "slider", x, y, w, h, sc, path)
-        node["min"] = el.min
-        node["max"] = el.max
-        node["value"] = el.value
-        if el.force:
-            node["force"] = True
-        if el.marks:
-            node["marks"] = [round(float(m), 4) for m in el.marks]
-        if el.ranges:
-            node["ranges"] = [
-                [round(float(a), 4), round(float(b), 4)]
-                for a, b in el.ranges
-            ]
-        if el.on_hover is not None:
-            node["hoverev"] = True
-        if el.always_adjust:
-            node["aadj"] = True
-        _reg(ctx, node["id"], "change", el.on_change)
-        _reg(ctx, node["id"], "commit", el.on_commit)
-        _reg(ctx, node["id"], "cancel", el.on_cancel)
-        _reg(ctx, node["id"], "hover", el.on_hover)
-        _reg(ctx, node["id"], "hover_end", el.on_hover_end)
-        ctx.nodes.append(node)
-        return
-
-    if isinstance(el, Busy):
-        ctx.nodes.append(_base(el, "busy", x, y, w, h, sc, path))
-        return
-
-    if isinstance(el, Gradient):
-        node = _base(el, "grad", x, y, w, h, sc, path)
-        node["c"] = el.color
-        node["a1"] = el.top
-        node["a2"] = el.bottom
-        ctx.nodes.append(node)
-        return
-
-    if isinstance(el, Progress):
-        node = _base(el, "rect", x, y, w, h, sc, path)
-        node["fill"] = el.bg
-        node["radius"] = h / 2
-        ctx.nodes.append(node)
-        fw = w * el.frac
-        if fw >= 1:
-            fill = {
-                "t": "rect",
-                "id": node["id"] + ".fill",
                 "x": _round(x),
-                "y": _round(y),
-                "w": _round(fw),
-                "h": _round(h),
-                "fill": el.fg,
-                "radius": h / 2,
+                "y": _round(cy),
+                "w": _round(w),
+                "h": _round(heights[ri] + 2 * rp),
             }
             if sc:
-                fill["sc"] = sc
-            ctx.nodes.append(fill)
-        return
+                rect["sc"] = sc
+            if spec.get("bg"):
+                rect["fill"] = spec["bg"]
+            if spec.get("radius"):
+                rect["radius"] = spec["radius"]
+            if spec.get("hover"):
+                rect["hover"] = spec["hover"]
+            if spec.get("on_click"):
+                rect["click"] = True
+                _reg(ctx, rid, "click", spec["on_click"])
+            if spec.get("on_dbl"):
+                rect["dbl"] = True
+                _reg(ctx, rid, "dbl", spec["on_dbl"])
+            ctx.nodes.append(rect)
+        cx = x + rp
+        for ci, c in enumerate(row):
+            tw = widths[ci]
+            if c is not None:
+                mw, mh = measure(c)
+                if isinstance(c, Text) or c.flex > 0:
+                    cw2 = tw
+                else:
+                    cw2 = min(mw, tw)
+                ch2 = min(mh, heights[ri]) if heights[ri] else mh
+                a = el.cols[ci].get("align", "left")
+                if isinstance(c, Text) or a == "left":
+                    ox = 0.0
+                elif a == "center":
+                    ox = (tw - cw2) / 2
+                else:
+                    ox = tw - cw2
+                oy = rp + (heights[ri] - ch2) / 2
+                _arrange(ctx, c, cx + ox, cy + oy, cw2, ch2, sc,
+                         "%s.g%d_%d" % (path, ri, ci))
+            cx += tw + el.gap
+        cy += heights[ri] + 2 * rp + el.row_gap
+    return
 
-    if isinstance(el, Grid):
-        cells = _grid_cells(el)
-        widths = _grid_track_widths(el, cells, w)
-        heights = _grid_row_heights(el, cells)
-        rp = float(el.row_pad)
-        cy = y
-        for ri, (row, spec) in enumerate(cells):
-            if spec is not None and (spec.get("bg") or spec.get("id")
-                                     or spec.get("on_click")
-                                     or spec.get("on_dbl")
-                                     or spec.get("hover")):
-                rid = spec.get("id") or "%s.gr%d" % (path, ri)
-                rect = {
-                    "t": "rect",
-                    "id": rid,
-                    "x": _round(x),
-                    "y": _round(cy),
-                    "w": _round(w),
-                    "h": _round(heights[ri] + 2 * rp),
-                }
-                if sc:
-                    rect["sc"] = sc
-                if spec.get("bg"):
-                    rect["fill"] = spec["bg"]
-                if spec.get("radius"):
-                    rect["radius"] = spec["radius"]
-                if spec.get("hover"):
-                    rect["hover"] = spec["hover"]
-                if spec.get("on_click"):
-                    rect["click"] = True
-                    _reg(ctx, rid, "click", spec["on_click"])
-                if spec.get("on_dbl"):
-                    rect["dbl"] = True
-                    _reg(ctx, rid, "dbl", spec["on_dbl"])
-                ctx.nodes.append(rect)
-            cx = x + rp
-            for ci, c in enumerate(row):
-                tw = widths[ci]
-                if c is not None:
-                    mw, mh = measure(c)
-                    if isinstance(c, Text) or c.flex > 0:
-                        cw2 = tw
-                    else:
-                        cw2 = min(mw, tw)
-                    ch2 = min(mh, heights[ri]) if heights[ri] else mh
-                    a = el.cols[ci].get("align", "left")
-                    if isinstance(c, Text) or a == "left":
-                        ox = 0.0
-                    elif a == "center":
-                        ox = (tw - cw2) / 2
-                    else:
-                        ox = tw - cw2
-                    oy = rp + (heights[ri] - ch2) / 2
-                    _arrange(ctx, c, cx + ox, cy + oy, cw2, ch2, sc,
-                             "%s.g%d_%d" % (path, ri, ci))
-                cx += tw + el.gap
-            cy += heights[ri] + 2 * rp + el.row_gap
-        return
 
-    if isinstance(el, Icon):
+def _arrange_icon(ctx, el, x, y, w, h, sc, path):
+    """A single glyph from the icon font."""
+    from .vector import icon_ass
+
+    node = _base(el, "icon", x, y, w, h, sc, path)
+    node["path"] = icon_ass(el.name)
+    node["c"] = el.color
+    if el.hover_parent and el.hover_tint:
+        node["hb"] = el.hover_parent
+        node["hc"] = el.hover_tint
+    if el.on_click:
+        node["click"] = True
+        _reg(ctx, node["id"], "click", el.on_click)
+    if el.hover:
+        node["hover"] = el.hover
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_overlay(ctx, el, x, y, w, h, sc, path):
+    """Dialog and Float: positioned against the window, not the parent."""
+    cw, ch = measure(el.child)
+    cw, ch = _clamp_wh(el.child, cw, ch, ctx.root_w, ctx.root_h)
+    if isinstance(el, Dialog):
+        dx = (ctx.root_w - cw) / 2
+        dy = max(0.0, (ctx.root_h - ch) / 2.5)
+    else:
+        dx, dy = float(el.x), float(el.y)
+    meta = {
+        "t": "layer",
+        "kind": "modal" if isinstance(el, Dialog) else "float",
+        "id": el.id or path,
+        "x": _round(dx),
+        "y": _round(dy),
+        "w": _round(cw),
+        "h": _round(ch),
+        "top": True,
+    }
+    if isinstance(el, Dialog):
+        meta["mod"] = True
+        _reg(ctx, meta["id"], "dismiss", el.on_dismiss)
+    ctx.nodes.append(meta)
+    start = len(ctx.nodes)
+    # floating content never scrolls with page content: sc=None
+    _arrange(ctx, el.child, dx, dy, cw, ch, None, path + ".0")
+    for n in ctx.nodes[start:]:
+        n["top"] = True
+        if isinstance(el, Dialog):
+            n["mod"] = True
+    return
+
+
+def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
+    """A closed select, plus its popup when open."""
+    node = _base(el, "dropdown", x, y, w, h, sc, path)
+    node["items"] = el.items
+    node["sel"] = el.selected
+    node["size"] = el.size
+    if el.icons:
+        node["icons"] = _icon_paths(el.icons)
+    if el.force:
+        node["force"] = True
+    if el.trigger_icon:
         from .vector import icon_ass
 
-        node = _base(el, "icon", x, y, w, h, sc, path)
-        node["path"] = icon_ass(el.name)
-        node["c"] = el.color
-        if el.hover_parent and el.hover_tint:
-            node["hb"] = el.hover_parent
-            node["hc"] = el.hover_tint
-        if el.on_click:
-            node["click"] = True
-            _reg(ctx, node["id"], "click", el.on_click)
-        if el.hover:
-            node["hover"] = el.hover
-        ctx.nodes.append(node)
-        return
-
-    if isinstance(el, (Dialog, Float)):
-        # Out-of-flow top layer. Dialog centers itself and grabs input;
-        # Float sits at its given position without grabbing. Fractional
-        # min/max on the child resolve against the window here, so a
-        # dialog can say "natural, but at most 60% of the screen".
-        cw, ch = measure(el.child)
-        cw, ch = _clamp_wh(el.child, cw, ch, ctx.root_w, ctx.root_h)
-        if isinstance(el, Dialog):
-            dx = (ctx.root_w - cw) / 2
-            dy = max(0.0, (ctx.root_h - ch) / 2.5)
-        else:
-            dx, dy = float(el.x), float(el.y)
-        meta = {
-            "t": "layer",
-            "kind": "modal" if isinstance(el, Dialog) else "float",
-            "id": el.id or path,
-            "x": _round(dx),
-            "y": _round(dy),
-            "w": _round(cw),
-            "h": _round(ch),
-            "top": True,
-        }
-        if isinstance(el, Dialog):
-            meta["mod"] = True
-            _reg(ctx, meta["id"], "dismiss", el.on_dismiss)
-        ctx.nodes.append(meta)
-        start = len(ctx.nodes)
-        # floating content never scrolls with page content: sc=None
-        _arrange(ctx, el.child, dx, dy, cw, ch, None, path + ".0")
-        for n in ctx.nodes[start:]:
-            n["top"] = True
-            if isinstance(el, Dialog):
-                n["mod"] = True
-        return
-
-    if isinstance(el, Dropdown):
-        node = _base(el, "dropdown", x, y, w, h, sc, path)
-        node["items"] = el.items
-        node["sel"] = el.selected
-        node["size"] = el.size
-        if el.icons:
-            node["icons"] = _icon_paths(el.icons)
-        if el.force:
-            node["force"] = True
-        if el.trigger_icon:
-            from .vector import icon_ass
-
-            node["ticon"] = icon_ass(el.trigger_icon)
-            # icon triggers are narrower than their popup: size the
-            # popup to the items (like Menu) and let the renderer
-            # clamp it to the screen edges
-            widest = max(
-                (text_width(i, el.size) for i in el.items), default=40
-            )
-            pw = widest + 36
-            if el.icons:
-                pw += el.size * 1.5
-            node["pw"] = _round(pw)
-        _reg(ctx, node["id"], "select", el.on_select)
-        ctx.nodes.append(node)
-        return
-
-    if isinstance(el, Menu):
-        # ignores the flow position: x/y are absolute screen coords
+        node["ticon"] = icon_ass(el.trigger_icon)
+        # icon triggers are narrower than their popup: size the
+        # popup to the items (like Menu) and let the renderer
+        # clamp it to the screen edges
         widest = max(
             (text_width(i, el.size) for i in el.items), default=40
         )
-        node = {
-            "t": "menu",
-            "id": el.id,
-            "x": _round(el.x),
-            "y": _round(el.y),
-            "w": _round(widest + 36),
-            # "rh", not "ih": this is a row height in LOGICAL px and must
-            # scale, whereas an img node's "ih" is the physical bitmap
-            # height and must not. One key meaning both is how the menu
-            # ended up drawing 1x rows under 2x text.
-            "rh": _round(el.size * 1.9),
-            "items": el.items,
-            "size": el.size,
-        }
+        pw = widest + 36
         if el.icons:
-            node["icons"] = _icon_paths(el.icons)
-            node["w"] = _round(node["w"] + el.size * 1.5)
-        _reg(ctx, el.id, "select", el.on_select)
-        _reg(ctx, el.id, "dismiss", el.on_dismiss)
-        ctx.nodes.append(node)
-        return
+            pw += el.size * 1.5
+        node["pw"] = _round(pw)
+    _reg(ctx, node["id"], "select", el.on_select)
+    ctx.nodes.append(node)
+    return
 
-    if isinstance(el, Scroll):
-        node = _base(el, "scroll", x, y, w, h, sc, path)
-        node["axis"] = el.axis
-        inner_w, inner_h = w, h
-        if el.scrollbar and el.axis == "y":
-            inner_w -= SCROLLBAR_W
-            node["bar"] = True
-        cw, ch = measure(el.child)
-        if el.axis == "x":
-            cw, ch = max(cw, inner_w), inner_h
+
+def _arrange_menu(ctx, el, x, y, w, h, sc, path):
+    """A popup list of entries."""
+    widest = max(
+        (text_width(i, el.size) for i in el.items), default=40
+    )
+    node = {
+        "t": "menu",
+        "id": el.id,
+        "x": _round(el.x),
+        "y": _round(el.y),
+        "w": _round(widest + 36),
+        # "rh", not "ih": this is a row height in LOGICAL px and must
+        # scale, whereas an img node's "ih" is the physical bitmap
+        # height and must not. One key meaning both is how the menu
+        # ended up drawing 1x rows under 2x text.
+        "rh": _round(el.size * 1.9),
+        "items": el.items,
+        "size": el.size,
+    }
+    if el.icons:
+        node["icons"] = _icon_paths(el.icons)
+        node["w"] = _round(node["w"] + el.size * 1.5)
+    _reg(ctx, el.id, "select", el.on_select)
+    _reg(ctx, el.id, "dismiss", el.on_dismiss)
+    ctx.nodes.append(node)
+    return
+
+
+def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
+    """A clipped viewport with an offset.
+
+    VScroll and HScroll subclass Scroll, which is why the dispatch
+    below stays an ordered isinstance chain rather than a lookup on type."""
+    node = _base(el, "scroll", x, y, w, h, sc, path)
+    node["axis"] = el.axis
+    inner_w, inner_h = w, h
+    if el.scrollbar and el.axis == "y":
+        inner_w -= SCROLLBAR_W
+        node["bar"] = True
+    cw, ch = measure(el.child)
+    if el.axis == "x":
+        cw, ch = max(cw, inner_w), inner_h
+    else:
+        cw, ch = inner_w, max(ch, inner_h)
+    node["cw"] = _round(cw)
+    node["ch"] = _round(ch)
+    if el.follow:
+        node["follow"] = True
+    if getattr(el, "snaps", None):
+        # Explicit unequal breakpoints (home sections). Logical; scale_scene
+        # scales each element. Takes precedence over uniform snap.
+        node["snaps"] = list(el.snaps)
+    elif getattr(el, "snap", None):
+        # Row-quantized display offset (see Scroll/renderer.lua snap_round).
+        # Logical here; scale_scene converts both to physical, like cw/ch.
+        node["snap"] = el.snap
+        node["snap_off"] = el.snap_off
+    if el.on_scroll:
+        node["watch"] = True
+        _reg(ctx, node["id"], "scroll", el.on_scroll)
+    ctx.nodes.append(node)
+    _arrange(ctx, el.child, x, y, cw, ch, node["id"], path + ".0")
+    return
+
+
+def _arrange_stack(ctx, el, x, y, w, h, sc, path):
+    """Overlapping children, all at the same origin."""
+    for i, c in enumerate(el.children):
+        mw, mh = measure(c)
+        cw = c.w if c.w is not None else mw
+        ch = c.h if c.h is not None else mh
+        a = c.anchor
+        if a is None or a == "fill":
+            cx, cy, cw, ch = x, y, w, h
         else:
-            cw, ch = inner_w, max(ch, inner_h)
-        node["cw"] = _round(cw)
-        node["ch"] = _round(ch)
-        if el.follow:
-            node["follow"] = True
-        if getattr(el, "snaps", None):
-            # Explicit unequal breakpoints (home sections). Logical; scale_scene
-            # scales each element. Takes precedence over uniform snap.
-            node["snaps"] = list(el.snaps)
-        elif getattr(el, "snap", None):
-            # Row-quantized display offset (see Scroll/renderer.lua snap_round).
-            # Logical here; scale_scene converts both to physical, like cw/ch.
-            node["snap"] = el.snap
-            node["snap_off"] = el.snap_off
-        if el.on_scroll:
-            node["watch"] = True
-            _reg(ctx, node["id"], "scroll", el.on_scroll)
-        ctx.nodes.append(node)
-        _arrange(ctx, el.child, x, y, cw, ch, node["id"], path + ".0")
-        return
-
-    if isinstance(el, Stack):
-        for i, c in enumerate(el.children):
-            mw, mh = measure(c)
-            cw = c.w if c.w is not None else mw
-            ch = c.h if c.h is not None else mh
-            a = c.anchor
-            if a is None or a == "fill":
-                cx, cy, cw, ch = x, y, w, h
+            cw, ch = min(cw, w), min(ch, h)
+            if a in ("n", "c", "s"):
+                cx = x + (w - cw) / 2
+            elif a in ("ne", "e", "se"):
+                cx = x + w - cw
             else:
-                cw, ch = min(cw, w), min(ch, h)
-                if a in ("n", "c", "s"):
-                    cx = x + (w - cw) / 2
-                elif a in ("ne", "e", "se"):
-                    cx = x + w - cw
-                else:
-                    cx = x
-                if a in ("w", "c", "e"):
-                    cy = y + (h - ch) / 2
-                elif a in ("sw", "s", "se"):
-                    cy = y + h - ch
-                else:
-                    cy = y
-            cx += c.dx
-            cy += c.dy
-            cpath = "%s.%d" % (path, i)
-            if c.occlude:
-                # marker consumed by the renderer: this child's rect is
-                # subtracted from IMAGE nodes earlier in paint order, so
-                # ASS-drawn content can sit "over" a bitmap sibling
-                occ = {
-                    "t": "occ",
-                    "id": cpath + ".occ",
-                    "x": _round(cx),
-                    "y": _round(cy),
-                    "w": _round(cw),
-                    "h": _round(ch),
-                }
-                if sc:
-                    occ["sc"] = sc
-                ctx.nodes.append(occ)
-            _arrange(ctx, c, cx, cy, cw, ch, sc, cpath)
-        return
+                cx = x
+            if a in ("w", "c", "e"):
+                cy = y + (h - ch) / 2
+            elif a in ("sw", "s", "se"):
+                cy = y + h - ch
+            else:
+                cy = y
+        cx += c.dx
+        cy += c.dy
+        cpath = "%s.%d" % (path, i)
+        if c.occlude:
+            # marker consumed by the renderer: this child's rect is
+            # subtracted from IMAGE nodes earlier in paint order, so
+            # ASS-drawn content can sit "over" a bitmap sibling
+            occ = {
+                "t": "occ",
+                "id": cpath + ".occ",
+                "x": _round(cx),
+                "y": _round(cy),
+                "w": _round(cw),
+                "h": _round(ch),
+            }
+            if sc:
+                occ["sc"] = sc
+            ctx.nodes.append(occ)
+        _arrange(ctx, c, cx, cy, cw, ch, sc, cpath)
+    return
 
+
+def _arrange_box(ctx, el, x, y, w, h, sc, path):
+    """The workhorse: a padded flex row or column. Also the fallthrough."""
+    if el.bg or el.border or el.on_click:
+        node = _base(el, "rect", x, y, w, h, sc, path)
+        if el.bg:
+            node["fill"] = el.bg
+        if el.alpha != 255:
+            node["a"] = el.alpha
+        if el.radius:
+            node["radius"] = el.radius
+        if el.border:
+            node["bc"] = el.border
+            node["bw"] = el.border_w
+        if el.on_click:
+            node["click"] = True
+            if el.repeat:
+                node["rpt"] = True
+            _reg(ctx, node["id"], "click", el.on_click)
+        if el.on_dbl:
+            node["dbl"] = True
+            _reg(ctx, node["id"], "dbl", el.on_dbl)
+        if getattr(el, "on_context", None):
+            node["ctx"] = True
+            _reg(ctx, node["id"], "context", el.on_context)
+        if el.hover:
+            node["hover"] = el.hover
+        ctx.nodes.append(node)
+    _arrange_children(ctx, el, x, y, w, h, sc, path)
+    return
+
+
+def _arrange(ctx, el, x, y, w, h, sc, path):
+    """Dispatch one element to its arranger.
+
+    An ordered isinstance chain, not a dict keyed on ``type(el)``: VScroll
+    and HScroll subclass Scroll, so an exact-type lookup would silently
+    miss the two container types the browser uses most. Order is part of
+    the contract, and Box stays last because it is the fallthrough.
+
+    Was one 432-line function. The sixteen branches below were already
+    independent -- each ended in ``return``, none had an ``else`` -- which
+    is what made splitting it a move rather than a rewrite.
+    """
+    if isinstance(el, Text):
+        return _arrange_text(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Image):
+        return _arrange_image(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, ImageMap):
+        return _arrange_image_map(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, TextBox):
+        return _arrange_textbox(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Slider):
+        return _arrange_slider(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Busy):
+        return _arrange_busy(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Gradient):
+        return _arrange_gradient(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Progress):
+        return _arrange_progress(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Grid):
+        return _arrange_grid(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Icon):
+        return _arrange_icon(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, (Dialog, Float)):
+        return _arrange_overlay(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Dropdown):
+        return _arrange_dropdown(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Menu):
+        return _arrange_menu(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Scroll):
+        return _arrange_scroll(ctx, el, x, y, w, h, sc, path)
+    if isinstance(el, Stack):
+        return _arrange_stack(ctx, el, x, y, w, h, sc, path)
     if isinstance(el, Box):
-        if el.bg or el.border or el.on_click:
-            node = _base(el, "rect", x, y, w, h, sc, path)
-            if el.bg:
-                node["fill"] = el.bg
-            if el.alpha != 255:
-                node["a"] = el.alpha
-            if el.radius:
-                node["radius"] = el.radius
-            if el.border:
-                node["bc"] = el.border
-                node["bw"] = el.border_w
-            if el.on_click:
-                node["click"] = True
-                if el.repeat:
-                    node["rpt"] = True
-                _reg(ctx, node["id"], "click", el.on_click)
-            if el.on_dbl:
-                node["dbl"] = True
-                _reg(ctx, node["id"], "dbl", el.on_dbl)
-            if getattr(el, "on_context", None):
-                node["ctx"] = True
-                _reg(ctx, node["id"], "context", el.on_context)
-            if el.hover:
-                node["hover"] = el.hover
-            ctx.nodes.append(node)
-        _arrange_children(ctx, el, x, y, w, h, sc, path)
-        return
+        return _arrange_box(ctx, el, x, y, w, h, sc, path)
 
     # Bare Element (Spacer): nothing to paint.
 
