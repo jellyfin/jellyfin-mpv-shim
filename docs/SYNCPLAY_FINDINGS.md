@@ -17,6 +17,19 @@ This document records what the trace found so the work can be scheduled. It is
 **not** a task list to be worked top to bottom — several items want their own
 investigation first.
 
+Two pieces of context that shape how to read all of it:
+
+* **jellyfin-web is the source, not the specification.** The client's logic was
+  hand-transpiled from web's JS. Where the two agree, that means a bug was
+  inherited rather than introduced; it is evidence about provenance, not about
+  correctness. The server is the only authority.
+* **SyncPlay is effectively unmaintained upstream.** It arrived as a drive-by
+  PR that added a great deal of complexity to the server, and the author then
+  disappeared; the Jellyfin team is not fond of it. Practically: the protocol
+  is unlikely to change under us, so conforming to the server as written is
+  safe — and equally, upstream is unlikely to meet us halfway, so anything
+  fixed here has to be fixed on the client side.
+
 ## Verification status
 
 Marked per item:
@@ -129,15 +142,36 @@ removed from the playlist). The client passes it straight into `Media(...)`
 (`syncplay.py:568`) and `replace_queue` (`:578`), where `sp_items[-1]` selects
 the **last** item in the queue.
 
-### 7. The duplicate-command filter defeats the server's resync (demonstrated behaviour; verdict still open)
+### 7. The duplicate-command filter is too coarse and eats the server's resync (demonstrated)
 
-The server deliberately re-sends a byte-identical command to a single session
-to correct a drifted client. The client drops it as a duplicate
-(`syncplay.py:381-388`), so the server's only correction channel is unusable.
+The server corrects a client it thinks has drifted by re-sending the current
+state to that session alone (`PlayingGroupState.cs`, `PausedGroupState.cs`,
+"Client got lost, sending current state"). The client drops it as a duplicate
+(`syncplay.py:381-388`).
 
-Context needed before acting: jellyfin-web has the same filter, so either the
-server's resync is also useless there, or web distinguishes them some way the
-port missed. Check jellyfin-web before changing this.
+**The resync is distinguishable, and the filter throws away the field that
+distinguishes it.** `Group.NewSyncPlayCommand` (`Group.cs:418-427`) builds
+every command with `EmittedAt = DateTime.UtcNow`, so no two sends are ever
+identical. The client compares `When`, `PositionTicks` and `Command` — and
+not `EmittedAt`.
+
+So this no longer depends on reading jellyfin-web. The behaviour is wrong
+against the server as written, and the discriminator is already on the wire.
+
+What *does* still want thought is what the filter was protecting against,
+because including `EmittedAt` makes it never fire against this server — which
+is the same as deleting it. Re-acting on a repeated Pause is close to
+idempotent (`local_pause` + a seek to the position already held), and the
+server only sends the resync when it believes this client is lost, so acting
+on it is the intended behaviour. Decide deliberately between "compare
+`EmittedAt` too" and "drop the filter", rather than by accident.
+
+Note on provenance, which applies to this whole document: the client was
+hand-transpiled from jellyfin-web's JS, so **jellyfin-web is the source of
+these behaviours, not an authority on them**. If web does the same thing,
+that says the bug was inherited rather than introduced — useful for guessing
+where *other* bugs are, but it does not make the behaviour correct. The
+server is the only authority, and it is what the mock is ported from.
 
 ### 8. `Ping` is sent as a float against a `long` DTO, and is nearly never sent (relayed — wants context)
 

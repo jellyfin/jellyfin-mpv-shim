@@ -220,11 +220,19 @@ class TestTheClientAcceptsTheServersResync(ProtocolCase):
     ``LastActivity`` and ``PositionTicks``, so it is byte-identical to the
     last broadcast -- and the client drops duplicates.
 
-    **Marked expected-failure but not yet confirmed as a bug.** jellyfin-web
-    has the same duplicate filter, so either its resync is equally useless or
-    it distinguishes them in a way this port missed. Check jellyfin-web before
-    changing anything here; the test exists to make the behaviour visible, not
-    to assert a verdict.
+    The resync *is* distinguishable and the filter throws away the field
+    that distinguishes it: ``Group.NewSyncPlayCommand`` (``Group.cs:418``)
+    stamps every command with ``EmittedAt = DateTime.UtcNow``, so no two
+    sends are ever identical, and the client compares ``When``,
+    ``PositionTicks`` and ``Command`` -- not ``EmittedAt``.
+
+    jellyfin-web having the same filter would not settle this either way:
+    this client was transpiled from web, so agreement means the bug was
+    inherited, not that it is correct.
+
+    Open, and worth deciding on purpose: comparing ``EmittedAt`` too makes
+    the filter never fire against this server, which is the same as deleting
+    it. See finding 7.
     """
 
     @unittest.expectedFailure      # finding 7 -- UNCONFIRMED, see below
