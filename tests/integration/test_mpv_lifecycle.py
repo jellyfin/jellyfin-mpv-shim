@@ -436,6 +436,57 @@ class WindowLifecycleTest(unittest.TestCase):
     def _stops(pm):
         return [c for c in pm._player.commands if c and c[0] == "stop"]
 
+    def test_stop_to_browser_does_not_resummon_a_window_the_browser_dropped(
+            self):
+        """The window flicker the `window:` trace caught, from a real log:
+
+            browse=off  <- gateway.playback.on_minimize
+            force_window=False
+            browse=on   <- player.stop_to_browser        <-- blank window
+            browse=off  <- gateway.playback.on_minimize  <-- and gone again
+
+        ``stop()`` ends in ``push_playstate(stopped=True)``, which is how the
+        browser is told to take the window back — and it is equally free to
+        decide it is minimizing instead. When it does, it clears
+        ``mpvtk_active`` and drops force_window *inside* this call, and the
+        unconditional re-assert that followed summoned a fresh blank window
+        the browser then tore down again.
+
+        Timing-dependent, which is why it showed on one backend: lose the
+        race and the re-assert lands on a window that still exists and does
+        nothing at all.
+        """
+        pm = self._player()
+
+        def browser_minimizes(**kw):
+            # Exactly what gateway.playback.on_minimize does, in the order it
+            # does it — the flag first, which is what makes reading it safe.
+            pm.mpvtk_active = False
+            pm.set_browse_window(False)
+
+        pm.push_playstate = browser_minimizes
+        # stop()'s tail, which is the seam that matters here: the rest of it
+        # (timeline reports, transcode teardown) has nothing to do with who
+        # ends up owning the window.
+        pm.stop = lambda: pm.push_playstate(stopped=True)
+        pm.stop_to_browser()
+        self.assertFalse(
+            pm._player.force_window,
+            "stop_to_browser re-summoned a window the browser had just "
+            "released — a blank one, since nothing is loaded")
+
+    def test_stop_to_browser_still_keeps_the_window_for_a_browser_that_wants_it(
+            self):
+        """The other half: when the browser does re-enter browse mode, the
+        re-assert is what it is there for and must still happen."""
+        pm = self._player()
+        pm.push_playstate = lambda **kw: None   # browser stays in browse mode
+        pm.stop = lambda: pm.push_playstate(stopped=True)
+        pm._player.force_window = False         # ...and has not asked yet
+        pm.stop_to_browser()
+        self.assertTrue(pm._player.force_window,
+                        "the window was not handed back to the browser")
+
     def test_browse_window_is_idempotent(self):
         """Re-arming the window over itself tears the video output down and
         back up, which reads as the window closing and reopening."""

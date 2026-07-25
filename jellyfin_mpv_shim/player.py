@@ -1781,10 +1781,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def stop_to_browser(self):
         """Stop playback but keep the window, so the in-window browser can take
         it back (the 'q' key while the in-window browser is up). push_playstate(stopped)
-        is what tells the browser to re-enter browse mode."""
+        is what tells the browser to re-enter browse mode.
+
+        That notification is also why the browse re-assert below is
+        conditional. ``stop()`` ends in ``push_playstate(stopped=True)``, so
+        the browser gets to act *inside* this call, and re-entering browse is
+        only one of the things it may decide: told that playback stopped with
+        nothing to show, it minimizes instead, clearing ``mpvtk_active`` and
+        dropping force_window. Re-asserting unconditionally then summoned a
+        window nobody wanted -- a blank one, since nothing is loaded -- which
+        the browser tore down again a moment later. That is the "closes,
+        briefly re-opens blank, closes again" flicker, and it needed the
+        browser to be *quick* to show at all: lose the race and the re-assert
+        lands first, on a window that still exists, and does nothing.
+
+        So the browser gets the last word. ``mpvtk_active`` is the same flag
+        ``_set_force_window`` treats as the authority on who owns the window,
+        and ``on_minimize`` clears it before releasing anything, which is what
+        makes reading it here reliable.
+        """
         log.info("stop_to_browser: stopping playback, keeping the window")
         self.stop()
-        if not self._mpv_alive:
+        if not self._mpv_alive or not self.mpvtk_active:
             return
         self.set_browse_window(True)
 

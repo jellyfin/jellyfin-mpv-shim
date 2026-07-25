@@ -96,14 +96,26 @@ in ways only real hardware answers for.
     2026-07-25 14:03:57,630 [   ERROR] mpv: af: Disabling filter jfac3 because it has failed.
     ALSA lib conf.c:5695:(snd_config_expand) Unknown parameters AES0=6,AES1=130,AES2=0,AES3=2
     ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default:AES0=6,AES1=130,AES2=0,AES3=2
-  - [ ] **Fixed 2026-07-25, re-test on a machine with S/PDIF.** The suspicion
-    was right. `apply_audio_settings` runs from `_init_mpv` with nothing
-    loaded, asked the per-track question anyway, got the unreadable-codec
-    answer (encode) and attached `lavcac3enc` to an idle player — so the next
-    AC3 file built the one chain the module exists to prevent. mpv drops the
-    filter itself, hence three error lines and no audible effect. The encoder
-    is now decided only when there is a track to decide about. The ALSA lines
-    below it are just the machine having no S/PDIF device.
+  - [X] **Fixed 2026-07-25.** The suspicion was right. `apply_audio_settings`
+    runs from `_init_mpv` with nothing loaded, asked the per-track question
+    anyway, got the unreadable-codec answer (encode) and attached
+    `lavcac3enc` to an idle player — so the next AC3 file built the one chain
+    the module exists to prevent. mpv drops the filter itself, hence three
+    error lines and no audible effect. The encoder is now decided only when
+    there is a track to decide about.
+  - The three ERROR lines are gone. What remains is **not ours**, verified
+    directly: bare `mpv --no-config --ao=null --audio-spdif=ac3` on a
+    generated AC3 file prints `Failed to parse codec profile.` with no shim
+    involved, and the same command *without* `--audio-spdif` prints nothing.
+    It is mpv's spdif decoder wrapper probing for a DTS profile, and it is a
+    warning, not a failure. The ALSA `AES0=...` lines are this machine having
+    no S/PDIF device.
+  - HDMI showing `spdif-ac3` too is correct, not a leak from optical: AC3
+    over HDMI is also carried as an IEC61937 bitstream, so it takes the same
+    path and prints the same warning. `stereo 2ch` in that line is how
+    IEC61937 is framed, not a downmix. What differs between the two modes is
+    which codecs are allowed (HDMI adds E-AC3/DTS-HD/TrueHD) and the channel
+    layout — and only optical ever reaches for the encoder.
 - [X] Night mode on/off during playback; per-type volume still remembered
       separately for music vs video across a restart.
 - [X] A file whose audio track the profile can't do (DTS-HD on an optical
@@ -116,7 +128,7 @@ in ways only real hardware answers for.
 - [X] Discord Rich Presence still shows and clears (optional dep — also
       confirm the app is fine with `pypresence` absent).
   - Should move into main menu, also should report if checked but pypresence is absent.
-  - [ ] **Done 2026-07-25, re-test.** Now in Settings → Interface. The
+  - [X] **Done 2026-07-25, re-test.** Now in Settings → Interface. The
     always-visible note says only "takes effect after a restart" — it must
     **not** name pypresence, which the Windows build bundles. Ticking it with
     the package missing shows a second line saying it is not active; with it
@@ -129,14 +141,20 @@ in ways only real hardware answers for.
       stale-queue bug; the highest-value single item on this page.
       lib [X] ext [X]
   - On EXT MPV when casted, when I click back in the UI it does close, but it briefly re-opens with a blank screen before closing again and staying closed. Cosmetic issue, doesn't cause any actual problems.
-  - [ ] **Re-run with the new trace and attach the lines.** `grep '^window:'
-    log.txt` now gives the whole story in a handful of lines, each naming the
-    caller (see `docs/development.md`). Two things it will settle: whether mpv
-    is being re-created or only its window, and *who* asked for it back.
-    Checked while adding it: your ext mpv is 0.41, so
-    `_runtime_force_window` is true and the quit-to-release path is **not**
-    what is happening — the earlier guess. Most likely a re-entry into browse
-    mode triggered by the `stop` that minimizing itself issues.
+  - [X] **Traced and fixed 2026-07-25.** The `window:` trace named it in four
+    lines: `on_minimize` released the window, then `stop_to_browser` asked
+    for it straight back, then `on_minimize` again. mpv was never re-created
+    — only the window, and blank because nothing is loaded.
+    `stop()` ends in `push_playstate(stopped=True)`, which is exactly how the
+    browser is told to take the window back — and it is equally free to
+    decide it is *minimizing* instead, which it does when there is nothing to
+    show. `stop_to_browser` re-asserted browse mode regardless. It now checks
+    `mpvtk_active` after the stop, so the browser gets the last word.
+    Timing-dependent, which is why one backend showed it: lose the race and
+    the re-assert lands on a window that still exists and does nothing.
+  - [X] Re-test: cast, click back, and confirm the window closes once and
+    stays closed. `grep '^window:' log.txt` should show one `browse=off` and
+    no `browse=on` after it.
 - [X] idle-quit (`mpv_idle_quit: true`, short `mpv_idle_quit_secs`): fires
       when idle, does **not** fire while playing / menu open / SyncPlay group
       active / cast screen up / user-launched external mpv.  lib [X] ext [X]
@@ -183,9 +201,9 @@ that models the renderer rather than being it.
 - [X] Scroll a library deep, change the sort → the grid comes back at the top
       with tiles, not blank. (The same defect by the other door: the reload
       drops to the busy screen, which takes the scroller with it.)
-- [*] Scroll deep, open an item, come back → lands where you left it.
+- [X] Scroll deep, open an item, come back → lands where you left it.
   - UI does NOT currently preserve scroll position on back-nav
-  - [ ] **Fixed 2026-07-25, re-test.** It never worked: `go_back` cleared
+  - [X] **Fixed 2026-07-25, confirmed.** It never worked: `go_back` cleared
     every offset, and there was nothing to restore from because the renderer
     drops the state of a container that leaves the scene. Offsets are now
     parked on the *route* (like the page number already was, which is why
