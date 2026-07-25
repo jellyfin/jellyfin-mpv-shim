@@ -88,9 +88,6 @@ class TilesMixin:
     # otherwise get a fresh burst on every scroll frame. Attempts are
     # capped so a permanently broken URL settles instead of retrying for
     # the life of the session.
-    IMG_RETRY_BACKOFF = 5.0    # seconds, doubled per attempt
-
-    IMG_MAX_ATTEMPTS = 4
 
 
 
@@ -98,9 +95,6 @@ class TilesMixin:
 
 
 
-    # A banner is a wide crop, not a 16:9 frame — two-thirds the height of
-    # the equivalent 16:9 box, which is roughly 2.4:1.
-    BANNER_RATIO = 9 / 16 * 2 / 3
 
 
 
@@ -361,17 +355,8 @@ class TilesMixin:
                 self._open_item(item)
         self.run_async(work, done, ep)
 
-    # Row height of every track table (album, playlist, queue, songs).
-    TRACK_ROW_H = 34
 
-    # Square page-arrow buttons floating over the carousel's edges.
-    ARROW_W = 38
 
-    # Slack inside a scroll viewport so a tile's hover ring — which the
-    # renderer draws 2px OUTSIDE the hit rect, and clips to the viewport —
-    # isn't shaved off against the container edge. Without it the top of the
-    # ring vanished under the row heading above.
-    RING_PAD = 5
 
 
 
@@ -379,7 +364,6 @@ class TilesMixin:
     # ---------------------------------------------------- music / playlists
 
 
-    GRID_GAP = 12
 
 
 

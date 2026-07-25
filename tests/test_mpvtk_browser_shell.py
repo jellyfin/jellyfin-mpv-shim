@@ -10,6 +10,7 @@ import unittest
 
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components, home_sections
+from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 
@@ -1625,7 +1626,7 @@ class TestTileShapes(unittest.TestCase):
         self.assertIn("row-libs-pr", by_id)
         strip = by_id["row-libs"]
         left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
-        pad = self.b.RING_PAD
+        pad = tile_renderer.RING_PAD
         # Inset from the scroll container's edges by the ring padding.
         self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
         self.assertAlmostEqual(right["x"] + right["w"],
@@ -4086,14 +4087,14 @@ class TestThumbnailRetry(unittest.TestCase):
 
     def test_retries_are_capped(self):
         self._ask()
-        for _ in range(self.b.IMG_MAX_ATTEMPTS + 3):
+        for _ in range(self.b.tiles.IMG_MAX_ATTEMPTS + 3):
             key = self.thumbs.requests[-1][0]
             if key in self.thumbs._cbs:
                 self.thumbs.resolve(key, None)
             self.b.tiles._img_retry["k1"] = (self.b.tiles._img_retry["k1"][0], 0.0)
             self._ask()
         self.assertLessEqual(len(self.thumbs.requests),
-                             self.b.IMG_MAX_ATTEMPTS + 1,
+                             self.b.tiles.IMG_MAX_ATTEMPTS + 1,
                              "a dead URL must stop being retried")
 
     def test_a_successful_image_is_not_refetched(self):
@@ -4132,7 +4133,7 @@ class TestTrackListArtWindowing(unittest.TestCase):
 
     def test_scrolling_moves_the_window(self):
         tracks = self._tracks(300)
-        self.b._scroll.on_scroll("playlist", 100 * self.b.TRACK_ROW_H + 70, 100000)
+        self.b._scroll.on_scroll("playlist", 100 * tile_renderer.TRACK_ROW_H + 70, 100000)
         self.b._track_list(tracks, "pl", on_play=lambda i: None,
                            art=True, scroll_id="playlist", head_h=70)
         self.assertNotIn("t0", self.built)
