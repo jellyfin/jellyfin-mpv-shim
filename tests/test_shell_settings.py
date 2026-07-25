@@ -80,6 +80,69 @@ class TestSettings(unittest.TestCase):
         self.assertNotIn("hud_grab_keys", advanced)
         self.assertNotIn("hud_wake_key", advanced)
 
+    def test_discord_presence_is_a_curated_setting(self):
+        """The real schema: it was config-file-only, so the only way to turn
+        it on was to know the key existed."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        self.assertIn("discord_presence", dict(real.sections())["Interface"])
+        self.assertNotIn("discord_presence",
+                         dict(real.sections()).get("Advanced", []))
+        self.assertIn("discord_presence", real.NOTES)
+        # The Windows build bundles pypresence, so the always-visible note
+        # must not name it -- a dependency most users never have to think
+        # about reads as something they are missing.
+        self.assertNotIn("pypresence", real.NOTES["discord_presence"])
+
+    def test_discord_says_so_when_it_is_on_but_did_not_load(self):
+        """Ticking the box with pypresence missing did nothing at all, and
+        said nothing either: player.py reads the setting once at import and
+        only enables the feature if the module imports, logging the failure
+        somewhere nobody reads. A setting that silently does nothing is the
+        same shape of bug as the pause guard."""
+        from jellyfin_mpv_shim.conf import settings
+
+        saved = settings.discord_presence
+        available = [False]
+
+        class Ctl:
+            def rich_presence_available(self):
+                return available[0]
+
+        self.b.controller = Ctl()
+        try:
+            settings.discord_presence = False
+            self.assertIsNone(self.b._dynamic_note("discord_presence"),
+                              "warned about a feature that is switched off")
+            settings.discord_presence = True
+            note = self.b._dynamic_note("discord_presence")
+            self.assertIsNotNone(note, "on but not loaded, and no sign of it")
+            self.assertIn("pypresence", note)
+            available[0] = True
+            self.assertIsNone(self.b._dynamic_note("discord_presence"),
+                              "warned about a feature that is working")
+        finally:
+            settings.discord_presence = saved
+
+    def test_a_static_note_does_not_hide_the_dynamic_one(self):
+        """Both lines render, not one.
+
+        `notes.get(key) or self._dynamic_note(key)` meant giving a setting an
+        explanatory line silently switched off its warning — which is how the
+        Discord "not active" note shipped in a state where it could never
+        appear, no matter what the feature was doing.
+        """
+        self.cfg.NOTES = {"lang": "A static explanation."}
+        self.b._dynamic_note = lambda k: ("A live warning." if k == "lang"
+                                          else None)
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("A static explanation.", texts)
+        self.assertIn("A live warning.", texts)
+        self.assertLess(texts.index("A static explanation."),
+                        texts.index("A live warning."))
+
     def test_settings_without_notes_still_render(self):
         """NOTES is optional — a config object without it must not blow
         up the whole Settings view."""

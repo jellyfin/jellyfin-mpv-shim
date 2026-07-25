@@ -104,6 +104,44 @@ class ScrollState:
             self._rendered[scroll_id] = offset
             self._invalidate()
 
+    # -- leaving and coming back -------------------------------------------
+
+    #: Key the parked offsets are stored under on a route dict.
+    PARK_KEY = "_scroll"
+
+    def park(self, store, app=None):
+        """Remember where every container is, on ``store`` (a route dict).
+
+        Called on the way out of a screen. ``reset()`` immediately after is
+        what stops one view's offsets bleeding into the next under the same
+        id; this is what makes leaving and coming back different from
+        opening a view fresh. Restoring is the *page's* half — it passes
+        ``offset=`` on the container it rebuilds — because only the page
+        knows which of its scrollers it wants restored.
+
+        Reads the renderer live rather than trusting the last frame's
+        snapshot: a scroll shorter than ``STEP`` never triggered a rebuild,
+        so ``_live`` can be up to that far behind at the moment of a click.
+        """
+        if app is not None:
+            self.refresh(app)
+        live = self._live
+        offsets = dict(live) if live is not None else dict(self._recorded)
+        if offsets:
+            store[self.PARK_KEY] = offsets
+        else:
+            store.pop(self.PARK_KEY, None)
+
+    @classmethod
+    def parked(cls, store, scroll_id):
+        """Where ``scroll_id`` was when this route was last left, or None.
+
+        A classmethod because it reads nothing but the route dict — the
+        parked offsets travel with the route, which is what makes them
+        survive the ``reset()`` that clears everything else.
+        """
+        return (store.get(cls.PARK_KEY) or {}).get(scroll_id)
+
     def forget(self, *scroll_ids):
         """Drop specific containers' offsets, leaving the rest alone.
 

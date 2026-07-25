@@ -713,6 +713,55 @@ class TestAReturningScrollContainerStartsAtTheTop(unittest.TestCase):
             self._tiles(b, "grid-0-"),
             "the library came back blank after a sort change")
 
+    def test_back_navigation_returns_to_where_the_grid_was_left(self):
+        """The offsets are parked on the ROUTE, which is what lets them
+        survive the reset() that stops one view's offset bleeding into the
+        next under the same container id.
+
+        The restore itself is the renderer's (`off0` -> clamped against the
+        content in the frame it lands in), so this asserts the offset
+        reaches the scene node, not where the container ends up.
+        """
+        b, app = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        grid_route = b.route
+        app.on_screen = {"grid"}
+        app.scroll["grid"] = 1500
+        b._on_scroll("grid", 1500, 8000)
+
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "g1"})
+        self.assertEqual(grid_route.get("_scroll", {}).get("grid"), 1500,
+                         "the offset was not parked on the route we left")
+        app.scroll.pop("grid")                # the scroller left the scene
+
+        b.go_back()
+        app.on_screen = {"grid"}
+        nodes, _h = layout(b.build((1280, 720)), 1280, 720)
+        grid = next(n for n in nodes
+                    if n.get("id") == "grid" and n.get("t") == "scroll")
+        self.assertEqual(grid.get("off0"), 1500,
+                         "the grid came back at the top instead of where it "
+                         "was left")
+
+    def test_a_first_visit_carries_no_offset(self):
+        """Only *returning* restores. A route opened fresh must not inherit
+        an offset from anywhere, which is the bug ScrollState.reset() exists
+        for -- container ids are per-view, not per-route."""
+        b, app = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        app.on_screen = {"grid"}
+        app.scroll["grid"] = 1500
+        b._on_scroll("grid", 1500, 8000)
+        # A *different* library, same container id.
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib2",
+                    "title": "Shows"})
+        nodes, _h = layout(b.build((1280, 720)), 1280, 720)
+        grid = next(n for n in nodes
+                    if n.get("id") == "grid" and n.get("t") == "scroll")
+        self.assertIsNone(grid.get("off0"))
+
     def test_the_toggle_forgets_the_offset_without_a_live_snapshot(self):
         """mpv < 0.36 has no ``user-data``, so there is no live snapshot to
         outvote the recorded copy -- the toggle has to drop it itself."""

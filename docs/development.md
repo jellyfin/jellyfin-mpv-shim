@@ -140,3 +140,44 @@ and hand-testing miss:
 `docs/REFACTORING_METHOD.md` explains how these are meant to be used together
 during the decomposition described in `docs/ARCHITECTURE_TARGET.md`.
 
+
+## Tracing the mpv window
+
+The window is driven from four directions at once — the browser entering and
+leaving browse mode, playback starting and stopping, the tray, and mpv's own
+OSC — and until now the only way to see the interleaving was
+`mpv_log_level: debug`, which buries the six interesting lines in thousands of
+decoder ones.
+
+The `window` logger records only the transitions, at INFO, with the caller
+that asked for each one:
+
+```
+$ grep '^window:' ~/.config/jellyfin-mpv-shim/log.txt
+window: CREATE mpv (first) <- jellyfin_mpv_shim.player.__init__:510
+window: browse=on (alive=1 video=0 loading=0 mpvtk=1 bg=0) <- ...gateway.playback.on_browse_enter:23
+window: browse=off (alive=1 video=0 loading=0 mpvtk=0 bg=1) <- ...gateway.playback.on_minimize:41
+window: force_window=False <- ...player_window.set_browse_window:392
+```
+
+The caller is the point. Window state alone cannot tell the browser
+re-entering browse mode apart from playback re-arming the window, and *which
+one asked* is usually the whole finding — a window that re-opens on its own is
+a caller you did not expect, not a state you did not expect.
+
+Lines worth knowing:
+
+- `CREATE mpv` — a whole new mpv. `(first)` at startup, `(re-open)` after a
+  crash, an idle-quit or the user closing the window.
+- `browse=on with no mpv: building a new one` — a window built from the
+  *browse* path rather than the play path. Correct when the tray reopens the
+  library; a red flag straight after a minimize.
+- `force_window=False SUPPRESSED` — something tried to drop the window while
+  the in-window UI owned it. Normal and frequent; it is the guard working.
+- `releasing the window by QUITTING mpv` — only on mpv < 0.41, which decides
+  about its window at startup and never revisits it.
+
+Every read in the trace is a `getattr` with a default, deliberately: a
+diagnostic that raises is worse than no diagnostic, and partially-built
+players are real (test doubles, and `_init_mpv` runs before `__init__` has
+finished).

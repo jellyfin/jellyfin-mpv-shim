@@ -141,6 +141,7 @@ class HomePage(Page):
         # heights differ (poster vs landscape rows), so the breakpoints are the
         # explicit content-y of each section top, not a uniform pitch.
         return VScroll(Column(rows, gap=20), id="home", flex=1,
+                       offset=self.parked_scroll("home"),
                        snaps=components.section_offsets(rows, 20))
 
     def _row_shape(self, hr):

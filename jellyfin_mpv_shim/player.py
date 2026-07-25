@@ -15,7 +15,8 @@ from .utils import synchronous, Timer
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
 from .player_reporting import ReportingMixin
-from .player_window import WindowMixin
+from . import player_window
+from .player_window import WindowMixin, wlog
 from .mpv_options import build_mpv_options, mpv_scripts, resolve_osc_style
 from .session_reporter import SessionReporter
 from .conf import settings
@@ -555,6 +556,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # thread first so recovery/idle cycles don't leak it.
         # getattr: _player isn't bound until the first init finishes.
         reopen = getattr(self, "_player", None) is not None
+        wlog.info("CREATE mpv (%s) <- %s",
+                  "re-open" if reopen else "first", player_window._caller())
         self._teardown_player()
 
         osc_style = resolve_osc_style()
@@ -2602,7 +2605,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         local input while the window is gone, so play() is the only re-open
         trigger."""
         if not self._mpv_alive:
-            log.info("mpv is not running; reinitializing.")
+            wlog.info("mpv is not running; re-creating it for playback")
             self._idle_quit = False
             self._init_mpv()
 
@@ -2626,7 +2629,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if is_using_ext_mpv and not settings.mpv_ext_start:
             # Never kill an mpv the user launched themselves.
             return
-        log.info("%s; quitting mpv to save resources.", reason)
+        wlog.info("QUIT: %s (video=%d mpvtk=%d)", reason,
+                  getattr(self, "_video", None) is not None,
+                  bool(getattr(self, "mpvtk_active", False)))
         self._idle_quit = True
         self.should_send_timeline = False
         player = self._player
@@ -2645,7 +2650,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:
             return
-        log.info("MPV connection lost, marking as dead for reconnect on next play.")
+        wlog.info("connection LOST; dead until the next play")
         self._mpv_alive = False
         self.should_send_timeline = False
         video = self._video
@@ -2681,7 +2686,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
 
     def _terminate_mpv(self, player=None):
-        log.info("Terminating mpv instance")
+        wlog.info("terminating the mpv instance")
         if player is None:
             player = self._player
         # Only mark dead if this is still the current instance. A terminate of

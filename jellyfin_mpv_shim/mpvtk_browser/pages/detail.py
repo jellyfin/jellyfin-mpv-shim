@@ -98,7 +98,8 @@ class DetailPage(Page):
         if data.get("similar"):
             blocks.append(tiles.tile_row(
                 _("More Like This"), data["similar"], "detail-similar"))
-        return VScroll(Column(blocks, pad=16, gap=16), id="detail", flex=1)
+        return VScroll(Column(blocks, pad=16, gap=16), id="detail", flex=1,
+                       offset=self.parked_scroll("detail"))
 
     # -- actions -----------------------------------------------------------
 

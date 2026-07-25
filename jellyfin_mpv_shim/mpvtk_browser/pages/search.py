@@ -102,4 +102,5 @@ class SearchPage(Page):
         if not items and not people:
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
-                              align="stretch"), id="search", flex=1)
+                              align="stretch"), id="search", flex=1,
+                       offset=self.parked_scroll("search"))

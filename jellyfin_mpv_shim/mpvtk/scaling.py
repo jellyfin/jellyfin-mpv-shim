@@ -90,7 +90,7 @@ def _round(v):
 # Pixel geometry, uniform across every node type (audited against
 # layout.py's emission and renderer.lua's reads).
 _PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch",
-            "rh", "snap", "snap_off")
+            "rh", "snap", "snap_off", "off0")
 
 # Pixel geometry that arrives as a LIST of numbers (scaled elementwise).
 _PX_LIST_KEYS = ("snaps",)

@@ -115,6 +115,8 @@ class GridPage(Page):
             Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                    align="stretch"), id="grid",
             flex=1,
+            # Back-nav lands where you left it (see Page.parked_scroll).
+            offset=self.parked_scroll("grid"),
             # Row-snap the grid: people scroll libraries fast, and a
             # quantized offset turns per-frame smear (every visible row
             # repositioned, a full 4K recomposite each frame) into stable,

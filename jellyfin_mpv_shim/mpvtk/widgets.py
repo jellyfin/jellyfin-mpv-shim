@@ -801,10 +801,19 @@ class Scroll(Element):
     of logical offsets (e.g. the content-y of each home-screen section
     heading). The renderer snaps the display to the nearest one, and a wheel
     notch steps to the adjacent breakpoint. Takes precedence over ``snap``.
+
+    ``offset`` (logical px) is where a container opens **the first time this
+    id is seen**, and is ignored on every frame after — it restores a
+    position, it does not drive one. Scrolling stays entirely the renderer's,
+    which is what keeps a Python round-trip out of the wheel path. Same
+    mechanism ``follow`` uses to open at the end, and the same reason it
+    lives here: the offset has to be clamped against the content height in
+    the frame it is applied to, and only the renderer knows both at once.
     """
 
     def __init__(self, child, axis, scrollbar=False, on_scroll=None,
-                 follow=False, snap=None, snap_off=0, snaps=None, **kw):
+                 follow=False, snap=None, snap_off=0, snaps=None,
+                 offset=None, **kw):
         super().__init__(**kw)
         self.child = child
         self.axis = axis
@@ -814,6 +823,7 @@ class Scroll(Element):
         self.snap = snap
         self.snap_off = snap_off
         self.snaps = snaps
+        self.offset = offset
 
 
 class HScroll(Scroll):

@@ -139,6 +139,12 @@ def audio_wants_ac3_encode(
     encoder emits an IEC61937 AC3 *bitstream*, not PCM, so a user who
     unticked AC3 because their receiver cannot decode it must not be sent
     AC3 by the back door.
+
+    A ``track_codec`` of None means *unreadable*, and the answer stays yes:
+    a needless re-encode is a better failure than losing surround. It does
+    not mean "nothing is playing" -- callers must not ask about a track that
+    does not exist, and ``_apply_audio_filters_locked`` is where that is
+    enforced.
     """
     if mode != "optical" or not encode_others or not ac3_ok:
         return False
@@ -348,9 +354,30 @@ class AudioMixin:
         handing mpv audio-spdif and lavcac3enc for one track builds a chain
         it cannot satisfy, and it recovers by disabling the filter, so the
         encoder would simply stop working with nothing to show for it.
+
+        **With no audio track selected there is nothing to decide**, and the
+        encoder comes off. This is a real path, not a defensive one:
+        ``apply_audio_settings`` runs from ``_init_mpv`` before anything has
+        loaded, and from the menu with nothing playing. Deciding then meant
+        asking about a track that did not exist, getting the unreadable-codec
+        answer (yes, encode -- correct for its own case), and attaching the
+        encoder to an idle player. The next AC3 file to load then built
+        exactly the chain the paragraph above says never to build:
+
+            ad: Failed to parse codec profile.
+            swresample: unsupported conversion: spdif-ac3 -> floatp
+            af: Disabling filter jfac3 because it has failed.
+
+        mpv drops the filter and recovers, so the cost was three error lines
+        per session and a decision made once at startup -- the trap
+        ``audio_wants_ac3_encode`` exists to avoid. Nothing is lost by
+        waiting: every file load and every audio-track change re-decides.
         """
         mode = settings.audio_mode or "auto"
         if mode != "optical":
+            return
+        if not self._mpv_property("current-tracks/audio"):
+            self._set_af(AF_AC3_ENCODE, None)
             return
         codecs = audio_spdif_codecs(mode, bool(settings.audio_night_mode))
         track_codec = self._mpv_property("current-tracks/audio/codec")

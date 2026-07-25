@@ -194,6 +194,7 @@ class MusicLibraryPage(MusicPage):
             art=True, scroll_id="music-songs", menu=True)],
             pad=chrome.CONTENT_PAD, align="stretch"),
             id="music-songs", flex=1,
+            offset=self.parked_scroll("music-songs"),
             on_scroll=lambda off, mx: art.scroll.on_scroll(
                 "music-songs", off, mx,
                 lambda o, m: self._on_scroll_end(o, m)))
@@ -206,6 +207,7 @@ class MusicLibraryPage(MusicPage):
                                      scroll_id="music-grid"),
                    pad=chrome.CONTENT_PAD, gap=GRID_GAP),
             id="music-grid", flex=1,
+            offset=self.parked_scroll("music-grid"),
             # Row-snap the music library grid (see GridPage.render). The tabs
             # live outside this scroll, so the grid fills it: the first row
             # sits at the top pad, hence snap_off = CONTENT_PAD.

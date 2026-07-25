@@ -96,6 +96,14 @@ in ways only real hardware answers for.
     2026-07-25 14:03:57,630 [   ERROR] mpv: af: Disabling filter jfac3 because it has failed.
     ALSA lib conf.c:5695:(snd_config_expand) Unknown parameters AES0=6,AES1=130,AES2=0,AES3=2
     ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default:AES0=6,AES1=130,AES2=0,AES3=2
+  - [ ] **Fixed 2026-07-25, re-test on a machine with S/PDIF.** The suspicion
+    was right. `apply_audio_settings` runs from `_init_mpv` with nothing
+    loaded, asked the per-track question anyway, got the unreadable-codec
+    answer (encode) and attached `lavcac3enc` to an idle player — so the next
+    AC3 file built the one chain the module exists to prevent. mpv drops the
+    filter itself, hence three error lines and no audible effect. The encoder
+    is now decided only when there is a track to decide about. The ALSA lines
+    below it are just the machine having no S/PDIF device.
 - [X] Night mode on/off during playback; per-type volume still remembered
       separately for music vs video across a restart.
 - [X] A file whose audio track the profile can't do (DTS-HD on an optical
@@ -108,6 +116,11 @@ in ways only real hardware answers for.
 - [X] Discord Rich Presence still shows and clears (optional dep — also
       confirm the app is fine with `pypresence` absent).
   - Should move into main menu, also should report if checked but pypresence is absent.
+  - [ ] **Done 2026-07-25, re-test.** Now in Settings → Interface. The
+    always-visible note says only "takes effect after a restart" — it must
+    **not** name pypresence, which the Windows build bundles. Ticking it with
+    the package missing shows a second line saying it is not active; with it
+    present and working, no second line.
 ## WindowMixin
 - [X] Fullscreen toggle, `remember_window_size` across a restart, `raise_mpv`
       on cast.  lib [X] ext [X]
@@ -116,6 +129,14 @@ in ways only real hardware answers for.
       stale-queue bug; the highest-value single item on this page.
       lib [X] ext [X]
   - On EXT MPV when casted, when I click back in the UI it does close, but it briefly re-opens with a blank screen before closing again and staying closed. Cosmetic issue, doesn't cause any actual problems.
+  - [ ] **Re-run with the new trace and attach the lines.** `grep '^window:'
+    log.txt` now gives the whole story in a handful of lines, each naming the
+    caller (see `docs/development.md`). Two things it will settle: whether mpv
+    is being re-created or only its window, and *who* asked for it back.
+    Checked while adding it: your ext mpv is 0.41, so
+    `_runtime_force_window` is true and the quit-to-release path is **not**
+    what is happening — the earlier guess. Most likely a re-entry into browse
+    mode triggered by the `stop` that minimizing itself issues.
 - [X] idle-quit (`mpv_idle_quit: true`, short `mpv_idle_quit_secs`): fires
       when idle, does **not** fire while playing / menu open / SyncPlay group
       active / cast screen up / user-launched external mpv.  lib [X] ext [X]
@@ -164,6 +185,14 @@ that models the renderer rather than being it.
       drops to the busy screen, which takes the scroller with it.)
 - [*] Scroll deep, open an item, come back → lands where you left it.
   - UI does NOT currently preserve scroll position on back-nav
+  - [ ] **Fixed 2026-07-25, re-test.** It never worked: `go_back` cleared
+    every offset, and there was nothing to restore from because the renderer
+    drops the state of a container that leaves the scene. Offsets are now
+    parked on the *route* (like the page number already was, which is why
+    paginated mode did return you to the right page) and restored by the
+    renderer, clamped to whatever content is actually there. Check the
+    library grid, music, a season, a playlist and the queue editor — and that
+    opening a *different* library still starts at the top.
 - [X] Paginated mode itself: First / Previous / Next / Last, typing a page
       number, and that the page size follows a window resize.
 

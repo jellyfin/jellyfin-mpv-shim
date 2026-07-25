@@ -55,6 +55,7 @@ class AlbumPage(MusicPage):
         return VScroll(Column([header, body], pad=chrome.CONTENT_PAD, gap=12,
                               align="stretch"),
                        id="album", flex=1,
+                       offset=self.parked_scroll("album"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "album", off, mx))
 
@@ -121,6 +122,7 @@ class ArtistPage(MusicPage):
                                            geom=art.geom_square))
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
                        id="artist", flex=1,
+                       offset=self.parked_scroll("artist"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "artist", off, mx))
 
@@ -164,6 +166,7 @@ class MusicGenrePage(MusicPage):
                                   scroll_id="mgenre", head_h=110)
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
                        id="mgenre", flex=1,
+                       offset=self.parked_scroll("mgenre"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "mgenre", off, mx,
                            lambda o, m: self._on_scroll_end(o, m)))

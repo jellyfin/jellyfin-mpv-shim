@@ -131,6 +131,20 @@ class Page:
 
     # -- convenience -------------------------------------------------------
 
+    def parked_scroll(self, scroll_id):
+        """Where ``scroll_id`` was when this route was last navigated away
+        from, for passing to ``VScroll(offset=...)``. None on a first visit.
+
+        The shell parks the offsets on the route dict, which is what lets
+        them survive the ``ScrollState.reset()`` that stops one view's
+        offsets bleeding into the next under the same container id. The
+        renderer applies it once, clamped to the content it actually has —
+        see ``Scroll``.
+        """
+        from ..scroll_state import ScrollState
+
+        return ScrollState.parked(self.route, scroll_id)
+
     def route_async(self, work, on_done, epoch) -> None:
         """``ctx.run`` for this page's data, recording a failure on the route
         so the view can offer a retry instead of spinning forever."""

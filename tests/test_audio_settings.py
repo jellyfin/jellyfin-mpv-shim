@@ -389,6 +389,43 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         self.assertEqual(p.props["audio_spdif"], "ac3,dts")
         self.assertNotIn("jfac3", p.filters)
 
+    def test_optical_with_nothing_loaded_does_not_attach_the_encoder(self):
+        """No stub: mpv has no current audio track, as at _init_mpv time.
+
+        apply_audio_settings runs once per mpv instance from _init_mpv, and
+        again from the in-player menu with nothing playing. It used to ask
+        the per-track question anyway, get the unreadable-codec answer (yes,
+        encode) and attach lavcac3enc to an idle player -- so the next AC3
+        file to load built the one chain the whole module exists to avoid,
+        and mpv reported it and dropped the filter:
+
+            swresample: unsupported conversion: spdif-ac3 -> floatp
+            af: Disabling filter jfac3 because it has failed.
+
+        Reported from the 2026-07-25 smoke test.
+        """
+        p = self.apply("optical")
+        self.assertEqual(p.props["audio_spdif"], "ac3,dts")
+        self.assertNotIn("jfac3", p.filters)
+
+    def test_a_track_whose_codec_is_unreadable_still_gets_the_encoder(self):
+        """The distinction the fix rests on: "no track" is not "unknown
+        codec". A track that exists but will not say what it is keeps the
+        old, deliberate answer -- a needless re-encode beats losing
+        surround (see Ac3EncodeTest.test_unknown_codec_gets_encoded)."""
+        real = self.pm._mpv_property
+
+        def stub(prop):
+            if prop == "current-tracks/audio":
+                return {"id": 1}
+            if prop == "current-tracks/audio/codec":
+                return None
+            return real(prop)
+
+        self.pm._mpv_property = stub
+        p = self.apply("optical")
+        self.assertIn("jfac3", p.filters)
+
     def test_optical_refuses_the_encoder_when_ac3_is_unticked(self):
         self.settings.audio_passthrough_ac3 = False
         self.pm._mpv_property = lambda prop: "aac"

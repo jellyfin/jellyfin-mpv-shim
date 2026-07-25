@@ -75,6 +75,7 @@ class SeasonPage(Page):
             scroll_id="season", head_h=100)
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
                        id="season", flex=1,
+                       offset=self.parked_scroll("season"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "season", off, mx))
 

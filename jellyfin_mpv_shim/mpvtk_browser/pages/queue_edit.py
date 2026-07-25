@@ -235,6 +235,7 @@ class QueuePage(SelectionPage):
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=8,
                           align="stretch"), id="queue",
                        flex=1,
+                       offset=self.parked_scroll('queue'),
                        on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
                            "queue", off, mx))
 
@@ -396,6 +397,7 @@ class PlaylistEditPage(SelectionPage):
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="playlist-edit", flex=1,
+                       offset=self.parked_scroll('playlist-edit'),
                        on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
                            "playlist-edit", off, mx))
 

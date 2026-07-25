@@ -813,6 +813,10 @@ def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
     node["ch"] = _round(ch)
     if el.follow:
         node["follow"] = True
+    if getattr(el, "offset", None):
+        # Where this id opens the first time the renderer sees it (see
+        # Scroll). Logical, like snap/snaps; scale_scene converts it.
+        node["off0"] = el.offset
     if getattr(el, "snaps", None):
         # Explicit unequal breakpoints (home sections). Logical; scale_scene
         # scales each element. Takes precedence over uniform snap.

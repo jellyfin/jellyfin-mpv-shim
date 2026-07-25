@@ -94,5 +94,6 @@ class PlaylistPage(Page):
                               pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                               align="stretch"),
                        id="playlist", flex=1,
+                       offset=self.parked_scroll("playlist"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "playlist", off, mx))

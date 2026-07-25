@@ -25,12 +25,41 @@ reasoned about as a whole.
 """
 
 import logging
+import sys
 from typing import TYPE_CHECKING, Any, Optional
 
 from .conf import settings
 from .utils import get_resource, synchronous
 
 log = logging.getLogger("player")
+
+#: The window's own log. Separate from "player" and at INFO so the whole
+#: history of one window is `grep window: log.txt` -- a handful of lines, in
+#: order, each naming what asked for the change.
+#:
+#: This exists because the state below is driven from four directions at once
+#: (the browser entering and leaving browse, playback starting and stopping,
+#: the tray, mpv's own OSC) and the only way to see the interleaving was
+#: `mpv_log_level: debug`, which buries six interesting lines in thousands of
+#: decoder ones. An unexplained window re-open is exactly the shape of problem
+#: that needs the sequence and nothing else.
+wlog = logging.getLogger("window")
+
+
+def _caller(depth=2):
+    """`module.function:line` of the code that asked for a transition.
+
+    Which caller it was *is* the finding when a window re-opens on its own —
+    the state alone cannot distinguish the browser re-entering browse mode
+    from playback re-arming the window. Frames are cheap here: these
+    transitions happen a handful of times per session, not per frame.
+    """
+    try:
+        f = sys._getframe(depth)
+        return "%s.%s:%d" % (f.f_globals.get("__name__", "?"),
+                             f.f_code.co_name, f.f_lineno)
+    except Exception:
+        return "?"
 
 
 # The mpvtk browser's window background. mpv paints it directly
@@ -82,9 +111,10 @@ class WindowMixin:
         goes False. The minimize path clears mpvtk_active first, which is
         what lets it through."""
         if not value and self.mpvtk_active:
-            log.debug("force_window=False suppressed: the in-window UI "
-                      "owns this window")
+            wlog.info("force_window=False SUPPRESSED (in-window UI owns it) "
+                      "<- %s", _caller())
             return
+        wlog.info("force_window=%s <- %s", value, _caller())
         if not value:
             # Releasing force_window IS the minimize — mpv destroys the
             # window rather than the WM iconifying it — so this is the last
@@ -256,9 +286,25 @@ class WindowMixin:
         demo) so the window doesn't snap to a media aspect ratio."""
         from .player import _mpv_errors
 
+        # getattr throughout: a trace that raises is worse than no trace, and
+        # partially-built players are real (test doubles, and _init_mpv runs
+        # before __init__ has finished setting all of this up).
+        wlog.info(
+            "browse=%s (alive=%d video=%d loading=%d mpvtk=%d bg=%d) <- %s",
+            "on" if enabled else "off",
+            bool(getattr(self, "_mpv_alive", False)),
+            getattr(self, "_video", None) is not None,
+            bool(getattr(self, "_loading", False)),
+            bool(getattr(self, "mpvtk_active", False)),
+            bool(getattr(self, "_showing_browse_bg", False)), _caller())
         if not self._mpv_alive:
             if not enabled:
                 return
+            # A window BUILT from the browse path rather than from play. It is
+            # the right thing when the tray reopens the library, and a red
+            # flag immediately after a minimize -- which is what an
+            # unexplained blank re-open looks like from here.
+            wlog.info("browse=on with no mpv: building a new one")
             self._init_mpv()
         release_failed = False
         try:
@@ -358,8 +404,8 @@ class WindowMixin:
             # needs: it stays a cast target, and the next play or tray
             # reopen builds a fresh mpv that asks for its window on the
             # command line.
-            log.info("Releasing the window by quitting mpv (this mpv "
-                     "cannot drop force-window at runtime).")
+            wlog.info("releasing the window by QUITTING mpv (this mpv cannot "
+                      "drop force-window at runtime)")
             self.idle_quit(reason="minimized")
 
     def raise_window(self):

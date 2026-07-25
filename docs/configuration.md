@@ -185,6 +185,10 @@ You can use the config file to enable and disable features.
 - `notify_updates` - Display update notification when playing media. Default: `true`
   - Notification will only display once until the application is restarted.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
+  - Also in Settings → Interface. Needs the optional `pypresence` package
+    (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
+    restart; with it missing the setting stays on but does nothing, which
+    the settings screen now says.
 - `menu_mouse` - Enable mouse support in the menu. Default: `true`
   - This requires MPV to be compiled with lua support.
 

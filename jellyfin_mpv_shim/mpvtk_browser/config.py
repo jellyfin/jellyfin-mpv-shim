@@ -66,6 +66,7 @@ SECTIONS = [
                       "remember_window_size",
                       "fullscreen", "ui_scale", "enable_osc", "osc_style",
                       "hud_grab_keys", "hud_wake_key", "raise_mpv",
+                      "discord_presence",
                       "check_updates", "notify_updates"]),
     (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
                      "remote_kbps", "direct_paths", "remote_direct_paths",
@@ -159,6 +160,7 @@ LABEL_OVERRIDES = {
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
     "osc_style": _("Player Controls Style"),
+    "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
@@ -192,6 +194,13 @@ NOTES = {
     "snapped_scrolling": _("Make each wheel notch jump exactly one row (or one "
                            "home-screen section) instead of gliding. Turn this "
                            "on if you prefer the older stepped scrolling."),
+    # Deliberately says nothing about the pypresence dependency: the Windows
+    # build bundles it, so naming a package most users will never have to
+    # think about only invites questions. The dynamic note in
+    # settings/general.py raises it, and only for someone it is actually
+    # broken for.
+    "discord_presence": _("Discord Rich Presence. Takes effect after a "
+                          "restart."),
     "paginated": _("Page the library and music tile grids instead of "
                    "scrolling: each page is one screenful with First / "
                    "Previous / Next / Last controls and a page number you can "

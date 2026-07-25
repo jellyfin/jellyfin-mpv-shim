@@ -167,6 +167,55 @@ fake.reset_events()
 scene({ vscroll("logs", 100, 1300, { follow = true }) })
 eq(#scroll_events(), 0, "a parked reader was sent a snap event")
 
+-- ============================================== off0 (restored offset)
+
+-- The browser parks a screen's scroll offsets on its route when you
+-- navigate away, and passes them back as `off0` when you return. The
+-- renderer applies it, because it is the only side that knows the content
+-- height in the frame the offset lands in.
+
+scene({})                      -- drop any prior state
+eq(offset("grid"), 0, "state cleared")
+scene({ vscroll("grid", 100, 2000, { off0 = 800 }) })
+eq(offset("grid"), 800, "a returning container did not open where it was left")
+
+-- Once only. It restores a position; it does not drive one, or the wheel
+-- would fight the scene on every frame.
+fake.send("mpvtk-scroll", fake.token({ id = "grid", dir = 1 }))
+local moved = offset("grid")
+ok(moved > 800, "scrolling moved off the restored offset",
+   "offset " .. tostring(moved))
+scene({ vscroll("grid", 100, 2000, { off0 = 800 }) })
+eq(offset("grid"), moved, "off0 yanked the user back on a later frame")
+
+-- Clamped to the content actually present. A library that came back
+-- shorter (a filter, a deletion) must not be scrolled past its end, which
+-- is the state that renders as a screenful of blank spacers.
+scene({})
+scene({ vscroll("grid", 100, 300, { off0 = 5000 }) })
+eq(offset("grid"), 200, "a restored offset past the end was not clamped")
+
+scene({})
+scene({ vscroll("grid", 100, 60, { off0 = 400 }) })
+eq(offset("grid"), 0, "content shorter than the viewport is not scrollable")
+
+-- And it has to tell Python, for the same reason `follow` does: the rows
+-- were virtualized against offset 0 when the scene was built.
+scene({})
+fake.reset_events()
+scene({ vscroll("grid", 100, 2000, { off0 = 800 }) })
+local evs2 = scroll_events()
+ok(#evs2 > 0, "restoring an offset reported nothing to the app")
+if #evs2 > 0 then
+    eq(evs2[#evs2].offset, 800, "the event carries the restored offset")
+end
+
+-- A restore to the top is a no-op and must not be announced.
+scene({})
+fake.reset_events()
+scene({ vscroll("grid", 100, 2000, { off0 = 0 }) })
+eq(#scroll_events(), 0, "restoring to the top reported a snap")
+
 -- ==================================================== textbox commit
 
 -- The settings screen has 65 rows that were losing the edit unless the

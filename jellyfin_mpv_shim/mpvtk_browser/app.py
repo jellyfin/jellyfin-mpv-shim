@@ -418,6 +418,9 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
         ``force`` is for the screens headless itself needs to reach.
         """
+        # Park before the push: `self.route` is still the screen being left,
+        # and _reset_scroll below is about to forget where everything was.
+        self._park_scroll()
         if not self._nav.push(route, reset=reset, force=force):
             return          # refused by the headless lockdown
         self._reset_scroll()
@@ -450,6 +453,7 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
 
     def go_back(self):
+        self._park_scroll()
         left = self._nav.pop()
         if left is not None:
             self._reset_scroll()
@@ -812,6 +816,14 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
     def _reset_scroll(self):
         self._scroll.reset()
+
+    def _park_scroll(self):
+        """Stash the current screen's scroll offsets on its route dict, so
+        coming back to it lands where it was left. No-op with no route (the
+        first navigate of the session)."""
+        route = self.route
+        if route is not None:
+            self._scroll.park(route, self.app)
 
     # ------------------------------------------------------------- pages
 

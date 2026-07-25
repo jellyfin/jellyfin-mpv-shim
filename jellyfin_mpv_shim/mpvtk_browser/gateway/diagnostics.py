@@ -30,6 +30,22 @@ class DiagnosticsMixin(GatewayCore):
         except Exception:
             log.debug("startup update check failed", exc_info=True)
 
+    def rich_presence_available(self):
+        """Whether Discord Rich Presence actually came up this session.
+
+        The setting is a request, not a state: ``player.py`` reads it once at
+        import and only sets its flag if ``rich_presence`` (and so
+        ``pypresence``) imports. Ticking the box with the optional dependency
+        missing therefore did nothing at all, silently — the only sign was a
+        line in the log nobody had a reason to read.
+
+        Reports the *flag*, not whether ``pypresence`` can be imported now:
+        installing it mid-session does not enable the feature, so answering
+        "yes" would be a nicer lie than the silence it replaces.
+        """
+        from ...player import discord_presence
+        return bool(discord_presence)
+
     def recent_logs(self):
         from ...log_utils import recent_log_lines
         return recent_log_lines()

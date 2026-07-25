@@ -45,14 +45,17 @@ class GeneralTabMixin:
             notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))
-                # Static note from the config module, or one that has to name
-                # something only the browser knows (which server is selected).
-                note = notes.get(key) or self._dynamic_note(key)
-                if note:
-                    # An explanatory line under the setting it belongs to;
-                    # the settings it qualifies follow directly below.
-                    rows.append(Text(note, size=14,
-                                     color=theme.SUBTLE_FG, wrap=True))
+                # Static note from the config module, AND one that depends on
+                # live state. Both, not either: `static or dynamic` meant
+                # giving a setting an explanatory line silently disabled its
+                # warning, which is how discord_presence shipped with a
+                # "not active" note that could never render.
+                for note in (notes.get(key), self._dynamic_note(key)):
+                    if note:
+                        # An explanatory line under the setting it belongs to;
+                        # the settings it qualifies follow directly below.
+                        rows.append(Text(note, size=14,
+                                         color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
@@ -123,6 +126,21 @@ class GeneralTabMixin:
                 return None
             return _("To stop the application, re-launch and uncheck this "
                      "option or run `jellyfin-mpv-shim stop`.")
+        if key == "discord_presence":
+            # Only while it is on and not working. Ticking the box with
+            # pypresence missing did nothing whatsoever and said nothing
+            # either -- the same shape of failure as the pause guard: the
+            # feature is off and there is no way to tell from the UI.
+            if not settings.discord_presence or self.controller is None:
+                return None
+            try:
+                if self.controller.rich_presence_available():
+                    return None
+            except Exception:
+                return None
+            return _("Not active: the \"pypresence\" package is missing or "
+                     "failed to load. Install it and restart. (Details in "
+                     "the Logs tab.)")
         if key != "auto_download_enable":
             return None
         name = self._auto_dl_scope_name()

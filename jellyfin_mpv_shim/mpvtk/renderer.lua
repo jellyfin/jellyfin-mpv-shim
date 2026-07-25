@@ -3355,13 +3355,29 @@ local function reconcile()
             state.scroll[id] = nil
         end
     end
-    -- A follow container with no offset yet is being seen for the first
-    -- time (or after its id vanished): open at the end, like a console.
+    -- A container with no offset yet is being seen for the first time (or
+    -- after its id vanished). `follow` opens it at the end, like a console;
+    -- `off0` opens it at a remembered position (the browser parks one on the
+    -- route when you navigate away, so going back lands where you left).
+    --
+    -- Both are applied HERE and not by the Python side, for the same reason:
+    -- the offset has to be clamped against the content height of the frame
+    -- it lands in, and this is the only place that has both. And both must
+    -- fire_scroll, or Python's virtualized rows stay windowed for offset 0
+    -- while the view sits somewhere else -- a screenful of blank spacers.
     for _, node in ipairs(state.nodes) do
-        if node.t == 'scroll' and node.follow and not state.scroll[node.id] then
-            state.scroll[node.id] = scroll_max(node)
-            if state.scroll[node.id] ~= 0 then
-                snapped[#snapped + 1] = node.id
+        if node.t == 'scroll' and not state.scroll[node.id] then
+            local want = nil
+            if node.follow then
+                want = scroll_max(node)
+            elseif node.off0 then
+                want = clamp(node.off0, 0, scroll_max(node))
+            end
+            if want then
+                state.scroll[node.id] = want
+                if want ~= 0 then
+                    snapped[#snapped + 1] = node.id
+                end
             end
         end
     end
