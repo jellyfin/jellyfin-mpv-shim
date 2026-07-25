@@ -110,6 +110,27 @@ in ways only real hardware answers for.
     It is mpv's spdif decoder wrapper probing for a DTS profile, and it is a
     warning, not a failure. The ALSA `AES0=...` lines are this machine having
     no S/PDIF device.
+  - Probed the actual device (SB Live! 24-bit External via PipeWire).
+    **Passthrough is not reaching it, and cannot on this setup** — nothing to
+    do with the shim, which sets neither `ao` nor `audio-device`:
+    - PipeWire holds that card's S/PDIF PCM open permanently
+      (`/proc/asound/card5/pcm0p/sub0/status` → `RUNNING`, owner = the
+      WirePlumber pid), so mpv cannot open it directly. It does not even
+      appear in `mpv --audio-device=help`, and a direct open blocks until
+      killed.
+    - So mpv opened ALSA `default` instead. The IEC958 channel-status bits it
+      appends are only understood by a real `iec958` PCM, hence
+      `Unknown PCM default:AES0=6,...`. mpv carries on without them.
+    - It then emits the AC3 bitstream into PipeWire's **default** sink, which
+      is the Ryzen analog output, not the SoundBlaster. So yes, it is sending
+      output — an AC3 bitstream framed as 2ch PCM, i.e. static if anything
+      were plugged into that jack.
+    - Even routed to the SoundBlaster it would not work: `pactl list cards`
+      offers that card only `iec958-stereo` (linear PCM over S/PDIF), no
+      `iec958-ac3-surround-51` profile — and that sink sits at volume 0.40,
+      which scales the samples and destroys a bitstream by itself.
+    - Written up in `docs/configuration.md` under "Passthrough needs a sound
+      server that will carry it", since this is going to bite users.
   - HDMI showing `spdif-ac3` too is correct, not a leak from optical: AC3
     over HDMI is also carried as an IEC61937 bitstream, so it takes the same
     path and prints the same warning. `stereo 2ch` in that line is how

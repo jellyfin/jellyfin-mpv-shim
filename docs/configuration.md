@@ -106,6 +106,43 @@ external receiver.
     first. In `optical` mode you keep surround (it is re-encoded to AC3); in
     `hdmi` mode you get multichannel PCM.
 
+### Passthrough needs a sound server that will carry it
+
+These settings tell mpv what to *ask* for. Whether it arrives is up to your
+audio stack, and passthrough is the one case where a stack that quietly
+substitutes something else is hard to notice: mpv reports
+`AO: [alsa] 48000Hz stereo 2ch spdif-ac3` and is genuinely emitting the
+bitstream, but an AC3 bitstream is carried as ordinary 2-channel PCM frames.
+Anything that resamples it, applies a volume other than 100%, or sends it to
+the wrong device turns it into static rather than an error.
+
+Two things to check on PipeWire or PulseAudio if a receiver will not lock on:
+
+- **Does the card offer a passthrough profile at all?**
+  `pactl list cards` should list something like
+  `output:iec958-ac3-surround-51: Digital Surround 5.1 (IEC958/AC3)`. A card
+  offering only `iec958-stereo` does linear PCM over S/PDIF and nothing else,
+  no matter what mpv asks for.
+- **Is the sound server holding the S/PDIF device open?** If it is, mpv cannot
+  open it directly and falls back to the `default` device — which is where
+  `Unknown PCM default:AES0=6,AES1=130,...` in the log comes from. Those two
+  ALSA lines are harmless in themselves (the IEC958 channel-status bits mean
+  nothing to `default`), but they are a good sign the stream is not going
+  where you think. `cat /proc/asound/card*/pcm0p/sub0/status` shows the owner.
+
+The reliable arrangement is to take the device away from the sound server
+(`pactl set-card-profile <card> off`) and point mpv straight at it from your
+own `mpv.conf`, which the shim reads:
+
+```
+audio-device=alsa/iec958:CARD=YourCard,DEV=0
+audio-exclusive=yes
+```
+
+The shim deliberately sets neither `ao` nor `audio-device` — which output and
+which device are yours to choose, and guessing would override an mpv.conf
+someone had already got right.
+
 ## Features
 
 You can use the config file to enable and disable features.
