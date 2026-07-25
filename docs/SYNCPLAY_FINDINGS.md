@@ -24,11 +24,27 @@ Marked per item:
 * **verified** — checked directly against current source in this tree.
 * **relayed** — from the trace, plausible and cited, but not independently
   re-checked. Re-verify before acting.
+* **demonstrated** — there is a test that fails on it.
 
-Server-side claims (four group states; `Waiting` is left only when every
-non-ignored member sends `Ready`; exactly four `SendCommandType` values —
-`Unpause`, `Pause`, `Stop`, `Seek`) are **relayed**. The client-side line
-numbers below are current for `syncplay.py` and `player_reporting.py`.
+`tests/_syncplay_server.py` is a port of the server's group state machine,
+read from `MediaBrowser.Controller/SyncPlay/GroupStates/` with the enums from
+`MediaBrowser.Model/SyncPlay/`. `tests/test_syncplay_protocol.py` drives a
+real `SyncPlayManager` against it. Items 2, 3, 4 and 7 each have a test
+marked `@unittest.expectedFailure`; **fixing one turns the suite red with an
+unexpected success**, which is the signal to drop the decorator.
+
+Five further tests in that file assert on the mock itself, so a mock that
+drifts from the server cannot quietly make the rest pass.
+
+Server-side claims are now **verified directly**, not relayed: `GroupStateType`
+has exactly the four states, `SendCommandType` exactly the four commands
+(`Unpause`, `Pause`, `Stop`, `Seek`), and `WaitingGroupState.HandleRequest`
+for a `SeekGroupRequest` broadcasts `Seek` and then calls
+`SetAllBuffering(true)` — the group cannot leave `Waiting` until every session
+answers. Read from the server source while building the mock.
+
+The client-side line numbers below are current for `syncplay.py` and
+`player_reporting.py`.
 
 ## Fixed
 
@@ -66,7 +82,7 @@ neither can deadlock against `_lock`. `SessionReporter` already exists and
 already serialises the actual sends. Treat this as a redesign of how timeline
 validity is enforced, not as a lock-ordering bug to patch.
 
-### 2. No `Ready` is sent in response to a `Seek` command (verified, and observed in practice)
+### 2. No `Ready` is sent in response to a `Seek` command (demonstrated; observed in practice)
 
 The server sets every member buffering on `Seek` and stays in `Waiting` until
 all of them report `Ready`. The client's `Seek` path is `process_command` →
@@ -82,14 +98,14 @@ then `Ready` — so it hangs on fast local files and works on slow streams.
 
 Known to the maintainer as "idk, just pause and unpause it".
 
-### 3. `SendCommandType.Stop` is not handled (verified)
+### 3. `SendCommandType.Stop` is not handled (demonstrated)
 
 `process_command` (`syncplay.py:400-407`) handles `Unpause`, `Pause`, `Seek`
 and falls through to `log.error("Command {0} is unknown.")`. Another member
 stopping the group leaves this client playing, still in the group, still
 reporting progress. Joining an idle group has the same effect.
 
-### 4. Real buffering is never reported (verified)
+### 4. Real buffering is never reported (demonstrated)
 
 The server has a `Buffer` request precisely so the group pauses for a stalled
 member. The client only ever fires `on_buffer` from mpv's **`seeking`**
@@ -113,7 +129,7 @@ removed from the playlist). The client passes it straight into `Media(...)`
 (`syncplay.py:568`) and `replace_queue` (`:578`), where `sp_items[-1]` selects
 the **last** item in the queue.
 
-### 7. The duplicate-command filter defeats the server's resync (relayed — wants context)
+### 7. The duplicate-command filter defeats the server's resync (demonstrated behaviour; verdict still open)
 
 The server deliberately re-sends a byte-identical command to a single session
 to correct a drifted client. The client drops it as a duplicate
