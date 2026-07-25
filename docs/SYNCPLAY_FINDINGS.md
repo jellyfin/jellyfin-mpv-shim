@@ -42,9 +42,9 @@ Marked per item:
 `tests/_syncplay_server.py` is a port of the server's group state machine,
 read from `MediaBrowser.Controller/SyncPlay/GroupStates/` with the enums from
 `MediaBrowser.Model/SyncPlay/`. `tests/test_syncplay_protocol.py` drives a
-real `SyncPlayManager` against it. Items 2, 3, 4 and 7 each have a test
-marked `@unittest.expectedFailure`; **fixing one turns the suite red with an
-unexpected success**, which is the signal to drop the decorator.
+real `SyncPlayManager` against it. Each conformance test was written as an
+`@unittest.expectedFailure` against a defect first and the decorator came off
+with the fix, so every one of them is known to fail on the code it describes.
 
 Five further tests in that file assert on the mock itself, so a mock that
 drifts from the server cannot quietly make the rest pass.
@@ -61,11 +61,75 @@ The client-side line numbers below are current for `syncplay.py` and
 
 ## Fixed
 
-### pause_ignore was written by the timeline thread — **FIXED**
+Five, all with tests that fail on the previous commit.
 
-See `player_reporting.py` history and `tests/test_syncplay_pause_ignore.py`.
-Kept here because it is the one item with a confirmed mechanism, and because
-the remaining items are the reason to keep looking.
+### pause_ignore was written by the timeline thread
+
+`get_timeline_options` set it to mpv's live pause state, giving a flag that
+means "the pause value we just commanded" a second, contradictory meaning --
+and sampling it twenty-five lines before writing it. A stale sample landing on
+a fresh guard swallowed the next local pause or unpause: the player changed
+state and the group was never told.
+`tests/test_syncplay_pause_ignore.py`.
+
+### No `Ready` was sent in response to a `Seek` command
+
+The server sets every member buffering on `Seek` and stays in `Waiting` until
+all of them report `Ready`; the client's `Seek` path never answered, so a group
+seek left everyone stopped until somebody pressed play (which force-overrides
+the wait). It looked intermittent because a seek slower than
+`min_buffer_thresh_ms` went out as `Buffering` and came back as `Ready` by that
+route -- so it hung on fast local files and worked on slow streams. Known to
+the maintainer as "idk, just pause and unpause it".
+
+Fixed by `schedule_seek` passing `report_ready=True`. On the seek path only,
+and deliberately: **only `WaitingGroupState` emits a `Seek` command** -- every
+other state routes a seek through it first -- so a `Seek` always means the
+group is waiting on us. A `Pause` carries no such promise, and answering one in
+the `Paused` state gets "client got lost, sending current state" back, which
+would answer itself forever.
+
+### `SendCommandType.Stop` was not handled
+
+`process_command` fell through to `log.error("Command Stop is unknown")`, so
+another member stopping the group left this client playing and still reporting
+progress.
+
+Fixed with `schedule_stop`. Two things it does not do, both on purpose. It does
+**not** leave the group -- the server moves the group to Idle and keeps every
+session in it, so `PlayerManager.stop` grew a `leave_group=False` argument
+rather than tearing our own membership down. And it does not call `stop()`
+inline: this runs on the websocket reader thread, and `stop()` takes the player
+lock and then the timeline lock, which would stall that server's whole message
+stream and add a fresh path into the lock inversion in item 1 below. It is
+queued onto the action thread instead.
+
+### Real buffering was never reported
+
+The client only raised `on_buffer` from mpv's `seeking` property, so a cache
+underrun -- the case the feature exists for -- was never reported to the group,
+and this client simply fell behind until SkipToSync yanked it back.
+
+Fixed with an observer on `paused-for-cache` (`PlayerManager._on_cache_pause`).
+`on_buffer` already debounces by `min_buffer_thresh_ms`, and loads are excluded
+via `do_not_handle_pause`, or every file would announce itself as buffering
+while filling its cache.
+
+### The duplicate-command filter ate the server's resync
+
+The server corrects a client it thinks has drifted by re-sending the current
+state to that session alone (`PlayingGroupState.cs`, `PausedGroupState.cs`,
+"Client got lost, sending current state"). `Group.NewSyncPlayCommand`
+(`Group.cs:418-427`) stamps every command with `EmittedAt = DateTime.UtcNow`,
+so the resync differs from the broadcast it repeats in exactly that field --
+and the client compared `When`, `PositionTicks` and `Command` while excluding
+it.
+
+Fixed by comparing `EmittedAt` too. That was the choice flagged as deliberate:
+it keeps the filter meaningful for a *literal* re-delivery of one message
+(pinned by `test_a_literal_redelivery_is_still_filtered`) while letting a
+genuine resync through. Deleting the filter outright would have worked equally
+well against this server but dropped that guard.
 
 ## Open, ranked
 
@@ -95,39 +159,7 @@ neither can deadlock against `_lock`. `SessionReporter` already exists and
 already serialises the actual sends. Treat this as a redesign of how timeline
 validity is enforced, not as a lock-ordering bug to patch.
 
-### 2. No `Ready` is sent in response to a `Seek` command (demonstrated; observed in practice)
-
-The server sets every member buffering on `Seek` and stays in `Waiting` until
-all of them report `Ready`. The client's `Seek` path is `process_command` →
-`schedule_seek` (`syncplay.py:589`) → `schedule_pause` (`:518`) →
-`local_pause()` + `local_seek()`, and **never** calls `_buffer_req(False)`.
-The only `Ready` senders are `on_buffer_done` (`:310`), `play_done` (`:317`)
-and `upd_queue`'s no-change branch (`:587`).
-
-Result: after any group seek the group hangs until someone presses play, which
-force-overrides the wait. It recovers *by accident* when the seek takes longer
-than the 1000 ms buffering timer, because that path does send `Buffering` and
-then `Ready` — so it hangs on fast local files and works on slow streams.
-
-Known to the maintainer as "idk, just pause and unpause it".
-
-### 3. `SendCommandType.Stop` is not handled (demonstrated)
-
-`process_command` (`syncplay.py:400-407`) handles `Unpause`, `Pause`, `Seek`
-and falls through to `log.error("Command {0} is unknown.")`. Another member
-stopping the group leaves this client playing, still in the group, still
-reporting progress. Joining an idle group has the same effect.
-
-### 4. Real buffering is never reported (demonstrated)
-
-The server has a `Buffer` request precisely so the group pauses for a stalled
-member. The client only ever fires `on_buffer` from mpv's **`seeking`**
-property; the observer set is `eof-reached`, `playback-abort`, `seeking`,
-`pause`, `current-tracks/audio/codec`. Nothing observes `paused-for-cache` or
-`core-idle`, so a cache underrun desyncs this client silently and it then gets
-yanked by SkipToSync. Likely the most common everyday desync.
-
-### 5. `Media.replace_queue` does not update `has_next` / `has_prev` (relayed)
+### 2. `Media.replace_queue` does not update `has_next` / `has_prev` (relayed)
 
 `media.py:716-723` assigns `self.queue, self.seq` and returns; the flags are
 only set elsewhere. Every `PlayQueue` group update goes through here
@@ -135,45 +167,14 @@ only set elsewhere. Every `PlayQueue` group update goes through here
 `finished_callback` reads a stale `has_next` — and either silently leaves the
 group at the end of an episode, or calls `get_next()` on a shortened queue.
 
-### 6. `PlayingItemIndex` can be `-1` and is used as a Python index (relayed)
+### 3. `PlayingItemIndex` can be `-1` and is used as a Python index (relayed)
 
 The server uses `-1` for "no playing item" (e.g. after the playing item is
 removed from the playlist). The client passes it straight into `Media(...)`
 (`syncplay.py:568`) and `replace_queue` (`:578`), where `sp_items[-1]` selects
 the **last** item in the queue.
 
-### 7. The duplicate-command filter is too coarse and eats the server's resync (demonstrated)
-
-The server corrects a client it thinks has drifted by re-sending the current
-state to that session alone (`PlayingGroupState.cs`, `PausedGroupState.cs`,
-"Client got lost, sending current state"). The client drops it as a duplicate
-(`syncplay.py:381-388`).
-
-**The resync is distinguishable, and the filter throws away the field that
-distinguishes it.** `Group.NewSyncPlayCommand` (`Group.cs:418-427`) builds
-every command with `EmittedAt = DateTime.UtcNow`, so no two sends are ever
-identical. The client compares `When`, `PositionTicks` and `Command` — and
-not `EmittedAt`.
-
-So this no longer depends on reading jellyfin-web. The behaviour is wrong
-against the server as written, and the discriminator is already on the wire.
-
-What *does* still want thought is what the filter was protecting against,
-because including `EmittedAt` makes it never fire against this server — which
-is the same as deleting it. Re-acting on a repeated Pause is close to
-idempotent (`local_pause` + a seek to the position already held), and the
-server only sends the resync when it believes this client is lost, so acting
-on it is the intended behaviour. Decide deliberately between "compare
-`EmittedAt` too" and "drop the filter", rather than by accident.
-
-Note on provenance, which applies to this whole document: the client was
-hand-transpiled from jellyfin-web's JS, so **jellyfin-web is the source of
-these behaviours, not an authority on them**. If web does the same thing,
-that says the bug was inherited rather than introduced — useful for guessing
-where *other* bugs are, but it does not make the behaviour correct. The
-server is the only authority, and it is what the mock is ported from.
-
-### 8. `Ping` is sent as a float against a `long` DTO, and is nearly never sent (relayed — wants context)
+### 4. `Ping` is sent as a float against a `long` DTO, and is nearly never sent (relayed — wants context)
 
 `syncplay.py:211` posts `ping.total_seconds() * 1000`, a fractional number,
 where the server DTO declares `long` — which would explain the existing
@@ -186,7 +187,7 @@ group.
 Context needed: confirm the 400 against a real server and check whether the
 apiclient or the server has since changed.
 
-### 9. Blocking I/O on threads that must not block (verified in shape)
+### 5. Blocking I/O on threads that must not block (verified in shape)
 
 * `_on_pause_change` and `_on_seeking` issue **synchronous HTTP** from mpv's
   single event thread (`pause_request`, `play_request`, `seek_request`,
@@ -199,7 +200,7 @@ apiclient or the server has since changed.
   `playback_timeout` (30s default), during which no websocket traffic for that
   server is processed at all, including KeepAlive.
 
-### 10. Smaller items (relayed)
+### 6. Smaller items (relayed)
 
 * `play_done` (`syncplay.py:317`) sends `Ready` without clearing
   `is_buffering` / `last_playback_waiting` the way `on_buffer_done` does, so a
@@ -226,7 +227,13 @@ apiclient or the server has since changed.
 
 ## Suggested order
 
-Items 2 and 4 are the ones users feel daily and are small, self-contained
-protocol fixes. Item 1 is the most serious but wants the redesign described in
-its note rather than a patch. Items 7 and 8 want checking against jellyfin-web
-and a live server before anything changes.
+The protocol conformance items are done. Item 1 is now the most serious thing
+left, and it wants the redesign in its note rather than a lock-ordering patch
+-- and the Stop fix above is a small worked example of the same instinct,
+queueing onto the action thread rather than reaching for a lock.
+
+Items 2 and 3 are queue-handling bugs that want a media mock to test properly.
+Build that shaped by those two rather than speculatively, the way the SyncPlay
+mock was shaped by the protocol findings.
+
+Item 4 wants confirming against a live server before anything changes.

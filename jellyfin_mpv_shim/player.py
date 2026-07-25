@@ -780,6 +780,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._observe("playback-abort", self._on_playback_abort)
         self._observe("seeking", self._on_seeking)
         self._observe("pause", self._on_pause_change)
+        self._observe("paused-for-cache", self._on_cache_pause)
         p.event_callback("file-loaded")(self._on_file_loaded)
         self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
         p.event_callback("end-file")(self._on_end_file)
@@ -1041,6 +1042,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     # Don't allow unpausing locally through MPV.
                     self.syncplay.play_request()
                     self.set_paused(True, True)
+
+    def _on_cache_pause(self, _name, value: bool):
+        """mpv stalled waiting for the demuxer cache, or recovered.
+
+        SyncPlay has a Buffer request for exactly this: the group pauses for a
+        member that has stalled, and resumes when it reports Ready. We only
+        ever raised it from the `seeking` property, so a cache underrun --
+        the common case, and the one the feature exists for -- was never
+        reported. This client simply fell behind and was then yanked back by
+        SkipToSync.
+
+        on_buffer debounces by min_buffer_thresh_ms, so a brief stall costs
+        nothing. Loads are excluded by do_not_handle_pause, which is set for
+        the whole of a playback start; without that every file would announce
+        itself as buffering while it filled its cache.
+        """
+        if self.do_not_handle_pause or not self.syncplay.is_enabled():
+            return
+        if value:
+            self.syncplay.on_buffer()
+        else:
+            self.syncplay.on_buffer_done()
 
     def _on_file_loaded(self, _event):
         # Mirrors _on_end_file's generation guard: a file-loaded from
@@ -1668,8 +1691,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             os.system(settings.stop_cmd)
 
     @synchronous("_lock")
-    def stop(self):
-        if self.syncplay.is_enabled():
+    def stop(self, leave_group: bool = True):
+        """Stop playback.
+
+        ``leave_group`` is False only for a SyncPlay group Stop: the server
+        moves the group to Idle and keeps every session in it, so tearing our
+        own membership down would leave us out of a group the server still
+        thinks we are in.
+        """
+        if leave_group and self.syncplay.is_enabled():
             self.syncplay.disable_sync_play(False)
 
         if self.menu.is_menu_shown:

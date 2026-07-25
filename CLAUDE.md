@@ -48,6 +48,10 @@ The core singletons (each is a module-level instance, not a class you should ins
 
 ## MPV backend selection
 
+`player.py` is a composed class: `PlayerManager(AudioMixin, ReportingMixin, WindowMixin)`, with those mixins in `player_audio.py`, `player_reporting.py` and `player_window.py`, and the mpv option dict built by `mpv_options.py`. Its mpv key bindings and event handlers are real methods (`_on_*`) attached by `_bind_mpv_handlers`. **Mixins rather than owned objects on purpose:** `self._player` is read ~200 times and `self._video` ~66, 36 methods share one `RLock` via `@synchronous("_lock")`, and re-entrancy across them is load-bearing — collaborators would need back-references to all of it plus a second lock nobody has reasoned about. Each mixin declares the state it borrows under `if TYPE_CHECKING:`; the length of that list is the coupling metric, so grow it deliberately.
+
+**Extracted modules must import the backend globals (`is_using_ext_mpv`, `_mpv_errors`, `discord_presence`, `win_utils`) per call, inside the method, never at module scope.** Module-scope binding captures the backend, and the integration harness swaps a fake mpv in and out by evicting modules from `sys.modules` — a second module holding a bound copy has to be evicted in lockstep, and it fails only on the whole-suite leg. Each module has a subprocess guard test pinning this.
+
 `player.py` picks a backend at import time:
 - Default: `import mpv` (the `python-mpv` libmpv binding).
 - If `settings.mpv_ext` is set, or libmpv can't load (`OSError`), it falls back to `python_mpv_jsonipc` and sets `is_using_ext_mpv = True`.

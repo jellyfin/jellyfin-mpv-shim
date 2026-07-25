@@ -45,7 +45,6 @@ exactly that shape.
 """
 
 import datetime
-import itertools
 
 IDLE, WAITING, PAUSED, PLAYING = "Idle", "Waiting", "Paused", "Playing"
 
@@ -93,7 +92,7 @@ class SyncPlayGroup:
         self.outbox = []
         #: Every request it received, for asserting on what the client sent.
         self.received = []
-        self._clock = itertools.count()
+        self._last_emitted = None
 
     # -- session bookkeeping ----------------------------------------------
 
@@ -126,9 +125,19 @@ class SyncPlayGroup:
             return [i for i, s in self.sessions.items() if not s.buffering]
         return list(self.sessions)          # AllGroup
 
+    def _emitted_at(self):
+        """Strictly increasing, because EmittedAt is what tells a resync apart
+        from the broadcast it repeats. Two commands in the same microsecond
+        would be genuinely indistinguishable and make tests flaky."""
+        now = datetime.datetime.utcnow()
+        if self._last_emitted is not None and now <= self._last_emitted:
+            now = self._last_emitted + datetime.timedelta(microseconds=1)
+        self._last_emitted = now
+        return now
+
     def send_command(self, session_id, broadcast, command):
         assert command in COMMANDS, command
-        now = datetime.datetime.utcnow()
+        now = self._emitted_at()
         payload = {
             "GroupId": self.group_id,
             "PlaylistItemId": self.playing_item_id,

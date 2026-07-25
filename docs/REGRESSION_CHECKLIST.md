@@ -59,6 +59,23 @@ Client-lifecycle locking + the dead-code health-check reconnect fix (was fully b
 
 ### 5. SyncPlay group leave / rejoin
 Scheduled-command timing fixes; hard to reason about without exercising.
+
+**Re-test needed (2026-07-25).** Five protocol bugs were fixed after this
+section was last signed off — see `docs/SYNCPLAY_FINDINGS.md`. They are
+covered by `tests/test_syncplay_protocol.py` against a fake server, but that
+mock is a port of the server's state machine, not the server, so these want
+two real clients against a real Jellyfin:
+- [ ] Seek in a group → **every** member resumes without anyone pressing play.
+      This is the one that used to hang and get worked around by pausing and
+      unpausing; it hung on fast local files and worked on slow streams.
+- [ ] Another member stops the group → this client stops too, and is **still
+      in the group** afterwards (a later play from another member reaches it).
+- [ ] Throttle the network mid-playback so mpv stalls on its cache → the group
+      pauses for this client instead of leaving it behind and yanking it.
+- [ ] Local pause, then local unpause → both reach the group. The unpause used
+      to be swallowed intermittently.
+- [ ] Group playback still behaves after a client has been left idle long
+      enough for the server to try to resync it.
 - [X] **Join a group that is already playing** → no crash (this hit an
   `AttributeError` on the missing `_rearm_sync` — the "Playing Now" path), and
   unpause / skip-to-sync re-arm work.

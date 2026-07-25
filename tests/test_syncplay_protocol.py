@@ -36,8 +36,23 @@ class FakeMenu:
     is_menu_shown = False
 
 
+class FakeQueue:
+    seq = 0
+    queue = [{"PlaylistItemId": "pl-1", "ItemId": "item-1"}]
+
+
+class FakeVideo:
+    parent = FakeQueue()
+
+
 class FakePlayer:
-    """Enough PlayerManager for the SyncPlay paths."""
+    """Enough PlayerManager for the SyncPlay paths.
+
+    ``get_time`` follows ``seek``, as a real player's does. That matters:
+    the server compares the position a client reports against the group's
+    and re-corrects anything more than 500 ms out, so a fake whose clock
+    ignored seeks would bounce Ready against corrective Seek forever.
+    """
 
     def __init__(self):
         self.menu = FakeMenu()
@@ -45,6 +60,8 @@ class FakePlayer:
         self.paused = None
         self.seeks = []
         self.messages = []
+        self.stopped = []
+        self.position = 0.0
 
     def get_speed(self):
         return self.speed
@@ -57,6 +74,7 @@ class FakePlayer:
 
     def seek(self, offset, **kw):
         self.seeks.append(offset)
+        self.position = offset
 
     def show_text(self, text, *a, **kw):
         self.messages.append(text)
@@ -65,7 +83,21 @@ class FakePlayer:
         return None
 
     def get_time(self):
-        return 0.0
+        return self.position
+
+    def get_video(self):
+        return FakeVideo()
+
+    def is_not_paused(self):
+        return not self.paused
+
+    def stop(self, leave_group=True):
+        self.stopped.append(leave_group)
+
+    def put_task(self, func, *args):
+        # The real one hands work to the action thread; run it inline so the
+        # tests stay deterministic.
+        func(*args)
 
 
 class ProtocolCase(unittest.TestCase):
@@ -93,7 +125,6 @@ class TestTheHandshakeAfterASeek(ProtocolCase):
     group cannot resume -- for anybody.
     """
 
-    @unittest.expectedFailure      # finding 2 in docs/SYNCPLAY_FINDINGS.md
     def test_the_client_answers_ready_after_a_group_seek(self):
         group, sp, api = self.group_and_client()
         group.request("Seek", "other-session", position_ticks=60 * 10_000_000)
@@ -106,7 +137,6 @@ class TestTheHandshakeAfterASeek(ProtocolCase):
             "the client never reported Ready after a group Seek, so the "
             "group stays in Waiting until someone force-unpauses it")
 
-    @unittest.expectedFailure      # finding 2 in docs/SYNCPLAY_FINDINGS.md
     def test_the_group_is_not_left_waiting_on_us(self):
         group, sp, api = self.group_and_client()
         for kind, targets, payload in group.request(
@@ -127,19 +157,26 @@ class TestTheStopCommand(ProtocolCase):
     a session joins an idle group (``IdleGroupState.cs``).
     """
 
-    @unittest.expectedFailure      # finding 3 in docs/SYNCPLAY_FINDINGS.md
     def test_a_group_stop_is_handled(self):
         group, sp, api = self.group_and_client()
-        emitted = group.request("Stop", "other-session")
-        handled = []
-        sp.playerManager.stop = lambda *a, **k: handled.append("stop")
-        for kind, targets, payload in emitted:
+        for kind, targets, payload in group.request("Stop", "other-session"):
             if kind == "command" and "session-under-test" in targets:
                 sp.process_command(dict(payload))
         self.assertTrue(
-            handled,
+            sp.playerManager.stopped,
             "another member stopped the group and this client kept playing "
-            "(process_command logs 'Command Stop is unknown')")
+            "(process_command logged 'Command Stop is unknown')")
+
+    def test_stopping_does_not_leave_the_group(self):
+        """The server moves the group to Idle and keeps every session in it,
+        so a later Play has to find us still there."""
+        group, sp, api = self.group_and_client()
+        for kind, targets, payload in group.request("Stop", "other-session"):
+            if kind == "command" and "session-under-test" in targets:
+                sp.process_command(dict(payload))
+        self.assertEqual(sp.playerManager.stopped, [False],
+                         "the group Stop tore down our own membership")
+        self.assertNotIn("Leave", api.kinds())
 
 
 class TestBufferingIsReported(unittest.TestCase):
@@ -148,7 +185,6 @@ class TestBufferingIsReported(unittest.TestCase):
     nothing observes ``paused-for-cache``, so a cache underrun desyncs this
     client silently and it is then yanked by SkipToSync."""
 
-    @unittest.expectedFailure      # finding 4 in docs/SYNCPLAY_FINDINGS.md
     def test_the_player_observes_a_cache_stall(self):
         import ast
         import os
@@ -235,21 +271,49 @@ class TestTheClientAcceptsTheServersResync(ProtocolCase):
     it. See finding 7.
     """
 
-    @unittest.expectedFailure      # finding 7 -- UNCONFIRMED, see below
+    def _resend(self, group, sp):
+        """Drive the server's real resync path and return the command it sent.
+
+        The group is already Paused, so a Pause request from this session hits
+        the "client got lost, sending current state" branch and the reply goes
+        to this session alone.
+        """
+        sent = [p for k, t, p in group.request("Pause", "session-under-test")
+                if k == "command" and "session-under-test" in t]
+        self.assertTrue(sent, "the server did not resend anything")
+        return sent[-1]
+
     def test_a_resend_of_the_current_state_is_acted_on(self):
         group, sp, api = self.group_and_client(state=PAUSED)
         sp.enabled_at = datetime.utcnow() - timedelta(hours=1)
-        first = [p for k, t, p in group.request("Pause", "other-session")
-                 if k == "command"]
-        self.assertTrue(first)
-        sp.process_command(dict(first[0]))
+        first = self._resend(group, sp)
+        sp.process_command(dict(first))
         sp.playerManager.paused = None
-        # Same command again -- what the server sends a client it thinks is lost.
-        sp.process_command(dict(first[0]))
+
+        second = self._resend(group, sp)
+        # Identical but for EmittedAt -- which is the whole point.
+        self.assertEqual(
+            (first["When"], first["PositionTicks"], first["Command"]),
+            (second["When"], second["PositionTicks"], second["Command"]))
+        self.assertNotEqual(first["EmittedAt"], second["EmittedAt"])
+
+        sp.process_command(dict(second))
         self.assertIsNotNone(
             sp.playerManager.paused,
             "the duplicate filter dropped the server's resync, which is the "
             "only mechanism it has for correcting a drifted client")
+
+    def test_a_literal_redelivery_is_still_filtered(self):
+        """The filter should still exist -- the same message arriving twice
+        is not a resync, and acting on it twice is what it was there to stop."""
+        group, sp, api = self.group_and_client(state=PAUSED)
+        sp.enabled_at = datetime.utcnow() - timedelta(hours=1)
+        payload = self._resend(group, sp)
+        sp.process_command(dict(payload))
+        sp.playerManager.paused = None
+        sp.process_command(dict(payload))       # byte-for-byte the same
+        self.assertIsNone(sp.playerManager.paused,
+                          "acted twice on one message")
 
 
 if __name__ == "__main__":

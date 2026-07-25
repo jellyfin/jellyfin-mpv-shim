@@ -282,7 +282,12 @@ class SyncPlayManager:
         if self.timesync is None:
             # This can get called before it is ready...
             return
-        media = self.playerManager.get_video().parent
+        video = self.playerManager.get_video()
+        if video is None:
+            # Nothing playing: there is no position or playlist item to
+            # report. Reached from the Seek path, which can land after a stop.
+            return
+        media = video.parent
         when = self.timesync.local_date_to_server(datetime.utcnow())
         ticks = int(self.playerManager.get_time() * seconds_in_ticks)
         playing = self.playerManager.is_not_paused()
@@ -383,6 +388,13 @@ class SyncPlayManager:
             and self.last_command["When"] == command["When"]
             and self.last_command["PositionTicks"] == command["PositionTicks"]
             and self.last_command["Command"] == command["Command"]
+            # EmittedAt too, or this drops the server's only way of correcting
+            # a client it thinks has drifted. Group.NewSyncPlayCommand stamps
+            # every command with DateTime.UtcNow, so a resync differs from the
+            # broadcast it repeats in exactly this field and no other -- and
+            # without it the resync looked like a duplicate and was discarded.
+            # What remains filtered is a literal re-delivery of one message.
+            and self.last_command["EmitttedAt"] == command["EmitttedAt"]
         ):
             log.debug("Ignoring duplicate command {0}.".format(command))
             return
@@ -403,6 +415,8 @@ class SyncPlayManager:
             self.schedule_pause(when, position)
         elif command_cmd == "Seek":
             self.schedule_seek(when, position)
+        elif command_cmd == "Stop":
+            self.schedule_stop()
         else:
             log.error("Command {0} is unknown.".format(command_cmd))
 
@@ -515,7 +529,8 @@ class SyncPlayManager:
                 self.sync_generation
             )
 
-    def schedule_pause(self, when: datetime, position: int, seek_only: bool = False):
+    def schedule_pause(self, when: datetime, position: int, seek_only: bool = False,
+                       report_ready: bool = False):
         self.clear_scheduled_command()
         current_time = datetime.utcnow()
         local_pause_time = self.timesync.server_date_to_local(when)
@@ -528,6 +543,16 @@ class SyncPlayManager:
             if not seek_only:
                 self.local_pause()
             self.local_seek(position / seconds_in_ticks)
+            if report_ready:
+                # A Seek command means the group moved to Waiting and set
+                # every member buffering; it resumes only once all of them
+                # answer Ready. We never did, so a group seek left everyone
+                # stopped until somebody pressed play (which force-overrides
+                # the wait). It looked intermittent because a seek slower than
+                # min_buffer_thresh_ms went out as Buffering and came back as
+                # Ready by that route -- so it hung on fast local files and
+                # worked on slow streams.
+                self._buffer_req(False)
 
         if local_pause_time > current_time:
             log.debug("SyncPlay Scheduled Pause/Seek: Pausing Later")
@@ -588,7 +613,30 @@ class SyncPlayManager:
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
-        self.schedule_pause(when, position)
+        #
+        # report_ready is ours: only WaitingGroupState emits a Seek command
+        # (every other state routes a seek through it first), so a Seek always
+        # means the group is waiting on us. Pause carries no such promise --
+        # answering one in the Paused state gets "client got lost, sending
+        # current state" back, and that Pause would answer itself forever.
+        self.schedule_pause(when, position, report_ready=True)
+
+    def schedule_stop(self):
+        """The group stopped playback.
+
+        Stop, but stay in the group: the server moves the group to Idle and
+        keeps every session in it, so a later Play has to find us still there.
+        That is why this cannot go through PlayerManager.stop() directly --
+        that one disables SyncPlay on the way past.
+
+        Queued rather than called: this runs on the websocket reader thread,
+        and stop() takes the player lock and then the timeline lock. Doing
+        that here would block every other message from this server behind it,
+        and would add a fresh path into the lock inversion in finding 1 of
+        docs/SYNCPLAY_FINDINGS.md.
+        """
+        self.clear_scheduled_command()
+        self.playerManager.put_task(self.playerManager.stop, False)
 
     def _still_current(self, generation):
         """Whether a callback armed under `generation` may still act. False
