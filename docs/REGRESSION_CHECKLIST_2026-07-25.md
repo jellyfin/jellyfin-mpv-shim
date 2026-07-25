@@ -67,16 +67,16 @@ under-tested path and this branch moved code across that boundary.
 Twenty-odd routes became `Page` classes. Snapshots cover seven of them, and
 against fabricated data.
 
-- [ ] Walk each route once: home, library grid, person, detail, series,
+- [X] Walk each route once: home, library grid, person, detail, series,
       season, search, playlists, playlist editor, queue editor, music library
       (all five tabs), album, artist, genre, downloads, settings (all six
       tabs), cast screen.
-- [ ] **Then grep `log.txt` for `scene build failed`.** This is the important
+- [X] **Then grep `log.txt` for `scene build failed`.** This is the important
       half. A build exception keeps the last good frame in production
       (`strict_builds` is off), so a broken route looks like a UI that simply
       did not respond to the click — it does not look like a crash. A silent
       entry here is a route that never rendered.
-- [ ] Right-click menus on tiles, and the tile menu's actions, on at least a
+- [X] Right-click menus on tiles, and the tile menu's actions, on at least a
       movie, an episode, a series, an album and a track.
 
 # 2. The player mixins — both backends
@@ -85,42 +85,51 @@ The three mixins share one object and one `RLock`, and each reaches outside
 in ways only real hardware answers for.
 
 ## AudioMixin
-- [ ] Passthrough: set each `audio_mode` (auto / stereo / optical / HDMI) and
+- [-] Passthrough: set each `audio_mode` (auto / stereo / optical / HDMI) and
       confirm the output actually changes on your receiver — this is the one
       whose failure mode is silence, not an error.  lib [ ] ext [ ]
-- [ ] Night mode on/off during playback; per-type volume still remembered
+  - Lack hardware, although I can confirm it is setting the config
+  - I get the following lines on my PC, but I don't have spdif output. Am suspicious of the codec parse failure for optical.
+    2026-07-25 14:03:57,630 [ WARNING] mpv: ad: Failed to parse codec profile.
+    2026-07-25 14:03:57,630 [   ERROR] mpv: swresample: unsupported conversion: spdif-ac3 -> floatp
+    2026-07-25 14:03:57,630 [   ERROR] mpv: swresample: libswresample failed to initialize.
+    2026-07-25 14:03:57,630 [   ERROR] mpv: af: Disabling filter jfac3 because it has failed.
+    ALSA lib conf.c:5695:(snd_config_expand) Unknown parameters AES0=6,AES1=130,AES2=0,AES3=2
+    ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default:AES0=6,AES1=130,AES2=0,AES3=2
+- [X] Night mode on/off during playback; per-type volume still remembered
       separately for music vs video across a restart.
-- [ ] A file whose audio track the profile can't do (DTS-HD on an optical
+- [X] A file whose audio track the profile can't do (DTS-HD on an optical
       path) still plays rather than failing to open.
 
 ## ReportingMixin
-- [ ] Progress appears and advances on the Jellyfin dashboard; stopping
-      clears the session.  lib [ ] ext [ ]
-- [ ] Resume position is right after a stop mid-episode.
-- [ ] Discord Rich Presence still shows and clears (optional dep — also
+- [X] Progress appears and advances on the Jellyfin dashboard; stopping
+      clears the session.  lib [X] ext [X]
+- [X] Resume position is right after a stop mid-episode.
+- [X] Discord Rich Presence still shows and clears (optional dep — also
       confirm the app is fine with `pypresence` absent).
-
+  - Should move into main menu, also should report if checked but pypresence is absent.
 ## WindowMixin
-- [ ] Fullscreen toggle, `remember_window_size` across a restart, `raise_mpv`
-      on cast.  lib [ ] ext [ ]
-- [ ] **Close the mpv window mid-playback, then cast again** → re-opens,
+- [X] Fullscreen toggle, `remember_window_size` across a restart, `raise_mpv`
+      on cast.  lib [X] ext [X]
+- [X] **Close the mpv window mid-playback, then cast again** → re-opens,
       plays, and the next episode auto-advances on EOF. The historic
       stale-queue bug; the highest-value single item on this page.
-      lib [ ] ext [ ]
-- [ ] idle-quit (`mpv_idle_quit: true`, short `mpv_idle_quit_secs`): fires
+      lib [X] ext [X]
+  - On EXT MPV when casted, when I click back in the UI it does close, but it briefly re-opens with a blank screen before closing again and staying closed. Cosmetic issue, doesn't cause any actual problems.
+- [X] idle-quit (`mpv_idle_quit: true`, short `mpv_idle_quit_secs`): fires
       when idle, does **not** fire while playing / menu open / SyncPlay group
-      active / cast screen up / user-launched external mpv.  lib [ ] ext [ ]
+      active / cast screen up / user-launched external mpv.  lib [X] ext [X]
 
 # 3. mpv option assembly
 
 `build_mpv_options` moved wholesale, and the dict's insertion order is
 load-bearing.
 
-- [ ] Each `osc_style`: `mpvtk` (default), `mpv`, `default` — the right
-      controls appear and take input.  lib [ ] ext [ ]
-- [ ] Shader-pack profiles switch and actually apply (a visible profile, so a
+- [X] Each `osc_style`: `mpvtk` (default), `mpv`, `default` — the right
+      controls appear and take input.  lib [X] ext [X]
+- [X] Shader-pack profiles switch and actually apply (a visible profile, so a
       silent no-op is visible).
-- [ ] A user `mpv.conf` / `input.conf` in the config dir is still honoured,
+- [X] A user `mpv.conf` / `input.conf` in the config dir is still honoured,
       and a custom `mpv_ext_path` is still used.
 
 # 4. Playback core — unchanged, but everything moved around it
@@ -129,13 +138,13 @@ load-bearing.
 split. They are surrounded by moved code, so the paths through them still
 want exercising.
 
-- [ ] Multi-episode queue plays straight through; each advances and reports.
-      lib [ ] ext [ ]
-- [ ] Last episode played to the very end is marked watched (it ends via
+- [X] Multi-episode queue plays straight through; each advances and reports.
+      lib [X] ext [X]
+- [X] Last episode played to the very end is marked watched (it ends via
       `playback-abort`, not `eof-reached`). With `force_set_played` on and off.
-- [ ] Cast a new item while something is playing → the **right** item at the
+- [X] Cast a new item while something is playing → the **right** item at the
       **right** resume position, not the old file seeked to the new offset.
-- [ ] Server drops mid-playback and comes back → remote control and casting
+- [X] Server drops mid-playback and comes back → remote control and casting
       resume without an app restart.
 
 # 5. Scrolling and pagination — a real fix, not a move
@@ -147,14 +156,15 @@ spacers. Covered by
 `tests/test_shell_paging.py::TestAReturningScrollContainerStartsAtTheTop`, but
 that models the renderer rather than being it.
 
-- [ ] **The reported repro**: music tab → tick Paginated → untick → tiles are
-      there. Scroll deep first, which is what armed it.  lib [ ] ext [ ]
-- [ ] Same on a library grid, and on a person's filmography.
-- [ ] Scroll a library deep, change the sort → the grid comes back at the top
+- [X] **The reported repro**: music tab → tick Paginated → untick → tiles are
+      there. Scroll deep first, which is what armed it.  lib [X] ext [X]
+- [X] Same on a library grid, and on a person's filmography.
+- [X] Scroll a library deep, change the sort → the grid comes back at the top
       with tiles, not blank. (The same defect by the other door: the reload
       drops to the busy screen, which takes the scroller with it.)
-- [ ] Scroll deep, open an item, come back → lands where you left it.
-- [ ] Paginated mode itself: First / Previous / Next / Last, typing a page
+- [*] Scroll deep, open an item, come back → lands where you left it.
+  - UI does NOT currently preserve scroll position on back-nav
+- [X] Paginated mode itself: First / Previous / Next / Last, typing a page
       number, and that the page size follows a window resize.
 
 # 6. SyncPlay
@@ -165,18 +175,21 @@ repeated seeking across a group: solid, no misbehaviour.**
 - [X] Seek in a group → every member resumes without anyone pressing play.
       The one that used to hang and get worked around by pausing and
       unpausing.
-- [ ] **`log.txt` has no `400 Client Error ... /SyncPlay/Ping`.** The 400 was
+- [X] **`log.txt` has no `400 Client Error ... /SyncPlay/Ping`.** The 400 was
       the one problem the stress test surfaced: `PingRequestDto.Ping` is a
       `long` and the client sent a float, so every ping this client ever sent
       was rejected and the server compensated the group's unpause with its
       default latency instead of ours.
-- [ ] Another member stops the group → this client stops too **and is still
+- [*] Another member stops the group → this client stops too **and is still
       in the group** (a later play from another member reaches it).
-- [ ] Throttle the network so mpv stalls on its cache → the group waits for
+  - JF-web doesn't let me stop, just halt playback on the specific client
+  - When I stop on mpv shim, it leaves the group, there is no resume local playback option
+  - These semantics are honestly fine
+- [X] Throttle the network so mpv stalls on its cache → the group waits for
       this client instead of leaving it behind and yanking it back.
-- [ ] Local pause, then local unpause → both reach the group. The unpause
+- [X] Local pause, then local unpause → both reach the group. The unpause
       used to be swallowed intermittently.
-- [ ] Join a group that is already playing; leave a group mid-playback → no
+- [X] Join a group that is already playing; leave a group mid-playback → no
       phantom pause/seek afterwards.
 
 Known and **not** fixed: an ABBA lock inversion between `_lock` and `_tl_lock`
@@ -186,21 +199,21 @@ validity is enforced, not a lock-ordering patch.
 
 # 7. Settings, now a package of per-tab mixins
 
-- [ ] Each of the six tabs opens, and a change on each **persists across a
+- [X] Each of the six tabs opens, and a change on each **persists across a
       restart** (that is the whole surface: read a value, write a value).
-- [ ] Downloads → change the folder with existing downloads on another drive
+- [X] Downloads → change the folder with existing downloads on another drive
       → progress advances, the UI stays responsive, files and `catalog.db`
       land at the new path, downloads still play, restart prompt appears.
-- [ ] Logs tab tails the live log and does not wedge on a large one.
-- [ ] Home Screen tab: reorder sections, save, and confirm **jellyfin-web's
+- [X] Logs tab tails the live log and does not wedge on a large one.
+- [X] Home Screen tab: reorder sections, save, and confirm **jellyfin-web's
       own home screen for the same user is not degraded** — section types the
       shim can't draw are meant to be preserved, not rewritten.
 
 # 8. Platforms
 
-- [ ] Windows build runs and the installer works (`gen_pkg.sh --skip-build`
+- [X] Windows build runs and the installer works (`gen_pkg.sh --skip-build`
       then `build-win.bat`). The refactor touched `win_utils` imports.
-- [ ] macOS, which forces `mpv_ext = True`, still launches and plays.
+- [-] macOS, which forces `mpv_ext = True`, still launches and plays.
 
 ---
 
