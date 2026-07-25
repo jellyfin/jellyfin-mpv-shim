@@ -719,7 +719,17 @@ class Dropdown(Element):
     icon (translucent hover wash, no border/arrow/label) — the playback
     HUD's track pickers open their popup from a transparent icon
     button. The popup then sizes to its items (not the trigger) and
-    clamps to the screen edges."""
+    clamps to the screen edges.
+
+    ``popup_w`` lets the open list be wider than the closed control, up to
+    that many logical px: the popup takes as much of it as the widest item
+    needs, and never less than the control. Unset, the popup matches the
+    control, which is the right default when the labels are ones the app
+    wrote. It is for the lists whose text comes from *outside* — audio device
+    descriptions identify themselves at the end ("… Digital Stereo
+    (IEC958)"), so at the control's width every row ellipsizes to the same
+    thing. Widening the control instead would leave one row of the settings
+    form out of line with all the others."""
 
     def __init__(
         self,
@@ -731,6 +741,7 @@ class Dropdown(Element):
         on_select=None,
         force=False,
         trigger_icon=None,
+        popup_w=None,
         **kw,
     ):
         if trigger_icon:
@@ -744,6 +755,7 @@ class Dropdown(Element):
         self.on_select = on_select
         self.force = force
         self.trigger_icon = trigger_icon
+        self.popup_w = popup_w
 
 
 class Menu(Element):

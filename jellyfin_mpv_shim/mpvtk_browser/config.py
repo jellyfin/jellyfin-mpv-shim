@@ -6,6 +6,7 @@ the in-process ``conf.settings`` singleton directly (no IPC — the mpvtk
 browser runs in the player's process).
 """
 
+import sys
 import typing
 
 from ..conf import Settings, settings
@@ -51,6 +52,17 @@ AUDIO_MODE_ONLY = {
 # changes meaning.
 TRAY_DEPENDENT = ("close_to_tray", "allow_background")
 
+# mpv honours --audio-exclusive on wasapi, coreaudio and sndio only; on ALSA
+# and PulseAudio/PipeWire it is accepted and ignored. Hidden where it cannot
+# work rather than offered as a checkbox that does nothing -- the same rule
+# AUDIO_MODE_ONLY applies to the passthrough toggles.
+#
+# On the platform, not the running AO: mpv picks its AO per file (a
+# passthrough track can send it down the list to one that can carry the
+# format), so a control that appeared and vanished with the last file played
+# would be worse than one that is simply absent on Linux.
+EXCLUSIVE_PLATFORMS = ("win32", "darwin")
+
 # Starting minimized asks the app to come up in the state whichever of the
 # above is on screen permits, so offering it while that one is off is
 # offering a setting that cannot do anything. Shown directly below it.
@@ -73,7 +85,8 @@ SECTIONS = [
                      "playback_timeout"]),
     # Passthrough keys are listed in full here; sections() drops the ones the
     # selected mode cannot carry.
-    (_("Audio"), ["audio_mode", "audio_night_mode"]
+    (_("Audio"), ["audio_device", "audio_exclusive",
+                  "audio_mode", "audio_night_mode"]
                  + [k for _c, k in AUDIO_PASSTHROUGH_KEYS]
                  + ["audio_optical_encode_ac3"]),
     (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
@@ -168,6 +181,8 @@ LABEL_OVERRIDES = {
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
     "audio_mode": _("Audio Output Mode"),
+    "audio_device": _("Audio Output Device"),
+    "audio_exclusive": _("Take the Device Exclusively"),
     "audio_night_mode": _("Night Mode (Auto Volume Adj)"),
     "shader_pack_enable": _("Enable Video Playback Profiles"),
     "shader_pack_subtype": _("Profile Group"),
@@ -201,6 +216,16 @@ NOTES = {
     # broken for.
     "discord_presence": _("Discord Rich Presence. Takes effect after a "
                           "restart."),
+    "audio_device": _("Leave this on Default unless you are setting up "
+                      "passthrough. A receiver can only decode AC3 or DTS if "
+                      "the bitstream reaches it untouched, and a sound server "
+                      "(PipeWire, PulseAudio) cannot mark a stream as "
+                      "compressed — it arrives as ordinary audio and plays as "
+                      "static. Pick the S/PDIF or HDMI device itself to go "
+                      "straight to the hardware."),
+    "audio_exclusive": _("Stop anything else using the device while playing. "
+                         "Needed for passthrough on some systems, and it "
+                         "means other applications will be silent."),
     "paginated": _("Page the library and music tile grids instead of "
                    "scrolling: each page is one screenful with First / "
                    "Previous / Next / Last controls and a page number you can "
@@ -280,7 +305,8 @@ def sections():
     # Seeded, not built up: an audio toggle hidden because the mode can't use
     # it must not reappear under "Advanced" as an uncurated key.
     curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
-               | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT))
+               | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT)
+               | {"audio_exclusive"})
     out = []
     try:
         shown = set(visible_passthrough_keys())
@@ -288,6 +314,8 @@ def sections():
         # Importing player pulls in mpv; never let that break the whole form.
         shown = set()
     shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
+    if sys.platform in EXCLUSIVE_PLATFORMS:
+        shown.add("audio_exclusive")
     keep_running = "close_to_tray" if tray_available() else "allow_background"
     shown.add(keep_running)
     if getattr(settings, keep_running, False):

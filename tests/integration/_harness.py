@@ -398,6 +398,9 @@ def build_player(player_module, video=None):
     pm._audio_lock = RLock()
     pm._audio_configured = False
     pm._audio_snapshot = None
+    # Separate slot from _audio_snapshot: the chosen output device is not part
+    # of the audio *mode*, so it must survive a return to "auto".
+    pm._device_snapshot = None
     # Whether this mpv honours a runtime force-window change; _init_mpv reads
     # it off the real version. FakeMPV has none, so assume the modern
     # behaviour and let the tests that care set it explicitly.

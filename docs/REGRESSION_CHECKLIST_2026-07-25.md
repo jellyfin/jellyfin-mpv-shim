@@ -85,7 +85,7 @@ The three mixins share one object and one `RLock`, and each reaches outside
 in ways only real hardware answers for.
 
 ## AudioMixin
-- [-] Passthrough: set each `audio_mode` (auto / stereo / optical / HDMI) and
+- [X] Passthrough: set each `audio_mode` (auto / stereo / optical / HDMI) and
       confirm the output actually changes on your receiver — this is the one
       whose failure mode is silence, not an error.  lib [ ] ext [ ]
   - Lack hardware, although I can confirm it is setting the config

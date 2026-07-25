@@ -266,6 +266,23 @@ class Settings(SettingsBase):
     # decide. The other modes are described in player.py:apply_audio_settings.
     # Replaced the old audio_output key, which nothing ever read.
     audio_mode: str = "auto"
+    # Which output device mpv opens, as an mpv device name
+    # ("alsa/iec958:CARD=X,DEV=0", "wasapi/{guid}", ...). None means "don't
+    # touch it", so mpv's own default and anything in the user's mpv.conf are
+    # left alone -- the same contract audio_mode's "auto" has.
+    #
+    # This exists because passthrough usually cannot go through a sound
+    # server. The IEC61937 non-audio flag lives in the S/PDIF channel status,
+    # which is set through the ALSA device name's AES parameters, and a
+    # PipeWire/PulseAudio device has nowhere to put them: the stream arrives
+    # as ordinary PCM and a receiver plays it as static. Reaching the device
+    # directly is the only way, and picking it needs a control.
+    audio_device: Optional[str] = None
+    # Take the device exclusively, so nothing else can mix into it (and
+    # nothing resamples or attenuates a bitstream on the way out). mpv only
+    # honours this on wasapi, coreaudio and sndio -- not ALSA -- so the
+    # settings form hides it where it would do nothing.
+    audio_exclusive: bool = False
     # Which codecs to pass through, for the modes that pass anything through.
     # Default on: a mode is opt-in already, and picking "HDMI Passthrough"
     # only to find nothing passes through would be surprising. Which of these

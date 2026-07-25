@@ -186,6 +186,33 @@ class TlsTest(SettingsCase):
         self.assertNotIn("tls_ca_file", self.build("default"))
 
 
+class AudioDeviceTest(SettingsCase):
+    """Set at construction as well as live, because the first file played can
+    be a passthrough one and an mpv that already opened the wrong device would
+    have to reopen it mid-playback."""
+
+    def test_unset_passes_nothing(self):
+        # Unset means untouched: an mpv.conf that already names a device must
+        # survive a setting the user never filled in.
+        self.set(audio_device=None, audio_exclusive=False)
+        opts = self.build("default")
+        self.assertNotIn("audio_device", opts)
+        self.assertNotIn("audio_exclusive", opts)
+
+    def test_a_chosen_device_is_passed(self):
+        self.set(audio_device="alsa/iec958:CARD=X,DEV=0", audio_exclusive=False)
+        self.assertEqual(self.build("default")["audio_device"],
+                         "alsa/iec958:CARD=X,DEV=0")
+
+    def test_exclusive_is_independent_of_the_device(self):
+        # Exclusive with mpv's own device choice is a legitimate pair on
+        # Windows and macOS.
+        self.set(audio_device=None, audio_exclusive=True)
+        opts = self.build("default")
+        self.assertTrue(opts["audio_exclusive"])
+        self.assertNotIn("audio_device", opts)
+
+
 class WindowGeometryTest(SettingsCase):
     def test_unset_sizes_fall_back_to_a_browsable_default(self):
         self.set(window_width=None, window_height=None, window_maximized=False)

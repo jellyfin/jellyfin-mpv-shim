@@ -746,19 +746,25 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
         node["icons"] = _icon_paths(el.icons)
     if el.force:
         node["force"] = True
-    if el.trigger_icon:
-        from .vector import icon_ass
-
-        node["ticon"] = icon_ass(el.trigger_icon)
-        # icon triggers are narrower than their popup: size the
-        # popup to the items (like Menu) and let the renderer
-        # clamp it to the screen edges
+    if el.trigger_icon or getattr(el, "popup_w", None):
+        # How wide the OPEN list wants to be, which is not the control's
+        # width in two cases: an icon trigger has no width to speak of, and
+        # popup_w allows a boxed control to keep its place in a form while
+        # its list gets the room its text needs.
         widest = max(
             (text_width(i, el.size) for i in el.items), default=40
         )
         pw = widest + 36
         if el.icons:
             pw += el.size * 1.5
+        if el.trigger_icon:
+            from .vector import icon_ass
+
+            node["ticon"] = icon_ass(el.trigger_icon)
+        else:
+            # A ceiling, not a width: a short list stays tidy, and the popup
+            # is never narrower than the control it drops out of.
+            pw = max(w, min(pw, el.popup_w))
         node["pw"] = _round(pw)
     _reg(ctx, node["id"], "select", el.on_select)
     ctx.nodes.append(node)

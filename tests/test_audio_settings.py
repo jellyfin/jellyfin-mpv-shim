@@ -225,6 +225,8 @@ class FakePlayer:
         "audio_channels": "auto-safe",
         "audio_normalize_downmix": False,
         "audio_spdif": "",
+        "audio_device": "auto",
+        "audio_exclusive": False,
     }
 
     def __init__(self, initial=None):
@@ -278,7 +280,8 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         self.settings = settings
         self._saved = (settings.audio_mode, settings.audio_night_mode,
                        settings.audio_optical_encode_ac3,
-                       settings.audio_passthrough_ac3)
+                       settings.audio_passthrough_ac3,
+                       settings.audio_device, settings.audio_exclusive)
         # The mixin, not a PlayerManager: these methods touch nothing else on
         # the player, so there is no reason to build one (which needs libmpv
         # and opens a window). PlayerManagerUsesTheMixinTest covers the
@@ -287,13 +290,16 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         # The four attributes PlayerManager.__init__ owns and the mixin reads.
         self.pm._audio_configured = False
         self.pm._audio_snapshot = None
+        self.pm._device_snapshot = None
         self.pm._audio_lock = threading.RLock()
         self.pm._player = FakePlayer()
 
     def tearDown(self):
         (self.settings.audio_mode, self.settings.audio_night_mode,
          self.settings.audio_optical_encode_ac3,
-         self.settings.audio_passthrough_ac3) = self._saved
+         self.settings.audio_passthrough_ac3,
+         self.settings.audio_device,
+         self.settings.audio_exclusive) = self._saved
 
     def apply(self, mode, night=False):
         self.settings.audio_mode = mode
@@ -388,6 +394,52 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         p = self.apply("optical")
         self.assertEqual(p.props["audio_spdif"], "ac3,dts")
         self.assertNotIn("jfac3", p.filters)
+
+    def test_an_unset_device_is_not_touched_at_all(self):
+        """Unset means untouched, not "auto".
+
+        Someone whose mpv.conf already selects a device must not have it
+        overwritten by a setting they never filled in — the same contract
+        audio_mode's "auto" has.
+        """
+        self.settings.audio_device = None
+        self.settings.audio_exclusive = False
+        p = self.apply("auto")
+        self.assertNotIn("audio_device", p.props)
+        self.assertNotIn("audio_exclusive", p.props)
+
+    def test_a_chosen_device_is_applied_in_every_mode(self):
+        """Including "auto". The device is not a property of the mode: "leave
+        my audio alone" and "use the S/PDIF card" are a reasonable pair, and
+        passthrough is exactly the case that needs the second."""
+        self.settings.audio_device = "alsa/iec958:CARD=X,DEV=0"
+        for mode in ("auto", "stereo", "optical", "hdmi"):
+            self.pm._player = FakePlayer()
+            self.pm._device_snapshot = None
+            self.pm._audio_snapshot = None
+            self.pm._audio_configured = False
+            p = self.apply(mode)
+            self.assertEqual(p.props.get("audio_device"),
+                             "alsa/iec958:CARD=X,DEV=0",
+                             "device not applied in %s mode" % mode)
+
+    def test_going_back_to_default_restores_what_was_there(self):
+        """Otherwise the only way back from a device chosen once is to edit
+        the config by hand."""
+        self.pm._player = FakePlayer({"audio_device": "auto"})
+        self.settings.audio_device = "alsa/iec958:CARD=X,DEV=0"
+        self.apply("auto")
+        self.settings.audio_device = None
+        p = self.apply("auto")
+        self.assertEqual(p.props.get("audio_device"), "auto")
+
+    def test_exclusive_is_applied_and_cleared(self):
+        self.settings.audio_exclusive = True
+        p = self.apply("auto")
+        self.assertTrue(p.props.get("audio_exclusive"))
+        self.settings.audio_exclusive = False
+        p = self.apply("auto")
+        self.assertFalse(p.props.get("audio_exclusive"))
 
     def test_optical_with_nothing_loaded_does_not_attach_the_encoder(self):
         """No stub: mpv has no current audio track, as at _init_mpv time.

@@ -1088,6 +1088,11 @@ local function popup_geometry(node)
     local ex, ey = eff(node)
     -- icon triggers size the popup to the items (pw), not the control
     local w = node.pw or node.w
+    -- ...and pw is measured from the item text, so a long one (a subtitle
+    -- track named after its release) can be wider than the window. Clamping
+    -- x alone would leave the right-hand edge off screen; the items
+    -- ellipsize to whatever width survives.
+    w = math.min(w, state.w - 8)
     local ih = node.pw and math.floor(node.size * 1.9) or node.h
     local count = #node.items
     local n = math.min(count, popup_max_items(ih))

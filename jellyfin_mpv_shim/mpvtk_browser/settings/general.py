@@ -27,6 +27,13 @@ log = logging.getLogger("mpvtk_browser.settings")
 
 class GeneralTabMixin:
 
+    #: Width of a settings field, and of the label column beside it. One
+    #: constant because a form whose fields do not line up reads as broken;
+    #: see _setting_row for the one thing allowed to exceed it, and why it is
+    #: the popup rather than the control.
+    FIELD_W = 340
+
+
     def _settings_general(self, route, size):
         cfg = self._config()
         schema = cfg.settings_schema()
@@ -69,20 +76,34 @@ class GeneralTabMixin:
             return Checkbox(label, bool(val), id="set-" + key,
                             on_toggle=lambda k=key, v=val: self._set_setting(
                                 k, not bool(v)))
-        if key in cfg.LABELED_ENUMS:
-            opts = cfg.LABELED_ENUMS[key]
+        dynamic = self._dynamic_enum(key)
+        opts = cfg.LABELED_ENUMS.get(key) or dynamic
+        if opts:
             cur = next((i for i, (_l, v) in enumerate(opts)
                         if str(v) == str(val)), 0)
+            # A curated enum has labels we wrote, so FIELD_W is a width we
+            # chose. A dynamic one is system strings of unknown length --
+            # audio device descriptions run to "SoundBlaster Live! 24-bit
+            # External SB0490 Digital Stereo (IEC958)", and the part that
+            # identifies the device is the END, so at FIELD_W every row
+            # ellipsizes to the same thing. The OPEN list gets the extra room
+            # rather than the control: one field wider than every other field
+            # in the form is what you notice, and it is closed most of the
+            # time.
+            extra = {} if key in cfg.LABELED_ENUMS or not dynamic else {
+                "popup_w": int(self.FIELD_W * 1.5)}
             widget = Dropdown(
-                "set-" + key, [lbl for lbl, _v in opts], selected=cur, w=340,
-                force=True,
+                "set-" + key, [lbl for lbl, _v in opts], selected=cur,
+                w=self.FIELD_W, force=True,
                 on_select=lambda i, _v, k=key, o=opts: self._set_setting(
-                    k, o[i][1]))
+                    k, o[i][1]),
+                **extra)
         elif key in cfg.ENUMS:
             opts = cfg.ENUMS[key]
             cur = opts.index(str(val)) if str(val) in opts else 0
             widget = Dropdown(
-                "set-" + key, opts, selected=cur, w=340, force=True,
+                "set-" + key, opts, selected=cur, w=self.FIELD_W,
+                force=True,
                 on_select=lambda i, _v, k=key, o=opts: self._set_setting(
                     k, o[i]))
         elif key == "sync_path":
@@ -106,11 +127,31 @@ class GeneralTabMixin:
             # no dirty marker. The sync_path row above already had a Move
             # button for the same reason; this generalizes it.
             widget = TextBox("set-" + key,
-                             text="" if val is None else str(val), w=340,
+                             text="" if val is None else str(val),
+                             w=self.FIELD_W,
                              on_submit=lambda v, k=key: self._set_setting(k, v),
                              on_commit=lambda v, k=key: self._set_setting(k, v))
-        return Row([Text(label, w=340, size=17, color=theme.SUBTLE_FG),
+        return Row([Text(label, w=self.FIELD_W, size=17,
+                         color=theme.SUBTLE_FG),
                     widget], gap=12, align="center")
+    def _dynamic_enum(self, key):
+        """``[(label, value), ...]`` for a setting whose choices are not
+        knowable in advance, or None.
+
+        ``LABELED_ENUMS`` in config.py is a literal, which is right for the
+        settings whose options are a design decision. The audio device list
+        is not one of those: it depends on the platform, the sound server and
+        what is plugged in this minute, and mpv — the thing that will have to
+        open the chosen device — is the only honest source for it.
+        """
+        if key != "audio_device" or self.controller is None:
+            return None
+        try:
+            return self.controller.audio_devices()
+        except Exception:
+            log.debug("could not list audio devices", exc_info=True)
+            return None
+
     def _dynamic_note(self, key):
         """Explanatory line that depends on live state rather than the key.
 

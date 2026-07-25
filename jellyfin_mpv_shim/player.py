@@ -324,6 +324,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # mpv's audio config as it was before we first touched it, so
         # returning to Default can put it back. See _snapshot_audio_state.
         self._audio_snapshot = None
+        # Separate from _audio_snapshot: the device survives a
+        # return to "auto" mode, so it cannot share that reset.
+        self._device_snapshot = None
         # Serializes the audio settings read + the mpv writes it implies.
         self._audio_lock = RLock()
         self._lock = RLock()
@@ -666,6 +669,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # exists (re-open, crash recovery).
         self._audio_configured = False
         self._audio_snapshot = None
+        # Separate from _audio_snapshot: the device survives a
+        # return to "auto" mode, so it cannot share that reset.
+        self._device_snapshot = None
         # A fresh mpv starts with stats.lua's overlay off — don't let a stale
         # flag make clear_stats() toggle it back on.
         self._stats_shown = False

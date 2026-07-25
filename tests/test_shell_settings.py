@@ -124,6 +124,117 @@ class TestSettings(unittest.TestCase):
         finally:
             settings.discord_presence = saved
 
+    def test_the_audio_device_list_comes_from_mpv(self):
+        """Which devices exist depends on the platform, the sound server and
+        what is plugged in this minute, so the options cannot be a literal in
+        config.py the way the other enums are — and mpv, which has to open
+        whichever one is chosen, is the only honest source."""
+        class Ctl:
+            def audio_devices(self):
+                return [("Default (mpv decides)", None),
+                        ("The S/PDIF one", "alsa/iec958:CARD=X,DEV=0")]
+
+        self.b.controller = Ctl()
+        opts = self.b._dynamic_enum("audio_device")
+        self.assertEqual([v for _l, v in opts],
+                         [None, "alsa/iec958:CARD=X,DEV=0"])
+        self.assertIsNone(self.b._dynamic_enum("player_name"),
+                          "every other setting must keep its static options")
+
+    def _device_browser(self, long_name=True):
+        name = ("SoundBlaster Live! 24-bit External SB0490 Digital Stereo "
+                "(IEC958)") if long_name else "Speakers"
+
+        class Ctl:
+            def audio_devices(self):
+                return [("Default (mpv decides)", None),
+                        (name, "alsa/iec958:CARD=X")]
+
+        b = MpvtkBrowser(app=None, source=FakeSource())   # the real schema
+        b.controller = Ctl()
+        b._open_settings()
+        return b
+
+    @staticmethod
+    def _dropdown(b, node_id, size=(1280, 720)):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        nodes, _h = layout(b.build(size), *size)
+        return next(n for n in nodes
+                    if n.get("id") == node_id and n.get("t") == "dropdown")
+
+    def test_the_device_list_opens_wider_than_the_control(self):
+        """Device descriptions are system strings and the identifying part is
+        at the END — "…External SB0490 Digital Stereo (IEC958)" — so at the
+        field width every row ellipsizes to the same thing.
+
+        The OPEN list gets the extra room, not the control: one field wider
+        than every other field is what you notice, and it is closed most of
+        the time.
+        """
+        b = self._device_browser()
+        dd = self._dropdown(b, "set-audio_device")
+        field = b.FIELD_W
+        self.assertEqual(dd["w"], field, "the control left the form's grid")
+        self.assertGreater(dd.get("pw", 0), field,
+                           "the open list is no wider than the control")
+        self.assertLessEqual(dd["pw"], field * 1.5)
+
+    def test_a_curated_enum_keeps_one_width(self):
+        """Its labels are ours; if they do not fit, the fix is the label."""
+        dd = self._dropdown(self._device_browser(), "set-audio_mode")
+        self.assertEqual(dd["w"], MpvtkBrowser.FIELD_W)
+        self.assertIsNone(dd.get("pw"))
+
+    def test_a_short_device_list_does_not_get_a_wide_popup(self):
+        """popup_w is a ceiling, not a width: nothing is gained by opening a
+        list of "Speakers" at one and a half fields wide."""
+        dd = self._dropdown(self._device_browser(long_name=False),
+                            "set-audio_device")
+        self.assertEqual(dd["pw"], dd["w"],
+                         "a short list still opened oversized")
+
+    def test_a_broken_device_list_does_not_break_the_settings_screen(self):
+        """Reading it talks to mpv, which can be mid-restart."""
+        class Ctl:
+            def audio_devices(self):
+                raise RuntimeError("no mpv")
+
+        self.b.controller = Ctl()
+        self.assertIsNone(self.b._dynamic_enum("audio_device"))
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        self.assertIn("set-player_name", ids(nodes))
+
+    def test_exclusive_audio_is_hidden_where_mpv_ignores_it(self):
+        """mpv honours --audio-exclusive on wasapi, coreaudio and sndio only.
+        A checkbox that silently does nothing is worse than no checkbox — and
+        it must not leak into Advanced either, which is what the `curated`
+        seeding in sections() is for."""
+        import sys as _sys
+        from unittest import mock
+
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        with mock.patch.object(_sys, "platform", "linux"):
+            groups = dict(real.sections())
+            self.assertNotIn("audio_exclusive", groups.get("Audio", []))
+            self.assertNotIn("audio_exclusive", groups.get("Advanced", []))
+        for plat in ("win32", "darwin"):
+            with mock.patch.object(_sys, "platform", plat):
+                self.assertIn("audio_exclusive",
+                              dict(real.sections()).get("Audio", []),
+                              "hidden on %s, where mpv honours it" % plat)
+
+    def test_the_audio_device_setting_is_offered_everywhere(self):
+        """Unlike exclusive mode: choosing the hardware device directly is
+        precisely what Linux users need, since that is the platform where the
+        sound server gets in the way."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        self.assertIn("audio_device", dict(real.sections())["Audio"])
+        self.assertIn("audio_device", real.NOTES)
+
     def test_a_static_note_does_not_hide_the_dynamic_one(self):
         """Both lines render, not one.
 

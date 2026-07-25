@@ -40,6 +40,41 @@ class PlaybackMixin(GatewayCore):
         playerManager.enable_osc(settings.enable_osc)
         playerManager.set_browse_window(False)
 
+    def audio_devices(self):
+        """``[(label, value), ...]`` for the audio-device picker.
+
+        Asked of the live mpv (``audio-device-list``) rather than assembled
+        here: which devices exist depends on the platform, the audio server
+        and what is plugged in *now*, and mpv is the thing that will have to
+        open whichever one is chosen. Its own names are the only ones that
+        are guaranteed to work.
+
+        The leading entry is None, not ``"auto"`` — see ``conf.audio_device``:
+        unset means the setting does not touch mpv at all, so a user's
+        mpv.conf keeps whatever it says.
+        """
+        from ...i18n import _
+        from ...player import playerManager
+
+        out = [(_("Default (mpv decides)"), None)]
+        try:
+            devices = playerManager._mpv_property("audio-device-list") or []
+        except Exception:
+            log.debug("could not read audio-device-list", exc_info=True)
+            return out
+        for dev in devices:
+            if not isinstance(dev, dict):
+                continue
+            name = dev.get("name")
+            if not name or name == "auto":
+                # mpv's own "auto" entry duplicates the default above.
+                continue
+            # The description is what mpv shows and the only human-readable
+            # part; fall back to the name so an unlabelled device is still
+            # selectable rather than a blank row.
+            out.append((dev.get("description") or name, name))
+        return out
+
     def apply_audio_settings(self):
         """Push the saved audio settings to mpv. Live: a mode change takes
         effect without a restart, and mid-playback without a reload."""

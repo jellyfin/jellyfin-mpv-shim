@@ -77,6 +77,19 @@ By default the shim changes nothing about audio and lets MPV (and anything in
 your own `mpv.conf`) decide. The settings below are for sending audio to an
 external receiver.
 
+- `audio_device` - Which output device MPV opens, as an MPV device name
+  (`alsa/iec958:CARD=X,DEV=0`, `wasapi/{guid}`, …). Default: unset
+  - Unset means MPV decides, so its default and anything in your `mpv.conf`
+    are left alone. Settings offers a drop-down of whatever MPV reports on
+    this machine right now.
+  - **This is the setting passthrough usually needs.** See "Passthrough needs
+    a sound server that will carry it" below.
+- `audio_exclusive` - Take the output device exclusively, so nothing else can
+  mix into it. Default: `false`
+  - MPV honours this on WASAPI (Windows), CoreAudio (macOS) and sndio only, so
+    the Settings form hides it elsewhere. On Linux the equivalent is choosing
+    the hardware device directly with `audio_device`.
+  - Other applications get no sound while something is playing.
 - `audio_mode` - How audio is sent to your speakers or receiver. Default: `auto`
   - `auto` - Change nothing. MPV's defaults and your `mpv.conf` apply.
   - `stereo` - Force stereo and normalize the downmix.
@@ -130,18 +143,34 @@ Two things to check on PipeWire or PulseAudio if a receiver will not lock on:
   nothing to `default`), but they are a good sign the stream is not going
   where you think. `cat /proc/asound/card*/pcm0p/sub0/status` shows the owner.
 
-The reliable arrangement is to take the device away from the sound server
-(`pactl set-card-profile <card> off`) and point mpv straight at it from your
-own `mpv.conf`, which the shim reads:
+The reliable arrangement is to bypass the sound server: set **`audio_device`**
+(Settings → Audio → Audio Output Device) to the S/PDIF or HDMI device itself
+rather than a `pulse/…` or `pipewire` entry. On Windows and macOS, tick
+**`audio_exclusive`** as well.
+
+On Linux the sound server usually keeps the S/PDIF device open, which stops
+MPV from taking it. Free it first:
 
 ```
-audio-device=alsa/iec958:CARD=YourCard,DEV=0
-audio-exclusive=yes
+pactl set-card-profile <card-name> off       # from `pactl list cards`
 ```
 
-The shim deliberately sets neither `ao` nor `audio-device` — which output and
-which device are yours to choose, and guessing would override an mpv.conf
-someone had already got right.
+Then pick the `alsa/iec958:CARD=…` entry in Settings. If the `AES0=…` lines
+stop appearing in the log, the channel-status bits are being set and the
+bitstream is really going out — with speakers attached you will hear loud
+static, which is the *correct* result for a bitstream and what a receiver
+locks onto. Nothing attached and no static means it is still not reaching the
+port.
+
+Not every card can do this. `pactl list cards` showing only `iec958-stereo`
+for a card, with no `iec958-ac3-surround-51`, means the sound server will
+never treat it as passthrough-capable — going direct via `audio_device` is
+then the only route, and whether the hardware honours the non-audio bit is up
+to the hardware.
+
+Nothing is set for you unless you set it: with `audio_device` unset the shim
+passes no device to MPV at all, so an `mpv.conf` somebody already got right is
+never overridden. `ao` is never set either.
 
 ## Features
 

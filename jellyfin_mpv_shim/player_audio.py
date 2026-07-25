@@ -156,9 +156,9 @@ def audio_wants_ac3_encode(
 class AudioMixin:
     """Audio output configuration for :class:`~jellyfin_mpv_shim.player.PlayerManager`.
 
-    Reads ``self._player``, ``self._audio_lock``, ``self._audio_configured``
-    and ``self._audio_snapshot``, all of which ``PlayerManager.__init__``
-    owns. Nothing here calls back into the rest of the player.
+    Reads ``self._player``, ``self._audio_lock``, ``self._audio_configured``,
+    ``self._audio_snapshot`` and ``self._device_snapshot``, all of which
+    ``PlayerManager.__init__`` owns. Nothing here calls back into the rest of the player.
     """
 
     if TYPE_CHECKING:
@@ -171,6 +171,7 @@ class AudioMixin:
         _audio_lock: Any
         _audio_configured: bool
         _audio_snapshot: Optional[dict]
+        _device_snapshot: Optional[dict]
 
     def _mpv_property(self, prop):
         """Read an mpv property by its full (path) name on either backend."""
@@ -238,6 +239,41 @@ class AudioMixin:
         "audio-spdif": "audio_spdif",
     }
 
+    # Device selection, kept OUT of _AUDIO_PROPS on purpose. Those are
+    # restored whenever the mode returns to "auto", and the device is not a
+    # property of the mode -- "leave my audio alone" and "use the S/PDIF card"
+    # are an entirely reasonable pair, and entangling them would silently undo
+    # the device the moment someone picked Default.
+    _DEVICE_PROPS = {
+        "audio-device": "audio_device",
+        "audio-exclusive": "audio_exclusive",
+    }
+
+    def _apply_audio_device_locked(self):
+        """Point mpv at the configured output device; caller holds the lock.
+
+        Unset means *untouched*, not "auto": mpv's own default and anything in
+        the user's mpv.conf stay in force. Going back to unset restores what
+        was there before we first wrote it, for the same reason
+        ``_restore_audio_state`` exists -- otherwise the only way back from a
+        device chosen once would be to edit the config by hand.
+        """
+        want = getattr(settings, "audio_device", None) or None
+        exclusive = bool(getattr(settings, "audio_exclusive", False))
+        if self._device_snapshot is None:
+            if want is None and not exclusive:
+                return          # never touched it, nothing asked for: leave it
+            self._device_snapshot = {
+                prop: self._mpv_property(prop) for prop in self._DEVICE_PROPS
+            }
+        if want is None:
+            original = (self._device_snapshot or {}).get("audio-device")
+            if original is not None:
+                self._player.audio_device = original
+        else:
+            self._player.audio_device = want
+        self._player.audio_exclusive = exclusive
+
     def _snapshot_audio_state(self):
         """Record mpv's audio config before we first overwrite it.
 
@@ -283,6 +319,14 @@ class AudioMixin:
         # nothing re-runs to correct it. Not _lock, which is held across a
         # whole playback start.
         with self._audio_lock:
+            try:
+                # Before the mode: unconditional, because the device is not
+                # part of the mode and "auto" returns early below.
+                self._apply_audio_device_locked()
+            except _mpv_errors:
+                raise
+            except Exception:
+                log.error("Could not apply the audio device.", exc_info=True)
             try:
                 if mode == "auto" and not night and not self._audio_configured:
                     # Nothing applied to this mpv instance and nothing asked
