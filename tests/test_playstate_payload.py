@@ -194,3 +194,54 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
         is how "it works on my machine" starts."""
         state = self._snapshot_with_client(object(), {})
         self.assertIn("server_uuid", state)
+
+
+class TestReportingIsWiredIn(unittest.TestCase):
+    """``push_playstate`` and the timeline reports live in ``ReportingMixin``.
+
+    Everything above drives them through ``PlayerManager``, which is what
+    makes it worth stating outright that the inheritance is what puts them
+    there — a mixin that stopped being inherited would take session reporting
+    and the now-playing bar with it, silently.
+    """
+
+    def test_the_player_inherits_it_and_the_methods_resolve_to_it(self):
+        from jellyfin_mpv_shim.player_reporting import ReportingMixin
+
+        self.assertTrue(issubclass(PlayerManager, ReportingMixin))
+        for name in ("push_playstate", "get_timeline_options", "send_timeline",
+                     "send_timeline_initial", "send_timeline_stopped",
+                     "_report_stopped_offline", "upd_player_hide"):
+            self.assertIs(getattr(PlayerManager, name),
+                          getattr(ReportingMixin, name),
+                          "%s is no longer the mixin's" % name)
+
+    def test_the_timeline_methods_still_take_the_timeline_lock(self):
+        """``_tl_lock``, not ``_lock``: server round trips happen under it and
+        ``_lock`` is held for the whole of a playback start."""
+        import inspect
+
+        from jellyfin_mpv_shim.player_reporting import ReportingMixin
+
+        for name in ("send_timeline", "send_timeline_stopped",
+                     "_session_playing_safe"):
+            src = inspect.getsource(getattr(ReportingMixin, name))
+            self.assertIn('synchronous("_tl_lock")', src,
+                          "%s lost its timeline lock" % name)
+
+    def test_importing_it_pulls_in_neither_player_nor_a_backend(self):
+        # Same guard as player_audio: the backend globals and the Discord
+        # flag are read per call, and hoisting them to module scope breaks
+        # the integration harness's fake-mpv swap.
+        import subprocess
+
+        code = ("import sys; sys.argv=[sys.argv[0]];"
+                "import jellyfin_mpv_shim.player_reporting;"
+                "bad=[m for m in ('jellyfin_mpv_shim.player','mpv',"
+                "'python_mpv_jsonipc') if m in sys.modules];"
+                "print(','.join(bad))")
+        out = subprocess.run([sys.executable, "-c", code],
+                             capture_output=True, text=True, timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(out.stdout.strip(), "",
+                         "player_reporting captured the backend at import time")
