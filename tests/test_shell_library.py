@@ -44,6 +44,41 @@ class TestTileShapes(unittest.TestCase):
             {"collection_type": "tvshows", "items": [{"Type": "Episode"}]})
         self.assertIs(g, POSTER_GEOM)
 
+    def test_latest_tv_is_shaped_like_any_other_tv_row(self):
+        """Drawing its Episodes as their series is a per-item image choice
+        (see _tile); it must not reshape the row."""
+        from jellyfin_mpv_shim.mpvtk_browser import home_sections
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        g, it = home_page(self.b)._row_shape(
+            {"collection_type": "tvshows", "kind": home_sections.LATEST,
+             "items": [{"Type": "Episode"}]})
+        self.assertIs(g, POSTER_GEOM)
+        self.assertEqual(it, "Primary")
+
+    def test_only_episodes_swap_to_the_series_poster(self):
+        """The Series entries the same row carries keep their own poster."""
+        seen = []
+        self.b.source.image_spec = lambda i, t="Primary", w=280: seen.append(
+            (i.get("Id"), t))
+        self.b.tiles._tile({"Id": "e1", "Type": "Episode"}, self.b.geom,
+                           "Primary", True)
+        self.b.tiles._tile({"Id": "s1", "Type": "Series"}, self.b.geom,
+                           "Primary", True)
+        # ...and elsewhere an episode still shows its own still.
+        self.b.tiles._tile({"Id": "e2", "Type": "Episode"}, self.b.geom_wide,
+                           "Thumb")
+        self.assertEqual(seen, [("e1", "ParentPrimary"), ("s1", "Primary"),
+                                ("e2", "Thumb")])
+
+    def test_live_tv_is_a_poster_row(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        g, it = home_page(self.b)._row_shape(
+            {"collection_type": "livetv", "items": [{"Type": "Program"}]})
+        self.assertIs(g, POSTER_GEOM)
+        self.assertEqual(it, "Primary")
+
     def test_scroll_arrows_appear_only_when_the_row_overflows(self):
         # One library fits, so no arrows; a long row gets them, floating over
         # the strip's left and right edges.
@@ -1279,6 +1314,38 @@ class TestTileAndMetaParity(unittest.TestCase):
         self.assertEqual(
             components.episode_subtitle({"Type": "Episode", "ParentIndexNumber": 1,
                               "IndexNumber": 2}), "S1E2")
+
+    def test_a_latest_tv_episode_leads_with_its_series(self):
+        """Recently Added for a TV library is read as a list of shows, so the
+        episode name belongs on the second line."""
+        self.assertEqual(
+            components.tile_lines({"Type": "Episode", "Name": "Pilot",
+                                   "SeriesName": "The Show",
+                                   "ParentIndexNumber": 1, "IndexNumber": 1},
+                                  parent_item=True),
+            ("The Show", "Pilot"))
+
+    def test_a_series_in_that_row_is_untouched(self):
+        self.assertEqual(
+            components.tile_lines({"Type": "Series", "Name": "The Show",
+                                   "ProductionYear": 2001},
+                                  parent_item=True),
+            ("The Show", "2001"))
+
+    def test_an_episode_with_no_series_name_keeps_its_own_title(self):
+        # Falling through to the series name would have blanked the tile.
+        self.assertEqual(
+            components.tile_lines({"Type": "Episode", "Name": "Pilot",
+                                   "ParentIndexNumber": 1, "IndexNumber": 1},
+                                  parent_item=True),
+            ("Pilot", "S1E1"))
+
+    def test_elsewhere_an_episode_tile_is_unchanged(self):
+        self.assertEqual(
+            components.tile_lines({"Type": "Episode", "Name": "Pilot",
+                                   "SeriesName": "The Show",
+                                   "ParentIndexNumber": 1, "IndexNumber": 1}),
+            ("Pilot", "The Show · S1E1"))
 
     def test_a_movie_tile_is_unchanged(self):
         self.assertEqual(

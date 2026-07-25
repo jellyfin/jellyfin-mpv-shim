@@ -912,6 +912,17 @@ class LibrarySource:
             # records and stops retrying.
             return item["Id"], "Primary", tags.get("Primary") or "playlist"
 
+        if image_type == "ParentPrimary":
+            # Draw the item as its show: the *series'* poster, which is what
+            # /Items/{ParentBackdropItemId}/Images/Primary resolves to — that
+            # field is the series' id, not a request for its backdrop. Not
+            # reachable through the chain below, because an episode's own
+            # Primary (its still) is matched first and wins. Falls through
+            # when there is no parent, so a stray item still gets its own art.
+            owner = item.get("SeriesId") or item.get("ParentBackdropItemId")
+            if owner:
+                return owner, "Primary", item.get("SeriesPrimaryImageTag")
+
         if image_type == "Thumb":
             # Fall back to a primary image, then the series thumb/primary.
             if "Primary" in tags:
@@ -923,6 +934,13 @@ class LibrarySource:
 
         if item.get("SeriesId") and item.get("SeriesPrimaryImageTag"):
             return item["SeriesId"], "Primary", item["SeriesPrimaryImageTag"]
+
+        if "Thumb" in tags:
+            # The mirror of the Thumb->Primary fallback above: guide programs
+            # routinely carry one of the two and not the other, so a poster
+            # row asking for Primary must still take the item's own thumb
+            # before it borrows the channel's.
+            return item["Id"], "Thumb", tags["Thumb"]
 
         if item.get("ParentThumbItemId") and item.get("ParentThumbImageTag"):
             # Live TV programs inherit the channel's thumb this way.

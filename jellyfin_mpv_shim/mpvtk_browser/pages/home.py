@@ -111,7 +111,7 @@ class HomePage(Page):
                             _("Libraries"), data["libraries"],
                             # Libraries read as landscape cards, like the web
                             # client.
-                            art.geom_wide, "Primary", "row-libs"))
+                            art.geom_wide, "Primary", "row-libs", False))
         # Ids are derived from section kind and ordinal, not from position:
         # they key the scroll containers, so an index-based id would hand a
         # reordered section the previous occupant's scroll offset.
@@ -123,11 +123,13 @@ class HomePage(Page):
             n = seen[kind] = seen.get(kind, -1) + 1
             geom, itype = self._row_shape(hr)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
-                            geom, itype, "row-%s-%d" % (kind, n)))
+                            geom, itype, "row-%s-%d" % (kind, n),
+                            self._latest_tv(hr)))
         entries.sort(key=lambda e: e[0])
         rows = [art.tiles.tile_row(title, items, row_id, geom=geom,
-                                   image_type=itype, bleed=True)
-                for _slot, title, items, geom, itype, row_id in entries]
+                                   image_type=itype, bleed=True,
+                                   parent_item=pitem)
+                for _slot, title, items, geom, itype, row_id, pitem in entries]
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size=20,
@@ -144,19 +146,30 @@ class HomePage(Page):
                        offset=self.parked_scroll("home"),
                        snaps=components.section_offsets(rows, 20))
 
+    @staticmethod
+    def _latest_tv(hr):
+        """A "Latest" row for a TV library.
+
+        The server answers these with a *mix* of Series (a show that got
+        several new episodes) and bare Episodes (a show that got one), so the
+        row reads as a list of shows with an episode dropped into the middle
+        of it. The Episodes are therefore drawn as their series — see
+        ``TileRenderer._tile``. The row's shape is not affected: these stay
+        poster rows like every other TV row.
+        """
+        return (hr.get("kind") == home_sections.LATEST
+                and hr.get("collection_type") == "tvshows")
+
     def _row_shape(self, hr):
         """(geom, image_type) for a home row, classified like the Tk browser:
-        movies/tv/boxsets -> poster; music/playlists -> square; home-video/misc
-        or episode-bearing rows -> landscape Thumb."""
+        movies/tv/boxsets and Live TV -> poster; music/playlists -> square;
+        home-video/misc or episode-bearing rows -> landscape Thumb."""
         art = self.ctx.art
         ctype = hr.get("collection_type")
         items = hr.get("items", [])
         has_episode = any(it.get("Type") == "Episode" for it in items)
         if ctype == "livetv":
-            # Programs are 16:9 guide stills or channel logos; a poster crop
-            # of either is unreadable. jellyfin-web uses a backdrop shape with
-            # preferThumb for the same reason.
-            return art.geom_wide, "Thumb"
+            return art.geom, "Primary"
         if ctype in ("movies", "tvshows", "boxsets"):
             return art.geom, "Primary"
         if ctype in ("music", "playlists"):

@@ -32,6 +32,23 @@ def episode_subtitle(item):
     return str(item.get("ProductionYear") or "")
 
 
+def tile_lines(item, parent_item=False):
+    """``(title, subtitle)`` for a tile.
+
+    ``parent_item`` flips an episode around: the series becomes the title
+    and the episode name the subtitle. That is what a "Latest TV" row wants
+    — the server hands back a Series when a show got several new episodes
+    and a bare Episode when it got one, so without this the same row reads
+    as a list of shows with an episode title dropped in the middle of it.
+    Anything that is not an Episode is unaffected, series rows included.
+    """
+    if parent_item and item.get("Type") == "Episode":
+        series = item.get("SeriesName")
+        if series:
+            return series, item.get("Name", "")
+    return item.get("Name", ""), episode_subtitle(item)
+
+
 def is_watched(item):
     """Whether a tile shows the watched check.
 

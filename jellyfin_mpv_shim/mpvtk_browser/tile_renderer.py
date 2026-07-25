@@ -289,15 +289,26 @@ class TileRenderer:
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
-    def _tile(self, item, geom, image_type="Primary"):
+    def _tile(self, item, geom, image_type="Primary", parent_item=False):
+        """One tile. ``parent_item`` draws an Episode as its *series* —
+        the show's name and the show's poster instead of the episode's name
+        over the episode still — which is what a Latest-TV row is a list of.
+        It changes which image is fetched, not the tile's shape: the caller's
+        ``geom`` still decides that."""
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
         rt = item.get("RunTimeTicks") or 0
+        if parent_item and item.get("Type") == "Episode":
+            # The series' poster, via SeriesId/ParentBackdropItemId — see
+            # LibrarySource.image_spec. Poster art, so it fits the poster
+            # tile the row is already drawing.
+            image_type = "ParentPrimary"
         poster, tag = self.poster_for(item, geom, image_type)
+        title, subtitle = components.tile_lines(item, parent_item)
         return Tile(
             key=item.get("Id", ""),
-            title=item.get("Name", ""),
-            subtitle=components.episode_subtitle(item),
+            title=title,
+            subtitle=subtitle,
             poster=poster,
             poster_tag=tag,
             glyph=components.placeholder_glyph(item),
@@ -307,12 +318,13 @@ class TileRenderer:
             downloaded=self.is_downloaded(item),
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
-                  bleed=False, on_click=None):
+                  bleed=False, on_click=None, parent_item=False):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so the page arrows sit flush
         against the window's left and right sides; the title is indented to
-        line up with the content instead."""
+        line up with the content instead. ``parent_item`` is passed through
+        to the tiles (see ``_tile``)."""
         geom = geom or self.art.geom
         heading = Text(title, size=24, bold=True)
         if bleed:
@@ -324,7 +336,8 @@ class TileRenderer:
                 heading,
                 self.hscroll_row(
                     self.image_map(items, row_id, geom, image_type,
-                                    on_click=on_click),
+                                    on_click=on_click,
+                                    parent_item=parent_item),
                     row_id, geom.strip_h + 2 * RING_PAD,
                     len(items), geom, bleed),
             ],
@@ -387,9 +400,10 @@ class TileRenderer:
         return rows
 
     def image_map(self, items, prefix, geom=None, image_type="Primary",
-                   on_click=None, async_=False):
+                   on_click=None, async_=False, parent_item=False):
         geom = geom or self.art.geom
-        tiles = [self._tile(it, geom, image_type) for it in items]
+        tiles = [self._tile(it, geom, image_type, parent_item)
+                 for it in items]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self.on_open

@@ -17,6 +17,7 @@ from .labels import (
     is_watched,
     placeholder_glyph,
     section_offsets,
+    tile_lines,
     track_artists,
     track_duration,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "is_watched",
     "placeholder_glyph",
     "section_offsets",
+    "tile_lines",
     "track_artists",
     "track_duration",
     "wrap_pil",

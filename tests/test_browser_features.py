@@ -173,6 +173,52 @@ class PersonImageSpecTest(unittest.TestCase):
         self.assertEqual(src.image_spec(item), ("i1", "Primary", "t1"))
 
 
+class ParentPrimaryImageSpecTest(unittest.TestCase):
+    """An episode drawn as its show wants the show's *poster*:
+    /Items/{ParentBackdropItemId}/Images/Primary."""
+
+    def test_an_episode_takes_its_series_poster(self):
+        src = LibrarySource.__new__(LibrarySource)
+        ep = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+              "SeriesId": "S1", "SeriesPrimaryImageTag": "t1",
+              "ParentBackdropItemId": "S1", "ParentBackdropImageTags": ["b1"]}
+        self.assertEqual(src.image_spec(ep, "ParentPrimary"),
+                         ("S1", "Primary", "t1"))
+
+    def test_the_backdrop_owner_stands_in_for_a_missing_series_id(self):
+        src = LibrarySource.__new__(LibrarySource)
+        ep = {"Id": "e1", "Type": "Episode",
+              "ParentBackdropItemId": "S1", "ParentBackdropImageTags": ["b1"]}
+        self.assertEqual(src.image_spec(ep, "ParentPrimary"),
+                         ("S1", "Primary", None))
+
+    def test_no_parent_falls_through_to_the_items_own_art(self):
+        # Otherwise a stray item in the row draws a letter glyph.
+        src = LibrarySource.__new__(LibrarySource)
+        ep = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"}}
+        self.assertEqual(src.image_spec(ep, "ParentPrimary"),
+                         ("e1", "Primary", "own"))
+
+
+class ProgramPosterSpecTest(unittest.TestCase):
+    def test_a_program_thumb_beats_the_channel_logo(self):
+        """Live TV is a poster row now; a program carrying only a Thumb must
+        still show it rather than falling through to the channel."""
+        src = LibrarySource.__new__(LibrarySource)
+        item = {"Id": "p1", "Type": "Program", "ImageTags": {"Thumb": "own"},
+                "ParentThumbItemId": "c1", "ParentThumbImageTag": "pt",
+                "ChannelId": "c1", "ChannelPrimaryImageTag": "cp"}
+        self.assertEqual(src.image_spec(item, "Primary"),
+                         ("p1", "Thumb", "own"))
+
+    def test_a_program_primary_still_wins(self):
+        src = LibrarySource.__new__(LibrarySource)
+        item = {"Id": "p1", "Type": "Program",
+                "ImageTags": {"Primary": "own", "Thumb": "t"}}
+        self.assertEqual(src.image_spec(item, "Primary"),
+                         ("p1", "Primary", "own"))
+
+
 class ChapterImageUrlTest(unittest.TestCase):
     def test_no_tag_no_url(self):
         src = LibrarySource.__new__(LibrarySource)
