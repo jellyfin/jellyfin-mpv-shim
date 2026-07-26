@@ -222,3 +222,47 @@ def apply(
             return result
     log.info("no rule matched")
     return None, None
+
+
+# Original/foreign audio language assumed by the "subbed" presets (anime case,
+# matching the README examples). Power users who need another original language
+# use Custom + a hand-written language_config.
+_ORIGINAL_LANG = "jpn"
+
+
+def preset_rules(preference, preferred_lang):
+    """Translate a Dubbed/Subbed dropdown choice into a language_config rule
+    list, mirroring the canonical examples in the README.
+
+    `preferred_lang` is the language you understand: it drives dub audio and all
+    subtitles. The original audio for "subbed" defaults to Japanese.
+
+    Subbed  -> original audio + full preferred-language subtitles, falling back
+               to any preferred-language subtitle, then to a preferred dub.
+    Dubbed  -> preferred-language audio with signs/songs subtitles, falling back
+               to subbed when no dub exists.
+
+    The "_shows" variants constrain *every* rule to series so movies are left
+    entirely at the server default.
+    """
+    pref = (preferred_lang or "eng").strip().lower()
+    orig = _ORIGINAL_LANG
+    series_only = preference.endswith("_shows")
+
+    def rule(**kw):
+        return {"type": "series", **kw} if series_only else dict(kw)
+
+    if preference.startswith("subbed"):
+        return [
+            rule(alang=orig, slang=pref, subtype="full"),
+            rule(alang=orig, slang=pref),
+            rule(alang=pref),
+        ]
+    if preference.startswith("dubbed"):
+        return [
+            rule(alang=pref, slang=pref, subtype="signs"),
+            rule(alang=pref),
+            rule(alang=orig, slang=pref, subtype="full"),
+            rule(alang=orig, slang=pref),
+        ]
+    return []

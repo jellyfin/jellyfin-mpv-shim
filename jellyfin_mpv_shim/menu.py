@@ -88,6 +88,27 @@ class OSDMenu(object):
         except Exception:
             log.error("Could not load SVP integration.", exc_info=True)
 
+    def update_player(self, player):
+        """Point at a re-created mpv instance. The menu itself only talks to
+        mpv through playerManager wrappers, but the sub-managers apply
+        per-instance side effects at construction that the new mpv needs
+        again: VideoProfileManager re-applies the remembered shader profile
+        (and re-captures property defaults), SVPManager re-registers the SVP
+        input-ipc-server socket. Rebuild them like a fresh init would."""
+        if self.profile_manager is not None:
+            try:
+                self.profile_manager = VideoProfileManager(
+                    self, self.playerManager, player
+                )
+                self.profile_menu = self.profile_manager.menu_action
+            except Exception:
+                log.error("Could not reload profile manager.", exc_info=True)
+        if self.svp_menu is not None:
+            try:
+                self.svp_menu = SVPManager(self, self.playerManager)
+            except Exception:
+                log.error("Could not reload SVP integration.", exc_info=True)
+
     # The menu is a bit of a hack...
     # It works using multiline OSD.
     # We also have to force the window to open.
@@ -149,13 +170,12 @@ class OSDMenu(object):
                 self.menu_list.append(
                     (_("Change Video Playback Profile"), self.profile_menu)
                 )
-            if self.playerManager.get_video().parent.is_tv:
-                self.menu_list.append(
-                    (
-                        _("Auto Set Audio/Subtitles (Entire Series)"),
-                        self.change_tracks_menu,
-                    )
-                )
+            # "Auto Set Audio/Subtitles (Entire Series)" is disabled: it worked by
+            # spamming playback events to change Jellyfin's remembered audio/sub
+            # index for the whole season, which no longer works on current server
+            # versions. Between-episode track persistence (remember_*_track) and
+            # the language preset replace it. The handler (change_tracks_menu /
+            # bulk_subtitle) is kept so this can be re-enabled if it's ever fixed.
             self.menu_list.append(
                 (_("Quit and Mark Unwatched"), self.unwatched_menu_handle)
             )
@@ -265,13 +285,18 @@ class OSDMenu(object):
     def change_audio_menu(self):
         self.put_menu(_("Select Audio Track"))
 
-        selected_aid = self.playerManager.get_video().aid
+        # Snapshot: the video can be torn down (mpv death, stop) between menu
+        # keypresses on another thread.
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_aid = video.aid
         audio_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Audio"
         ]
-        for i, audio_track in enumerate(audio_streams):
+        for audio_track in audio_streams:
             aid = audio_track.get("Index")
             if (
                 settings.lang_filter_audio
@@ -289,8 +314,10 @@ class OSDMenu(object):
                     aid,
                 ]
             )
+            # Index into the (possibly filtered) menu_list, not the source stream
+            # list -- filtered-out entries would otherwise offset the highlight.
             if aid == selected_aid:
-                self.menu_selection = i
+                self.menu_selection = len(self.menu_list) - 1
 
     def change_subtitle_menu_handle(self):
         self.playerManager.put_task(
@@ -302,14 +329,17 @@ class OSDMenu(object):
     def change_subtitle_menu(self):
         self.put_menu(_("Select Subtitle Track"))
 
-        selected_sid = self.playerManager.get_video().sid
+        video = self.playerManager.get_video()
+        if video is None:
+            return
+        selected_sid = video.sid
         subtitle_streams = [
             s
-            for s in self.playerManager.get_video().media_source["MediaStreams"]
+            for s in video.media_source["MediaStreams"]
             if s.get("Type") == "Subtitle"
         ]
         self.menu_list.append([_("None"), self.change_subtitle_menu_handle, -1])
-        for i, subtitle_track in enumerate(subtitle_streams):
+        for subtitle_track in subtitle_streams:
             sid = subtitle_track.get("Index")
             if (
                 settings.lang_filter_sub
@@ -328,8 +358,10 @@ class OSDMenu(object):
                     sid,
                 ]
             )
+            # Index into the (possibly filtered) menu_list, not the source stream
+            # list. len - 1 also accounts for the "None" entry added above.
             if sid == selected_sid:
-                self.menu_selection = i + 1
+                self.menu_selection = len(self.menu_list) - 1
 
     def change_transcode_quality_handle(self):
         bitrate = self.menu_list[self.menu_selection][2]
@@ -403,6 +435,11 @@ class OSDMenu(object):
         _x, _x, key, name = self.menu_list[self.menu_selection]
         setattr(settings, key, not getattr(settings, key))
         settings.save()
+        if key.startswith("audio_"):
+            # Audio settings apply live rather than at the next file, so the
+            # toggle changes what you are listening to right now. Deferred:
+            # the menu runs inside an mpv event handler.
+            self.playerManager.put_task(self.playerManager.apply_audio_settings)
         self.menu_list[self.menu_selection] = self.get_settings_toggle(name, key)
 
     def get_settings_toggle(self, name: str, setting: str):
@@ -552,7 +589,6 @@ class OSDMenu(object):
                 self.get_settings_toggle(_("Auto Fullscreen"), "fullscreen"),
                 self.get_settings_toggle(_("Media Key Seek"), "media_key_seek"),
                 self.get_settings_toggle(_("Use Web Seek Pref"), "use_web_seek"),
-                self.get_settings_toggle(_("Display Mirroring"), "display_mirroring"),
                 self.get_settings_toggle(_("Write Logs to File"), "write_logs"),
                 self.get_settings_toggle(_("Check for Updates"), "check_updates"),
                 self.get_settings_toggle(
@@ -568,6 +604,9 @@ class OSDMenu(object):
                 ),
                 self.get_settings_toggle(
                     _("Enable thumbnail previews"), "thumbnail_enable"
+                ),
+                self.get_settings_toggle(
+                    _("Night Mode (Auto Volume Adj)"), "audio_night_mode"
                 ),
             ],
         )

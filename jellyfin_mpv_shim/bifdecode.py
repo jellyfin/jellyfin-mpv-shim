@@ -11,6 +11,15 @@ except ImportError:
 
 
 def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh):
+    """Write `count` BGRA frames from `tiles` into `fh`.
+
+    Returns the number of frames ACTUALLY written, which can be fewer than
+    `count` when the tile source runs short (a 404 on a late tile, a
+    truncated body, a server still generating trickplay). The caller must
+    report this rather than the manifest's count: mpv is handed the file to
+    mmap and seeks to `frame * width * height * 4`, so an over-reported count
+    produces an offset past EOF, which is a SIGBUS in the mpv process.
+    """
     if not PIL_AVAILABLE:
         raise ImportError(
             "Pillow (PIL) is required for trickplay thumbnails. Install with: pip install pillow"
@@ -30,7 +39,7 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh):
         for y in range(tile_height):
             for x in range(tile_width):
                 if image_count >= count:
-                    return
+                    return image_count
                 image_count += 1
 
                 for y_local in range(height):
@@ -40,6 +49,8 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh):
                         + y_local * width * tile_width * 4  # seek to correct subrow
                     )
                     fh.write(image_data[position : position + width * 4])
+
+    return image_count
 
 
 def decompress_bif(images, fh):

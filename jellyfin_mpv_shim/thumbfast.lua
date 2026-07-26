@@ -1,11 +1,21 @@
 local utils = require 'mp.utils'
 
+-- Set JMS_JF_OSC_DEBUG=1 to log every thumb/clear decision.
+local debug_events = os.getenv("JMS_JF_OSC_DEBUG") ~= nil
+local function dbg(text)
+    if debug_events then
+        mp.msg.info(text)
+    end
+end
+
 img_count = 0
 img_multiplier = 0
 img_width = 0
 img_height = 0
 img_file = ""
 img_last_frame = -1
+img_last_x = nil
+img_last_y = nil
 img_is_shown = false
 img_enabled = false
 img_is_bif = false
@@ -90,21 +100,36 @@ function client_message_handler(event)
                 end
             end
             should_render_preview = true
-            if frame ~= img_last_frame then
-                if img_is_bif and frame >= img_count then
-                    frame = img_count -1
-                end
+            if img_is_bif and frame >= img_count then
+                frame = img_count -1
+            end
+            -- Re-add only when the frame or position actually changed:
+            -- overlay-add re-reads and re-uploads the whole BGRA tile, and
+            -- doing that on every render tick makes the preview flicker.
+            -- (img_last_frame was previously never updated, so the dedup
+            -- check always passed.)
+            if frame ~= img_last_frame or x ~= img_last_x or y ~= img_last_y then
                 local offset = frame * img_width * img_height * 4
                 img_is_shown = true
+                img_last_frame = frame
+                img_last_x = x
+                img_last_y = y
+                dbg(("overlay-add frame=%d @ %d,%d"):format(frame, x, y))
                 mp.commandv("overlay-add", img_overlay_id, x, y, img_file, offset, "bgra", img_width, img_height, img_width * 4)
+            else
+                dbg(("thumb dedup frame=%d @ %d,%d"):format(frame, x, y))
             end
         end
     elseif event_name == "clear"
     then
         if img_is_shown
         then
+            dbg("overlay-remove (clear)")
             mp.commandv("overlay-remove", img_overlay_id)
             img_is_shown = false
+            img_last_frame = -1
+            img_last_x = nil
+            img_last_y = nil
         end
     end
 end

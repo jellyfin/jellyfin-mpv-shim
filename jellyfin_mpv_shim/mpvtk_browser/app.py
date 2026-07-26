@@ -1,0 +1,1854 @@
+"""MpvtkBrowser — the app shell: route stack, async data loading, and the
+``build(size)`` that turns the current route into an mpvtk widget tree.
+
+This is the mpvtk analogue of the Tk ``BrowserApp``. It runs in the main
+process next to ``playerManager`` (no ``multiprocessing`` child), attaches
+its UI to the player's mpv window via ``mpvtk.MpvtkApp.attach`` (see
+``mpvtk/MIGRATION.md``), and reproduces the load-bearing paradigms of the
+Tk browser: a route-dict nav stack (``navigate``/``go_back``), background
+API calls with epoch-guarded staleness, and full-scene rebuilds driven by
+``invalidate()`` (renderer-local state — scroll, focus — survives).
+
+This module is the *core*: ``__init__``, the nav stack, the epoch and
+``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome,
+the browse<->playback lifecycle and HUD glue, and ``shutdown``. Everything
+else is a mixin, one per feature area:
+
+    dialogs.py     modal shell, add-to picker, download + SyncPlay dialogs
+    auth.py        login / Quick Connect, lock screen, user switching
+    settings.py    the Settings route and the downloads panel
+    queue_edit.py  the play queue and the playlist editor
+    music.py       music browsing and the now-playing bar
+    views.py       home / grid / detail / series / season / search
+    tiles.py       tile art, rows and grids, the tile context menu
+
+The mixins are a partition, not a layering: they all operate on the same
+``self``, so the split makes the shared state visible rather than reducing
+it. No name may be defined by two of them — MRO would silently pick a
+winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
+
+**Adding a view** is one edit: declare the route kind in the owning mixin's
+``ROUTES`` table as ``kind: (loader, renderer)``, and write those two
+methods next to it. ``_routes()`` merges the tables across the MRO;
+``_load_route`` and ``_render_route`` here are lookups. ``ROUTES`` is the
+one name every mixin is meant to define — that merge is explicit, so the
+usual override hazard doesn't apply, but a kind claimed twice is still a
+test failure.
+
+Three invariants hold the whole thing together:
+
+**The thread contract.** Renderer event handlers and ``build()`` run on the
+loop thread. ``on_playstate``, ``notify_update``, ``set_download_status``,
+``display_item`` and ``on_downloads_changed`` are called from foreign
+threads, as are the pool workers behind ``run_async`` — everything they
+touch must be write-then-``invalidate()``, never a direct scene change.
+
+**Epoch discipline.** ``_epoch`` and ``_lock`` live *only* here.
+Dispatchers read ``ep = self._epoch`` on the loop thread and hand it to
+``run_async``, which drops the result if navigation has moved on since.
+Caching an ``ep`` and passing it across a module boundary reads fine and is
+subtly wrong.
+
+**``_lock`` protects writers from each other, not from the reader.**
+``build()`` reads route data unlocked. That is deliberate and safe only
+because every writer ends with ``invalidate()``, so a torn read is a
+one-frame glitch that the next build heals. Don't "fix" it by locking
+``build()``.
+"""
+
+import logging
+import threading
+import time
+from types import SimpleNamespace
+
+from ..i18n import _
+from ..mpvtk.layout import natural_size
+from ..mpvtk.rawimage import cache_dir
+from ..mpvtk.widgets import (
+    Box,
+    Busy,
+    Button,
+    Column,
+    Dropdown,
+    Float,
+    Icon,
+    Progress,
+    Row,
+    Spacer,
+    Text,
+    TextBox,
+)
+from . import theme
+from . import navigator
+from .async_runner import AsyncRunner
+from .navigator import Navigator
+from .scroll_state import ScrollState
+from .tile_renderer import TileRenderer
+from .item_actions import ItemActions
+from .hud_control import HudController
+from .load_feedback import LoadFeedback
+from . import window_chrome
+from . import pagination
+from .pagination import Paginator
+from .pages import PAGES
+from .pages.base import PageContext
+from .hud import build_hud
+from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
+                         SERIES_TYPES)
+from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
+from .dialogs import DialogsMixin
+from .auth import AuthMixin
+from .settings import SettingsMixin
+from .music import MusicMixin
+from .views import ViewsMixin, SORTS
+from .tiles import TilesMixin
+from .cast import CastMixin
+
+log = logging.getLogger("mpvtk_browser.app")
+
+
+def now_id_of(state):
+    """The playing item's id, if the payload carries one."""
+    return (state or {}).get("id")
+
+# Routes that take over the whole surface (no nav chrome), like the Tk
+# browser's login/locked/connecting screens.
+# "cast" is chrome-free for two reasons: it is a full-bleed backdrop
+# (chrome over it would look wrong), and in headless mode the chrome IS
+# the way into the library.
+CHROME_FREE = {"login", "locked", "connecting", "cast"}
+
+# Where the now-playing bar must NOT appear. Deliberately not CHROME_FREE:
+# the cast screen is chrome-free but IS where audio playback lives in
+# headless mode, and suppressing the bar there would leave a cast-target box
+# playing music with no transport controls at all — worse than the library
+# access it was meant to deny. The other three are pre-library screens where
+# nothing can be playing.
+NO_NOW_PLAYING = {"login", "locked", "connecting"}
+
+
+class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
+                   MusicMixin, ViewsMixin, TilesMixin, CastMixin):
+
+    # Horizontal padding of ordinary page content.
+    CONTENT_PAD = 16
+
+    # Pagination (settings.paginated). A page is one screenful of tiles with a
+    # bottom bar instead of a scrollbar. Heights below are the fixed chrome/bar
+    # heights the page-size math subtracts so a page fits without scrolling;
+    # they mirror the real widgets (_chrome h=60, _banner/_download_bar, the
+    # now-playing bar) and only need to be close — the row count rounds down, so
+    # an over-estimate just shows one fewer row rather than clipping.
+    PAGINATION_BAR_H = pagination.PAGINATION_BAR_H
+    CHROME_H = 60
+    BANNER_H = 48
+    DLBAR_H = 44
+    # Cap a page's tile count so a huge window can't blow the 63-overlay budget
+    # (a non-scrolling page composites every tile at once).
+    PAGE_MAX = pagination.PAGE_MAX
+    # Route kinds that paginate. The music songs list and genre grids stay
+    # scrolling (a list, and an unpaged single request).
+    PAGEABLE_KINDS = {"grid", "person", "music"}
+
+    # How long shutdown() waits for a long job (a download-store move) to
+    # finish before giving up on it. Long enough to cover a same-drive move,
+    # short enough not to hang a quit.
+    LONG_JOB_SHUTDOWN_WAIT = 20.0
+
+    def __init__(self, app, source, strips=None, thumbs=None,
+                 server_uuid=None, geom=None, controller=None, config=None):
+        # Before anything is built: the toolkit's accented widgets read the
+        # palette at construction time.
+        theme.apply_to_toolkit()
+        self.app = app            # mpvtk.MpvtkApp (attached or spawned)
+        self.source = source
+        # Settings accessor (settings_schema/get_settings/set_setting). None ->
+        # the real in-process config module; tests inject a fake.
+        self._config_obj = config
+        # Optional bridge to the player (playback + browse/play window state).
+        # None in tests -> playable clicks just report status; the window/OSC
+        # handoff is a no-op. See mpvtk_browser.player_gateway.PlayerGateway.
+        self.controller = controller
+        # True while the browser owns the window; False while it has yielded to
+        # playback + the OSC. build() pushes an empty scene when not browsing so
+        # its overlays clear off the video.
+        self._browsing = True
+        # True in the "minimized" player state: playback_abort with
+        # force_window off, i.e. no window at all and the app reachable only
+        # from the tray (still a valid cast target). See minimize().
+        self._minimized = False
+        # Latest now-playing snapshot (from on_playstate) for the audio bar,
+        # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
+        self._now_playing = None
+        self._np_thread = None
+        # Pending drag target on the now-playing bar's seek slider, in
+        # seconds (None when not scrubbing) — the elapsed clock reads this
+        # instead of the playhead. See MusicMixin._np_scrub_change.
+        self._np_scrub = None
+        # Set once, by shutdown(), and never cleared: it is the sleep every
+        # background thread waits on, so clearing it would be a way to kill
+        # them all. Guards the now-playing ticker, both download pollers and
+        # the toast timer. (It was _np_stop, which read like the ticker's
+        # own flag.)
+        self._shutdown_evt = threading.Event()
+        # Serialises the poller starters below. They are reachable from the
+        # loop thread and from foreign ones, and "if the thread is None,
+        # start it" is not atomic.
+        self._poller_lock = threading.Lock()
+        # Playback HUD state and events (hud_control.py); the renderer owns
+        # the summon/auto-hide lifecycle and reports it there. Built before
+        # set_app below, which wires the renderer's callbacks onto it.
+        self.load = LoadFeedback(
+            get_controller=lambda: self.controller,
+            invalidate=lambda: self.invalidate(),
+            status=lambda msg: self.set_status(msg),
+            is_browsing=lambda: self._browsing,
+            enter_browse=lambda: self.enter_browse(),
+            hand_off=lambda: self._yield(),
+            arm=lambda: self._arm_spinner())
+        self.hud = HudController(
+            get_app=lambda: self.app,
+            get_controller=lambda: self.controller,
+            invalidate=lambda: self.invalidate(),
+            ctl=lambda fn: self._ctl(fn),
+            start_ticker=lambda: self._start_np_ticker())
+        # Cast/idle screen state (see cast.py). Present whether or not
+        # headless is set — without it, this is what a DisplayContent from a
+        # phone renders.
+        self._cast = {"idle": True}
+        self._cast_entry = None
+        self._cast_backdrop = None
+        self._cast_backdrop_key = None
+        self._cast_size = None
+        self._cast_lock = threading.Lock()
+        # Locked-down cast-target mode: the cast screen is the ONLY page.
+        # See navigate() and mpvtk/HEADLESS.md for what this does and does
+        # not protect against.
+        self.headless = bool(self._cfg_headless())
+        # Wires on_hud/on_hud_skip (and re-wires on_nav) on the app —
+        # shared with mpv re-creation, which attaches a fresh app.
+        self.set_app(app)
+        # Poller that refreshes the downloads view while transfers run.
+        self._dl_thread = None
+        # Tail poller for the logs tab — see SettingsMixin._poll_logs.
+        self._log_thread = None
+        # Long job (currently only the download-folder move) — see _run_long.
+        self._long_thread = None
+        # Global download progress for the status bar, and its poller.
+        self._dl_status = None
+        self._dlbar_thread = None
+        # True while keyboard/remote navigation drives the UI (renderer
+        # 'nav' events): carousels hide their pointer arrows and rely on
+        # focus-driven auto-scroll instead. Any mouse press clears it.
+        # (Wired onto the app by set_app above.)
+        self._nav_mode = False
+        # Open tile context menu: {"item", "server", "x", "y"} or None.
+        self._menu = None
+        # Banners: update-available notice + offline indicator.
+        self._update = None       # {"version", "url"} or None
+        self._offline = False
+        # Modal dialog: a builder callable -> Dialog node, or None.
+        self._dialog = None
+        # Download dialog state {"server","item","est","watched"} or None.
+        self._dl = None
+        # Login form field values (renderer holds the live text; we mirror it
+        # here via on_change so Connect can read all three fields at once).
+        self._login = {"server": "", "user": "", "pass": ""}
+        self._login_error = None
+        # Live text of the chrome search box (the renderer owns the widget; we
+        # mirror it so the search *button* can read it).
+        self._search_box = {"term": ""}
+        # Live text of the "new user" box in Settings → Servers & Users.
+        self._newuser = {"name": ""}
+        # Startup-PIN lock screen state. _locked is True while the gate is
+        # actually gating: tray commands that would navigate (Configure
+        # Servers, Show Console) are swallowed while it is set, so they
+        # can't reveal content from behind the lock.
+        self._pin = {"pin": ""}
+        self._pin_error = None
+        self._locked = False
+        self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
+        self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
+        self.geom_square = SQUARE_GEOM        # 1:1 (music)
+        # Downloaded id sets (for the tile badge), refreshed from the sync db.
+        # Default to a file-backed store (works on both backends / headless);
+        # the libmpv integration passes a MemoryStore-backed one.
+        self.strips = strips or StripStore(
+            cache_dir=cache_dir("mpvtk-browser-"), geom=self.geom)
+        # Wake our loop when an async row composite lands (see StripStore.strip).
+        # self.invalidate reads self.app at call time, so this survives mpv
+        # re-creation without re-wiring in set_app.
+        self.strips.set_notify(self.invalidate)
+        self.thumbs = thumbs      # ThumbnailStore (optional; None -> no art)
+        if self.thumbs is not None:
+            # Wake our loop when a decoded poster lands, so build() can pump it.
+            self.thumbs.set_notify(self.invalidate)
+
+        servers = []
+        try:
+            servers = source.servers()
+        except Exception:
+            log.warning("could not enumerate servers", exc_info=True)
+        self.server = self._pick_server(servers, server_uuid)
+
+        # Epoch + lock + worker pool, one mechanism with one owner. The
+        # properties below keep `self._epoch` / `self._pool` reading exactly
+        # as before for the mixins and tests that use them.
+        self._async = AsyncRunner(invalidate=self.invalidate)
+        # Late-bound on purpose. Passing the bound method captures whatever
+        # `invalidate` is at construction, so anything that later replaces it
+        # -- the tests do, and set_app-style rewiring could -- would be
+        # ignored and the view would stop repainting on scroll.
+        self._scroll = ScrollState(lambda: self.invalidate())
+        # Every callback is late-bound for the same reason as the scroll
+        # state's: `source`/`server` are swapped by set_source at arbitrary
+        # moments, and `app` is replaced when mpv is re-created.
+        self.tiles = TileRenderer(
+            art=self, scroll=self._scroll,
+            on_open=lambda item: self._open_item(item),
+            nav_mode=lambda: self._nav_mode,
+            get_app=lambda: self.app)
+        self.tiles.on_context = lambda *a, **k: self._open_tile_menu(*a, **k)
+        # The action counterpart to TileRenderer. `services=self` is a live
+        # provider (source/controller/offline/invalidate/set_status), read
+        # through and never snapshotted -- see item_actions.py. `dialogs` is
+        # a namespace rather than self so the only shell surface it can
+        # reach is the two dialogs it actually opens.
+        self._pages = Paginator(
+            run=self._async,
+            content_h=lambda route, size: self._content_h(route, size),
+            is_current=lambda route: route is self.route,
+            status=lambda msg: self.set_status(msg),
+            invalidate=lambda: self.invalidate(),
+            enabled=pagination.enabled_from_settings,
+            cols=lambda w, geom: self.tiles.cols(w, geom),
+            set_enabled=lambda v: self._config().set_setting("paginated", v),
+            forget=lambda *ids: self._scroll.forget(*ids))
+        self._dialogs = SimpleNamespace(
+            confirm=lambda *a, **k: self._confirm(*a, **k),
+            message=lambda *a, **k: self._message(*a, **k),
+            add_to=lambda item, server=None: self._open_add_to(item, server),
+            open_download=lambda item: self._open_download(item))
+        self._actions = ItemActions(
+            services=self, run=self._async,
+            dialogs=self._dialogs,
+            on_launch=lambda audio, title: self._start(audio=audio,
+                                                       title=title),
+            on_downloads_changed=lambda: self._refresh_downloaded())
+        self._posters = {}        # thumb key -> PIL image
+        self._requested = set()   # thumb keys already dispatched
+        # thumb key -> (failed attempts, earliest retry time). Only holds
+        # keys whose fetch failed transiently; see _image_done.
+        self._img_retry = {}
+        # apiclient edit-capability probe, resolved once
+        self._edit_apis_ok = None
+        # rebuilder for the add-to dialog (re-shown from its sub-dialog)
+        self._addto_build = None
+        self._addcol_name = None
+        # ids the add-to dialog will post (a container resolves to many)
+        self._addto_ids = None
+        self._addto_explicit_ids = None
+        # transient status message + when it was set (see _toast_node)
+        self._status_at = 0.0
+        self._toast_timer = None
+        # Repaints once a load has been slow enough to deserve the spinner.
+        self._spinner_timer = None
+        # live text of the download-folder field
+        self._sync_path = {}
+        self.status = ""
+        self._size = None         # last window size seen by build()
+
+        self._nav = Navigator(self._default_route,
+                              is_headless=lambda: self.headless)
+        self._load_route(self.route)
+
+    # ------------------------------------------------------------ routing
+
+    def _default_route(self):
+        """Where the browser lands when it has nowhere specific to go.
+
+        Handed to the Navigator as a callback rather than a value, because
+        every stack-emptying path backfills through it and it must reflect
+        the headless flag *at that moment*. That is what makes
+        ``Navigator.replace`` safe to leave unfiltered.
+
+        This used to carry a warning that every direct ``nav_stack``
+        assignment must come through here — a successful connect once put a
+        headless box on the library because ``set_source`` reset the stack
+        itself and the refusal never ran. The stack is now private to the
+        Navigator, so the warning is an invariant instead
+        (``tests/test_source_invariants.py``).
+        """
+        if self.headless:
+            return {"kind": "cast"}
+        return {"kind": "home", "server": self.server}
+
+    @property
+    def route(self):
+        return self._nav.route
+
+    @property
+    def nav_stack(self):
+        """The live route stack. Read freely; every WRITE goes through the
+        Navigator, which is what makes the headless lockdown hold."""
+        return self._nav.stack
+
+    @nav_stack.setter
+    def nav_stack(self, routes):
+        # Kept as a settable attribute because tests and the snapshot harness
+        # place the browser on a screen directly. It routes through
+        # Navigator.replace rather than rebinding a list, so there is still
+        # exactly one owner.
+        self._nav.replace(routes)
+
+    #: Kept as a class attribute: tests/test_mpvtk_headless.py reads it, and
+    #: it is the published name for "what headless still allows".
+    HEADLESS_ROUTES = navigator.HEADLESS_ROUTES
+
+    def navigate(self, route, reset=False, force=False):
+        """Go to ``route``, then load and repaint it.
+
+        Every way into the library ends up here — a tile click, the tray's
+        "Show Library Browser", a remote's GoHome, the now-playing bar's
+        Queue button, a DisplayContent from a phone — which is what lets the
+        headless lockdown mean something rather than hiding one entry point
+        and leaving five others open. The refusal itself is the Navigator's
+        (see navigator.py); this method's job is that a refusal skips the
+        load and the repaint too.
+
+        ``force`` is for the screens headless itself needs to reach.
+        """
+        # Park before the push: `self.route` is still the screen being left,
+        # and _reset_scroll below is about to forget where everything was.
+        self._park_scroll()
+        if not self._nav.push(route, reset=reset, force=force):
+            return          # refused by the headless lockdown
+        self._reset_scroll()
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def _reload_route(self, route):
+        """Re-run a route's loader in place: the data changed, the screen did
+        not. A sort or filter change, the collections toggle. Distinct from
+        navigate(), which pushes a new screen, and from go_back()."""
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def _cfg_headless(self):
+        """Read the headless flag. Tolerates a config object without it (the
+        test fakes hand-build a small schema)."""
+        cfg = self._config_obj
+        if cfg is None:
+            try:
+                from ..conf import settings
+                return getattr(settings, "headless", False)
+            except Exception:
+                return False
+        try:
+            return bool((cfg.get_settings() or {}).get("headless", False))
+        except Exception:
+            return False
+
+
+    def go_back(self):
+        self._park_scroll()
+        left = self._nav.pop()
+        if left is not None:
+            self._reset_scroll()
+            self._bump_epoch()
+            # Stale-while-revalidate: refresh Home on return (watched/resume
+            # state may have changed) while showing the cached view meanwhile.
+            if self.route.get("kind") == "home":
+                self._load_route(self.route)
+            # Coming out of the playlist editor, whatever is underneath is
+            # showing the order and membership from before the edits.
+            elif (left.get("kind") == "playlist_edit"
+                  and self.route.get("kind") in ("playlist", "grid")):
+                self.route.pop("_data", None)
+                self.route.pop("_items", None)
+                self.route.pop("_loading", None)
+                self._load_route(self.route)
+            self.invalidate()
+
+    def after_playlist_deleted(self, playlist_id):
+        """Drop every route pointing at a now-deleted playlist and reload
+        whatever is left showing.
+
+        A playlist page keys its id as ``item_id``; only ``parent_id`` was
+        checked, so nothing was ever pruned and deleting a playlist left the
+        user sitting on its now-dead page. The route we land on also has to
+        re-fetch, or the grid we came from still lists the playlist."""
+        self._nav.prune(
+            lambda r: playlist_id not in (r.get("item_id"), r.get("parent_id")))
+        route = self.route
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    def display_item(self, server_uuid, item_id):
+        if self.headless:
+            # Same gesture, different answer: paint it on the cast screen
+            # rather than opening a page the user could then browse from.
+            self.display_cast_item(server_uuid, item_id)
+            return
+        return self._display_item(server_uuid, item_id)
+
+    def _display_item(self, server_uuid, item_id):
+        """Open an item's page because a remote asked us to (Jellyfin's
+        DisplayContent — "show me this" from a phone or web client).
+
+        This is the browsable counterpart to the legacy kiosk mirror: the
+        remote picks the page, then its arrows drive the same spatial
+        navigation the keyboard uses.
+
+        Two things it deliberately does NOT do. It never starts playback —
+        jellyfin-web emits DisplayContent as you *browse* on the phone, so a
+        cast track has to open its album, not play it. And it never
+        interrupts playback for the same reason: browsing on the phone while
+        something plays here would otherwise stop the video. The page is
+        simply waiting when playback ends."""
+        if self._locked:
+            return       # a remote must not browse past the PIN gate
+        if server_uuid and server_uuid != self.server:
+            self.server = server_uuid
+        ep = self._epoch
+
+        def work():
+            return self.source.get_item(server_uuid or self.server, item_id)
+
+        def done(item):
+            if not item:
+                return
+            self._display_route(item)
+            # Imported here, not at module scope, like the other conf reads
+            # in this file (import cycle: conf -> ... -> app).
+            from ..conf import settings
+            if self._minimized and not settings.display_mirror_summon:
+                # Closed to the tray. The route is set either way, so the
+                # page is waiting whenever the browser is opened — but
+                # popping the window open because someone idly scrolled a
+                # phone is not something to do by default. Opt in with
+                # display_mirror_summon.
+                return
+            if self._minimized or self._browsing:
+                # Idle or already browsing: bring the page forward.
+                self.enter_browse()
+                if self.controller is not None:
+                    self._safe(lambda c: c.raise_window())
+        self.run_async(work, done, ep)
+
+    def _display_route(self, item):
+        """Navigate to an item's *page*. Same dispatch as a click, except
+        that types a click would play resolve to the page they belong to."""
+        if item.get("Type") == "Audio":
+            # _open_item would PLAY a track. Open its album instead, or do
+            # nothing if it has none — a browse gesture must never start
+            # playback.
+            album = item.get("AlbumId")
+            if album:
+                self.navigate({
+                    "kind": "album",
+                    "server": self.route.get("server") or self.server,
+                    "item_id": album,
+                    "title": item.get("Album") or ""})
+            else:
+                log.debug("DisplayContent for a track with no album; ignoring")
+            return
+        self._open_item(item)
+
+    def on_nav_command(self, name):
+        """Remote menu commands that map onto real pages here (GoHome /
+        GoToSettings). Returns True when handled; the OSD menu has no such
+        pages, so for every other path both still just open the menu."""
+        if self.headless:
+            # A remote is input like any other. Declining here lets the
+            # player fall back to its own OSD menu, which is transport-only.
+            return False
+        if name == "settings":
+            self.open_settings()
+            return True
+        if name == "home":
+            self.navigate({"kind": "home", "server": self.server}, reset=True)
+            return True
+        return False
+
+    def on_back(self):
+        """BACK / ESC from a remote or the keyboard. Returns True when it
+        consumed the press, so the player can fall back to its own handling
+        (leaving fullscreen) at the root of the stack."""
+        if self._dialog is not None:
+            self._close_dialog()
+            return True
+        if self._menu is not None:
+            self._close_menu()
+            return True
+        if self._nav.can_go_back:
+            self.go_back()
+            return True
+        return False
+
+    def _on_nav_mode(self, active):
+        """Renderer 'nav' event: keyboard/remote engaged or the mouse
+        took over. Repaint so modality-dependent chrome (carousel
+        arrows) follows."""
+        if active != self._nav_mode:
+            self._nav_mode = active
+            self.invalidate()
+
+    # -- the async machinery, owned by AsyncRunner ------------------------
+    #
+    # These delegate rather than reimplement. `_epoch` and `_pool` stay
+    # readable as attributes because ~30 dispatchers across the mixins do
+    # `ep = self._epoch` on the loop thread, and several tests substitute a
+    # synchronous pool; changing those is churn, not clarity.
+
+    @property
+    def _epoch(self):
+        return self._async.epoch
+
+    @property
+    def _pool(self):
+        return self._async.pool
+
+    @_pool.setter
+    def _pool(self, value):
+        self._async.pool = value
+
+    def _bump_epoch(self):
+        """Invalidate every in-flight async result. Returns the new epoch."""
+        return self._async.bump()
+
+    # -------------------------------------------------------- async model
+
+    def invalidate(self):
+        if self.app is not None:
+            self.app.invalidate()
+
+    def run_async(self, work, on_done, epoch, on_error=None, always=None):
+        """Run ``work()`` off the loop thread; apply ``on_done(result)`` only
+        if the epoch still matches (the user hasn't navigated away).
+
+        The contract — why ``on_error`` is not epoch-gated, why ``always``
+        exists, why every callback is individually guarded — lives with the
+        implementation in ``async_runner.py``. Two callers rely on the
+        "``on_error`` runs regardless of epoch" clause and guard the live
+        screen themselves by testing ``route is self.route``: ``_route_async``
+        before the offline fallback (``set_source`` discards the nav stack)
+        and ``_page_more`` before its toast. ``_edit_call``'s toast is
+        deliberately unguarded — the user pressed a button and the server
+        refused, so they should be told wherever they now are.
+        """
+        self._async.run(work, on_done, epoch,
+                        on_error=on_error, always=always)
+
+    def _route_async(self, route, work, on_done, ep):
+        """run_async for a route's data, recording a failure on the route so
+        the view can say so and offer a retry instead of spinning."""
+        def failed(exc):
+            route["_error"] = _("Failed to load. Check the connection.")
+            # Paging guards must not survive the failure or the view stops
+            # requesting anything for the rest of the session.
+            route.pop("_loading", None)
+            log.info("route %r failed to load: %s", route.get("kind"), exc)
+            # Everything above is a rollback on this route's own dict, so it
+            # runs whenever the failure lands. The fallback is not: set_source
+            # throws the nav stack away and drops the user on the offline
+            # home. Only do that while this route is still the screen —
+            # against a server that hangs rather than refuses, the failure can
+            # arrive tens of seconds after the user has moved on, and yanking
+            # them out of Settings mid-edit is worse than the error they
+            # never saw.
+            if route is self.route:
+                self._offline_fallback(route)
+        self.run_async(work, on_done, ep, on_error=failed)
+
+    # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
+    # thin forwarders while unconverted routes still call them as methods.
+    PAGE_SLOP = pagination.PAGE_SLOP
+
+    def _paginated(self):
+        return self._pages.enabled()
+
+    def _content_h(self, route, size):
+        """Vertical space the route content actually gets — the window minus
+        the chrome and bars that sit above/below it in ``build``. Mirrors
+        build()'s own conditions so a paginated page can size itself to fit.
+
+        Stays here: only the shell knows which of its bars are up."""
+        h = size[1]
+        if route.get("kind") not in CHROME_FREE:
+            h -= self.CHROME_H
+            if self._update or self._offline:
+                h -= self.BANNER_H
+            if self._dl_status and self._dl_status.get("pending"):
+                h -= self.DLBAR_H
+        h -= self.PAGINATION_BAR_H
+        if (self._now_playing is not None
+                and route.get("kind") not in NO_NOW_PLAYING):
+            from .music import NOW_PLAYING_BAR_H
+            h -= NOW_PLAYING_BAR_H
+        return max(1, h)
+
+    def _page_count(self, route, ps):
+        return self._pages.page_count(route, ps)
+
+    def _ensure_page(self, route, ps, fetch, seed=None):
+        return self._pages.ensure(route, ps, fetch, seed)
+
+    def _reset_pagination(self, route):
+        self._pages.reset(route)
+
+    def _page_go(self, route, page):
+        self._pages.go(route, page)
+
+    def _page_jump(self, route, text):
+        self._pages.jump(route, text)
+
+    def _pagination_bar(self, route, w):
+        """`Page [n] of N     |◀ ◀ ▶ ▶|` — the bottom bar that replaces the
+        scrollbar in paginated mode. None unless paginated, on a pageable
+        route, and a page count is known (set by _ensure_page this frame)."""
+        if not self._paginated() or route.get("kind") not in self.PAGEABLE_KINDS:
+            return None
+        npages = route.get("_npages")
+        if not npages:
+            return None
+        cur = route.get("_page") or 0
+
+        def nav(icon, node_id, target, tip):
+            # Square page buttons, not the flat translucent playback-HUD
+            # treatment: this is library chrome, not an overlay on video.
+            # justify="center" as well as align: with a fixed width and no
+            # label the lone icon would otherwise pack against the left edge.
+            return Button("", id=node_id, icon=icon, w=32, h=32, pad=0,
+                          justify="center", tip=tip,
+                          on_click=lambda: self._page_go(route, target))
+
+        return Row([
+            Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+            # force: the box tracks the current page, so paging with the
+            # buttons updates the number rather than leaving a stale edit.
+            # on_commit as well as on_submit: ENTER jumps, and so does clicking
+            # (or tabbing) out of the box. on_commit only fires when the value
+            # actually changed from focus-time, and ENTER marks it agreed, so
+            # the two never double-fire for one edit.
+            TextBox("pg-jump", text=str(cur + 1), w=64, force=True,
+                    on_submit=lambda s: self._page_jump(route, s),
+                    on_commit=lambda s: self._page_jump(route, s)),
+            Text(_("of %d") % npages, size=15, color=theme.SUBTLE_FG),
+            Spacer(),
+            nav("first_page", "pg-first", 0, _("First page")),
+            nav("chevron_left", "pg-prev", cur - 1, _("Previous page")),
+            nav("chevron_right", "pg-next", cur + 1, _("Next page")),
+            nav("last_page", "pg-last", npages - 1, _("Last page")),
+        ], pad=8, gap=8, align="center", h=self.PAGINATION_BAR_H,
+            bg=theme.PANEL_BG)
+
+    def _offline_fallback(self, route):
+        """A failed *home* load with downloads present drops to the offline
+        library, as the Tk browser does — otherwise the first thing a user
+        sees with the server down is an error where their downloads are."""
+        if route.get("kind") != "home" or self._offline:
+            return
+        if self.controller is None:
+            return
+        try:
+            source = self.controller.offline_source()
+        except Exception:
+            log.debug("offline fallback failed", exc_info=True)
+            return
+        if source is not None:
+            log.info("server unreachable; falling back to the downloads")
+            self.set_source(source)
+
+    def _retry_route(self, route):
+        route.pop("_error", None)
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
+        self._bump_epoch()
+        self._load_route(route)
+        self.invalidate()
+
+    _ROUTES_CACHE = None
+
+    @classmethod
+    def _routes(cls):
+        """The merged kind -> (loader, renderer) table.
+
+        Each mixin declares the kinds it owns in its own ROUTES, so a view is
+        added in one place next to the code that draws it. Reading
+        ``self.ROUTES`` would only ever see the first mixin in the MRO, so
+        walk it and merge; a kind claimed twice is a bug, not a silent
+        override (see tests/test_mpvtk_browser_mixins.py).
+        """
+        # __dict__, not attribute lookup: a plain `cls._ROUTES_CACHE` resolves
+        # through the MRO, so a subclass would find the parent's populated
+        # cache and return it — silently dropping its own ROUTES, which is the
+        # exact failure this table exists to prevent.
+        if cls.__dict__.get("_ROUTES_CACHE") is None:
+            merged = {}
+            for base in cls.__mro__:
+                for kind, pair in (base.__dict__.get("ROUTES") or {}).items():
+                    merged.setdefault(kind, pair)
+            cls._ROUTES_CACHE = merged
+        return cls._ROUTES_CACHE
+
+
+    # -- scroll state, owned by ScrollState -------------------------------
+    #
+    # Thin forwarders: ~10 call sites across the mixins pass `self._on_scroll`
+    # as a callback, and rewriting those is the page conversion's job, not
+    # this extraction's.
+
+    SCROLL_STEP = ScrollState.STEP
+
+    def _offset(self, scroll_id):
+        return self._scroll.offset(scroll_id)
+
+    def _on_scroll(self, scroll_id, offset, maximum, then=None):
+        self._scroll.on_scroll(scroll_id, offset, maximum, then)
+
+    def _reset_scroll(self):
+        self._scroll.reset()
+
+    def _park_scroll(self):
+        """Stash the current screen's scroll offsets on its route dict, so
+        coming back to it lands where it was left. No-op with no route (the
+        first navigate of the session)."""
+        route = self.route
+        if route is not None:
+            self._scroll.park(route, self.app)
+
+    # ------------------------------------------------------------- pages
+
+    def _art_context(self):
+        """Render resources a page may use. A namespace rather than the
+        browser, so a page cannot reach past it into the shell's state.
+
+        ``tiles`` and ``scroll`` are the two services step 6b extracted, and
+        they are here rather than as their own ``PageContext`` fields because
+        both answer questions about *what the renderer is drawing* — tile
+        geometry and where a container is scrolled to. Reaching them through
+        ``art`` is also what keeps the context at nine fields, which the
+        contract test caps.
+        """
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            strips=self.strips, thumbs=self.thumbs,
+            geom=self.geom, geom_wide=self.geom_wide,
+            geom_square=self.geom_square,
+            tiles=self.tiles, scroll=self._scroll, pages=self._pages)
+
+    def _page_context(self):
+        """Build the dependency bundle handed to every page.
+
+        Rebuilt per call rather than cached: `source` and `server` are swapped
+        by set_source at arbitrary moments (a reconnect, a user switch), and a
+        page holding a stale source would browse a server the user has left.
+        """
+        return PageContext(
+            source=self.source,
+            server=self.server,
+            # A facade, NOT the raw Navigator. navigate() here is the headless
+            # choke point -- it also resets scroll, bumps the epoch, loads and
+            # repaints -- and Navigator.push does none of that. Step 6a wired
+            # the Navigator itself by mistake, which made every page's
+            # navigate() an AttributeError waiting for a click;
+            # tests/test_late_bound_calls.py now resolves these statically.
+            nav=SimpleNamespace(
+                navigate=lambda route, **kw: self.navigate(route, **kw),
+                go_back=lambda: self.go_back(),
+                reload=lambda route: self._reload_route(route),
+                # Re-run a loader WITHOUT bumping the epoch or repainting:
+                # for an error path putting back what the server really has,
+                # where a bump would cancel unrelated in-flight work.
+                load=lambda route: self._load_route(route),
+                # Is this route still the screen? An error path that lands
+                # after the user navigated away must not repaint or reload
+                # over whatever they are looking at now.
+                is_current=lambda route: route is self.route,
+                after_playlist_deleted=lambda pid:
+                    self.after_playlist_deleted(pid)),
+            run=self._async,
+            art=self._art_context(),
+            player=self.controller,
+            actions=self._actions,
+            dialogs=self._dialogs,
+            status=self.set_status,
+            invalidate=self.invalidate,
+            # Shrinking escape hatch -- see pages/base.py. Counted by
+            # tests/test_page_contract.py; it can only go down.
+            shell=self,
+        )
+
+    #: Route-dict key holding the cached Page instance.
+    #:
+    #: NOT "_page". That key has meant "which page NUMBER of a paginated
+    #: grid" since long before the Page framework existed, and step 6a
+    #: claimed it for the object -- so ticking Paginated on a library made
+    #: Paginator.ensure compare an int against a GridPage and raise. The
+    #: renderer keeps the previous frame when build() throws, so the symptom
+    #: was the whole browser silently freezing, with no error anywhere.
+    PAGE_OBJ_KEY = "_page_obj"
+
+    def _page_for(self, route):
+        """The Page serving ``route``, or None if its kind is still a mixin.
+
+        Cached on the route dict so load() and render() share one instance and
+        a page can keep state on itself rather than in the route.
+        """
+        cls = PAGES.get(route.get("kind"))
+        if cls is None:
+            return None
+        page = route.get(self.PAGE_OBJ_KEY)
+        if page is None or type(page) is not cls:
+            page = cls(self._page_context(), route)
+            route[self.PAGE_OBJ_KEY] = page
+        else:
+            # Refresh the context: see _page_context on why it is not cached.
+            page.ctx = self._page_context()
+        return page
+
+    def _load_route(self, route, epoch=None):
+        """Dispatch to the route kind's loader, if it has one.
+
+        Kinds are declared in each mixin's ROUTES table alongside their
+        renderer, so adding a view is one edit in one place — this used to
+        be a 215-line elif chain here and a dict a thousand lines away.
+
+        The epoch is re-read here rather than threaded down from the
+        ``_bump_epoch()`` that every caller performs immediately above.
+        **That is deliberate and it is not the race it looks like.**
+
+        A review flagged the two statements as non-atomic and concluded a
+        foreign bump in between would strand the route. It is the other way
+        round: re-reading yields the *newest* epoch, so a loader can never
+        capture one that is already superseded. Threading the navigation's
+        value down is what breaks it — an interloping bump then makes the
+        captured epoch stale, ``run_async`` drops the ``on_done``, and
+        because no ``_error`` is set the view spins forever with no retry.
+        That was tried, and ``TestNavigationSurvivesAConcurrentBump``
+        (tests/test_shell_*.py) is what caught it.
+
+        The residue is benign: if a foreign thread bumps *and* navigates in
+        between, this load applies into a route dict that is no longer on
+        screen. A wasted write, not a wrong one.
+
+        ``epoch`` therefore exists only for callers that genuinely have their
+        own (none today). Leave it None.
+        """
+        if self.server is None:
+            return
+        route.pop("_error", None)
+        # ep is read here, on the loop thread, and handed down: a loader
+        # that read it later would be racing the navigation it guards.
+        ep = self._epoch if epoch is None else epoch
+        page = self._page_for(route)
+        if page is not None:
+            page.load(ep)
+            return
+        loader = (self._routes().get(route["kind"]) or (None, None))[0]
+        if loader is not None:
+            getattr(self, loader)(route, ep)
+
+    def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
+        """A mutating edit whose failure the user must see.
+
+        _client_call swallows: an "Add to Playlist" the server rejected
+        looked exactly like one that worked. ``on_error`` undoes whatever
+        the view already showed optimistically — leaving a rejected change
+        on screen is worse than never showing it."""
+        ep = self._epoch
+        msg = error or _("The change could not be applied.")
+
+        def work():
+            fn(self.controller)
+
+        def done(_ok):
+            if on_ok is not None:
+                on_ok()
+
+        def failed(_exc):
+            if on_error is not None:
+                on_error()
+            self.set_status(msg)
+        self.run_async(work, done, ep, on_error=failed)
+
+    def _client_call(self, fn):
+        """Run a client-mutating action (watched/favorite) off the loop
+        thread so a slow server never stalls the UI."""
+        if self.controller is None:
+            return
+        self._pool.submit(lambda: self._safe(fn))
+
+    def _safe(self, fn):
+        try:
+            fn(self.controller)
+        except Exception:
+            log.warning("client action failed", exc_info=True)
+
+    # ------------------------------------------------------------- actions
+
+    def _open_item(self, item):
+        t = item.get("Type")
+        server = self.route.get("server") or self.server
+        base = {"server": server, "item_id": item.get("Id"),
+                "title": item.get("Name", "")}
+        if t == "MusicAlbum":
+            self.navigate(dict(base, kind="album"))
+        elif t == "MusicArtist":
+            self.navigate(dict(base, kind="artist"))
+        elif t == "MusicGenre":
+            self.navigate(dict(base, kind="music_genre",
+                               parent_id=self.route.get("parent_id")))
+        elif t == "Playlist":
+            self.navigate(dict(base, kind="playlist"))
+        elif t == "Audio":
+            self._play_list([item.get("Id")], server, audio=True)
+        elif t in LIVE_TYPES:
+            # Straight to playback: a live channel has no detail page to open
+            # and nothing to resume. A Program is not itself playable — what
+            # you watch is the channel carrying it, which is how jellyfin-web
+            # resolves it too. Falling back to the item's own id covers a
+            # TvChannel, and a program whose ChannelInfo fields are missing
+            # then fails as a normal unplayable item rather than silently
+            # doing nothing.
+            self._play_list([item.get("ChannelId") or item.get("Id")], server)
+        elif item.get("CollectionType") == "music":
+            self.navigate(dict(base, kind="music", parent_id=item.get("Id")))
+        elif t in SERIES_TYPES:
+            self.navigate(dict(base, kind="series"))
+        elif t == "Season":
+            self.navigate(dict(base, kind="season",
+                               series_id=item.get("SeriesId")))
+        elif t in PLAYABLE_TYPES:
+            self.navigate(dict(base, kind="detail"))
+        elif t in ("Person", "Actor", "Director", "Writer"):
+            self.navigate(dict(base, kind="person", person_id=item.get("Id")))
+        elif t in FOLDER_TYPES or item.get("CollectionType"):
+            # collection_type rides along so the grid knows whether to offer
+            # the Collections toggle (movies libraries only).
+            # parent_type as well as collection_type: inside a BoxSet the
+            # tile menu can offer "Remove from Collection".
+            self.navigate(dict(base, kind="grid", parent_id=item.get("Id"),
+                               parent_type=t,
+                               collection_type=item.get("CollectionType")))
+        else:
+            self.set_status(_("Selected: %s") % item.get("Name", ""))
+            self.invalidate()
+
+    def _set_renderer_active(self, active):
+        """Suspend/resume the in-mpv renderer. Pushing an empty scene is not
+        enough to yield to the OSC — the renderer's forced mouse/wheel
+        bindings keep swallowing the clicks until it is suspended."""
+        if self.app is not None and hasattr(self.app, "set_active"):
+            try:
+                self.app.set_active(active)
+            except Exception:
+                log.debug("set_active failed", exc_info=True)
+
+    def set_app(self, app):
+        """Point the browser at a (possibly fresh) MpvtkApp and wire the
+        callbacks. mpv re-creation attaches a brand-new app per handle —
+        without re-wiring here its nav/HUD events would go nowhere (the
+        old app object kept the handlers)."""
+        self.app = app
+        # a fresh renderer has no HUD state; drop ours so build() doesn't
+        # keep pushing a HUD scene at an idle renderer
+        self.hud.reset()
+        if app is None:
+            return
+        if hasattr(app, "on_nav"):
+            app.on_nav = self._on_nav_mode
+        if hasattr(app, "on_hud"):
+            app.on_hud = self.hud.on_hud
+        if hasattr(app, "on_hud_skip"):
+            app.on_hud_skip = self.hud.on_skip
+        if hasattr(app, "on_clipboard_error"):
+            app.on_clipboard_error = self._on_clipboard_error
+
+    def reassert_window_state(self):
+        """Re-assert window ownership on a FRESH renderer (which starts
+        active): browse takes the window back; a video in flight
+        re-enters attached-but-idle HUD mode; otherwise get fully out
+        of the way (lua OSC / minimized)."""
+        if self._browsing:
+            self._set_renderer_active(True)
+        elif self.hud.available() and self.hud.state is not None:
+            try:
+                self.hud.engage()
+            except Exception:
+                log.debug("set_hud failed", exc_info=True)
+        else:
+            self._set_renderer_active(False)
+
+    def _yield(self):
+        self._browsing = False
+        if self.controller is not None:
+            self.controller.on_browse_leave()
+        if self.hud.available():
+            # keep the renderer attached: blank scene + summon bindings
+            try:
+                self.hud.engage()
+            except Exception:
+                log.debug("set_hud failed", exc_info=True)
+        else:
+            self._set_renderer_active(False)
+        self.invalidate()  # empty scene clears overlays off the video
+
+    def _start(self, audio, title=""):
+        """Prepare to start playback. Video yields the whole window to the
+        video + OSC; audio has no picture, so we stay in browse and show the
+        now-playing bar instead (playing would-be background over audio would
+        stop it)."""
+        self.load.error = None
+        if audio:
+            self._now_playing = self._now_playing or {"title": _("Loading…")}
+            self.invalidate()
+        else:
+            # Deliberately NOT _yield() yet. HUD mode is attached-but-idle
+            # "with a blank scene" (mpvtk/app.py set_hud), and the non-HUD
+            # branch detaches the renderer outright — so yielding here threw
+            # our own scene away, which is why the load showed nothing at all
+            # and the UI appeared to flash. Keep the window, draw the spinner,
+            # and hand off in load.clear() once playback reports in.
+            #
+            # _browsing first, then begin(): begin() arms the spinner timer,
+            # and the original armed it last. Keeping that order means the
+            # timer can never observe a half-applied start.
+            self._browsing = False
+            self.load.begin(title)
+            self.invalidate()
+
+    # ------------------------------------------------------ load feedback
+
+    SPINNER_DELAY = LoadFeedback.SPINNER_DELAY   # see load_feedback.py
+
+    def _arm_spinner(self):
+        """Repaint once the grace period is up — nothing else would.
+
+        The load holds no ticker: if it finishes first, load.clear() repaints
+        and this wakes to find nothing to do. The waiting policy (why a loop
+        rather than a flat sleep) is LoadFeedback.due_in; the thread slot and
+        the shutdown event are the shell's, which is why this stayed here.
+        """
+        def show():
+            while not self._shutdown_evt.is_set():
+                due_in = self.load.due_in()
+                if due_in is None:
+                    break               # resolved while we waited
+                if due_in <= 0:
+                    break
+                self._shutdown_evt.wait(due_in)
+            with self._poller_lock:
+                self._spinner_timer = None
+            self.invalidate()
+
+        self._start_daemon("_spinner_timer", "mpvtk-spinner", show)
+
+    def open_hud_menu(self):
+        """kb_menu during playback. Forwarded: playerManager holds a
+        reference to this bound method (see ui.py)."""
+        return self.hud.open_menu()
+
+    def _play_async(self, work):
+        """Start playback off the loop thread.
+
+        ``work()`` receives the controller and runs on a pool worker.
+
+        Starting playback is seconds of work: the controller builds a
+        ``Media``, asks the server for PlaybackInfo, then loads the file into
+        mpv under the player's own lock. Called straight from a click handler
+        that ran on the loop thread, so the UI dispatched no events and drew
+        no frames until playback began — click a movie and the browser froze.
+        The episode path was worse: it ran inside a ``run_async`` ``on_done``,
+        which holds ``_lock``, so every other worker's callback and any
+        ``navigate()`` queued up behind it too.
+
+        Deliberately NOT epoch-gated: the user pressed Play, and navigating
+        elsewhere while it starts is not a reason to cancel it.
+        """
+        if self.controller is None:
+            return
+
+        def failed(_exc):
+            self.set_status(_("Playback could not be started."))
+            self.invalidate()
+
+        self.run_async(lambda: work(self.controller), lambda _r: None,
+                       self._epoch, on_error=failed)
+
+    def _play(self, item, server, offset_ticks=None, srcid=None, aid=None,
+              sid=None):
+        self._actions.play(item, server, offset_ticks=offset_ticks,
+                           srcid=srcid, aid=aid, sid=sid)
+
+    def _play_list(self, ids, server, start_index=0, audio=False, items=None):
+        self._actions.play_list(ids, server, start_index, audio, items)
+
+    # ------------------------------------------------- browse <-> playback
+
+    def start_background_work(self):
+        """Kick off the pollers that keep the chrome honest (download status)
+        and the one-shot startup update check. Called once the browser is
+        live; separate from __init__ so tests don't spawn threads."""
+        self._poll_download_status()
+        if self.controller is not None:
+            self._pool.submit(lambda: self._safe(lambda c: c.check_updates()))
+
+    def enter_browse(self):
+        """Show the browser: take the window + hide the OSC, then render.
+        mpvtk-active yes also drops the renderer out of HUD mode."""
+        if self.headless and self.route.get("kind") not in self.HEADLESS_ROUTES:
+            # Playback ended and something is putting us back on a library
+            # page. In headless the only page to come back to is the cast
+            # screen.
+            self.show_cast()
+        self._browsing = True
+        self._minimized = False
+        self.hud.shown = False
+        if self.controller is not None:
+            self.controller.on_browse_enter()
+        self._set_renderer_active(True)
+        self.invalidate()
+
+    def minimize(self):
+        """Release the window entirely — the app keeps running in the tray as
+        a cast target. This is the player's "playback_abort yes, force_window
+        no" state; there is no separate window to hide, so minimizing *is*
+        dropping force_window with nothing playing."""
+        self._minimized = True
+        self._browsing = False
+        self.hud.shown = False
+        self._set_renderer_active(False)
+        if self.controller is not None:
+            self.controller.on_minimize()
+
+    @property
+    def minimized(self):
+        return self._minimized
+
+    def on_playstate(self, state):
+        """Registered as playerManager.on_playstate. Drives browse/playback
+        state and the now-playing bar. Audio keeps the browser visible (bar +
+        browsing); video stays yielded to the picture + OSC."""
+        # Playback is reporting in, so the load resolved: drop the loading
+        # screen (and any stale error) before anything else reads them. A
+        # "stopped" state does NOT clear the error screen — stop() is exactly
+        # what a failed load does on its way out, and clearing here would
+        # erase the error before its first frame.
+        if not (state or {}).get("stopped"):
+            self.load.clear()
+        self._sync_queue_highlight(state)
+        # A pending seek-drag belongs to the track it started on. The
+        # renderer fires no cancel when a dragged slider simply leaves the
+        # scene (the queue ended, or we yielded the window), so the pending
+        # value stuck and pinned the elapsed clock to it for every later
+        # track while the slider itself kept moving.
+        #
+        # Keyed on the track CHANGING, not on any playstate: the now-playing
+        # ticker pushes one every second, and clearing on those would cancel
+        # the drag a second after it began.
+        now_id = (state or {}).get("id")
+        track_changed = now_id != (self._now_playing or {}).get("id")
+        if not state or state.get("stopped") or track_changed:
+            self._np_scrub = None
+        # Headless: the cast screen is the backdrop behind the now-playing
+        # bar, so it has to follow what is PLAYING. It kept showing whatever
+        # a phone last cast, so starting a playlist left an unrelated film
+        # on screen for the whole album.
+        if self.headless:
+            self._follow_cast_to_playback(state, track_changed)
+        if not state or state.get("stopped"):
+            self._now_playing = None
+            self.hud.state = None
+            if self.hud.shown and getattr(
+                    self.controller, "hud_sub_margin", None) is not None:
+                # playback ended with the HUD up: the renderer clears
+                # without an on_hud(False), so restore the margin here
+                try:
+                    self.controller.hud_sub_margin(False)
+                except Exception:
+                    log.debug("hud_sub_margin failed", exc_info=True)
+            self.hud.shown = False
+            self.hud.menu = None
+            if self.load.error is not None:
+                # A failed start owns the window and is explaining why. stop()
+                # is part of that failure path, so returning to browse here
+                # would bounce the user back to the library over the error
+                # they have not read yet.
+                self.invalidate()
+                return
+            if self._minimized:
+                # Cast finished and the library was never open: drop back to
+                # the windowless state rather than popping the browser up on
+                # a screen the user wasn't looking at.
+                self.minimize()
+            else:
+                # Unconditionally, even if we never left browse mode: stopping
+                # music happens *while* browsing, and whatever stopped it may
+                # have dropped force_window and taken the library's window
+                # with it. enter_browse() re-asserts the browse window.
+                self.enter_browse()
+            return
+        if state.get("is_audio"):
+            self._now_playing = state
+            if not self._browsing:
+                self.enter_browse()   # audio: stay in browse, show the bar
+            else:
+                self.invalidate()
+            self._start_np_ticker()
+        else:
+            self._now_playing = None
+            self.hud.state = state   # feeds the playback HUD bar
+            if self._browsing:
+                self._yield()         # video: yield the window + the OSC
+            else:
+                self.invalidate()     # HUD/bar repaint (clock, pause icon)
+            if not self._browsing and self.hud.available():
+                try:
+                    # Idempotent HUD-mode engage: covers playback that
+                    # starts while minimized/already-yielded and a fresh
+                    # renderer after mpv re-creation (a plain _yield only
+                    # happens on the browsing -> video transition).
+                    self.hud.engage()
+                    # ... and keep the idle skip overlay in sync with the
+                    # live skippable segment (the player pushes a
+                    # playstate the moment one starts/ends).
+                    self.app.set_hud_skip(state.get("skip_label") or "")
+                except Exception:
+                    log.debug("hud sync failed", exc_info=True)
+
+    def _sync_queue_highlight(self, state):
+        """Keep the queue view's "now playing" row on the right track.
+
+        The queue's data is fetched once when the route opens, so the
+        highlight stayed on whatever was playing then — it never moved when
+        a song ended or was skipped. Cheap: the id comes off the playstate,
+        no refetch."""
+        route = self.route
+        if route.get("kind") != "queue":
+            return
+        data = route.get("_data")
+        if not data:
+            return
+        new = None if (not state or state.get("stopped")) else state.get("id")
+        if data.get("current_id") != new:
+            data["current_id"] = new
+            self.invalidate()
+
+    def _start_daemon(self, attr, name, body, restartable=False):
+        """Run ``body`` on a daemon thread, at most one per ``attr``.
+
+        The check and the assignment have to be atomic. Every caller used to
+        write ``if self._x_thread is not None: return`` and then assign, but
+        they are reachable from the loop thread *and* from foreign ones
+        (``on_playstate``, ``on_downloads_changed``), so two callers could
+        both see None and both start a thread. Doubling a poller is only a
+        wasted refresh today, which is exactly why it would have gone
+        unnoticed.
+
+        ``attr`` is cleared when the thread exits, so the next call starts a
+        fresh one. Returns True if this call started the thread, False if one
+        was already running — callers driven by a *user action* should say so
+        rather than appear to do nothing.
+
+        ``restartable=True`` closes a gap that bit the logs tail. A poller
+        decides to exit by noticing the route it was started for is no longer
+        current, but it only notices on its next tick — up to a full poll
+        interval later. Leave the tab and come straight back inside that
+        window and the sequence is: the view starts a poller for the new
+        route, this returns False because the old thread is still registered,
+        then the old thread wakes, sees a stale route, exits and clears the
+        slot. Nobody is left polling, and since only the render path starts
+        one, the panel is frozen until something else rebuilds it.
+
+        ``restartable`` makes the departing thread ``invalidate()`` once it
+        has released the slot. That re-runs the view, which starts a poller
+        iff it still wants one — no queued body to re-arm, so a request that
+        has itself gone stale simply isn't honoured. Opt-in because
+        ``_arm_toast_clear`` releases its slot early by design and would
+        invalidate on a timer that is still live.
+        """
+        with self._poller_lock:
+            if getattr(self, attr) is not None:
+                return False
+
+            def run():
+                try:
+                    body()
+                finally:
+                    # Compare-and-clear: a body that released its own slot
+                    # early (see _arm_toast_clear) may already have been
+                    # replaced, and an exiting thread must not unregister its
+                    # successor.
+                    released = False
+                    with self._poller_lock:
+                        if getattr(self, attr) is thread:
+                            setattr(self, attr, None)
+                            released = True
+                    if released and restartable:
+                        # Wake the loop now that the slot is free: a request
+                        # refused while we were on our way out would
+                        # otherwise leave nobody polling. The rebuild starts
+                        # a fresh poller only if the view still wants one.
+                        self.invalidate()
+
+            thread = threading.Thread(target=run, daemon=True, name=name)
+            setattr(self, attr, thread)
+        thread.start()
+        return True
+
+    def _run_long(self, work, name):
+        """Run a job that can take minutes, off the pool.
+
+        The pool has four workers and serves every route load and every
+        client mutation. A job that holds one for minutes — relocating the
+        download store copies the whole thing, possibly across drives —
+        starves browsing, and a handful of them would stop it outright.
+        Long jobs get their own thread instead.
+
+        One at a time, and False if one is already running."""
+        def run():
+            try:
+                work()
+            except Exception:
+                log.error("long job %r failed", name, exc_info=True)
+        return self._start_daemon("_long_thread", name, run)
+
+    def _start_np_ticker(self):
+        """Keep the now-playing bar's clock at 1s.
+
+        The timeline thread only pushes state every 5s (it also talks to the
+        server, so speeding it up is not free). While the bar is on screen we
+        ask the player for a fresh snapshot once a second instead; the thread
+        exits as soon as the bar goes away."""
+        if self.controller is None:
+            return
+
+        def tick():
+            while not self._shutdown_evt.wait(1.0):
+                bar = self._now_playing is not None and self._browsing
+                if not bar and not self.hud.shown:
+                    break
+                try:
+                    self.controller.refresh_playstate()
+                except Exception:
+                    log.debug("playstate refresh failed", exc_info=True)
+
+        self._start_daemon("_np_thread", "mpvtk-np-tick", tick)
+
+    def set_source(self, source, server_uuid=None, keep_place=False):
+        """Swap in a live data source once servers connect (the browser opens
+        immediately on a spinner and populates when the network settles).
+
+        A catalog-backed source raises the offline banner: every path that
+        can land offline goes through here, so deriving the banner from the
+        source is what keeps the two from drifting apart.
+
+        ``keep_place=True`` refreshes in place instead of resetting to Home.
+        Use it for anything that is not a deliberate user action. A *reconnect*
+        arrives from the websocket redial loop, the cast-recovery path and the
+        periodic health check — i.e. at arbitrary moments mid-session — and
+        resetting the nav stack there threw the user out of whatever they were
+        reading, with no interaction on their part, every time a flaky server
+        bounced.
+        """
+        from .repository import OfflineLibrarySource
+
+        # Through set_offline, so _offline has one writer. It used to be
+        # assigned here directly, which left set_offline with no production
+        # caller at all — a public method only the tests reached.
+        self.set_offline(isinstance(source, OfflineLibrarySource))
+        self._locked = False
+        self.source = source
+        try:
+            servers = source.servers()
+        except Exception:
+            servers = []
+        server = self._pick_server(servers, server_uuid)
+        # Keeping your place only makes sense if the page you are on still
+        # belongs to a server this source has. Otherwise fall back to Home.
+        known = {s.get("uuid") for s in servers}
+        stay = (keep_place and self.nav_stack
+                and self.server == server
+                and all(r.get("server") in known or r.get("server") is None
+                        for r in self.nav_stack))
+        self.server = server
+        if not stay:
+            self._nav.reset_to_default()
+        self._bump_epoch()
+        self._load_route(self.route)
+        self._refresh_downloaded()
+        # The idle cast backdrop is picked from a random library item, so it
+        # needs a reachable server. At startup the cast screen composites
+        # before the connect finishes, finds no clients, and caches "no
+        # backdrop" — permanently, because that cache is what stops the
+        # picture re-rolling on every window resize. Re-roll now that there
+        # is something to ask. Only when it is actually showing the idle
+        # screen: a DisplayContent item must not be thrown away.
+        if (self.route.get("kind") == "cast"
+                and (self._cast or {}).get("idle")):
+            self.show_cast_idle()
+        self.invalidate()
+
+    def _follow_cast_to_playback(self, state, track_changed):
+        """Keep the headless cast screen showing the current track.
+
+        Stopping goes back to "Ready to cast" rather than leaving the last
+        thing played on screen, which reads as though it is still playing.
+        """
+        if not state or state.get("stopped"):
+            if not (self._cast or {}).get("idle"):
+                self.show_cast_idle()
+            return
+        if not (state.get("is_audio") and track_changed and now_id_of(state)):
+            # Video takes the whole window, so the cast screen is not
+            # visible and there is nothing to update.
+            return
+        server = state.get("server_uuid") or self.server
+        if server is not None:
+            self.display_cast_item(server, now_id_of(state))
+
+    def on_downloads_changed(self):
+        """Sync-manager push: the catalog changed. Runs on the download
+        worker's thread, so it only schedules the refresh."""
+        try:
+            self._refresh_downloaded()
+        except Exception:
+            log.debug("download refresh failed", exc_info=True)
+
+    def _refresh_downloaded(self):
+        """Refresh the downloaded-id sets for tile badges (from the sync db)."""
+        if self.controller is None:
+            return
+
+        def work():
+            try:
+                # The unpack stays inside the guard: a controller that cannot
+                # answer (no sync db, or a stub) returns None, and that must
+                # leave the badges alone rather than raise on a pool thread.
+                self.tiles.set_downloaded(*self.controller.downloaded_ids())
+            except Exception:
+                return
+            self.invalidate()
+        self._pool.submit(work)
+
+    # --------------------------------------------------------------- build
+
+    def build(self, size):
+        w, h = size
+        self._size = size
+        # One synchronous read per frame: the renderer's live scroll offsets,
+        # which virtualization windows against (see _offset).
+        self._scroll.refresh(self.app)
+        # Load feedback outranks everything, including the yield to video:
+        # that yield is exactly what left a blank window during a load, and a
+        # failed start has no video to show through.
+        if self.load.error is not None:
+            return self.load.error_scene(size)
+        if (self.load.starting is not None and not self._browsing
+                and self.load.spinner_due()):
+            return self.load.loading_scene(size)
+        if not self._browsing:
+            if self.hud.shown:
+                # Summoned playback HUD over the video (see hud.py; the
+                # renderer owns the summon/auto-hide lifecycle).
+                return build_hud(self, size)
+            # Yielded to playback: an empty scene clears our overlays so the
+            # video + OSC show through.
+            return Column([], w=w, h=h)
+        # Deliver any decoded posters before composing strips this frame.
+        if self.thumbs is not None:
+            self.thumbs.pump()
+        route = self.route
+        content = self._render_route(route, size)
+        children = []
+        if route["kind"] not in CHROME_FREE:
+            children.append(window_chrome.chrome(self, w))
+            banner = window_chrome.banner(self)
+            if banner is not None:
+                children.append(banner)
+            dlbar = window_chrome.download_bar(self)
+            if dlbar is not None:
+                children.append(dlbar)
+        children.append(content)
+        # After content: _render_route (above) ran _ensure_page and set the
+        # page count this bar reads. Sits above the now-playing bar.
+        pbar = self._pagination_bar(route, w)
+        if pbar is not None:
+            children.append(pbar)
+        if (self._now_playing is not None
+                and route["kind"] not in NO_NOW_PLAYING):
+            children.append(self._now_playing_bar(w))
+        if self._menu is not None:
+            menu = self._tile_menu_node()
+            if menu is not None:
+                children.append(menu)
+        if self._dialog is not None:
+            children.append(self._dialog())
+        toast = window_chrome.toast_node(self, w, h)
+        if toast is not None:
+            children.append(toast)
+        return Column(children, w=w, h=h, align="stretch")
+
+    # How long a status message stays on screen.
+    TOAST_SECS = 6.0
+
+    def _arm_toast_clear(self, delay):
+        """Repaint once the toast has expired — nothing else would."""
+        def clear():
+            self._shutdown_evt.wait(delay)
+            # Release the slot *before* repainting: the rebuild this wakes
+            # may want to arm the next toast, and it would be dropped if we
+            # were still registered.
+            with self._poller_lock:
+                self._toast_timer = None
+            self.invalidate()
+
+        self._start_daemon("_toast_timer", "mpvtk-toast", clear)
+
+    def set_status(self, text):
+        """Show a transient message. Use this rather than assigning to
+        ``status``, so the toast's timer starts."""
+        self.status = text or ""
+        self._status_at = time.time()
+        self.invalidate()
+
+    # Minimum room the page title keeps in the top bar before the
+    # buttons drop their labels (~a "Continue Watching" at 22px bold).
+    TITLE_MIN_W = 260
+
+    def _pick_server(self, servers, server_uuid=None):
+        """Choose which server the library opens on.
+
+        An explicit request wins; then the server this user last browsed, if
+        it is still in the list (it may have been removed, or be down this
+        launch); then the first one. That fallback is not a preference —
+        server order is connection order, which sorts by network locality, so
+        without the remembered value the default silently changes between
+        launches on a multi-server setup.
+        """
+        if not servers:
+            return None
+        known = {s.get("uuid") for s in servers}
+        if server_uuid:
+            if server_uuid in known:
+                return server_uuid
+            # Asked for a server this source does not have. The reconnect path
+            # passes the CURRENT selection back in, and offline that selection
+            # is the "offline" sentinel from OfflineLibrarySource.servers() —
+            # handing it to a live source made every subsequent call blow up
+            # with KeyError: 'offline' until a restart. A removed or
+            # not-yet-connected server lands here too.
+            log.info("server %r is not in this source; picking another",
+                     server_uuid)
+        # getattr, not a direct call: the browser is unit-tested with stub
+        # controllers (and runs with controller=None offline).
+        getter = getattr(self.controller, "get_last_server", None)
+        if getter is not None:
+            try:
+                last = getter()
+            except Exception:
+                log.debug("could not read last server", exc_info=True)
+            else:
+                if last and last in known:
+                    return last
+        return servers[0]["uuid"]
+
+    def _remember_server(self, uuid):
+        """Persist the browsed server. Best-effort — losing a preference must
+        never break navigation."""
+        setter = getattr(self.controller, "set_last_server", None)
+        if setter is None:
+            return
+        try:
+            setter(uuid)
+        except Exception:
+            log.debug("could not persist last server", exc_info=True)
+
+    def _switch_server(self, uuid):
+        if uuid == self.server:
+            return
+        # A SyncPlay group belongs to the server it was joined on, and this
+        # UI only ever talks to the selected one — so leaving the server
+        # means leaving the group, or it stays joined with no way to reach
+        # it from here.
+        old = self.server
+        if old and self.controller is not None:
+            try:
+                if self.controller.sync_active():
+                    self._client_call(lambda c: c.sync_leave(old))
+            except Exception:
+                log.debug("syncplay leave on server switch failed",
+                          exc_info=True)
+        self.server = uuid
+        self._remember_server(uuid)
+        self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    def _open_queue(self):
+        self.navigate({"kind": "queue", "server": self.server,
+                       "title": _("Queue")})
+
+    def _render_route(self, route, size):
+        page = self._page_for(route)
+        renderer = (self._routes().get(route["kind"]) or (None, None))[1]
+        if page is None and renderer is None:
+            return self._busy()
+        # A load that failed with nothing to show says so and offers a
+        # retry. Without this the route's data stayed None and the view
+        # spun forever, so an unreachable server read as a hang.
+        if (route.get("_error")
+                and route.get("_data") is None
+                and not route.get("_items")):
+            return self._error_retry(route)
+        if page is not None:
+            return page.render(size)
+        return getattr(self, renderer)(route, size)
+
+    def _error_retry(self, route):
+        return Box([
+            Spacer(),
+            Row([Spacer(),
+                 Text(route["_error"], size=20, color=theme.SUBTLE_FG),
+                 Spacer()]),
+            Row([Spacer(),
+                 Button(_("Retry"), id="route-retry", icon="refresh",
+                        on_click=lambda: self._retry_route(route)),
+                 Spacer()]),
+            Spacer(),
+        ], flex=1, direction="column", align="stretch", gap=14)
+
+
+    def notify_update(self, version, url):
+        """Registered as playerManager.notify_update: show the update notice
+        as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
+        self._update = {"version": version, "url": url}
+        self.invalidate()
+
+    @property
+    def offline(self):
+        """Whether the browser is on the offline source. Read-only;
+        ``set_offline`` is the single writer, and services read it live
+        through here rather than reaching for ``_offline``."""
+        return self._offline
+
+    def set_offline(self, offline):
+        offline = bool(offline)
+        if offline != self._offline:
+            self._offline = offline
+            self.invalidate()
+
+    # -- download status bar ----------------------------------------------
+
+    def set_download_status(self, status):
+        """``{"pending": int, "name": str, "percent": int|None}`` — pushed by
+        the sync manager's progress hook."""
+        if status == self._dl_status:
+            return
+        self._dl_status = status
+        self.invalidate()
+
+    def _poll_download_status(self):
+        """Keep the status bar current. The sync manager has no push hook the
+        browser can subscribe to, so poll it — cheaply, and only while there
+        is something to report or the browser is on screen."""
+        if self.controller is None:
+            return
+
+        def tick():
+            while not self._shutdown_evt.wait(2.0):
+                if not self._browsing:
+                    continue
+                try:
+                    st = self.controller.download_status()
+                except Exception:
+                    break
+                self.set_download_status(st)
+
+        self._start_daemon("_dlbar_thread", "mpvtk-dlbar", tick)
+
+    def _dismiss_update(self):
+        self._update = None
+        self.invalidate()
+
+    def _open_url(self, url):
+        if self.controller is not None and url:
+            self._safe(lambda c: c.open_url(url))
+        self._dismiss_update()
+
+    def _retry_connect(self):
+        """Offline banner → Retry. A reconnect that works has to swap the
+        source in, or the banner clears while the catalog is still what's
+        being browsed."""
+        if self.controller is None:
+            return
+        ep = self._epoch
+
+        def work():
+            # not _safe(): that swallows the return value, and the source is
+            # the whole point here.
+            try:
+                return self.controller.retry_connect()
+            except Exception:
+                log.warning("retry connect failed", exc_info=True)
+                return None
+
+        def done(source):
+            if source is not None:
+                self.set_source(source)
+                return
+            # Previously a silent no-op: the banner stayed, nothing moved,
+            # and pressing Retry again looked identical to never having
+            # pressed it. Say the reconnect failed.
+            self.set_status(_("Still can't reach the server."))
+            if self.route.get("kind") == "connecting":
+                self.route["_connect_error"] = _("Still can't reach the server.")
+            self.invalidate()
+
+        self.run_async(work, done, ep)
+
+    # --------------------------------------------------------------- lifecycle
+
+    def run(self):
+        """Block the calling thread driving the app loop (spawned-app / demo
+        use). For the shared-window integration this runs on a dedicated
+        thread next to playerManager — see 0.2/0.5 wiring."""
+        self.app.run(self.build)
+
+    def shutdown(self, free_bitmaps=True):
+        """Stop background work.
+
+        ``free_bitmaps=False`` keeps the composited tile buffers alive. On
+        libmpv those are read BY ADDRESS by mpv every frame it composites, so
+        they may only be released once mpv is genuinely dead — the caller
+        knows that, this does not. See mpvtk_browser.ui.stop().
+        """
+        self._shutdown_evt.set()   # also stops the downloads poller
+        self._async.shutdown(wait=False, cancel_futures=True)
+        # Relocating the download store copies the whole thing and has no
+        # cancellation check, so a quit mid-move would kill it partway
+        # through. Give it a bounded chance to finish rather than yanking
+        # the interpreter out from under a half-copied library.
+        long_thread = self._long_thread
+        if long_thread is not None and long_thread.is_alive():
+            log.info("waiting for a long job to finish before shutdown")
+            long_thread.join(timeout=self.LONG_JOB_SHUTDOWN_WAIT)
+            if long_thread.is_alive():
+                log.warning("long job still running at shutdown; "
+                            "it may be left incomplete")
+        if self.thumbs is not None:
+            self.thumbs.shutdown()
+        # Stop the compositor pool before touching its cache either way: a
+        # worker must not insert a buffer into a cache we're about to free
+        # (free_bitmaps) or leave one composing into a dead handle.
+        self.strips.shutdown()
+        if free_bitmaps:
+            self.strips.clear()

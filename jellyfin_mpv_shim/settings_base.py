@@ -11,7 +11,13 @@ log = logging.getLogger("settings_base")
 
 def allow_none(constructor):
     def wrapper(input):
-        if input is None or input == "null":
+        # An empty string means "cleared": the config UI submits text fields
+        # verbatim, so an emptied nullable field arrives as "" — and several
+        # consumers crash on "" where they tolerate None (mpv_ext_ipc,
+        # mpv_ext_path, lang, shader_pack_profile, ...). "" -> None also keeps
+        # Optional[int] fields from erroring out (int("") raises, which would
+        # silently drop the user's clear).
+        if input is None or input == "null" or input == "":
             return None
         return constructor(input)
 

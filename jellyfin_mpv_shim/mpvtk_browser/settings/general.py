@@ -1,0 +1,307 @@
+"""The General tab: the schema-driven config form.
+
+``_setting_row`` renders one row per entry in ``settings_schema``, so adding a
+setting is a schema change rather than a UI change. The rest is the handful of
+controls that need more than a schema row -- the download-folder move, the
+advanced toggle, the auto-download scope.
+"""
+
+import logging
+
+from ...conf import settings
+from ...i18n import _
+from ...mpvtk.widgets import (
+    Button,
+    Checkbox,
+    Column,
+    Dropdown,
+    Row,
+    Text,
+    TextBox,
+    VScroll,
+)
+from .. import theme
+
+log = logging.getLogger("mpvtk_browser.settings")
+
+
+class GeneralTabMixin:
+
+    #: Width of a settings field, and of the label column beside it. One
+    #: constant because a form whose fields do not line up reads as broken;
+    #: see _setting_row for the one thing allowed to exceed it, and why it is
+    #: the popup rather than the control.
+    FIELD_W = 340
+
+
+    def _settings_general(self, route, size):
+        cfg = self._config()
+        schema = cfg.settings_schema()
+        values = cfg.get_settings()
+        show_adv = bool(route.get("_advanced"))
+        rows = []
+        for title, keys in cfg.sections():
+            advanced = title == _("Advanced")
+            if advanced:
+                rows.append(Checkbox(
+                    _("Show advanced settings"), show_adv, id="set-adv",
+                    on_toggle=lambda: self._toggle_advanced(route)))
+                if not show_adv:
+                    continue
+            rows.append(Text(title, size=20, bold=True))
+            notes = getattr(cfg, "NOTES", None) or {}
+            for key in keys:
+                rows.append(self._setting_row(cfg, schema, values, key))
+                # Static note from the config module, AND one that depends on
+                # live state. Both, not either: `static or dynamic` meant
+                # giving a setting an explanatory line silently disabled its
+                # warning, which is how discord_presence shipped with a
+                # "not active" note that could never render.
+                for note in (notes.get(key), self._dynamic_note(key)):
+                    if note:
+                        # An explanatory line under the setting it belongs to;
+                        # the settings it qualifies follow directly below.
+                        rows.append(Text(note, size=14,
+                                         color=theme.SUBTLE_FG, wrap=True))
+        rows.append(Text(_("Some changes take effect after restarting."),
+                         size=14, color=theme.SUBTLE_FG))
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
+                              align="stretch"),
+                       id="settings", flex=1)
+    def _setting_row(self, cfg, schema, values, key):
+        kind = schema.get(key, "str")
+        val = values.get(key)
+        label = cfg.label_for(key)
+        if kind == "bool":
+            return Checkbox(label, bool(val), id="set-" + key,
+                            on_toggle=lambda k=key, v=val: self._set_setting(
+                                k, not bool(v)))
+        dynamic = self._dynamic_enum(key)
+        opts = cfg.LABELED_ENUMS.get(key) or dynamic
+        if opts:
+            cur = next((i for i, (_l, v) in enumerate(opts)
+                        if str(v) == str(val)), 0)
+            # A curated enum has labels we wrote, so FIELD_W is a width we
+            # chose. A dynamic one is system strings of unknown length --
+            # audio device descriptions run to "SoundBlaster Live! 24-bit
+            # External SB0490 Digital Stereo (IEC958)", and the part that
+            # identifies the device is the END, so at FIELD_W every row
+            # ellipsizes to the same thing. The OPEN list gets the extra room
+            # rather than the control: one field wider than every other field
+            # in the form is what you notice, and it is closed most of the
+            # time.
+            extra = {} if key in cfg.LABELED_ENUMS or not dynamic else {
+                "popup_w": int(self.FIELD_W * 1.5)}
+            widget = Dropdown(
+                "set-" + key, [lbl for lbl, _v in opts], selected=cur,
+                w=self.FIELD_W, force=True,
+                on_select=lambda i, _v, k=key, o=opts: self._set_setting(
+                    k, o[i][1]),
+                **extra)
+        elif key in cfg.ENUMS:
+            opts = cfg.ENUMS[key]
+            cur = opts.index(str(val)) if str(val) in opts else 0
+            widget = Dropdown(
+                "set-" + key, opts, selected=cur, w=self.FIELD_W,
+                force=True,
+                on_select=lambda i, _v, k=key, o=opts: self._set_setting(
+                    k, o[i]))
+        elif key == "sync_path":
+            widget = Row([
+                TextBox("set-" + key, text="" if val is None else str(val),
+                        w=250,
+                        on_change=lambda v: self._sync_path.__setitem__(
+                            "path", v),
+                        on_submit=lambda v: self._move_downloads(v)),
+                # Moves what is in the field. It used to pass None, whose
+                # only effect was a status line telling you to press Enter
+                # — a button that could never do its own job.
+                Button(_("Move"), id="set-sync-move",
+                       on_click=lambda: self._move_downloads(
+                           self._sync_path.get("path") or val)),
+            ], gap=8, align="center")
+        else:
+            # on_commit as well as on_submit: ENTER is not the only way people
+            # leave a field. Wired only here, so typing then clicking the next
+            # row silently threw the edit away on 65 rows, with no toast and
+            # no dirty marker. The sync_path row above already had a Move
+            # button for the same reason; this generalizes it.
+            widget = TextBox("set-" + key,
+                             text="" if val is None else str(val),
+                             w=self.FIELD_W,
+                             on_submit=lambda v, k=key: self._set_setting(k, v),
+                             on_commit=lambda v, k=key: self._set_setting(k, v))
+        return Row([Text(label, w=self.FIELD_W, size=17,
+                         color=theme.SUBTLE_FG),
+                    widget], gap=12, align="center")
+    def _dynamic_enum(self, key):
+        """``[(label, value), ...]`` for a setting whose choices are not
+        knowable in advance, or None.
+
+        ``LABELED_ENUMS`` in config.py is a literal, which is right for the
+        settings whose options are a design decision. The audio device list
+        is not one of those: it depends on the platform, the sound server and
+        what is plugged in this minute, and mpv — the thing that will have to
+        open the chosen device — is the only honest source for it.
+        """
+        if key != "audio_device" or self.controller is None:
+            return None
+        try:
+            return self.controller.audio_devices()
+        except Exception:
+            log.debug("could not list audio devices", exc_info=True)
+            return None
+
+    def _dynamic_note(self, key):
+        """Explanatory line that depends on live state rather than the key.
+
+        NOTES in config.py is a static dict, but auto-download's scope is
+        "the server you turned it on for", which only the browser knows.
+        Naming it is what stops the setting reading as global.
+        """
+        if key == "allow_background":
+            # Only once it is on: while it is off, closing the window still
+            # exits, and telling someone how to stop an app that stops
+            # normally is noise. When it is on this is the only exit there is.
+            if not settings.allow_background:
+                return None
+            return _("To stop the application, re-launch and uncheck this "
+                     "option or run `jellyfin-mpv-shim stop`.")
+        if key == "discord_presence":
+            # Only while it is on and not working. Ticking the box with
+            # pypresence missing did nothing whatsoever and said nothing
+            # either -- the same shape of failure as the pause guard: the
+            # feature is off and there is no way to tell from the UI.
+            if not settings.discord_presence or self.controller is None:
+                return None
+            try:
+                if self.controller.rich_presence_available():
+                    return None
+            except Exception:
+                return None
+            return _("Not active: the \"pypresence\" package is missing or "
+                     "failed to load. Install it and restart. (Details in "
+                     "the Logs tab.)")
+        if key != "auto_download_enable":
+            return None
+        name = self._auto_dl_scope_name()
+        if not name:
+            return None
+        return _("Applies to %s, enable other servers in servers tab.") % name
+    def _toggle_advanced(self, route):
+        route["_advanced"] = not route.get("_advanced")
+        self.invalidate()
+    def _move_downloads(self, path, confirmed=False):
+        """Relocating the download store copies files (possibly across
+        drives), so it runs on its own thread — not the pool, whose four
+        workers serve every route load — and reports progress into the
+        status line.
+
+        An empty path means "go back to the default location". That is a real
+        thing to want, but it used to happen *silently*: clearing the field
+        and pressing Enter relocated the whole store with no confirmation and
+        no indication that is what an empty box meant. It asks first now, like
+        every other destructive download action."""
+        if path is not None and not str(path).strip():
+            path = None
+        if path is None:
+            if not confirmed:
+                self._confirm(
+                    _("Move the downloads back to the default folder?"),
+                    lambda: self._move_downloads(None, confirmed=True),
+                    title=_("Use the default folder"), yes=_("Move"))
+                return
+        cfg = self._config()
+        if not hasattr(cfg, "relocate_downloads"):
+            self._set_setting("sync_path", path)
+            return
+
+        def work():
+            def progress(copied, total):
+                pct = 100 if not total else min(100, int(copied * 100 / total))
+                self.set_status(_("Moving downloads… %d%%") % pct)
+                self.invalidate()
+            try:
+                ok, message = cfg.relocate_downloads(path or "",
+                                                     progress=progress)
+            except Exception:
+                log.error("download folder move failed", exc_info=True)
+                ok, message = False, _("Moving the downloads failed.")
+            self.set_status(message or (
+                _("Download folder moved. Restart to finish switching.")
+                if ok else _("Moving the downloads failed.")))
+
+        # Set before starting, so the job's own progress line wins the race.
+        self.set_status(_("Moving downloads…"))
+        if not self._run_long(work, "mpvtk-move-downloads"):
+            # Two concurrent copies of the same store would fight. Say so —
+            # a second press that silently did nothing reads as a dead button.
+            self.set_status(_("A move is already in progress."))
+        self.invalidate()
+    def _auto_dl_scope_name(self):
+        """Display name of the server auto-download is scoped to.
+
+        The stored allow-list wins over the currently-selected server: after
+        unticking servers elsewhere, the note has to describe what is
+        configured, not what happens to be on screen.
+        """
+        picked = self._auto_dl_servers()
+        try:
+            servers = self.controller.list_servers() if self.controller else []
+        except Exception:
+            log.debug("list_servers failed", exc_info=True)
+            servers = []
+        names = {sv.get("uuid"): sv.get("name") for sv in servers}
+        if picked:
+            chosen = [names.get(u) or u for u in picked]
+            if len(chosen) == 1:
+                return chosen[0]
+            # Plural: the note's "enable other servers" advice still applies,
+            # so keep the shape and just list them.
+            return ", ".join(sorted(chosen))
+        # Not yet seeded — name the server the toggle is about to claim.
+        return names.get(self.server) or (str(self.server) if self.server
+                                          else None)
+    def _seed_auto_download_server(self):
+        """Switching auto-download on means "for the server I am looking at".
+
+        The allow-list is empty by default and empty means none, so without
+        this the feature would switch on and do nothing. Only ever seeds an
+        empty list: re-enabling after a deliberate change must not silently
+        re-add a server the user unticked.
+        """
+        cfg = self._config()
+        if (cfg.get_settings().get("auto_download_servers") or "").strip():
+            return
+        if not self.server:
+            return
+        cfg.set_setting("auto_download_servers", str(self.server))
+    def _apply_work_offline(self, offline):
+        """Swap the data source when the setting is toggled, rather than
+        persisting a key that does nothing until the next launch. Tk
+        applies it live too."""
+        if self.controller is None or offline == self._offline:
+            return
+
+        ep = self._epoch
+
+        def work():
+            if offline:
+                return self.controller.offline_source()
+            return self.controller.connect_and_rebuild()
+
+        def done(source):
+            if source is None:
+                self.set_status(_("Nothing downloaded to browse offline.")
+                                if offline else
+                                _("Could not reach a server."))
+                return
+            self.set_source(source)
+        self.run_async(work, done, ep)
+    def _apply_audio_settings(self):
+        """Audio settings apply live -- a mode change takes effect without a
+        restart, and mid-playback without a reload."""
+        # Through the gateway, not playerManager directly: a settings page
+        # must be constructible without player.py (see
+        # tests/test_source_invariants.py).
+        self._safe(lambda c: c.apply_audio_settings())

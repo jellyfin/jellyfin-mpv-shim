@@ -47,8 +47,11 @@ class TimeoutThread(threading.Thread):
                 log.error("TimeoutThread crashed.", exc_info=True)
 
     def stop(self):
+        # Cancel without joining: callers may hold the player lock, and the
+        # callback (local_play/local_pause) blocks on that same lock — joining
+        # here would deadlock. A callback that already started is expected to
+        # guard itself (is_enabled / generation check) instead.
         self.halt.set()
-        self.join()
 
 
 def set_timeout(ms: float, callback, *args):
@@ -83,6 +86,12 @@ class SyncPlayManager:
 
         self.scheduled_command = None
         self.sync_timeout = None
+        self.speed_timeout = None
+
+        # Incremented on every enable/disable (and thus group join, which
+        # re-enables). Callbacks scheduled by one session capture the value and
+        # bail out if it has changed by the time they fire.
+        self.sync_generation = 0
 
         self.time_offset = timedelta(0)
         self.round_trip_duration = timedelta(0)
@@ -149,11 +158,18 @@ class SyncPlayManager:
                 log.info("SyncPlay Speed to Sync rate: {0}".format(speed))
                 self.player_message(_("SpeedToSync (x{0})").format(speed))
 
+                generation = self.sync_generation
+
                 def callback():
+                    # Only restore speed if SyncPlay is still enabled and the
+                    # command wasn't superseded (disable/leave/rejoin/clear)
+                    # since this restore was scheduled.
+                    if not self._still_current(generation):
+                        return
                     self.playerManager.set_speed(1)
                     self.sync_enabled = True
 
-                set_timeout(settings.sync_speed_time, callback)
+                self.speed_timeout = set_timeout(settings.sync_speed_time, callback)
             elif abs_diff_ms > settings.sync_max_delay_skip:
                 if self.attempts > settings.sync_attempts:
                     self.sync_enabled = False
@@ -168,10 +184,8 @@ class SyncPlayManager:
                 log.info("SyncPlay Skip to Sync Activated")
                 self.player_message(_("SkipToSync (x{0})").format(self.attempts))
 
-                def callback():
-                    self.sync_enabled = True
-
-                set_timeout(settings.sync_method_thresh / 2, callback)
+                set_timeout(settings.sync_method_thresh / 2,
+                            self._rearm_sync, self.sync_generation)
             else:
                 if self.attempts > 0:
                     log.info(
@@ -191,14 +205,22 @@ class SyncPlayManager:
                 self.read_callback()
                 self.read_callback = None
 
-        # Server responds with 400 bad request...
         if self.sync_enabled:
             try:
-                self.client.jellyfin.ping_sync_play(ping.total_seconds() * 1000)
+                # PingRequestDto declares `long Ping`, so a fractional value
+                # fails to bind and the whole request comes back 400 -- which
+                # is what the "Server responds with 400 bad request" note that
+                # used to sit here was recording. Every ping this client ever
+                # sent was rejected, so the server fell back to its default
+                # for us and compensated the group's unpause delay with the
+                # wrong latency.
+                self.client.jellyfin.ping_sync_play(
+                    round(ping.total_seconds() * 1000))
             except Exception:
                 log.error("Syncplay ping reporting failed.")
 
     def enable_sync_play(self, from_server: bool):
+        self.sync_generation += 1
         self.playback_rate = self.playerManager.get_speed()
         self.enabled_at = datetime.utcnow()
         self.enable_speed_sync = True
@@ -230,9 +252,18 @@ class SyncPlayManager:
             self.player_message(_("SyncPlay enabled."))
 
     def disable_sync_play(self, from_server: bool):
+        # Mark the session disabled *before* tearing down the scheduled
+        # commands, so that any callback still in flight (a TimeoutThread we are
+        # about to join) sees is_enabled() == False and no-ops instead of
+        # yanking the player around after the group was left.
+        self.enabled_at = None
+        self.sync_generation += 1
+
+        # Cancel every pending scheduled command / sync timer / speed restore.
+        # clear_scheduled_command() also resets the player speed to 1.
+        self.clear_scheduled_command()
         self.playerManager.set_speed(self.playback_rate)
 
-        self.enabled_at = None
         self.ready = False
         self.last_command = None
         self.queued_command = None
@@ -258,7 +289,12 @@ class SyncPlayManager:
         if self.timesync is None:
             # This can get called before it is ready...
             return
-        media = self.playerManager.get_video().parent
+        video = self.playerManager.get_video()
+        if video is None:
+            # Nothing playing: there is no position or playlist item to
+            # report. Reached from the Seek path, which can land after a stop.
+            return
+        media = video.parent
         when = self.timesync.local_date_to_server(datetime.utcnow())
         ticks = int(self.playerManager.get_time() * seconds_in_ticks)
         playing = self.playerManager.is_not_paused()
@@ -359,6 +395,13 @@ class SyncPlayManager:
             and self.last_command["When"] == command["When"]
             and self.last_command["PositionTicks"] == command["PositionTicks"]
             and self.last_command["Command"] == command["Command"]
+            # EmittedAt too, or this drops the server's only way of correcting
+            # a client it thinks has drifted. Group.NewSyncPlayCommand stamps
+            # every command with DateTime.UtcNow, so a resync differs from the
+            # broadcast it repeats in exactly this field and no other -- and
+            # without it the resync looked like a duplicate and was discarded.
+            # What remains filtered is a literal re-delivery of one message.
+            and self.last_command["EmitttedAt"] == command["EmitttedAt"]
         ):
             log.debug("Ignoring duplicate command {0}.".format(command))
             return
@@ -379,6 +422,8 @@ class SyncPlayManager:
             self.schedule_pause(when, position)
         elif command_cmd == "Seek":
             self.schedule_seek(when, position)
+        elif command_cmd == "Stop":
+            self.schedule_stop()
         else:
             log.error("Command {0} is unknown.".format(command_cmd))
 
@@ -465,14 +510,14 @@ class SyncPlayManager:
             play_timeout = (local_play_time - current_time).total_seconds() * 1000
             self.local_seek(position / seconds_in_ticks)
 
+            generation = self.sync_generation
+
             def scheduled():
+                if not self._still_current(generation):
+                    return
                 self.local_play()
-
-                def sync_timeout():
-                    self.sync_enabled = True
-
                 self.sync_timeout = set_timeout(
-                    settings.sync_method_thresh / 2, sync_timeout
+                    settings.sync_method_thresh / 2, self._rearm_sync, generation
                 )
 
             self.scheduled_command = set_timeout(play_timeout, scheduled)
@@ -486,22 +531,35 @@ class SyncPlayManager:
             self.local_play()
             self.local_seek(server_position_secs)
 
-            def sync_timeout():
-                self.sync_enabled = True
-
             self.sync_timeout = set_timeout(
-                settings.sync_method_thresh / 2, sync_timeout
+                settings.sync_method_thresh / 2, self._rearm_sync,
+                self.sync_generation
             )
 
-    def schedule_pause(self, when: datetime, position: int, seek_only: bool = False):
+    def schedule_pause(self, when: datetime, position: int, seek_only: bool = False,
+                       report_ready: bool = False):
         self.clear_scheduled_command()
         current_time = datetime.utcnow()
         local_pause_time = self.timesync.server_date_to_local(when)
 
+        generation = self.sync_generation
+
         def callback():
+            if not self._still_current(generation):
+                return
             if not seek_only:
                 self.local_pause()
             self.local_seek(position / seconds_in_ticks)
+            if report_ready:
+                # A Seek command means the group moved to Waiting and set
+                # every member buffering; it resumes only once all of them
+                # answer Ready. We never did, so a group seek left everyone
+                # stopped until somebody pressed play (which force-overrides
+                # the wait). It looked intermittent because a seek slower than
+                # min_buffer_thresh_ms went out as Buffering and came back as
+                # Ready by that route -- so it hung on fast local files and
+                # worked on slow streams.
+                self._buffer_req(False)
 
         if local_pause_time > current_time:
             log.debug("SyncPlay Scheduled Pause/Seek: Pausing Later")
@@ -562,14 +620,62 @@ class SyncPlayManager:
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
-        self.schedule_pause(when, position)
+        #
+        # report_ready is ours: only WaitingGroupState emits a Seek command
+        # (every other state routes a seek through it first), so a Seek always
+        # means the group is waiting on us. Pause carries no such promise --
+        # answering one in the Paused state gets "client got lost, sending
+        # current state" back, and that Pause would answer itself forever.
+        self.schedule_pause(when, position, report_ready=True)
+
+    def schedule_stop(self):
+        """The group stopped playback.
+
+        Stop, but stay in the group: the server moves the group to Idle and
+        keeps every session in it, so a later Play has to find us still there.
+        That is why this cannot go through PlayerManager.stop() directly --
+        that one disables SyncPlay on the way past.
+
+        Queued rather than called: this runs on the websocket reader thread,
+        and stop() takes the player lock and then the timeline lock. Doing
+        that here would block every other message from this server behind it,
+        and would add a fresh path into the lock inversion in finding 1 of
+        docs/SYNCPLAY_FINDINGS.md.
+        """
+        self.clear_scheduled_command()
+        self.playerManager.put_task(self.playerManager.stop, False)
+
+    def _still_current(self, generation):
+        """Whether a callback armed under `generation` may still act. False
+        once the session was disabled OR the command it belongs to was
+        superseded (every clear_scheduled_command bumps the generation)."""
+        return self.is_enabled() and self.sync_generation == generation
+
+    def _rearm_sync(self, generation):
+        """Deferred re-enable of drift correction after a scheduled play/skip,
+        unless the session was disabled or superseded meanwhile."""
+        if self._still_current(generation):
+            self.sync_enabled = True
 
     def clear_scheduled_command(self):
+        # Supersede anything armed or mid-flight: TimeoutThread.stop() only
+        # cancels a timer that hasn't fired, so a callback already past its
+        # halt check relies on this bump (checked via _still_current) to
+        # no-op instead of applying a stale command. Stop the deferred
+        # play/pause command first: it may itself (re)arm sync_timeout, and
+        # clearing sync_timeout afterwards catches that.
+        self.sync_generation += 1
         if self.scheduled_command is not None:
             self.scheduled_command()
+            self.scheduled_command = None
 
         if self.sync_timeout is not None:
             self.sync_timeout()
+            self.sync_timeout = None
+
+        if self.speed_timeout is not None:
+            self.speed_timeout()
+            self.speed_timeout = None
 
         self.sync_enabled = False
         self.playerManager.set_speed(1)

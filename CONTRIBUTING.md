@@ -37,10 +37,10 @@ Current Dependencies:
  - `python-mpv` - Provides `libmpv` playback backend.
  - `python-mpv-jsonipc` - Provides `mpv` playback backend. (First-Party)
  - `jellyfin-apiclient-python` - Provides API client to Jellyfin. (First-Party)
- - `pillow` - Provides image processing for trickplay thumbnails, the systray icon, and display mirroring. (Optional)
+ - `requests` - HTTP for everything outside the API client.
+ - `pillow` - Rasterizes the in-player library browser, the playback HUD, the cast screen and trickplay thumbnails. **Required** since those replaced the Tk UI: without it the app can only fall back to the CLI, which is a different product rather than a degraded one.
  - `pywin32` - Allows window management on Windows. (Optional)
- - `pystray` - Provides systray icon. (Optional)
- - `tkinter` - Provides GUI for adding servers, viewing logs, and rendering display mirroring. (Optional)
+ - `pystray` - Provides the systray icon. (Optional, `[systray]`)
  - `pypresence` - Used for Discord Rich Presence integration. (Optional)
 
 ## Project Overview
@@ -53,7 +53,8 @@ Current Dependencies:
  - `conffile.py` - Generic module for getting settings folder locations on different platforms.
  - `constants.py` - Constant values for the application that apply to multiple modules.
  - `event_handler.py` - Handles remote control events from the Jellyfin websocket connection.
- - `gui_mgr.py` - Provides systray icon and tkinter GUI.
+ - `tray.py` - Provides the systray icon (its own process; pystray needs the main thread on macOS).
+ - `mpvtk_browser/ui.py` - Hosts the in-window library browser as a `user_interface`.
      - Note: This is a mess of `multiprocessing` processes and event threads to work around various bugs/issues.
  - `i18n.py` - Contains the application translation helpers. Many modules import the `_` function for user-facing strings.
  - `log_utils.py` - This implements logging routines, particularly managing the logger and sanitizing log messages.
@@ -74,7 +75,7 @@ Current Dependencies:
  - `utils.py` - Contains the playback profile and various utilities for other modules.
  - `video_profile.py` - Implements support for shader pack option profiles and related menu items.
  - `win_utils.py` - Implements window management workarounds for Windows.
- - `display_mirror.py` - Implements the full-screen display mirroring window using tkinter + Pillow.
+ - `mpvtk_browser/cast.py` - The "ready to cast" screen: a browser route that bakes backdrop + gradient + text into one full-window bitmap (mpvtk + Pillow). Was `display_mirror.py`, which owned the mpv window itself and so could not coexist with the browser.
  - `integration` - This contains the appstream metadata, icons, and desktop files used in the Flatpak version.
  - `default_shader_pack` - This is where the `gen_pkg.sh` script installs the [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 
