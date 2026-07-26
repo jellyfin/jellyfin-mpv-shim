@@ -243,6 +243,82 @@ def natural_size(el):
     return measure(el)
 
 
+def measure_h(el, avail_w):
+    """Natural height of ``el`` when the width it will get is known.
+
+    ``measure`` is *intrinsic*: with no width to wrap against, a
+    ``wrap=True`` Text with no explicit ``w`` measures one line tall. That
+    is the right answer to "how wide would this like to be" and the wrong
+    one for "how tall will this end up", and the gap is not cosmetic — a
+    scroll viewport takes its content height from a measure, so a column of
+    wrapped notes reported a content height short by however much the text
+    wrapped, and the scrollbar stopped before the last rows. The settings
+    form was unreachable below its notes.
+
+    ``_arrange_children`` stays the authority on the final geometry; this
+    agrees with it for the cases that decide a scroll extent (columns,
+    wrapped text, nesting) and approximates a Row's flex distribution
+    without re-running it.
+    """
+    if el.h is not None:
+        return _clamp_wh(el, 0.0, float(el.h), avail_w)[1]
+    return _clamp_wh(el, 0.0, _measure_h(el, avail_w), avail_w)[1]
+
+
+def _measure_h(el, avail_w):
+    if isinstance(el, Text) and el.wrap:
+        n = len(_wrap_lines(el, max(1.0, el.w if el.w is not None
+                                    else avail_w)))
+        if el.max_lines is not None:
+            n = min(n, el.max_lines)
+        return n * el.size * LINE_H
+    if isinstance(el, Stack):
+        return max([measure_h(c, avail_w) for c in el.children], default=0.0)
+    if isinstance(el, Box):
+        return _measure_box_h(el, avail_w)
+    # Scroll (its own viewport), Grid (rows measured against their tracks)
+    # and the leaf widgets have no width-dependent height.
+    return _measure(el)[1]
+
+
+def _measure_box_h(el, avail_w):
+    px, py = _pad2(el)
+    inner = max(0.0, avail_w - 2 * px)
+    kids = el.children
+    if not kids:
+        return 2 * py
+    if el.direction == "row":
+        # Widths come from the flex pass in _arrange_children. Reproducing
+        # its floors would be reproducing it; natural widths plus flex
+        # growth (and a proportional squeeze when they overflow) is close
+        # enough for a height, and a Row of wrapped text is rare — the
+        # notes that motivated this are column children.
+        widths = [float(c.w) if c.w is not None else measure(c)[0]
+                  for c in kids]
+        slack = inner - sum(widths) - el.gap * (len(kids) - 1)
+        flex_total = sum(c.flex for c in kids if c.flex > 0)
+        if slack > 0 and flex_total:
+            widths = [w + slack * c.flex / flex_total if c.flex > 0 else w
+                      for c, w in zip(kids, widths)]
+        elif slack < 0 and sum(widths) > 0:
+            k = max(0.0, inner) / sum(widths)
+            widths = [w * k for w in widths]
+        return max(measure_h(c, w)
+                   for c, w in zip(kids, widths)) + 2 * py
+    total = el.gap * (len(kids) - 1) + 2 * py
+    for c in kids:
+        # Same cross-axis rule _arrange_children applies: stretch fills the
+        # column, anything else takes its natural width capped at it.
+        if c.w is not None:
+            cw = float(c.w)
+        elif el.align == "stretch":
+            cw = inner
+        else:
+            cw = min(measure(c)[0], inner)
+        total += measure_h(c, cw)
+    return total
+
+
 def _measure(el):
     """Natural (width, height) of an element, ignoring flex."""
     if isinstance(el, Text):
@@ -707,6 +783,10 @@ def _arrange_overlay(ctx, el, x, y, w, h, sc, path):
     """Dialog and Float: positioned against the window, not the parent."""
     cw, ch = measure(el.child)
     cw, ch = _clamp_wh(el.child, cw, ch, ctx.root_w, ctx.root_h)
+    # Width first (a dialog is as wide as it wants to be), then the height
+    # that width implies -- otherwise wrapped body text sits outside the
+    # panel it is supposed to be inside.
+    ch = max(ch, measure_h(el.child, cw))
     if isinstance(el, Dialog):
         dx = (ctx.root_w - cw) / 2
         dy = max(0.0, (ctx.root_h - ch) / 2.5)
@@ -810,11 +890,16 @@ def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
     if el.scrollbar and el.axis == "y":
         inner_w -= SCROLLBAR_W
         node["bar"] = True
-    cw, ch = measure(el.child)
     if el.axis == "x":
+        cw, ch = measure(el.child)
         cw, ch = max(cw, inner_w), inner_h
     else:
-        cw, ch = inner_w, max(ch, inner_h)
+        # measure_h, not measure: the child is about to be arranged at
+        # inner_w, and its wrapped text is only as tall as that width makes
+        # it. An intrinsic measure here reported a content height that
+        # stopped short of the content, and the scroll clamped to it.
+        cw = inner_w
+        ch = max(measure_h(el.child, inner_w), inner_h)
     node["cw"] = _round(cw)
     node["ch"] = _round(ch)
     if el.follow:

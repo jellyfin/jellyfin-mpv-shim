@@ -94,6 +94,38 @@ class TestSettings(unittest.TestCase):
         # about reads as something they are missing.
         self.assertNotIn("pypresence", real.NOTES["discord_presence"])
 
+    def test_one_way_doors_are_advanced_only(self):
+        """enable_gui reads like "turn off the Jellyfin UI" and actually
+        drops the app to CLI mode; headless takes the library away, Settings
+        with it. Both leave conf.json as the way back on a machine with no
+        tray, so neither belongs one click deep in Interface."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        groups = dict(real.sections())
+        for key in ("enable_gui", "headless"):
+            self.assertNotIn(key, groups["Interface"])
+            self.assertIn(key, groups.get("Advanced", []))
+            note = real.NOTES.get(key)
+            self.assertIsNotNone(note, "%s hides the way to undo it and says "
+                                       "nothing about it" % key)
+            self.assertIn("conf.json", note)
+
+    def test_cast_target_setup_is_spelled_out(self):
+        """The classic cast-only behaviour is three ordinary settings, and
+        nowhere in the app said which — which is how people reached for
+        enable_gui to get it. The note rides the keep-running toggle, so it
+        is visible whichever of the two this machine shows."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+
+        for key in ("close_to_tray", "allow_background"):
+            note = real.NOTES.get(key) or ""
+            for label in (real.label_for("start_minimized"),
+                          real.label_for("fullscreen")):
+                self.assertIn(label, note)
+        shown = dict(real.sections())["Interface"]
+        self.assertTrue({"close_to_tray", "allow_background"} & set(shown),
+                        "the recipe's anchor left the visible section")
+
     def test_discord_says_so_when_it_is_on_but_did_not_load(self):
         """Ticking the box with pypresence missing did nothing at all, and
         said nothing either: player.py reads the setting once at import and

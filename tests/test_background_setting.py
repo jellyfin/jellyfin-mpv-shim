@@ -188,10 +188,16 @@ class BackgroundNoteTest(unittest.TestCase):
         with mock.patch.object(settings, "allow_background", False):
             self.assertIsNone(self._note())
 
-    def test_it_is_not_a_static_note(self):
-        # A NOTES entry would render unconditionally and win over the dynamic
-        # one, which is the mistake this guards.
-        self.assertNotIn("allow_background", cfg.NOTES)
+    def test_the_static_note_does_not_displace_it(self):
+        # This used to ban a NOTES entry outright, because
+        # `notes.get(key) or self._dynamic_note(key)` meant a static line
+        # silently suppressed the dynamic one. The form renders both now
+        # (test_shell_settings.test_a_static_note_does_not_hide_the_dynamic_one),
+        # so allow_background carries the cast-target recipe as well -- but
+        # the way-out warning still has to survive alongside it.
+        self.assertIn("allow_background", cfg.NOTES)
+        with mock.patch.object(settings, "allow_background", True):
+            self.assertIn("jellyfin-mpv-shim stop", self._note())
 
 
 if __name__ == "__main__":
