@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-25 17:21-0400\n"
-"PO-Revision-Date: 2025-02-27 11:39+0000\n"
+"PO-Revision-Date: 2026-07-26 06:33+0000\n"
 "Last-Translator: Kityn <kitynska@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/pl/>\n"
+"jellyfin-mpv-shim/pl/>\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -596,16 +596,12 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "Ustawienia SVP"
+msgstr "Żądanie…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:287
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Serwer URL: "
+msgstr "Serwer URL"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:288
 #, fuzzy
@@ -632,14 +628,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:330
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Nie można dodać serwera.\n"
-"Proszę sprawdzić informacje o połączeniu."
+msgstr "Łączenie z serwerem…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:339
 msgid "Waiting for approval…"
@@ -723,17 +713,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:88
 msgid "Audio"
-msgstr ""
+msgstr "Dźwięk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:92
 msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:97
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transkoduj)"
+msgstr "Transkodowanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:102
 msgid "Video Enhancement"
@@ -1093,10 +1081,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:120
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Usuń serwer"
+msgstr "Kolekcje…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:123
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:169
@@ -1117,10 +1103,8 @@ msgid "No collections yet."
 msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:156
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Nazwa użytkownika: "
+msgstr "Nazwa nowej kolekcji…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:393
@@ -1141,10 +1125,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:270
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:303
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "Ustawienia SVP"
+msgstr "Szacowanie…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:272
 msgid "%(count)d items · %(size)s"
@@ -1798,10 +1780,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py:123
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transkoduj)"
+msgstr "Transkoduj"
 
 #: jellyfin_mpv_shim/osc_bridge.py:125 jellyfin_mpv_shim/osc_bridge.py:161
 msgid "External"
