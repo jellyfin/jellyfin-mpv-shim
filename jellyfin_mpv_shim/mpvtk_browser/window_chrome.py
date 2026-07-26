@@ -89,6 +89,12 @@ def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
     title = "" if probe else (b.route.get("title") or _("Home"))
 
+    # A theme may give the top bar accent-bordered buttons; the stock look
+    # leaves the Button defaults alone.
+    # Themed chrome buttons (empty dict on themes that don't ask), shared
+    # with the Settings tabs so the two rows always match.
+    accent_style = theme.chrome_button_style()
+
     def nav_button(label, node_id, icon, cb):
         # Icon-only when compact — the icons are the same ones the
         # labels sit next to, so nothing new has to be learned. The
@@ -96,7 +102,8 @@ def chrome_bar(b, compact, probe=False, servers=None,
         # when the button stops saying what it does, and it was the
         # only mode with neither a label nor a tip.
         return Button("" if compact else label, id=node_id, icon=icon,
-                      on_click=cb, tip=label if compact else None)
+                      on_click=cb, tip=label if compact else None,
+                      **accent_style)
 
     left = []
     if b._nav.can_go_back:
@@ -144,7 +151,7 @@ def chrome_bar(b, compact, probe=False, servers=None,
         Button("", id="nav-search-go", icon="search", size=18,
                tip=_("Search"),
                on_click=lambda: b._search(
-                   b._search_box.get("term", ""))),
+                   b._search_box.get("term", "")), **accent_style),
         nav_button(_("SyncPlay"), "nav-syncplay", "groups",
                    b._open_syncplay),
         nav_button(_("Settings"), "nav-settings", "settings",

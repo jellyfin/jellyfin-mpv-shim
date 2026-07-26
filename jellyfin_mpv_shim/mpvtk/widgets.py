@@ -70,7 +70,11 @@ class Box(Element):
         # right-click; receives (x, y). ImageMap regions have always had
         # this — a Box/Row could not, so a Table row could not either.
         on_context=None,
-        hover=None,  # style overrides while hovered, e.g. {"fill": "334455"}
+        # Style overrides while hovered, e.g. {"fill": "334455"}. Also takes
+        # {"glow": True}, which asks for a soft accent halo while hovered —
+        # honoured only when the active theme turned the glow on, so it is
+        # safe to request unconditionally and the stock look stays flat.
+        hover=None,
         repeat=False,  # hold-repeat: on_click refires while held down
         **kw,
     ):

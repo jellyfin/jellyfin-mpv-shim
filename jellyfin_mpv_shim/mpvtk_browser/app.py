@@ -95,7 +95,8 @@ from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
-from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
+from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
+                     TileGeom)
 from .dialogs import DialogsMixin
 from .auth import AuthMixin
 from .settings import SettingsMixin
@@ -157,9 +158,24 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
-        # Before anything is built: the toolkit's accented widgets read the
-        # palette at construction time.
-        theme.apply_to_toolkit()
+        # Before anything is built: apply the user's chosen theme (palette +
+        # mpv browse background), then hand the accent to the toolkit, whose
+        # accented widgets read the palette at construction time.
+        from ..conf import settings as _settings
+        self._theme_cfg = theme.apply(getattr(_settings, "theme", "default"))
+        try:
+            from .. import player as _player
+            _player.BROWSE_BG_HEX = self._theme_cfg["browse_bg"]
+        except Exception:
+            # No player module (tests): the palette still applies, there is
+            # just no mpv window whose background to set.
+            pass
+        # Glow is theme-driven; the toolkit forwards it to the renderer
+        # alongside the accent.
+        theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))
+        log.info("theme: %s (accent %s, glow %s)",
+                 self._theme_cfg.get("name", "?"), theme.ACCENT,
+                 self._theme_cfg.get("glow", False))
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
         # Settings accessor (settings_schema/get_settings/set_setting). None ->
@@ -267,9 +283,40 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
-        self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
-        self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
-        self.geom_square = SQUARE_GEOM        # 1:1 (music)
+        # Cover size: the theme's default, overridden by the Cover Size
+        # setting when it is set. Posters/square scale; a theme may also
+        # override the landscape (library) tile's shape outright.
+        _cs = (getattr(_settings, "poster_scale", None)
+               or self._theme_cfg.get("poster_scale", 1.0))
+        _lw, _lh = self._theme_cfg.get("tile_landscape",
+                                       (LANDSCAPE_GEOM.tile_w,
+                                        LANDSCAPE_GEOM.tile_h))
+        self.geom = geom or POSTER_GEOM.scaled(_cs)   # default tile shape (2:3)
+        # The stock shape stays the module singleton rather than an equal
+        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
+        if (_lw, _lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
+            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
+        else:
+            self.geom_wide = TileGeom(
+                tile_w=_lw, tile_h=_lh,
+                caption_h=LANDSCAPE_GEOM.caption_h)
+        self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
+        # A theme may also pin the tile caption font so it does NOT grow with
+        # the cover (big art, modest labels), which lets a long title show
+        # more of itself before it is ellipsized. Section headings are
+        # separate (heading_size) and unaffected.
+        _tts = self._theme_cfg.get("tile_title_size")
+        _tss = self._theme_cfg.get("tile_sub_size")
+        if _tts or _tss:
+            import dataclasses
+
+            def _caption(g):
+                return dataclasses.replace(
+                    g, title_size=_tts or g.title_size,
+                    sub_size=_tss or g.sub_size)
+            self.geom = _caption(self.geom)
+            self.geom_wide = _caption(self.geom_wide)
+            self.geom_square = _caption(self.geom_square)
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.

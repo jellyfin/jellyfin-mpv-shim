@@ -63,6 +63,15 @@ class GeneralTabMixin:
                         # the settings it qualifies follow directly below.
                         rows.append(Text(note, size=14,
                                          color=theme.SUBTLE_FG, wrap=True))
+            if title == _("Theme"):
+                # Every setting in this section is read once at startup, so
+                # say plainly what makes a change here show up. Called out
+                # rather than left to the closing line below, because picking
+                # a theme and seeing nothing happen reads as a broken control.
+                rows.append(Text(
+                    _("Theme, Cover Size and Interface Scale take effect "
+                      "after you restart the app."),
+                    size=15, bold=True, color=theme.ACCENT, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,

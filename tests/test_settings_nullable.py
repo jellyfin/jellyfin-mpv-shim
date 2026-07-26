@@ -134,9 +134,11 @@ class SettingsFormNullableTest(unittest.TestCase):
         self.assertIsNotNone(idx)
         self.assertIsNone(opts[idx][1])
 
-    def test_ui_scale_is_offered_in_the_interface_section(self):
+    def test_ui_scale_is_offered_in_the_theme_section(self):
+        # Interface Scale sits with the other startup-applied "look" settings
+        # (theme + cover size) rather than under Interface.
         section = next(keys for name, keys in self.cfg.SECTIONS
-                       if "osc_style" in keys)
+                       if "theme" in keys)
         self.assertIn("ui_scale", section)
 
 

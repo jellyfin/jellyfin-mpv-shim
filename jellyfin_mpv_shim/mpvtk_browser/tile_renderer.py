@@ -71,6 +71,40 @@ TRACK_ROW_H = 34
 #: Padding around a focus ring, so it is not clipped by its container.
 RING_PAD = 5
 
+#: Inset for a theme's round page arrow (see _round_arrow_bitmap). Wider than
+#: RING_PAD so the circle sits clear of the window edge on a bleed row.
+ROUND_ARROW_INSET = 8
+
+
+def _round_arrow_bitmap(direction):
+    """A round, translucent carousel page button as a PIL bitmap at physical
+    size, for themes that ask for one.
+
+    Drawn as a BITMAP (not an ASS box) so it composites above the poster strip
+    and alpha-blends — its transparent corners show the artwork underneath,
+    with no occlusion rect whose corners would reveal the dark window
+    background. Supersampled and downscaled: the circle's antialiased edge is
+    what sells it as round rather than as a notch cut out of the strip.
+    """
+    from PIL import Image as PILImage, ImageDraw
+
+    w = px(ARROW_W)
+    ss = 3  # supersample then downscale for smooth, anti-aliased edges
+    big_w = w * ss
+    big = PILImage.new("RGBA", (big_w, big_w), (0, 0, 0, 0))
+    d = ImageDraw.Draw(big)
+    d.ellipse([0, 0, big_w - 1, big_w - 1],
+              fill=theme.rgb(theme.BUTTON_BG, 165))
+    s = big_w * 0.20
+    c = big_w / 2.0
+    lw = max(2, int(round(big_w * 0.09)))
+    base = c + s * 0.5 if direction < 0 else c - s * 0.5
+    tip = c - s * 0.5 if direction < 0 else c + s * 0.5
+    d.line([(base, c - s), (tip, c), (base, c + s)],
+           fill=theme.rgb(theme.TEXT_FG, 255), width=lw, joint="curve")
+    lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
+    return big.resize((w, w), lanczos)
+
 
 class TileRenderer:
     """Builds tiles, rows and grids. Owns the decoded-poster cache."""
@@ -326,7 +360,10 @@ class TileRenderer:
         line up with the content instead. ``parent_item`` is passed through
         to the tiles (see ``_tile``)."""
         geom = geom or self.art.geom
-        heading = Text(title, size=24, bold=True)
+        # Section-title size is theme-controlled (24 = the stock value), so a
+        # theme with larger covers can size its headings to match.
+        heading = Text(title, size=(theme.active() or {}).get(
+            "heading_size", 24), bold=True)
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
             # the first tile instead.
@@ -439,7 +476,39 @@ class TileRenderer:
             # moves — pointer paging arrows would only cover artwork
             return Row([scroll], h=h)
 
+        round_arrows = bool((theme.active() or {}).get("round_arrows"))
+
         def arrow(icon, node_id, direction, anchor):
+            # "w"/"e" centre on the whole strip, which includes the caption
+            # block under the tile; shift up by half of it so the arrow sits
+            # on the artwork.
+            dy = -(geom.strip_h - geom.tile_h) / 2
+            # A round arrow needs more clearance than the square one: its
+            # circle reads as sitting ON the artwork, so leaving it at the
+            # ring padding looked shoved against the window edge (the stock
+            # square arrow squares off into the edge and does not).
+            inset = ROUND_ARROW_INSET if round_arrows else RING_PAD
+            dx = inset if anchor == "w" else -inset
+            if round_arrows:
+                # A theme may ask for a round translucent BITMAP instead.
+                # Bitmaps composite above the strip and alpha-blend, so the
+                # round edge reveals the artwork behind it and no occlusion
+                # punch is needed — an ASS box cannot do either, which is why
+                # the stock arrow is square and opaque. It trades away
+                # hold-repeat: only Box carries that.
+                img = _round_arrow_bitmap(direction)
+                bm = self.art.strips.bitmap(
+                    ("carousel-arrow", direction, px(ARROW_W)), img,
+                    lsize=(ARROW_W, ARROW_W))
+                # No hover glow here on purpose: a halo would have to be ASS,
+                # and mpv composites overlay bitmaps ABOVE all script ASS
+                # (GUIDE §6) — over a poster strip the glow simply disappears
+                # under the artwork. It would have to be baked into the bitmap.
+                return Image(bm["src"], bm["iw"], bm["ih"],
+                             v=bm.get("v", 0), w=bm["lw"], h=bm["lh"],
+                             id=node_id, anchor=anchor, dx=dx, dy=dy,
+                             on_click=lambda: self.page_row(row_id,
+                                                            direction))
             # Square, and small enough to cover as little artwork as
             # possible — the occlusion punch reads as a notch, so a tall
             # slab looked wrong. Flex spacers centre the glyph (Box only
@@ -449,12 +518,7 @@ class TileRenderer:
                        align="center", direction="row",
                        bg=theme.BUTTON_BG, alpha=230,
                        hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
-                       anchor=anchor, dx=(RING_PAD if anchor == "w"
-                                          else -RING_PAD),
-                       # "w"/"e" centre on the whole strip, which includes the
-                       # caption block under the tile; shift up by half of it
-                       # so the arrow sits on the artwork.
-                       dy=-(geom.strip_h - geom.tile_h) / 2,
+                       anchor=anchor, dx=dx, dy=dy,
                        occlude=True, repeat=True,
                        on_click=lambda: self.page_row(row_id, direction))
 

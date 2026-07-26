@@ -92,9 +92,9 @@ class DocsCoverageTest(unittest.TestCase):
         # Enum values and language_config sub-keys use the same list shape, so
         # only flag names that look like settings and are not known vocabulary.
         vocabulary = {
-            # audio_mode / osc_style / ui_scale values
+            # audio_mode / osc_style / ui_scale / theme values
             "auto", "stereo", "optical", "hdmi", "mpvtk", "mpv", "default",
-            "null", "jellyfin",
+            "null", "jellyfin", "nebula",
             # language_config rule keys
             "type", "subtype", "alang", "slang", "amatch", "smatch",
             "aprefer", "sprefer", "aexclude", "sexclude",

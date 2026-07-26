@@ -25,6 +25,10 @@ HOVER = None      # set by set_accent
 SOFT = None
 # Colour drawn on top of an ACCENT fill.
 ON_ACCENT = "ffffff"
+# Whether the renderer draws the themed glow (a blurred accent halo behind
+# bold titles and around the selected card). Off unless an app theme asks
+# for it, so the stock look is unchanged.
+GLOW = False
 
 
 def _rgb(hexstr):
@@ -62,21 +66,25 @@ def readable_on(hexstr):
     return "101010" if lum > 0.6 else "ffffff"
 
 
-def set_accent(accent, hover=None, soft=None, on_accent=None):
+def set_accent(accent, hover=None, soft=None, on_accent=None, glow=None):
     """Set the toolkit accent. ``hover``/``soft``/``on_accent`` default to
-    sensible derivations, so most callers pass one colour."""
-    global ACCENT, HOVER, SOFT, ON_ACCENT
+    sensible derivations, so most callers pass one colour. ``glow`` is the
+    app theme's opt-in for the blurred accent halo the renderer draws behind
+    bold titles and around the selected card; left alone when None."""
+    global ACCENT, HOVER, SOFT, ON_ACCENT, GLOW
     ACCENT = (accent or DEFAULT_ACCENT).lstrip("#")
     HOVER = (hover or lighten(ACCENT)).lstrip("#")
     SOFT = (soft or darken(ACCENT)).lstrip("#")
     ON_ACCENT = (on_accent or readable_on(ACCENT)).lstrip("#")
+    if glow is not None:
+        GLOW = bool(glow)
     return palette()
 
 
 def palette():
     """The resolved palette, as pushed to the renderer."""
     return {"accent": ACCENT, "hover": HOVER, "soft": SOFT,
-            "on_accent": ON_ACCENT}
+            "on_accent": ON_ACCENT, "glow": GLOW}
 
 
 set_accent(DEFAULT_ACCENT)

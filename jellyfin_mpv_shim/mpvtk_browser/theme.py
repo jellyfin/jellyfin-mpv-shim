@@ -7,14 +7,58 @@ bare ``"rrggbb"`` (what mpvtk widget ``bg``/``color`` fields want); use
 """
 
 
-def apply_to_toolkit():
-    """Hand this palette to mpvtk, so the toolkit's own accented bits — a
-    checkbox fill, a hover ring, a focused textbox border, the slider — are
-    the same blue as the app's buttons rather than the toolkit default."""
+from . import themes
+
+# The theme in force, as a dict from themes.py. Set by apply(); active() is
+# how the rest of the browser reads the non-colour parts (glow, rounded
+# cards, cover/heading sizes).
+_active = None
+
+
+def apply(name):
+    """Copy a theme's palette onto this module's globals. Returns the theme.
+
+    Called once at startup (MpvtkBrowser.__init__) before anything is built,
+    so every consumer that reads ``theme.X`` gets the chosen theme's value
+    without knowing a theme system exists. ``default`` reproduces the stock
+    palette exactly, so an untouched install is unaffected."""
+    global _active
+    _active = themes.get(name)
+    g = globals()
+    for key, value in _active["palette"].items():
+        g[key] = value
+    return _active
+
+
+def active():
+    """The theme dict in force (None before apply())."""
+    return _active
+
+
+def chrome_button_style():
+    """Styling for the app's chrome buttons — the top bar and the Settings
+    tabs — when the active theme asks for accented ones: a themed fill, an
+    accent border, rounder corners, and a glow on hover.
+
+    Empty for themes that do not ask, so a caller can splat it
+    unconditionally and the stock button styling is left alone. The hover
+    glow is itself only drawn when the theme turned the glow on.
+    """
+    if not (_active or {}).get("accent_buttons"):
+        return {}
+    return {"bg": BUTTON_BG, "border": ACCENT, "border_w": 1, "radius": 9,
+            "hover": {"fill": BUTTON_ACTIVE, "glow": True}}
+
+
+def apply_to_toolkit(glow=False):
+    """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so the
+    toolkit's own accented bits — a checkbox fill, a hover ring, a focused
+    textbox border, the slider — match the app's accent, and the renderer
+    knows whether to draw the themed title/selection glow."""
     from ..mpvtk import theme as tk
 
     tk.set_accent(ACCENT, hover=ACCENT_HOVER, soft=ACCENT_SOFT,
-                  on_accent=ACCENT_FG)
+                  on_accent=ACCENT_FG, glow=glow)
 
 
 def rgb(hexstr, alpha=None):

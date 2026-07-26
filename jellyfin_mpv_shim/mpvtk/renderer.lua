@@ -65,6 +65,10 @@ local state = {
     -- its own so the UI doesn't end up with two unrelated accents.
     accent = '7aa2f7',
     accent_soft = '223055',
+    -- Themed glow: a blurred accent halo behind bold titles and around the
+    -- selected card. Off unless an app theme asks for it (mpvtk-theme), so
+    -- the stock look is unchanged.
+    glow = false,
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
@@ -492,9 +496,13 @@ local function hover_style(node)
     return nil
 end
 local function draw_rect(ass, x, y, w, h, o)
-    -- o: {fill, a, radius, bc, bw, clip}
+    -- o: {fill, a, radius, bc, bw, clip, blur}
     ass:new_event()
     ass:append('{\\pos(0,0)\\an7\\bord0\\shad0')
+    -- blur softens the border into a halo (the themed selection glow); the
+    -- caller must leave the clip off, or the container's viewport chops the
+    -- blur back into a hard edge.
+    if o.blur then ass:append(string.format('\\blur%.1f', o.blur)) end
     if o.fill then
         ass:append('\\1c' .. ass_color(o.fill))
         ass:append('\\1a' .. ass_alpha(o.a))
@@ -534,11 +542,19 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
     -- is what made long text jump to an extra line seemingly at random —
     -- our break was never authoritative. With \q2 a slightly-too-long line
     -- simply extends (and is clipped) instead of reflowing.
+    -- A themed glow (\bord + \blur in the accent) behind headings only:
+    -- bold and reasonably large, so body text and captions are untouched.
+    -- Drawn as part of the same event, so it cannot drift from the glyphs.
+    local glow = ''
+    if state.glow and node.bold and (node.size or 0) >= 22 then
+        glow = string.format('\\bord2\\blur6\\3c%s\\3a&H30&',
+                             ass_color(state.accent))
+    end
     ass:append(string.format(
         '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
-        '\\1c%s\\1a&H00&%s%s%s%s}',
+        '\\1c%s\\1a&H00&%s%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
-        ass_color(color), node.bold and '\\b1' or '',
+        ass_color(color), glow, node.bold and '\\b1' or '',
         ui_font and ('\\fn' .. ui_font) or '',
         clip_tag(clip), extra or ''))
     ass:append(raw and text or esc(text))
@@ -1597,11 +1613,21 @@ render = function()
             if node.ring then
                 -- hit-rect over a bitmap: only a hover ring, outside
                 if hs and hs.bc then
-                    draw_rect(ass, ex - 2, ey - 2,
-                        node.w + 4, node.h + 4, {
-                            bc = hs.bc, bw = hs.bw or 3,
-                            radius = 3, clip = clip,
-                        })
+                    if state.glow then
+                        -- Themed selection: a soft accent halo instead of a
+                        -- hard box. No clip — the row viewport would chop the
+                        -- blur back into the box this replaces.
+                        draw_rect(ass, ex - 3, ey - 3,
+                            node.w + 6, node.h + 6, {
+                                bc = hs.bc, bw = 3, radius = 14, blur = 16,
+                            })
+                    else
+                        draw_rect(ass, ex - 2, ey - 2,
+                            node.w + 4, node.h + 4, {
+                                bc = hs.bc, bw = hs.bw or 3,
+                                radius = 3, clip = clip,
+                            })
+                    end
                 end
             elseif hs and hs.circle then
                 -- round translucent wash centered on the button —
@@ -1613,6 +1639,17 @@ render = function()
                         a = hs.a or 70, radius = r, clip = clip,
                     })
             elseif node.fill or node.bc or hs then
+                if state.glow and hs and hs.glow then
+                    -- Soft accent halo behind a hovered box (themed chrome:
+                    -- hover={"glow": true}). Drawn first so the box sits on
+                    -- top of it, and unclipped — a clip would chop the blur
+                    -- back into a hard edge.
+                    draw_rect(ass, ex - 2, ey - 2,
+                        node.w + 4, node.h + 4, {
+                            bc = hs.bc or node.bc or state.accent, bw = 2,
+                            radius = (node.radius or 0) + 2, blur = 10,
+                        })
+                end
                 draw_rect(ass, ex, ey, node.w, node.h, {
                     fill = (hs and hs.fill) or node.fill,
                     a = node.a, radius = node.radius,
@@ -3498,6 +3535,7 @@ mp.register_script_message('mpvtk-theme', function(json)
     if not t then return end
     state.accent = t.accent or state.accent
     state.accent_soft = t.soft or state.accent_soft
+    state.glow = t.glow == true
     request_render()
 end)
 

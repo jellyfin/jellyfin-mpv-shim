@@ -336,6 +336,10 @@ class Settings(SettingsBase):
     # because rescaling live means dropping every cached bitmap and that
     # is only safe on the libmpv path once mpv is gone.
     ui_scale: Optional[float] = None
+    # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
+    # stock look; poster_scale overrides the theme's own cover size.
+    theme: str = "default"
+    poster_scale: Optional[float] = None
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
