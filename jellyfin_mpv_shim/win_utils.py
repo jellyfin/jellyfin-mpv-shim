@@ -13,10 +13,6 @@ log = logging.getLogger("win_utils")
 #: raise-on-play with it.
 MPV_WINDOW_CLASS = "mpv"
 
-#: The mirror window also carries the app name, so a title-based match has
-#: to rule it out or raise_mpv can raise the wrong window.
-MIRROR_WINDOW_NAME = "Jellyfin MPV Shim Mirror"
-
 
 def window_enumeration_handler(hwnd, top_windows):
     try:
@@ -38,8 +34,6 @@ def is_mpv_window(entry):
     if cls == MPV_WINDOW_CLASS:
         return True
     low = (title or "").lower()
-    if MIRROR_WINDOW_NAME.lower() in low:
-        return False
     return low.endswith(USER_APP_NAME.lower()) or " - mpv" in low
 
 
@@ -60,16 +54,3 @@ def raise_mpv():
 
     except Exception:
         log.error("Could not raise MPV.", exc_info=True)
-
-
-def mirror_act(state: bool, name: str = MIRROR_WINDOW_NAME):
-    try:
-        top_windows = []
-        win32gui.EnumWindows(window_enumeration_handler, top_windows)
-        for i in top_windows:
-            if name in i[1]:
-                win32gui.ShowWindow(i[0], 9 if state else 6)
-                break
-
-    except Exception:
-        log.error("Could not raise/lower MPV mirror.", exc_info=True)

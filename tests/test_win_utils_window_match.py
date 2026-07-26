@@ -59,14 +59,6 @@ class TitleFallbackTest(unittest.TestCase):
         self.assertTrue(win_utils.is_mpv_window(entry("No file - mpv")))
         self.assertTrue(win_utils.is_mpv_window(entry("Rear Window - mpv")))
 
-    def test_the_mirror_window_is_never_matched(self):
-        """It carries the app name too, so a title match would raise it
-        instead of the player."""
-        self.assertFalse(win_utils.is_mpv_window(
-            entry(win_utils.MIRROR_WINDOW_NAME)))
-        self.assertFalse(win_utils.is_mpv_window(
-            entry("%s - something" % win_utils.MIRROR_WINDOW_NAME)))
-
     def test_an_unrelated_window_does_not_match(self):
         self.assertFalse(win_utils.is_mpv_window(entry("Firefox")))
         self.assertFalse(win_utils.is_mpv_window(entry("")))
