@@ -71,9 +71,18 @@ BACKGROUND_DEPENDENT = ("start_minimized",)
 # Curated groups, mirroring the Tk browser's form. Anything not listed shows
 # under "Advanced".
 SECTIONS = [
+    # enable_gui and headless are deliberately *not* here. Both are one-way
+    # doors from the settings form's point of view: enable_gui doesn't
+    # disable "the Jellyfin UI", it drops the whole app to CLI mode -- no
+    # window, no tray, no settings -- and headless makes the cast screen the
+    # only page, so with no system tray installed there is nothing left to
+    # reach Settings from. Either way the way back is hand-editing conf.json,
+    # which is not a thing to leave one click away in the main list. They stay
+    # editable under Advanced, with notes saying what they cost. Someone who
+    # wants mpv's own controls wants osc_style, which is in this section.
     (_("Interface"), ["player_name", "browser_fullscreen",
-                      "headless", "display_mirror_summon",
-                      "enable_gui", "close_to_tray", "allow_background",
+                      "display_mirror_summon",
+                      "close_to_tray", "allow_background",
                       "start_minimized",
                       "remember_window_size",
                       "fullscreen", "ui_scale", "enable_osc", "osc_style",
@@ -196,10 +205,39 @@ LABEL_OVERRIDES = {
     "audio_optical_encode_ac3": _("Re-encode Others to AC3"),
 }
 
+# The classic MPV Shim behaviour is three ordinary settings and nothing said
+# so, which is how people ended up reaching for enable_gui (which does
+# something else entirely) to get it. Shown under whichever keep-running
+# toggle this machine has -- they are the same question, so the recipe reads
+# the same under either.
+CAST_TARGET_NOTE = _(
+    "With \"Start Minimized\" and \"Fullscreen\" this is the classic "
+    "cast-target setup: the app waits out of the way, plays fullscreen when "
+    "something casts to it, and goes back to waiting when the video ends or "
+    "you press Q.")
+
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
-    "osc_style": _("MPV keybinds are used by default. Press ENTER to drive "
+    "close_to_tray": CAST_TARGET_NOTE,
+    "allow_background": CAST_TARGET_NOTE,
+    # Advanced-only (see SECTIONS), and the note is why: it reads like "turn
+    # off the Jellyfin UI", and what it actually does is leave a Windows user
+    # with a process they can neither see nor quit.
+    "enable_gui": _("Off means command-line mode: no window, no system tray "
+                    "and no settings screen, so the only way back is editing "
+                    "conf.json by hand. It is not how you get MPV's own "
+                    "on-screen controls — \"Player Controls Style\" under "
+                    "Interface does that."),
+    # Advanced-only for the same reason as enable_gui: with no tray icon
+    # installed, the cast screen is the only page and Settings is gone.
+    "headless": _("Show only what is cast to this machine — the library, "
+                  "including this settings screen, can't be reached from "
+                  "here. Without a system tray icon the only way back is "
+                  "editing conf.json. For the classic cast-target setup you "
+                  "want the Interface settings instead; this is for a shared "
+                  "TV nobody should be able to browse from."),
+    "osc_style": _("Requires restart to change. MPV keybinds are used by default. Press ENTER to drive "
                    "the player controls by keyboard."),
     "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. The scrollbar "
                              "glides while the content snaps to the nearest "
