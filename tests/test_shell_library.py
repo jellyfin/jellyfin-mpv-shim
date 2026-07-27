@@ -96,26 +96,32 @@ class TestTileShapes(unittest.TestCase):
         self.assertIn("row-libs-pr", by_id)
         strip = by_id["row-libs"]
         left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
-        pad = tile_renderer.RING_PAD
-        # Inset from the scroll container's edges by the ring padding.
+        pad = tile_renderer.ARROW_INSET
+        # Inset from the scroll container's edges, clear of the window edge.
         self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
         self.assertAlmostEqual(right["x"] + right["w"],
                                strip["x"] + strip["w"] - pad, places=1)
-        # Square, and small enough to cover little artwork.
+        # Circular, and small enough to cover little artwork.
         self.assertEqual(left["w"], left["h"])
         self.assertLess(left["h"], strip["h"] / 2)
 
-    def test_arrows_punch_through_the_strip_bitmap(self):
-        """An ASS button can't composite over a bitmap; it needs an occluder
-        node so the renderer subtracts its rect from the strip below."""
+    def test_arrows_composite_over_the_strip_instead_of_punching_it(self):
+        """The arrows are bitmaps, which mpv composites ABOVE the strip and
+        alpha-blends with it. The ASS-button version could not do either, so
+        it had to punch an occluder rect out of the strip below — a hard-edged
+        notch in the artwork. No node may ask for that punch any more."""
         many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
                      Name="Library %d" % i) for i in range(30)]
         self.b.route["_data"] = {"libraries": many, "rows": []}
         nodes, _h = build_scene(self.b)
-        occ = [n for n in nodes if n["t"] == "occ"]
-        self.assertEqual(len(occ), 2, "one occluder per arrow")
+        self.assertEqual([n for n in nodes if n["t"] == "occ"], [])
+        by_id = {n["id"]: n for n in nodes}
+        for nid in ("row-libs-pl", "row-libs-pr"):
+            self.assertEqual(by_id[nid]["t"], "img")
 
     def test_arrows_hold_repeat(self):
+        """Survives the move to bitmaps: Image carries ``repeat`` too, and the
+        renderer keys hold-repeat off click/rpt regardless of node type."""
         many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
                      Name="Library %d" % i) for i in range(30)]
         self.b.route["_data"] = {"libraries": many, "rows": []}

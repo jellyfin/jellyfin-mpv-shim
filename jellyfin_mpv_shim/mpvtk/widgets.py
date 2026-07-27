@@ -213,9 +213,16 @@ class Image(Element):
     place so the renderer re-reads it. On the libmpv path src is a malloc
     address and addresses get recycled, so entries carry one always —
     see mpvtk_browser.strips._store.
+
+    ``repeat`` is hold-repeat, same as Box's: the renderer keys it off
+    ``click``/``rpt`` and does not care what kind of node carries them. It
+    exists here because a button that has to composite over a bitmap must
+    itself be a bitmap (GUIDE §6), and paging arrows are exactly that —
+    without it, going bitmap would silently cost press-and-hold paging.
     """
 
-    def __init__(self, src, iw, ih, on_click=None, hover=None, v=0, **kw):
+    def __init__(self, src, iw, ih, on_click=None, hover=None, v=0,
+                 repeat=False, **kw):
         _check_raster(src, iw, ih, kw)
         super().__init__(**kw)
         self.src = src
@@ -227,6 +234,7 @@ class Image(Element):
         self.v = v
         self.on_click = on_click
         self.hover = hover
+        self.repeat = repeat
 
 
 class ImageMap(Element):
@@ -524,6 +532,15 @@ class Stack(Element):
     subtracted from earlier image siblings, so it draws in the hole
     (give it an opaque bg; whatever the hole reveals is the window
     background). Without ``occlude`` the image wins.
+
+    ``occlude`` suits chrome that is *meant* to cover what is under it —
+    popups, dropdowns, dialogs. It is the wrong tool for a control that
+    should look like it floats ON the image: the punched rect is
+    hard-edged and opaque by necessity, so the control reads as a notch
+    cut out of the artwork, and it can be neither translucent nor
+    non-rectangular. Make that control an :class:`Image` instead (it can
+    carry ``on_click``/``repeat`` like a Box) and let it alpha-blend —
+    see ``mpvtk_browser.tile_renderer._arrow_bitmap``.
     """
 
     def __init__(self, children=None, **kw):

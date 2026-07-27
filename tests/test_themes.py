@@ -7,7 +7,7 @@ the switch itself, so a new theme cannot quietly redefine the default.
 """
 import unittest
 
-from jellyfin_mpv_shim.mpvtk_browser import theme, themes
+from jellyfin_mpv_shim.mpvtk_browser import hud, theme, themes
 from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
                                                     POSTER_GEOM)
 
@@ -41,7 +41,14 @@ class ThemeRegistryTest(unittest.TestCase):
 
 
 class DefaultThemeIsTheStockLookTest(unittest.TestCase):
-    """The opt-in guarantee: an untouched install renders as it always did."""
+    """The opt-in guarantee: selecting no theme adds no theme decoration.
+
+    Not quite "renders as it always did" any more — the carousel page arrows
+    are now composited bitmaps for every theme, because the ASS-button version
+    they replaced could only sit over a poster strip by punching a hard-edged
+    notch out of it. That is a fix to the shared widget, not a look the
+    default opted into, which is why there is no flag left to assert here.
+    """
 
     def tearDown(self):
         theme.apply("default")
@@ -56,10 +63,7 @@ class DefaultThemeIsTheStockLookTest(unittest.TestCase):
         d = theme.apply("default")
         self.assertFalse(d["glow"])       # no blurred accent halo
         self.assertFalse(d["rounded"])    # square cards, letterboxed art
-        # Stock chrome: plain top-bar buttons, and the square ASS page arrow
-        # that keeps hold-repeat (the bitmap arrow cannot carry it).
-        self.assertFalse(d["accent_buttons"])
-        self.assertFalse(d["round_arrows"])
+        self.assertFalse(d["accent_buttons"])   # plain top-bar buttons
         self.assertEqual(d["poster_scale"], 1.0)
         self.assertEqual(d["heading_size"], 24)
         self.assertEqual(d["tile_landscape"],
@@ -67,6 +71,17 @@ class DefaultThemeIsTheStockLookTest(unittest.TestCase):
         # None = "leave the caption font alone", i.e. it scales as before.
         self.assertIsNone(d["tile_title_size"])
         self.assertIsNone(d["tile_sub_size"])
+
+    def test_the_default_page_arrow_is_neutral_overlay_grey(self):
+        """It floats on artwork, not in chrome, so it takes the same dark
+        translucent grey as the HUD's Skip Intro chip rather than a palette
+        colour — a tinted disc reads as a coloured sticker on a poster."""
+        d = themes.DEFAULT
+        self.assertEqual(d["arrow_bg"], hud._SKIP_BG)
+        self.assertNotEqual(d["arrow_bg"], d["palette"]["BUTTON_BG"])
+        self.assertLess(d["arrow_alpha"], 255)   # translucent, not a chip
+        r, g, b = theme.rgb(d["arrow_bg"])
+        self.assertEqual((r, g, b), (r, r, r), "grey: no hue at all")
 
 
 class ApplyTest(unittest.TestCase):

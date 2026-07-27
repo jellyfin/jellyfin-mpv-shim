@@ -276,6 +276,27 @@ class TestRepeat(unittest.TestCase):
         )
         self.assertNotIn("rpt", by_id(nodes, "b"))
 
+    def test_image_repeat(self):
+        """A button that must composite over a bitmap has to BE a bitmap
+        (GUIDE §6), so hold-repeat cannot be a Box-only affordance — the
+        carousel page arrows are exactly that case."""
+        nodes, _ = layout(
+            Column([Image("/a.bgra", 20, 20, id="arrow", w=20, h=20,
+                          repeat=True, on_click=lambda: None)],
+                   w=200, h=100),
+            200, 100,
+        )
+        self.assertTrue(by_id(nodes, "arrow").get("rpt"))
+
+    def test_plain_image_has_no_repeat_flag(self):
+        nodes, _ = layout(
+            Column([Image("/a.bgra", 20, 20, id="arrow", w=20, h=20,
+                          on_click=lambda: None)],
+                   w=200, h=100),
+            200, 100,
+        )
+        self.assertNotIn("rpt", by_id(nodes, "arrow"))
+
     def test_imagemap_region_repeat(self):
         im = ImageMap(
             "/a.bgra", 100, 50,

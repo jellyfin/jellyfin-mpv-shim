@@ -71,30 +71,44 @@ TRACK_ROW_H = 34
 #: Padding around a focus ring, so it is not clipped by its container.
 RING_PAD = 5
 
-#: Inset for a theme's round page arrow (see _round_arrow_bitmap). Wider than
-#: RING_PAD so the circle sits clear of the window edge on a bleed row.
-ROUND_ARROW_INSET = 8
+#: Inset for the round page arrow (see _arrow_bitmap). Wider than RING_PAD so
+#: the circle sits clear of the window edge on a bleed row.
+ARROW_INSET = 8
+
+#: Fallback arrow fill, for the (test-only) case of drawing before a theme has
+#: been applied. Themes carry their own; see themes.DEFAULT["arrow_bg"].
+ARROW_BG = "202020"
+ARROW_ALPHA = 180
 
 
-def _round_arrow_bitmap(direction):
+def _arrow_bitmap(direction):
     """A round, translucent carousel page button as a PIL bitmap at physical
-    size, for themes that ask for one.
+    size.
 
     Drawn as a BITMAP (not an ASS box) so it composites above the poster strip
     and alpha-blends — its transparent corners show the artwork underneath,
     with no occlusion rect whose corners would reveal the dark window
     background. Supersampled and downscaled: the circle's antialiased edge is
     what sells it as round rather than as a notch cut out of the strip.
+
+    This used to be the opt-in half of a pair, with the stock theme drawing an
+    opaque ASS square and punching its rect out of the strip below. The punch
+    was the problem: it is a hard-edged rect, so the button read as a notch
+    cut into the artwork rather than a control floating over it, and it could
+    only ever be square and opaque because an ASS box cannot alpha-blend with
+    a bitmap sibling. One composited path serves both themes.
     """
     from PIL import Image as PILImage, ImageDraw
 
+    active = theme.active() or {}
     w = px(ARROW_W)
     ss = 3  # supersample then downscale for smooth, anti-aliased edges
     big_w = w * ss
     big = PILImage.new("RGBA", (big_w, big_w), (0, 0, 0, 0))
     d = ImageDraw.Draw(big)
     d.ellipse([0, 0, big_w - 1, big_w - 1],
-              fill=theme.rgb(theme.BUTTON_BG, 165))
+              fill=theme.rgb(active.get("arrow_bg", ARROW_BG),
+                             active.get("arrow_alpha", ARROW_ALPHA)))
     s = big_w * 0.20
     c = big_w / 2.0
     lw = max(2, int(round(big_w * 0.09)))
@@ -457,10 +471,10 @@ class TileRenderer:
         """An HScroll with ◀ ▶ page buttons floating over its edges.
 
         The arrows genuinely overlay the poster strip: a Stack layers them on
-        top, and ``occlude=True`` punches their rect out of the strip bitmap
-        below so the ASS button draws in the hole (bitmaps otherwise composite
-        above all script ASS — GUIDE §6). They hold-repeat while pressed, and
-        are omitted when the row doesn't overflow.
+        top, and each is a composited BITMAP, which is the only thing that can
+        draw *over* a strip and alpha-blend with it (bitmaps composite above
+        all script ASS — GUIDE §6). They hold-repeat while pressed, and are
+        omitted when the row doesn't overflow.
 
         The strip is inset by RING_PAD so a tile's hover ring has room inside
         the viewport; the renderer clips it to the container, and without the
@@ -476,56 +490,34 @@ class TileRenderer:
             # moves — pointer paging arrows would only cover artwork
             return Row([scroll], h=h)
 
-        round_arrows = bool((theme.active() or {}).get("round_arrows"))
-
-        def arrow(icon, node_id, direction, anchor):
+        def arrow(node_id, direction, anchor):
             # "w"/"e" centre on the whole strip, which includes the caption
             # block under the tile; shift up by half of it so the arrow sits
             # on the artwork.
             dy = -(geom.strip_h - geom.tile_h) / 2
-            # A round arrow needs more clearance than the square one: its
+            # A round arrow needs more clearance than the old square one: its
             # circle reads as sitting ON the artwork, so leaving it at the
-            # ring padding looked shoved against the window edge (the stock
-            # square arrow squares off into the edge and does not).
-            inset = ROUND_ARROW_INSET if round_arrows else RING_PAD
-            dx = inset if anchor == "w" else -inset
-            if round_arrows:
-                # A theme may ask for a round translucent BITMAP instead.
-                # Bitmaps composite above the strip and alpha-blend, so the
-                # round edge reveals the artwork behind it and no occlusion
-                # punch is needed — an ASS box cannot do either, which is why
-                # the stock arrow is square and opaque. It trades away
-                # hold-repeat: only Box carries that.
-                img = _round_arrow_bitmap(direction)
-                bm = self.art.strips.bitmap(
-                    ("carousel-arrow", direction, px(ARROW_W)), img,
-                    lsize=(ARROW_W, ARROW_W))
-                # No hover glow here on purpose: a halo would have to be ASS,
-                # and mpv composites overlay bitmaps ABOVE all script ASS
-                # (GUIDE §6) — over a poster strip the glow simply disappears
-                # under the artwork. It would have to be baked into the bitmap.
-                return Image(bm["src"], bm["iw"], bm["ih"],
-                             v=bm.get("v", 0), w=bm["lw"], h=bm["lh"],
-                             id=node_id, anchor=anchor, dx=dx, dy=dy,
-                             on_click=lambda: self.page_row(row_id,
-                                                            direction))
-            # Square, and small enough to cover as little artwork as
-            # possible — the occlusion punch reads as a notch, so a tall
-            # slab looked wrong. Flex spacers centre the glyph (Box only
-            # centres on its cross axis).
-            return Box([Spacer(flex=1), Icon(icon, 22), Spacer(flex=1)],
-                       id=node_id, w=ARROW_W, h=ARROW_W,
-                       align="center", direction="row",
-                       bg=theme.BUTTON_BG, alpha=230,
-                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
-                       anchor=anchor, dx=dx, dy=dy,
-                       occlude=True, repeat=True,
-                       on_click=lambda: self.page_row(row_id, direction))
+            # ring padding looked shoved against the window edge (a square
+            # button squares off into the edge and does not).
+            dx = ARROW_INSET if anchor == "w" else -ARROW_INSET
+            img = _arrow_bitmap(direction)
+            bm = self.art.strips.bitmap(
+                ("carousel-arrow", direction, px(ARROW_W)), img,
+                lsize=(ARROW_W, ARROW_W))
+            # No hover glow here on purpose: a halo would have to be ASS,
+            # and mpv composites overlay bitmaps ABOVE all script ASS
+            # (GUIDE §6) — over a poster strip the glow simply disappears
+            # under the artwork. It would have to be baked into the bitmap.
+            return Image(bm["src"], bm["iw"], bm["ih"],
+                         v=bm.get("v", 0), w=bm["lw"], h=bm["lh"],
+                         id=node_id, anchor=anchor, dx=dx, dy=dy,
+                         repeat=True,
+                         on_click=lambda: self.page_row(row_id, direction))
 
         return Stack([
             scroll,
-            arrow("chevron_left", row_id + "-pl", -1, "w"),
-            arrow("chevron_right", row_id + "-pr", 1, "e"),
+            arrow(row_id + "-pl", -1, "w"),
+            arrow(row_id + "-pr", 1, "e"),
         ], h=h)
     def page_row(self, row_id, direction):
         # Ask the renderer to page the horizontal scroll container.

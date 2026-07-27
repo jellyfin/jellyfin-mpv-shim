@@ -491,6 +491,8 @@ def _arrange_image(ctx, el, x, y, w, h, sc, path):
         node["v"] = el.v
     if el.on_click:
         node["click"] = True
+        if el.repeat:
+            node["rpt"] = True
         _reg(ctx, node["id"], "click", el.on_click)
     if el.hover:
         node["hover"] = el.hover

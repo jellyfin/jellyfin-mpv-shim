@@ -26,7 +26,13 @@ DEFAULT = {
     "glow": False,       # blurred accent halo behind titles + on card selection
     "rounded": False,    # rounded cover cards + cover-crop (False = stock square/letterbox)
     "accent_buttons": False,  # accent-bordered top-bar buttons
-    "round_arrows": False,    # round translucent bitmap page arrows
+    # Fill of the round carousel page arrow (see tile_renderer._arrow_bitmap).
+    # Neutral dark grey rather than the palette's BUTTON_BG: the arrow floats
+    # ON artwork, not in chrome, so it wants the same "player overlay
+    # furniture" treatment as the HUD's Skip Intro chip (hud._SKIP_BG /
+    # _SKIP_ALPHA) — a themed fill reads as a coloured chip stuck to a poster.
+    "arrow_bg": "202020",
+    "arrow_alpha": 180,
     "poster_scale": 1.0,  # tile-geometry multiplier
     "heading_size": 24,   # carousel section-title font size
     "tile_landscape": (240, 135),  # (w, h) of the library/landscape tile
@@ -50,7 +56,10 @@ NEBULA = {
     "glow": True,
     "rounded": True,
     "accent_buttons": True,
-    "round_arrows": True,
+    # Nebula does tint its arrows — the violet wash is part of the look, and
+    # over its own deep-violet artwork frames it still reads as furniture.
+    "arrow_bg": "2a1656",
+    "arrow_alpha": 165,
     "poster_scale": 1.4,
     "heading_size": 30,
     "tile_landscape": (380, 248),
