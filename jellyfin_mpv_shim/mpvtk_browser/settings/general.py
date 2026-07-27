@@ -64,14 +64,16 @@ class GeneralTabMixin:
                         rows.append(Text(note, size=14,
                                          color=theme.SUBTLE_FG, wrap=True))
             if title == _("Theme"):
-                # Every setting in this section is read once at startup, so
-                # say plainly what makes a change here show up. Called out
-                # rather than left to the closing line below, because picking
-                # a theme and seeing nothing happen reads as a broken control.
+                # Theme used to be read once at startup like the other two,
+                # so this said all three needed a restart, in bold accent —
+                # picking a theme and seeing nothing happen reads as a broken
+                # control, and it was worth shouting about. Themes repaint
+                # live now, so it is down to the two that still don't, and
+                # back to the ordinary note colour: it is a footnote, not a
+                # warning about the control you are looking at.
                 rows.append(Text(
-                    _("Theme, Cover Size and Interface Scale take effect "
-                      "after you restart the app."),
-                    size=15, bold=True, color=theme.ACCENT, wrap=True))
+                    _("Cover size and interface scale require a restart."),
+                    size=14, color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,

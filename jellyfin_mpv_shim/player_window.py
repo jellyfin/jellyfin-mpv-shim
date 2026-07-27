@@ -64,7 +64,22 @@ def _caller(depth=2):
 
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
+#
+# Set it through set_browse_bg(), never by assigning the name on another
+# module. `player` re-exports WindowMixin from here, so `player.BROWSE_BG_HEX
+# = x` looks like it works and silently does nothing: the code below resolves
+# the name against THIS module's globals, so the assignment just adds an
+# unread attribute to `player`. The theme's browse colour was lost that way
+# from the day the theme system landed.
 BROWSE_BG_HEX = "#141414"
+
+
+def set_browse_bg(hexstr):
+    """Set the browser's window background (an ``"#rrggbb"`` string)."""
+    global BROWSE_BG_HEX
+    if hexstr:
+        BROWSE_BG_HEX = hexstr
+    return BROWSE_BG_HEX
 # mpv's own defaults, restored by browse_yield() when video takes the window
 # back. Kept here so the browse background can't leak into playback.
 MPV_DEFAULT_BACKGROUND = "tiles"

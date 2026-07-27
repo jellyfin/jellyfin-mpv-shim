@@ -667,12 +667,15 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         is what :meth:`set_theme` relies on."""
         self._theme_cfg = theme.apply(name)
         try:
-            from .. import player as _player
-            _player.BROWSE_BG_HEX = self._theme_cfg["browse_bg"]
+            # player_window, not player: the constant lives there and is read
+            # there, and `player` only re-exports the mixin. Assigning it on
+            # `player` set an attribute nothing reads -- see set_browse_bg.
+            from .. import player_window as _pw
+            _pw.set_browse_bg(self._theme_cfg["browse_bg"])
         except Exception:
             # No player module (tests): the palette still applies, there is
             # just no mpv window whose background to set.
-            pass
+            log.debug("could not set the browse background", exc_info=True)
         # Glow is theme-driven; the toolkit forwards it to the renderer
         # alongside the tokens.
         theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))

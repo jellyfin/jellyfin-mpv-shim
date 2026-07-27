@@ -505,6 +505,43 @@ class RuntimeSwitchTest(unittest.TestCase):
         self.assertEqual(len(self.b.strips._cache), n_before,
                          "entries were dropped, so their buffers were freed")
 
+    def test_the_browse_background_reaches_the_module_that_reads_it(self):
+        """mpv paints the area behind the browser itself, via a module
+        constant in player_window. It was being assigned on `player`, which
+        only re-exports the mixin -- so the write landed on a name nothing
+        reads and every theme's browse colour was silently lost. Nothing on
+        screen said so: you got the stock dark grey, which looks like a
+        theme that simply did not set one.
+        """
+        from jellyfin_mpv_shim import player_window
+
+        for theme_id in ("nebula", "jf-wmc", "default"):
+            with self.subTest(theme=theme_id):
+                self.b.set_theme(theme_id)
+                self.assertEqual(player_window.BROWSE_BG_HEX,
+                                 themes.get(theme_id)["browse_bg"])
+
+    def test_the_browse_background_is_set_at_startup_too(self):
+        """Not only on a live switch: most people never change theme after
+        picking one, so the constructor path is the one that matters."""
+        from jellyfin_mpv_shim import player_window
+        from jellyfin_mpv_shim.conf import settings
+
+        old = getattr(settings, "theme", "default")
+        settings.theme = "nebula"
+        try:
+            import sys
+            sys.path.insert(0, ".")
+            from tests._shell_harness import FakeSource, _SyncPool
+            from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+            b = MpvtkBrowser(app=None, source=FakeSource())
+            b._pool = _SyncPool()
+            self.assertEqual(player_window.BROWSE_BG_HEX,
+                             themes.get("nebula")["browse_bg"])
+        finally:
+            settings.theme = old
+
     def test_an_unknown_theme_falls_back_rather_than_raising(self):
         self.b.set_theme("no-such-theme")
         self.assertEqual(theme.ACCENT, themes.DEFAULT["palette"]["ACCENT"])
