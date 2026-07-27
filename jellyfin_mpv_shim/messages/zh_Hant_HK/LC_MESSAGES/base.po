@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-26 12:03-0400\n"
-"PO-Revision-Date: 2026-07-06 08:24+0000\n"
+"PO-Revision-Date: 2026-07-27 15:25+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -49,15 +49,15 @@ msgstr "套用緊設定..."
 #: jellyfin_mpv_shim/clients.py:254
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
-msgstr ""
+msgstr "開啟 Jellyfin，前往使用者選單 -> 快速連線，然後輸入此代碼："
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "等待授權中…"
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "正喺度清除所有現有帳戶。"
 
 #: jellyfin_mpv_shim/clients.py:290 jellyfin_mpv_shim/clients.py:311
 #: jellyfin_mpv_shim/clients.py:329
@@ -71,19 +71,15 @@ msgstr "加唔到伺服器。"
 
 #: jellyfin_mpv_shim/clients.py:300
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "帳戶已經存在。正喺度更新登入憑證。"
 
 #: jellyfin_mpv_shim/clients.py:302
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "成功加入伺服器。"
+msgstr "成功更新伺服器憑證。"
 
 #: jellyfin_mpv_shim/clients.py:305
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "加唔到伺服器。"
+msgstr "更新伺服器憑證失敗。"
 
 #: jellyfin_mpv_shim/clients.py:316
 msgid "Server URL: "
@@ -103,15 +99,15 @@ msgstr "仲要唔要加多個伺服器？"
 
 #: jellyfin_mpv_shim/clients.py:617
 msgid "Could not connect to the server."
-msgstr ""
+msgstr "無法連線至伺服器。"
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "呢個伺服器未啟用快速連線。"
 
 #: jellyfin_mpv_shim/clients.py:626
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "無法啟動快速連線。"
 
 #: jellyfin_mpv_shim/media.py:194
 msgid " (Transcode)"
@@ -400,29 +396,27 @@ msgstr "啟用預覽圖"
 #: jellyfin_mpv_shim/menu.py:609 jellyfin_mpv_shim/mpvtk_browser/config.py:195
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "夜間模式（自動音量調整）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:653
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "載入失敗。請檢查連線。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:733
 msgid "Page"
-msgstr ""
+msgstr "頁次"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:743
 msgid "of %d"
-msgstr ""
+msgstr "%d 頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:745
 msgid "First page"
-msgstr ""
+msgstr "第一頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:746
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "成功加入伺服器。"
+msgstr "前一頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:747
 msgid "Next page"
@@ -430,34 +424,34 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:748
 msgid "Last page"
-msgstr ""
+msgstr "最尾一頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:969
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:109
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:222
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:237
 msgid "The change could not be applied."
-msgstr ""
+msgstr "無法套用變更。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1044
 msgid "Selected: %s"
-msgstr ""
+msgstr "已揀中：%s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1113
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:215
 msgid "Loading…"
-msgstr ""
+msgstr "載入緊…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1182
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:95
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:305
 msgid "Playback could not be started."
-msgstr ""
+msgstr "無法開始播放。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1698
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:166
 msgid "Queue"
-msgstr ""
+msgstr "播放佇列"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1723
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:457
@@ -470,16 +464,16 @@ msgstr "重試"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1811
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1813
 msgid "Still can't reach the server."
-msgstr ""
+msgstr "依然連線唔到去伺服器。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:73
 msgid "Switch to %s"
-msgstr ""
+msgstr "切換至 %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:78
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:540
 msgid "PIN"
-msgstr ""
+msgstr "PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:82
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:145
@@ -490,70 +484,66 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:216
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:252
 msgid "Cancel"
-msgstr ""
+msgstr "取消"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:84
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:554
 msgid "Switch"
-msgstr ""
+msgstr "切換"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:91
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:582
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN 碼唔正確。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:123
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN for %s"
-msgstr "伺服器："
+msgstr "為 %s 設定 PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:128
 msgid "Current PIN"
-msgstr ""
+msgstr "目前 PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:131
 msgid "New PIN"
-msgstr ""
+msgstr "新嘅 PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:133
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:390
 msgid "Confirm"
-msgstr ""
+msgstr "確認"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:135
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "啟動時要求此 PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:141
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "剷走伺服器"
+msgstr "移除 PIN 碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:147
 msgid "Save"
-msgstr ""
+msgstr "儲存"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:168
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "目前個 PIN 碼唔正確。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:174
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "輸入一個新嘅 PIN 碼。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:177
 msgid "The PINs don't match."
-msgstr ""
+msgstr "兩次輸入嘅 PIN 碼唔符合。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:191
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "無法移除 PIN 碼。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:192
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "無法儲存 PIN 碼。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:216
 msgid "Add Server"
@@ -561,110 +551,96 @@ msgstr "加入伺服器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:237
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "連線至 Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:248
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "成功加入伺服器。"
+msgstr "先前新增嘅伺服器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:255
 msgid "Use"
-msgstr ""
+msgstr "使用"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:262
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:273
 msgid "Quick Connect"
-msgstr ""
+msgstr "快速連線"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:274
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "請喺 Jellyfin 應用程式或網頁版輸入此代碼："
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
 msgid "Requesting…"
-msgstr ""
+msgstr "請求中…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:287
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "伺服器連結： "
+msgstr "伺服器網址："
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:288
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "使用者名稱："
+msgstr "使用者名稱"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:289
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "密碼："
+msgstr "密碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:291
 msgid "Use Quick Connect"
-msgstr ""
+msgstr "使用「快速連線」"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:300
 msgid "Connect"
-msgstr ""
+msgstr "連線"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:324
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "先輸入伺服器網址。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:330
 msgid "Contacting the server…"
-msgstr ""
+msgstr "伺服器連線緊…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:339
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "等緊批准…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:355
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "快速連線未批准。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:369
 msgid "Connecting…"
-msgstr ""
+msgstr "連線緊…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:382
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"加唔到伺服器。\n"
-"唔該check吓你輸入嘅連線資料。"
+msgstr "無法連線。唔該check吓你嘅詳細資料。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:409
 msgid "Locked"
-msgstr ""
+msgstr "已鎖定"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:436
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "連線去你嘅伺服器…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:450
 msgid "Work Offline"
-msgstr ""
+msgstr "離線工作"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:459
 msgid "Sign In"
-msgstr ""
+msgstr "登入"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:508
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "冇已下載嘅內容可供瀏覽。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:519
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "無法連線至你儲存嘅伺服器。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:533
 msgid "Enter your PIN"
@@ -687,142 +663,136 @@ msgid "Ready to cast"
 msgstr "準備好投放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py:315
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "請響 Jellyfin 度揀片同喺度播放"
+msgstr "響 Jellyfin 度揀片後喺度播放。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:83
 msgid "Interface"
-msgstr ""
+msgstr "介面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:92
 msgid "Playback"
-msgstr ""
+msgstr "播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:97
 msgid "Audio"
-msgstr ""
+msgstr "音訊"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:101
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "字幕同語言"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:106
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (轉碼)"
+msgstr "轉緊碼..."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:111
 msgid "Video Enhancement"
-msgstr ""
+msgstr "影片增強"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:113
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "快進嚟跳過片尾"
+msgstr "跳過片頭／片尾"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:116
 msgid "Library Browser"
-msgstr ""
+msgstr "媒體櫃瀏覽器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:118
 msgid "Downloads"
-msgstr ""
+msgstr "下載項目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:137
 msgid "Jellyfin UI"
-msgstr ""
+msgstr "Jellyfin 介面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:138
 msgid "MPV UI with thumbnails"
-msgstr ""
+msgstr "附預覽圖嘅 MPV 介面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:139
 msgid "MPV built-in default"
-msgstr ""
+msgstr "MPV 內建預設"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:142
 msgid "Follow display"
-msgstr ""
+msgstr "跟隨顯示器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:143
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100%（唔縮放）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:144
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:145
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:146
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:149
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "自動（推薦）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:150
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:151
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11（僅 Windows）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:152
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL（相容性）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:155
 msgid "Default (auto)"
-msgstr ""
+msgstr "預設（自動）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:156
 msgid "Force Stereo"
-msgstr ""
+msgstr "強制立體聲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:157
 msgid "Optical Surround"
-msgstr ""
+msgstr "光纖環繞聲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:158
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "HDMI 直通"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:161
 msgid "Unset"
-msgstr ""
+msgstr "未設定"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:162
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "配音（僅劇集）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:163
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "字幕（僅劇集）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:164
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "配音（全部）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:165
 msgid "Subbed (all)"
-msgstr ""
+msgstr "字幕（全部）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:166
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "自訂（喺設定檔中指定）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:171
 msgid "Download Folder"
-msgstr ""
+msgstr "下載資料夾"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:172
 msgid "Prefer Downloaded Copy"
