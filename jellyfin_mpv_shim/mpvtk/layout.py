@@ -594,6 +594,12 @@ def _arrange_busy(ctx, el, x, y, w, h, sc, path):
 def _arrange_gradient(ctx, el, x, y, w, h, sc, path):
     """A vertical colour ramp, used behind text over artwork."""
     node = _base(el, "grad", x, y, w, h, sc, path)
+    if el.stops:
+        # Multi-stop COLOUR ramp (themed backgrounds), not an alpha fade.
+        node["stops"] = [[float(p), str(c).lstrip("#")] for p, c in el.stops]
+        node["axis"] = el.axis
+        ctx.nodes.append(node)
+        return
     node["c"] = el.color
     node["a1"] = el.top
     node["a2"] = el.bottom

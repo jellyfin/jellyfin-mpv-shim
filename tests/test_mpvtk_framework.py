@@ -918,6 +918,32 @@ class TestOscPrimitives(unittest.TestCase):
         self.assertEqual(g["t"], "grad")
         self.assertEqual((g["a1"], g["a2"]), (0, 200))
         self.assertEqual((g["w"], g["h"]), (400, 90))
+        # The alpha-fade form carries no stops, so the renderer keeps its
+        # original path for the HUD scrim.
+        self.assertNotIn("stops", g)
+
+    def test_gradient_colour_stops(self):
+        """The multi-stop COLOUR form, for themed backgrounds and top bars.
+        Several jellyfin-web themes are built on gradients, and the alpha-fade
+        form cannot express one — it ramps the opacity of a single colour."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Gradient
+
+        nodes, _ = layout(
+            Column([Gradient(id="g", h=90, axis="x",
+                             stops=[(0.0, "#0f3562"), (0.5, "1162a4"),
+                                    (1.0, "03215f")])],
+                   w=400, h=300, align="stretch"),
+            400, 300,
+        )
+        g = by_id(nodes, "g")
+        self.assertEqual(g["t"], "grad")
+        self.assertEqual(g["axis"], "x")
+        # Normalised on the way out: a theme file may write either form, and
+        # the renderer's ass_color slices six characters off the front.
+        self.assertEqual(g["stops"],
+                         [[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]])
+        # Stops replace the fade entirely rather than layering on top of it.
+        self.assertNotIn("a1", g)
 
     def test_flat_button_transparent_at_rest(self):
         from jellyfin_mpv_shim.mpvtk import theme as tk_theme

@@ -496,13 +496,27 @@ class Gradient(Element):
     this the hard way). The playback HUD's bottom scrim:
     ``Gradient(color="000000", top=0, bottom=200)`` fades from
     transparent at the top edge to mostly-opaque at the bottom.
-    Opacities are 0–255. Non-interactive."""
+    Opacities are 0–255. Non-interactive.
 
-    def __init__(self, color="000000", top=0, bottom=200, **kw):
+    ``stops`` switches it from an alpha fade of one colour to a multi-stop
+    COLOUR ramp: ``[(0.0, "0f3562"), (0.5, "1162a4"), (1.0, "03215f")]``,
+    positions 0-1 along ``axis`` ("y" or "x"). Still not bands — each stop
+    after the first is one blurred-edge layer over the ones before it, and
+    alpha-compositing a ramp of B over solid A *is* a linear interpolation
+    from A to B. So an n-stop gradient costs n ASS events, not n bands.
+
+    Used for themed app backgrounds and top bars, which several of
+    jellyfin-web's themes rely on.
+    """
+
+    def __init__(self, color="000000", top=0, bottom=200, stops=None,
+                 axis="y", **kw):
         super().__init__(**kw)
         self.color = color
         self.top = top
         self.bottom = bottom
+        self.stops = list(stops) if stops else None
+        self.axis = axis
 
 
 class Progress(Element):
