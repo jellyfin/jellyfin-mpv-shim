@@ -391,6 +391,63 @@ class PaletteIsNotGlobalsTest(unittest.TestCase):
         self.assertIn("rgb", dir(theme))
 
 
+class GradientAndHudAccentTest(unittest.TestCase):
+    """The two keys that reach surfaces a palette alone cannot."""
+
+    def tearDown(self):
+        theme.apply("default")
+
+    def test_gradient_stops_are_sorted_and_deduplicated(self):
+        """The renderer walks stops in order, and a zero-length segment would
+        divide by nothing. A theme file is hand-written, so neither can be
+        assumed."""
+        t = themes.resolve({"window_gradient": [[1.0, "03215f"],
+                                                [0.0, "#0f3562"],
+                                                [0.5, "1162a4"]]})
+        self.assertEqual(t["window_gradient"],
+                         [(0.0, "0f3562"), (0.5, "1162a4"), (1.0, "03215f")])
+
+    def test_a_malformed_gradient_is_dropped_not_half_applied(self):
+        for bad in ([[0.0, "zz"]], [[0.0, "000000"]], "nope",
+                    [[2.0, "000000"], [0.0, "ffffff"]], [["a", "000000"]]):
+            with self.subTest(value=bad):
+                with self.assertLogs("mpvtk_browser.themes", "WARNING"):
+                    t = themes.resolve({"window_gradient": bad})
+                self.assertIsNone(t["window_gradient"])
+
+    def test_no_gradient_means_a_flat_fill(self):
+        theme.apply("default")
+        self.assertIsNone(theme.window_gradient())
+        self.assertIsNone(theme.topbar_gradient())
+
+    def test_the_translated_themes_carry_jf_webs_own_gradients(self):
+        self.assertTrue(themes.get("jf-wmc")["window_gradient"])
+        self.assertTrue(themes.get("jf-purplehaze")["topbar_gradient"])
+
+    def test_hud_accent_follows_the_palette_unless_pinned(self):
+        """One accent everywhere is what makes a theme read as a theme, so
+        the over-video accent defaults to it. jellyfin-web goes the other
+        way and hardcodes its player slider to Jellyfin blue."""
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+
+        cfg = theme.apply("nebula")
+        theme.apply_to_toolkit(glow=cfg.get("glow", False))
+        self.assertEqual(tk.ACCENT_ON_VIDEO, theme.ACCENT)
+
+    def test_a_theme_can_pin_the_over_video_accent(self):
+        """For an accent that cannot hold up against a moving picture."""
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+
+        t = themes.resolve({"palette": {"ACCENT": "00729a"},
+                            "hud_accent": "00a4dc"})
+        self.assertEqual(t["hud_accent"], "00a4dc")
+        tk.set_tokens(ACCENT=t["palette"]["ACCENT"],
+                      ACCENT_ON_VIDEO=t["hud_accent"])
+        self.assertEqual(tk.ACCENT, "00729a")
+        self.assertEqual(tk.ACCENT_ON_VIDEO, "00a4dc")
+        self.addCleanup(theme.apply_to_toolkit, False)
+
+
 class RuntimeSwitchTest(unittest.TestCase):
     """Changing theme without a restart.
 

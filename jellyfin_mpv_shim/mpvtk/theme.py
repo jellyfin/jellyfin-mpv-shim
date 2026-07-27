@@ -70,6 +70,14 @@ TOKENS = {
 
     # --- drawn over VIDEO, not over the app ---------------------------------
     # Deliberately not themed by default: see the module docstring.
+    # The accent as drawn ON VIDEO -- the seek bar's fill, its chapter
+    # marks. Defaults to ACCENT, because one accent everywhere is what makes
+    # a theme read as a theme. It is separable because the two jobs differ:
+    # over app chrome the accent only has to beat a known background, over
+    # video it has to stay visible against an unknown and moving one. (This
+    # is where we diverge from jellyfin-web, which hardcodes its player
+    # slider to Jellyfin blue and lets no theme near it.)
+    "ACCENT_ON_VIDEO": None,        # None -> ACCENT
     "SCRIM": "000000",              # HUD gradients, cast backdrop wash
     "CHIP_BG": "202020",            # Skip Intro / Credits button
     "CHIP_BG_HOVER": "3a3a3a",
@@ -149,7 +157,9 @@ def set_tokens(glow=None, **tokens):
     resolved.setdefault("ACCENT_HOVER", lighten(accent))
     resolved.setdefault("ACCENT_SOFT", darken(accent))
     resolved.setdefault("ON_ACCENT", readable_on(accent))
-    for name in ("ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT"):
+    resolved.setdefault("ACCENT_ON_VIDEO", resolved["ACCENT"])
+    for name in ("ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT",
+                 "ACCENT_ON_VIDEO"):
         if name not in resolved:
             resolved[name] = None
     _tokens.clear()
@@ -167,7 +177,8 @@ def set_accent(accent, hover=None, soft=None, on_accent=None, glow=None):
     sensible derivations.
     """
     keep = {k: v for k, v in _tokens.items()
-            if k not in ("ACCENT", "ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT")}
+            if k not in ("ACCENT", "ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT",
+                         "ACCENT_ON_VIDEO")}
     return set_tokens(glow=glow, ACCENT=(accent or DEFAULT_ACCENT),
                       ACCENT_HOVER=hover, ACCENT_SOFT=soft,
                       ON_ACCENT=on_accent, **keep)

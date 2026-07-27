@@ -1526,6 +1526,63 @@ class TestShippedThemesRender(unittest.TestCase):
             theme.apply_to_toolkit(glow=False)
 
 
+class TestThemeGradients(unittest.TestCase):
+    """A theme's background gradients, in a real scene.
+
+    The gradient primitive is verified against mpv by
+    tools/gradient_fidelity.py; what this checks is the wiring — that a
+    theme key actually reaches the window background and the top bar, and
+    that a theme without one still gets a flat fill rather than an empty
+    Stack."""
+
+    def _scene(self, theme_id):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        cfg = theme.apply(theme_id)
+        theme.apply_to_toolkit(glow=cfg.get("glow", False))
+        b._theme_cfg = cfg
+        b.route["_data"] = {"libraries": b.source.libraries, "rows": []}
+        nodes, _h = build_scene(b)
+        return nodes
+
+    def tearDown(self):
+        theme.apply("default")
+        theme.apply_to_toolkit(glow=False)
+
+    def test_a_theme_without_gradients_draws_none(self):
+        nodes = self._scene("default")
+        self.assertEqual([n for n in nodes if n.get("t") == "grad"], [])
+
+    def test_a_window_gradient_spans_the_window_behind_everything(self):
+        nodes = self._scene("jf-wmc")
+        grads = [n for n in nodes if n.get("t") == "grad"]
+        self.assertEqual(len(grads), 1)
+        g = grads[0]
+        self.assertEqual(g["axis"], "y")
+        self.assertEqual((g["w"], g["h"]), (1280.0, 720.0))
+        # Bottom of the paint order, or it would cover the UI.
+        self.assertEqual(nodes.index(g), 0)
+
+    def test_a_topbar_gradient_covers_the_bar_only(self):
+        nodes = self._scene("jf-purplehaze")
+        grads = [n for n in nodes if n.get("t") == "grad"]
+        self.assertEqual(len(grads), 1)
+        g = grads[0]
+        self.assertEqual(g["axis"], "x")
+        self.assertEqual(g["h"], 60)
+        self.assertEqual(g["w"], 1280.0)
+
+    def test_the_bar_drops_its_flat_fill_when_a_gradient_is_behind_it(self):
+        """Otherwise the fill simply covers the gradient up."""
+        flat = [n for n in self._scene("default")
+                if n.get("t") == "rect" and n.get("h") == 60]
+        self.assertTrue(flat, "the stock bar should have a fill")
+        gradient_theme = [n for n in self._scene("jf-purplehaze")
+                          if n.get("t") == "rect" and n.get("h") == 60
+                          and n.get("fill")]
+        self.assertEqual(gradient_theme, [])
+
+
 class TestSortModes(unittest.TestCase):
     def test_critic_and_parental_rating_are_offered(self):
         from jellyfin_mpv_shim.mpvtk_browser.app import SORTS

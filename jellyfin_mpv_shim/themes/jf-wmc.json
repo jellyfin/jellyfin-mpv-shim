@@ -16,5 +16,19 @@
         "ACCENT_SOFT": "00729a",
         "ACCENT_FG": "ffffff"
     },
-    "browse_bg": "#0f3562"
+    "browse_bg": "#0f3562",
+    "window_gradient": [
+        [
+            0.0,
+            "0f3562"
+        ],
+        [
+            0.5,
+            "1162a4"
+        ],
+        [
+            1.0,
+            "03215f"
+        ]
+    ]
 }

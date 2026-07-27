@@ -16,8 +16,8 @@ import time
 
 from jellyfin_mpv_shim.mpvtk.app import MpvtkApp                  # noqa: E402
 from jellyfin_mpv_shim.mpvtk.widgets import (                     # noqa: E402
-    Box, Button, Checkbox, Column, Dropdown, Progress, Row, Slider, Spacer,
-    Table, Text, TextBox, VScroll)
+    Box, Button, Checkbox, Column, Dropdown, Gradient, Progress, Row, Slider,
+    Spacer, Stack, Table, Text, TextBox, VScroll)
 from jellyfin_mpv_shim.mpvtk_browser import theme                 # noqa: E402
 
 THEME = os.environ.get("SHOT_THEME", "default")
@@ -28,9 +28,18 @@ def build(size):
     rows = [{"cells": ["1", "Alpha", "2001"], "id": "r0"},
             {"cells": ["2", "Beta", "2003"], "id": "r1", "selected": True},
             {"cells": ["3", "Gamma", "2011"], "id": "r2"}]
+    # The top bar, with the theme's own gradient if it has one -- this is
+    # what window_chrome.chrome_bar builds in the real app.
+    top = Row([Text("  %s" % theme.active()["name"], size=22, bold=True)],
+              h=60, w=w, align="center",
+              bg=None if theme.topbar_gradient() else theme.PANEL_BG)
+    bar_stops = theme.topbar_gradient()
+    if bar_stops:
+        top = Stack([Gradient(stops=bar_stops, axis="x", w=w, h=60), top],
+                    w=w, h=60)
     body = Column([
-        Text("%s — every control below is renderer-drawn or widget-default"
-             % theme.active()["name"], size=20),
+        Text("every control below is renderer-drawn or widget-default",
+             size=20),
         Row([Button("Primary", id="b1"),
              Button("With icon", id="b2", icon="play_arrow"),
              Button("Flat", id="b3", icon="favorite", flat=True),
@@ -48,8 +57,13 @@ def build(size):
                {"label": "Year", "w": 80, "align": "right"}], rows),
         Box(h=400),   # give the scroll container something to scroll
     ], pad=20, gap=18, align="stretch")
-    return Column([VScroll(body, id="page", flex=1, scrollbar=True)],
-                  w=w, h=h, bg=theme.WINDOW_BG)
+    page = Column([top, VScroll(body, id="page", flex=1, scrollbar=True)],
+                  w=w, h=h,
+                  bg=None if theme.window_gradient() else theme.WINDOW_BG)
+    stops = theme.window_gradient()
+    if not stops:
+        return page
+    return Stack([Gradient(stops=stops, axis="y", w=w, h=h), page], w=w, h=h)
 
 
 def main():

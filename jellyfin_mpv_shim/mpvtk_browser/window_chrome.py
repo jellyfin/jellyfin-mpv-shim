@@ -26,10 +26,12 @@ from ..mpvtk.widgets import (
     Button,
     Dropdown,
     Float,
+    Gradient,
     Icon,
     Progress,
     Row,
     Spacer,
+    Stack,
     Text,
     TextBox,
 )
@@ -158,11 +160,19 @@ def chrome_bar(b, compact, probe=False, servers=None,
                    b._open_settings),
     ]
     middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
-    return Row(
+    bar = Row(
         left + middle + right,
         pad=12, gap=8 if compact else 10, align="center", h=60,
-        bg=theme.PANEL_BG,
+        # No fill when a gradient is painting behind it, or the flat colour
+        # would simply cover the gradient up.
+        bg=None if theme.topbar_gradient() else theme.PANEL_BG,
     )
+    stops = theme.topbar_gradient()
+    if not stops:
+        return bar
+    # Several jellyfin-web themes run a horizontal ramp across the header
+    # rather than a flat fill; Purple Haze's is most of its identity.
+    return Stack([Gradient(stops=stops, axis="x", h=60), bar], h=60)
 
 
 def banner(b):

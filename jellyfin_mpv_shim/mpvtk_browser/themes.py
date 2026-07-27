@@ -77,6 +77,22 @@ DEFAULT = {
     # _SKIP_ALPHA) — a themed fill reads as a coloured chip stuck to a poster.
     "arrow_bg": "202020",
     "arrow_alpha": 180,
+    # The accent as drawn over VIDEO: the seek bar's fill and chapter marks.
+    # null follows the palette's ACCENT, which is what you want unless your
+    # accent is too dark or too pale to read against a moving picture.
+    # (jellyfin-web sidesteps this by hardcoding its player slider to
+    # Jellyfin blue in every theme; ours follows the theme by default.)
+    "hud_accent": None,
+    # Multi-stop background gradients, the way several jellyfin-web themes
+    # carry their identity. Each is a list of [position, "rrggbb"] with
+    # positions 0-1, or null for a flat fill. "window_gradient" runs down the
+    # page behind everything; "topbar_gradient" runs across the top bar.
+    #
+    # USE THE FEWEST STOPS THAT DESCRIBE THE SHAPE. Unlike CSS, extra stops
+    # do not buy smoothness here -- each one is a place the colour briefly
+    # stops changing, which reads as a band. See mpvtk.widgets.Gradient.
+    "window_gradient": None,
+    "topbar_gradient": None,
     "poster_scale": 1.0,  # tile-geometry multiplier
     "heading_size": 24,   # carousel section-title font size
     "tile_landscape": (240, 135),  # (w, h) of the library/landscape tile
@@ -85,7 +101,10 @@ DEFAULT = {
 }
 
 #: Keys whose value is a bare ``"rrggbb"`` outside the palette.
-_COLOUR_KEYS = ("arrow_bg",)
+_COLOUR_KEYS = ("arrow_bg", "hud_accent")
+
+#: Keys holding a list of ``[position, "rrggbb"]`` gradient stops.
+_GRADIENT_KEYS = ("window_gradient", "topbar_gradient")
 
 #: Keys with a closed set of legal values.
 _ENUMS = {"arrow_mode": ("header", "overlay")}
@@ -102,6 +121,34 @@ def _is_hex(value):
     except ValueError:
         return False
     return True
+
+
+def _stops(value):
+    """Validate a gradient stop list, or None if it is not one.
+
+    Sorted on the way out and de-duplicated by position: the renderer walks
+    the stops in order and a zero-length segment would divide by nothing.
+    """
+    if not isinstance(value, (list, tuple)) or len(value) < 2:
+        return None
+    out = []
+    for item in value:
+        if not isinstance(item, (list, tuple)) or len(item) != 2:
+            return None
+        pos, colour = item
+        if not isinstance(pos, (int, float)) or not 0.0 <= pos <= 1.0:
+            return None
+        if not _is_hex(colour):
+            return None
+        out.append((float(pos), str(colour).lstrip("#")))
+    out.sort(key=lambda s: s[0])
+    deduped = [out[0]]
+    for pos, colour in out[1:]:
+        if pos - deduped[-1][0] < 1e-6:
+            deduped[-1] = (pos, colour)
+        else:
+            deduped.append((pos, colour))
+    return deduped if len(deduped) >= 2 else None
 
 
 def _coerce(key, value, default, where):
@@ -121,9 +168,19 @@ def _coerce(key, value, default, where):
             return bad("expected one of %s" % (", ".join(_ENUMS[key]),))
         return True, value
     if key in _COLOUR_KEYS:
+        if value is None:
+            return True, None
         if not _is_hex(value):
             return bad("expected a \"rrggbb\" colour")
         return True, str(value).lstrip("#")
+    if key in _GRADIENT_KEYS:
+        if value is None:
+            return True, None
+        stops = _stops(value)
+        if stops is None:
+            return bad("expected [[position, \"rrggbb\"], ...] with "
+                       "positions 0-1")
+        return True, stops
     if key == "tile_landscape":
         try:
             w, h = value

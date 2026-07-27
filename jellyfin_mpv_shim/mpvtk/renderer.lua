@@ -95,6 +95,7 @@ local state = {
         accent_hover = '92b3f8',
         accent_soft = '223055',
         on_accent = '101010',
+        accent_on_video = '7aa2f7',
         scrim = '000000',
         chip_bg = '202020',
         chip_bg_hover = '3a3a3a',
@@ -1425,6 +1426,10 @@ local function draw_slider(ass, node, ex, ey, clip)
     -- and follows the theme, or a light theme would give it a near-black
     -- track. Same widget, same draw, different backdrop.
     local ov = node.ov
+    -- Over video the accent gets its own token, so a theme whose accent does
+    -- not read on a picture can pin the seek bar without giving up its
+    -- colour everywhere else. Defaults to the accent.
+    local accent = (ov and state.tok.accent_on_video) or state.accent
     draw_rect(ass, tx1, ty - 3, tw, 6,
         { fill = ov and '3a3a3a' or state.tok.control_sunken,
           radius = 3, clip = clip })
@@ -1442,7 +1447,7 @@ local function draw_slider(ass, node, ex, ey, clip)
     end
     if frac > 0 then
         draw_rect(ass, tx1, ty - 3, tw * frac, 6,
-            { fill = state.accent, radius = 3, clip = clip })
+            { fill = accent, radius = 3, clip = clip })
     end
     -- chapter slits (2x11px): accent once passed, dim white ahead —
     -- same treatment as the jellyfin OSC's seekbar markers
@@ -1451,7 +1456,7 @@ local function draw_slider(ass, node, ex, ey, clip)
             if m > 0 and m < 1 then
                 local passed = m <= frac
                 draw_rect(ass, tx1 + tw * m - 1, ty - 5.5, 2, 11, {
-                    fill = passed and state.accent
+                    fill = passed and accent
                            or (ov and 'ffffff' or state.tok.on_surface),
                     a = passed and 255 or 77,
                     clip = clip,

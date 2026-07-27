@@ -85,6 +85,16 @@ def active():
     return _active
 
 
+def window_gradient():
+    """Stops for the page background, or None for a flat fill."""
+    return (_active or {}).get("window_gradient")
+
+
+def topbar_gradient():
+    """Stops for the top bar, or None for a flat fill."""
+    return (_active or {}).get("topbar_gradient")
+
+
 def chrome_button_style():
     """Styling for the app's chrome buttons — the top bar and the Settings
     tabs — when the active theme asks for accented ones: a themed fill, an
@@ -137,6 +147,9 @@ def toolkit_tokens():
         "ACCENT_HOVER": _palette["ACCENT_HOVER"],
         "ACCENT_SOFT": _palette["ACCENT_SOFT"],
         "ON_ACCENT": _palette["ACCENT_FG"],
+        # Over video. None here means "follow the accent", which is mpvtk's
+        # own default, so a theme with no opinion gets one accent everywhere.
+        "ACCENT_ON_VIDEO": (_active or {}).get("hud_accent"),
     }
 
 

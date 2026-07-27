@@ -71,10 +71,12 @@ from ..mpvtk.widgets import (
     Column,
     Dropdown,
     Float,
+    Gradient,
     Icon,
     Progress,
     Row,
     Spacer,
+    Stack,
     Text,
     TextBox,
 )
@@ -1690,7 +1692,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         toast = window_chrome.toast_node(self, w, h)
         if toast is not None:
             children.append(toast)
-        return Column(children, w=w, h=h, align="stretch")
+        page = Column(children, w=w, h=h, align="stretch")
+        stops = theme.window_gradient()
+        if not stops:
+            return page
+        # A themed page background. mpv's own background-color is a flat
+        # colour and stays as the base -- it is what shows before the first
+        # scene lands -- so this paints over it rather than replacing it.
+        # Bottom of the Stack, so every bit of chrome still draws on top.
+        return Stack([Gradient(stops=stops, axis="y", w=w, h=h), page],
+                     w=w, h=h)
 
     # How long a status message stays on screen.
     TOAST_SECS = 6.0

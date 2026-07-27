@@ -470,6 +470,9 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `accent_buttons` | Accent-bordered top bar and settings tabs. |
 | `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
 | `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |
+| `hud_accent` | The accent as drawn over *video* — the seek bar's fill. `null` follows `ACCENT`, which is usually what you want; pin it if your accent is too dark or too pale to read against a moving picture. |
+| `window_gradient` | Background ramp down the page: `[[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]]`, or `null` for a flat fill. |
+| `topbar_gradient` | The same across the top bar (horizontal). |
 | `poster_scale` | Cover-size multiplier. The `poster_scale` *setting* overrides this. |
 | `heading_size` | Carousel section-title font size. |
 | `tile_landscape` | `[width, height]` of the landscape/library tile. |
@@ -487,8 +490,16 @@ same colour lightened and `ACCENT_SOFT` the same darkened for fills that sit
 behind text; `ACCENT_FG` is what gets drawn *on* an accent fill and normally
 wants to stay white.
 
-Themes are read at startup, so add or edit a file and restart. Warnings about a
-theme that failed to parse go to the log (Settings → Logs).
+**Gradients: use the fewest stops that describe the shape.** Unlike CSS, extra
+stops do not buy smoothness here — libass has no gradient primitive, so each
+stop is drawn as its own eased ramp, and every extra one is a place where the
+colour briefly stops changing. Two or three stops give a clean gradient; six
+collinear ones give visible bands. `tools/gradient_fidelity.py` renders a
+gradient through mpv and prints its slope profile if you want to check one.
+
+Warnings about a theme that failed to parse go to the log (Settings → Logs).
+A newly *added* theme file appears in the dropdown after a restart; switching
+between themes already on disk repaints immediately.
 
 ## Trickplay Thumbnails
 

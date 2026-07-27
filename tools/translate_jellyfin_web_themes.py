@@ -79,6 +79,10 @@ THEMES = {
     "jf-blueradiance": dict(
         label="Blue Radiance (Jellyfin)",
         dark=True,
+        # .detailRibbon's ramp. Its page background is a bg.jpg we have no
+        # equivalent for, so the ribbon is what carries over.
+        topbar_gradient=[(0.0, "291a31"), (0.25, "033664"), (0.5, "011432"),
+                         (0.75, "141a3a"), (1.0, "291a31")],
         bg="#033361", paper="#011432",
         text="#eee", text2="rgba(255, 255, 255, 0.9)",
         divider="rgba(255, 255, 255, 0.12)",
@@ -88,6 +92,8 @@ THEMES = {
     "jf-wmc": dict(
         label="Windows Media Center (Jellyfin)",
         dark=True,
+        # $background-defaultImage in wmc/theme.scss.
+        window_gradient=[(0.0, "0f3562"), (0.5, "1162a4"), (1.0, "03215f")],
         bg="#0f3562", paper="#0c2450",
         text="#eee", text2="rgba(255, 255, 255, 0.9)",
         divider="rgba(255, 255, 255, 0.12)",
@@ -97,6 +103,10 @@ THEMES = {
     "jf-purplehaze": dict(
         label="Purple Haze (Jellyfin)",
         dark=True,
+        # .skinHeader-withBackground / .detailRibbon, which is where most of
+        # this theme's identity lives.
+        topbar_gradient=[(0.0, "000420"), (0.18, "06256f"), (0.38, "2b052b"),
+                         (0.68, "2b052b"), (0.81, "06256f"), (1.0, "000420")],
         # background-default is inherited from the base (#101010) by the MUI
         # scheme, but the legacy sheet paints html/dialogs #230c33 and the page
         # backdrop #030322. The backdrop is what our window actually is.
@@ -223,6 +233,9 @@ def build(spec):
              "browse_bg": "#" + palette["WINDOW_BG"]}
     if spec.get("rounded"):
         theme["rounded"] = True
+    for key in ("window_gradient", "topbar_gradient"):
+        if spec.get(key):
+            theme[key] = [[p, c] for p, c in spec[key]]
     return theme
 
 
