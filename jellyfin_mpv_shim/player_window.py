@@ -408,6 +408,24 @@ class WindowMixin:
                       "drop force-window at runtime)")
             self.idle_quit(reason="minimized")
 
+    def refresh_browse_bg(self):
+        """Re-apply ``BROWSE_BG_HEX`` to the live mpv window.
+
+        The colour behind the browser is an mpv *property*, not something the
+        scene paints — nothing in the UI covers the whole window, so a theme
+        change that only redrew the scene would leave the old background
+        showing around it. Only meaningful while the browse window is up; a
+        no-op otherwise, and never fatal, because a theme change must not be
+        able to take the player down with it.
+        """
+        try:
+            if self._player is not None and getattr(
+                    self, "_showing_browse_bg", False):
+                self._player.background_color = BROWSE_BG_HEX
+        except Exception:
+            wlog.debug("could not repaint the browse background",
+                       exc_info=True)
+
     def raise_window(self):
         """Best-effort "bring the player window forward" — the tray's Show
         action and a second app launch both need it. Windows has a real API

@@ -231,7 +231,10 @@ You can use the config file to enable and disable features.
     (rather than square and letterboxed), where the carousel page buttons sit,
     and the default cover, caption and heading sizes. `poster_scale` and
     `ui_scale` still override the sizing.
-  - Read once at startup; changing it requires a restart.
+  - **Colours apply immediately** when you change this in Settings, including
+    the controls the player draws for itself. Cover and heading *sizes* still
+    need a restart: changing a poster's dimensions means re-compositing every
+    cached row, and doing that under the pointer is worse than asking.
   - Themes are JSON files — see [Writing a theme](#writing-a-theme).
 - `poster_scale` - Overrides the active theme's default cover size. Default: `null`
   - `null` keeps the theme's own size; a number (e.g. `1.0`, `1.4`, `1.7`)

@@ -391,6 +391,68 @@ class PaletteIsNotGlobalsTest(unittest.TestCase):
         self.assertIn("rgb", dir(theme))
 
 
+class RuntimeSwitchTest(unittest.TestCase):
+    """Changing theme without a restart.
+
+    Possible only because nothing caches a colour across frames: widget
+    defaults resolve per construction, the renderer keeps its tokens in one
+    replaceable table, and the strip store keys its baked bitmaps on the
+    theme. Each of those was a deliberate choice; this is what they buy.
+    """
+
+    def setUp(self):
+        import sys
+        sys.path.insert(0, ".")
+        from tests._shell_harness import FakeSource, _SyncPool
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+        self.addCleanup(theme.apply, "default")
+        self.addCleanup(theme.apply_to_toolkit, False)
+
+    def test_switching_repaints_the_palette_and_the_toolkit(self):
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+
+        self.b.set_theme("nebula")
+        nebula = themes.get("nebula")["palette"]["ACCENT"]
+        self.assertEqual(theme.ACCENT, nebula)
+        # ...and the toolkit, which is what the widget defaults read.
+        self.assertEqual(tk.ACCENT, nebula)
+        self.assertEqual(tk.ON_SURFACE,
+                         themes.get("nebula")["palette"]["TEXT_FG"])
+
+    def test_switching_back_restores_every_colour(self):
+        self.b.set_theme("nebula")
+        self.b.set_theme("default")
+        for key, value in themes.DEFAULT["palette"].items():
+            with self.subTest(colour=key):
+                self.assertEqual(getattr(theme, key), value)
+
+    def test_composited_strips_do_not_survive_the_switch(self):
+        """A strip has the theme's colours baked into its bitmap -- the
+        resume bar, the watched tick, the accent. Serving a cached one after
+        a switch would leave the old theme scattered across the rows."""
+        before = self.b.strips.tag
+        self.b.set_theme("nebula")
+        self.assertNotEqual(self.b.strips.tag, before)
+
+    def test_the_strip_cache_is_retagged_not_cleared(self):
+        """clear() frees the backing buffers, and on libmpv those are read by
+        ADDRESS by a compositor that is still running -- a segfault, not a
+        leak. Retagging lets the old entries age out through the LRU, which
+        only ever frees the least-recently-used one."""
+        self.b.strips.strip([], geom=self.b.geom)
+        n_before = len(self.b.strips._cache)
+        self.b.set_theme("nebula")
+        self.assertEqual(len(self.b.strips._cache), n_before,
+                         "entries were dropped, so their buffers were freed")
+
+    def test_an_unknown_theme_falls_back_rather_than_raising(self):
+        self.b.set_theme("no-such-theme")
+        self.assertEqual(theme.ACCENT, themes.DEFAULT["palette"]["ACCENT"])
+
+
 class CoverSizeTest(unittest.TestCase):
     def test_scaling_a_geometry_keeps_the_gap(self):
         """Tiles grow; the space between them does not, or a row of larger

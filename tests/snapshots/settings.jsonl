@@ -80,7 +80,7 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.19", "sc": "settings", "size": 20, "t": "text", "text": "Theme", "w": 1238.0, "x": 16.0, "y": 796.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.20.0", "sc": "settings", "size": 17, "t": "text", "text": "Theme", "w": 340.0, "x": 16.0, "y": 837.4}
 {"force": true, "h": 38.0, "id": "set-theme", "items": ["Default", "Apple TV (Jellyfin)", "Blue Radiance (Jellyfin)", "Light (Jellyfin)", "Nebula", "Purple Haze (Jellyfin)", "Windows Media Center (Jellyfin)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 829.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.21", "sc": "settings", "size": 14, "t": "text", "text": "Palette, glow, cover style and default cover size. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 875.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.21", "sc": "settings", "size": 14, "t": "text", "text": "Palette, glow, cover style and default cover size. Colours change immediately; cover and heading sizes take effect after a restart.", "w": 1238.0, "x": 16.0, "y": 875.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.22.0", "sc": "settings", "size": 17, "t": "text", "text": "Cover Size", "w": 340.0, "x": 16.0, "y": 908.9}
 {"force": true, "h": 38.0, "id": "set-poster_scale", "items": ["Theme default", "Small", "Medium", "Large", "Extra Large"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 900.5}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.23", "sc": "settings", "size": 14, "t": "text", "text": "Overrides the theme's cover size. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 946.5}

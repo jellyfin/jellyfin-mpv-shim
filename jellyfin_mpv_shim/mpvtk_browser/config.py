@@ -244,8 +244,9 @@ NOTES = {
                    "scrolling: each page is one screenful with First / "
                    "Previous / Next / Last controls and a page number you can "
                    "type into. Easier than precise scrolling on a trackpad."),
-    "theme": _("Palette, glow, cover style and default cover size. Takes "
-               "effect after a restart."),
+    "theme": _("Palette, glow, cover style and default cover size. Colours "
+               "change immediately; cover and heading sizes take effect "
+               "after a restart."),
     "poster_scale": _("Overrides the theme's cover size. Takes effect after a "
                       "restart."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "

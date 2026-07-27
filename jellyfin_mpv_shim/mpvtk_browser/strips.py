@@ -182,8 +182,22 @@ class StripStore:
         # Keys currently being composited, so a row that stays on screen
         # across several builds is only submitted once.
         self._inflight = set()
+        #: Mixed into every cache key. Strips are composited with the theme's
+        #: colours baked in (the resume bar, the watched tick, the accent),
+        #: so a theme change has to make every existing entry unreachable.
+        #: A tag rather than clear(): clear() frees the backing buffers, and
+        #: on libmpv those are read BY ADDRESS by a compositor that is still
+        #: running. Retagging leaves the old entries to age out through the
+        #: ordinary LRU, which only ever frees the least-recently-used one --
+        #: by definition not the one on screen.
+        self.tag = ""
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="strip")
+
+    def set_theme_tag(self, tag):
+        """Invalidate every cached bitmap by changing what the keys look
+        like. Safe to call while mpv is compositing; see ``tag``."""
+        self.tag = str(tag)
 
     def set_notify(self, notify):
         """Attach the wake-up callback after construction (mirrors
@@ -229,7 +243,8 @@ class StripStore:
         so a per-row blank would cost as much as the composite it defers."""
         g = geom or self.geom
         tiles = list(tiles)
-        key = (self._geom_key(g), tuple(self._tile_key(t) for t in tiles))
+        key = (self.tag, self._geom_key(g),
+               tuple(self._tile_key(t) for t in tiles))
         with self._lock:
             hit = self._cache.get(key)
             if hit is not None:
@@ -299,7 +314,7 @@ class StripStore:
         """Blank-card bitmap for a shape (geom, tile count), cached in the same
         LRU so it's freed like any strip. Shared by every pending row of that
         shape, so a screenful of placeholders is one composite, not one each."""
-        bkey = ("blank", self._geom_key(g), n)
+        bkey = ("blank", self.tag, self._geom_key(g), n)
         with self._lock:
             hit = self._cache.get(bkey)
             if hit is not None:
@@ -331,7 +346,7 @@ class StripStore:
         ``lsize`` is the logical (w, h) box it was rasterized for — pass it
         whenever a logical box drove the size, so the Image widget can check
         the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``."""
-        ck = ("bitmap", key)
+        ck = ("bitmap", self.tag, key)
         with self._lock:
             hit = self._cache.get(ck)
             if hit is not None:

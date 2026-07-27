@@ -158,24 +158,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
-        # Before anything is built: apply the user's chosen theme (palette +
-        # mpv browse background), then hand the accent to the toolkit, whose
-        # accented widgets read the palette at construction time.
+        # Before anything is built: apply the user's chosen theme. Widgets
+        # read the palette when they are constructed, so this has to be in
+        # place before the first build.
         from ..conf import settings as _settings
-        self._theme_cfg = theme.apply(getattr(_settings, "theme", "default"))
-        try:
-            from .. import player as _player
-            _player.BROWSE_BG_HEX = self._theme_cfg["browse_bg"]
-        except Exception:
-            # No player module (tests): the palette still applies, there is
-            # just no mpv window whose background to set.
-            pass
-        # Glow is theme-driven; the toolkit forwards it to the renderer
-        # alongside the accent.
-        theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))
-        log.info("theme: %s (accent %s, glow %s)",
-                 self._theme_cfg.get("name", "?"), theme.ACCENT,
-                 self._theme_cfg.get("glow", False))
+        self._apply_theme(getattr(_settings, "theme", "default"))
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
         # Settings accessor (settings_schema/get_settings/set_setting). None ->
@@ -671,6 +658,65 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         return self._async.bump()
 
     # -------------------------------------------------------- async model
+
+    def _apply_theme(self, name):
+        """Make a theme current: palette, toolkit tokens, mpv's browse
+        background. Everything here is idempotent and safe to repeat, which
+        is what :meth:`set_theme` relies on."""
+        self._theme_cfg = theme.apply(name)
+        try:
+            from .. import player as _player
+            _player.BROWSE_BG_HEX = self._theme_cfg["browse_bg"]
+        except Exception:
+            # No player module (tests): the palette still applies, there is
+            # just no mpv window whose background to set.
+            pass
+        # Glow is theme-driven; the toolkit forwards it to the renderer
+        # alongside the tokens.
+        theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))
+        log.info("theme: %s (accent %s, glow %s)",
+                 self._theme_cfg.get("name", "?"), theme.ACCENT,
+                 self._theme_cfg.get("glow", False))
+        return self._theme_cfg
+
+    def set_theme(self, name):
+        """Change theme without restarting.
+
+        Three things have to happen beyond re-applying the palette, and each
+        is a place the old design could not have gone:
+
+        * the renderer needs the new tokens pushed, because it draws text
+          fields, dropdowns, scrollbars and tooltips itself;
+        * mpv's own ``background-color`` is what shows behind the browser,
+          and it is a property, not something the scene paints;
+        * every composited strip has the old theme's colours baked into its
+          bitmap, so the strip store is retagged (not cleared -- see
+          StripStore.tag) and the rows recomposite as they are next drawn.
+
+        Tile *geometry* is deliberately not re-derived. poster_scale and
+        tile_landscape feed sizes that a live rebuild would have to
+        rediscover through every cached row, and the payoff is a cover size
+        changing under the pointer. Those stay restart-only; the colours,
+        which are what a theme is mostly made of, do not.
+        """
+        cfg = self._apply_theme(name)
+        if self.app is not None:
+            try:
+                self.app.push_theme()
+            except Exception:
+                log.debug("could not push the theme to the renderer",
+                          exc_info=True)
+        if self.strips is not None:
+            self.strips.set_theme_tag(cfg.get("name", name))
+        try:
+            from .. import player as _player
+            player = getattr(_player, "playerManager", None)
+            if player is not None:
+                player.refresh_browse_bg()
+        except Exception:
+            log.debug("could not repaint the mpv background", exc_info=True)
+        self.invalidate()
+        return cfg
 
     def invalidate(self):
         if self.app is not None:
