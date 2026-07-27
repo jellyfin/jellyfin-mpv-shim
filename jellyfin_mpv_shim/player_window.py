@@ -64,7 +64,22 @@ def _caller(depth=2):
 
 # The mpvtk browser's window background. mpv paints it directly
 # (background=color), so nothing has to be decoded to hold the window open.
+#
+# Set it through set_browse_bg(), never by assigning the name on another
+# module. `player` re-exports WindowMixin from here, so `player.BROWSE_BG_HEX
+# = x` looks like it works and silently does nothing: the code below resolves
+# the name against THIS module's globals, so the assignment just adds an
+# unread attribute to `player`. The theme's browse colour was lost that way
+# from the day the theme system landed.
 BROWSE_BG_HEX = "#141414"
+
+
+def set_browse_bg(hexstr):
+    """Set the browser's window background (an ``"#rrggbb"`` string)."""
+    global BROWSE_BG_HEX
+    if hexstr:
+        BROWSE_BG_HEX = hexstr
+    return BROWSE_BG_HEX
 # mpv's own defaults, restored by browse_yield() when video takes the window
 # back. Kept here so the browse background can't leak into playback.
 MPV_DEFAULT_BACKGROUND = "tiles"
@@ -407,6 +422,24 @@ class WindowMixin:
             wlog.info("releasing the window by QUITTING mpv (this mpv cannot "
                       "drop force-window at runtime)")
             self.idle_quit(reason="minimized")
+
+    def refresh_browse_bg(self):
+        """Re-apply ``BROWSE_BG_HEX`` to the live mpv window.
+
+        The colour behind the browser is an mpv *property*, not something the
+        scene paints — nothing in the UI covers the whole window, so a theme
+        change that only redrew the scene would leave the old background
+        showing around it. Only meaningful while the browse window is up; a
+        no-op otherwise, and never fatal, because a theme change must not be
+        able to take the player down with it.
+        """
+        try:
+            if self._player is not None and getattr(
+                    self, "_showing_browse_bg", False):
+                self._player.background_color = BROWSE_BG_HEX
+        except Exception:
+            wlog.debug("could not repaint the browse background",
+                       exc_info=True)
 
     def raise_window(self):
         """Best-effort "bring the player window forward" — the tray's Show

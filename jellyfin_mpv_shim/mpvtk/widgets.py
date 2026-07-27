@@ -70,7 +70,11 @@ class Box(Element):
         # right-click; receives (x, y). ImageMap regions have always had
         # this — a Box/Row could not, so a Table row could not either.
         on_context=None,
-        hover=None,  # style overrides while hovered, e.g. {"fill": "334455"}
+        # Style overrides while hovered, e.g. {"fill": "334455"}. Also takes
+        # {"glow": True}, which asks for a soft accent halo while hovered —
+        # honoured only when the active theme turned the glow on, so it is
+        # safe to request unconditionally and the stock look stays flat.
+        hover=None,
         repeat=False,  # hold-repeat: on_click refires while held down
         **kw,
     ):
@@ -130,7 +134,7 @@ class Text(Element):
         self,
         text,
         size=22,
-        color="eeeeee",
+        color=None,
         bold=False,
         align="left",
         on_click=None,
@@ -142,7 +146,7 @@ class Text(Element):
         super().__init__(**kw)
         self.text = text
         self.size = size
-        self.color = color
+        self.color = color or theme.ON_SURFACE
         self.bold = bold
         self.align = align
         self.on_click = on_click
@@ -209,9 +213,16 @@ class Image(Element):
     place so the renderer re-reads it. On the libmpv path src is a malloc
     address and addresses get recycled, so entries carry one always —
     see mpvtk_browser.strips._store.
+
+    ``repeat`` is hold-repeat, same as Box's: the renderer keys it off
+    ``click``/``rpt`` and does not care what kind of node carries them. It
+    exists here because a button that has to composite over a bitmap must
+    itself be a bitmap (GUIDE §6), and paging arrows are exactly that —
+    without it, going bitmap would silently cost press-and-hold paging.
     """
 
-    def __init__(self, src, iw, ih, on_click=None, hover=None, v=0, **kw):
+    def __init__(self, src, iw, ih, on_click=None, hover=None, v=0,
+                 repeat=False, **kw):
         _check_raster(src, iw, ih, kw)
         super().__init__(**kw)
         self.src = src
@@ -223,6 +234,7 @@ class Image(Element):
         self.v = v
         self.on_click = on_click
         self.hover = hover
+        self.repeat = repeat
 
 
 class ImageMap(Element):
@@ -259,13 +271,13 @@ class Icon(Element):
     in a Row for labelled buttons; Dropdown/Menu take per-item icons
     directly."""
 
-    def __init__(self, name, size=20, color="eeeeee", on_click=None,
+    def __init__(self, name, size=20, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
         self.name = name
-        self.color = color
+        self.color = color or theme.ON_SURFACE
         self.on_click = on_click
         self.hover = hover
         # tint to ``hover_tint`` while the ancestor button node named
@@ -281,8 +293,13 @@ class Button(Box):
     colour so accented/active buttons stay legible. An icon-only button is
     just ``label=""``."""
 
-    def __init__(self, label, on_click=None, size=20, fg="eeeeee", icon=None,
+    def __init__(self, label, on_click=None, size=20, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
+        # Resolved here rather than as a default argument: a default is
+        # evaluated once at import, so it could never follow a theme
+        # applied later -- let alone one swapped at runtime.
+        themed_fg = fg is None
+        fg = fg or theme.ON_SURFACE
         if flat:
             # transparent-at-rest, for controls over video/gradients
             # (playback HUD): round translucent accent wash + accent
@@ -293,15 +310,15 @@ class Button(Box):
             kw.setdefault("alpha", 70)
             kw.setdefault("hover", {"fill": theme.ACCENT, "circle": True})
         else:
-            kw.setdefault("bg", "333333")
-            kw.setdefault("hover", {"fill": "4a4a4a"})
+            kw.setdefault("bg", theme.CONTROL_BG)
+            kw.setdefault("hover", {"fill": theme.CONTROL_HOVER})
         kw.setdefault("radius", 6)
         kw.setdefault("pad", 10)
         kw.setdefault("align", "center")
         kw.setdefault("direction", "row")
         children = []
         if icon:
-            tint = theme.ACCENT if flat and fg == "eeeeee" else None
+            tint = theme.ACCENT if flat and themed_fg else None
             children.append(Icon(icon, icon_size or int(size * 0.95),
                                  color=fg, hover_parent=kw.get("id"),
                                  hover_tint=tint))
@@ -362,6 +379,12 @@ class Slider(Element):
         on_hover=None,  # throttled pointer-rest position (seek preview)
         on_hover_end=None,
         force=False,
+        # Drawn over VIDEO rather than over app chrome: keeps the light
+        # track and pale thumb that read on a picture, instead of following
+        # the app's theme. The playback HUD's seek and volume bars are the
+        # case -- a light theme must not give them a near-white track on a
+        # bright frame.
+        on_video=False,
         marks=None,  # tick fractions in (0,1): chapter slits on a seek bar
         ranges=None,  # (start, end) fraction pairs: buffered shading
         always_adjust=False,  # live whenever focused/hovered (seek bar)
@@ -379,6 +402,7 @@ class Slider(Element):
         self.on_hover = on_hover
         self.on_hover_end = on_hover_end
         self.force = force
+        self.on_video = on_video
         self.marks = marks
         self.ranges = ranges
         self.always_adjust = always_adjust
@@ -400,8 +424,8 @@ class Checkbox(Row):
         box = Box(
             w=20,
             h=20,
-            bg=theme.ACCENT if checked else "2a2a2a",
-            border=None if checked else "555555",
+            bg=theme.ACCENT if checked else theme.CONTROL_SUNKEN,
+            border=None if checked else theme.OUTLINE_STRONG,
             radius=5,
             align="center",
             direction="row",
@@ -414,7 +438,7 @@ class Checkbox(Row):
         )
         kw.setdefault("gap", 10)
         kw.setdefault("align", "center")
-        kw.setdefault("hover", {"c": "ffffff"})
+        kw.setdefault("hover", {"c": theme.ON_SURFACE_STRONG})
         super().__init__(
             [box, Text(label, size=size)], on_click=on_toggle, **kw
         )
@@ -444,7 +468,7 @@ class Grid(Element):
     """
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
-                 row_pad=0, size=18, fg="eeeeee", **kw):
+                 row_pad=0, size=18, fg=None, **kw):
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
@@ -453,7 +477,7 @@ class Grid(Element):
         self.row_h = row_h
         self.row_pad = row_pad
         self.size = size
-        self.fg = fg
+        self.fg = fg or theme.ON_SURFACE
 
 
 class Form(Grid):
@@ -463,7 +487,8 @@ class Form(Grid):
     None element leaves the row's value cell empty)."""
 
     def __init__(self, rows, label_w=None, size=18,
-                 label_fg="9a9a9a", **kw):
+                 label_fg=None, **kw):
+        label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
             {"w": label_w} if label_w else {},
             {"flex": 1},
@@ -484,26 +509,50 @@ class Gradient(Element):
     this the hard way). The playback HUD's bottom scrim:
     ``Gradient(color="000000", top=0, bottom=200)`` fades from
     transparent at the top edge to mostly-opaque at the bottom.
-    Opacities are 0–255. Non-interactive."""
+    Opacities are 0–255. Non-interactive.
 
-    def __init__(self, color="000000", top=0, bottom=200, **kw):
+    ``stops`` switches it from an alpha fade of one colour to a multi-stop
+    COLOUR ramp: ``[(0.0, "0f3562"), (0.5, "1162a4"), (1.0, "03215f")]``,
+    positions 0-1 along ``axis`` ("y" or "x"). Still not bands — each stop
+    after the first is one blurred-edge layer over the ones before it, and
+    alpha-compositing a ramp of B over solid A *is* a linear interpolation
+    from A to B. So an n-stop gradient costs n ASS events, not n bands.
+
+    Used for themed app backgrounds and top bars, which several of
+    jellyfin-web's themes rely on.
+
+    **Use the fewest stops that describe the shape.** Unlike CSS, more stops
+    here do not buy smoothness — they cost it. Each layer's ramp begins and
+    ends at ~zero slope, so every extra stop is a place where the colour
+    briefly stops changing, and the eye reads those flat spots as bands. Two
+    stops give one clean ease; subdividing a single ramp into six put visible
+    strips across it. ``tools/gradient_fidelity.py`` renders a gradient
+    through mpv and prints its slope profile, which is where this shows up
+    and where per-pixel colour error does not.
+    """
+
+    def __init__(self, color=None, top=0, bottom=200, stops=None,
+                 axis="y", **kw):
         super().__init__(**kw)
-        self.color = color
+        # SCRIM, not a surface token: this is drawn over video.
+        self.color = color or theme.SCRIM
         self.top = top
         self.bottom = bottom
+        self.stops = list(stops) if stops else None
+        self.axis = axis
 
 
 class Progress(Element):
     """Determinate progress bar (composite drawn by layout as two
     rects). ``frac`` in [0, 1]; give it a width or ``flex``."""
 
-    def __init__(self, frac, fg=None, bg="2a2a2a", **kw):
+    def __init__(self, frac, fg=None, bg=None, **kw):
         kw.setdefault("w", 180)
         kw.setdefault("h", 8)
         super().__init__(**kw)
         self.frac = min(1.0, max(0.0, frac))
         self.fg = fg or theme.ACCENT
-        self.bg = bg
+        self.bg = bg or theme.CONTROL_SUNKEN
 
 
 class Stack(Element):
@@ -520,6 +569,15 @@ class Stack(Element):
     subtracted from earlier image siblings, so it draws in the hole
     (give it an opaque bg; whatever the hole reveals is the window
     background). Without ``occlude`` the image wins.
+
+    ``occlude`` suits chrome that is *meant* to cover what is under it —
+    popups, dropdowns, dialogs. It is the wrong tool for a control that
+    should look like it floats ON the image: the punched rect is
+    hard-edged and opaque by necessity, so the control reads as a notch
+    cut out of the artwork, and it can be neither translucent nor
+    non-rectangular. Make that control an :class:`Image` instead (it can
+    carry ``on_click``/``repeat`` like a Box) and let it alpha-blend —
+    see ``mpvtk_browser.tile_renderer._arrow_bitmap``.
     """
 
     def __init__(self, children=None, **kw):
@@ -584,16 +642,19 @@ class Table(Column):
         header_h=30,
         size=18,
         header_size=15,
-        header_fg="9a9a9a",
-        fg="eeeeee",
+        header_fg=None,
+        fg=None,
         selected_bg=None,
-        hover_bg="333333",
+        hover_bg=None,
         gap=12,
         pad_x=10,
         virtual=None,
         **kw,
     ):
         selected_bg = selected_bg or theme.SOFT
+        header_fg = header_fg or theme.ON_SURFACE_MUTED
+        fg = fg or theme.ON_SURFACE
+        hover_bg = hover_bg or theme.CONTROL_BG
 
         def cell(col, content, text_size, color):
             if isinstance(content, Element):

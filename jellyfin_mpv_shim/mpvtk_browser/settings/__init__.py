@@ -75,13 +75,22 @@ class SettingsMixin(
         labels = {"general": _("General"), "home": _("Home Screen"),
                   "servers": _("Servers & Users"),
                   "downloads": _("Downloads"), "logs": _("Logs")}
-        tabs = Row([
-            Button(labels[t], id="stab-" + t,
-                   bg=theme.ACCENT if tab == t else theme.BUTTON_BG,
-                   fg=theme.ACCENT_FG if tab == t else theme.TEXT_FG,
-                   on_click=lambda t=t: self._set_settings_tab(route, t))
-            for t in self.SETTINGS_TABS
-        ], gap=8)
+        # Same treatment as the top bar's buttons (accent border + hover
+        # glow) on themes that ask for it; the selected tab keeps its accent
+        # fill either way.
+        tab_style = theme.chrome_button_style()
+
+        def tab_button(t):
+            style = dict(tab_style)
+            style["bg"] = (theme.ACCENT if tab == t
+                           else style.get("bg", theme.BUTTON_BG))
+            return Button(
+                labels[t], id="stab-" + t,
+                fg=theme.ACCENT_FG if tab == t else theme.TEXT_FG,
+                on_click=lambda t=t: self._set_settings_tab(route, t),
+                **style)
+
+        tabs = Row([tab_button(t) for t in self.SETTINGS_TABS], gap=8)
         body = {
             "home": self._settings_home,
             "servers": self._settings_servers,

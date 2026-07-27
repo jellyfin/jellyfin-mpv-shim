@@ -37,7 +37,25 @@ if ! git rev-parse --verify --quiet "$MASTER_REF" >/dev/null; then
 fi
 
 echo "Regenerating $POT from source..."
-pygettext3 --default-domain=base -o "$POT" jellyfin_mpv_shim/*.py jellyfin_mpv_shim/**/*.py
+# find, not a glob. This was `jellyfin_mpv_shim/*.py jellyfin_mpv_shim/**/*.py`,
+# and without `shopt -s globstar` bash expands `**` exactly like `*` -- one
+# level. So every package nested two deep was silently never scanned:
+# mpvtk_browser/pages, /settings, /components and /gateway, which between them
+# hold ~180 user-facing strings that could not be translated and gave no sign
+# of it. A wrong glob fails by finding less, and nothing downstream knows the
+# difference.
+#
+# Sorted so the template's file order -- and therefore its diff -- is stable
+# between runs. __pycache__ holds no .py, but excluding it keeps the intent
+# obvious if that ever changes.
+mapfile -t SOURCES < <(
+    find jellyfin_mpv_shim -name '*.py' -not -path '*/__pycache__/*' | sort)
+if [ "${#SOURCES[@]}" -eq 0 ]; then
+    echo "error: no Python sources found to scan" >&2
+    exit 1
+fi
+echo "  scanning ${#SOURCES[@]} source files"
+pygettext3 --default-domain=base -o "$POT" "${SOURCES[@]}"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT

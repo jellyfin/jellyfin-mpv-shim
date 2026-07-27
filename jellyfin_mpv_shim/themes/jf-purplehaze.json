@@ -1,0 +1,49 @@
+{
+    "name": "Purple Haze (Jellyfin)",
+    "palette": {
+        "WINDOW_BG": "030322",
+        "CARD_BG": "000420",
+        "PANEL_BG": "230c33",
+        "PLACEHOLDER_BG": "000318",
+        "BUTTON_BG": "2c2c39",
+        "BUTTON_ACTIVE": "01010a",
+        "ENTRY_BG": "1f1f2c",
+        "BORDER": "262641",
+        "TEXT_FG": "f1f1f8",
+        "SUBTLE_FG": "818190",
+        "ACCENT": "48c3c8",
+        "ACCENT_HOVER": "0ce8d6",
+        "ACCENT_SOFT": "1f6d70",
+        "ACCENT_FG": "ffffff",
+        "WATCHED_GREEN": "0ce8d6",
+        "FAV_RED": "cc3333"
+    },
+    "browse_bg": "#030322",
+    "rounded": true,
+    "topbar_gradient": [
+        [
+            0.0,
+            "000420"
+        ],
+        [
+            0.18,
+            "06256f"
+        ],
+        [
+            0.38,
+            "2b052b"
+        ],
+        [
+            0.68,
+            "2b052b"
+        ],
+        [
+            0.81,
+            "06256f"
+        ],
+        [
+            1.0,
+            "000420"
+        ]
+    ]
+}

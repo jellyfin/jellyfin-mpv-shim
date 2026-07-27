@@ -1,0 +1,20 @@
+{
+    "name": "Light (Jellyfin)",
+    "palette": {
+        "WINDOW_BG": "f2f2f2",
+        "CARD_BG": "e8e8e8",
+        "PANEL_BG": "e8e8e8",
+        "PLACEHOLDER_BG": "d1d1d1",
+        "BUTTON_BG": "cbcbcb",
+        "BUTTON_ACTIVE": "b4b4b4",
+        "ENTRY_BG": "dadada",
+        "BORDER": "d0d0d0",
+        "TEXT_FG": "000000",
+        "SUBTLE_FG": "6d6d6d",
+        "ACCENT": "00729a",
+        "ACCENT_HOVER": "00a4dc",
+        "ACCENT_SOFT": "b8d8e3",
+        "ACCENT_FG": "ffffff"
+    },
+    "browse_bg": "#f2f2f2"
+}

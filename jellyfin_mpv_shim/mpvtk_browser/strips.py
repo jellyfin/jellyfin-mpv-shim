@@ -91,8 +91,24 @@ class TileGeom:
             sub_size=px(self.sub_size), badge_size=px(self.badge_size),
         )
 
+    def scaled(self, f):
+        """A copy scaled by factor ``f`` — the active theme's cover size, or
+        the user's Cover Size setting. The gap is kept so rows keep their
+        rhythm as the art grows."""
+        if not f or abs(f - 1.0) < 1e-6:
+            return self
+        def r(v):
+            return max(1, int(round(v * f)))
+        return TileGeom(
+            tile_w=r(self.tile_w), tile_h=r(self.tile_h), gap=self.gap,
+            caption_h=r(self.caption_h), title_size=r(self.title_size),
+            sub_size=r(self.sub_size), badge_size=r(self.badge_size),
+        )
+
 
 # Tile shapes, matching the Tk browser's poster_box/thumb_box/square_box.
+# A theme may scale these (and override the landscape shape) at the view
+# layer; see MpvtkBrowser.__init__.
 POSTER_GEOM = TileGeom(tile_w=150, tile_h=225, caption_h=46)        # 2:3
 LANDSCAPE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)     # 16:9
 SQUARE_GEOM = TileGeom(tile_w=170, tile_h=170, caption_h=44)        # 1:1
@@ -166,8 +182,22 @@ class StripStore:
         # Keys currently being composited, so a row that stays on screen
         # across several builds is only submitted once.
         self._inflight = set()
+        #: Mixed into every cache key. Strips are composited with the theme's
+        #: colours baked in (the resume bar, the watched tick, the accent),
+        #: so a theme change has to make every existing entry unreachable.
+        #: A tag rather than clear(): clear() frees the backing buffers, and
+        #: on libmpv those are read BY ADDRESS by a compositor that is still
+        #: running. Retagging leaves the old entries to age out through the
+        #: ordinary LRU, which only ever frees the least-recently-used one --
+        #: by definition not the one on screen.
+        self.tag = ""
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="strip")
+
+    def set_theme_tag(self, tag):
+        """Invalidate every cached bitmap by changing what the keys look
+        like. Safe to call while mpv is compositing; see ``tag``."""
+        self.tag = str(tag)
 
     def set_notify(self, notify):
         """Attach the wake-up callback after construction (mirrors
@@ -213,7 +243,8 @@ class StripStore:
         so a per-row blank would cost as much as the composite it defers."""
         g = geom or self.geom
         tiles = list(tiles)
-        key = (self._geom_key(g), tuple(self._tile_key(t) for t in tiles))
+        key = (self.tag, self._geom_key(g),
+               tuple(self._tile_key(t) for t in tiles))
         with self._lock:
             hit = self._cache.get(key)
             if hit is not None:
@@ -283,7 +314,7 @@ class StripStore:
         """Blank-card bitmap for a shape (geom, tile count), cached in the same
         LRU so it's freed like any strip. Shared by every pending row of that
         shape, so a screenful of placeholders is one composite, not one each."""
-        bkey = ("blank", self._geom_key(g), n)
+        bkey = ("blank", self.tag, self._geom_key(g), n)
         with self._lock:
             hit = self._cache.get(bkey)
             if hit is not None:
@@ -315,7 +346,7 @@ class StripStore:
         ``lsize`` is the logical (w, h) box it was rasterized for — pass it
         whenever a logical box drove the size, so the Image widget can check
         the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``."""
-        ck = ("bitmap", key)
+        ck = ("bitmap", self.tag, key)
         with self._lock:
             hit = self._cache.get(ck)
             if hit is not None:
@@ -382,7 +413,7 @@ class StripStore:
             # never accumulates across a long strip.
             lx = col * (g.tile_w + g.gap)
             self._paint_poster(img, dr, px(lx), t, pg)
-            self._paint_decorations(dr, px(lx), t, pg)
+            self._paint_decorations(img, dr, px(lx), t, pg)
             self._paint_caption(dr, px(lx), t, pg)
             regions.append(
                 {"x": lx, "y": 0, "w": g.tile_w, "h": g.strip_h, "key": t.key}
@@ -406,50 +437,80 @@ class StripStore:
         pg = g.physical()
         img = PILImage.new("RGBA", raster(lw, lh), (0, 0, 0, 0))
         dr = ImageDraw.Draw(img)
+        rounded = bool((theme.active() or {}).get("rounded"))
+        r = _px(14)
         for col in range(n):
             x = px(col * (g.tile_w + g.gap))
-            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
-                         fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
-            dr.rectangle([x, 0, x + pg.tile_w - 1, pg.tile_h - 1],
-                         outline=theme.rgb("101012", 255))
+            box = [x, 0, x + pg.tile_w - 1, pg.tile_h - 1]
+            if rounded:
+                dr.rounded_rectangle(box, radius=r,
+                                     fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
+                dr.rounded_rectangle(box, radius=r,
+                                     outline=theme.rgb("101012", 255))
+            else:
+                dr.rectangle(box, fill=theme.rgb(theme.PLACEHOLDER_BG, 255))
+                dr.rectangle(box, outline=theme.rgb("101012", 255))
         src, iw2, ih2, v = self._store(img)
         return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh, "v": v}
 
     def _paint_poster(self, img, dr, x, t, g):
-        from PIL import Image as PILImage
+        from PIL import Image as PILImage, ImageDraw, ImageOps
 
-        # Opaque card behind the poster (letterbox fill for odd aspects).
-        dr.rectangle(
-            [x, 0, x + g.tile_w - 1, g.tile_h - 1],
-            fill=theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
-                           else theme.CARD_BG, 255),
-        )
+        # The card look is theme-driven: a "rounded" theme draws
+        # jellyfin-web-style rounded corners and cover-crops the art; the
+        # stock look is a square opaque card with the poster letterboxed into
+        # it, so an untouched install renders exactly as before.
+        rounded = bool((theme.active() or {}).get("rounded"))
+        r = _px(14)
+        box = [x, 0, x + g.tile_w - 1, g.tile_h - 1]
+        card = theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
+                         else theme.CARD_BG, 255)
+        if rounded:
+            # The corners are left transparent so the window background shows
+            # through — that is what gives the card its rounded silhouette.
+            dr.rounded_rectangle(box, radius=r, fill=card)
+        else:
+            dr.rectangle(box, fill=card)
         if t.poster is not None:
             poster = t.poster
-            if poster.size != (g.tile_w, g.tile_h):
-                poster = poster.copy()
-                # The checker is wrong below, not the code: PIL installs its
-                # filter constants onto its own module with setattr() at
-                # import time, so they exist at runtime and are invisible to
-                # any static analysis. Spelling it Resampling.LANCZOS instead
-                # would require Pillow >= 9.1, which this project does not pin.
-                lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
-                poster.thumbnail((g.tile_w, g.tile_h), lanczos)
-            px = x + (g.tile_w - poster.width) // 2
-            py = (g.tile_h - poster.height) // 2
-            img.paste(poster, (px, py))
+            # The checker is wrong below, not the code: PIL installs its
+            # filter constants onto its own module with setattr() at
+            # import time, so they exist at runtime and are invisible to
+            # any static analysis. Spelling it Resampling.LANCZOS instead
+            # would require Pillow >= 9.1, which this project does not pin.
+            lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
+            if rounded:
+                if poster.size != (g.tile_w, g.tile_h):
+                    # Cover-crop, like CSS object-fit: cover — scale to FILL
+                    # the tile and crop the overflow, so odd-aspect art fills
+                    # the frame edge to edge instead of letterboxing.
+                    poster = ImageOps.fit(poster, (g.tile_w, g.tile_h),
+                                          lanczos, centering=(0.5, 0.5))
+                # Clip the art to the same rounded rect so its corners match.
+                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+                ImageDraw.Draw(mask).rounded_rectangle(
+                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                img.paste(poster, (x, 0), mask)
+            else:
+                if poster.size != (g.tile_w, g.tile_h):
+                    poster = poster.copy()
+                    poster.thumbnail((g.tile_w, g.tile_h), lanczos)
+                px = x + (g.tile_w - poster.width) // 2
+                py = (g.tile_h - poster.height) // 2
+                img.paste(poster, (px, py))
         elif t.glyph:
             # A muted centered glyph (first initial / ♪) so blank tiles read.
             gsize = max(_px(24), g.tile_h // 4)
             dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
                     font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
                     fill=theme.rgb(theme.SUBTLE_FG))
-        dr.rectangle(
-            [x, 0, x + g.tile_w - 1, g.tile_h - 1],
-            outline=theme.rgb("101012", 255),
-        )
+        if rounded:
+            dr.rounded_rectangle(box, radius=r,
+                                 outline=theme.rgb("101012", 255))
+        else:
+            dr.rectangle(box, outline=theme.rgb("101012", 255))
 
-    def _paint_decorations(self, dr, x, t, g):
+    def _paint_decorations(self, img, dr, x, t, g):
         # NB every bare offset in here is a logical constant being drawn
         # into a physical bitmap, so it goes through _px(). g is already
         # physical (see _compose); mixing the two silently is how a scaled
@@ -487,13 +548,38 @@ class StripStore:
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
             bar = _px(6)
-            dr.rectangle([x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
-                         fill=theme.rgb(theme.PROGRESS_TRACK, 200))
-            dr.rectangle(
-                [x, g.tile_h - bar,
-                 x + int((g.tile_w - 1) * frac), g.tile_h - 1],
-                fill=theme.rgb(theme.ACCENT, 255),
-            )
+            if bool((theme.active() or {}).get("rounded")):
+                from PIL import Image as PILImage, ImageChops, ImageDraw
+                r = _px(14)
+                # On a rounded card a square bar would fill the corner pixels
+                # the silhouette leaves transparent, so it pokes visibly past
+                # the curve. Draw it into its own layer and clip that to the
+                # same rounded rect the poster uses.
+                layer = PILImage.new("RGBA", (g.tile_w, g.tile_h),
+                                     (0, 0, 0, 0))
+                ld = ImageDraw.Draw(layer)
+                ld.rectangle([0, g.tile_h - bar, g.tile_w - 1, g.tile_h - 1],
+                             fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                ld.rectangle(
+                    [0, g.tile_h - bar,
+                     int((g.tile_w - 1) * frac), g.tile_h - 1],
+                    fill=theme.rgb(theme.ACCENT, 255),
+                )
+                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+                ImageDraw.Draw(mask).rounded_rectangle(
+                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                layer.putalpha(ImageChops.multiply(layer.getchannel("A"),
+                                                   mask))
+                img.paste(layer, (x, 0), layer)
+            else:
+                dr.rectangle(
+                    [x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
+                    fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                dr.rectangle(
+                    [x, g.tile_h - bar,
+                     x + int((g.tile_w - 1) * frac), g.tile_h - 1],
+                    fill=theme.rgb(theme.ACCENT, 255),
+                )
 
     def _paint_caption(self, dr, x, t, g):
         if t.title:
