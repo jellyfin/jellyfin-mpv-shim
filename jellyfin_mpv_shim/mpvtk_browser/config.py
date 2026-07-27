@@ -139,10 +139,9 @@ LABELED_ENUMS = {
         (_("150%"), 1.5),
         (_("200%"), 2.0),
     ],
-    "theme": [
-        (_("Default"), "default"),
-        (_("Nebula (violet, glowing)"), "nebula"),
-    ],
+    # "theme" is deliberately NOT here: themes are JSON files and the user can
+    # add their own, so the list is built at display time by
+    # settings.general._dynamic_enum.
     "poster_scale": [
         (_("Theme default"), None),
         (_("Small"), 1.0),

@@ -99,8 +99,10 @@ class GeneralTabMixin:
             # rather than the control: one field wider than every other field
             # in the form is what you notice, and it is closed most of the
             # time.
-            extra = {} if key in cfg.LABELED_ENUMS or not dynamic else {
-                "popup_w": int(self.FIELD_W * 1.5)}
+            # Only the device list needs it: theme names are short, and a
+            # popup wider than the control it drops from is what you notice.
+            extra = {"popup_w": int(self.FIELD_W * 1.5)} \
+                if key == "audio_device" and dynamic else {}
             widget = Dropdown(
                 "set-" + key, [lbl for lbl, _v in opts], selected=cur,
                 w=self.FIELD_W, force=True,
@@ -152,7 +154,25 @@ class GeneralTabMixin:
         is not one of those: it depends on the platform, the sound server and
         what is plugged in this minute, and mpv — the thing that will have to
         open the chosen device — is the only honest source for it.
+
+        Themes are the same shape of answer for a different reason: they are
+        JSON files now, and the user can drop their own into the config
+        directory, so a literal list would only ever show the shipped ones.
+
+        Read from the cache, not re-scanned: this runs on every rebuild of the
+        form — which is every keystroke in any text field on it — and a theme
+        only takes effect after a restart anyway, so re-reading the directory
+        here would buy nothing for a directory listing and a JSON parse per
+        theme per frame.
         """
+        if key == "theme":
+            try:
+                from .. import themes
+
+                return themes.choices()
+            except Exception:
+                log.debug("could not list themes", exc_info=True)
+                return None
         if key != "audio_device" or self.controller is None:
             return None
         try:

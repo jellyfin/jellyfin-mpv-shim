@@ -4,6 +4,26 @@ Ported from the Tk browser's ``theme.py`` palette (the ttk styling is
 dropped — mpvtk widgets take colours directly). Colours are stored as
 bare ``"rrggbb"`` (what mpvtk widget ``bg``/``color`` fields want); use
 :func:`rgb` when a PIL drawing needs an ``(r, g, b)`` tuple.
+
+``theme.ACCENT`` and friends are **not module globals**. They are served from
+:data:`_palette` through the module ``__getattr__`` below, and the difference
+matters now that themes come from user-editable JSON:
+
+* Applying a theme no longer *writes* to this module. It used to copy a
+  theme's palette into ``globals()`` in a loop, so a theme could define — or
+  redefine — anything in this namespace. A file with ``"rgb": "ff0000"``
+  would have replaced the :func:`rgb` function; a typo like ``ACCNET`` would
+  have quietly created a new global while ``ACCENT`` kept its old value, so
+  the theme just looked subtly wrong with nothing to point at.
+* An unknown name is now an ``AttributeError`` at the point of use rather
+  than a silently stale colour. Real module attributes (the functions here)
+  are found first and can never be shadowed by a palette key.
+* A theme that omits a colour gets the default's, because
+  :func:`themes.resolve` merges over ``themes.DEFAULT`` before it ever gets
+  here. Switching themes cannot leave a colour behind from the previous one.
+
+The ~190 ``theme.X`` reads across the browser are unchanged by all this: the
+lookup still works exactly as it looks.
 """
 
 
@@ -11,12 +31,37 @@ from . import themes
 
 # The theme in force, as a dict from themes.py. Set by apply(); active() is
 # how the rest of the browser reads the non-colour parts (glow, rounded
-# cards, cover/heading sizes).
+# cards, cover/heading sizes, carousel arrow mode).
 _active = None
+
+#: The live colour values, keyed as the palette names. Seeded with the stock
+#: palette so a consumer that reads a colour before apply() runs — which is
+#: every import-time default argument — gets the documented value rather than
+#: an error.
+_palette = dict(themes.DEFAULT["palette"])
+
+
+def __getattr__(name):
+    """Serve palette colours as module attributes.
+
+    Only reached when normal attribute lookup fails (PEP 562), so everything
+    actually defined in this module wins — which is what stops a theme file
+    from redefining the functions here.
+    """
+    try:
+        return _palette[name]
+    except KeyError:
+        raise AttributeError(
+            "module %r has no attribute %r. Palette colours are %s"
+            % (__name__, name, ", ".join(sorted(_palette)))) from None
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_palette))
 
 
 def apply(name):
-    """Copy a theme's palette onto this module's globals. Returns the theme.
+    """Make a theme active. Returns it.
 
     Called once at startup (MpvtkBrowser.__init__) before anything is built,
     so every consumer that reads ``theme.X`` gets the chosen theme's value
@@ -24,9 +69,14 @@ def apply(name):
     palette exactly, so an untouched install is unaffected."""
     global _active
     _active = themes.get(name)
-    g = globals()
-    for key, value in _active["palette"].items():
-        g[key] = value
+    # Replaced wholesale rather than updated in place: an update would leave
+    # any colour the new theme does not mention set to the OLD theme's value.
+    # (themes.resolve already fills every key from the default, so this is
+    # belt and braces — but it is the invariant that matters, not the layer
+    # that happens to enforce it.)
+    _palette.clear()
+    _palette.update(themes.DEFAULT["palette"])
+    _palette.update(_active.get("palette") or {})
     return _active
 
 
@@ -46,8 +96,9 @@ def chrome_button_style():
     """
     if not (_active or {}).get("accent_buttons"):
         return {}
-    return {"bg": BUTTON_BG, "border": ACCENT, "border_w": 1, "radius": 9,
-            "hover": {"fill": BUTTON_ACTIVE, "glow": True}}
+    return {"bg": _palette["BUTTON_BG"], "border": _palette["ACCENT"],
+            "border_w": 1, "radius": 9,
+            "hover": {"fill": _palette["BUTTON_ACTIVE"], "glow": True}}
 
 
 def apply_to_toolkit(glow=False):
@@ -57,8 +108,9 @@ def apply_to_toolkit(glow=False):
     knows whether to draw the themed title/selection glow."""
     from ..mpvtk import theme as tk
 
-    tk.set_accent(ACCENT, hover=ACCENT_HOVER, soft=ACCENT_SOFT,
-                  on_accent=ACCENT_FG, glow=glow)
+    tk.set_accent(_palette["ACCENT"], hover=_palette["ACCENT_HOVER"],
+                  soft=_palette["ACCENT_SOFT"],
+                  on_accent=_palette["ACCENT_FG"], glow=glow)
 
 
 def rgb(hexstr, alpha=None):
@@ -66,33 +118,3 @@ def rgb(hexstr, alpha=None):
     h = hexstr.lstrip("#")
     r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
     return (r, g, b, alpha) if alpha is not None else (r, g, b)
-
-
-# Core palette (Jellyfin-ish dark), matching the Tk browser 1:1.
-WINDOW_BG = "15171a"
-CARD_BG = "1e2024"
-PANEL_BG = "26292f"
-PLACEHOLDER_BG = "2a2d33"
-BUTTON_BG = "2e3138"
-BUTTON_ACTIVE = "3a3e46"
-ENTRY_BG = "2a2d33"
-BORDER = "3a3d42"
-TEXT_FG = "e8e8e8"
-SUBTLE_FG = "9aa0a6"
-# There is exactly ONE blue. Anything that reads as "the app's colour" —
-# primary buttons, selection, hover rings, progress, active tabs — uses this
-# family and nothing else; a second unrelated blue makes the UI look
-# assembled from parts. ACCENT_HOVER is the same hue lightened, ACCENT_SOFT
-# the same hue darkened for fills that sit behind text.
-ACCENT = "00a4dc"
-ACCENT_HOVER = "1cb6e8"
-ACCENT_SOFT = "0a3a4d"
-# Accent fills always carry white text — dark-on-blue reads as disabled.
-ACCENT_FG = "ffffff"
-FAV_RED = "e0264b"
-OK_GREEN = "7bd88f"      # "Connected" / "active" badges
-WARN_AMBER = "e5c07b"
-
-# Semantic extras used by baked strip decorations.
-PROGRESS_TRACK = "000000"   # drawn at ~78% alpha behind the resume bar
-WATCHED_GREEN = "28a046"

@@ -1,0 +1,33 @@
+{
+    "name": "Nebula",
+    "palette": {
+        "WINDOW_BG": "0c0620",
+        "CARD_BG": "160a2e",
+        "PANEL_BG": "1e0f3d",
+        "PLACEHOLDER_BG": "17102b",
+        "BUTTON_BG": "2a1656",
+        "BUTTON_ACTIVE": "3d2170",
+        "ENTRY_BG": "1e0f3d",
+        "BORDER": "2e2550",
+        "TEXT_FG": "ece4ff",
+        "SUBTLE_FG": "a99cc8",
+        "ACCENT": "a855f7",
+        "ACCENT_HOVER": "c084fc",
+        "ACCENT_SOFT": "3a1a6e"
+    },
+
+    "browse_bg": "#0c0620",
+    "glow": true,
+    "rounded": true,
+    "accent_buttons": true,
+
+    "arrow_mode": "overlay",
+    "arrow_bg": "2a1656",
+    "arrow_alpha": 165,
+
+    "poster_scale": 1.4,
+    "heading_size": 30,
+    "tile_landscape": [380, 248],
+    "tile_title_size": 13,
+    "tile_sub_size": 11
+}
