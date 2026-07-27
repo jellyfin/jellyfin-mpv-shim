@@ -379,6 +379,12 @@ class Slider(Element):
         on_hover=None,  # throttled pointer-rest position (seek preview)
         on_hover_end=None,
         force=False,
+        # Drawn over VIDEO rather than over app chrome: keeps the light
+        # track and pale thumb that read on a picture, instead of following
+        # the app's theme. The playback HUD's seek and volume bars are the
+        # case -- a light theme must not give them a near-white track on a
+        # bright frame.
+        on_video=False,
         marks=None,  # tick fractions in (0,1): chapter slits on a seek bar
         ranges=None,  # (start, end) fraction pairs: buffered shading
         always_adjust=False,  # live whenever focused/hovered (seek bar)
@@ -396,6 +402,7 @@ class Slider(Element):
         self.on_hover = on_hover
         self.on_hover_end = on_hover_end
         self.force = force
+        self.on_video = on_video
         self.marks = marks
         self.ranges = ranges
         self.always_adjust = always_adjust

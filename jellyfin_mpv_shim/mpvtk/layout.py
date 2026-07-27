@@ -565,6 +565,8 @@ def _arrange_slider(ctx, el, x, y, w, h, sc, path):
     node["value"] = el.value
     if el.force:
         node["force"] = True
+    if el.on_video:
+        node["ov"] = True
     if el.marks:
         node["marks"] = [round(float(m), 4) for m in el.marks]
     if el.ranges:

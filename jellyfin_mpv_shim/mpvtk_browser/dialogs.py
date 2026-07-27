@@ -345,8 +345,9 @@ class DialogsMixin:
         # align="stretch" so button rows fill the shell's width; without it
         # they take their natural width and a trailing flex Spacer has no
         # leftover to absorb, which left the buttons hugging the left edge.
-        return Column(children, pad=24, gap=16, bg="1e1e1e", radius=12,
-                      border="555555", w=w, align="stretch")
+        return Column(children, pad=24, gap=16, bg=theme.PANEL_BG,
+                      radius=12, border=theme.BORDER, w=w,
+                      align="stretch")
 
     @staticmethod
     def _dialog_buttons(children):
@@ -450,7 +451,7 @@ class DialogsMixin:
                             else (g.get("name") or _("Group")),
                             id="sp-join-%d" % i,
                             bg=theme.ACCENT if here else None,
-                            fg=theme.ACCENT_FG if here else "eeeeee",
+                            fg=theme.ACCENT_FG if here else theme.TEXT_FG,
                             on_click=(self._close_dialog if here else
                                       (lambda gid=gid, srv=g.get("server_uuid"):
                                        self._sync_join(srv or server, gid)))),

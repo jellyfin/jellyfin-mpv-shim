@@ -119,7 +119,7 @@ def toolkit_tokens():
         "ON_SURFACE": _palette["TEXT_FG"],
         "ON_SURFACE_MUTED": _palette["SUBTLE_FG"],
         # Between muted and the background: placeholder and disabled text.
-        "ON_SURFACE_FAINT": _mix(_palette["SUBTLE_FG"],
+        "ON_SURFACE_FAINT": mix(_palette["SUBTLE_FG"],
                                  _palette["WINDOW_BG"], 0.45),
         "ON_SURFACE_STRONG": _lift(_palette["TEXT_FG"]),
         "CONTROL_BG": _palette["BUTTON_BG"],
@@ -129,8 +129,8 @@ def toolkit_tokens():
         "OUTLINE_STRONG": _palette["BORDER"],
         "POPUP_BG": _palette["PANEL_BG"],
         "OVERLAY_BG": _palette["CARD_BG"],
-        "SCROLLBAR_THUMB": _mix(_palette["BORDER"], _palette["TEXT_FG"], 0.25),
-        "SCROLLBAR_THUMB_ACTIVE": _mix(_palette["BORDER"],
+        "SCROLLBAR_THUMB": mix(_palette["BORDER"], _palette["TEXT_FG"], 0.25),
+        "SCROLLBAR_THUMB_ACTIVE": mix(_palette["BORDER"],
                                        _palette["TEXT_FG"], 0.6),
         "SELECTION": _palette["ACCENT_SOFT"],
         "ACCENT": _palette["ACCENT"],
@@ -149,8 +149,14 @@ def apply_to_toolkit(glow=False):
     tk.set_tokens(glow=glow, **toolkit_tokens())
 
 
-def _mix(a, b, t):
-    """``a`` moved ``t`` of the way toward ``b``."""
+def mix(a, b, t):
+    """``a`` moved ``t`` of the way toward ``b``.
+
+    Public because views need it: a colour derived from the palette follows
+    the theme, while the hardcoded hex it replaces does not. Prefer a real
+    palette key where one fits — this is for the shades between them (a
+    disabled label, a warning wash) that do not deserve their own token.
+    """
     ca, cb = rgb(a), rgb(b)
     return "%02x%02x%02x" % tuple(
         int(round(x + (y - x) * t)) for x, y in zip(ca, cb))
@@ -161,7 +167,7 @@ def _lift(colour):
     white on a dark theme, toward black on a light one."""
     r, g, b = rgb(colour)
     lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
-    return _mix(colour, "000000" if lum > 0.6 else "ffffff", 0.5)
+    return mix(colour, "000000" if lum > 0.6 else "ffffff", 0.5)
 
 
 def rgb(hexstr, alpha=None):

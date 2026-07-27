@@ -600,7 +600,8 @@ class TileRenderer:
             off = target is None
             return Button("", id=node_id, icon=icon, flat=True,
                           icon_size=22, tip=label,
-                          fg="6a6a6a" if off else "eeeeee",
+                          fg=(theme.mix(theme.SUBTLE_FG, theme.WINDOW_BG,
+                                        0.5) if off else theme.TEXT_FG),
                           hover=None if off else {"fill": theme.ACCENT,
                                                   "circle": True},
                           repeat=not off,

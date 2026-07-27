@@ -1,0 +1,20 @@
+{
+    "name": "Apple TV (Jellyfin)",
+    "palette": {
+        "WINDOW_BG": "d5e9f2",
+        "CARD_BG": "eaeaea",
+        "PANEL_BG": "bcbcbc",
+        "PLACEHOLDER_BG": "d3d3d3",
+        "BUTTON_BG": "b7c8d0",
+        "BUTTON_ACTIVE": "a2b1b8",
+        "ENTRY_BG": "fbfdfe",
+        "BORDER": "b3c4cc",
+        "TEXT_FG": "1c1e1f",
+        "SUBTLE_FG": "6f797e",
+        "ACCENT": "00729a",
+        "ACCENT_HOVER": "00a4dc",
+        "ACCENT_SOFT": "b8d8e3",
+        "ACCENT_FG": "ffffff"
+    },
+    "browse_bg": "#d5e9f2"
+}

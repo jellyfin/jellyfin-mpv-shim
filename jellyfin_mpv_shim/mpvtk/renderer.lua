@@ -1420,8 +1420,14 @@ local function draw_slider(ass, node, ex, ey, clip)
     local tx1 = ex + SLIDER_PAD
     local tw = node.w - 2 * SLIDER_PAD
     local ty = ey + node.h / 2
+    -- Two surfaces. The playback HUD's bars sit on the PICTURE and keep a
+    -- pale track that reads over any frame; an ordinary slider is app chrome
+    -- and follows the theme, or a light theme would give it a near-black
+    -- track. Same widget, same draw, different backdrop.
+    local ov = node.ov
     draw_rect(ass, tx1, ty - 3, tw, 6,
-        { fill = '3a3a3a', radius = 3, clip = clip })
+        { fill = ov and '3a3a3a' or state.tok.control_sunken,
+          radius = 3, clip = clip })
     -- buffered/seekable ranges, shaded like the jellyfin OSC's
     if node.ranges then
         for _, r in ipairs(node.ranges) do
@@ -1429,7 +1435,8 @@ local function draw_slider(ass, node, ex, ey, clip)
             if r2 > r1 then
                 draw_rect(ass, tx1 + tw * r1, ty - 3,
                     tw * (r2 - r1), 6,
-                    { fill = 'ffffff', a = 100, clip = clip })
+                    { fill = ov and 'ffffff' or state.tok.on_surface_muted,
+                      a = 100, clip = clip })
             end
         end
     end
@@ -1444,7 +1451,8 @@ local function draw_slider(ass, node, ex, ey, clip)
             if m > 0 and m < 1 then
                 local passed = m <= frac
                 draw_rect(ass, tx1 + tw * m - 1, ty - 5.5, 2, 11, {
-                    fill = passed and state.accent or 'ffffff',
+                    fill = passed and state.accent
+                           or (ov and 'ffffff' or state.tok.on_surface),
                     a = passed and 255 or 77,
                     clip = clip,
                 })
@@ -1452,7 +1460,8 @@ local function draw_slider(ass, node, ex, ey, clip)
         end
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
-        { fill = 'dddddd', radius = 8, clip = clip })
+        { fill = ov and 'dddddd' or state.tok.on_surface,
+          radius = 8, clip = clip })
 end
 
 -- Scrub semantics for seek-style sliders: 'change' fires (throttled)

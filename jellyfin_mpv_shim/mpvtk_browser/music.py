@@ -105,7 +105,8 @@ class MusicMixin:
         # Every control here is icon-only, so the tooltip is the only thing
         # that names it — the playback HUD has had them since it shipped and
         # this bar was simply never given any.
-        def tbtn(icon, node_id, cb, color="eeeeee", tip=None):
+        def tbtn(icon, node_id, cb, color=None, tip=None):
+            color = color or theme.TEXT_FG
             return Box([Icon(icon, 22, color=color)], id=node_id, pad=8,
                        bg=theme.BUTTON_BG, hover={"fill": theme.BUTTON_ACTIVE},
                        radius=6, align="center", direction="row", on_click=cb,
@@ -139,14 +140,16 @@ class MusicMixin:
                 Text(self._fmt(dur), size=14, w=48, color=theme.SUBTLE_FG),
                 tbtn("favorite" if np.get("favorite") else "favorite_border",
                      "np-fav", lambda: self._toggle_np_favorite(),
-                     color=theme.FAV_RED if np.get("favorite") else "eeeeee",
+                     color=(theme.FAV_RED if np.get("favorite")
+                            else theme.TEXT_FG),
                      tip=(_("Remove from Favorites") if np.get("favorite")
                           else _("Add to Favorites"))),
                 tbtn("repeat_one" if repeat == "one" else "repeat", "np-repeat",
                      lambda: self._cycle_repeat(),
-                     color=theme.ACCENT if repeat != "none" else "888888",
+                     color=(theme.ACCENT if repeat != "none"
+                            else theme.SUBTLE_FG),
                      tip=self._REPEAT_TIPS.get(repeat, _("Repeat"))),
-                Icon("volume_up", 20, color="aaaaaa"),
+                Icon("volume_up", 20, color=theme.SUBTLE_FG),
                 # Live for audible feedback, but only the release notifies:
                 # on_change fires per mouse-move, and a notifying set_volume
                 # wakes the timeline thread, which posts to the server.

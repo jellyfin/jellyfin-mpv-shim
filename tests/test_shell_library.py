@@ -1500,10 +1500,15 @@ class TestShippedThemesRender(unittest.TestCase):
 
         try:
             for _label, theme_id in themes.choices(force=True):
-                cfg = theme.apply(theme_id)
-                window_bg = cfg["palette"]["WINDOW_BG"]
+                # Construct FIRST: MpvtkBrowser.__init__ applies the theme
+                # named in settings, so applying before it would be undone.
+                # Then push to the toolkit, which is what production does and
+                # what makes the widget defaults follow the palette at all.
                 b = MpvtkBrowser(app=None, source=FakeSource())
                 b._pool = _SyncPool()
+                cfg = theme.apply(theme_id)
+                theme.apply_to_toolkit(glow=cfg.get("glow", False))
+                window_bg = cfg["palette"]["WINDOW_BG"]
                 b.route["_data"] = {"libraries": b.source.libraries,
                                     "rows": []}
                 nodes, _h = build_scene(b)
@@ -1518,6 +1523,7 @@ class TestShippedThemesRender(unittest.TestCase):
                                                    node["c"], window_bg))
         finally:
             theme.apply("default")
+            theme.apply_to_toolkit(glow=False)
 
 
 class TestSortModes(unittest.TestCase):

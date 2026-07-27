@@ -4,11 +4,10 @@ Run against a jellyfin-web checkout's src/themes/ values, which are
 transcribed into THEMES below. Writes into jellyfin_mpv_shim/themes/ and
 prints a contrast report for each.
 
-The two LIGHT themes are generated and deliberately NOT shipped: their
-palettes are fine, but mpvtk's widget defaults are a hardcoded dark
-palette that most of the browser inherits, so they render near-white text
-on a near-white page. tests/test_shell_library.py's rendered-scene check
-fails on them by design. Ship them once those defaults read the theme.
+The two LIGHT themes were held back at first: their palettes were fine, but
+mpvtk's widget defaults were a hardcoded dark palette that most of the
+browser inherited, so they rendered near-white text on a near-white page.
+They ship now that those defaults are design tokens the theme drives.
 
 jf-web's palettes are CSS: many values are rgba() overlays that only resolve
 against whatever they sit on. Our palette is opaque hex, so every translucent
@@ -233,12 +232,9 @@ if __name__ == "__main__":
     for tid, spec in THEMES.items():
         theme = build(spec)
         path = os.path.join(OUT, tid + ".json")
-        if spec["dark"]:
-            with open(path, "w") as fh:
-                json.dump(theme, fh, indent=4)
-                fh.write("\n")
-        else:
-            path += " (report only, not written -- see module docstring)"
+        with open(path, "w") as fh:
+            json.dump(theme, fh, indent=4)
+            fh.write("\n")
         p = theme["palette"]
         print("=== %-16s %s" % (tid, theme["name"]))
         for pair, floor in (

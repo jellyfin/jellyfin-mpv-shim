@@ -186,7 +186,10 @@ def banner(b):
                    on_click=b.show_login),
             Button(_("Retry"), id="banner-retry",
                    on_click=b._retry_connect),
-        ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")
+            # An amber warning wash: the theme's WARN_AMBER darkened far
+            # enough to sit behind body text rather than beside it.
+        ], pad=10, gap=10, align="center", h=48,
+            bg=theme.mix(theme.WARN_AMBER, theme.WINDOW_BG, 0.72))
     return None
 
 
