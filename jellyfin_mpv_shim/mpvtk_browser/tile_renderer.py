@@ -42,6 +42,7 @@ from ..i18n import _
 from ..mpvtk.scaling import px, raster
 from ..mpvtk.widgets import (
     Box,
+    Button,
     Column,
     HScroll,
     Icon,
@@ -80,10 +81,71 @@ ARROW_INSET = 8
 ARROW_BG = "202020"
 ARROW_ALPHA = 180
 
+#: Opacity multiplier for a page button that has run out of row to page.
+ARROW_DISABLED_ALPHA = 0.35
 
-def _arrow_bitmap(direction):
+#: How long a page button takes to ease the row to its new offset (ms).
+#: Long enough to read as movement and show which way the row went. It is
+#: deliberately longer than the renderer's hold-repeat interval: a held button
+#: re-aims mid-slide, and because the renderer reports the *destination* of a
+#: slide rather than its current position, each repeat pages a clean whole
+#: page and the row simply keeps gliding.
+PAGE_SLIDE_MS = 180
+
+#: Slack when comparing an offset against an end stop. The renderer clamps to
+#: its own physical max and hands the value back through a logical round-trip,
+#: so "at the end" is never exactly equal.
+_EDGE_EPS = 1.0
+
+
+def page_geometry(view, count, geom):
+    """``(pitch, per_page, max_offset)`` for a carousel of ``count`` tiles of
+    ``geom`` laid out in a ``view``-wide viewport. All logical px.
+
+    ``pitch`` is tile-to-tile distance. ``per_page`` is how many tiles are
+    *fully* visible at an item-aligned offset — the paging step. ``max_offset``
+    is the offset at which the last tile sits flush against the right edge.
+
+    The offset convention is the one :meth:`TileRenderer.hscroll_row` sets up:
+    the strip is inset by ``RING_PAD`` so a hover ring has room, so an offset
+    of ``k * pitch`` puts tile ``k`` at the left edge *with* that room. Aligning
+    to ``RING_PAD + k * pitch`` instead would shave the ring off.
+    """
+    pitch = geom.tile_w + geom.gap
+    # Tile k is fully visible at offset j*pitch while
+    # RING_PAD + (k - j) * pitch + tile_w <= view.
+    per = max(1, int((view - RING_PAD - geom.tile_w) // pitch) + 1)
+    total = 2 * RING_PAD + count * pitch - geom.gap
+    return pitch, per, max(0.0, total - view)
+
+
+def page_target(offset, direction, view, count, geom):
+    """Where a page button should scroll to, or ``None`` if the row is already
+    against that end (which is also what disables the button).
+
+    This is jellyfin-web's ``scrollerItemSlideIntoView`` behaviour: a page
+    advances by whole tiles, and a tile left half-cut at the trailing edge
+    becomes the leading tile of the next page rather than being skipped. Ported
+    by behaviour, not line by line — jf-web's index arithmetic assumes a bare
+    grid with no gap and no leading pad, and carries a compensating ``-1`` that
+    does not survive the translation.
+    """
+    pitch, per, max_offset = page_geometry(view, count, geom)
+    if direction < 0 and offset <= _EDGE_EPS:
+        return None
+    if direction > 0 and offset >= max_offset - _EDGE_EPS:
+        return None
+    # The leading tile: the leftmost one at least partially in view. Paging
+    # forward from it by a full page therefore lands on the first tile that
+    # was NOT fully visible — the half-cut one at the trailing edge.
+    leading = int((offset + _EDGE_EPS) // pitch)
+    target = (leading + direction * per) * pitch
+    return min(max(0.0, float(target)), max_offset)
+
+
+def _arrow_bitmap(direction, disabled=False):
     """A round, translucent carousel page button as a PIL bitmap at physical
-    size.
+    size, for the ``overlay`` arrow mode.
 
     Drawn as a BITMAP (not an ASS box) so it composites above the poster strip
     and alpha-blends — its transparent corners show the artwork underneath,
@@ -91,16 +153,14 @@ def _arrow_bitmap(direction):
     background. Supersampled and downscaled: the circle's antialiased edge is
     what sells it as round rather than as a notch cut out of the strip.
 
-    This used to be the opt-in half of a pair, with the stock theme drawing an
-    opaque ASS square and punching its rect out of the strip below. The punch
-    was the problem: it is a hard-edged rect, so the button read as a notch
-    cut into the artwork rather than a control floating over it, and it could
-    only ever be square and opaque because an ASS box cannot alpha-blend with
-    a bitmap sibling. One composited path serves both themes.
+    ``disabled`` fades the whole button rather than dropping it, so the row's
+    controls do not jump around as it reaches an end. It has to be baked in:
+    the renderer has no disabled state, and could not restyle a bitmap anyway.
     """
     from PIL import Image as PILImage, ImageDraw
 
     active = theme.active() or {}
+    fade = ARROW_DISABLED_ALPHA if disabled else 1.0
     w = px(ARROW_W)
     ss = 3  # supersample then downscale for smooth, anti-aliased edges
     big_w = w * ss
@@ -108,14 +168,16 @@ def _arrow_bitmap(direction):
     d = ImageDraw.Draw(big)
     d.ellipse([0, 0, big_w - 1, big_w - 1],
               fill=theme.rgb(active.get("arrow_bg", ARROW_BG),
-                             active.get("arrow_alpha", ARROW_ALPHA)))
+                             int(active.get("arrow_alpha", ARROW_ALPHA)
+                                 * fade)))
     s = big_w * 0.20
     c = big_w / 2.0
     lw = max(2, int(round(big_w * 0.09)))
     base = c + s * 0.5 if direction < 0 else c - s * 0.5
     tip = c - s * 0.5 if direction < 0 else c + s * 0.5
     d.line([(base, c - s), (tip, c), (base, c + s)],
-           fill=theme.rgb(theme.TEXT_FG, 255), width=lw, joint="curve")
+           fill=theme.rgb(theme.TEXT_FG, int(255 * fade)), width=lw,
+           joint="curve")
     lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
     return big.resize((w, w), lanczos)
 
@@ -369,7 +431,7 @@ class TileRenderer:
                   bleed=False, on_click=None, parent_item=False):
         """A titled horizontal carousel.
 
-        ``bleed`` runs the strip edge-to-edge so the page arrows sit flush
+        ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
         against the window's left and right sides; the title is indented to
         line up with the content instead. ``parent_item`` is passed through
         to the tiles (see ``_tile``)."""
@@ -378,10 +440,29 @@ class TileRenderer:
         # theme with larger covers can size its headings to match.
         heading = Text(title, size=(theme.active() or {}).get(
             "heading_size", 24), bold=True)
+        head = [heading]
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
             # the first tile instead.
-            heading = Row([Spacer(w=chrome.CONTENT_PAD), heading])
+            head.insert(0, Spacer(w=chrome.CONTENT_PAD))
+        buttons = self.page_buttons(row_id, len(items), geom, bleed)
+        if buttons is not None:
+            # jellyfin-web's placement: the pair rides the section heading,
+            # right-aligned. Nothing overlaps the artwork, which is the whole
+            # point of this mode — no compositing question to answer, and the
+            # buttons get hover and a disabled state for free.
+            head += [Spacer(flex=1)] + buttons
+            if bleed:
+                # ...and pull them in off the window edge, mirroring the
+                # indent the title got above.
+                head.append(Spacer(w=chrome.CONTENT_PAD))
+            # An explicit width, because a Column sizes each child to what it
+            # *measures* unless told to stretch, and a Row of a title plus a
+            # flex spacer measures to just the title — which parked the pair
+            # immediately after the heading text instead of at the far edge.
+            heading = Row(head, align="center", w=self.row_view_w(bleed))
+        elif len(head) > 1:
+            heading = Row(head)
         return Column(
             [
                 heading,
@@ -467,62 +548,155 @@ class TileRenderer:
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
                         v=s.get("v", 0), w=s["lw"], h=s["lh"])
-    def hscroll_row(self, content, row_id, h, count, geom, bleed=False):
-        """An HScroll with ◀ ▶ page buttons floating over its edges.
+    def row_view_w(self, bleed):
+        """Laid-out width of a carousel's scroll viewport. Both the overflow
+        test and the paging arithmetic measure against this."""
+        avail = (self.art._size[0] if self.art._size else 1280)
+        return avail if bleed else avail - 2 * chrome.CONTENT_PAD
 
-        The arrows genuinely overlay the poster strip: a Stack layers them on
+    def _page_state(self, row_id, count, geom, bleed):
+        """``(view, prev_target, next_target)`` for a carousel's page buttons,
+        or ``None`` when it should not have any.
+
+        A ``None`` target is an end stop, i.e. a disabled button. Computed once
+        and shared by both arrow modes so the two cannot disagree about whether
+        a row overflows.
+        """
+        view = self.row_view_w(bleed)
+        content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
+        if content_w <= view or self.nav_mode():
+            # keyboard/remote navigation auto-scrolls the row as focus moves,
+            # so pointer paging buttons would be dead weight
+            return None
+        offset = self.scroll.offset(row_id)
+        return (view,
+                page_target(offset, -1, view, count, geom),
+                page_target(offset, 1, view, count, geom))
+
+    def page_buttons(self, row_id, count, geom, bleed):
+        """The heading-row page buttons (``header`` arrow mode), or ``None``.
+
+        jellyfin-web's design, and the default: the pair sits in the section
+        heading rather than on the artwork, so it can be an ordinary pair of
+        flat HUD-style buttons — hover works, and an exhausted direction dims
+        instead of misleading. ``None`` for themes in ``overlay`` mode, whose
+        buttons are drawn by :meth:`hscroll_row` instead.
+        """
+        if (theme.active() or {}).get("arrow_mode", "header") != "header":
+            return None
+        state = self._page_state(row_id, count, geom, bleed)
+        if state is None:
+            return None
+        view, prev_to, next_to = state
+
+        def button(icon, node_id, direction, target, label):
+            # Disabled is a dimmed glyph and no hover wash, but the callback
+            # stays bound: page_row re-reads the live offset and no-ops at an
+            # end stop anyway, so an unbound button would only be *less*
+            # correct — `target` is a build-time snapshot and can be up to
+            # ScrollState.STEP behind by the time the click lands. Dropping
+            # on_click would also drop the node entirely (Box emits one only
+            # when it has a bg, a border or a click), taking the id with it.
+            off = target is None
+            return Button("", id=node_id, icon=icon, flat=True,
+                          icon_size=22, tip=label,
+                          fg="6a6a6a" if off else "eeeeee",
+                          hover=None if off else {"fill": theme.ACCENT,
+                                                  "circle": True},
+                          repeat=not off,
+                          on_click=lambda: self.page_row(
+                              row_id, direction, count, geom, bleed))
+
+        return [button("chevron_left", row_id + "-pl", -1, prev_to,
+                       _("Previous")),
+                button("chevron_right", row_id + "-pr", 1, next_to,
+                       _("Next"))]
+
+    def hscroll_row(self, content, row_id, h, count, geom, bleed=False):
+        """An HScroll, with ◀ ▶ page buttons floating over its edges in the
+        ``overlay`` arrow mode.
+
+        Those arrows genuinely overlay the poster strip: a Stack layers them on
         top, and each is a composited BITMAP, which is the only thing that can
         draw *over* a strip and alpha-blend with it (bitmaps composite above
-        all script ASS — GUIDE §6). They hold-repeat while pressed, and are
-        omitted when the row doesn't overflow.
+        all script ASS — GUIDE §6). They hold-repeat while pressed, fade at an
+        end stop, and are omitted when the row doesn't overflow.
+
+        In the default ``header`` mode there is nothing over the strip at all —
+        :meth:`page_buttons` puts the pair in the section heading instead.
 
         The strip is inset by RING_PAD so a tile's hover ring has room inside
         the viewport; the renderer clips it to the container, and without the
         inset its top edge was shaved off under the heading above."""
+        state = self._page_state(row_id, count, geom, bleed)
+        # Watch the container only when it has page buttons, and only for
+        # end-stop crossings. Without a watch the renderer scrolls the row
+        # entirely on its own and never tells Python, so the buttons' disabled
+        # state was frozen at whatever the first build saw — back permanently
+        # dim, forward permanently lit, however far the row had been paged.
+        watch = None
+        if state is not None:
+            watch = (lambda off, mx, rid=row_id:
+                     self.scroll.on_scroll(rid, off, mx, edges_only=True))
         scroll = HScroll(Box([content], pad=RING_PAD),
-                         id=row_id, h=h, flex=1)
-        avail = (self.art._size[0] if self.art._size else 1280)
-        if not bleed:
-            avail -= 2 * chrome.CONTENT_PAD
-        content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
-        if content_w <= avail or self.nav_mode():
-            # keyboard/remote navigation auto-scrolls the row as focus
-            # moves — pointer paging arrows would only cover artwork
+                         id=row_id, h=h, flex=1, on_scroll=watch)
+        if state is None or (theme.active() or {}).get(
+                "arrow_mode", "header") != "overlay":
             return Row([scroll], h=h)
+        _view, prev_to, next_to = state
 
-        def arrow(node_id, direction, anchor):
+        def arrow(node_id, direction, anchor, target):
             # "w"/"e" centre on the whole strip, which includes the caption
             # block under the tile; shift up by half of it so the arrow sits
             # on the artwork.
             dy = -(geom.strip_h - geom.tile_h) / 2
-            # A round arrow needs more clearance than the old square one: its
-            # circle reads as sitting ON the artwork, so leaving it at the
-            # ring padding looked shoved against the window edge (a square
-            # button squares off into the edge and does not).
+            # A round arrow needs more clearance than a square one: its circle
+            # reads as sitting ON the artwork, so leaving it at the ring
+            # padding looked shoved against the window edge (a square button
+            # squares off into the edge and does not).
             dx = ARROW_INSET if anchor == "w" else -ARROW_INSET
-            img = _arrow_bitmap(direction)
+            off = target is None
+            img = _arrow_bitmap(direction, disabled=off)
             bm = self.art.strips.bitmap(
-                ("carousel-arrow", direction, px(ARROW_W)), img,
+                ("carousel-arrow", direction, px(ARROW_W), off), img,
                 lsize=(ARROW_W, ARROW_W))
             # No hover glow here on purpose: a halo would have to be ASS,
             # and mpv composites overlay bitmaps ABOVE all script ASS
             # (GUIDE §6) — over a poster strip the glow simply disappears
             # under the artwork. It would have to be baked into the bitmap.
+            # Bound in both states, as in page_buttons: page_row re-checks the
+            # live offset, so a faded arrow clicked just as the row came off
+            # its end stop still does the right thing.
             return Image(bm["src"], bm["iw"], bm["ih"],
                          v=bm.get("v", 0), w=bm["lw"], h=bm["lh"],
                          id=node_id, anchor=anchor, dx=dx, dy=dy,
-                         repeat=True,
-                         on_click=lambda: self.page_row(row_id, direction))
+                         repeat=not off,
+                         on_click=lambda: self.page_row(row_id, direction,
+                                                        count, geom, bleed))
 
         return Stack([
             scroll,
-            arrow(row_id + "-pl", -1, "w"),
-            arrow(row_id + "-pr", 1, "e"),
+            arrow(row_id + "-pl", -1, "w", prev_to),
+            arrow(row_id + "-pr", 1, "e", next_to),
         ], h=h)
-    def page_row(self, row_id, direction):
-        # Ask the renderer to page the horizontal scroll container.
-        if self.get_app() is not None and hasattr(self.get_app(), "scroll"):
-            self.get_app().scroll(row_id, direction)
+    def page_row(self, row_id, direction, count, geom, bleed=False):
+        """Page a carousel one screenful of whole tiles (jellyfin-web's
+        ``scrollerItemSlideIntoView``; see :func:`page_target`).
+
+        The offset is re-read from the renderer here rather than reused from
+        build time: a scroll shorter than ``ScrollState.STEP`` never triggered
+        a rebuild, so the built-in copy can be that far behind at the moment of
+        a click — and paging from a stale offset lands on the wrong tile.
+        """
+        app = self.get_app()
+        if app is None or not hasattr(app, "scroll_to"):
+            return
+        self.scroll.refresh(app)
+        target = page_target(self.scroll.offset(row_id), direction,
+                             self.row_view_w(bleed), count, geom)
+        if target is None:
+            return
+        app.scroll_to(row_id, target, ms=PAGE_SLIDE_MS)
     def cols(self, w, geom):
         # _body_w, not w - 32: grids sit in the same padded scroll column,
         # so ignoring the scrollbar fits one tile too many at some widths

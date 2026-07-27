@@ -2264,6 +2264,15 @@ local scroll_notify_timers = {}
 local scroll_last_notify = {}
 local SCROLL_NOTIFY_INTERVAL = 0.15
 
+-- Where a container is *settling* to, while slide_scroll eases it there.
+-- Both the published snapshot and the scroll event report this rather than
+-- the in-flight value, because every consumer wants the destination:
+-- virtualization should build the window the row is arriving at, park()
+-- should remember it, and the carousel page buttons page from it — which is
+-- what lets hold-repeat chain whole pages instead of re-deriving one from a
+-- half-finished slide (the slide is longer than the repeat interval).
+local scroll_dest = {}
+
 -- Scroll notification for watched containers (drives windowed/infinite
 -- scrolling on the Python side). This is a leading-edge THROTTLE, not
 -- a debounce: the first tick notifies immediately and sustained
@@ -2277,7 +2286,7 @@ local function fire_scroll(id)
     if node and node.t == 'scroll' then
         send({
             t = 'scroll', id = id,
-            offset = state.scroll[id] or 0,
+            offset = scroll_dest[id] or state.scroll[id] or 0,
             max = scroll_max(node),
         })
     end
@@ -2305,17 +2314,105 @@ end
 -- throttled scroll event is the async path). user-data needs mpv >=
 -- 0.36; a failed set is harmless on older builds.
 local function publish_scroll()
-    pcall(mp.set_property_native, 'user-data/mpvtk/scroll', state.scroll)
+    local out = state.scroll
+    if next(scroll_dest) ~= nil then
+        out = {}
+        for k, v in pairs(state.scroll) do
+            out[k] = v
+        end
+        -- Overlaid second, and not merged into the loop above: a container
+        -- sliding away from rest has no state.scroll entry yet, so keying off
+        -- that map alone published nothing for exactly the rows that are
+        -- moving.
+        for k, v in pairs(scroll_dest) do
+            out[k] = v
+        end
+    end
+    pcall(mp.set_property_native, 'user-data/mpvtk/scroll', out)
 end
 
-local function set_scroll(node, off)
+-- Running slide_scroll animations, by container id.
+local scroll_anim = {}
+
+local function stop_slide(id)
+    local a = scroll_anim[id]
+    if a then
+        a.timer:kill()
+        scroll_anim[id] = nil
+        scroll_dest[id] = nil
+    end
+end
+
+-- `quiet` moves the container without telling Python. Only slide_scroll's
+-- intermediate frames use it: the destination was announced when the slide
+-- started, so re-announcing every frame would publish the same value ~7 times
+-- over and fire the watch event off a position nothing should act on.
+local function set_scroll_now(node, off, quiet)
     off = clamp(off, 0, scroll_max(node))
     if state.scroll[node.id] ~= off then
         state.scroll[node.id] = off
-        publish_scroll()
-        if node.watch then notify_scroll(node.id) end
+        if not quiet then
+            publish_scroll()
+            if node.watch then notify_scroll(node.id) end
+        end
         request_render()
     end
+end
+
+local function set_scroll(node, off)
+    -- Any direct move cancels an animation in flight, so a wheel notch or a
+    -- drag during a slide takes over instead of fighting it to the end.
+    stop_slide(node.id)
+    set_scroll_now(node, off)
+end
+
+-- Ease a container to `target` over `dur` seconds instead of jumping. Used by
+-- the carousel page buttons: a page is a whole viewport of movement, and
+-- landing on it instantly gives no sense of which way the row went.
+--
+-- This is only safe now that nothing is punched out of the strip. An
+-- occlude=True button subtracts a STATIC rect from the image below it, so
+-- sliding the artwork under one made the notch crawl across the posters —
+-- which is why paging used to be a jump.
+local function slide_scroll(node, target, dur)
+    stop_slide(node.id)
+    local id = node.id
+    local from = state.scroll[id] or 0
+    target = clamp(target, 0, scroll_max(node))
+    if dur <= 0 or math.abs(target - from) < 1 then
+        set_scroll_now(node, target)
+        return
+    end
+    -- Announce the destination up front, once. Python acts on where the row
+    -- is going, not on the frames it passes through.
+    scroll_dest[id] = target
+    publish_scroll()
+    if node.watch then notify_scroll(id) end
+    local t0 = mp.get_time()
+    local a = {}
+    a.timer = mp.add_periodic_timer(TICK, function()
+        -- Re-look up by id: a rebuild between ticks replaces the node table,
+        -- and clamping against the old one's content size would be wrong.
+        local cur = state.byid[id]
+        if not cur or cur.t ~= 'scroll' then
+            stop_slide(id)
+            return
+        end
+        local p = (mp.get_time() - t0) / dur
+        if p >= 1 then
+            stop_slide(id)   -- clears scroll_dest, so the final set publishes
+            set_scroll_now(cur, target)
+            publish_scroll()  -- ...even if rounding already landed us there
+            return
+        end
+        -- Ease-out cubic: leaves quickly, settles gently. Rounded because
+        -- overlay positions are whole pixels — a fractional offset just
+        -- jitters the strip between two of them.
+        local e = 1 - (1 - p) ^ 3
+        set_scroll_now(cur, math.floor(from + (target - from) * e + 0.5),
+                       true)
+    end)
+    scroll_anim[id] = a
 end
 
 local function tb_menu_action(node, label)
@@ -4072,12 +4169,23 @@ local function center_of(id)
 end
 
 mp.register_script_message('mpvtk-scroll', function(json)
-    -- Page a scroll container (by id) by ~90% of its viewport along its
-    -- axis — drives the on-screen carousel arrow buttons.
+    -- Move a scroll container (by id) along its axis. Two forms:
+    --   {id=..., to=px}   absolute (clamped) — what the carousel page
+    --                     buttons use, because aligning the target to item
+    --                     boundaries needs the tile pitch, which only
+    --                     Python knows (tile_renderer.page_target).
+    --                     Optional `ms` eases into it instead of jumping.
+    --   {id=..., dir=+-1} page by ~90% of the viewport, for callers with
+    --                     no item grid to align to
     local cmd = utils.parse_json(json)
     if not cmd or not cmd.id then return end
     local node = state.byid[cmd.id]
     if not node or node.t ~= 'scroll' then return end
+    if cmd.to ~= nil then
+        slide_scroll(node, tonumber(cmd.to) or 0,
+                     (tonumber(cmd.ms) or 0) / 1000)
+        return
+    end
     local page = ((node.axis == 'x') and node.w or node.h) * 0.9
     set_scroll(node, (state.scroll[cmd.id] or 0) + (cmd.dir or 1) * page)
 end)

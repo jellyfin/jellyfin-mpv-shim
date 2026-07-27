@@ -26,6 +26,11 @@ DEFAULT = {
     "glow": False,       # blurred accent halo behind titles + on card selection
     "rounded": False,    # rounded cover cards + cover-crop (False = stock square/letterbox)
     "accent_buttons": False,  # accent-bordered top-bar buttons
+    # Where a carousel's page buttons live. "header" is jellyfin-web's design
+    # and the default: a flat pair in the section heading, clear of the
+    # artwork, with a disabled state. "overlay" floats round translucent
+    # bitmaps over the strip's edges — see tile_renderer.hscroll_row.
+    "arrow_mode": "header",
     # Fill of the round carousel page arrow (see tile_renderer._arrow_bitmap).
     # Neutral dark grey rather than the palette's BUTTON_BG: the arrow floats
     # ON artwork, not in chrome, so it wants the same "player overlay
@@ -56,6 +61,9 @@ NEBULA = {
     "glow": True,
     "rounded": True,
     "accent_buttons": True,
+    # Big covers with the controls ON them, jellyfin-web's TV layout rather
+    # than its web one — the reason the composited-bitmap path exists.
+    "arrow_mode": "overlay",
     # Nebula does tint its arrows — the violet wash is part of the look, and
     # over its own deep-violet artwork frames it still reads as furniture.
     "arrow_bg": "2a1656",

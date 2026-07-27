@@ -4,7 +4,7 @@
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
-from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+from jellyfin_mpv_shim.mpvtk_browser import theme, tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 from tests._shell_harness import (
@@ -79,56 +79,123 @@ class TestTileShapes(unittest.TestCase):
         self.assertIs(g, POSTER_GEOM)
         self.assertEqual(it, "Primary")
 
+    def _long_row(self, n=30):
+        """A libraries row with more tiles than fit, so it gets page buttons."""
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(n)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        return {n["id"]: n for n in nodes}, nodes
+
     def test_scroll_arrows_appear_only_when_the_row_overflows(self):
-        # One library fits, so no arrows; a long row gets them, floating over
-        # the strip's left and right edges.
+        # One library fits, so no page buttons at all.
         self.b.route["_data"] = {"libraries": self.b.source.libraries,
                                  "rows": []}
         nodes, _h = build_scene(self.b)
         self.assertNotIn("row-libs-pl", ids(nodes))
 
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
-        nodes, _h = build_scene(self.b)
-        by_id = {n["id"]: n for n in nodes}
+        by_id, _nodes = self._long_row()
         self.assertIn("row-libs-pl", by_id)
         self.assertIn("row-libs-pr", by_id)
+
+    def test_default_page_buttons_ride_the_heading_clear_of_the_artwork(self):
+        """jellyfin-web's design, and the reason the default needs no
+        compositing trick at all: the pair sits in the section heading, above
+        the strip, so nothing is drawn over a poster."""
+        by_id, _nodes = self._long_row()
         strip = by_id["row-libs"]
         left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
-        pad = tile_renderer.ARROW_INSET
-        # Inset from the scroll container's edges, clear of the window edge.
-        self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
-        self.assertAlmostEqual(right["x"] + right["w"],
-                               strip["x"] + strip["w"] - pad, places=1)
-        # Circular, and small enough to cover little artwork.
-        self.assertEqual(left["w"], left["h"])
-        self.assertLess(left["h"], strip["h"] / 2)
+        for b in (left, right):
+            self.assertLessEqual(b["y"] + b["h"], strip["y"] + 1)
+        # ...and right-aligned, prev before next.
+        self.assertLess(left["x"], right["x"])
+        self.assertGreater(left["x"], strip["x"] + strip["w"] / 2)
 
-    def test_arrows_composite_over_the_strip_instead_of_punching_it(self):
-        """The arrows are bitmaps, which mpv composites ABOVE the strip and
-        alpha-blends with it. The ASS-button version could not do either, so
-        it had to punch an occluder rect out of the strip below — a hard-edged
-        notch in the artwork. No node may ask for that punch any more."""
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
+    def test_a_page_button_with_nowhere_to_go_is_dimmed_not_hot(self):
+        """An unscrolled row can only page forward. The back button stays put
+        and loses its hover wash rather than disappearing, so the pair does not
+        shuffle around as the row reaches its ends."""
+        by_id, _nodes = self._long_row()
+        left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+        self.assertNotIn("hover", left)
+        self.assertIn("hover", right)
+        # Only the live one hold-repeats.
+        self.assertNotIn("rpt", left)
+        self.assertTrue(right.get("rpt"))
+
+    def test_the_disabled_state_follows_the_row_as_it_is_paged(self):
+        """The row's scroll lives entirely in the renderer, which only reports
+        back when the container asks to be watched. Without that watch the
+        buttons were built once at offset 0 and never restyled: back
+        permanently dim, forward permanently lit, however far the row had been
+        paged."""
+        by_id, _nodes = self._long_row()
+        self.assertNotIn("hover", by_id["row-libs-pl"])   # at the start
+
+        # Somewhere in the middle: both directions are live.
+        self.b._scroll.on_scroll("row-libs", 900, 4000, edges_only=True)
+        by_id, _nodes = self._long_row()
+        self.assertIn("hover", by_id["row-libs-pl"])
+        self.assertIn("hover", by_id["row-libs-pr"])
+
+        # ...and against the far end, forward goes dim instead.
+        strip = by_id["row-libs"]
+        max_offset = strip["cw"] - strip["w"]
+        self.b._scroll.on_scroll("row-libs", max_offset, max_offset,
+                                edges_only=True)
+        by_id, _nodes = self._long_row()
+        self.assertIn("hover", by_id["row-libs-pl"])
+        self.assertNotIn("hover", by_id["row-libs-pr"])
+
+    def test_a_watch_is_only_asked_for_when_the_row_can_page(self):
+        """Watching costs a renderer->Python event per scroll, so a row that
+        fits does not ask for one."""
+        self.b.route["_data"] = {"libraries": self.b.source.libraries,
+                                 "rows": []}
         nodes, _h = build_scene(self.b)
-        self.assertEqual([n for n in nodes if n["t"] == "occ"], [])
         by_id = {n["id"]: n for n in nodes}
-        for nid in ("row-libs-pl", "row-libs-pr"):
-            self.assertEqual(by_id[nid]["t"], "img")
+        self.assertNotIn("watch", by_id["row-libs"])
+
+        by_id, _nodes = self._long_row()
+        self.assertTrue(by_id["row-libs"].get("watch"))
+
+    def test_overlay_mode_composites_over_the_strip_instead_of_punching_it(self):
+        """Nebula keeps the arrows ON the artwork. They are bitmaps, which mpv
+        composites ABOVE the strip and alpha-blends with it. The ASS-button
+        version could not do either, so it had to punch an occluder rect out of
+        the strip below — a hard-edged notch in the artwork."""
+        theme.apply("nebula")
+        try:
+            by_id, nodes = self._long_row()
+            self.assertEqual([n for n in nodes if n["t"] == "occ"], [])
+            strip = by_id["row-libs"]
+            left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+            for b in (left, right):
+                self.assertEqual(b["t"], "img")
+            pad = tile_renderer.ARROW_INSET
+            self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
+            self.assertAlmostEqual(right["x"] + right["w"],
+                                   strip["x"] + strip["w"] - pad, places=1)
+            # Circular, and small enough to cover little artwork.
+            self.assertEqual(left["w"], left["h"])
+            self.assertLess(left["h"], strip["h"] / 2)
+            # Same end-stop rule as the header pair, baked into the bitmap
+            # rather than restyled (the renderer cannot restyle an image).
+            self.assertNotIn("rpt", left)
+            self.assertTrue(right.get("rpt"))
+            self.assertNotEqual(left["src"], right["src"])
+        finally:
+            theme.apply("default")
 
     def test_arrows_hold_repeat(self):
         """Survives the move to bitmaps: Image carries ``repeat`` too, and the
         renderer keys hold-repeat off click/rpt regardless of node type."""
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
-        nodes, _h = build_scene(self.b)
-        by_id = {n["id"]: n for n in nodes}
-        self.assertTrue(by_id["row-libs-pl"].get("rpt"))
-        self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+        theme.apply("nebula")
+        try:
+            by_id, _nodes = self._long_row()
+            self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+        finally:
+            theme.apply("default")
 
     def test_downloaded_and_glyph(self):
         self.b.tiles._downloaded = {"m1"}

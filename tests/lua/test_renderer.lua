@@ -443,6 +443,51 @@ wheel("home", 1)
 eq(offset("home"), 130, "snapped_scrolling steps one breakpoint on the home page")
 fake.send("mpvtk-wheel", fake.token({ snapped = false }))
 
+-- ================================================ absolute scroll + slide
+
+-- The carousel page buttons aim at an exact offset (Python owns the tile
+-- pitch, so it owns the alignment), optionally easing into it.
+
+local function hscroll(id, w, cw, extra)
+    local node = { id = id, t = "scroll", axis = "x",
+                   x = 0, y = 0, w = w, h = 200, cw = cw, ch = 200 }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+scene({ hscroll("row", 500, 3000) })
+fake.send("mpvtk-scroll", fake.token({ id = "row", to = 880 }))
+eq(offset("row"), 880, "an absolute scroll lands exactly on the target")
+
+fake.send("mpvtk-scroll", fake.token({ id = "row", to = 99999 }))
+eq(offset("row"), 2500, "an absolute scroll past the end clamps")
+
+-- A slide reports its DESTINATION straight away, before it has moved a
+-- pixel. Everything downstream wants where the row is going: virtualization
+-- builds the arriving window, and a page button held down chains whole pages
+-- instead of re-deriving one from a half-finished slide.
+scene({ hscroll("row2", 500, 3000) })
+fake.send("mpvtk-scroll", fake.token({ id = "row2", to = 1000, ms = 200 }))
+eq(offset("row2"), 1000, "a slide publishes its destination immediately")
+
+-- ...and it converges there once the clock runs out.
+fake.advance(1.0)
+fake.fire_timers()
+eq(offset("row2"), 1000, "a slide settles on its target")
+
+-- User input beats an animation in flight: the row stops where the wheel
+-- put it, and the published offset stops claiming the old destination.
+scene({ hscroll("row3", 500, 3000) })
+fake.send("mpvtk-scroll", fake.token({ id = "row3", to = 2000, ms = 200 }))
+eq(offset("row3"), 2000, "slide armed")
+fake.send("mpvtk-scroll", fake.token({ id = "row3", dir = -1 }))
+ok(offset("row3") < 2000, "a direct scroll cancels the slide",
+   string.format("offset stayed at %s", tostring(offset("row3"))))
+local after_cancel = offset("row3")
+fake.advance(1.0)
+fake.fire_timers()
+eq(offset("row3"), after_cancel, "the cancelled slide does not resume")
+
 -- ========================================================== teardown
 
 scene({})
