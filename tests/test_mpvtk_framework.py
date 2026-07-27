@@ -640,31 +640,30 @@ class TestGridRowSpecs(unittest.TestCase):
 
 
 class TestThemeAccent(unittest.TestCase):
-    """The toolkit draws a few things in "the app's colour"; an embedding app
-    sets it once instead of overriding every call site."""
+    """The toolkit draws in the app's colours; an embedding app sets them
+    once instead of overriding every call site."""
 
     def setUp(self):
         from jellyfin_mpv_shim.mpvtk import theme
         self.theme = theme
-        self._saved = theme.palette()
-        self.addCleanup(lambda: theme.set_accent(
-            self._saved["accent"], hover=self._saved["hover"],
-            soft=self._saved["soft"], on_accent=self._saved["on_accent"]))
+        saved = {k.upper(): v for k, v in theme.palette().items()
+                 if k != "glow"}
+        self.addCleanup(lambda: theme.set_tokens(**saved))
 
     def test_derives_hover_and_soft_from_one_colour(self):
         p = self.theme.set_accent("00a4dc")
         self.assertEqual(p["accent"], "00a4dc")
         # hover is lighter, soft is darker — same hue family, not arbitrary.
-        self.assertGreater(sum(self.theme._rgb(p["hover"])),
+        self.assertGreater(sum(self.theme._rgb(p["accent_hover"])),
                            sum(self.theme._rgb(p["accent"])))
-        self.assertLess(sum(self.theme._rgb(p["soft"])),
+        self.assertLess(sum(self.theme._rgb(p["accent_soft"])),
                         sum(self.theme._rgb(p["accent"])))
 
     def test_explicit_values_win(self):
         p = self.theme.set_accent("00a4dc", hover="112233", soft="445566",
                                   on_accent="000000")
-        self.assertEqual((p["hover"], p["soft"], p["on_accent"]),
-                         ("112233", "445566", "000000"))
+        self.assertEqual((p["accent_hover"], p["accent_soft"],
+                          p["on_accent"]), ("112233", "445566", "000000"))
 
     def test_leading_hash_is_tolerated(self):
         self.assertEqual(self.theme.set_accent("#00a4dc")["accent"], "00a4dc")
@@ -687,6 +686,38 @@ class TestThemeAccent(unittest.TestCase):
         nodes, _h = layout(table, 300, 200)
         fills = {n.get("fill") for n in nodes if n.get("id") == "r0"}
         self.assertIn(self.theme.SOFT, fills)
+
+    def test_set_accent_leaves_the_other_tokens_alone(self):
+        """An app whose only opinion is its brand colour should not have to
+        restate the greys."""
+        before = self.theme.CONTROL_BG
+        self.theme.set_accent("00a4dc")
+        self.assertEqual(self.theme.CONTROL_BG, before)
+        self.assertEqual(self.theme.ACCENT, "00a4dc")
+
+    def test_set_tokens_replaces_rather_than_merges(self):
+        """What makes a runtime theme swap safe: a token the incoming theme
+        does not mention resets to stock rather than keeping the old
+        theme's value."""
+        self.theme.set_tokens(CONTROL_BG="123456")
+        self.assertEqual(self.theme.CONTROL_BG, "123456")
+        self.theme.set_tokens(ACCENT="00a4dc")
+        self.assertEqual(self.theme.CONTROL_BG,
+                         self.theme.TOKENS["CONTROL_BG"])
+
+    def test_an_unknown_token_is_refused(self):
+        with self.assertRaises(KeyError):
+            self.theme.set_tokens(CONTROL_BAKGROUND="123456")
+        with self.assertRaises(AttributeError):
+            self.theme.CONTROL_BAKGROUND
+
+    def test_every_token_reaches_the_renderer(self):
+        """The renderer draws text fields, dropdowns, scrollbars and tooltips
+        itself, so a token that never lands in the payload is a control no
+        theme can reach."""
+        payload = self.theme.palette()
+        for name in self.theme.TOKENS:
+            self.assertIn(name.lower(), payload)
 
     def test_imagemap_hover_ring_follows_the_accent(self):
         from jellyfin_mpv_shim.mpvtk.layout import layout

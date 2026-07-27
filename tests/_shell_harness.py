@@ -21,8 +21,18 @@ import time
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components, home_sections
+from jellyfin_mpv_shim.mpvtk_browser import themes
 from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+# Ignore the developer's own theme directory. The Settings screen lists the
+# themes it can actually find, so without this a scene built here depends on
+# what is in ~/.config/jellyfin-mpv-shim/themes -- the settings snapshot bakes
+# the list into a dropdown's items, and anyone who had written a theme would
+# get a failure that reproduced nowhere else. Shipped themes only.
+_real_theme_dirs = themes.theme_dirs
+themes.theme_dirs = lambda: (_real_theme_dirs()[0], None)
+themes.load(force=True)
 
 
 def editor_page(b, route):

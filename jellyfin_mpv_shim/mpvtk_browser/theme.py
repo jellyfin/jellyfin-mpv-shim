@@ -101,16 +101,67 @@ def chrome_button_style():
             "hover": {"fill": _palette["BUTTON_ACTIVE"], "glow": True}}
 
 
+def toolkit_tokens():
+    """This palette expressed as mpvtk's design tokens.
+
+    The two vocabularies are deliberately different. Ours is the *app's*
+    (CARD_BG, SUBTLE_FG, WATCHED_GREEN) and mpvtk's is a widget toolkit's
+    (CONTROL_SUNKEN, ON_SURFACE_MUTED); this is the one place that knows
+    both. Before it existed, mpvtk was handed a single accent and hardcoded
+    every other colour it drew, so a text field, a dropdown, its popup, a
+    scrollbar and a tooltip were fixed shades of grey no theme could reach.
+
+    Three mpvtk tokens have no equivalent here and are left at their stock
+    values on purpose — SCRIM, CHIP_BG, CHIP_FG are drawn over *video*, and
+    a light theme must not turn the playback HUD white.
+    """
+    return {
+        "ON_SURFACE": _palette["TEXT_FG"],
+        "ON_SURFACE_MUTED": _palette["SUBTLE_FG"],
+        # Between muted and the background: placeholder and disabled text.
+        "ON_SURFACE_FAINT": _mix(_palette["SUBTLE_FG"],
+                                 _palette["WINDOW_BG"], 0.45),
+        "ON_SURFACE_STRONG": _lift(_palette["TEXT_FG"]),
+        "CONTROL_BG": _palette["BUTTON_BG"],
+        "CONTROL_HOVER": _palette["BUTTON_ACTIVE"],
+        "CONTROL_SUNKEN": _palette["ENTRY_BG"],
+        "OUTLINE": _palette["BORDER"],
+        "OUTLINE_STRONG": _palette["BORDER"],
+        "POPUP_BG": _palette["PANEL_BG"],
+        "OVERLAY_BG": _palette["CARD_BG"],
+        "SCROLLBAR_THUMB": _mix(_palette["BORDER"], _palette["TEXT_FG"], 0.25),
+        "SCROLLBAR_THUMB_ACTIVE": _mix(_palette["BORDER"],
+                                       _palette["TEXT_FG"], 0.6),
+        "SELECTION": _palette["ACCENT_SOFT"],
+        "ACCENT": _palette["ACCENT"],
+        "ACCENT_HOVER": _palette["ACCENT_HOVER"],
+        "ACCENT_SOFT": _palette["ACCENT_SOFT"],
+        "ON_ACCENT": _palette["ACCENT_FG"],
+    }
+
+
 def apply_to_toolkit(glow=False):
-    """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so the
-    toolkit's own accented bits — a checkbox fill, a hover ring, a focused
-    textbox border, the slider — match the app's accent, and the renderer
-    knows whether to draw the themed title/selection glow."""
+    """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so every
+    widget default and every control the renderer draws for itself follows
+    the app's theme rather than a hardcoded dark palette."""
     from ..mpvtk import theme as tk
 
-    tk.set_accent(_palette["ACCENT"], hover=_palette["ACCENT_HOVER"],
-                  soft=_palette["ACCENT_SOFT"],
-                  on_accent=_palette["ACCENT_FG"], glow=glow)
+    tk.set_tokens(glow=glow, **toolkit_tokens())
+
+
+def _mix(a, b, t):
+    """``a`` moved ``t`` of the way toward ``b``."""
+    ca, cb = rgb(a), rgb(b)
+    return "%02x%02x%02x" % tuple(
+        int(round(x + (y - x) * t)) for x, y in zip(ca, cb))
+
+
+def _lift(colour):
+    """A touch more contrast than ``colour``, for hover emphasis: toward
+    white on a dark theme, toward black on a light one."""
+    r, g, b = rgb(colour)
+    lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
+    return _mix(colour, "000000" if lum > 0.6 else "ffffff", 0.5)
 
 
 def rgb(hexstr, alpha=None):

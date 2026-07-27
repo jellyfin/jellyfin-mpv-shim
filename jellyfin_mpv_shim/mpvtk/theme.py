@@ -1,33 +1,90 @@
-"""The toolkit's accent colour.
+"""The toolkit's design tokens.
 
-mpvtk draws a handful of things in "the app's colour": a checkbox's fill, a
-progress bar, a tile's hover ring, and — renderer-side — the focused
-textbox border, the open dropdown's border and the slider thumb. Those used
-to be a hardcoded ``7aa2f7`` scattered across widgets.py, layout.py and
-renderer.lua, which meant an embedding app with its own palette ended up
-with two unrelated blues on screen.
+mpvtk used to know exactly one colour — the app's accent — and hardcode
+everything else. That made it themeable in the narrow sense that a checkbox
+fill and a hover ring could follow the app, and not at all in the sense that
+matters: a button, a dropdown, a text field, a scrollbar and a tooltip were
+fixed shades of grey chosen for a dark UI, so an app with a light palette got
+near-white text on a near-white page.
 
-Call :func:`set_accent` once at startup; widgets and the layout engine read
-these at build time, and :meth:`MpvtkApp.push_theme` forwards them to the
-renderer.
+So: a small set of **semantic tokens**, defaulting to exactly the greys that
+were hardcoded before. An embedding app calls :func:`set_tokens` once at
+startup (or again later — see below) and every widget and renderer-drawn
+control follows.
 
-Colours are bare ``"rrggbb"``, matching every other colour field in mpvtk.
+Two rules make this work:
+
+* **Semantic, not literal.** ``ON_SURFACE_MUTED``, not ``grey_aaaaaa``. There
+  are deliberately fewer tokens than there were literals; four near-identical
+  greys collapsing into one is the point, because a theme author cannot reason
+  about seventeen shades and will not try.
+* **Two surfaces.** Everything named ``*_SURFACE*`` is chrome drawn on the
+  app's own background and follows the theme. The ``SCRIM_*`` / ``CHIP_*``
+  tokens are for things drawn over **video** — the playback HUD, the Skip
+  Intro chip, the cast backdrop. Those stay dark whatever the theme does,
+  because a white HUD over a dark film is wrong no matter how light the rest
+  of the app is. jellyfin-web keeps its player OSD dark for the same reason.
+
+Values are bare ``"rrggbb"``, matching every other colour field in mpvtk.
+They are read through the module ``__getattr__`` rather than being module
+globals, so a theme can never redefine the functions here and an unknown name
+raises instead of silently resolving.
 """
 
 DEFAULT_ACCENT = "7aa2f7"
 
-# Resolved palette. ACCENT is the colour itself; HOVER is it lightened, for
-# the hovered state of accent-filled controls; SOFT is it darkened, for
-# fills that sit *behind* text (selected table rows, banners) where the full
-# accent would drown the label.
-ACCENT = DEFAULT_ACCENT
-HOVER = None      # set by set_accent
-SOFT = None
-# Colour drawn on top of an ACCENT fill.
-ON_ACCENT = "ffffff"
+#: Semantic token -> stock value. The defaults reproduce the greys that were
+#: hardcoded across widgets.py, layout.py and renderer.lua, so an app that
+#: never calls set_tokens() renders as it always did.
+#:
+#: The wire/Lua name of each token is its lowercase form; see :func:`palette`.
+TOKENS = {
+    # --- text and icons on app chrome -------------------------------------
+    "ON_SURFACE": "eeeeee",         # body text, button labels, list rows
+    "ON_SURFACE_STRONG": "ffffff",  # hover emphasis, the spatial-nav ring
+    # Secondary text, dropdown glyphs, table headers, tooltip text. Was four
+    # shades (dddddd / cccccc / aaaaaa / 9a9a9a) that no one could have told
+    # apart on purpose.
+    "ON_SURFACE_MUTED": "aaaaaa",
+    "ON_SURFACE_FAINT": "777777",   # placeholder text, disabled glyphs
+
+    # --- chrome surfaces ---------------------------------------------------
+    "CONTROL_BG": "333333",         # button fill, popup row hover
+    "CONTROL_HOVER": "4a4a4a",      # button hover fill
+    # Recessed: text fields, the closed dropdown, slider and progress tracks,
+    # an unchecked checkbox.
+    "CONTROL_SUNKEN": "2a2a2a",
+    "OUTLINE": "444444",            # field and dropdown borders
+    "OUTLINE_STRONG": "555555",     # checkbox border, popup border
+    "POPUP_BG": "222222",           # open dropdown, context menu
+    "OVERLAY_BG": "111111",         # tooltip, and anything floating above it
+    "SCROLLBAR_THUMB": "666666",
+    "SCROLLBAR_THUMB_ACTIVE": "bbbbbb",
+    "SELECTION": "3d59a1",          # textbox selection wash
+
+    # --- the app's colour --------------------------------------------------
+    "ACCENT": DEFAULT_ACCENT,
+    "ACCENT_HOVER": None,           # None -> derived by lighten()
+    "ACCENT_SOFT": None,            # None -> derived by darken()
+    "ON_ACCENT": None,              # None -> derived by readable_on()
+
+    # --- drawn over VIDEO, not over the app ---------------------------------
+    # Deliberately not themed by default: see the module docstring.
+    "SCRIM": "000000",              # HUD gradients, cast backdrop wash
+    "CHIP_BG": "202020",            # Skip Intro / Credits button
+    "CHIP_BG_HOVER": "3a3a3a",
+    "CHIP_FG": "ffffff",
+}
+
+#: Aliases kept so existing reads (``theme.HOVER``, ``theme.SOFT``) keep
+#: working; they were the accent's derived pair before tokens existed.
+_ALIASES = {"HOVER": "ACCENT_HOVER", "SOFT": "ACCENT_SOFT"}
+
+_tokens = {}
+
 # Whether the renderer draws the themed glow (a blurred accent halo behind
-# bold titles and around the selected card). Off unless an app theme asks
-# for it, so the stock look is unchanged.
+# bold titles and around the selected card). Not a colour, so not a token.
+# Off unless an app asks for it, so the stock look is unchanged.
 GLOW = False
 
 
@@ -66,25 +123,80 @@ def readable_on(hexstr):
     return "101010" if lum > 0.6 else "ffffff"
 
 
-def set_accent(accent, hover=None, soft=None, on_accent=None, glow=None):
-    """Set the toolkit accent. ``hover``/``soft``/``on_accent`` default to
-    sensible derivations, so most callers pass one colour. ``glow`` is the
-    app theme's opt-in for the blurred accent halo the renderer draws behind
-    bold titles and around the selected card; left alone when None."""
-    global ACCENT, HOVER, SOFT, ON_ACCENT, GLOW
-    ACCENT = (accent or DEFAULT_ACCENT).lstrip("#")
-    HOVER = (hover or lighten(ACCENT)).lstrip("#")
-    SOFT = (soft or darken(ACCENT)).lstrip("#")
-    ON_ACCENT = (on_accent or readable_on(ACCENT)).lstrip("#")
+def set_tokens(glow=None, **tokens):
+    """Replace the token set. Unnamed tokens fall back to their stock value.
+
+    Replaced wholesale rather than updated in place, which is what makes a
+    **runtime** theme swap safe: a token the new theme does not mention resets
+    to the default instead of keeping the old theme's value. Callers pass
+    whatever subset they have opinions about.
+
+    Names are case-insensitive so an app can pass the lowercase wire names
+    straight back in.
+    """
+    global GLOW
+    resolved = {k: v for k, v in TOKENS.items() if v is not None}
+    for key, value in tokens.items():
+        name = key.upper()
+        name = _ALIASES.get(name, name)
+        if name not in TOKENS:
+            raise KeyError("unknown mpvtk theme token %r" % (key,))
+        if value is not None:
+            resolved[name] = str(value).lstrip("#")
+    # The accent's companions are derived when not given, so an app that has
+    # only one colour still gets a coherent set.
+    accent = resolved["ACCENT"]
+    resolved.setdefault("ACCENT_HOVER", lighten(accent))
+    resolved.setdefault("ACCENT_SOFT", darken(accent))
+    resolved.setdefault("ON_ACCENT", readable_on(accent))
+    for name in ("ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT"):
+        if name not in resolved:
+            resolved[name] = None
+    _tokens.clear()
+    _tokens.update(resolved)
     if glow is not None:
         GLOW = bool(glow)
     return palette()
 
 
+def set_accent(accent, hover=None, soft=None, on_accent=None, glow=None):
+    """Set just the accent, leaving every other token alone.
+
+    The original entry point, and still the right one for an app whose only
+    opinion is its brand colour. ``hover``/``soft``/``on_accent`` default to
+    sensible derivations.
+    """
+    keep = {k: v for k, v in _tokens.items()
+            if k not in ("ACCENT", "ACCENT_HOVER", "ACCENT_SOFT", "ON_ACCENT")}
+    return set_tokens(glow=glow, ACCENT=(accent or DEFAULT_ACCENT),
+                      ACCENT_HOVER=hover, ACCENT_SOFT=soft,
+                      ON_ACCENT=on_accent, **keep)
+
+
 def palette():
-    """The resolved palette, as pushed to the renderer."""
-    return {"accent": ACCENT, "hover": HOVER, "soft": SOFT,
-            "on_accent": ON_ACCENT, "glow": GLOW}
+    """The resolved tokens as the renderer wants them: lowercase keys, plus
+    the glow flag. This is the ``mpvtk-theme`` message payload."""
+    out = {k.lower(): v for k, v in _tokens.items()}
+    out["glow"] = GLOW
+    return out
 
 
-set_accent(DEFAULT_ACCENT)
+def __getattr__(name):
+    """Serve tokens as module attributes (PEP 562).
+
+    Only reached when normal lookup fails, so the functions above always win
+    and no caller can shadow them by naming a token after one.
+    """
+    key = _ALIASES.get(name, name)
+    if key in _tokens:
+        return _tokens[key]
+    raise AttributeError(
+        "module %r has no attribute %r. Tokens are %s"
+        % (__name__, name, ", ".join(sorted(_tokens)))) from None
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_tokens) + list(_ALIASES))
+
+
+set_tokens()

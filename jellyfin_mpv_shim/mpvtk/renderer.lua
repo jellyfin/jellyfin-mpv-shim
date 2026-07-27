@@ -60,9 +60,48 @@ local state = {
     nodes = {},
     byid = {},
     w = 0, h = 0,
-    -- Accent palette, replaced by the mpvtk-theme message (see theme.py).
-    -- These are the toolkit defaults; an app with its own palette pushes
-    -- its own so the UI doesn't end up with two unrelated accents.
+    -- Design tokens, replaced wholesale by the mpvtk-theme message (see
+    -- theme.py, which owns the names and the stock values). Everything the
+    -- renderer draws for itself -- text fields, dropdowns and their popups,
+    -- scrollbars, tooltips, the focus ring -- reads from here, because
+    -- Python never sends a colour for any of them and so no call site could
+    -- ever theme one.
+    --
+    -- A TABLE rather than one local per colour, for two reasons. This chunk
+    -- is at LuaJIT's ceiling of 200 locals per function and adding ~20 more
+    -- would fail to load outright ("main function has more than 200 local
+    -- variables"), silently, as a blank UI. And a table can be swapped in
+    -- one assignment, which is what makes changing theme at runtime a
+    -- re-render rather than a restart.
+    --
+    -- The tok.chip_*/tok.scrim entries are drawn over VIDEO, not over the
+    -- app, and stay dark whatever the app's theme does.
+    tok = {
+        on_surface = 'eeeeee',
+        on_surface_strong = 'ffffff',
+        on_surface_muted = 'aaaaaa',
+        on_surface_faint = '777777',
+        control_bg = '333333',
+        control_hover = '4a4a4a',
+        control_sunken = '2a2a2a',
+        outline = '444444',
+        outline_strong = '555555',
+        popup_bg = '222222',
+        overlay_bg = '111111',
+        scrollbar_thumb = '666666',
+        scrollbar_thumb_active = 'bbbbbb',
+        selection = '3d59a1',
+        accent = '7aa2f7',
+        accent_hover = '92b3f8',
+        accent_soft = '223055',
+        on_accent = '101010',
+        scrim = '000000',
+        chip_bg = '202020',
+        chip_bg_hover = '3a3a3a',
+        chip_fg = 'ffffff',
+    },
+    -- Kept as their own fields because so much code reads them: aliases into
+    -- tok, refreshed whenever it is replaced.
     accent = '7aa2f7',
     accent_soft = '223055',
     -- Themed glow: a blurred accent halo behind bold titles and around the
@@ -887,8 +926,8 @@ local function draw_textbox(ass, node, ex, ey, clip)
     local tb = state.tb[node.id]
     local focused = state.focus == node.id
     draw_rect(ass, ex, ey, node.w, node.h, {
-        fill = '2a2a2a', radius = 6,
-        bc = focused and state.accent or '444444',
+        fill = state.tok.control_sunken, radius = 6,
+        bc = focused and state.accent or state.tok.outline,
         bw = focused and 2 or 1, clip = clip,
     })
     local pad = 10
@@ -904,7 +943,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
     }
     local text = tb and tb.text or node.text or ''
     if text == '' and not focused and (node.ph or '') ~= '' then
-        draw_text(ass, tnode, ex + pad, ey, inner, node.ph, '777777')
+        draw_text(ass, tnode, ex + pad, ey, inner, node.ph, state.tok.on_surface_faint)
         return
     end
     local shift = tb and tb.shift or 0
@@ -916,7 +955,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
         local sx2 = x0 + tb_text_w(node, text, b)
         draw_rect(ass, sx1, ey + node.h * 0.14,
             sx2 - sx1, node.h * 0.72,
-            { fill = '3d59a1', a = 200, clip = inner })
+            { fill = state.tok.selection, a = 200, clip = inner })
     end
     local disp = node.mask and string.rep('•', u8_count(text)) or text
     if focused then
@@ -969,9 +1008,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         end
         draw_text(ass, tnode, x0, ey, inner,
             pre .. caret .. esc(b),
-            'eeeeee', nil, true)
+            state.tok.on_surface, nil, true)
     else
-        draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
+        draw_text(ass, tnode, x0, ey, inner, disp, state.tok.on_surface)
     end
 end
 
@@ -1123,12 +1162,12 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         local isz = math.floor(node.size * 1.2)
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
-            hovered and state.accent or 'dddddd', clip)
+            hovered and state.accent or state.tok.on_surface_muted, clip)
         return
     end
     draw_rect(ass, ex, ey, node.w, node.h, {
-        fill = '2a2a2a', radius = 6,
-        bc = open and state.accent or '444444', bw = 1, clip = clip,
+        fill = state.tok.control_sunken, radius = 6,
+        bc = open and state.accent or state.tok.outline, bw = 1, clip = clip,
     })
     local label = node.items[d.sel + 1] or ''
     local indent = 0
@@ -1136,7 +1175,7 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     if ipath and ipath ~= '' then
         local isz = math.floor(node.size * 1.1)
         draw_icon_path(ass, ipath, ex + 8, ey + (node.h - isz) / 2,
-            isz, 'cccccc', clip)
+            isz, state.tok.on_surface_muted, clip)
         indent = isz + 6
     end
     local tnode = {
@@ -1145,14 +1184,14 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     }
     -- the label must not spill under the arrow or past the control
     label = ellipsize(label, node.size, false, tnode.w)
-    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, 'eeeeee')
+    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, state.tok.on_surface)
     -- arrow
     local ax = ex + node.w - 22
     local ay = ey + node.h / 2 - 2
     ass:new_event()
     ass:append(string.format(
         '{\\pos(0,0)\\an7\\bord0\\shad0\\1c%s\\1a&H00&%s}',
-        ass_color('aaaaaa'), clip_tag(clip)))
+        ass_color(state.tok.on_surface_muted), clip_tag(clip)))
     ass:draw_start()
     ass:move_to(ax, ay)
     ass:line_to(ax + 12, ay)
@@ -1210,7 +1249,7 @@ end
 -- ('' = none).
 local function draw_list(ass, g, items, sel, size, icons)
     draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
-        fill = '222222', radius = 6, bc = '555555', bw = 1,
+        fill = state.tok.popup_bg, radius = 6, bc = state.tok.outline_strong, bw = 1,
     })
     local isz = math.floor(size * 1.1)
     local indent = icons and (isz + 10) or 0
@@ -1226,24 +1265,25 @@ local function draw_list(ass, g, items, sel, size, icons)
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
         if hovered or (sel ~= nil and (i - 1) == sel) then
             draw_rect(ass, g.x + 2, iy + 1, g.w - 4, g.ih - 2, {
-                fill = hovered and state.accent or '333333', radius = 4,
+                fill = hovered and state.accent or state.tok.control_bg, radius = 4,
             })
         end
         if icons and icons[i] and icons[i] ~= '' then
             draw_icon_path(ass, icons[i], g.x + 8,
-                iy + (g.ih - isz) / 2, isz, 'cccccc', nil)
+                iy + (g.ih - isz) / 2, isz, state.tok.on_surface_muted, nil)
         end
         local tnode = { w = g.w - 20 - indent, h = g.ih, size = size,
                         align = 'left' }
         draw_text(ass, tnode, g.x + 10 + indent, iy, nil,
-            ellipsize(item, size, false, tnode.w), 'eeeeee')
+            ellipsize(item, size, false, tnode.w), state.tok.on_surface)
     end
     if count > g.n then
         -- a thumb, so a clipped list doesn't look like the whole list
         local t = popup_thumb(g)
         if t then
             draw_rect(ass, t.x, t.y, t.w, t.h,
-                      { fill = state.dd_bar_drag and 'bbbbbb' or '888888',
+                      { fill = state.dd_bar_drag and state.tok.scrollbar_thumb_active
+                               or state.tok.scrollbar_thumb,
                         radius = 3 })
         end
     end
@@ -1558,9 +1598,9 @@ local function draw_scrollbar(ass, node)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
     local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
     draw_rect(ass, track_x, ty, 6, th,
-        { fill = '2a2a2a', radius = 3, clip = clip })
+        { fill = state.tok.control_sunken, radius = 3, clip = clip })
     draw_rect(ass, track_x, thumb_y, 6, thumb_h,
-        { fill = '666666', radius = 3, clip = clip })
+        { fill = state.tok.scrollbar_thumb, radius = 3, clip = clip })
     state.bars[node.id] = {
         x = track_x, y = ty, w = 6, h = th,
         thumb_y = thumb_y, thumb_h = thumb_h,
@@ -1750,7 +1790,7 @@ render = function()
             draw_gradient(ass, node, ex, ey, clip)
         elseif node.t == 'icon' then
             local hs = hover_style(node)
-            local c = (hs and hs.c) or node.c or 'eeeeee'
+            local c = (hs and hs.c) or node.c or state.tok.on_surface
             if node.hb and state.hover_id == node.hb and node.hc then
                 c = node.hc  -- accent tint while the parent button hovers
             end
@@ -1795,7 +1835,7 @@ render = function()
             -- adjust-mode signal for ordinary sliders
             local ring = state.accent
             if state.nav_adjust and not node.aadj then
-                ring = 'ffffff'
+                ring = state.tok.on_surface_strong
             end
             draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
                 bc = ring, bw = 3, radius = 4, clip = clip,
@@ -1818,12 +1858,12 @@ render = function()
     if state.tip_geo then
         local g = state.tip_geo
         draw_rect(ass, g.x, g.y, g.w, g.h, {
-            fill = '111111', a = 245, radius = 5,
-            bc = '4a4a4a', bw = 1,
+            fill = state.tok.overlay_bg, a = 245, radius = 5,
+            bc = state.tok.control_hover, bw = 1,
         })
         draw_text(ass, { w = g.w - ui_px(18), h = g.h, size = g.fs,
                          align = 'left' },
-            g.x + ui_px(9), g.y, nil, g.text, 'dddddd')
+            g.x + ui_px(9), g.y, nil, g.text, state.tok.on_surface_muted)
     end
     if busy_visible and not state.busy_timer then
         state.busy_timer = mp.add_periodic_timer(0.1, function()
@@ -3695,10 +3735,23 @@ mp.register_script_message('mpvtk-metrics', function(json)
 end)
 
 mp.register_script_message('mpvtk-theme', function(json)
+    -- Replace the token table. Merged over what is already there rather than
+    -- assigned outright, so an app that sends a subset keeps the stock value
+    -- for everything else -- and so a message that arrives malformed cannot
+    -- leave the renderer with no colours at all.
+    --
+    -- Safe to send at any time: nothing here is cached into a scene, so a
+    -- theme swap is this message plus a re-render, with no restart.
     local t = utils.parse_json(json)
-    if not t then return end
-    state.accent = t.accent or state.accent
-    state.accent_soft = t.soft or state.accent_soft
+    if type(t) ~= 'table' then return end
+    for key, value in pairs(t) do
+        if type(value) == 'string' and state.tok[key] ~= nil then
+            state.tok[key] = value
+        end
+    end
+    -- Aliases the drawing code reads directly.
+    state.accent = state.tok.accent
+    state.accent_soft = state.tok.accent_soft
     state.glow = t.glow == true
     request_render()
 end)

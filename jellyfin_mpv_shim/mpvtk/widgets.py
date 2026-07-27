@@ -134,7 +134,7 @@ class Text(Element):
         self,
         text,
         size=22,
-        color="eeeeee",
+        color=None,
         bold=False,
         align="left",
         on_click=None,
@@ -146,7 +146,7 @@ class Text(Element):
         super().__init__(**kw)
         self.text = text
         self.size = size
-        self.color = color
+        self.color = color or theme.ON_SURFACE
         self.bold = bold
         self.align = align
         self.on_click = on_click
@@ -271,13 +271,13 @@ class Icon(Element):
     in a Row for labelled buttons; Dropdown/Menu take per-item icons
     directly."""
 
-    def __init__(self, name, size=20, color="eeeeee", on_click=None,
+    def __init__(self, name, size=20, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
         self.name = name
-        self.color = color
+        self.color = color or theme.ON_SURFACE
         self.on_click = on_click
         self.hover = hover
         # tint to ``hover_tint`` while the ancestor button node named
@@ -293,8 +293,13 @@ class Button(Box):
     colour so accented/active buttons stay legible. An icon-only button is
     just ``label=""``."""
 
-    def __init__(self, label, on_click=None, size=20, fg="eeeeee", icon=None,
+    def __init__(self, label, on_click=None, size=20, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
+        # Resolved here rather than as a default argument: a default is
+        # evaluated once at import, so it could never follow a theme
+        # applied later -- let alone one swapped at runtime.
+        themed_fg = fg is None
+        fg = fg or theme.ON_SURFACE
         if flat:
             # transparent-at-rest, for controls over video/gradients
             # (playback HUD): round translucent accent wash + accent
@@ -305,15 +310,15 @@ class Button(Box):
             kw.setdefault("alpha", 70)
             kw.setdefault("hover", {"fill": theme.ACCENT, "circle": True})
         else:
-            kw.setdefault("bg", "333333")
-            kw.setdefault("hover", {"fill": "4a4a4a"})
+            kw.setdefault("bg", theme.CONTROL_BG)
+            kw.setdefault("hover", {"fill": theme.CONTROL_HOVER})
         kw.setdefault("radius", 6)
         kw.setdefault("pad", 10)
         kw.setdefault("align", "center")
         kw.setdefault("direction", "row")
         children = []
         if icon:
-            tint = theme.ACCENT if flat and fg == "eeeeee" else None
+            tint = theme.ACCENT if flat and themed_fg else None
             children.append(Icon(icon, icon_size or int(size * 0.95),
                                  color=fg, hover_parent=kw.get("id"),
                                  hover_tint=tint))
@@ -412,8 +417,8 @@ class Checkbox(Row):
         box = Box(
             w=20,
             h=20,
-            bg=theme.ACCENT if checked else "2a2a2a",
-            border=None if checked else "555555",
+            bg=theme.ACCENT if checked else theme.CONTROL_SUNKEN,
+            border=None if checked else theme.OUTLINE_STRONG,
             radius=5,
             align="center",
             direction="row",
@@ -426,7 +431,7 @@ class Checkbox(Row):
         )
         kw.setdefault("gap", 10)
         kw.setdefault("align", "center")
-        kw.setdefault("hover", {"c": "ffffff"})
+        kw.setdefault("hover", {"c": theme.ON_SURFACE_STRONG})
         super().__init__(
             [box, Text(label, size=size)], on_click=on_toggle, **kw
         )
@@ -456,7 +461,7 @@ class Grid(Element):
     """
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
-                 row_pad=0, size=18, fg="eeeeee", **kw):
+                 row_pad=0, size=18, fg=None, **kw):
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
@@ -465,7 +470,7 @@ class Grid(Element):
         self.row_h = row_h
         self.row_pad = row_pad
         self.size = size
-        self.fg = fg
+        self.fg = fg or theme.ON_SURFACE
 
 
 class Form(Grid):
@@ -475,7 +480,8 @@ class Form(Grid):
     None element leaves the row's value cell empty)."""
 
     def __init__(self, rows, label_w=None, size=18,
-                 label_fg="9a9a9a", **kw):
+                 label_fg=None, **kw):
+        label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
             {"w": label_w} if label_w else {},
             {"flex": 1},
@@ -518,10 +524,11 @@ class Gradient(Element):
     and where per-pixel colour error does not.
     """
 
-    def __init__(self, color="000000", top=0, bottom=200, stops=None,
+    def __init__(self, color=None, top=0, bottom=200, stops=None,
                  axis="y", **kw):
         super().__init__(**kw)
-        self.color = color
+        # SCRIM, not a surface token: this is drawn over video.
+        self.color = color or theme.SCRIM
         self.top = top
         self.bottom = bottom
         self.stops = list(stops) if stops else None
@@ -532,13 +539,13 @@ class Progress(Element):
     """Determinate progress bar (composite drawn by layout as two
     rects). ``frac`` in [0, 1]; give it a width or ``flex``."""
 
-    def __init__(self, frac, fg=None, bg="2a2a2a", **kw):
+    def __init__(self, frac, fg=None, bg=None, **kw):
         kw.setdefault("w", 180)
         kw.setdefault("h", 8)
         super().__init__(**kw)
         self.frac = min(1.0, max(0.0, frac))
         self.fg = fg or theme.ACCENT
-        self.bg = bg
+        self.bg = bg or theme.CONTROL_SUNKEN
 
 
 class Stack(Element):
@@ -628,16 +635,19 @@ class Table(Column):
         header_h=30,
         size=18,
         header_size=15,
-        header_fg="9a9a9a",
-        fg="eeeeee",
+        header_fg=None,
+        fg=None,
         selected_bg=None,
-        hover_bg="333333",
+        hover_bg=None,
         gap=12,
         pad_x=10,
         virtual=None,
         **kw,
     ):
         selected_bg = selected_bg or theme.SOFT
+        header_fg = header_fg or theme.ON_SURFACE_MUTED
+        fg = fg or theme.ON_SURFACE
+        hover_bg = hover_bg or theme.CONTROL_BG
 
         def cell(col, content, text_size, color):
             if isinstance(content, Element):
