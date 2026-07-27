@@ -507,6 +507,15 @@ class Gradient(Element):
 
     Used for themed app backgrounds and top bars, which several of
     jellyfin-web's themes rely on.
+
+    **Use the fewest stops that describe the shape.** Unlike CSS, more stops
+    here do not buy smoothness — they cost it. Each layer's ramp begins and
+    ends at ~zero slope, so every extra stop is a place where the colour
+    briefly stops changing, and the eye reads those flat spots as bands. Two
+    stops give one clean ease; subdividing a single ramp into six put visible
+    strips across it. ``tools/gradient_fidelity.py`` renders a gradient
+    through mpv and prints its slope profile, which is where this shows up
+    and where per-pixel colour error does not.
     """
 
     def __init__(self, color="000000", top=0, bottom=200, stops=None,

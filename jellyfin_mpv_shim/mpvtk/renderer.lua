@@ -1032,64 +1032,42 @@ local function draw_gradient(ass, node, ex, ey, clip)
         local span = horiz and w or h
         if span <= 0 or #node.stops == 0 then return end
         draw_rect(ass, ex, ey, w, h, { fill = node.stops[1][2], clip = c })
-        -- Inline rather than a top-level helper, for the locals ceiling
-        -- noted above; locals inside a function have their own budget.
-        local function rgb_of(hex)
-            return { tonumber(hex:sub(1, 2), 16) or 0,
-                     tonumber(hex:sub(3, 4), 16) or 0,
-                     tonumber(hex:sub(5, 6), 16) or 0 }
-        end
+        -- Exactly ONE layer per stop segment. Splitting a segment into
+        -- several finer ramps hugs a true lerp more closely -- and looks
+        -- worse. Every gaussian starts and ends at ~zero slope, so each
+        -- extra layer adds a junction where the brightness briefly stops
+        -- changing, and the eye reads those flat spots as bands: two layers
+        -- put a visible plateau mid-gradient, six read as stacked strips.
+        -- Measured in tools/gradient_fidelity.py, which reports the slope
+        -- profile precisely so this stays hard to get wrong twice.
+        --
+        -- The cost of one layer is that the ramp eases rather than running
+        -- straight, which over a background is the nicer of the two errors.
         for i = 2, #node.stops do
-            local c0 = rgb_of(node.stops[i - 1][2])
-            local c1 = rgb_of(node.stops[i][2])
-            -- A gaussian ramp is an S-curve, not a line, so a layer's colour
-            -- bows away from a true lerp by up to ~13% of the segment's
-            -- colour DELTA around the quarter points. Subdividing shrinks the
-            -- delta per layer and the error with it, so wide colour jumps get
-            -- more layers and the small ones jf-web's themes actually use
-            -- stay at a single layer. Bounded: this is a background, and 6
-            -- layers is already past the point of visibility.
-            local dmax = math.max(math.abs(c1[1] - c0[1]),
-                                  math.abs(c1[2] - c0[2]),
-                                  math.abs(c1[3] - c0[3]))
-            local k = math.min(6, math.max(1, math.ceil(dmax / 24)))
-            for j = 1, k do
-                local t0 = (j - 1) / k
-                local t1 = j / k
-                local p0 = (node.stops[i - 1][1]
-                            + (node.stops[i][1] - node.stops[i - 1][1]) * t0)
-                           * span
-                local p1 = (node.stops[i - 1][1]
-                            + (node.stops[i][1] - node.stops[i - 1][1]) * t1)
-                           * span
-                local seg = p1 - p0
-                if seg > 0.5 then
-                    -- A gaussian edge reaches ~full about 2*blur out, so a
-                    -- blur of seg/4 spans exactly this sub-segment with the
-                    -- box boundary at its midpoint.
-                    local blur = seg / 4
-                    local over = blur * 4 + span
-                    local mid = (p0 + p1) / 2
-                    ass:new_event()
-                    ass:append(string.format(
-                        '{\\pos(0,0)\\an7\\bord0\\shad0\\blur%.1f\\1c%s' ..
-                        '\\1a&H00&%s}',
-                        blur,
-                        ass_color(string.format('%02x%02x%02x',
-                            math.floor(c0[1] + (c1[1] - c0[1]) * t1 + 0.5),
-                            math.floor(c0[2] + (c1[2] - c0[2]) * t1 + 0.5),
-                            math.floor(c0[3] + (c1[3] - c0[3]) * t1 + 0.5))),
-                        clip_tag(c)))
-                    ass:draw_start()
-                    if horiz then
-                        ass:rect_cw(ex + mid, ey - over,
-                                    ex + w + over, ey + h + over)
-                    else
-                        ass:rect_cw(ex - over, ey + mid,
-                                    ex + w + over, ey + h + over)
-                    end
-                    ass:draw_stop()
+            local p0 = node.stops[i - 1][1] * span
+            local p1 = node.stops[i][1] * span
+            local seg = p1 - p0
+            if seg > 0.5 then
+                -- A gaussian edge reaches ~full about 2*blur out, so a blur
+                -- of seg/4 spans exactly this segment with the box boundary
+                -- at its midpoint.
+                local blur = seg / 4
+                local over = blur * 4 + span
+                local mid = (p0 + p1) / 2
+                ass:new_event()
+                ass:append(string.format(
+                    '{\\pos(0,0)\\an7\\bord0\\shad0\\blur%.1f\\1c%s' ..
+                    '\\1a&H00&%s}',
+                    blur, ass_color(node.stops[i][2]), clip_tag(c)))
+                ass:draw_start()
+                if horiz then
+                    ass:rect_cw(ex + mid, ey - over,
+                                ex + w + over, ey + h + over)
+                else
+                    ass:rect_cw(ex - over, ey + mid,
+                                ex + w + over, ey + h + over)
                 end
+                ass:draw_stop()
             end
         end
         return
