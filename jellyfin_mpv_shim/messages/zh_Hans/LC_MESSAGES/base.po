@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-27 15:25+0000\n"
-"Last-Translator: wabisabi926 <wabisabi926@foxmail.com>\n"
+"PO-Revision-Date: 2026-07-28 06:16+0000\n"
+"Last-Translator: DyingSlacker <2391773977@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -681,7 +681,7 @@ msgstr "在 Jellyfin 中选择媒体并在此播放。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:76
 msgid "Cast & Crew"
-msgstr ""
+msgstr "演职人员"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:99
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:285
@@ -691,16 +691,12 @@ msgid "Download"
 msgstr "离线下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:102
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "移除服务器"
+msgstr "移除下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:115
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "退出并标记未观看"
+msgstr "已观看"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:119
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
@@ -715,7 +711,7 @@ msgstr "界面设置"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:200
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py:66
 msgid "Theme"
-msgstr ""
+msgstr "主题"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Playback"
@@ -787,11 +783,11 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:155
 msgid "Theme default"
-msgstr ""
+msgstr "主题默认"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:157
 msgid "Medium"
-msgstr ""
+msgstr "中"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:159
 #, fuzzy
