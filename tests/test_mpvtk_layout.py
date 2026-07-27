@@ -276,6 +276,69 @@ class TestWrapMargin(unittest.TestCase):
             self.assertTrue(wrap_text("hello world", 18, False, w))
 
 
+class TestWrappedContentIsScrollable(unittest.TestCase):
+    """A scroll viewport clamps to the content height it is told, and it
+    used to be told an *intrinsic* measure -- one line per wrapped Text,
+    whatever the text actually did at the width it got. Every explanatory
+    note in the settings form cost real rows off the bottom of the scroll:
+    the "Show advanced settings" checkbox was drawn but could not be
+    reached.
+    """
+
+    NOTE = ("An explanatory note under a setting, long enough that it wraps "
+            "to several lines in any settings column narrow enough to be a "
+            "settings column, which is the whole point of this test.")
+
+    def _page(self, n=6, w=None):
+        rows = []
+        for i in range(n):
+            rows.append(Box(h=25, bg="222222", id="row-%d" % i))
+            rows.append(Text(self.NOTE, size=14, wrap=True, **(
+                {"w": w} if w else {})))
+        rows.append(Box(h=25, bg="222222", id="last"))
+        return VScroll(Column(rows, pad=16, gap=8, align="stretch"),
+                       id="sc", flex=1)
+
+    def _extent(self, tree, w=600, h=400):
+        nodes, _h = layout(tree, w, h)
+        sc = by_id(nodes, "sc")
+        bottom = max(n["y"] + n.get("h", 0) for n in nodes
+                     if n.get("sc") == "sc")
+        return sc["ch"], bottom - sc["y"]
+
+    def test_content_height_covers_the_wrapped_text(self):
+        ch, content = self._extent(self._page())
+        self.assertGreaterEqual(
+            ch, content,
+            "scroll extent stops %.0fpx short of its own content" %
+            (content - ch))
+
+    def test_it_is_not_just_padded_out(self):
+        """Guarding the above with a fudge factor would pass too. The extent
+        has to actually track the wrapping: more notes, more height."""
+        few, _c = self._extent(self._page(2))
+        many, _c = self._extent(self._page(8))
+        self.assertGreater(many - few, 6 * 14 * 1.2)
+
+    def test_a_narrower_window_scrolls_further(self):
+        wide, _c = self._extent(self._page(), w=1000)
+        narrow, _c = self._extent(self._page(), w=420)
+        self.assertGreater(narrow, wide)
+
+    def test_explicit_width_still_measured(self):
+        """wrap=True with an explicit w already measured correctly; the
+        width-aware path must not regress it."""
+        ch, content = self._extent(self._page(w=300))
+        self.assertGreaterEqual(ch, content)
+
+    def test_viewport_is_the_floor(self):
+        """Content shorter than the viewport must not make it scrollable."""
+        tree = VScroll(Column([Text("short", size=14, wrap=True)], pad=16),
+                       id="sc", flex=1)
+        nodes, _h = layout(tree, 600, 400)
+        self.assertEqual(by_id(nodes, "sc")["ch"], 400.0)
+
+
 class TestAssWrapStyle(unittest.TestCase):
     """The layout engine breaks text into lines; libass must not then
     apply its own smart wrapping on top. Two wrappers disagreeing by a

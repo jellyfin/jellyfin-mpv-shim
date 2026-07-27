@@ -180,6 +180,9 @@ You can use the config file to enable and disable features.
 - `fullscreen` - Fullscreen the player when starting playback. Default: `false`
   - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+  - Turning this off puts the app in command-line mode: no window, no system tray and no settings screen, so on Windows the only way back is editing `conf.json` by hand. It is listed under "Advanced" in the settings form for that reason.
+  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` (or `default`) and leave this on.
+  - For the classic "sit in the background and play what is cast to me" setup, enable `close_to_tray` (or `allow_background` where there is no tray), `start_minimized` and `fullscreen`; closing the video with `q` or the back button returns to waiting.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
   - Toggling fullscreen in the player (`f`, or the on-screen control) is remembered: it writes `browser_fullscreen` while browsing and `fullscreen` while something is playing.
@@ -270,6 +273,8 @@ You can use the config file to enable and disable features.
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
   - Not a security boundary — see [Cast-target mode](../README.md#cast-target-mode-headless).
+  - Settings goes with the library. With no system tray icon there is nothing left to turn it off from, so it is listed under "Advanced" in the settings form and the way back is editing `conf.json`.
+  - You don't need it for the ordinary "wait in the background until something casts to me" setup — that is `close_to_tray` (or `allow_background`), `start_minimized` and `fullscreen`.
   - (Replaces `display_mirroring`. Mirroring itself is now always on and needs no setting; a stale `display_mirroring` entry in your config is ignored.)
 - `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
 - `check_updates` - Check for updates via GitHub. Default: `true`
