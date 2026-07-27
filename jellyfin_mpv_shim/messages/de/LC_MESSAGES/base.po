@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-26 12:03-0400\n"
-"PO-Revision-Date: 2025-09-29 05:10+0000\n"
-"Last-Translator: Timo <timo.liebscher@outlook.de>\n"
+"PO-Revision-Date: 2026-07-27 15:25+0000\n"
+"Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/de/>\n"
+"jellyfin-mpv-shim/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -50,10 +50,12 @@ msgstr "Setze aktuelle Einstellung..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Öffne Jellyfin, geh zu deinem Benutzermenü -> Schnellverbindung, dann gib "
+"diesen Code ein:"
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Warte auf Authentifizierung..."
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
@@ -1768,36 +1770,32 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:120
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Server:"
+msgstr "Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:133
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Benutzername:"
+msgstr "Benutzer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:138
 msgid "Search…"
-msgstr ""
+msgstr "Suche…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:166
 msgid "Update available: %s"
-msgstr ""
+msgstr "Aktualisierung verfügbar: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:169
 msgid "Open"
-msgstr ""
+msgstr "Öffnen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:171
 msgid "Dismiss"
-msgstr ""
+msgstr "Ablehnen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:176
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Offline - Zeige was verfügbar ist."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:178
 #: jellyfin_mpv_shim/tray.py:102
@@ -1821,20 +1819,16 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py:123
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transkodieren)"
+msgstr "Transkodieren"
 
 #: jellyfin_mpv_shim/osc_bridge.py:125 jellyfin_mpv_shim/osc_bridge.py:161
 msgid "External"
-msgstr ""
+msgstr "Extern"
 
 #: jellyfin_mpv_shim/osc_bridge.py:260
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay aktiviert."
+msgstr "SyncPlay aktiviert"
 
 #: jellyfin_mpv_shim/osc_bridge.py:414 jellyfin_mpv_shim/syncplay.py:721
 msgid "{0}'s Group"
@@ -1874,16 +1868,12 @@ msgid "Next episode is not downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/player_reporting.py:151
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Credits übersprungen"
+msgstr "Credits überspringen"
 
 #: jellyfin_mpv_shim/player_reporting.py:152
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Intro übersprungen"
+msgstr "Intro überspringen"
 
 #: jellyfin_mpv_shim/player_reporting.py:298
 msgid "Season {0} - Episode {1}"
