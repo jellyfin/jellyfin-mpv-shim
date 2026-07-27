@@ -77,7 +77,7 @@ This project's policy (CONTRIBUTING.md) is that **everything beyond the four req
 ## i18n
 
 User-facing strings use gettext via `i18n.py`'s `_()`. After adding/changing strings:
-1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
+1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It `find`s every `.py` under `jellyfin_mpv_shim/` rather than globbing: it used to use `**`, which without `shopt -s globstar` expands like `*`, so nested packages (`mpvtk_browser/pages`, `/settings`, `/components`, `/gateway`) were never scanned and ~150 strings silently could not be translated. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
 2. `./gen_pkg.sh --skip-build` (or `gen_pkg.sh` itself) compiles `.po` → `.mo`. `.mo` files are gitignored and regenerated at build time.
 
 Translations are managed via Weblate (jellyfin/jellyfin-mpv-shim project); commits like "Translated using Weblate (...)" come from there — don't hand-edit `.po` files for in-flight translations.
