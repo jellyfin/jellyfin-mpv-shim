@@ -1,0 +1,156 @@
+"""Carousel page-button arithmetic — jellyfin-web's ``scrollerItemSlideIntoView``.
+
+A page advances by whole tiles, and a tile left half-cut at the trailing edge
+leads the next page rather than being skipped. The old behaviour was "scroll by
+90% of the viewport", done in Lua, which landed mid-poster and could not answer
+"is there anywhere left to go" — which is what the disabled state needs.
+
+The maths lives in Python precisely so it can be tested here; the renderer only
+gets told an absolute offset.
+"""
+import unittest
+
+from jellyfin_mpv_shim.mpvtk_browser.scroll_state import ScrollState
+from jellyfin_mpv_shim.mpvtk_browser.strips import TileGeom
+from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import (
+    RING_PAD, page_geometry, page_target)
+
+# tile_w 200, gap 20 -> a 220px pitch, so the numbers below stay readable.
+GEOM = TileGeom(tile_w=200, tile_h=300, caption_h=40, gap=20)
+PITCH = 220
+
+
+def view_for(n):
+    """Viewport width that fits exactly ``n`` tiles, ring padding included."""
+    return 2 * RING_PAD + n * PITCH - GEOM.gap
+
+
+class PageGeometryTest(unittest.TestCase):
+    def test_per_page_is_the_number_of_fully_visible_tiles(self):
+        for n in (1, 2, 5, 9):
+            with self.subTest(n=n):
+                _pitch, per, _max = page_geometry(view_for(n), 50, GEOM)
+                self.assertEqual(per, n)
+
+    def test_a_partial_tile_does_not_count_towards_a_page(self):
+        """Half a tile more viewport is still five tiles per page — paging by
+        the partial one is what makes rows drift out of alignment."""
+        _pitch, per, _max = page_geometry(view_for(5) + PITCH // 2, 50, GEOM)
+        self.assertEqual(per, 5)
+
+    def test_per_page_never_drops_below_one(self):
+        """A viewport narrower than a single tile still has to advance, or the
+        button is live and does nothing."""
+        _pitch, per, _max = page_geometry(50, 50, GEOM)
+        self.assertGreaterEqual(per, 1)
+
+    def test_max_offset_puts_the_last_tile_against_the_trailing_edge(self):
+        view = view_for(5)
+        _pitch, _per, max_offset = page_geometry(view, 10, GEOM)
+        # Content is 10 tiles wide plus the ring padding at both ends.
+        total = 2 * RING_PAD + 10 * PITCH - GEOM.gap
+        self.assertAlmostEqual(max_offset, total - view)
+
+    def test_a_row_that_fits_has_no_room_to_scroll(self):
+        _pitch, _per, max_offset = page_geometry(view_for(5), 5, GEOM)
+        self.assertEqual(max_offset, 0)
+
+
+class PageTargetTest(unittest.TestCase):
+    def setUp(self):
+        self.view = view_for(5)          # five tiles visible
+        self.count = 20
+        _p, _per, self.max_offset = page_geometry(self.view, self.count, GEOM)
+
+    def target(self, offset, direction):
+        return page_target(offset, direction, self.view, self.count, GEOM)
+
+    def test_forward_from_the_start_advances_a_full_page(self):
+        self.assertAlmostEqual(self.target(0, 1), 5 * PITCH)
+
+    def test_back_from_the_start_is_an_end_stop(self):
+        self.assertIsNone(self.target(0, -1))
+
+    def test_forward_at_the_end_is_an_end_stop(self):
+        self.assertIsNone(self.target(self.max_offset, 1))
+
+    def test_the_end_stop_tolerates_a_rounding_round_trip(self):
+        """The offset comes back from the renderer through a physical/logical
+        conversion, so it is never exactly ``max_offset``."""
+        self.assertIsNone(self.target(self.max_offset - 0.4, 1))
+
+    def test_the_last_page_is_short_rather_than_overshooting(self):
+        """A full page from near the end would run past the content; it has to
+        clamp, leaving the final tiles flush against the trailing edge."""
+        near_end = self.max_offset - 100
+        got = self.target(near_end, 1)
+        self.assertGreater(got, near_end)
+        self.assertAlmostEqual(got, self.max_offset)
+
+    def test_a_half_cut_tile_leads_the_next_page(self):
+        """The defining jellyfin-web behaviour. With a viewport half a tile
+        wider than five tiles, tile 5 is partly visible — paging forward must
+        bring *it* to the front, not skip to tile 6."""
+        view = view_for(5) + PITCH // 2
+        self.assertAlmostEqual(page_target(0, 1, view, self.count, GEOM),
+                               5 * PITCH)
+
+    def test_a_page_lands_on_a_tile_boundary_from_an_unaligned_offset(self):
+        """Wheel scrolling leaves the row mid-tile; a page click re-aligns it
+        rather than preserving the misalignment forever."""
+        for stray in (1, PITCH // 3, PITCH - 1):
+            with self.subTest(stray=stray):
+                got = self.target(2 * PITCH + stray, 1)
+                self.assertAlmostEqual(got % PITCH, 0)
+
+    def test_forward_then_back_returns_to_where_it_started(self):
+        first = self.target(0, 1)
+        self.assertAlmostEqual(self.target(first, -1), 0)
+
+    def test_back_from_the_middle_moves_a_full_page(self):
+        self.assertAlmostEqual(self.target(9 * PITCH, -1), 4 * PITCH)
+
+    def test_back_clamps_at_the_start(self):
+        self.assertAlmostEqual(self.target(2 * PITCH, -1), 0)
+
+
+class EndStopRepaintTest(unittest.TestCase):
+    """The buttons' disabled state is offset-derived, so reaching an end has
+    to invalidate even though it is a tiny move — see ScrollState.on_scroll."""
+
+    def setUp(self):
+        self.hits = []
+        self.st = ScrollState(lambda: self.hits.append(1))
+
+    def test_leaving_an_end_stop_repaints(self):
+        self.st.on_scroll("row", 0, 1000, edges_only=True)   # first, always
+        self.hits.clear()
+        self.st.on_scroll("row", 5, 1000, edges_only=True)
+        self.assertEqual(len(self.hits), 1)
+
+    def test_arriving_at_an_end_stop_repaints_however_short_the_move(self):
+        self.st.on_scroll("row", 500, 1000, edges_only=True)
+        self.hits.clear()
+        self.st.on_scroll("row", 1000, 1000, edges_only=True)
+        self.assertEqual(len(self.hits), 1)
+
+    def test_moving_between_the_ends_does_not_repaint(self):
+        """A carousel virtualizes nothing, so a mid-row repaint would
+        recomposite a screenful of poster strips to change nothing."""
+        self.st.on_scroll("row", 100, 5000, edges_only=True)
+        self.hits.clear()
+        for offset in (400, 900, 1500, 2600):
+            self.st.on_scroll("row", offset, 5000, edges_only=True)
+        self.assertEqual(self.hits, [])
+
+    def test_the_distance_rule_still_applies_without_edges_only(self):
+        """Virtualized containers keep the old behaviour: a window's worth of
+        movement rebuilds, wherever it happens."""
+        self.st.on_scroll("grid", 100, 5000)
+        self.hits.clear()
+        self.st.on_scroll("grid", 100 + ScrollState.STEP, 5000)
+        self.assertEqual(len(self.hits), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

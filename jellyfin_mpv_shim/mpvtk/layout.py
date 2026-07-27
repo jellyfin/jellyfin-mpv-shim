@@ -567,6 +567,8 @@ def _arrange_image(ctx, el, x, y, w, h, sc, path):
         node["v"] = el.v
     if el.on_click:
         node["click"] = True
+        if el.repeat:
+            node["rpt"] = True
         _reg(ctx, node["id"], "click", el.on_click)
     if el.hover:
         node["hover"] = el.hover
@@ -639,6 +641,8 @@ def _arrange_slider(ctx, el, x, y, w, h, sc, path):
     node["value"] = el.value
     if el.force:
         node["force"] = True
+    if el.on_video:
+        node["ov"] = True
     if el.marks:
         node["marks"] = [round(float(m), 4) for m in el.marks]
     if el.ranges:
@@ -668,6 +672,12 @@ def _arrange_busy(ctx, el, x, y, w, h, sc, path):
 def _arrange_gradient(ctx, el, x, y, w, h, sc, path):
     """A vertical colour ramp, used behind text over artwork."""
     node = _base(el, "grad", x, y, w, h, sc, path)
+    if el.stops:
+        # Multi-stop COLOUR ramp (themed backgrounds), not an alpha fade.
+        node["stops"] = [[float(p), str(c).lstrip("#")] for p, c in el.stops]
+        node["axis"] = el.axis
+        ctx.nodes.append(node)
+        return
     node["c"] = el.color
     node["a1"] = el.top
     node["a2"] = el.bottom

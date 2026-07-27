@@ -4,7 +4,7 @@
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
-from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+from jellyfin_mpv_shim.mpvtk_browser import theme, tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
 from tests._shell_harness import (
@@ -79,50 +79,123 @@ class TestTileShapes(unittest.TestCase):
         self.assertIs(g, POSTER_GEOM)
         self.assertEqual(it, "Primary")
 
+    def _long_row(self, n=30):
+        """A libraries row with more tiles than fit, so it gets page buttons."""
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(n)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        return {n["id"]: n for n in nodes}, nodes
+
     def test_scroll_arrows_appear_only_when_the_row_overflows(self):
-        # One library fits, so no arrows; a long row gets them, floating over
-        # the strip's left and right edges.
+        # One library fits, so no page buttons at all.
         self.b.route["_data"] = {"libraries": self.b.source.libraries,
                                  "rows": []}
         nodes, _h = build_scene(self.b)
         self.assertNotIn("row-libs-pl", ids(nodes))
 
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
-        nodes, _h = build_scene(self.b)
-        by_id = {n["id"]: n for n in nodes}
+        by_id, _nodes = self._long_row()
         self.assertIn("row-libs-pl", by_id)
         self.assertIn("row-libs-pr", by_id)
+
+    def test_default_page_buttons_ride_the_heading_clear_of_the_artwork(self):
+        """jellyfin-web's design, and the reason the default needs no
+        compositing trick at all: the pair sits in the section heading, above
+        the strip, so nothing is drawn over a poster."""
+        by_id, _nodes = self._long_row()
         strip = by_id["row-libs"]
         left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
-        pad = tile_renderer.RING_PAD
-        # Inset from the scroll container's edges by the ring padding.
-        self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
-        self.assertAlmostEqual(right["x"] + right["w"],
-                               strip["x"] + strip["w"] - pad, places=1)
-        # Square, and small enough to cover little artwork.
-        self.assertEqual(left["w"], left["h"])
-        self.assertLess(left["h"], strip["h"] / 2)
+        for b in (left, right):
+            self.assertLessEqual(b["y"] + b["h"], strip["y"] + 1)
+        # ...and right-aligned, prev before next.
+        self.assertLess(left["x"], right["x"])
+        self.assertGreater(left["x"], strip["x"] + strip["w"] / 2)
 
-    def test_arrows_punch_through_the_strip_bitmap(self):
-        """An ASS button can't composite over a bitmap; it needs an occluder
-        node so the renderer subtracts its rect from the strip below."""
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
-        nodes, _h = build_scene(self.b)
-        occ = [n for n in nodes if n["t"] == "occ"]
-        self.assertEqual(len(occ), 2, "one occluder per arrow")
+    def test_a_page_button_with_nowhere_to_go_is_dimmed_not_hot(self):
+        """An unscrolled row can only page forward. The back button stays put
+        and loses its hover wash rather than disappearing, so the pair does not
+        shuffle around as the row reaches its ends."""
+        by_id, _nodes = self._long_row()
+        left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+        self.assertNotIn("hover", left)
+        self.assertIn("hover", right)
+        # Only the live one hold-repeats.
+        self.assertNotIn("rpt", left)
+        self.assertTrue(right.get("rpt"))
 
-    def test_arrows_hold_repeat(self):
-        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
-                     Name="Library %d" % i) for i in range(30)]
-        self.b.route["_data"] = {"libraries": many, "rows": []}
+    def test_the_disabled_state_follows_the_row_as_it_is_paged(self):
+        """The row's scroll lives entirely in the renderer, which only reports
+        back when the container asks to be watched. Without that watch the
+        buttons were built once at offset 0 and never restyled: back
+        permanently dim, forward permanently lit, however far the row had been
+        paged."""
+        by_id, _nodes = self._long_row()
+        self.assertNotIn("hover", by_id["row-libs-pl"])   # at the start
+
+        # Somewhere in the middle: both directions are live.
+        self.b._scroll.on_scroll("row-libs", 900, 4000, edges_only=True)
+        by_id, _nodes = self._long_row()
+        self.assertIn("hover", by_id["row-libs-pl"])
+        self.assertIn("hover", by_id["row-libs-pr"])
+
+        # ...and against the far end, forward goes dim instead.
+        strip = by_id["row-libs"]
+        max_offset = strip["cw"] - strip["w"]
+        self.b._scroll.on_scroll("row-libs", max_offset, max_offset,
+                                edges_only=True)
+        by_id, _nodes = self._long_row()
+        self.assertIn("hover", by_id["row-libs-pl"])
+        self.assertNotIn("hover", by_id["row-libs-pr"])
+
+    def test_a_watch_is_only_asked_for_when_the_row_can_page(self):
+        """Watching costs a renderer->Python event per scroll, so a row that
+        fits does not ask for one."""
+        self.b.route["_data"] = {"libraries": self.b.source.libraries,
+                                 "rows": []}
         nodes, _h = build_scene(self.b)
         by_id = {n["id"]: n for n in nodes}
-        self.assertTrue(by_id["row-libs-pl"].get("rpt"))
-        self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+        self.assertNotIn("watch", by_id["row-libs"])
+
+        by_id, _nodes = self._long_row()
+        self.assertTrue(by_id["row-libs"].get("watch"))
+
+    def test_overlay_mode_composites_over_the_strip_instead_of_punching_it(self):
+        """Nebula keeps the arrows ON the artwork. They are bitmaps, which mpv
+        composites ABOVE the strip and alpha-blends with it. The ASS-button
+        version could not do either, so it had to punch an occluder rect out of
+        the strip below — a hard-edged notch in the artwork."""
+        theme.apply("nebula")
+        try:
+            by_id, nodes = self._long_row()
+            self.assertEqual([n for n in nodes if n["t"] == "occ"], [])
+            strip = by_id["row-libs"]
+            left, right = by_id["row-libs-pl"], by_id["row-libs-pr"]
+            for b in (left, right):
+                self.assertEqual(b["t"], "img")
+            pad = tile_renderer.ARROW_INSET
+            self.assertAlmostEqual(left["x"], strip["x"] + pad, places=1)
+            self.assertAlmostEqual(right["x"] + right["w"],
+                                   strip["x"] + strip["w"] - pad, places=1)
+            # Circular, and small enough to cover little artwork.
+            self.assertEqual(left["w"], left["h"])
+            self.assertLess(left["h"], strip["h"] / 2)
+            # Same end-stop rule as the header pair, baked into the bitmap
+            # rather than restyled (the renderer cannot restyle an image).
+            self.assertNotIn("rpt", left)
+            self.assertTrue(right.get("rpt"))
+            self.assertNotEqual(left["src"], right["src"])
+        finally:
+            theme.apply("default")
+
+    def test_arrows_hold_repeat(self):
+        """Survives the move to bitmaps: Image carries ``repeat`` too, and the
+        renderer keys hold-repeat off click/rpt regardless of node type."""
+        theme.apply("nebula")
+        try:
+            by_id, _nodes = self._long_row()
+            self.assertTrue(by_id["row-libs-pr"].get("rpt"))
+        finally:
+            theme.apply("default")
 
     def test_downloaded_and_glyph(self):
         self.b.tiles._downloaded = {"m1"}
@@ -1393,6 +1466,122 @@ class TestSeriesAddTo(unittest.TestCase):
         acts = [e[2] for e in b._tile_menu_entries(
             {"Id": "s1", "Type": "Season"})]
         self.assertIn("addto", acts)
+
+class TestShippedThemesRender(unittest.TestCase):
+    """Every shipped theme, checked at the layer that decides what you see.
+
+    test_themes.py checks that each palette's colours work against each other.
+    That is necessary and not sufficient: mpvtk's widgets carry a hardcoded
+    dark palette as their DEFAULTS (``Text(color="eeeeee")``,
+    ``Button(bg="333333")``, and so on), and 138 of the browser's 242 widget
+    constructions take them rather than passing a theme colour. So a palette
+    can be perfectly balanced on paper and still render near-white text,
+    because most of the tree never asked the theme anything.
+
+    That is invisible in a dark theme — the hardcoded defaults ARE a dark
+    palette — and total in a light one. This builds a real scene per theme and
+    reads the colours back off the nodes, which is the only way to see it.
+    """
+
+    def _luminance(self, colour):
+        def channel(v):
+            v /= 255.0
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+        r, g, b = theme.rgb(colour)
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+    def _contrast(self, a, b):
+        la, lb = self._luminance(a), self._luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    def test_no_shipped_theme_renders_text_it_cannot_show(self):
+        from jellyfin_mpv_shim.mpvtk_browser import themes
+
+        try:
+            for _label, theme_id in themes.choices(force=True):
+                # Construct FIRST: MpvtkBrowser.__init__ applies the theme
+                # named in settings, so applying before it would be undone.
+                # Then push to the toolkit, which is what production does and
+                # what makes the widget defaults follow the palette at all.
+                b = MpvtkBrowser(app=None, source=FakeSource())
+                b._pool = _SyncPool()
+                cfg = theme.apply(theme_id)
+                theme.apply_to_toolkit(glow=cfg.get("glow", False))
+                window_bg = cfg["palette"]["WINDOW_BG"]
+                b.route["_data"] = {"libraries": b.source.libraries,
+                                    "rows": []}
+                nodes, _h = build_scene(b)
+                texts = [n for n in nodes
+                         if n.get("t") == "text" and n.get("c")]
+                self.assertTrue(texts, "no text drawn at all?")
+                for node in texts:
+                    with self.subTest(theme=theme_id, text=node.get("text")):
+                        self.assertGreaterEqual(
+                            self._contrast(node["c"], window_bg), 3.0,
+                            "%r drawn %s on %s" % (node.get("text"),
+                                                   node["c"], window_bg))
+        finally:
+            theme.apply("default")
+            theme.apply_to_toolkit(glow=False)
+
+
+class TestThemeGradients(unittest.TestCase):
+    """A theme's background gradients, in a real scene.
+
+    The gradient primitive is verified against mpv by
+    tools/gradient_fidelity.py; what this checks is the wiring — that a
+    theme key actually reaches the window background and the top bar, and
+    that a theme without one still gets a flat fill rather than an empty
+    Stack."""
+
+    def _scene(self, theme_id):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b._pool = _SyncPool()
+        cfg = theme.apply(theme_id)
+        theme.apply_to_toolkit(glow=cfg.get("glow", False))
+        b._theme_cfg = cfg
+        b.route["_data"] = {"libraries": b.source.libraries, "rows": []}
+        nodes, _h = build_scene(b)
+        return nodes
+
+    def tearDown(self):
+        theme.apply("default")
+        theme.apply_to_toolkit(glow=False)
+
+    def test_a_theme_without_gradients_draws_none(self):
+        nodes = self._scene("default")
+        self.assertEqual([n for n in nodes if n.get("t") == "grad"], [])
+
+    def test_a_window_gradient_spans_the_window_behind_everything(self):
+        nodes = self._scene("jf-wmc")
+        grads = [n for n in nodes if n.get("t") == "grad"]
+        self.assertEqual(len(grads), 1)
+        g = grads[0]
+        self.assertEqual(g["axis"], "y")
+        self.assertEqual((g["w"], g["h"]), (1280.0, 720.0))
+        # Bottom of the paint order, or it would cover the UI.
+        self.assertEqual(nodes.index(g), 0)
+
+    def test_a_topbar_gradient_covers_the_bar_only(self):
+        nodes = self._scene("jf-purplehaze")
+        grads = [n for n in nodes if n.get("t") == "grad"]
+        self.assertEqual(len(grads), 1)
+        g = grads[0]
+        self.assertEqual(g["axis"], "x")
+        self.assertEqual(g["h"], 60)
+        self.assertEqual(g["w"], 1280.0)
+
+    def test_the_bar_drops_its_flat_fill_when_a_gradient_is_behind_it(self):
+        """Otherwise the fill simply covers the gradient up."""
+        flat = [n for n in self._scene("default")
+                if n.get("t") == "rect" and n.get("h") == 60]
+        self.assertTrue(flat, "the stock bar should have a fill")
+        gradient_theme = [n for n in self._scene("jf-purplehaze")
+                          if n.get("t") == "rect" and n.get("h") == 60
+                          and n.get("fill")]
+        self.assertEqual(gradient_theme, [])
+
 
 class TestSortModes(unittest.TestCase):
     def test_critic_and_parental_rating_are_offered(self):

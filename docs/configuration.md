@@ -216,6 +216,33 @@ You can use the config file to enable and disable features.
   - Artwork is re-fetched from the server at the larger size, so scaling up
     stays sharp. Art from **offline sync** is the exception: it was downloaded
     at 1x and will be upscaled.
+- `theme` - Visual theme for the library browser. Default: `default`
+  - `default` - The stock look, unchanged from earlier versions.
+  - `nebula` - A deep-violet, glowing theme with rounded, cover-cropped cards
+    and larger covers.
+  - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv` -
+    Translations of jellyfin-web's own Blue Radiance, Windows Media Center,
+    Purple Haze, Light and Apple TV themes, so the shim can match the web
+    client you already use. The last two are **light** themes.
+  - Light themes are supported: the whole UI follows the palette, including
+    the controls the player draws for itself (text fields, dropdowns,
+    scrollbars, tooltips). The playback overlay stays dark on purpose — a
+    white HUD over a dark film is unreadable, and jellyfin-web keeps its
+    player controls dark for the same reason.
+  - A theme sets the palette, the mpv browse background, whether titles and
+    the selected card glow, whether cover cards are rounded and cover-cropped
+    (rather than square and letterboxed), where the carousel page buttons sit,
+    and the default cover, caption and heading sizes. `poster_scale` and
+    `ui_scale` still override the sizing.
+  - **Colours apply immediately** when you change this in Settings, including
+    the controls the player draws for itself. Cover and heading *sizes* still
+    need a restart: changing a poster's dimensions means re-compositing every
+    cached row, and doing that under the pointer is worse than asking.
+  - Themes are JSON files — see [Writing a theme](#writing-a-theme).
+- `poster_scale` - Overrides the active theme's default cover size. Default: `null`
+  - `null` keeps the theme's own size; a number (e.g. `1.0`, `1.4`, `1.7`)
+    scales the cover tiles.
+  - Read once at startup; changing it requires a restart.
 - `osc_style` - Which on-screen controller to use. Default: `mpvtk`
   - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
     browser inside the player window: top bar (back, title, SyncPlay),
@@ -405,6 +432,79 @@ use `shader_pack_custom`.
 - `shader_pack_gpu_api` - Graphics API to force while a profile is loaded: `auto`, `vulkan`, `d3d11` or `opengl`. (Default: `auto`)
   - `auto` leaves MPV's own choice (and anything in your `mpv.conf`) alone. The shader pack's legacy `opengl` request is ignored, because the shaders do not need it and OpenGL can cost you HDR output. The pack's `fbo-format` request is ignored with it — that format name only exists on the OpenGL backend, and MPV's own default asks for the same 16-bit float format on every backend. A profile that names some *other* API is honored, since a profile built around a Direct3D 11 filter cannot run anywhere else.
   - Set this only if video breaks when you load a profile. `opengl` is the most compatible; on Windows, `d3d11` (the MPV default) and `vulkan` are the ones that handle HDR.
+
+## Writing a theme
+
+Themes are JSON files, and they resolve the same way shader packs do: the ones
+shipped inside the package are the built-ins, and a file of the same name in
+your config directory replaces the built-in of that name entirely.
+
+- Built-in: `jellyfin_mpv_shim/themes/*.json` (currently `nebula.json`)
+- Yours: `themes/*.json` under the config folder — `~/.config/jellyfin-mpv-shim/themes/`
+  on Linux, `%appdata%\jellyfin-mpv-shim\themes\` on Windows,
+  `~/Library/Application Support/jellyfin-mpv-shim/themes/` on macOS.
+
+The **file name is the theme id** — the value you put in the `theme` setting.
+Dropping in `midnight.json` makes `midnight` selectable; a `nebula.json` of your
+own shadows the shipped Nebula, and a `default.json` shadows the stock look.
+
+Every theme is merged over the built-in default, so **a theme only states what
+it changes**. This is a complete, valid theme:
+
+```json
+{
+    "name": "Crimson",
+    "palette": { "ACCENT": "cc2222", "ACCENT_HOVER": "e04444" }
+}
+```
+
+Anything you leave out is the default's value — never the value of whatever
+theme was applied before. Unknown keys, unknown palette colours and values of
+the wrong shape are logged and ignored, and the rest of the theme still
+applies, so one typo costs you one colour rather than the whole file.
+
+Colours are `"rrggbb"`, with or without a leading `#`.
+
+| Key | Meaning |
+| --- | --- |
+| `name` | Label shown in the settings dropdown. Defaults to the file name. |
+| `palette` | Colour table; see below. |
+| `browse_bg` | mpv's `background-color` behind the browser, `"#rrggbb"`. |
+| `glow` | Blurred accent halo behind bold titles and around the selected card. |
+| `rounded` | Rounded, cover-cropped cards instead of square and letterboxed. |
+| `accent_buttons` | Accent-bordered top bar and settings tabs. |
+| `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
+| `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |
+| `hud_accent` | The accent as drawn over *video* — the seek bar's fill. `null` follows `ACCENT`, which is usually what you want; pin it if your accent is too dark or too pale to read against a moving picture. |
+| `window_gradient` | Background ramp down the page: `[[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]]`, or `null` for a flat fill. |
+| `topbar_gradient` | The same across the top bar (horizontal). |
+| `poster_scale` | Cover-size multiplier. The `poster_scale` *setting* overrides this. |
+| `heading_size` | Carousel section-title font size. |
+| `tile_landscape` | `[width, height]` of the landscape/library tile. |
+| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` scales them with the cover. |
+
+Palette colours: `WINDOW_BG`, `CARD_BG`, `PANEL_BG`, `PLACEHOLDER_BG`,
+`BUTTON_BG`, `BUTTON_ACTIVE`, `ENTRY_BG`, `BORDER`, `TEXT_FG`, `SUBTLE_FG`,
+`ACCENT`, `ACCENT_HOVER`, `ACCENT_SOFT`, `ACCENT_FG`, `FAV_RED`, `OK_GREEN`,
+`WARN_AMBER`, `PROGRESS_TRACK`, `WATCHED_GREEN`.
+
+`ACCENT` is the one you most likely want. There is deliberately only one accent
+in the UI — buttons, selection, hover rings, progress and active tabs all use
+it — so changing it retints the whole app coherently. `ACCENT_HOVER` is the
+same colour lightened and `ACCENT_SOFT` the same darkened for fills that sit
+behind text; `ACCENT_FG` is what gets drawn *on* an accent fill and normally
+wants to stay white.
+
+**Gradients: use the fewest stops that describe the shape.** Unlike CSS, extra
+stops do not buy smoothness here — libass has no gradient primitive, so each
+stop is drawn as its own eased ramp, and every extra one is a place where the
+colour briefly stops changing. Two or three stops give a clean gradient; six
+collinear ones give visible bands. `tools/gradient_fidelity.py` renders a
+gradient through mpv and prints its slope profile if you want to check one.
+
+Warnings about a theme that failed to parse go to the log (Settings → Logs).
+A newly *added* theme file appears in the dropdown after a restart; switching
+between themes already on disk repaints immediately.
 
 ## Trickplay Thumbnails
 

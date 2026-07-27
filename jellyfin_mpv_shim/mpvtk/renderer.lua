@@ -60,11 +60,55 @@ local state = {
     nodes = {},
     byid = {},
     w = 0, h = 0,
-    -- Accent palette, replaced by the mpvtk-theme message (see theme.py).
-    -- These are the toolkit defaults; an app with its own palette pushes
-    -- its own so the UI doesn't end up with two unrelated accents.
+    -- Design tokens, replaced wholesale by the mpvtk-theme message (see
+    -- theme.py, which owns the names and the stock values). Everything the
+    -- renderer draws for itself -- text fields, dropdowns and their popups,
+    -- scrollbars, tooltips, the focus ring -- reads from here, because
+    -- Python never sends a colour for any of them and so no call site could
+    -- ever theme one.
+    --
+    -- A TABLE rather than one local per colour, for two reasons. This chunk
+    -- is at LuaJIT's ceiling of 200 locals per function and adding ~20 more
+    -- would fail to load outright ("main function has more than 200 local
+    -- variables"), silently, as a blank UI. And a table can be swapped in
+    -- one assignment, which is what makes changing theme at runtime a
+    -- re-render rather than a restart.
+    --
+    -- The tok.chip_*/tok.scrim entries are drawn over VIDEO, not over the
+    -- app, and stay dark whatever the app's theme does.
+    tok = {
+        on_surface = 'eeeeee',
+        on_surface_strong = 'ffffff',
+        on_surface_muted = 'aaaaaa',
+        on_surface_faint = '777777',
+        control_bg = '333333',
+        control_hover = '4a4a4a',
+        control_sunken = '2a2a2a',
+        outline = '444444',
+        outline_strong = '555555',
+        popup_bg = '222222',
+        overlay_bg = '111111',
+        scrollbar_thumb = '666666',
+        scrollbar_thumb_active = 'bbbbbb',
+        selection = '3d59a1',
+        accent = '7aa2f7',
+        accent_hover = '92b3f8',
+        accent_soft = '223055',
+        on_accent = '101010',
+        accent_on_video = '7aa2f7',
+        scrim = '000000',
+        chip_bg = '202020',
+        chip_bg_hover = '3a3a3a',
+        chip_fg = 'ffffff',
+    },
+    -- Kept as their own fields because so much code reads them: aliases into
+    -- tok, refreshed whenever it is replaced.
     accent = '7aa2f7',
     accent_soft = '223055',
+    -- Themed glow: a blurred accent halo behind bold titles and around the
+    -- selected card. Off unless an app theme asks for it (mpvtk-theme), so
+    -- the stock look is unchanged.
+    glow = false,
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
@@ -492,9 +536,13 @@ local function hover_style(node)
     return nil
 end
 local function draw_rect(ass, x, y, w, h, o)
-    -- o: {fill, a, radius, bc, bw, clip}
+    -- o: {fill, a, radius, bc, bw, clip, blur}
     ass:new_event()
     ass:append('{\\pos(0,0)\\an7\\bord0\\shad0')
+    -- blur softens the border into a halo (the themed selection glow); the
+    -- caller must leave the clip off, or the container's viewport chops the
+    -- blur back into a hard edge.
+    if o.blur then ass:append(string.format('\\blur%.1f', o.blur)) end
     if o.fill then
         ass:append('\\1c' .. ass_color(o.fill))
         ass:append('\\1a' .. ass_alpha(o.a))
@@ -534,11 +582,19 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
     -- is what made long text jump to an extra line seemingly at random —
     -- our break was never authoritative. With \q2 a slightly-too-long line
     -- simply extends (and is clipped) instead of reflowing.
+    -- A themed glow (\bord + \blur in the accent) behind headings only:
+    -- bold and reasonably large, so body text and captions are untouched.
+    -- Drawn as part of the same event, so it cannot drift from the glyphs.
+    local glow = ''
+    if state.glow and node.bold and (node.size or 0) >= 22 then
+        glow = string.format('\\bord2\\blur6\\3c%s\\3a&H30&',
+                             ass_color(state.accent))
+    end
     ass:append(string.format(
         '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
-        '\\1c%s\\1a&H00&%s%s%s%s}',
+        '\\1c%s\\1a&H00&%s%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
-        ass_color(color), node.bold and '\\b1' or '',
+        ass_color(color), glow, node.bold and '\\b1' or '',
         ui_font and ('\\fn' .. ui_font) or '',
         clip_tag(clip), extra or ''))
     ass:append(raw and text or esc(text))
@@ -871,8 +927,8 @@ local function draw_textbox(ass, node, ex, ey, clip)
     local tb = state.tb[node.id]
     local focused = state.focus == node.id
     draw_rect(ass, ex, ey, node.w, node.h, {
-        fill = '2a2a2a', radius = 6,
-        bc = focused and state.accent or '444444',
+        fill = state.tok.control_sunken, radius = 6,
+        bc = focused and state.accent or state.tok.outline,
         bw = focused and 2 or 1, clip = clip,
     })
     local pad = 10
@@ -888,7 +944,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
     }
     local text = tb and tb.text or node.text or ''
     if text == '' and not focused and (node.ph or '') ~= '' then
-        draw_text(ass, tnode, ex + pad, ey, inner, node.ph, '777777')
+        draw_text(ass, tnode, ex + pad, ey, inner, node.ph, state.tok.on_surface_faint)
         return
     end
     local shift = tb and tb.shift or 0
@@ -900,7 +956,7 @@ local function draw_textbox(ass, node, ex, ey, clip)
         local sx2 = x0 + tb_text_w(node, text, b)
         draw_rect(ass, sx1, ey + node.h * 0.14,
             sx2 - sx1, node.h * 0.72,
-            { fill = '3d59a1', a = 200, clip = inner })
+            { fill = state.tok.selection, a = 200, clip = inner })
     end
     local disp = node.mask and string.rep('•', u8_count(text)) or text
     if focused then
@@ -953,9 +1009,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         end
         draw_text(ass, tnode, x0, ey, inner,
             pre .. caret .. esc(b),
-            'eeeeee', nil, true)
+            state.tok.on_surface, nil, true)
     else
-        draw_text(ass, tnode, x0, ey, inner, disp, 'eeeeee')
+        draw_text(ass, tnode, x0, ey, inner, disp, state.tok.on_surface)
     end
 end
 
@@ -976,6 +1032,16 @@ end
 -- the fade edge shows. ASS (not a bitmap) so ordinary ASS content
 -- still draws on top of it. Constants match the OSC's
 -- add_jf_gradient, which is field-proven not to band.
+-- Multi-stop COLOUR ramp. Each stop after the first is drawn as one
+-- blurred-edge layer over everything before it: alpha-compositing a 0->255
+-- ramp of B over solid A gives exactly A*(1-t) + B*t, which is a linear
+-- interpolation. So an n-stop gradient is n ASS events, not n bands -- and
+-- bands are what this file already avoids for the scrim, for the same reason
+-- (the old lua OSC's banded gradient was visibly stepped).
+--
+-- The ramp's shape is a gaussian rather than a true line, so the midpoint of
+-- each segment lands where it should and the quarter points bow slightly.
+-- Over a themed background that reads as a soft ease, not as an error.
 local function draw_gradient(ass, node, ex, ey, clip)
     local a1, a2 = node.a1 or 0, node.a2 or 0
     local w, h = node.w, node.h
@@ -989,6 +1055,63 @@ local function draw_gradient(ass, node, ex, ey, clip)
         c.y2 = math.min(c.y2, clip.y2)
     end
     if c.x2 <= c.x1 or c.y2 <= c.y1 then return end
+    if node.stops then
+        -- Multi-stop COLOUR ramp (themed backgrounds and top bars), rather
+        -- than an alpha fade of one colour. Each stop after the first is one
+        -- blurred-edge layer over everything before it: compositing a 0->255
+        -- ramp of B over solid A gives exactly A*(1-t) + B*t, a linear
+        -- interpolation. So an n-stop gradient is n ASS events, not n bands
+        -- -- and bands are what this file already avoids for the scrim,
+        -- because the old lua OSC's banded gradient was visibly stepped.
+        --
+        -- Deliberately inline rather than its own `local function`: this
+        -- chunk is at LuaJIT's 200-locals-per-function ceiling, and one more
+        -- top-level local fails to compile at load with nothing but
+        -- "main function has more than 200 local variables".
+        local horiz = node.axis == 'x'
+        local span = horiz and w or h
+        if span <= 0 or #node.stops == 0 then return end
+        draw_rect(ass, ex, ey, w, h, { fill = node.stops[1][2], clip = c })
+        -- Exactly ONE layer per stop segment. Splitting a segment into
+        -- several finer ramps hugs a true lerp more closely -- and looks
+        -- worse. Every gaussian starts and ends at ~zero slope, so each
+        -- extra layer adds a junction where the brightness briefly stops
+        -- changing, and the eye reads those flat spots as bands: two layers
+        -- put a visible plateau mid-gradient, six read as stacked strips.
+        -- Measured in tools/gradient_fidelity.py, which reports the slope
+        -- profile precisely so this stays hard to get wrong twice.
+        --
+        -- The cost of one layer is that the ramp eases rather than running
+        -- straight, which over a background is the nicer of the two errors.
+        for i = 2, #node.stops do
+            local p0 = node.stops[i - 1][1] * span
+            local p1 = node.stops[i][1] * span
+            local seg = p1 - p0
+            if seg > 0.5 then
+                -- A gaussian edge reaches ~full about 2*blur out, so a blur
+                -- of seg/4 spans exactly this segment with the box boundary
+                -- at its midpoint.
+                local blur = seg / 4
+                local over = blur * 4 + span
+                local mid = (p0 + p1) / 2
+                ass:new_event()
+                ass:append(string.format(
+                    '{\\pos(0,0)\\an7\\bord0\\shad0\\blur%.1f\\1c%s' ..
+                    '\\1a&H00&%s}',
+                    blur, ass_color(node.stops[i][2]), clip_tag(c)))
+                ass:draw_start()
+                if horiz then
+                    ass:rect_cw(ex + mid, ey - over,
+                                ex + w + over, ey + h + over)
+                else
+                    ass:rect_cw(ex - over, ey + mid,
+                                ex + w + over, ey + h + over)
+                end
+                ass:draw_stop()
+            end
+        end
+        return
+    end
     local lo = math.min(a1, a2)
     if lo > 0 then
         -- uniform base layer; the blurred box adds the delta on top
@@ -1040,12 +1163,12 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         local isz = math.floor(node.size * 1.2)
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
-            hovered and state.accent or 'dddddd', clip)
+            hovered and state.accent or state.tok.on_surface_muted, clip)
         return
     end
     draw_rect(ass, ex, ey, node.w, node.h, {
-        fill = '2a2a2a', radius = 6,
-        bc = open and state.accent or '444444', bw = 1, clip = clip,
+        fill = state.tok.control_sunken, radius = 6,
+        bc = open and state.accent or state.tok.outline, bw = 1, clip = clip,
     })
     local label = node.items[d.sel + 1] or ''
     local indent = 0
@@ -1053,7 +1176,7 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     if ipath and ipath ~= '' then
         local isz = math.floor(node.size * 1.1)
         draw_icon_path(ass, ipath, ex + 8, ey + (node.h - isz) / 2,
-            isz, 'cccccc', clip)
+            isz, state.tok.on_surface_muted, clip)
         indent = isz + 6
     end
     local tnode = {
@@ -1062,14 +1185,14 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     }
     -- the label must not spill under the arrow or past the control
     label = ellipsize(label, node.size, false, tnode.w)
-    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, 'eeeeee')
+    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, state.tok.on_surface)
     -- arrow
     local ax = ex + node.w - 22
     local ay = ey + node.h / 2 - 2
     ass:new_event()
     ass:append(string.format(
         '{\\pos(0,0)\\an7\\bord0\\shad0\\1c%s\\1a&H00&%s}',
-        ass_color('aaaaaa'), clip_tag(clip)))
+        ass_color(state.tok.on_surface_muted), clip_tag(clip)))
     ass:draw_start()
     ass:move_to(ax, ay)
     ass:line_to(ax + 12, ay)
@@ -1127,7 +1250,7 @@ end
 -- ('' = none).
 local function draw_list(ass, g, items, sel, size, icons)
     draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
-        fill = '222222', radius = 6, bc = '555555', bw = 1,
+        fill = state.tok.popup_bg, radius = 6, bc = state.tok.outline_strong, bw = 1,
     })
     local isz = math.floor(size * 1.1)
     local indent = icons and (isz + 10) or 0
@@ -1143,24 +1266,25 @@ local function draw_list(ass, g, items, sel, size, icons)
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
         if hovered or (sel ~= nil and (i - 1) == sel) then
             draw_rect(ass, g.x + 2, iy + 1, g.w - 4, g.ih - 2, {
-                fill = hovered and state.accent or '333333', radius = 4,
+                fill = hovered and state.accent or state.tok.control_bg, radius = 4,
             })
         end
         if icons and icons[i] and icons[i] ~= '' then
             draw_icon_path(ass, icons[i], g.x + 8,
-                iy + (g.ih - isz) / 2, isz, 'cccccc', nil)
+                iy + (g.ih - isz) / 2, isz, state.tok.on_surface_muted, nil)
         end
         local tnode = { w = g.w - 20 - indent, h = g.ih, size = size,
                         align = 'left' }
         draw_text(ass, tnode, g.x + 10 + indent, iy, nil,
-            ellipsize(item, size, false, tnode.w), 'eeeeee')
+            ellipsize(item, size, false, tnode.w), state.tok.on_surface)
     end
     if count > g.n then
         -- a thumb, so a clipped list doesn't look like the whole list
         local t = popup_thumb(g)
         if t then
             draw_rect(ass, t.x, t.y, t.w, t.h,
-                      { fill = state.dd_bar_drag and 'bbbbbb' or '888888',
+                      { fill = state.dd_bar_drag and state.tok.scrollbar_thumb_active
+                               or state.tok.scrollbar_thumb,
                         radius = 3 })
         end
     end
@@ -1297,8 +1421,18 @@ local function draw_slider(ass, node, ex, ey, clip)
     local tx1 = ex + SLIDER_PAD
     local tw = node.w - 2 * SLIDER_PAD
     local ty = ey + node.h / 2
+    -- Two surfaces. The playback HUD's bars sit on the PICTURE and keep a
+    -- pale track that reads over any frame; an ordinary slider is app chrome
+    -- and follows the theme, or a light theme would give it a near-black
+    -- track. Same widget, same draw, different backdrop.
+    local ov = node.ov
+    -- Over video the accent gets its own token, so a theme whose accent does
+    -- not read on a picture can pin the seek bar without giving up its
+    -- colour everywhere else. Defaults to the accent.
+    local accent = (ov and state.tok.accent_on_video) or state.accent
     draw_rect(ass, tx1, ty - 3, tw, 6,
-        { fill = '3a3a3a', radius = 3, clip = clip })
+        { fill = ov and '3a3a3a' or state.tok.control_sunken,
+          radius = 3, clip = clip })
     -- buffered/seekable ranges, shaded like the jellyfin OSC's
     if node.ranges then
         for _, r in ipairs(node.ranges) do
@@ -1306,13 +1440,14 @@ local function draw_slider(ass, node, ex, ey, clip)
             if r2 > r1 then
                 draw_rect(ass, tx1 + tw * r1, ty - 3,
                     tw * (r2 - r1), 6,
-                    { fill = 'ffffff', a = 100, clip = clip })
+                    { fill = ov and 'ffffff' or state.tok.on_surface_muted,
+                      a = 100, clip = clip })
             end
         end
     end
     if frac > 0 then
         draw_rect(ass, tx1, ty - 3, tw * frac, 6,
-            { fill = state.accent, radius = 3, clip = clip })
+            { fill = accent, radius = 3, clip = clip })
     end
     -- chapter slits (2x11px): accent once passed, dim white ahead —
     -- same treatment as the jellyfin OSC's seekbar markers
@@ -1321,7 +1456,8 @@ local function draw_slider(ass, node, ex, ey, clip)
             if m > 0 and m < 1 then
                 local passed = m <= frac
                 draw_rect(ass, tx1 + tw * m - 1, ty - 5.5, 2, 11, {
-                    fill = passed and state.accent or 'ffffff',
+                    fill = passed and accent
+                           or (ov and 'ffffff' or state.tok.on_surface),
                     a = passed and 255 or 77,
                     clip = clip,
                 })
@@ -1329,7 +1465,8 @@ local function draw_slider(ass, node, ex, ey, clip)
         end
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
-        { fill = 'dddddd', radius = 8, clip = clip })
+        { fill = ov and 'dddddd' or state.tok.on_surface,
+          radius = 8, clip = clip })
 end
 
 -- Scrub semantics for seek-style sliders: 'change' fires (throttled)
@@ -1475,9 +1612,9 @@ local function draw_scrollbar(ass, node)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
     local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
     draw_rect(ass, track_x, ty, 6, th,
-        { fill = '2a2a2a', radius = 3, clip = clip })
+        { fill = state.tok.control_sunken, radius = 3, clip = clip })
     draw_rect(ass, track_x, thumb_y, 6, thumb_h,
-        { fill = '666666', radius = 3, clip = clip })
+        { fill = state.tok.scrollbar_thumb, radius = 3, clip = clip })
     state.bars[node.id] = {
         x = track_x, y = ty, w = 6, h = th,
         thumb_y = thumb_y, thumb_h = thumb_h,
@@ -1597,11 +1734,21 @@ render = function()
             if node.ring then
                 -- hit-rect over a bitmap: only a hover ring, outside
                 if hs and hs.bc then
-                    draw_rect(ass, ex - 2, ey - 2,
-                        node.w + 4, node.h + 4, {
-                            bc = hs.bc, bw = hs.bw or 3,
-                            radius = 3, clip = clip,
-                        })
+                    if state.glow then
+                        -- Themed selection: a soft accent halo instead of a
+                        -- hard box. No clip — the row viewport would chop the
+                        -- blur back into the box this replaces.
+                        draw_rect(ass, ex - 3, ey - 3,
+                            node.w + 6, node.h + 6, {
+                                bc = hs.bc, bw = 3, radius = 14, blur = 16,
+                            })
+                    else
+                        draw_rect(ass, ex - 2, ey - 2,
+                            node.w + 4, node.h + 4, {
+                                bc = hs.bc, bw = hs.bw or 3,
+                                radius = 3, clip = clip,
+                            })
+                    end
                 end
             elseif hs and hs.circle then
                 -- round translucent wash centered on the button —
@@ -1613,6 +1760,17 @@ render = function()
                         a = hs.a or 70, radius = r, clip = clip,
                     })
             elseif node.fill or node.bc or hs then
+                if state.glow and hs and hs.glow then
+                    -- Soft accent halo behind a hovered box (themed chrome:
+                    -- hover={"glow": true}). Drawn first so the box sits on
+                    -- top of it, and unclipped — a clip would chop the blur
+                    -- back into a hard edge.
+                    draw_rect(ass, ex - 2, ey - 2,
+                        node.w + 4, node.h + 4, {
+                            bc = hs.bc or node.bc or state.accent, bw = 2,
+                            radius = (node.radius or 0) + 2, blur = 10,
+                        })
+                end
                 draw_rect(ass, ex, ey, node.w, node.h, {
                     fill = (hs and hs.fill) or node.fill,
                     a = node.a, radius = node.radius,
@@ -1646,7 +1804,7 @@ render = function()
             draw_gradient(ass, node, ex, ey, clip)
         elseif node.t == 'icon' then
             local hs = hover_style(node)
-            local c = (hs and hs.c) or node.c or 'eeeeee'
+            local c = (hs and hs.c) or node.c or state.tok.on_surface
             if node.hb and state.hover_id == node.hb and node.hc then
                 c = node.hc  -- accent tint while the parent button hovers
             end
@@ -1691,7 +1849,7 @@ render = function()
             -- adjust-mode signal for ordinary sliders
             local ring = state.accent
             if state.nav_adjust and not node.aadj then
-                ring = 'ffffff'
+                ring = state.tok.on_surface_strong
             end
             draw_rect(ass, ex - 3, ey - 3, node.w + 6, node.h + 6, {
                 bc = ring, bw = 3, radius = 4, clip = clip,
@@ -1714,12 +1872,12 @@ render = function()
     if state.tip_geo then
         local g = state.tip_geo
         draw_rect(ass, g.x, g.y, g.w, g.h, {
-            fill = '111111', a = 245, radius = 5,
-            bc = '4a4a4a', bw = 1,
+            fill = state.tok.overlay_bg, a = 245, radius = 5,
+            bc = state.tok.control_hover, bw = 1,
         })
         draw_text(ass, { w = g.w - ui_px(18), h = g.h, size = g.fs,
                          align = 'left' },
-            g.x + ui_px(9), g.y, nil, g.text, 'dddddd')
+            g.x + ui_px(9), g.y, nil, g.text, state.tok.on_surface_muted)
     end
     if busy_visible and not state.busy_timer then
         state.busy_timer = mp.add_periodic_timer(0.1, function()
@@ -2227,6 +2385,15 @@ local scroll_notify_timers = {}
 local scroll_last_notify = {}
 local SCROLL_NOTIFY_INTERVAL = 0.15
 
+-- Where a container is *settling* to, while slide_scroll eases it there.
+-- Both the published snapshot and the scroll event report this rather than
+-- the in-flight value, because every consumer wants the destination:
+-- virtualization should build the window the row is arriving at, park()
+-- should remember it, and the carousel page buttons page from it — which is
+-- what lets hold-repeat chain whole pages instead of re-deriving one from a
+-- half-finished slide (the slide is longer than the repeat interval).
+local scroll_dest = {}
+
 -- Scroll notification for watched containers (drives windowed/infinite
 -- scrolling on the Python side). This is a leading-edge THROTTLE, not
 -- a debounce: the first tick notifies immediately and sustained
@@ -2240,7 +2407,7 @@ local function fire_scroll(id)
     if node and node.t == 'scroll' then
         send({
             t = 'scroll', id = id,
-            offset = state.scroll[id] or 0,
+            offset = scroll_dest[id] or state.scroll[id] or 0,
             max = scroll_max(node),
         })
     end
@@ -2268,17 +2435,105 @@ end
 -- throttled scroll event is the async path). user-data needs mpv >=
 -- 0.36; a failed set is harmless on older builds.
 local function publish_scroll()
-    pcall(mp.set_property_native, 'user-data/mpvtk/scroll', state.scroll)
+    local out = state.scroll
+    if next(scroll_dest) ~= nil then
+        out = {}
+        for k, v in pairs(state.scroll) do
+            out[k] = v
+        end
+        -- Overlaid second, and not merged into the loop above: a container
+        -- sliding away from rest has no state.scroll entry yet, so keying off
+        -- that map alone published nothing for exactly the rows that are
+        -- moving.
+        for k, v in pairs(scroll_dest) do
+            out[k] = v
+        end
+    end
+    pcall(mp.set_property_native, 'user-data/mpvtk/scroll', out)
 end
 
-local function set_scroll(node, off)
+-- Running slide_scroll animations, by container id.
+local scroll_anim = {}
+
+local function stop_slide(id)
+    local a = scroll_anim[id]
+    if a then
+        a.timer:kill()
+        scroll_anim[id] = nil
+        scroll_dest[id] = nil
+    end
+end
+
+-- `quiet` moves the container without telling Python. Only slide_scroll's
+-- intermediate frames use it: the destination was announced when the slide
+-- started, so re-announcing every frame would publish the same value ~7 times
+-- over and fire the watch event off a position nothing should act on.
+local function set_scroll_now(node, off, quiet)
     off = clamp(off, 0, scroll_max(node))
     if state.scroll[node.id] ~= off then
         state.scroll[node.id] = off
-        publish_scroll()
-        if node.watch then notify_scroll(node.id) end
+        if not quiet then
+            publish_scroll()
+            if node.watch then notify_scroll(node.id) end
+        end
         request_render()
     end
+end
+
+local function set_scroll(node, off)
+    -- Any direct move cancels an animation in flight, so a wheel notch or a
+    -- drag during a slide takes over instead of fighting it to the end.
+    stop_slide(node.id)
+    set_scroll_now(node, off)
+end
+
+-- Ease a container to `target` over `dur` seconds instead of jumping. Used by
+-- the carousel page buttons: a page is a whole viewport of movement, and
+-- landing on it instantly gives no sense of which way the row went.
+--
+-- This is only safe now that nothing is punched out of the strip. An
+-- occlude=True button subtracts a STATIC rect from the image below it, so
+-- sliding the artwork under one made the notch crawl across the posters —
+-- which is why paging used to be a jump.
+local function slide_scroll(node, target, dur)
+    stop_slide(node.id)
+    local id = node.id
+    local from = state.scroll[id] or 0
+    target = clamp(target, 0, scroll_max(node))
+    if dur <= 0 or math.abs(target - from) < 1 then
+        set_scroll_now(node, target)
+        return
+    end
+    -- Announce the destination up front, once. Python acts on where the row
+    -- is going, not on the frames it passes through.
+    scroll_dest[id] = target
+    publish_scroll()
+    if node.watch then notify_scroll(id) end
+    local t0 = mp.get_time()
+    local a = {}
+    a.timer = mp.add_periodic_timer(TICK, function()
+        -- Re-look up by id: a rebuild between ticks replaces the node table,
+        -- and clamping against the old one's content size would be wrong.
+        local cur = state.byid[id]
+        if not cur or cur.t ~= 'scroll' then
+            stop_slide(id)
+            return
+        end
+        local p = (mp.get_time() - t0) / dur
+        if p >= 1 then
+            stop_slide(id)   -- clears scroll_dest, so the final set publishes
+            set_scroll_now(cur, target)
+            publish_scroll()  -- ...even if rounding already landed us there
+            return
+        end
+        -- Ease-out cubic: leaves quickly, settles gently. Rounded because
+        -- overlay positions are whole pixels — a fractional offset just
+        -- jitters the strip between two of them.
+        local e = 1 - (1 - p) ^ 3
+        set_scroll_now(cur, math.floor(from + (target - from) * e + 0.5),
+                       true)
+    end)
+    scroll_anim[id] = a
 end
 
 local function tb_menu_action(node, label)
@@ -3494,10 +3749,24 @@ mp.register_script_message('mpvtk-metrics', function(json)
 end)
 
 mp.register_script_message('mpvtk-theme', function(json)
+    -- Replace the token table. Merged over what is already there rather than
+    -- assigned outright, so an app that sends a subset keeps the stock value
+    -- for everything else -- and so a message that arrives malformed cannot
+    -- leave the renderer with no colours at all.
+    --
+    -- Safe to send at any time: nothing here is cached into a scene, so a
+    -- theme swap is this message plus a re-render, with no restart.
     local t = utils.parse_json(json)
-    if not t then return end
-    state.accent = t.accent or state.accent
-    state.accent_soft = t.soft or state.accent_soft
+    if type(t) ~= 'table' then return end
+    for key, value in pairs(t) do
+        if type(value) == 'string' and state.tok[key] ~= nil then
+            state.tok[key] = value
+        end
+    end
+    -- Aliases the drawing code reads directly.
+    state.accent = state.tok.accent
+    state.accent_soft = state.tok.accent_soft
+    state.glow = t.glow == true
     request_render()
 end)
 
@@ -4034,12 +4303,23 @@ local function center_of(id)
 end
 
 mp.register_script_message('mpvtk-scroll', function(json)
-    -- Page a scroll container (by id) by ~90% of its viewport along its
-    -- axis — drives the on-screen carousel arrow buttons.
+    -- Move a scroll container (by id) along its axis. Two forms:
+    --   {id=..., to=px}   absolute (clamped) — what the carousel page
+    --                     buttons use, because aligning the target to item
+    --                     boundaries needs the tile pitch, which only
+    --                     Python knows (tile_renderer.page_target).
+    --                     Optional `ms` eases into it instead of jumping.
+    --   {id=..., dir=+-1} page by ~90% of the viewport, for callers with
+    --                     no item grid to align to
     local cmd = utils.parse_json(json)
     if not cmd or not cmd.id then return end
     local node = state.byid[cmd.id]
     if not node or node.t ~= 'scroll' then return end
+    if cmd.to ~= nil then
+        slide_scroll(node, tonumber(cmd.to) or 0,
+                     (tonumber(cmd.ms) or 0) / 1000)
+        return
+    end
     local page = ((node.axis == 'x') and node.w or node.h) * 0.9
     set_scroll(node, (state.scroll[cmd.id] or 0) + (cmd.dir or 1) * page)
 end)

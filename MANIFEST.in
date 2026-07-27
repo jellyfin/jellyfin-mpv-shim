@@ -3,6 +3,7 @@ include jellyfin_mpv_shim/logo.png
 recursive-include jellyfin_mpv_shim/integration *
 recursive-include jellyfin_mpv_shim/default_shader_pack *
 recursive-include jellyfin_mpv_shim/messages *.mo
+recursive-include jellyfin_mpv_shim/themes *.json
 include jellyfin_mpv_shim/mouse.lua
 include jellyfin_mpv_shim/trickplay-osc.lua
 include jellyfin_mpv_shim/thumbfast.lua

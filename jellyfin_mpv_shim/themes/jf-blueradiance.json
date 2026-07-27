@@ -1,0 +1,42 @@
+{
+    "name": "Blue Radiance (Jellyfin)",
+    "palette": {
+        "WINDOW_BG": "033361",
+        "CARD_BG": "011432",
+        "PANEL_BG": "10223e",
+        "PLACEHOLDER_BG": "010f26",
+        "BUTTON_BG": "021a30",
+        "BUTTON_ACTIVE": "1e2b38",
+        "ENTRY_BG": "021a30",
+        "BORDER": "214b74",
+        "TEXT_FG": "eeeeee",
+        "SUBTLE_FG": "849aaf",
+        "ACCENT": "00a4dc",
+        "ACCENT_HOVER": "33b6e3",
+        "ACCENT_SOFT": "00729a",
+        "ACCENT_FG": "ffffff"
+    },
+    "browse_bg": "#033361",
+    "topbar_gradient": [
+        [
+            0.0,
+            "291a31"
+        ],
+        [
+            0.25,
+            "033664"
+        ],
+        [
+            0.5,
+            "011432"
+        ],
+        [
+            0.75,
+            "141a3a"
+        ],
+        [
+            1.0,
+            "291a31"
+        ]
+    ]
+}

@@ -64,6 +64,9 @@ jellyfin_mpv_shim = [
     "messages/*/LC_MESSAGES/*.mo",
     "default_shader_pack/**/*",
     "integration/**/*",
+    # Built-in UI themes. A file of the same name under the user's config dir
+    # shadows one of these — see mpvtk_browser/themes.py.
+    "themes/*.json",
 ]
 # mpvtk loads renderer.lua relative to its own __file__, so it has to land in
 # the subpackage directory — the top-level "*.lua" glob does not reach here.

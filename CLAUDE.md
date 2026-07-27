@@ -68,6 +68,8 @@ The backends also diverge in how callbacks are registered, which matters wheneve
 
 Config and credentials live in a per-platform path resolved by `conffile.py` (typically `~/.config/jellyfin-mpv-shim/` on Linux, `%appdata%\jellyfin-mpv-shim\` on Windows, `~/Library/Application Support/jellyfin-mpv-shim/` on macOS).
 
+**Themes** are not config keys — they are JSON files, resolved like shader packs: built-ins ship in `jellyfin_mpv_shim/themes/*.json`, and a same-named file under `<config>/themes/` shadows one. `mpvtk_browser/themes.py` holds the loader and `DEFAULT`, which is simultaneously the fallback, the schema (a theme file may only set keys that appear in it, coerced to those types) and the merge base — so a theme file states only what it changes and an absent key is *always* the default's value. `mpvtk_browser/theme.py` then serves `theme.ACCENT`-style reads (~190 call sites) from a dict via a module `__getattr__`. **Do not reintroduce writing the palette into `globals()`**: it let a theme define arbitrary module attributes (including over the functions there) and turned a mistyped colour name into a new global while the real one silently kept its old value.
+
 ## Optional dependencies are load-bearing
 
 This project's policy (CONTRIBUTING.md) is that **everything beyond the four required deps must degrade gracefully** when its package is missing or broken. `mpv_shim.py:main` and `player.py` both demonstrate the pattern: `try: import optional_thing` inside a guard, then either set a feature flag or fall back. Required: `python-mpv`, `python-mpv-jsonipc`, `jellyfin-apiclient-python`, `requests`. Everything else (GUI, mirror, Discord, Windows niceties) is an `extras_require` group in `setup.py`. New features touching outside dependencies should follow the same `try/except ImportError` + fallback pattern; don't add a hard import.
@@ -75,7 +77,7 @@ This project's policy (CONTRIBUTING.md) is that **everything beyond the four req
 ## i18n
 
 User-facing strings use gettext via `i18n.py`'s `_()`. After adding/changing strings:
-1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
+1. `./regen_pot.sh` — updates `jellyfin_mpv_shim/messages/base.pot` and merges into existing per-locale `.po` files. It `find`s every `.py` under `jellyfin_mpv_shim/` rather than globbing: it used to use `**`, which without `shopt -s globstar` expands like `*`, so nested packages (`mpvtk_browser/pages`, `/settings`, `/components`, `/gateway`) were never scanned and ~150 strings silently could not be translated. It first folds in each locale's translations from the `master` branch (where Weblate lands) so volunteer work is preserved when running on a feature branch; override the ref with `MASTER_REF=origin/master`.
 2. `./gen_pkg.sh --skip-build` (or `gen_pkg.sh` itself) compiles `.po` → `.mo`. `.mo` files are gitignored and regenerated at build time.
 
 Translations are managed via Weblate (jellyfin/jellyfin-mpv-shim project); commits like "Translated using Weblate (...)" come from there — don't hand-edit `.po` files for in-flight translations.

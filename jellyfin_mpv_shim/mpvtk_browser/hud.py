@@ -539,6 +539,7 @@ def build_hud(b, size):
     # scrub immediately, ENTER commits, UP/DOWN step off the bar.
     seek = Slider(
         "hud-seek", value=pos, min=0, max=max(1.0, dur),
+        on_video=True,   # drawn over the picture; see widgets.Slider
         force=True, flex=1, h=26, autofocus=True, always_adjust=True,
         marks=([ch["time"] / dur for ch in chapters if 0 < ch["time"] < dur]
                if dur > 0 else None),
@@ -629,6 +630,7 @@ def build_hud(b, size):
     if tiers["volbar"]:
         right.append(Slider(
             "hud-vol", value=0 if muted else vol, min=0, max=100,
+            on_video=True,   # drawn over the picture; see widgets.Slider
             w=sz(110), force=True,
             on_change=lambda v: b._ctl(lambda c: c.set_volume(v))))
     right.append(tbtn(

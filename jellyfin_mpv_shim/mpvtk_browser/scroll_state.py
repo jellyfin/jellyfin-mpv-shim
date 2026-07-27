@@ -89,18 +89,40 @@ class ScrollState:
 
     # -- events ------------------------------------------------------------
 
-    def on_scroll(self, scroll_id, offset, maximum, then=None):
+    #: Slack for "is this container against an end stop".
+    EDGE = 1.0
+
+    def _at_edge(self, offset, maximum):
+        return offset <= self.EDGE or offset >= maximum - self.EDGE
+
+    def on_scroll(self, scroll_id, offset, maximum, then=None,
+                  edges_only=False):
         """Record a scroll and repaint if it has moved a window's worth.
 
         ``then(offset, maximum)`` runs first and unconditionally — it is how
         infinite scroll asks for the next page, and that must not be gated on
         the repaint threshold.
+
+        Crossing into or out of an end stop always repaints, whatever the
+        distance: the carousel page buttons derive their disabled state from
+        the offset, and the last few px of a drag to the end are usually well
+        under ``STEP``, so the button that just became useless would otherwise
+        stay lit until something else happened to invalidate.
+
+        ``edges_only`` drops the distance rule and keeps just that one, for a
+        container whose *only* offset-dependent content is at the ends. The
+        home screen's carousels are the case: nothing about them is
+        virtualized, so a mid-row repaint would recomposite a screenful of
+        poster strips to change nothing.
         """
         self._recorded[scroll_id] = offset
         if then is not None:
             then(offset, maximum)
         base = self._rendered.get(scroll_id)
-        if base is None or abs(offset - base) >= self.STEP:
+        moved = not edges_only and abs(offset - (base or 0)) >= self.STEP
+        if (base is None or moved
+                or self._at_edge(offset, maximum)
+                != self._at_edge(base, maximum)):
             self._rendered[scroll_id] = offset
             self._invalidate()
 

@@ -10,6 +10,7 @@ that is where the controls are; they are declared below rather than imported,
 since it is the composed ``SettingsMixin`` that makes the call valid.
 """
 
+import logging
 from typing import TYPE_CHECKING
 
 from ...conf import settings
@@ -19,6 +20,8 @@ from ...mpvtk.widgets import (
     Text,
 )
 from .. import theme
+
+log = logging.getLogger("mpvtk_browser.settings")
 
 
 class SettingsBase:
@@ -65,6 +68,17 @@ class SettingsBase:
             # re-derives, no reload needed.
             if self.app is not None and hasattr(self.app, "push_scroll_config"):
                 self.app.push_scroll_config()
+        if ok and key == "theme":
+            # Colours apply immediately; sizes still need a restart, which is
+            # what set_theme's docstring explains and what NOTES tells the
+            # user. getattr because this mixin is also exercised against a
+            # config stand-in that is not the browser.
+            setter = getattr(self, "set_theme", None)
+            if setter is not None:
+                try:
+                    setter(value)
+                except Exception:
+                    log.exception("could not switch theme live")
         self.invalidate()
     def _section(self, title, children, subtitle=None):
         """A full-width titled card. Settings panels are forms, not tile

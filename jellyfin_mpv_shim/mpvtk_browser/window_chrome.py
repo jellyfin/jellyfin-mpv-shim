@@ -26,10 +26,12 @@ from ..mpvtk.widgets import (
     Button,
     Dropdown,
     Float,
+    Gradient,
     Icon,
     Progress,
     Row,
     Spacer,
+    Stack,
     Text,
     TextBox,
 )
@@ -89,6 +91,12 @@ def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
     title = "" if probe else (b.route.get("title") or _("Home"))
 
+    # A theme may give the top bar accent-bordered buttons; the stock look
+    # leaves the Button defaults alone.
+    # Themed chrome buttons (empty dict on themes that don't ask), shared
+    # with the Settings tabs so the two rows always match.
+    accent_style = theme.chrome_button_style()
+
     def nav_button(label, node_id, icon, cb):
         # Icon-only when compact — the icons are the same ones the
         # labels sit next to, so nothing new has to be learned. The
@@ -96,7 +104,8 @@ def chrome_bar(b, compact, probe=False, servers=None,
         # when the button stops saying what it does, and it was the
         # only mode with neither a label nor a tip.
         return Button("" if compact else label, id=node_id, icon=icon,
-                      on_click=cb, tip=label if compact else None)
+                      on_click=cb, tip=label if compact else None,
+                      **accent_style)
 
     left = []
     if b._nav.can_go_back:
@@ -144,18 +153,26 @@ def chrome_bar(b, compact, probe=False, servers=None,
         Button("", id="nav-search-go", icon="search", size=18,
                tip=_("Search"),
                on_click=lambda: b._search(
-                   b._search_box.get("term", ""))),
+                   b._search_box.get("term", "")), **accent_style),
         nav_button(_("SyncPlay"), "nav-syncplay", "groups",
                    b._open_syncplay),
         nav_button(_("Settings"), "nav-settings", "settings",
                    b._open_settings),
     ]
     middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
-    return Row(
+    bar = Row(
         left + middle + right,
         pad=12, gap=8 if compact else 10, align="center", h=60,
-        bg=theme.PANEL_BG,
+        # No fill when a gradient is painting behind it, or the flat colour
+        # would simply cover the gradient up.
+        bg=None if theme.topbar_gradient() else theme.PANEL_BG,
     )
+    stops = theme.topbar_gradient()
+    if not stops:
+        return bar
+    # Several jellyfin-web themes run a horizontal ramp across the header
+    # rather than a flat fill; Purple Haze's is most of its identity.
+    return Stack([Gradient(stops=stops, axis="x", h=60), bar], h=60)
 
 
 def banner(b):
@@ -179,7 +196,10 @@ def banner(b):
                    on_click=b.show_login),
             Button(_("Retry"), id="banner-retry",
                    on_click=b._retry_connect),
-        ], pad=10, gap=10, align="center", h=48, bg="5a3a1a")
+            # An amber warning wash: the theme's WARN_AMBER darkened far
+            # enough to sit behind body text rather than beside it.
+        ], pad=10, gap=10, align="center", h=48,
+            bg=theme.mix(theme.WARN_AMBER, theme.WINDOW_BG, 0.72))
     return None
 
 

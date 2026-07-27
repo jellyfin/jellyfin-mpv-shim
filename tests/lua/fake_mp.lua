@@ -74,10 +74,13 @@ function Timer:kill() self.enabled = false; self.dead = true end
 --- Run every armed timer once, newest arming first. Timers are how the
 --- renderer defers drawing; a test that never calls this exercises the
 --- logic without ever painting.
+---
+--- A periodic timer stays armed afterwards, as the real one does — an
+--- animation driven by one has to be able to tick more than once.
 function M.fire_timers()
     for _, t in ipairs(M.log.timers) do
         if t.enabled and not t.dead then
-            t.enabled = false
+            if not t.periodic then t.enabled = false end
             t.fn()
         end
     end
@@ -102,10 +105,18 @@ function mp.add_timeout(timeout, fn)
 end
 
 function mp.add_periodic_timer(timeout, fn)
-    return mp.add_timeout(timeout, fn)
+    local t = mp.add_timeout(timeout, fn)
+    t.periodic = true
+    return t
 end
 
+-- The clock creeps on every read, so throttles and debounces make progress
+-- without a test having to drive time by hand. M.advance jumps it, for the
+-- tests that DO care -- an animation asked to run for 0.2s would otherwise
+-- need 200 reads to get there.
 function mp.get_time() now = now + 0.001; return now end
+
+function M.advance(dt) now = now + dt end
 
 function mp.commandv(...)
     local args = { ... }

@@ -71,10 +71,12 @@ from ..mpvtk.widgets import (
     Column,
     Dropdown,
     Float,
+    Gradient,
     Icon,
     Progress,
     Row,
     Spacer,
+    Stack,
     Text,
     TextBox,
 )
@@ -95,7 +97,8 @@ from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
                          SERIES_TYPES)
-from .strips import LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore
+from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
+                     TileGeom)
 from .dialogs import DialogsMixin
 from .auth import AuthMixin
 from .settings import SettingsMixin
@@ -157,9 +160,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
 
     def __init__(self, app, source, strips=None, thumbs=None,
                  server_uuid=None, geom=None, controller=None, config=None):
-        # Before anything is built: the toolkit's accented widgets read the
-        # palette at construction time.
-        theme.apply_to_toolkit()
+        # Before anything is built: apply the user's chosen theme. Widgets
+        # read the palette when they are constructed, so this has to be in
+        # place before the first build.
+        from ..conf import settings as _settings
+        self._apply_theme(getattr(_settings, "theme", "default"))
         self.app = app            # mpvtk.MpvtkApp (attached or spawned)
         self.source = source
         # Settings accessor (settings_schema/get_settings/set_setting). None ->
@@ -267,9 +272,40 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
-        self.geom = geom or POSTER_GEOM       # default tile shape (2:3)
-        self.geom_wide = LANDSCAPE_GEOM       # 16:9 (episodes / home video)
-        self.geom_square = SQUARE_GEOM        # 1:1 (music)
+        # Cover size: the theme's default, overridden by the Cover Size
+        # setting when it is set. Posters/square scale; a theme may also
+        # override the landscape (library) tile's shape outright.
+        _cs = (getattr(_settings, "poster_scale", None)
+               or self._theme_cfg.get("poster_scale", 1.0))
+        _lw, _lh = self._theme_cfg.get("tile_landscape",
+                                       (LANDSCAPE_GEOM.tile_w,
+                                        LANDSCAPE_GEOM.tile_h))
+        self.geom = geom or POSTER_GEOM.scaled(_cs)   # default tile shape (2:3)
+        # The stock shape stays the module singleton rather than an equal
+        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
+        if (_lw, _lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
+            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
+        else:
+            self.geom_wide = TileGeom(
+                tile_w=_lw, tile_h=_lh,
+                caption_h=LANDSCAPE_GEOM.caption_h)
+        self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
+        # A theme may also pin the tile caption font so it does NOT grow with
+        # the cover (big art, modest labels), which lets a long title show
+        # more of itself before it is ellipsized. Section headings are
+        # separate (heading_size) and unaffected.
+        _tts = self._theme_cfg.get("tile_title_size")
+        _tss = self._theme_cfg.get("tile_sub_size")
+        if _tts or _tss:
+            import dataclasses
+
+            def _caption(g):
+                return dataclasses.replace(
+                    g, title_size=_tts or g.title_size,
+                    sub_size=_tss or g.sub_size)
+            self.geom = _caption(self.geom)
+            self.geom_wide = _caption(self.geom_wide)
+            self.geom_square = _caption(self.geom_square)
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -624,6 +660,68 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         return self._async.bump()
 
     # -------------------------------------------------------- async model
+
+    def _apply_theme(self, name):
+        """Make a theme current: palette, toolkit tokens, mpv's browse
+        background. Everything here is idempotent and safe to repeat, which
+        is what :meth:`set_theme` relies on."""
+        self._theme_cfg = theme.apply(name)
+        try:
+            # player_window, not player: the constant lives there and is read
+            # there, and `player` only re-exports the mixin. Assigning it on
+            # `player` set an attribute nothing reads -- see set_browse_bg.
+            from .. import player_window as _pw
+            _pw.set_browse_bg(self._theme_cfg["browse_bg"])
+        except Exception:
+            # No player module (tests): the palette still applies, there is
+            # just no mpv window whose background to set.
+            log.debug("could not set the browse background", exc_info=True)
+        # Glow is theme-driven; the toolkit forwards it to the renderer
+        # alongside the tokens.
+        theme.apply_to_toolkit(glow=self._theme_cfg.get("glow", False))
+        log.info("theme: %s (accent %s, glow %s)",
+                 self._theme_cfg.get("name", "?"), theme.ACCENT,
+                 self._theme_cfg.get("glow", False))
+        return self._theme_cfg
+
+    def set_theme(self, name):
+        """Change theme without restarting.
+
+        Three things have to happen beyond re-applying the palette, and each
+        is a place the old design could not have gone:
+
+        * the renderer needs the new tokens pushed, because it draws text
+          fields, dropdowns, scrollbars and tooltips itself;
+        * mpv's own ``background-color`` is what shows behind the browser,
+          and it is a property, not something the scene paints;
+        * every composited strip has the old theme's colours baked into its
+          bitmap, so the strip store is retagged (not cleared -- see
+          StripStore.tag) and the rows recomposite as they are next drawn.
+
+        Tile *geometry* is deliberately not re-derived. poster_scale and
+        tile_landscape feed sizes that a live rebuild would have to
+        rediscover through every cached row, and the payoff is a cover size
+        changing under the pointer. Those stay restart-only; the colours,
+        which are what a theme is mostly made of, do not.
+        """
+        cfg = self._apply_theme(name)
+        if self.app is not None:
+            try:
+                self.app.push_theme()
+            except Exception:
+                log.debug("could not push the theme to the renderer",
+                          exc_info=True)
+        if self.strips is not None:
+            self.strips.set_theme_tag(cfg.get("name", name))
+        try:
+            from .. import player as _player
+            player = getattr(_player, "playerManager", None)
+            if player is not None:
+                player.refresh_browse_bg()
+        except Exception:
+            log.debug("could not repaint the mpv background", exc_info=True)
+        self.invalidate()
+        return cfg
 
     def invalidate(self):
         if self.app is not None:
@@ -1597,7 +1695,16 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         toast = window_chrome.toast_node(self, w, h)
         if toast is not None:
             children.append(toast)
-        return Column(children, w=w, h=h, align="stretch")
+        page = Column(children, w=w, h=h, align="stretch")
+        stops = theme.window_gradient()
+        if not stops:
+            return page
+        # A themed page background. mpv's own background-color is a flat
+        # colour and stays as the base -- it is what shows before the first
+        # scene lands -- so this paints over it rather than replacing it.
+        # Bottom of the Stack, so every bit of chrome still draws on top.
+        return Stack([Gradient(stops=stops, axis="y", w=w, h=h), page],
+                     w=w, h=h)
 
     # How long a status message stays on screen.
     TOAST_SECS = 6.0

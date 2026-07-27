@@ -276,6 +276,27 @@ class TestRepeat(unittest.TestCase):
         )
         self.assertNotIn("rpt", by_id(nodes, "b"))
 
+    def test_image_repeat(self):
+        """A button that must composite over a bitmap has to BE a bitmap
+        (GUIDE §6), so hold-repeat cannot be a Box-only affordance — the
+        carousel page arrows are exactly that case."""
+        nodes, _ = layout(
+            Column([Image("/a.bgra", 20, 20, id="arrow", w=20, h=20,
+                          repeat=True, on_click=lambda: None)],
+                   w=200, h=100),
+            200, 100,
+        )
+        self.assertTrue(by_id(nodes, "arrow").get("rpt"))
+
+    def test_plain_image_has_no_repeat_flag(self):
+        nodes, _ = layout(
+            Column([Image("/a.bgra", 20, 20, id="arrow", w=20, h=20,
+                          on_click=lambda: None)],
+                   w=200, h=100),
+            200, 100,
+        )
+        self.assertNotIn("rpt", by_id(nodes, "arrow"))
+
     def test_imagemap_region_repeat(self):
         im = ImageMap(
             "/a.bgra", 100, 50,
@@ -619,31 +640,30 @@ class TestGridRowSpecs(unittest.TestCase):
 
 
 class TestThemeAccent(unittest.TestCase):
-    """The toolkit draws a few things in "the app's colour"; an embedding app
-    sets it once instead of overriding every call site."""
+    """The toolkit draws in the app's colours; an embedding app sets them
+    once instead of overriding every call site."""
 
     def setUp(self):
         from jellyfin_mpv_shim.mpvtk import theme
         self.theme = theme
-        self._saved = theme.palette()
-        self.addCleanup(lambda: theme.set_accent(
-            self._saved["accent"], hover=self._saved["hover"],
-            soft=self._saved["soft"], on_accent=self._saved["on_accent"]))
+        saved = {k.upper(): v for k, v in theme.palette().items()
+                 if k != "glow"}
+        self.addCleanup(lambda: theme.set_tokens(**saved))
 
     def test_derives_hover_and_soft_from_one_colour(self):
         p = self.theme.set_accent("00a4dc")
         self.assertEqual(p["accent"], "00a4dc")
         # hover is lighter, soft is darker — same hue family, not arbitrary.
-        self.assertGreater(sum(self.theme._rgb(p["hover"])),
+        self.assertGreater(sum(self.theme._rgb(p["accent_hover"])),
                            sum(self.theme._rgb(p["accent"])))
-        self.assertLess(sum(self.theme._rgb(p["soft"])),
+        self.assertLess(sum(self.theme._rgb(p["accent_soft"])),
                         sum(self.theme._rgb(p["accent"])))
 
     def test_explicit_values_win(self):
         p = self.theme.set_accent("00a4dc", hover="112233", soft="445566",
                                   on_accent="000000")
-        self.assertEqual((p["hover"], p["soft"], p["on_accent"]),
-                         ("112233", "445566", "000000"))
+        self.assertEqual((p["accent_hover"], p["accent_soft"],
+                          p["on_accent"]), ("112233", "445566", "000000"))
 
     def test_leading_hash_is_tolerated(self):
         self.assertEqual(self.theme.set_accent("#00a4dc")["accent"], "00a4dc")
@@ -666,6 +686,38 @@ class TestThemeAccent(unittest.TestCase):
         nodes, _h = layout(table, 300, 200)
         fills = {n.get("fill") for n in nodes if n.get("id") == "r0"}
         self.assertIn(self.theme.SOFT, fills)
+
+    def test_set_accent_leaves_the_other_tokens_alone(self):
+        """An app whose only opinion is its brand colour should not have to
+        restate the greys."""
+        before = self.theme.CONTROL_BG
+        self.theme.set_accent("00a4dc")
+        self.assertEqual(self.theme.CONTROL_BG, before)
+        self.assertEqual(self.theme.ACCENT, "00a4dc")
+
+    def test_set_tokens_replaces_rather_than_merges(self):
+        """What makes a runtime theme swap safe: a token the incoming theme
+        does not mention resets to stock rather than keeping the old
+        theme's value."""
+        self.theme.set_tokens(CONTROL_BG="123456")
+        self.assertEqual(self.theme.CONTROL_BG, "123456")
+        self.theme.set_tokens(ACCENT="00a4dc")
+        self.assertEqual(self.theme.CONTROL_BG,
+                         self.theme.TOKENS["CONTROL_BG"])
+
+    def test_an_unknown_token_is_refused(self):
+        with self.assertRaises(KeyError):
+            self.theme.set_tokens(CONTROL_BAKGROUND="123456")
+        with self.assertRaises(AttributeError):
+            self.theme.CONTROL_BAKGROUND
+
+    def test_every_token_reaches_the_renderer(self):
+        """The renderer draws text fields, dropdowns, scrollbars and tooltips
+        itself, so a token that never lands in the payload is a control no
+        theme can reach."""
+        payload = self.theme.palette()
+        for name in self.theme.TOKENS:
+            self.assertIn(name.lower(), payload)
 
     def test_imagemap_hover_ring_follows_the_accent(self):
         from jellyfin_mpv_shim.mpvtk.layout import layout
@@ -897,6 +949,32 @@ class TestOscPrimitives(unittest.TestCase):
         self.assertEqual(g["t"], "grad")
         self.assertEqual((g["a1"], g["a2"]), (0, 200))
         self.assertEqual((g["w"], g["h"]), (400, 90))
+        # The alpha-fade form carries no stops, so the renderer keeps its
+        # original path for the HUD scrim.
+        self.assertNotIn("stops", g)
+
+    def test_gradient_colour_stops(self):
+        """The multi-stop COLOUR form, for themed backgrounds and top bars.
+        Several jellyfin-web themes are built on gradients, and the alpha-fade
+        form cannot express one — it ramps the opacity of a single colour."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Gradient
+
+        nodes, _ = layout(
+            Column([Gradient(id="g", h=90, axis="x",
+                             stops=[(0.0, "#0f3562"), (0.5, "1162a4"),
+                                    (1.0, "03215f")])],
+                   w=400, h=300, align="stretch"),
+            400, 300,
+        )
+        g = by_id(nodes, "g")
+        self.assertEqual(g["t"], "grad")
+        self.assertEqual(g["axis"], "x")
+        # Normalised on the way out: a theme file may write either form, and
+        # the renderer's ass_color slices six characters off the front.
+        self.assertEqual(g["stops"],
+                         [[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]])
+        # Stops replace the fade entirely rather than layering on top of it.
+        self.assertNotIn("a1", g)
 
     def test_flat_button_transparent_at_rest(self):
         from jellyfin_mpv_shim.mpvtk import theme as tk_theme

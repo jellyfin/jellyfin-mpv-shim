@@ -730,11 +730,30 @@ class MpvtkApp:
         )
 
     def scroll(self, node_id, direction):
-        """Page a scroll container (by id) by ~a viewport along its axis —
-        the hook behind on-screen ◀ ▶ carousel arrows."""
+        """Page a scroll container (by id) by ~a viewport along its axis.
+
+        The blunt form, for content with no item grid to align to. A
+        carousel of fixed-pitch tiles wants :meth:`scroll_to` instead, so
+        a page lands on a tile boundary rather than mid-poster."""
         self.backend.command(
             "script-message", "mpvtk-scroll",
             json.dumps({"id": node_id, "dir": direction}),
+        )
+
+    def scroll_to(self, node_id, offset, ms=0):
+        """Scroll a container to an absolute ``offset`` (logical px).
+
+        ``ms`` eases into the target over that many milliseconds instead of
+        jumping. The easing runs in the renderer, not here: it has to step at
+        the render cadence, and a Python round-trip per frame would make it
+        both slower and jerkier than the jump it replaces.
+
+        The renderer clamps, so a caller may aim past either end and let it
+        settle — but it will not report back that it did, which is why the
+        page buttons decide their own disabled state rather than asking."""
+        self.backend.command(
+            "script-message", "mpvtk-scroll",
+            json.dumps({"id": node_id, "to": scaling.px(offset), "ms": ms}),
         )
 
     def node_rect(self, node_id):

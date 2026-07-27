@@ -63,6 +63,17 @@ class GeneralTabMixin:
                         # the settings it qualifies follow directly below.
                         rows.append(Text(note, size=14,
                                          color=theme.SUBTLE_FG, wrap=True))
+            if title == _("Theme"):
+                # Theme used to be read once at startup like the other two,
+                # so this said all three needed a restart, in bold accent —
+                # picking a theme and seeing nothing happen reads as a broken
+                # control, and it was worth shouting about. Themes repaint
+                # live now, so it is down to the two that still don't, and
+                # back to the ordinary note colour: it is a footnote, not a
+                # warning about the control you are looking at.
+                rows.append(Text(
+                    _("Cover size and interface scale require a restart."),
+                    size=14, color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
@@ -90,8 +101,10 @@ class GeneralTabMixin:
             # rather than the control: one field wider than every other field
             # in the form is what you notice, and it is closed most of the
             # time.
-            extra = {} if key in cfg.LABELED_ENUMS or not dynamic else {
-                "popup_w": int(self.FIELD_W * 1.5)}
+            # Only the device list needs it: theme names are short, and a
+            # popup wider than the control it drops from is what you notice.
+            extra = {"popup_w": int(self.FIELD_W * 1.5)} \
+                if key == "audio_device" and dynamic else {}
             widget = Dropdown(
                 "set-" + key, [lbl for lbl, _v in opts], selected=cur,
                 w=self.FIELD_W, force=True,
@@ -143,7 +156,25 @@ class GeneralTabMixin:
         is not one of those: it depends on the platform, the sound server and
         what is plugged in this minute, and mpv — the thing that will have to
         open the chosen device — is the only honest source for it.
+
+        Themes are the same shape of answer for a different reason: they are
+        JSON files now, and the user can drop their own into the config
+        directory, so a literal list would only ever show the shipped ones.
+
+        Read from the cache, not re-scanned: this runs on every rebuild of the
+        form — which is every keystroke in any text field on it — and a theme
+        only takes effect after a restart anyway, so re-reading the directory
+        here would buy nothing for a directory listing and a JSON parse per
+        theme per frame.
         """
+        if key == "theme":
+            try:
+                from .. import themes
+
+                return themes.choices()
+            except Exception:
+                log.debug("could not list themes", exc_info=True)
+                return None
         if key != "audio_device" or self.controller is None:
             return None
         try:
