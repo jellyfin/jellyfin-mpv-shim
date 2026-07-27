@@ -1467,6 +1467,59 @@ class TestSeriesAddTo(unittest.TestCase):
             {"Id": "s1", "Type": "Season"})]
         self.assertIn("addto", acts)
 
+class TestShippedThemesRender(unittest.TestCase):
+    """Every shipped theme, checked at the layer that decides what you see.
+
+    test_themes.py checks that each palette's colours work against each other.
+    That is necessary and not sufficient: mpvtk's widgets carry a hardcoded
+    dark palette as their DEFAULTS (``Text(color="eeeeee")``,
+    ``Button(bg="333333")``, and so on), and 138 of the browser's 242 widget
+    constructions take them rather than passing a theme colour. So a palette
+    can be perfectly balanced on paper and still render near-white text,
+    because most of the tree never asked the theme anything.
+
+    That is invisible in a dark theme — the hardcoded defaults ARE a dark
+    palette — and total in a light one. This builds a real scene per theme and
+    reads the colours back off the nodes, which is the only way to see it.
+    """
+
+    def _luminance(self, colour):
+        def channel(v):
+            v /= 255.0
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+        r, g, b = theme.rgb(colour)
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+    def _contrast(self, a, b):
+        la, lb = self._luminance(a), self._luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    def test_no_shipped_theme_renders_text_it_cannot_show(self):
+        from jellyfin_mpv_shim.mpvtk_browser import themes
+
+        try:
+            for _label, theme_id in themes.choices(force=True):
+                cfg = theme.apply(theme_id)
+                window_bg = cfg["palette"]["WINDOW_BG"]
+                b = MpvtkBrowser(app=None, source=FakeSource())
+                b._pool = _SyncPool()
+                b.route["_data"] = {"libraries": b.source.libraries,
+                                    "rows": []}
+                nodes, _h = build_scene(b)
+                texts = [n for n in nodes
+                         if n.get("t") == "text" and n.get("c")]
+                self.assertTrue(texts, "no text drawn at all?")
+                for node in texts:
+                    with self.subTest(theme=theme_id, text=node.get("text")):
+                        self.assertGreaterEqual(
+                            self._contrast(node["c"], window_bg), 3.0,
+                            "%r drawn %s on %s" % (node.get("text"),
+                                                   node["c"], window_bg))
+        finally:
+            theme.apply("default")
+
+
 class TestSortModes(unittest.TestCase):
     def test_critic_and_parental_rating_are_offered(self):
         from jellyfin_mpv_shim.mpvtk_browser.app import SORTS

@@ -15,6 +15,21 @@ from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
                                                     POSTER_GEOM)
 
 
+def _relative_luminance(colour):
+    def channel(v):
+        v /= 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    r, g, b = theme.rgb(colour)
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def _contrast(a, b):
+    """WCAG contrast ratio between two ``"rrggbb"`` colours, 1.0 to 21.0."""
+    la, lb = _relative_luminance(a), _relative_luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
 class ThemeRegistryTest(unittest.TestCase):
     def tearDown(self):
         theme.apply("default")
@@ -54,6 +69,64 @@ class ThemeRegistryTest(unittest.TestCase):
         builtin, _user = themes.theme_dirs()
         self.assertTrue(os.path.isfile(os.path.join(builtin, "nebula.json")))
         self.assertIn("nebula", themes.load(force=True))
+
+    def test_every_shipped_theme_parses_without_complaint(self):
+        """The loader forgives a bad theme file, which is right for one the
+        user wrote and wrong for one we ship: a typo in a shipped theme would
+        just quietly render as the default's value for that key. Nothing else
+        would notice, so this does."""
+        builtin, _user = themes.theme_dirs()
+        files = sorted(f for f in os.listdir(builtin) if f.endswith(".json"))
+        self.assertTrue(files, "no themes shipped?")
+        for filename in files:
+            with self.subTest(theme=filename):
+                path = os.path.join(builtin, filename)
+                with open(path, encoding="utf-8") as fh:
+                    data = json.load(fh)
+                with self.assertNoLogs("mpvtk_browser.themes", "WARNING"):
+                    themes.resolve(data, where=path)
+
+    def test_every_shipped_theme_is_legible_against_its_own_background(self):
+        """A theme is a palette of colours that have to work *together*. The
+        cheap way to ship an unusable one is a body colour that vanishes into
+        the window behind it, so check the pairs that carry the UI."""
+        for _label, theme_id in themes.choices(force=True):
+            t = themes.get(theme_id)
+            p = t["palette"]
+            with self.subTest(theme=theme_id):
+                # Body text has to be readable on the page and on a card.
+                for fg, bg in (("TEXT_FG", "WINDOW_BG"), ("TEXT_FG", "CARD_BG"),
+                               ("TEXT_FG", "PANEL_BG"),
+                               ("TEXT_FG", "BUTTON_BG")):
+                    self.assertGreaterEqual(
+                        _contrast(p[fg], p[bg]), 4.5,
+                        "%s on %s is unreadable in %s" % (fg, bg, theme_id))
+                # A secondary label has to be dimmer than body text without
+                # disappearing — it is what carries the tile caption hierarchy.
+                self.assertGreaterEqual(_contrast(p["SUBTLE_FG"], p["WINDOW_BG"]),
+                                        3.0, "SUBTLE_FG vanishes in " + theme_id)
+                self.assertGreaterEqual(_contrast(p["SUBTLE_FG"], p["TEXT_FG"]),
+                                        1.5, "SUBTLE_FG reads as body text in "
+                                        + theme_id)
+                # A button has to be findable, and its hover has to register.
+                self.assertGreaterEqual(_contrast(p["BUTTON_BG"], p["WINDOW_BG"]),
+                                        1.2, "buttons vanish in " + theme_id)
+                self.assertGreaterEqual(
+                    _contrast(p["BUTTON_ACTIVE"], p["BUTTON_BG"]), 1.15,
+                    "hover is invisible in " + theme_id)
+                # ...and the accent has to read as a line ON the page, not
+                # only as a fill behind white text. Our single ACCENT does
+                # both jobs — hover rings and focus borders as well as button
+                # fills — and Jellyfin blue cannot do the first one on a pale
+                # background, which is why the translated light themes take
+                # jf-web's $primary-dark instead.
+                self.assertGreaterEqual(_contrast(p["ACCENT"], p["WINDOW_BG"]),
+                                        3.0, "ACCENT vanishes in " + theme_id)
+
+    # NOTE: passing everything above is necessary and NOT sufficient. It
+    # checks the palette; it cannot see that most of the browser never asks
+    # for it. See test_shell_library's rendered-scene check, which is what
+    # actually catches a theme the widgets ignore.
 
 
 class DefaultThemeIsTheStockLookTest(unittest.TestCase):

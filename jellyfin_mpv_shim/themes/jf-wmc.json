@@ -1,0 +1,20 @@
+{
+    "name": "Windows Media Center (Jellyfin)",
+    "palette": {
+        "WINDOW_BG": "0f3562",
+        "CARD_BG": "0c2450",
+        "PANEL_BG": "1b315a",
+        "PLACEHOLDER_BG": "091b3c",
+        "BUTTON_BG": "324c64",
+        "BUTTON_ACTIVE": "143451",
+        "ENTRY_BG": "081a31",
+        "BORDER": "2c4d75",
+        "TEXT_FG": "eeeeee",
+        "SUBTLE_FG": "8a9baf",
+        "ACCENT": "00a4dc",
+        "ACCENT_HOVER": "33b6e3",
+        "ACCENT_SOFT": "00729a",
+        "ACCENT_FG": "ffffff"
+    },
+    "browse_bg": "#0f3562"
+}

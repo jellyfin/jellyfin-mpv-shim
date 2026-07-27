@@ -217,6 +217,9 @@ You can use the config file to enable and disable features.
   - `default` - The stock look, unchanged from earlier versions.
   - `nebula` - A deep-violet, glowing theme with rounded, cover-cropped cards
     and larger covers.
+  - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze` - Translations of
+    jellyfin-web's own Blue Radiance, Windows Media Center and Purple Haze
+    themes, so the shim can match the web client you already use.
   - A theme sets the palette, the mpv browse background, whether titles and
     the selected card glow, whether cover cards are rounded and cover-cropped
     (rather than square and letterboxed), where the carousel page buttons sit,
