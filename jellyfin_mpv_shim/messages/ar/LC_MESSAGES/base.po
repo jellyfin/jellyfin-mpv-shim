@@ -5,9 +5,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-07-28 18:21-0400\n"
-"PO-Revision-Date: 2026-05-15 14:08+0000\n"
-"Last-Translator: Ziad El Kalali <ziadad@hotmail.fr>\n"
+"POT-Creation-Date: 2026-07-28 19:53-0400\n"
+"PO-Revision-Date: 2026-07-27 15:25+0000\n"
+"Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
 "Language: ar\n"
@@ -75,16 +75,12 @@ msgid "Account already exists. Updating credentials."
 msgstr "الحساب موجود فعلا. تحديث الاعتمادات."
 
 #: jellyfin_mpv_shim/clients.py:302
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "نجاح إضافة الخادم."
+msgstr "نجح تحديث اعتمادات الخادم."
 
 #: jellyfin_mpv_shim/clients.py:305
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "فشل إضافة الخادم."
+msgstr "فشل تحديث اعتمادات الخادم."
 
 #: jellyfin_mpv_shim/clients.py:316
 msgid "Server URL: "
@@ -103,14 +99,8 @@ msgid "Add another server?"
 msgstr "إضافة خادم آخر؟"
 
 #: jellyfin_mpv_shim/clients.py:617
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذرت التواصل مع الخادم."
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
@@ -203,7 +193,7 @@ msgstr "تغيير جودة الفيديو"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:157
 #: jellyfin_mpv_shim/syncplay.py:740
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "تشغيل متزامن"
 
 #: jellyfin_mpv_shim/menu.py:163
 msgid "MPV Shim v{0} Release Info/Download"
@@ -433,10 +423,8 @@ msgid "First page"
 msgstr "أول صفحة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:853
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "نجاح إضافة الخادم."
+msgstr "صفحة سابقة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:854
 msgid "Next page"
@@ -493,14 +481,8 @@ msgstr "إعادة المحاولة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1938
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1940
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "لا يزال الوصول للخادم متعذرا."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:73
 msgid "Switch to %s"
@@ -536,10 +518,8 @@ msgid "Incorrect PIN."
 msgstr "رمز خاطئ."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:123
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN for %s"
-msgstr "الخادم:"
+msgstr "حدد الرمز لأجل %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:128
 msgid "Current PIN"
@@ -559,10 +539,8 @@ msgid "Require this PIN at startup"
 msgstr "هذا الرمز مطلوب عند البدء"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:141
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "حذف الخادم"
+msgstr "حذف الرمز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:147
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py:136
@@ -600,10 +578,8 @@ msgid "Connect to Jellyfin"
 msgstr "التوصيل لـ Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:248
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "نجاح إضافة الخادم."
+msgstr "خوادم مضافة سابقا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:255
 msgid "Use"
@@ -619,28 +595,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr "ادخل هذا الرمز في تطبيقJellyfin أو عميل ويب:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "إعدادات SVP"
+msgstr "طلب…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:287
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "عنوان الخادم: "
+msgstr "URL الخادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:288
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "اسم المستخدم:"
+msgstr "اسم المستخدم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:289
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "كلمة السر:"
+msgstr "كلمة العبور"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:291
 msgid "Use Quick Connect"
@@ -655,14 +623,8 @@ msgid "Enter the server URL first."
 msgstr "ادخل عنوان الخادم أولا."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:330
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "التوصال مع الخادم…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:339
 msgid "Waiting for approval…"
@@ -677,14 +639,8 @@ msgid "Connecting…"
 msgstr "توصيل…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:382
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر التواصل مع الخادم. يرجى مراجعة تفاصيلك."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:409
 msgid "Locked"
@@ -732,10 +688,8 @@ msgid "Ready to cast"
 msgstr "جاهز للإرسال"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py:315
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "حدد الوسائط الخاصة بك في Jellyfin وقم بتشغيلها هنا"
+msgstr "اختر الوسائط الخاصة بك في Jellyfin وقم بتشغيلها هنا."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:76
 msgid "Cast & Crew"
@@ -783,27 +737,23 @@ msgstr "تشغيل سابق"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:297
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:301
 msgid "Audio"
-msgstr "صوت"
+msgstr "الصوت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid "Subtitles & Languages"
 msgstr "ترجمات و لغات"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:109
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (ترميز)"
+msgstr "تحويل الترميز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:114
 msgid "Video Enhancement"
 msgstr "تحسين الفيديو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:116
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "قم بالتنقل لتتخطى الخاتمة"
+msgstr "تجاوز المقدمة / شارة النهاية"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:119
 msgid "Library Browser"
@@ -1208,10 +1158,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:120
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "حذف الخادم"
+msgstr "تجميعات…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:123
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:169
@@ -1227,16 +1175,12 @@ msgid "Add to Collection"
 msgstr "حذف الخادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:153
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "حذف الخادم"
+msgstr "لا توجد تجميعات بعد."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:156
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "اسم المستخدم: "
+msgstr "اسم تجميعة جديد…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:393
@@ -1246,21 +1190,13 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:253
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذرت فحص المطلوب تحميله."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:270
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:303
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "إعدادات SVP"
+msgstr "تقدير…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:272
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:35
@@ -1319,10 +1255,8 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:450
-#, fuzzy
-#| msgid "{0} has joined."
 msgid "%s (joined)"
-msgstr "{0} قد انضم."
+msgstr "%s (انضم)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:451
 #, fuzzy
@@ -1331,10 +1265,8 @@ msgid "Group"
 msgstr "مجموعة جديدة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:462
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "مجموعة جديدة"
+msgstr "لا مجموعات نشطة."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:465
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:425
@@ -1355,34 +1287,16 @@ msgid "Refresh"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:495
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر الانضمام إلى مجموعة SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:500
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر تكوين مجموعة SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:505
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر مغادرة مجموعة SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:23
 #, fuzzy
@@ -1404,7 +1318,7 @@ msgstr "آلي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:51
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py:74
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1683
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1688
 msgid "Episodes"
 msgstr ""
 
@@ -1413,7 +1327,7 @@ msgid "Season %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:52
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1679
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1684
 msgid "Specials"
 msgstr ""
 
@@ -1438,7 +1352,7 @@ msgid "Failed"
 msgstr "فشل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:185
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1424
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1429
 msgid "Playlist"
 msgstr ""
 
@@ -1459,7 +1373,7 @@ msgid "HD"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py:190
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:360
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:389
 msgid "No channels available."
 msgstr ""
 
@@ -1489,8 +1403,8 @@ msgid "Recently Added"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py:109
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:422
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:451
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:446
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:456
 msgid "Active Recordings"
 msgstr ""
 
@@ -1578,15 +1492,13 @@ msgstr "لا شيء (معطل)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:564
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:130
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:642
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:671
 msgid "Previous"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:570
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "نجاح إضافة الخادم."
+msgstr "فصل سابق"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:575
 msgid "Back 10 Seconds"
@@ -1602,7 +1514,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:591
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:134
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:644
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:673
 msgid "Next"
 msgstr ""
 
@@ -1618,10 +1530,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:639
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py:72
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:159
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "إعدادات SVP"
+msgstr "إعدادات"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:643
 #, fuzzy
@@ -1671,7 +1581,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:352
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py:133
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:685
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:706
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:134
 #, fuzzy
 #| msgid "Cancel"
@@ -1696,10 +1606,8 @@ msgstr "تعذر تطبيق التغييرات."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:433
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:200
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete the downloaded copy of %s?"
-msgstr "حذف الخادم"
+msgstr "حذف النسخة المنزلة من %s؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:435
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py:378
@@ -1745,7 +1653,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:74
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py:72
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1457
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1462
 msgid "Movies"
 msgstr ""
 
@@ -1761,25 +1669,25 @@ msgstr ""
 msgid "News"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:450
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:639
+#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:469
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:660
 msgid "Live"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:452
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:639
+#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:471
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:660
 msgid "Premiere"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:455
+#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:474
 #, fuzzy
 #| msgid "New PIN"
 msgid "New"
 msgstr "رمز جديد"
 
-#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:457
+#: jellyfin_mpv_shim/mpvtk_browser/live_tv.py:476
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:151
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:640
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:661
 msgid "Repeat"
 msgstr ""
 
@@ -1796,12 +1704,12 @@ msgid "Recording"
 msgstr " (ترميز)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py:128
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:691
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:712
 msgid "Series Options"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py:166
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:678
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:699
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:131
 msgid "Record"
 msgstr ""
@@ -1911,7 +1819,7 @@ msgid "Categories"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py:365
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:309
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:338
 #, fuzzy
 #| msgid "SVP Settings"
 msgid "Guide Settings"
@@ -1930,14 +1838,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:189
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:238
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "يا ولد الخرا لا تخرب"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:249
 #, fuzzy
@@ -2157,122 +2059,122 @@ msgid "Schedule"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:46
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1487
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1769
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1492
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1774
 msgid "Series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:206
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:222
 msgid "No programs are listed right now."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:283
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:312
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Previous Day"
 msgstr "نجاح إضافة الخادم."
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:284
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:313
 msgid "Earlier"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:287
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:316
 msgid "Later"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:289
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:318
 #, fuzzy
 #| msgid "Next page"
 msgid "Next Day"
 msgstr "صفحة تالية"
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:290
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:319
 msgid "Now"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:297
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:326
 msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:302
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:331
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Previous Channels"
 msgstr "نجاح إضافة الخادم."
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:305
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:334
 msgid "More Channels"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:401
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:429
 msgid "Latest Recordings"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:406
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:432
 #, fuzzy
 #| msgid "Open Config Folder"
 msgid "Recording Folders"
 msgstr "فتح مجلد الإعدادات"
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:410
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:435
 #, fuzzy
 #| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
 msgstr "إعدادات الخادم"
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:432
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:453
 msgid "Nothing is scheduled to record."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:446
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:467
 msgid "Scheduled"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:460
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:481
 msgid "No series are set to record."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:626
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:647
 msgid "Scheduled to record"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:627
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:648
 msgid "Recording now"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:628
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:649
 msgid "Recording this series"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:629
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:650
 msgid "This series is set to record, but this showing is not scheduled"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:661
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:682
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:120
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
 msgid "Watch"
 msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:661
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:682
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:123
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
 msgid "Watch Channel"
 msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:670
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:691
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:128
 msgid "Stop Recording"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:671
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:692
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:129
 msgid "Do Not Record"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:698
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py:719
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:136
 #, fuzzy
 #| msgid "Remove Server"
@@ -2427,7 +2329,7 @@ msgid "Delete the playlist %s?"
 msgstr "حذف الخادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py:382
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:757
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:786
 msgid "Title"
 msgstr ""
 
@@ -2436,7 +2338,7 @@ msgid "Type"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py:384
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:761
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:790
 msgid "Time"
 msgstr ""
 
@@ -2473,7 +2375,7 @@ msgid "Shows"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py:75
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1462
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1467
 msgid "Videos"
 msgstr ""
 
@@ -2498,79 +2400,67 @@ msgid "Seasons"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py:150
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر تحميل عناصر اكثر."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py:232
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر تحميل هذه الصفحة."
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:425
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:676
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:430
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:681
 msgid "On Now"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:446
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:451
 msgid "Latest %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:677
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:682
 msgid "Upcoming Episodes"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:680
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:685
 msgid "Upcoming Movies"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:682
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:687
 msgid "Upcoming Sports"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:684
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:689
 msgid "Upcoming Kids"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:686
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:691
 msgid "Upcoming News"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1438
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1443
 msgid "Downloaded"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1466
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1471
 msgid "TV Shows"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1470
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1475
 msgid "Playlists"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1531
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1536
 msgid "Downloaded Movies"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1535
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1540
 msgid "Downloaded Videos"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1539
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1544
 msgid "Downloaded Shows"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1681
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py:1686
 msgid "Season %d"
 msgstr ""
 
@@ -2901,15 +2791,15 @@ msgstr ""
 msgid "That user could not be renamed."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:560
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:589
 msgid "Nothing here yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:758
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:787
 msgid "Artist"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:760
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py:789
 msgid "Album"
 msgstr ""
 
@@ -2940,16 +2830,12 @@ msgid "Remove from Collection"
 msgstr "حذف الخادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:266
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove %s from this playlist?"
-msgstr "حذف الخادم"
+msgstr "حذف %s من لائحة التشغيل هذه؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:277
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove %s from this collection?"
-msgstr "حذف الخادم"
+msgstr "حذف %s من هذه التجميعة؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:329
 msgid "There is nothing here to queue."
@@ -2966,16 +2852,12 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:129
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "الخادم:"
+msgstr "خادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:142
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "اسم المستخدم:"
+msgstr "مستخدم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:147
 msgid "Search…"
@@ -3019,20 +2901,16 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py:123
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (ترميز)"
+msgstr "(الترميز)"
 
 #: jellyfin_mpv_shim/osc_bridge.py:125 jellyfin_mpv_shim/osc_bridge.py:161
 msgid "External"
 msgstr "خارجي"
 
 #: jellyfin_mpv_shim/osc_bridge.py:260
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay مفعل."
+msgstr "SyncPlay مفعل"
 
 #: jellyfin_mpv_shim/osc_bridge.py:414 jellyfin_mpv_shim/syncplay.py:721
 msgid "{0}'s Group"
@@ -3088,7 +2966,7 @@ msgstr "الموسم {0} - الحلقة {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py:160
 msgid "Disabled"
-msgstr "معطل"
+msgstr "مثبط"
 
 #: jellyfin_mpv_shim/svp_integration.py:167
 msgid "Select SVP Profile"
