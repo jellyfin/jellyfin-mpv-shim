@@ -410,16 +410,28 @@ class MpvtkApp:
         )
 
     def push_scroll_config(self):
-        """Forward the wheel step (px per notch) and the snapped-scrolling
-        toggle to the renderer. Both are safe to re-push live: the renderer
+        """Forward the wheel step (px per notch) and the two scroll-snapping
+        toggles to the renderer. All are safe to re-push live: the renderer
         just re-derives its step and thumb-tracking, no cached state to drop.
-        Sent on ready and again whenever the Library Browser settings change."""
+        Sent on ready and again whenever the Library Browser settings change.
+
+        ``force_snap`` is the user's setting OR'd with "this is an external
+        mpv". Out of process, every overlay re-issue is a JSON IPC round
+        trip and a scroll can want dozens per frame, so the renderer's
+        rate-based gate is the wrong test there — the cost is high at *any*
+        rate. ``self.in_process`` is the backend's own answer to that
+        (mirroring ``player.is_using_ext_mpv``), which is why this is
+        decided here rather than by importing player into the toolkit.
+        """
         from ..conf import settings
 
         self.backend.command(
             "script-message", "mpvtk-wheel", json.dumps({
                 "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),
                 "snapped": bool(getattr(settings, "snapped_scrolling", False)),
+                "force_snap": bool(
+                    getattr(settings, "force_scroll_snapping", False)
+                    or not self.in_process),
             })
         )
 

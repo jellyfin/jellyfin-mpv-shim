@@ -52,6 +52,9 @@ local TICK = 0.03
 local SCROLL_TICK = 0.045
 -- How long after the last wheel event we still consider a gesture "live".
 local SCROLL_TICK_WINDOW = 0.3
+-- (The wheel-event rate above which the display quantizes lives on `state`
+-- as snap_fps, with the rest of the snap state — this chunk is at Lua's
+-- 200-local ceiling, so a new file-scope local costs someone else theirs.)
 local WHEEL_STEP = 80
 local MAX_OVERLAYS = 63
 
@@ -111,6 +114,40 @@ local state = {
     glow = false,
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
+    -- force_scroll_snapping (mpvtk-wheel), and always on for an external
+    -- mpv, where every overlay re-issue is an IPC round trip.
+    force_snap = false,
+    -- Wheel-event rate above which the display quantizes to row/section
+    -- boundaries: two events closer together than 1/snap_fps are a fling
+    -- rather than a nudge.
+    --
+    -- The cost being managed is per *changed* frame. A changed offset
+    -- re-lays the whole OSD at output resolution and re-issues every
+    -- visible overlay — out of process that is one IPC round trip each, up
+    -- to MAX_OVERLAYS of them. Quantizing makes consecutive frames
+    -- identical, so the re-issues are skipped by the argstr check in
+    -- renumber_overlays and libass has nothing new to lay out.
+    --
+    -- But that only matters when the frames are actually coming. Someone
+    -- nudging the wheel a few notches produces two or three changed frames
+    -- a second, which is affordable at any resolution on any backend.
+    -- Quantizing for them bought nothing and made every scroll in the
+    -- application step instead of glide, which is what this threshold
+    -- exists to stop.
+    --
+    -- Tuned by hand, upward, twice: 5 and then 10 both still caught
+    -- ordinary scrolling. A wheel flicked hard enough to need the
+    -- mitigation emits notches far faster than 15/s, so the cost of
+    -- setting it high is small — a fling takes an extra frame or two to
+    -- latch — while the cost of setting it low is that everyone's normal
+    -- scrolling steps instead of gliding, which is the whole thing this
+    -- exists to avoid.
+    snap_fps = 15,
+    -- Display quantization for the gesture in progress: latched by the rate
+    -- test in on_wheel, released SCROLL_TICK_WINDOW after the last event.
+    snap_live = false,
+    wheel_prev = nil,       -- time of the previous wheel event (rate measure)
+    snap_timer = nil,
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
     -- video, summoned by nav keys / mouse motion, auto-hides
     phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1 },
@@ -452,6 +489,17 @@ end
 -- precedence: the offset snaps to the nearest listed stop, clamped to the
 -- scrollable range.
 local function snap_round(node, off)
+    -- Whether the display quantizes at all right now. Three ways in, and
+    -- the middle one is the reason this test exists:
+    --   * force_snap — the user's opt-in, and the default on external mpv;
+    --   * snap_live — a fling is in progress (see on_wheel);
+    --   * snapped — snapped_scrolling, where the stored offset already sits
+    --     on a detent so rounding is a no-op, but gating it off would be a
+    --     lie about what that mode does.
+    -- Everything else — which is most scrolling, on most setups — glides.
+    if not (state.force_snap or state.snap_live or state.snapped) then
+        return off
+    end
     if node.snaps then
         local max = scroll_max(node)
         local best, bestd = clamp(off, 0, max), math.huge
@@ -1963,9 +2011,14 @@ render = function()
         local tnode = { w = 560, h = 24, size = 16, align = 'right' }
         draw_text(ass, tnode, state.w - 570, 4, nil,
             string.format(
-                'wheel:%d s:%.2f tgt:%s off:%s | mouse:%d,%d hover:%s',
+                'wheel:%d s:%.2f tgt:%s off:%s snap:%s | mouse:%d,%d hover:%s',
                 state.wheel_count or 0, lw.scale or 0,
                 tostring(lw.target), tostring(lw.off),
+                -- 'F' forced (setting or external mpv), 'g' this gesture,
+                -- '-' free. The whole point of the feature is that most
+                -- scrolling reads '-', so it is worth being able to see.
+                state.force_snap and 'F'
+                    or (state.snap_live and 'g' or '-'),
                 state.mouse.x or -1, state.mouse.y or -1,
                 tostring(state.mouse.hover)),
             'ffcc66')
@@ -2900,6 +2953,53 @@ local WHEEL_LOCK_S = 2.0
 local function on_wheel(dir, axis, e)
     phud_touch()
     state.wheel_count = (state.wheel_count or 0) + 1
+    -- Latch display quantization for a fast gesture (see state.snap_fps).
+    -- Measured across wheel events globally rather than per container: a
+    -- fling is a property of the input device, and a gesture that crosses
+    -- from one scroller to another is still one flick of one wheel.
+    --
+    -- A single fast interval latches it, because the release below is
+    -- time-based. Requiring a sustained rate instead would spend the first
+    -- half of every fling doing the expensive thing.
+    local wnow = mp.get_time()
+    local wprev = state.wheel_prev
+    state.wheel_prev = wnow
+    if wprev and (wnow - wprev) * state.snap_fps <= 1 then
+        state.snap_live = true
+    end
+    if state.snap_live then
+        -- Drop back to free scrolling once the gesture is over, moving the
+        -- STORED offset onto the detent the last frame was already
+        -- *showing*. Both end the quantization; this way does it without
+        -- moving anything on screen. Releasing to the continuous offset
+        -- instead would shift the content by up to half a row 300ms after
+        -- the user stopped touching anything — which reads as a glitch, and
+        -- throws away the one thing gesture snapping is good for: a fling
+        -- lands aligned rather than halfway through a row.
+        --
+        -- Only the container the gesture was locked to. That is the one
+        -- that moved, and it is already tracked for the hit-test fallback.
+        if state.snap_timer then
+            state.snap_timer:kill()
+        end
+        state.snap_timer = mp.add_timeout(SCROLL_TICK_WINDOW, function()
+            state.snap_timer = nil
+            if not state.snap_live then return end
+            local lock = state.wheel_lock
+            local target = lock and state.byid[lock.id]
+            local landed = nil
+            if target and target.t == 'scroll' then
+                landed = snap_round(target, state.scroll[target.id] or 0)
+            end
+            state.snap_live = false
+            if landed then
+                -- After clearing the flag, so this is the settled position
+                -- and not something the next frame re-rounds.
+                set_scroll(target, landed)
+            end
+            request_render()
+        end)
+    end
     local scale = (e and e.scale) or 1
     if scale <= 0 then scale = 1 end
     if state.hud then request_render() end
@@ -3968,6 +4068,9 @@ mp.register_script_message('mpvtk-wheel', function(json)
     end
     if t.snapped ~= nil then
         state.snapped = t.snapped and true or false
+    end
+    if t.force_snap ~= nil then
+        state.force_snap = t.force_snap and true or false
     end
     request_render()
 end)

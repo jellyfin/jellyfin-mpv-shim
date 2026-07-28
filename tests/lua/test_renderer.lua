@@ -693,6 +693,126 @@ scene({})
 eq(hover_events(), "hover_end:tile-a-play",
    "a hovered node leaving the scene reported no departure")
 
+-- ===================================================== scroll snapping
+--
+-- Scrolling glides. It quantizes to row boundaries only while the wheel is
+-- being flung -- when drawing every intermediate position gets expensive --
+-- or when the user (or an external mpv) forces it on.
+--
+-- The observable is where the offset SETTLES. During a gesture the stored
+-- offset stays continuous and only the drawing is quantized, so the visible
+-- consequence is at the end: a fling releases onto the detent it was
+-- already showing, and a nudge is left exactly where the pixels put it.
+
+-- Row height. Deliberately NOT a multiple of the 80px wheel step: the step
+-- is itself quantized to divide a row evenly (see on_wheel), so at 100 one
+-- notch moves exactly one row and every offset lands on a boundary whether
+-- anything is snapping or not -- which would make all of this pass for the
+-- wrong reason. At 250 a notch is 83.3px and only snapping can round.
+local SNAP = 250
+
+local function snapper(id, ch)
+    return vscroll(id, 300, ch or 3000, { snap = SNAP, snap_off = 0 })
+end
+
+--- Is this offset sitting on a row boundary?
+local function on_row(id)
+    local off = offset(id)
+    return math.abs(off - math.floor(off / SNAP + 0.5) * SNAP) < 0.5
+end
+
+--- One wheel notch over the container, `gap` seconds after the last.
+local function notch(gap)
+    fake.advance(gap or 1.0)
+    fake.key("wheel_down")
+end
+
+--- Let the release timer run.
+local function settle()
+    fake.advance(1.0)
+    fake.fire_timers()
+end
+
+local function reset_wheel()
+    -- A fresh gesture: far enough after the last event that no rate test
+    -- could latch, and with any pending release already fired.
+    settle()
+    fake.advance(5.0)
+end
+
+--- A fresh container for one scenario, so none of them inherit an offset.
+local function fresh(id)
+    scene({ snapper(id) })
+    fake.mouse(10, 10)
+    reset_wheel()
+end
+
+-- Two notches a second apart is nudging, not flinging.
+fresh("slow")
+notch(1.0)
+notch(1.0)
+settle()
+ok(not on_row("slow"), "a slow scroll is left where the pixels put it",
+   string.format("offset %s landed on a row boundary",
+                 tostring(offset("slow"))))
+
+-- The same two notches 20ms apart are a fling.
+fresh("fling")
+notch(0.02)
+notch(0.02)
+settle()
+ok(offset("fling") > 0, "a fling still scrolls")
+ok(on_row("fling"), "a fling settles on a row boundary",
+   string.format("offset %s is not on one", tostring(offset("fling"))))
+
+-- Just under the threshold (state.snap_fps = 15, so 1/15s ~ 67ms) must
+-- still glide. This is the case the figure was raised twice for: brisk
+-- but ordinary scrolling, which should not step.
+fresh("under")
+notch(0.08)
+notch(0.08)
+settle()
+ok(not on_row("under"), "a scroll below the rate threshold glides",
+   string.format("offset %s snapped", tostring(offset("under"))))
+
+-- The threshold is a RATE, so a fling that stops is free again: the next
+-- slow notch after it must not be dragged to a boundary.
+fresh("again")
+notch(0.02)
+notch(0.02)
+settle()
+ok(on_row("again"), "the fling landed aligned")
+notch(1.0)
+settle()
+ok(not on_row("again"), "scrolling is free again once the fling ends",
+   string.format("offset %s snapped", tostring(offset("again"))))
+
+-- A container with no snap declared has nothing to quantize to, and a
+-- fling over it must not wedge anything.
+scene({ vscroll("plainfling", 300, 3000) })
+fake.mouse(10, 10)
+reset_wheel()
+notch(0.02)
+notch(0.02)
+settle()
+ok(offset("plainfling") > 0, "a fling over an unsnapped container scrolls",
+   string.format("offset stayed at %s", tostring(offset("plainfling"))))
+
+-- force_scroll_snapping (and external mpv) quantize the DRAWING at any
+-- rate. The stored offset still glides -- the setting changes what is
+-- painted, not where the scroller is -- so a slow scroll under it is left
+-- off the boundary exactly as it is without.
+fake.send("mpvtk-wheel", fake.token({ force_snap = true }))
+fresh("forced")
+notch(1.0)
+notch(1.0)
+settle()
+ok(offset("forced") > 0, "forced snapping still scrolls")
+ok(not on_row("forced"), "forced snapping does not move the scroller",
+   string.format("offset %s was pulled to a boundary",
+                 tostring(offset("forced"))))
+fake.send("mpvtk-wheel", fake.token({ force_snap = false }))
+
 -- ========================================================== teardown
 
 scene({})

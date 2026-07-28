@@ -232,10 +232,15 @@ function M.observe(name, value)
     for _, fn in ipairs(prop_observers[name] or {}) do fn(name, value) end
 end
 
-function M.key(name)
+function M.key(name, ...)
     local fn = M.log.keybinds[name]
     if not fn then error("no key binding: " .. name) end
-    return fn()
+    return fn(...)
+end
+
+--- Park the pointer, so hit-tested input (the wheel) has a target.
+function M.mouse(x, y)
+    M.observe("mouse-pos", { x = x, y = y, hover = true })
 end
 
 function M.scroll_prop() return M.log.props["user-data/mpvtk/scroll"] or {} end

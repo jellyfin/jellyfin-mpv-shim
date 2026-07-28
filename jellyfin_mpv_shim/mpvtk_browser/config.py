@@ -117,7 +117,8 @@ SECTIONS = [
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
-                            "snapped_scrolling", "paginated"]),
+                            "snapped_scrolling", "force_scroll_snapping",
+                            "paginated"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
                       "auto_download_enable", "auto_download_next_up",
                       "auto_download_next_up_limit",
@@ -262,6 +263,13 @@ NOTES = {
     "snapped_scrolling": _("Make each wheel notch jump exactly one row (or one "
                            "home-screen section) instead of gliding. Turn this "
                            "on if you prefer the older stepped scrolling."),
+    "force_scroll_snapping": _("Force scroll snapping (mitigates lag). "
+                               "Scrolling normally glides, and only snaps to "
+                               "rows while the wheel is being flung, which is "
+                               "when drawing every position gets expensive. "
+                               "Turn this on if scrolling still stutters — on "
+                               "a very large display, or a slow or remote "
+                               "one. Always on with an external MPV."),
     # Deliberately says nothing about the pypresence dependency: the Windows
     # build bundles it, so naming a package most users will never have to
     # think about only invites questions. The dynamic note in

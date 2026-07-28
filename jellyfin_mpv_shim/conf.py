@@ -132,6 +132,18 @@ class Settings(SettingsBase):
     # wheel notch jumps exactly one row / one home-screen section, and the
     # scrollbar snaps with it) instead of the continuous-pixel behavior above.
     snapped_scrolling: bool = False
+    # Quantize the content to row/section boundaries for the whole time the
+    # browser is open, instead of only while the wheel is being flung.
+    #
+    # The renderer already does this for a fast gesture, because a changed
+    # scroll offset re-lays the whole OSD and re-issues every visible
+    # overlay — expensive at 4K, and one IPC round trip per overlay on an
+    # external mpv. Below that rate it scrolls freely, which is smoother and
+    # costs nothing on any normal setup. This forces the mitigation on for
+    # the cases the rate test does not catch (a slow machine, a huge
+    # surface, a remote X display). It is always on with an external mpv,
+    # where the IPC cost applies to every frame regardless of rate.
+    force_scroll_snapping: bool = False
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to
     # move between pages; adjacent pages are prefetched so paging is instant.

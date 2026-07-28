@@ -42,6 +42,47 @@ class TestAdoptBackend(unittest.TestCase):
         self.assertTrue(MpvtkApp.attach(FakeMPV(), ext=False).in_process)
         self.assertFalse(MpvtkApp.attach(FakeMPV(), ext=True).in_process)
 
+    def _scroll_config(self, ext, **settings):
+        """The mpvtk-wheel payload the app forwards for a backend flavour."""
+        import json
+
+        from jellyfin_mpv_shim import conf
+
+        app = MpvtkApp.attach(FakeMPV(), ext=ext)
+        saved = {k: getattr(conf.settings, k) for k in settings}
+        for key, value in settings.items():
+            setattr(conf.settings, key, value)
+        try:
+            app.push_scroll_config()
+        finally:
+            for key, value in saved.items():
+                setattr(conf.settings, key, value)
+        payload = next(c for c in app.backend.mpv.commands
+                       if c[0] == "script-message" and c[1] == "mpvtk-wheel")
+        return json.loads(payload[2])
+
+    def test_scroll_snapping_is_forced_out_of_process(self):
+        """Out of process every overlay re-issue is a JSON IPC round trip,
+        and a scroll wants dozens per frame — so the renderer's rate-based
+        gate is the wrong test there: the cost is high at any rate.
+
+        Decided here rather than by importing player.py into the toolkit;
+        in_process is the backend's own answer to the same question."""
+        self.assertTrue(
+            self._scroll_config(ext=True,
+                                force_scroll_snapping=False)["force_snap"])
+
+    def test_scroll_snapping_is_not_forced_in_process(self):
+        # libmpv: free-running scrolling unless the user asks otherwise.
+        self.assertFalse(
+            self._scroll_config(ext=False,
+                                force_scroll_snapping=False)["force_snap"])
+
+    def test_the_setting_forces_it_in_process_too(self):
+        self.assertTrue(
+            self._scroll_config(ext=False,
+                                force_scroll_snapping=True)["force_snap"])
+
     def test_attach_requires_ext(self):
         with self.assertRaises(ValueError):
             MpvtkApp(mpv_handle=FakeMPV())  # ext omitted

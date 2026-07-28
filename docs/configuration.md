@@ -199,9 +199,11 @@ You can use the config file to enable and disable features.
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Disk budget for cached library artwork. Default: `256`
 - `scroll_wheel_pixels` - Pixels a single wheel notch scrolls in the library browser. Default: `80`
-  - The scrollbar glides continuously while the content snaps to the nearest row (or home-screen section), so a trackpad or trackball no longer overshoots whole rows. On an equal-row grid the step is rounded so a whole number of notches spans one row. Raise it to scroll faster, lower it for finer control.
+  - Scrolling glides. On an equal-row grid the step is rounded so a whole number of notches spans one row, so a trackpad or trackball never leaves you a sliver of a row off. Raise it to scroll faster, lower it for finer control.
 - `snapped_scrolling` - Make each wheel notch jump exactly one row (or one home-screen section) instead of gliding. Default: `false`
   - An accessibility escape hatch that restores the older stepped scrolling.
+- `force_scroll_snapping` - Always quantize scrolling to rows, instead of only while the wheel is being flung. Default: `false`
+  - Drawing a new scroll position re-lays the whole overlay and re-issues every visible image, which gets expensive on a very large display and costs a round trip per image with an external MPV. So the browser quantizes to row boundaries **only while the wheel is moving faster than 15 notches a second**, which is when it would otherwise stutter; below that it scrolls freely. Turn this on if scrolling still stutters for you — a slow GPU, or a remote X display. It is always on with an external MPV, where the per-image cost applies at any speed. Unrelated to `snapped_scrolling`, which changes what a *notch* does; this changes only what is drawn between notches.
 - `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
   - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
 - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
