@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-28 10:04+0000\n"
+"PO-Revision-Date: 2026-07-28 16:27+0000\n"
 "Last-Translator: Natawan Jongnetiwisit <TKGAME11@outlook.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -74,10 +74,8 @@ msgid "Account already exists. Updating credentials."
 msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:302
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "เพิ่มเซิร์ฟเวอร์เรียบร้อยแล้ว"
+msgstr "แก้ไขข้อมูลเซิร์ฟเวอร์เรียบร้อยแล้ว"
 
 #: jellyfin_mpv_shim/clients.py:305
 #, fuzzy
@@ -102,26 +100,20 @@ msgid "Add another server?"
 msgstr "เพิ่มเซิร์ฟเวอร์อีกหรือไม่?"
 
 #: jellyfin_mpv_shim/clients.py:617
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ได้"
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "การเชื่อมต่อด่วน ไม่ได้ถูกเปิดในเซิร์ฟเวอร์นี้"
 
 #: jellyfin_mpv_shim/clients.py:626
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "ไม่สามารถเริ่มการเชื่อมต่อด่วนได้"
 
 #: jellyfin_mpv_shim/media.py:194
 msgid " (Transcode)"
-msgstr " (Transcode)"
+msgstr " (การแปลงรหัส)"
 
 #: jellyfin_mpv_shim/menu.py:28
 msgid "White"
@@ -222,7 +214,7 @@ msgstr "ออกจากโปรแกรมและทำเครื่อ
 #: jellyfin_mpv_shim/menu.py:183 jellyfin_mpv_shim/mpvtk_browser/hud.py:381
 #: jellyfin_mpv_shim/osc_bridge.py:91
 msgid "Screenshot"
-msgstr "แคปเจอร์"
+msgstr "ถ่ายภาพหน้าจอ"
 
 #: jellyfin_mpv_shim/menu.py:187
 msgid "Video Playback Profiles"
@@ -287,7 +279,7 @@ msgstr "เสียงภาษาญี่ปุ่น พร้อมคำ�
 
 #: jellyfin_mpv_shim/menu.py:428
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "คู่มือค้นหาตามหมายเลขแทร็ก (ความน่าเชื่อถือน้อยกว่า)"
+msgstr "ค้นหาตามหมายเลขแทร็ก (ความน่าเชื่อถือน้อยกว่า)"
 
 #: jellyfin_mpv_shim/menu.py:463
 msgid "Select Default Transcode Profile"
@@ -349,7 +341,7 @@ msgstr "แปลงไฟล์ HDR"
 
 #: jellyfin_mpv_shim/menu.py:549
 msgid "Direct Paths"
-msgstr "ที่อยู่ไฟล์โดยตรง"
+msgstr "ที่อยู่ไฟล์"
 
 #: jellyfin_mpv_shim/menu.py:550
 msgid "Disable Direct Play"
