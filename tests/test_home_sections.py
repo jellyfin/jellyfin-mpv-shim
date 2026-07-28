@@ -39,11 +39,15 @@ class TestResolveLayout(unittest.TestCase):
         self.assertEqual(hs.DEFAULT_LAYOUT[5], hs.NEXT_UP)   # guards the point
 
     def test_unsupported_values_survive_resolution(self):
-        """We cannot draw recordings, but we must not lose them: the same
-        layout is read by jellyfin-web."""
-        layout = hs.resolve_layout({"homesection0": hs.ACTIVE_RECORDINGS})
-        self.assertEqual(layout[0], hs.ACTIVE_RECORDINGS)
-        self.assertNotIn(hs.ACTIVE_RECORDINGS, hs.SUPPORTED)
+        """We cannot draw books, but we must not lose them: the same layout
+        is read by jellyfin-web.
+
+        (This used to use activerecordings, which the Live TV screens can
+        draw now — RESUME_BOOK is the remaining type the shim recognises and
+        renders nothing for.)"""
+        layout = hs.resolve_layout({"homesection0": hs.RESUME_BOOK})
+        self.assertEqual(layout[0], hs.RESUME_BOOK)
+        self.assertNotIn(hs.RESUME_BOOK, hs.SUPPORTED)
 
     def test_values_are_stringified_and_stripped(self):
         layout = hs.resolve_layout({"homesection0": "  resume  "})
@@ -95,8 +99,13 @@ class TestStages(unittest.TestCase):
         self.assertEqual(hs.stages_for([hs.LATEST]), {"latest"})
 
     def test_unsupported_sections_contribute_no_work(self):
-        self.assertEqual(
-            hs.stages_for([hs.ACTIVE_RECORDINGS, hs.RESUME_BOOK]), set())
+        self.assertEqual(hs.stages_for([hs.RESUME_BOOK, "librarybuttons"]),
+                         set())
+
+    def test_active_recordings_is_an_above_the_fold_fetch(self):
+        # It became drawable with the Live TV screens; it is one request and
+        # belongs with the other primary rows, gated on the tuner check.
+        self.assertEqual(hs.stages_for([hs.ACTIVE_RECORDINGS]), {"primary"})
 
     def test_default_layout_needs_both_fetch_stages(self):
         stages = hs.stages_for(hs.DEFAULT_LAYOUT)

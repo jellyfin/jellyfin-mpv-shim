@@ -98,12 +98,27 @@ class GateTest(unittest.TestCase):
         self.assertEqual(api.calls, ["get_views"])
         self.assertTrue(src.has_live_tv("srv"))
 
-    def test_live_tv_view_is_still_hidden_from_the_library_list(self):
-        # Noting it must not resurrect it as a library tile.
+    def test_live_tv_view_is_a_library_tile(self):
+        # It is a destination now — the tabbed Live TV screen — so it appears
+        # in the library list like any other view, while still being what the
+        # gate above is derived from. (It used to be filtered out, back when
+        # the only Live TV in the app was the On Now row.)
         api = FakeApi(views=[MOVIES_VIEW, LIVE_VIEW])
         src = source_for(api)
         libs = src.get_libraries("srv")
-        self.assertEqual([lib["Id"] for lib in libs], ["l1"])
+        self.assertEqual([lib["Id"] for lib in libs], ["l1", "lt"])
+        self.assertTrue(src.has_live_tv("srv"))
+
+    def test_live_tv_gets_no_latest_row(self):
+        # A tuner has no recently-added anything, and the per-library Latest
+        # fan-out would otherwise spend a request per home load asking.
+        api = FakeApi(views=[MOVIES_VIEW, LIVE_VIEW])
+        src = source_for(api)
+        libs = src.get_libraries("srv")
+        src.get_home_rows("srv", libraries=libs, layout=[hs.LATEST])
+        parents = [p.get("parent_id") for name, p in
+                   zip(api.calls, api.params) if name == "get_recently_added"]
+        self.assertEqual(parents, ["l1"])
 
     def test_unknown_until_views_are_read(self):
         # Wrong in the cheap direction: a missing row until the next load,
@@ -123,6 +138,35 @@ class GateTest(unittest.TestCase):
         api._views = [MOVIES_VIEW]
         src.get_libraries("srv")
         self.assertFalse(src.has_live_tv("srv"))
+
+
+class ActiveRecordingsRowTest(unittest.TestCase):
+    """The other Live-TV-only section. Same gate, same reason."""
+
+    def test_it_is_skipped_without_a_tuner(self):
+        api = FakeApi(views=[MOVIES_VIEW])
+        api.get_live_tv_recordings = lambda **kw: {"Items": [{"Id": "r1"}]}
+        src = source_for(api)
+        libs = src.get_libraries("srv")
+        rows = src.get_home_rows("srv", libraries=libs,
+                                 layout=[hs.ACTIVE_RECORDINGS])
+        self.assertEqual(rows, [])
+        self.assertNotIn("get_live_tv_recordings", api.calls)
+
+    def test_it_lists_what_is_recording_now(self):
+        api = FakeApi(views=[LIVE_VIEW])
+        recorded = []
+
+        def recordings(**kw):
+            recorded.append(kw)
+            return {"Items": [{"Id": "r1", "Name": "Taping"}]}
+        api.get_live_tv_recordings = recordings
+        src = source_for(api)
+        libs = src.get_libraries("srv")
+        rows = src.get_home_rows("srv", libraries=libs,
+                                 layout=[hs.ACTIVE_RECORDINGS])
+        self.assertEqual([i["Id"] for i in rows[0]["items"]], ["r1"])
+        self.assertIs(recorded[0]["is_in_progress"], True)
 
 
 class OnNowRowTest(unittest.TestCase):

@@ -7,6 +7,12 @@ Icons are converted at first use from `ui_icon_paths.py`
 zero-length contours pin the bounding box so libass scales and aligns
 the drawing exactly like a 24x24 box regardless of the glyph's ink.
 The renderer scales with \\fscx/\\fscy — crisp at any size.
+
+`icon_image` is the second consumer of the same data: a PIL rasterizer,
+for the decorations that are *baked into a bitmap* rather than drawn as
+widgets (the strip compositor's corner badges). One source of truth, so
+a symbol drawn on a tile is the same symbol drawn in the widget beside
+it.
 """
 
 import logging
@@ -48,3 +54,122 @@ def icon_ass(name):
 
 def icon_names():
     return sorted(ICON_PATHS)
+
+
+# -- rasterizing ------------------------------------------------------------
+#
+# The renderer draws icons as ASS, which is how every icon in a *widget*
+# reaches the screen. Decorations baked into a strip bitmap cannot use that
+# path — a strip is composited by PIL, and mpv draws overlay bitmaps ABOVE
+# all script ASS (GUIDE §6), so an ASS glyph over a tile would disappear
+# under the artwork it is meant to annotate.
+#
+# So the same path data is flattened to polygons here. The point is that
+# both routes start from ``ICON_PATHS``: the recording symbol on a tile is
+# the *same glyph* as the one in the guide cell beside it, rather than a
+# hand-drawn approximation that drifts from it.
+
+#: Segments per cubic when flattening. 12 is indistinguishable from a curve
+#: at the sizes these are drawn (a ~34px badge, supersampled ×3).
+_CURVE_STEPS = 12
+
+#: Supersample factor. The flattened polygons are aliased; PIL has no
+#: antialiased fill, so draw big and downscale — the same trick the
+#: carousel's round arrows use.
+_SS = 3
+
+_raster_cache: dict = {}
+
+
+def _contours(name):
+    """The icon's filled contours as lists of (x, y) on the 24x24 canvas.
+
+    Parsed back out of the ASS drawing rather than from the raw ``d``: that
+    converter already handles every SVG command, including the elliptical
+    arcs a few of these use, and re-implementing it here is how the two
+    representations would come to disagree.
+    """
+    cached = _raster_cache.get(("contours", name))
+    if cached is not None:
+        return cached
+    drawing = icon_ass(name)
+    contours, current, cmd = [], [], None
+    tokens = drawing.split()
+    i = 0
+    pending: list = []
+
+    def flush():
+        if len(current) > 2:
+            contours.append(list(current))
+
+    while i < len(tokens):
+        token = tokens[i]
+        if token in ("m", "l", "b", "n", "s", "p", "c"):
+            if token == "m":
+                flush()
+                del current[:]
+            cmd, pending = token, []
+            i += 1
+            continue
+        # A coordinate pair.
+        try:
+            x, y = float(token), float(tokens[i + 1])
+        except (ValueError, IndexError):
+            i += 1
+            continue
+        i += 2
+        if cmd == "b":
+            pending.append((x, y))
+            if len(pending) == 3 and current:
+                x0, y0 = current[-1]
+                (x1, y1), (x2, y2), (x3, y3) = pending
+                for step in range(1, _CURVE_STEPS + 1):
+                    t = step / _CURVE_STEPS
+                    u = 1 - t
+                    current.append((
+                        u * u * u * x0 + 3 * u * u * t * x1
+                        + 3 * u * t * t * x2 + t * t * t * x3,
+                        u * u * u * y0 + 3 * u * u * t * y1
+                        + 3 * u * t * t * y2 + t * t * t * y3))
+                pending = []
+        else:
+            current.append((x, y))
+    flush()
+    # Drop the two zero-length anchor contours — they carry no ink, and a
+    # degenerate polygon makes PIL draw a stray pixel at the corner.
+    contours = [c for c in contours if len(c) > 2]
+    _raster_cache[("contours", name)] = contours
+    return contours
+
+
+def icon_image(name, size, color):
+    """A Material icon as an RGBA PIL image, ``size`` px square.
+
+    ``color`` is an ``(r, g, b)`` tuple. Cached per (name, size, colour):
+    these are drawn per tile, i.e. potentially dozens per composited row.
+
+    Contours are filled independently (no winding rule), which is right for
+    every icon in this set — none of them relies on an inner contour
+    punching a hole. A future one that does would fill solid rather than
+    fail, which is the correct way for a decoration to degrade.
+    """
+    key = ("image", name, int(size), tuple(color))
+    hit = _raster_cache.get(key)
+    if hit is not None:
+        return hit
+    from PIL import Image, ImageDraw
+
+    contours = _contours(name)
+    big = int(size) * _SS
+    canvas = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    if contours:
+        draw = ImageDraw.Draw(canvas)
+        scale = big / 24.0
+        fill = tuple(color) + (255,)
+        for contour in contours:
+            draw.polygon([(x * scale, y * scale) for x, y in contour],
+                         fill=fill)
+    lanczos = Image.LANCZOS  # type: ignore[attr-defined]
+    out = canvas.resize((int(size), int(size)), lanczos)
+    _raster_cache[key] = out
+    return out

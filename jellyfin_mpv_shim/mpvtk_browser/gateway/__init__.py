@@ -17,7 +17,7 @@ without dragging ``player.py`` in. See ``docs/ARCHITECTURE_TARGET.md`` §1.2.
 lines. It was never one responsibility — its own section banners named ten
 domains, and one of them ("tile actions") had silently accumulated the whole
 server-management surface underneath it. Splitting by those seams is the
-cheapest structural win available: the facade below composes twelve mixins,
+cheapest structural win available: the facade below composes thirteen mixins,
 so every existing ``gateway.X()`` call is unchanged, and each domain is now a
 file you can read in one sitting.
 
@@ -52,6 +52,7 @@ from .diagnostics import DiagnosticsMixin
 from .downloads import DownloadsMixin
 from .editing import EditingMixin
 from .hud import HudMixin
+from .livetv import LiveTvMixin
 from .lock import LockMixin
 from .playback import PlaybackMixin
 from .queue import QueueMixin
@@ -73,6 +74,7 @@ class PlayerGateway(
     QueueMixin,
     SyncPlayMixin,
     EditingMixin,
+    LiveTvMixin,
     DownloadsMixin,
     DiagnosticsMixin,
 ):

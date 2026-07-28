@@ -242,6 +242,45 @@ class TileRenderer:
     SQUARE_TYPES = {"Playlist", "MusicAlbum", "MusicArtist", "Audio",
                     "MusicGenre"}
 
+    #: Aspect-ratio thresholds jellyfin-web's ``cardBuilder.setCardData``
+    #: uses to pick a row's shape. Its ``>= 3`` banner case is folded into
+    #: landscape: a banner is a shape this browser does not have, and a 3:1
+    #: image in a 16:9 frame is a far smaller lie than one in a 2:3 frame.
+    LANDSCAPE_RATIO = 1.33
+    SQUARE_RATIO = 0.8
+
+    def auto_geom(self, items, default=None, default_type="Primary"):
+        """``(geom, image_type)`` for a row, chosen the way jellyfin-web does.
+
+        Its card builder resolves a shape from the **median**
+        ``PrimaryImageAspectRatio`` across the row and applies it to every
+        card — so a Live TV row whose programmes carry 2:3 posters renders
+        as posters, and one carrying 16:9 stills renders as landscape. That
+        is why the same screen shows both, and it is a *per row* decision,
+        which is exactly what a strip can reproduce (one strip is composited
+        at one tile size).
+
+        The median, not the mean: one oddly-shaped entry in a row of twenty
+        must not reshape the row.
+
+        ``image_type`` follows the same rule jellyfin-web's ``preferThumb:
+        'auto'`` does — thumbs only where the row came out landscape.
+        Items with no ratio at all fall back to ``default``.
+        """
+        ratios = sorted(r for r in (i.get("PrimaryImageAspectRatio")
+                                    for i in items or ())
+                        if isinstance(r, (int, float)) and r > 0)
+        if not ratios:
+            return (default or self.art.geom), default_type
+        middle = len(ratios) // 2
+        median = (ratios[middle] if len(ratios) % 2
+                  else (ratios[middle - 1] + ratios[middle]) / 2.0)
+        if median >= self.LANDSCAPE_RATIO:
+            return self.art.geom_wide, "Thumb"
+        if median > self.SQUARE_RATIO:
+            return self.art.geom_square, "Primary"
+        return self.art.geom, "Primary"
+
     def square_geom(self, items):
         """``geom_square`` when every item's art is square, else None.
 
@@ -408,6 +447,24 @@ class TileRenderer:
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
         rt = item.get("RunTimeTicks") or 0
+        from . import live_tv
+
+        progress = (pos / rt) if (pos and rt) else 0.0
+        recording = live_tv.is_recording_now(item)
+        record = live_tv.timer_state(item) or ""
+        if item.get("_recording") and not record:
+            # A recording DTO carries no timer state; the query it came from
+            # is what knows (see LibrarySource.get_recordings), and it still
+            # deserves the symbol.
+            record = "recording"
+        if item.get("Type") == "Program" or recording:
+            # How far through the broadcast is, not how far through *you*
+            # are — there is no resume point for something airing live. The
+            # same bar jellyfin-web draws on an On Now card, and the one
+            # thing that says whether you have missed most of it. A finished
+            # recording is an ordinary item again and keeps its resume bar,
+            # because neither branch applies to it.
+            progress = live_tv.program_progress(item) or progress
         if parent_item and item.get("Type") == "Episode":
             # The series' poster, via SeriesId/ParentBackdropItemId — see
             # LibrarySource.image_spec. Poster art, so it fits the poster
@@ -424,8 +481,10 @@ class TileRenderer:
             glyph=components.placeholder_glyph(item),
             watched=components.is_watched(item),
             badge=int(ud.get("UnplayedItemCount") or 0),
-            progress=(pos / rt) if (pos and rt) else 0.0,
+            progress=progress,
             downloaded=self.is_downloaded(item),
+            recording=recording,
+            record=record,
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False):

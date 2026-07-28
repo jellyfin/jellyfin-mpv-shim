@@ -10,7 +10,8 @@ Reaches the shell for nothing. The first page to manage that.
 """
 
 from ...i18n import _
-from ...mpvtk.widgets import Box, Busy, Column, Row, Spacer, Text, VScroll
+from ...mpvtk.widgets import (
+    Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
 from .. import components, home_sections, theme
 from ..components import chrome
 from .base import Page
@@ -126,10 +127,22 @@ class HomePage(Page):
                             geom, itype, "row-%s-%d" % (kind, n),
                             self._latest_tv(hr)))
         entries.sort(key=lambda e: e[0])
-        rows = [art.tiles.tile_row(title, items, row_id, geom=geom,
-                                   image_type=itype, bleed=True,
-                                   parent_item=pitem)
-                for _slot, title, items, geom, itype, row_id, pitem in entries]
+        rows = []
+        for _slot, title, items, geom, itype, row_id, pitem in entries:
+            # "-0": the FIRST Live TV row only. Nothing stops a layout from
+            # holding the section twice, and a second button row would
+            # duplicate every node id in it — the renderer then targets only
+            # the last occurrence, so the first row's buttons would be dead.
+            if row_id == "row-%s-0" % home_sections.LIVE_TV:
+                # jellyfin-web's Live TV home section is a row of buttons
+                # into the six Live TV screens *plus* the On Now strip. The
+                # strip alone is what the shim used to draw, which left the
+                # guide and the recordings reachable only by finding the
+                # Live TV library tile.
+                rows.append(self._live_tv_buttons())
+            rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
+                                           image_type=itype, bleed=True,
+                                           parent_item=pitem))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size=20,
@@ -145,6 +158,26 @@ class HomePage(Page):
         return VScroll(Column(rows, gap=20), id="home", flex=1,
                        offset=self.parked_scroll("home"),
                        snaps=components.section_offsets(rows, 20))
+
+    def _live_tv_buttons(self):
+        """The Live TV section's nav row: one button per Live TV tab.
+
+        They land on the same page the library tile opens, with the tab
+        pre-selected — which is why the tab key travels on the route rather
+        than being a separate screen each.
+        """
+        from .livetv import LiveTvPage
+
+        return Row(
+            [Spacer(w=chrome.CONTENT_PAD),
+             Text(_("Live TV"), size=(theme.active() or {}).get(
+                 "heading_size", 24), bold=True)]
+            + [Button(label, id="home-lt-" + key,
+                      on_click=lambda k=key: self.ctx.nav.navigate({
+                          "kind": "livetv", "server": self.ctx.server,
+                          "title": _("Live TV"), "_tab": k}))
+               for key, label in LiveTvPage.TABS],
+            gap=8, align="center")
 
     @staticmethod
     def _latest_tv(hr):
@@ -169,7 +202,15 @@ class HomePage(Page):
         items = hr.get("items", [])
         has_episode = any(it.get("Type") == "Episode" for it in items)
         if ctype == "livetv":
-            return art.geom, "Primary"
+            # Shaped by what the programmes' artwork actually is, exactly as
+            # jellyfin-web's card builder does it (see
+            # TileRenderer.auto_geom) — a row of films with posters comes out
+            # as posters, a row of guide stills as landscape. Landscape is
+            # the fallback when nothing carries a ratio, because most guide
+            # entries have no art of their own and borrow the channel logo,
+            # which survives a 16:9 crop and does not survive a 2:3 one.
+            return art.tiles.auto_geom(items, default=art.geom_wide,
+                                       default_type="Thumb")
         if ctype in ("movies", "tvshows", "boxsets"):
             return art.geom, "Primary"
         if ctype in ("music", "playlists"):

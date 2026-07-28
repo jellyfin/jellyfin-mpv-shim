@@ -94,6 +94,13 @@ ICON_NAMES = [
     "refresh",
     "folder",
     "content_copy",
+    # live tv / recordings
+    "fiber_manual_record",
+    "fiber_smart_record",
+    "cancel",
+    "schedule",
+    "keyboard_double_arrow_left",
+    "keyboard_double_arrow_right",
 ]
 
 SVG_URL = (
@@ -116,16 +123,65 @@ def get_svg(name, svg_dir):
         return resp.read().decode("utf-8")
 
 
+def circle_to_path(cx, cy, r):
+    """A ``<circle>`` as path data: two half-arcs back to the start.
+
+    Material authors a few of its icons as primitives rather than paths —
+    ``fiber_manual_record`` (the recording dot) is a bare circle, and
+    ``fiber_smart_record`` is a circle plus a path. Those used to make this
+    script exit with "no filled paths found", which is a confusing way to
+    say "this icon is not a path". The rasterizer handles elliptical arcs,
+    so converting here is all that is needed.
+    """
+    return ("M %g %g a %g %g 0 1 0 %g 0 a %g %g 0 1 0 %g 0 Z"
+            % (cx - r, cy, r, r, 2 * r, r, r, -2 * r))
+
+
+_LEADING_M = re.compile(r"\A\s*m\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*(.*)\Z", re.S)
+
+
+def absolutize_start(d):
+    """Rewrite a leading *relative* moveto as an absolute one.
+
+    A ``d`` beginning with lowercase ``m`` is absolute by definition — but
+    only while it is the start of its own path element. These get joined
+    into one string below, at which point a later ``m`` becomes relative to
+    wherever the previous subpath ended, and the shape lands somewhere else
+    entirely. That is exactly what happened to ``keyboard_double_arrow_*``,
+    whose second chevron is authored as ``m11 18 …``: joined, it drew at
+    (28.59, 36) — off the 24x24 canvas, so the icon rendered as one chevron
+    and some clipped debris.
+
+    Uppercasing the ``m`` alone is not enough: the coordinates that follow a
+    moveto with no command letter are implicit linetos, and they inherit the
+    moveto's case. So the rest is given an explicit relative ``l``.
+    """
+    match = _LEADING_M.match(d)
+    if match is None:
+        return d
+    x, y, rest = match.groups()
+    rest = rest.lstrip()
+    if rest[:1] and (rest[0].isdigit() or rest[0] in "-+."):
+        rest = "l" + rest
+    return "M%s %s %s" % (x, y, rest)
+
+
 def extract_paths(svg):
-    """Every filled path ``d`` attribute from an SVG document."""
+    """Every filled shape in an SVG document, as path ``d`` strings."""
     out = []
-    for m in re.finditer(r"<path\b[^>]*>", svg):
+    for m in re.finditer(r"<(path|circle)\b[^>]*>", svg):
         tag = m.group(0)
         if 'fill="none"' in tag:
             continue
+        if m.group(1) == "circle":
+            def attr(name, default="0"):
+                found = re.search(r'\b%s="([^"]*)"' % name, tag)
+                return float(found.group(1) if found else default)
+            out.append(circle_to_path(attr("cx"), attr("cy"), attr("r")))
+            continue
         d = re.search(r'\bd="([^"]*)"', tag)
         if d:
-            out.append(d.group(1).strip())
+            out.append(absolutize_start(d.group(1).strip()))
     return out
 
 

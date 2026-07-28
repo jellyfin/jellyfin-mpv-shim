@@ -71,13 +71,22 @@ class TestTileShapes(unittest.TestCase):
         self.assertEqual(seen, [("e1", "ParentPrimary"), ("s1", "Primary"),
                                 ("e2", "Thumb")])
 
-    def test_live_tv_is_a_poster_row(self):
-        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+    def test_live_tv_falls_back_to_a_landscape_row(self):
+        """Live TV rows are shaped by their artwork (see
+        TileRenderer.auto_geom, which is jellyfin-web's rule); this is the
+        fallback, for a row where nothing carries an aspect ratio.
+
+        Landscape rather than the poster row it used to be, because guide
+        entries rarely carry art of their own and most tiles end up on the
+        channel logo (see repository.image_spec). Cropped to fill a 2:3
+        poster a logo loses most of itself; a 16:9 frame keeps it readable.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
 
         g, it = home_page(self.b)._row_shape(
             {"collection_type": "livetv", "items": [{"Type": "Program"}]})
-        self.assertIs(g, POSTER_GEOM)
-        self.assertEqual(it, "Primary")
+        self.assertIs(g, LANDSCAPE_GEOM)
+        self.assertEqual(it, "Thumb")
 
     def _long_row(self, n=30):
         """A libraries row with more tiles than fit, so it gets page buttons."""
@@ -707,12 +716,17 @@ class TestWatchedState(unittest.TestCase):
                          "UI kept a tick for a change that never happened")
 
 class TestLiveTvActivation(unittest.TestCase):
-    """Clicking an On Now tile.
+    """Clicking a live tile.
 
-    A Program is not itself playable — what you watch is the channel carrying
-    it — so the tile has to resolve to ChannelId. Both live types also go
-    straight to playback: there is no detail page for a channel, and nothing
-    to resume.
+    The two live types are activated differently, deliberately. A **channel**
+    goes straight to playback: there is nothing to read about it and nothing
+    to resume. A **program** opens its own page, because that is the only
+    place Record and Record Series live — and it is one click from there to
+    Watch. (It used to play the channel outright, which made recording
+    unreachable from every screen that lists programs.)
+
+    A program is still never played by its own id: what you watch is the
+    channel carrying it, which is what ``channel_id`` on the route carries.
     """
 
     def setUp(self):
@@ -724,20 +738,29 @@ class TestLiveTvActivation(unittest.TestCase):
                               controller=self.ctl)
         self.b._pool = _SyncPool()
 
-    def test_program_plays_its_channel_not_itself(self):
+    def test_program_opens_its_page(self):
         self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
                            "ChannelId": "c1"})
-        self.assertEqual(self.plays, [["c1"]])
+        self.assertEqual(self.b.route.get("kind"), "program")
+        self.assertEqual(self.b.route.get("item_id"), "p1")
+        self.assertEqual(self.plays, [], "a program tile started playback")
+
+    def test_the_program_route_carries_its_channel(self):
+        # Watch has to tune the channel, not the programme.
+        self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",
+                           "ChannelId": "c1"})
+        self.assertEqual(self.b.route.get("channel_id"), "c1")
 
     def test_channel_plays_itself(self):
         self.b._open_item({"Id": "c1", "Name": "BBC One", "Type": "TvChannel"})
         self.assertEqual(self.plays, [["c1"]])
 
-    def test_program_without_channel_info_falls_back_to_its_own_id(self):
-        # Fails downstream as an unplayable item, which is a better outcome
-        # than a tile that silently does nothing.
-        self.b._open_item({"Id": "p1", "Name": "Orphan", "Type": "Program"})
-        self.assertEqual(self.plays, [["p1"]])
+    def test_a_live_tv_library_opens_the_live_tv_screen(self):
+        # Not a grid of its children: browsing channels as a grid loses the
+        # guide, the recordings and the schedule.
+        self.b._open_item({"Id": "lt", "Name": "Live TV", "Type": "UserView",
+                           "CollectionType": "livetv"})
+        self.assertEqual(self.b.route.get("kind"), "livetv")
 
     def test_live_tiles_do_not_open_a_detail_page(self):
         self.b._open_item({"Id": "p1", "Name": "The News", "Type": "Program",

@@ -135,6 +135,16 @@ class Tile:
     progress: float = 0.0
     downloaded: bool = False
     glyph: str = ""
+    #: Being written to disk right now. Turns the progress bar (which for
+    #: these is how far through the *broadcast* is, not how far through you
+    #: are) red — the one state where the bar does not mean "where you left
+    #: off", so it must not look like it does.
+    recording: bool = False
+    #: Which recording symbol to draw, if any: "timer"/"recording" for a
+    #: single recording, "series"/"series_inactive" for one covered by a
+    #: series rule. Separate from ``recording`` because the two questions
+    #: differ — a series-covered programme airing now is both.
+    record: str = ""
 
 
 class StripStore:
@@ -216,6 +226,8 @@ class StripStore:
             int(t.badge),
             round(float(t.progress), 2),
             bool(t.downloaded),
+            bool(t.recording),
+            t.record,
             t.glyph if t.poster is None else "",
         )
 
@@ -522,9 +534,12 @@ class StripStore:
             dr.line([(x + _px(12), _px(17)), (x + _px(16), _px(22)),
                      (x + _px(23), _px(12))],
                     fill=(255, 255, 255, 255), width=lw)
-        # Top-right corner: downloaded badge takes priority over the
-        # unplayed-count badge (they rarely coexist).
-        if t.downloaded:
+        # Top-right corner: a recording symbol outranks both of the others.
+        # It is the only one about something happening *now*, and an
+        # unplayed count on a programme being taped tells you nothing.
+        if t.record:
+            self._paint_record(img, x + g.tile_w - _px(17), _px(17), t.record)
+        elif t.downloaded:
             cx, cy = x + g.tile_w - _px(17), _px(17)
             r = _px(11)
             dr.ellipse([cx - r, cy - r, cx + r, cy + r],
@@ -548,6 +563,10 @@ class StripStore:
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
             bar = _px(6)
+            # Red while recording: the bar means "how much of the broadcast
+            # has gone", not "where you left off", and the accent colour is
+            # spoken for by the second meaning everywhere else.
+            fill = theme.FAV_RED if t.recording else theme.ACCENT
             if bool((theme.active() or {}).get("rounded")):
                 from PIL import Image as PILImage, ImageChops, ImageDraw
                 r = _px(14)
@@ -563,7 +582,7 @@ class StripStore:
                 ld.rectangle(
                     [0, g.tile_h - bar,
                      int((g.tile_w - 1) * frac), g.tile_h - 1],
-                    fill=theme.rgb(theme.ACCENT, 255),
+                    fill=theme.rgb(fill, 255),
                 )
                 mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
                 ImageDraw.Draw(mask).rounded_rectangle(
@@ -578,8 +597,44 @@ class StripStore:
                 dr.rectangle(
                     [x, g.tile_h - bar,
                      x + int((g.tile_w - 1) * frac), g.tile_h - 1],
-                    fill=theme.rgb(theme.ACCENT, 255),
+                    fill=theme.rgb(fill, 255),
                 )
+
+    #: Box the recording glyph is rasterized into. The Material record icons
+    #: are a circle of radius 8 on a 24 canvas, so this gives a dot about
+    #: 18px across at 1x — the size the other corner badges are.
+    RECORD_BOX = 27
+
+    @staticmethod
+    def _paint_record(img, cx, cy, state):
+        """The recording symbol, centred on (cx, cy).
+
+        The **real Material glyphs**, rasterized from the same
+        ``ui_icon_paths`` data the renderer draws icons from:
+        ``fiber_manual_record`` for a single recording and
+        ``fiber_smart_record`` for one covered by a series rule. Blitting
+        rather than drawing by hand matters because the guide cell right
+        next to this tile draws those same two icons as ASS — a hand-rolled
+        approximation is a second drawing of the same symbol, and the two
+        drift.
+
+        Baked into the bitmap rather than drawn as a widget because mpv
+        composites overlay bitmaps ABOVE all script ASS (GUIDE §6): an ASS
+        glyph over a tile would vanish under the artwork.
+
+        No outline. The red dot is the record symbol everywhere else in the
+        app, and ringing this one in white made the same thing look like a
+        different badge.
+        """
+        from ..mpvtk import vector
+
+        name = ("fiber_smart_record" if state.startswith("series")
+                else "fiber_manual_record")
+        colour = theme.rgb(theme.SUBTLE_FG if state == "series_inactive"
+                           else theme.FAV_RED)
+        size = _px(StripStore.RECORD_BOX)
+        glyph = vector.icon_image(name, size, colour)
+        img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     def _paint_caption(self, dr, x, t, g):
         if t.title:

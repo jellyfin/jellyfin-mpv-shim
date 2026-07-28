@@ -63,6 +63,8 @@ class ItemActions:
         self._on_downloads_changed = on_downloads_changed or (lambda: None)
         #: Cached edit-capability probe; see can_edit.
         self._edit_ok = None
+        #: Cached recording-capability probe; see can_record.
+        self._record_ok = None
 
     # -- plumbing ----------------------------------------------------------
 
@@ -298,7 +300,101 @@ class ItemActions:
         self._fire(work)
         self.services.invalidate()
 
+    # -- live tv -----------------------------------------------------------
+    #
+    # Recording is not an optimistic action, unlike watched/favorite. The
+    # server decides the timer's id, whether a "record this" became a series
+    # rule, and what the padding is — so the caller re-reads afterwards
+    # (``on_done``) rather than guessing. Getting that wrong here is worse
+    # than a wrong tick: you find out at the point the programme did not
+    # record.
+
+    def schedule_recording(self, item, server, series=False, on_done=None):
+        """Record ``item`` (a Program), or its whole series."""
+        program_id = item.get("Id")
+        if not program_id:
+            return
+        done = _("Series recording scheduled.") if series \
+            else _("Recording scheduled.")
+
+        def work(ctl):
+            if series:
+                ctl.create_series_timer(server, program_id)
+            else:
+                ctl.create_timer(server, program_id)
+
+        self.edit(work,
+                  on_ok=lambda: self._recording_changed(done, on_done),
+                  error=_("The recording could not be scheduled."))
+
+    def cancel_timer(self, timer_id, server, on_done=None):
+        """Cancel a scheduled recording (or stop one in progress), after
+        confirming — this is destructive and one stray click away from a
+        Record button."""
+        if not timer_id:
+            return
+        self.dialogs.confirm(
+            _("Cancel this recording?"),
+            lambda: self._do_cancel(
+                lambda ctl: ctl.cancel_timer(server, timer_id),
+                _("Recording cancelled."), on_done),
+            title=_("Cancel Recording"), yes=_("Cancel Recording"))
+
+    def cancel_series_timer(self, series_timer_id, server, on_done=None):
+        """Stop recording a series."""
+        if not series_timer_id:
+            return
+        self.dialogs.confirm(
+            _("Stop recording this series?"),
+            lambda: self._do_cancel(
+                lambda ctl: ctl.cancel_series_timer(server, series_timer_id),
+                _("Series recording cancelled."), on_done),
+            title=_("Cancel Series"), yes=_("Cancel Series"))
+
+    def _do_cancel(self, work, message, on_done):
+        self.edit(work,
+                  on_ok=lambda: self._recording_changed(message, on_done),
+                  error=_("The recording could not be cancelled."))
+
+    def save_timer(self, server, timer_id, changes, series=False,
+                   on_done=None):
+        """Apply an edited timer/series rule from the recording editor."""
+        if not timer_id:
+            return
+
+        def work(ctl):
+            if series:
+                ctl.update_series_timer(server, timer_id, changes)
+            else:
+                ctl.update_timer(server, timer_id, changes)
+
+        self.edit(work,
+                  on_ok=lambda: self._recording_changed(_("Recording settings "
+                                                          "saved."), on_done),
+                  error=_("The recording settings could not be saved."))
+
+    def _recording_changed(self, message, on_done):
+        self.services.set_status(message)
+        if on_done is not None:
+            on_done()
+        self.services.invalidate()
+
     # -- capability --------------------------------------------------------
+
+    def can_record(self):
+        """Whether the Record affordances should be offered.
+
+        Fails OPEN, exactly as ``can_edit`` does and for the same reason:
+        only a probe that positively answers False hides them. The API call
+        is the real check.
+        """
+        if self._record_ok is None:
+            try:
+                answer = self.services.controller.live_tv_apis()
+            except Exception:
+                answer = None
+            self._record_ok = answer is not False
+        return self._record_ok
 
     def can_edit(self):
         """Whether the apiclient can edit playlists/collections.

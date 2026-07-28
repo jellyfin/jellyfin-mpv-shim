@@ -95,11 +95,12 @@ from .pagination import Paginator
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
-from .repository import (FOLDER_TYPES, LIVE_TYPES, PLAYABLE_TYPES,
-                         SERIES_TYPES)
+from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
+                         PLAYABLE_TYPES, SERIES_TYPES)
 from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
                      TileGeom)
 from .dialogs import DialogsMixin
+from .livetv_dialogs import LiveTvDialogsMixin
 from .auth import AuthMixin
 from .settings import SettingsMixin
 from .music import MusicMixin
@@ -130,7 +131,7 @@ CHROME_FREE = {"login", "locked", "connecting", "cast"}
 NO_NOW_PLAYING = {"login", "locked", "connecting"}
 
 
-class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
+class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                    MusicMixin, ViewsMixin, TilesMixin, CastMixin):
 
     # Horizontal padding of ordinary page content.
@@ -256,6 +257,10 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
         self._dialog = None
         # Download dialog state {"server","item","est","watched"} or None.
         self._dl = None
+        # Live TV modals (livetv_dialogs.py): the recording editor and the
+        # guide's view settings. Same single-slot convention as _dl.
+        self._timer_dlg = None
+        self._guide_dlg = None
         # Login form field values (renderer holds the live text; we mirror it
         # here via on_change so Connect can read all three fields at once).
         self._login = {"server": "", "user": "", "pass": ""}
@@ -364,7 +369,11 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             confirm=lambda *a, **k: self._confirm(*a, **k),
             message=lambda *a, **k: self._message(*a, **k),
             add_to=lambda item, server=None: self._open_add_to(item, server),
-            open_download=lambda item: self._open_download(item))
+            open_download=lambda item: self._open_download(item),
+            timer_editor=lambda server, timer, series=False, on_change=None:
+                self._open_timer_editor(server, timer, series, on_change),
+            guide_settings=lambda server, prefs, categories, on_save=None:
+                self._open_guide_settings(server, prefs, categories, on_save))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,
@@ -1110,14 +1119,25 @@ class MpvtkBrowser(DialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif item.get("CollectionType") == LIVE_TV_COLLECTION:
+            # The Live TV view is a destination, not a folder: its children
+            # are channels, and browsing them as a grid loses the guide, the
+            # recordings and the schedule. Checked before FOLDER_TYPES, which
+            # a UserView would otherwise match.
+            self.navigate(dict(base, kind="livetv", parent_id=item.get("Id"),
+                               title=item.get("Name") or _("Live TV")))
+        elif t == "Program":
+            # A program page, not immediate playback: it is where Record
+            # lives, and it is one click from there to Watch. (Playing the
+            # channel outright is still what a TvChannel tile does.)
+            self.navigate(dict(base, kind="program",
+                               channel_id=item.get("ChannelId"), _seed=item))
         elif t in LIVE_TYPES:
             # Straight to playback: a live channel has no detail page to open
-            # and nothing to resume. A Program is not itself playable — what
-            # you watch is the channel carrying it, which is how jellyfin-web
-            # resolves it too. Falling back to the item's own id covers a
-            # TvChannel, and a program whose ChannelInfo fields are missing
-            # then fails as a normal unplayable item rather than silently
-            # doing nothing.
+            # and nothing to resume. Falling back to the item's own id covers
+            # a channel whose ChannelInfo fields are missing, which then
+            # fails as a normal unplayable item rather than silently doing
+            # nothing.
             self._play_list([item.get("ChannelId") or item.get("Id")], server)
         elif item.get("CollectionType") == "music":
             self.navigate(dict(base, kind="music", parent_id=item.get("Id")))

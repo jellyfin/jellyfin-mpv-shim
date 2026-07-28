@@ -20,7 +20,7 @@ import threading
 import time
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
-from jellyfin_mpv_shim.mpvtk_browser import components, home_sections
+from jellyfin_mpv_shim.mpvtk_browser import components, home_sections, live_tv
 from jellyfin_mpv_shim.mpvtk_browser import themes
 from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
@@ -249,6 +249,96 @@ class FakeSource:
 
     def get_items_by_ids(self, server_uuid, ids):
         return [{"Id": i, "Name": "Queued " + i, "Type": "Audio"} for i in ids]
+
+    # -- Live TV -----------------------------------------------------------
+    #
+    # Enough for the Live TV screens to render. Times are built relative to
+    # the clock so "is this airing" is true of the first programme, which is
+    # what the guide's accent wash and the program page's Watch button key
+    # off — pinning them to fixed dates would make those paths untested.
+
+    live_tv = True
+
+    @staticmethod
+    def _program(index, offset_minutes=0, channel="c1"):
+        import datetime
+
+        start = (datetime.datetime.now().astimezone().replace(
+            second=0, microsecond=0)
+            + datetime.timedelta(minutes=offset_minutes))
+        return {"Id": "pr%d" % index, "Name": "Program %d" % index,
+                "Type": "Program", "ChannelId": channel,
+                "ChannelName": "Channel One",
+                "StartDate": start.astimezone(
+                    datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z"),
+                "EndDate": (start + datetime.timedelta(minutes=30)).astimezone(
+                    datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z"),
+                "IsSeries": True}
+
+    def has_live_tv(self, server_uuid):
+        return self.live_tv
+
+    def get_live_tv_prefs(self, server_uuid, refresh=False):
+        return live_tv.resolve_prefs({})
+
+    def save_live_tv_prefs(self, server_uuid, prefs):
+        self.saved_live_tv_prefs = dict(prefs)
+
+    def get_program_sections(self, server_uuid, limit=12):
+        return [{"key": "onnow", "title": "On Now",
+                 "items": [self._program(0, -5)]},
+                {"key": "movies", "title": "Upcoming Movies",
+                 "items": [self._program(1, 60)]}]
+
+    def get_channels(self, server_uuid, start_index=0, limit=100, prefs=None,
+                     categories=(), add_current_program=True,
+                     favorites_only=False):
+        items = [{"Id": "c%d" % i, "Name": "Channel %d" % i,
+                  "Type": "TvChannel", "Number": str(i)} for i in range(1, 4)]
+        return items[start_index:start_index + limit], len(items)
+
+    def get_guide_info(self, server_uuid):
+        return {}
+
+    def search_live_tv(self, server_uuid, term, limit=24):
+        return {"channels": [{"Id": "c1", "Name": "Channel " + term,
+                              "Type": "TvChannel"}],
+                "programs": [self._program(7, 15)]}
+
+    def get_guide(self, server_uuid, channel_ids, start, end, categories=(),
+                  want_hd=False):
+        return [self._program(0, -5), self._program(2, 30)]
+
+    def get_live_program(self, server_uuid, program_id):
+        return dict(self._program(0, -5), Id=program_id,
+                    Overview="What it is about.")
+
+    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
+                       series_timer_id=None):
+        return [{"Id": "rec1", "Name": "A Recording", "Type": "Recording"}]
+
+    def get_recording_folders(self, server_uuid):
+        return [{"Id": "rf1", "Name": "Recordings", "Type": "Folder"}]
+
+    def get_timers(self, server_uuid, is_active=None, is_scheduled=None,
+                   series_timer_id=None):
+        return [dict(self._program(3, 120), Id="tm1", Type="Timer",
+                     Name="Scheduled Thing")]
+
+    def get_timer(self, server_uuid, timer_id):
+        return {"Id": timer_id, "Name": "Scheduled Thing",
+                "ChannelName": "Channel One", "PrePaddingSeconds": 60,
+                "PostPaddingSeconds": 120}
+
+    def get_series_timers(self, server_uuid):
+        return [{"Id": "st1", "Name": "A Series", "Type": "SeriesTimer",
+                 "ChannelName": "Channel One"}]
+
+    def get_series_timer(self, server_uuid, timer_id):
+        return {"Id": timer_id, "Name": "A Series",
+                "ChannelName": "Channel One", "RecordNewOnly": True,
+                "KeepUpTo": 0, "PrePaddingSeconds": 60,
+                "PostPaddingSeconds": 120}
 
 class _SyncPool:
     """Runs submitted work inline so route loaders complete deterministically
