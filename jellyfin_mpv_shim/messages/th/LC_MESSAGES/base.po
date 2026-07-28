@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-05-04 02:27+0000\n"
-"Last-Translator: Bunyapat Thaibkhom <topstenbyp@gmail.com>\n"
+"PO-Revision-Date: 2026-07-28 10:04+0000\n"
+"Last-Translator: Natawan Jongnetiwisit <TKGAME11@outlook.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -49,11 +49,11 @@ msgstr "กำลังเลือกค่าใช้งาน..."
 #: jellyfin_mpv_shim/clients.py:254
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
-msgstr ""
+msgstr "เปิด Jellyfin, ไปที่เมนูผู้ใช้ -> เชื่อมต่อด่วน, และใส่รหัสนี้:"
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "กำล้งรอการอนุญาต"
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
