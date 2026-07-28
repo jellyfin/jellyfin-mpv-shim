@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-28 06:16+0000\n"
+"PO-Revision-Date: 2026-07-28 10:04+0000\n"
 "Last-Translator: arz <arizmuajianisan@gmail.com>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/id/>\n"
@@ -114,11 +114,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect tidak tersedia di server ini."
 
 #: jellyfin_mpv_shim/clients.py:626
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Tidak dapat menjalankan Quick Connect."
 
 #: jellyfin_mpv_shim/media.py:194
 msgid " (Transcode)"
