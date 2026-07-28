@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-06-10 22:10+0000\n"
+"PO-Revision-Date: 2026-07-28 06:16+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -50,14 +50,16 @@ msgstr "Configuració actual..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Obriu el Jellyfin, aneu al menú de l'usuari -> Quick Connect, i entreu "
+"aquest codi:"
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "S'està esperant l'autorització..."
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "S'estan eliminant tots els comptes existents."
 
 #: jellyfin_mpv_shim/clients.py:290 jellyfin_mpv_shim/clients.py:311
 #: jellyfin_mpv_shim/clients.py:329
@@ -71,19 +73,15 @@ msgstr "S'ha produït un error en afegir el servidor."
 
 #: jellyfin_mpv_shim/clients.py:300
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "El compte ja existeix. S'estan actualitzant els credencials."
 
 #: jellyfin_mpv_shim/clients.py:302
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Servidor afegit correctament."
+msgstr "Els crèdits del servidor s'han actualitzat amb èxit."
 
 #: jellyfin_mpv_shim/clients.py:305
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "S'ha produït un error en afegir el servidor."
+msgstr "S'ha produït un error en actualitzar les credencials del servidor."
 
 #: jellyfin_mpv_shim/clients.py:316
 msgid "Server URL: "
@@ -102,22 +100,16 @@ msgid "Add another server?"
 msgstr "Desitgeu afegir un altre servidor?"
 
 #: jellyfin_mpv_shim/clients.py:617
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut connectar al servidor."
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect no està habilitat en aquest servidor."
 
 #: jellyfin_mpv_shim/clients.py:626
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "No s'ha pogut iniciar el Quick Connect."
 
 #: jellyfin_mpv_shim/media.py:194
 msgid " (Transcode)"
@@ -413,66 +405,64 @@ msgstr "Activa la vista prèvia de les miniatures"
 #: jellyfin_mpv_shim/menu.py:609 jellyfin_mpv_shim/mpvtk_browser/config.py:210
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Mode nocturn (ajust automàtic de volum)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:751
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "No s'ha pogut carregar. Reviseu la connexió."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:831
 msgid "Page"
-msgstr ""
+msgstr "Pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:841
 msgid "of %d"
-msgstr ""
+msgstr "de %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:843
 msgid "First page"
-msgstr ""
+msgstr "Primera pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:844
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Servidor afegit correctament."
+msgstr "Pàgina anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:845
 msgid "Next page"
-msgstr ""
+msgstr "Pàgina següent"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:846
 msgid "Last page"
-msgstr ""
+msgstr "Darrera pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1067
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:109
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:222
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:237
 msgid "The change could not be applied."
-msgstr ""
+msgstr "No s'ha pogut aplicar el canvi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1142
 msgid "Selected: %s"
-msgstr ""
+msgstr "Seleccionat: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1211
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:215
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py:231
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py:234
 msgid "Loading…"
-msgstr ""
+msgstr "S'està carregant…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1280
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:95
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:305
 msgid "Playback could not be started."
-msgstr ""
+msgstr "No s'ha pogut iniciar la reproducció."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1805
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:169
 msgid "Queue"
-msgstr ""
+msgstr "Cua"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1830
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:457
@@ -484,23 +474,17 @@ msgstr "Torna-hi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1918
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1920
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "Encara no s'ha pogut arribar al servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:73
 msgid "Switch to %s"
-msgstr ""
+msgstr "Canvia a %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:78
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:540
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:82
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:145
@@ -512,71 +496,67 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:252
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:257
 msgid "Cancel"
-msgstr ""
+msgstr "Cancel·la"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:84
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:554
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:95
 msgid "Switch"
-msgstr ""
+msgstr "Canvia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:91
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:582
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN incorrecte."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:123
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN for %s"
-msgstr "Servidor:"
+msgstr "Establiu un PIN per a %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:128
 msgid "Current PIN"
-msgstr ""
+msgstr "PIN actual"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:131
 msgid "New PIN"
-msgstr ""
+msgstr "PIN nou"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:133
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:391
 msgid "Confirm"
-msgstr ""
+msgstr "Confirma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:135
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Sol·liciteu aquest PIN en iniciar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:141
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Elimina el servidor"
+msgstr "Elimina el PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:147
 msgid "Save"
-msgstr ""
+msgstr "Desa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:168
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "El PIN actual és incorrecte."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:174
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Entreu un PIN nou."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:177
 msgid "The PINs don't match."
-msgstr ""
+msgstr "Els PIN no coincideixen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:191
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "No s'ha pogut eliminar el PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:192
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "No s'ha pogut desar el PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:216
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:72
@@ -585,224 +565,192 @@ msgstr "Afegeix un servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:237
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Connecta a Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:248
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Servidor afegit correctament."
+msgstr "Servidors afegits prèviament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:255
 msgid "Use"
-msgstr ""
+msgstr "Feu servir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:262
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:273
 msgid "Quick Connect"
-msgstr ""
+msgstr "Quick Connect"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:274
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Entreu aquest codi a l'aplicació de Jellyfin o al client web:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:276
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "Configuració de SVP"
+msgstr "S'està sol·licitant…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:287
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL del servidor: "
+msgstr "URL del servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:288
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Nom d'usuari:"
+msgstr "Nom d'usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:289
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Contrasenya:"
+msgstr "Contrasenya"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:291
 msgid "Use Quick Connect"
-msgstr ""
+msgstr "Feu servir el Quick Connect"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:300
 msgid "Connect"
-msgstr ""
+msgstr "Connecta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:324
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Introduïu primer l'URL del servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:330
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "S'està connectant al servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:339
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "S'està esperant l'aprovació…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:355
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "No s'ha aprovat el Quick Connect."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:369
 msgid "Connecting…"
-msgstr ""
+msgstr "S'està connectant…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:382
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut establir una connexió. Comproveu les dades."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:409
 msgid "Locked"
-msgstr ""
+msgstr "Blocat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:436
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py:94
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "S'està connectant al vostre servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:450
 msgid "Work Offline"
-msgstr ""
+msgstr "Treball fora de línia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:459
 msgid "Sign In"
-msgstr ""
+msgstr "Inici de sessió"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:508
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "No hi ha res descarregat per a ser explorat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:519
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "No s'ha pogut accedir al/s servidor/s desat/s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:533
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Entreu el vostre PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:534
 msgid "%s is locked."
-msgstr ""
+msgstr "%s blocat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:543
 msgid "Unlock"
-msgstr ""
+msgstr "Desbloca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:548
 msgid "Or switch to another user"
-msgstr ""
+msgstr "O canvia a un altre usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py:314
 msgid "Ready to cast"
 msgstr "Preparat per a transmetre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py:315
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
 msgstr ""
-"Seleccioneu el vostre contingut multimèdia a Jellyfin i reproduïu-lo aquí"
+"Seleccioneu el vostre contingut multimèdia a Jellyfin i reproduïu-lo aquí."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:76
 msgid "Cast & Crew"
-msgstr ""
+msgstr "Repartiment i equip"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:99
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:285
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:300
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:124
 msgid "Download"
-msgstr ""
+msgstr "Descarrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:102
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Elimina el servidor"
+msgstr "Elimina la descàrrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:115
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Tanca i marca com a no vist"
+msgstr "Vist"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:119
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
 msgid "Favorite"
-msgstr ""
+msgstr "Preferit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:83
 msgid "Interface"
-msgstr ""
+msgstr "Interfície"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:94
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:200
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py:66
 msgid "Theme"
-msgstr ""
+msgstr "Tema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Playback"
-msgstr ""
+msgstr "Reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:100
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:297
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:301
 msgid "Audio"
-msgstr ""
+msgstr "Àudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:104
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "Subtítols i idiomes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:109
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transcodifica)"
+msgstr "Transcodifica"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:114
 msgid "Video Enhancement"
-msgstr ""
+msgstr "Millora de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:116
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Demana saltar els crèdits"
+msgstr "Salta la introducció / Crèdits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:119
 msgid "Library Browser"
-msgstr ""
+msgstr "Navegador de la biblioteca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:121
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py:77
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:34
 msgid "Downloads"
-msgstr ""
+msgstr "Descàrregues"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:140
 msgid "Jellyfin UI"
@@ -935,10 +883,8 @@ msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:191
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Elimina el servidor"
+msgstr "Elimina les descàrregues automàtiques un cop vistes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:192
 msgid "Delete Unwatched After (days, 0 = never)"
@@ -1009,16 +955,12 @@ msgid "Take the Device Exclusively"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:211
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Perfils de reproducció de vídeo"
+msgstr "Habilita els perfils de reproducció de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:212
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Grup nou"
+msgstr "Grup del perfil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:213
 msgid "Remember Last Used Profile"
@@ -1058,6 +1000,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Amb \"Inicia minimitzat\" i \"Pantalla completa\", aquesta és la "
+"configuració clàssica de l'objectiu de transmissió: l'aplicació espera, "
+"reprodueix a pantalla completa quan alguna cosa s'hi transmet i torna a "
+"esperar quan el vídeo acaba o pitgeu Q."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:242
 msgid ""
@@ -1075,12 +1021,21 @@ msgid ""
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
 msgstr ""
+"Mostra només el que s'ha emès a aquesta màquina; no es pot accedir des "
+"d'aquí a la biblioteca, inclosa aquesta pantalla de configuració. Sense una "
+"icona de la safata del sistema, l'única manera de tornar enrere és editar "
+"conf.json. Per a la configuració clàssica de destinació de emissió, voleu la "
+"configuració de la interfície; això és per a un televisor compartit des del "
+"qual ningú no hauria de poder navegar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:255
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
 "drive the player controls by keyboard."
 msgstr ""
+"Cal reiniciar per a canviar. Per defecte, s'utilitzen les combinacions de "
+"tecles MPV. Pitgeu RETORN per a controlar el reproductor mitjançant el "
+"teclat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:257
 msgid ""
@@ -1174,10 +1129,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:89
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:122
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Elimina el servidor"
+msgstr "Afegeix a a la llista de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:93
 msgid "No playlists yet."
@@ -1197,10 +1150,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:120
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Elimina el servidor"
+msgstr "Col·leccions…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:123
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:169
@@ -1209,22 +1160,16 @@ msgid "Close"
 msgstr "Tanca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:149
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Elimina el servidor"
+msgstr "Afegeix a una col·lecció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:153
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Elimina el servidor"
+msgstr "Encara no hi ha cap selecció."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:156
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Nom d'usuari: "
+msgstr "Nom de la col·lecció nova…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:166
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:393
@@ -1234,21 +1179,13 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:253
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut revisar què cal descarregar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:270
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:303
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "Configuració de SVP"
+msgstr "S'està estimant…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:272
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:35
@@ -1307,22 +1244,16 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:450
-#, fuzzy
-#| msgid "{0} has joined."
 msgid "%s (joined)"
-msgstr "{0} ha entrat."
+msgstr "%s s'ha unit."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:451
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Grup nou"
+msgstr "Grup"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:462
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Grup nou"
+msgstr "No hi ha cap grup actiu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:465
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:425
@@ -1331,10 +1262,8 @@ msgid "New Group"
 msgstr "Grup nou"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:473
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Grup nou"
+msgstr "Sortida"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:477
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:39
@@ -1343,46 +1272,24 @@ msgid "Refresh"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:495
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut unir al servidor SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:500
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut crear el grup SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:505
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut sortir del grup SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:23
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Automàtic"
+msgstr "Automàtic: Següent"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:24
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Automatic: Actively Watched"
-msgstr "Elimina el servidor"
+msgstr "Automàtic: mirat activament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:31
 #: jellyfin_mpv_shim/svp_integration.py:45
@@ -1410,20 +1317,16 @@ msgid "Downloading %d%%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:144
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "Elimina el servidor"
+msgstr "S'està descarregant"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:146
 msgid "Queued"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:148
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
-msgstr "Fallada"
+msgstr "Ha fallat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py:185
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:1038
@@ -1477,10 +1380,8 @@ msgid "Secondary…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:202
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "Selecciona una pista de subtítols"
+msgstr "Pista de subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:244
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:173
@@ -1492,16 +1393,12 @@ msgid "Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:258
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "Selecciona una pista d'àudio"
+msgstr "Pista d'àudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:265
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "Canvia la qualitat del vídeo"
+msgstr "Qualitat del vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:352
 #: jellyfin_mpv_shim/osc_bridge.py:86
@@ -1515,24 +1412,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:362
 #: jellyfin_mpv_shim/osc_bridge.py:93
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "Mida dels subtítols: {0}"
+msgstr "Mida dels subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:363
 #: jellyfin_mpv_shim/osc_bridge.py:94
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "Posició dels subtítols: {0}"
+msgstr "Posició dels subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:364
 #: jellyfin_mpv_shim/osc_bridge.py:95
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "Color dels subtítols: {0}"
+msgstr "Color dels subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:378
 #: jellyfin_mpv_shim/osc_bridge.py:90
@@ -1541,10 +1432,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:407
 #: jellyfin_mpv_shim/osc_bridge.py:88
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Reproducció automàtica"
+msgstr "Automàtic"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:421
 #: jellyfin_mpv_shim/osc_bridge.py:96 jellyfin_mpv_shim/osc_bridge.py:231
@@ -1560,10 +1449,8 @@ msgid "Previous"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:570
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "Servidor afegit correctament."
+msgstr "Episodi anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:575
 msgid "Back 10 Seconds"
@@ -1595,16 +1482,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:639
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py:72
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:159
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "Configuració de SVP"
+msgstr "Configuració"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:643
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Pantalla completa automàtica"
+msgstr "Pantalla completa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:204
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:259
@@ -1613,10 +1496,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:337
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:200
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete the downloaded copy of %s?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar la còpia descarregada de %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:339
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py:378
@@ -1628,10 +1509,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:339
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:208
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "Elimina el servidor"
+msgstr "Elimina la descàrrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:362
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py:293
@@ -1645,24 +1524,16 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:189
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:238
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut reproduir aquest element"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:249
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "No transcodifiquis"
+msgstr "Torna-hi amb transcodificació"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:57
 msgid "Repeat All"
-msgstr ""
+msgstr "Repeteix-ho tot"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:57
 msgid "Repeat One"
@@ -1680,10 +1551,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py:136
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py:33
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:113
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "Reproducció sincronitzada"
+msgstr "Reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:136
 msgid "Stop"
@@ -1691,10 +1560,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:145
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:119
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Favorites"
-msgstr "Elimina el servidor"
+msgstr "Elimina dels preferits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:146
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:120
@@ -1962,10 +1829,8 @@ msgstr "Elimina el servidor"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:150
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:194
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:205
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "Elimina el servidor"
+msgstr "Elimina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py:226
 msgid "The queue is empty."
@@ -2077,24 +1942,12 @@ msgid "Seasons"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py:150
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'han pogut carregar més elements."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py:232
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut carregar aquesta pàgina."
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py:386
 msgid "On Now"
@@ -2477,42 +2330,30 @@ msgid "Album"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:116
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark Unwatched"
-msgstr "Tanca i marca com a no vist"
+msgstr "Marca com a no vist"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:117
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark Watched"
-msgstr "Tanca i marca com a no vist"
+msgstr "Marca com a vist"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:131
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:194
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Playlist"
-msgstr "Elimina el servidor"
+msgstr "Elimina de la llista de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:135
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:205
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Collection"
-msgstr "Elimina el servidor"
+msgstr "Elimina de la col·lecció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:192
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove %s from this playlist?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar %s d'aquesta llista de reproducció?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:203
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove %s from this collection?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar %s d'aquesta col·lecció?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:255
 msgid "There is nothing here to queue."
@@ -2529,16 +2370,12 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:129
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Servidor:"
+msgstr "Servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:142
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Nom d'usuari:"
+msgstr "Usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:147
 msgid "Search…"
@@ -2582,20 +2419,16 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py:123
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transcodifica)"
+msgstr "Transcodifica"
 
 #: jellyfin_mpv_shim/osc_bridge.py:125 jellyfin_mpv_shim/osc_bridge.py:161
 msgid "External"
-msgstr ""
+msgstr "Extern"
 
 #: jellyfin_mpv_shim/osc_bridge.py:260
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay activat."
+msgstr "El SyncPlay està habilitat"
 
 #: jellyfin_mpv_shim/osc_bridge.py:414 jellyfin_mpv_shim/syncplay.py:721
 msgid "{0}'s Group"
@@ -2603,7 +2436,7 @@ msgstr "Grup de {0}"
 
 #: jellyfin_mpv_shim/player.py:864
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Un moment, s'està carregant..."
 
 #: jellyfin_mpv_shim/player.py:1346
 msgid "Skipped Credits"
@@ -2632,19 +2465,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py:1954
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "L'episodi següent no està descarregat."
 
 #: jellyfin_mpv_shim/player_reporting.py:151
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Crèdits saltats"
+msgstr "Salta els crèdits"
 
 #: jellyfin_mpv_shim/player_reporting.py:152
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Introducció saltada"
+msgstr "Salta la introducció"
 
 #: jellyfin_mpv_shim/player_reporting.py:298
 msgid "Season {0} - Episode {1}"
@@ -2682,21 +2511,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py:158
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Aquest directori ja conté descàrregues. Trieu un directori buit."
 
 #: jellyfin_mpv_shim/sync/manager.py:163
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
+"No s'ha pogut crear aquest directori. Reviseu el camí i els permisos "
+"associats."
 
 #: jellyfin_mpv_shim/sync/manager.py:187
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Hi ha una descàrrega que encara no ha acabat. Espereu que s'aturi i llavors "
+"torneu-ho a provar."
 
 #: jellyfin_mpv_shim/sync/manager.py:200
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"No s'han pogut moure les descàrregues. S'han deixat al seu lloc; el "
+"directori de descàrregues no s'ha modificat."
 
 #: jellyfin_mpv_shim/syncplay.py:21
 msgid "The specified SyncPlay group does not exist."
@@ -2748,7 +2583,7 @@ msgstr "{0} està emmagatzemant memòria intermèdia."
 
 #: jellyfin_mpv_shim/tray.py:101
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Mostra el navegador de la biblioteca"
 
 #: jellyfin_mpv_shim/tray.py:103
 msgid "Show Console"
@@ -2768,23 +2603,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py:40
 msgid "(default)"
-msgstr ""
+msgstr "(per defecte)"
 
 #: jellyfin_mpv_shim/users.py:322
 msgid "New User"
-msgstr ""
+msgstr "Usuari nou"
 
 #: jellyfin_mpv_shim/users.py:346
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Canvia a un altre usuari, abans d'eliminar aquest."
 
 #: jellyfin_mpv_shim/users.py:348
 msgid "At least one user is required."
-msgstr ""
+msgstr "Cal com a mínim un usuari."
 
 #: jellyfin_mpv_shim/users.py:351
 msgid "User not found."
-msgstr ""
+msgstr "No s'ha trobat l'usuari."
 
 #: jellyfin_mpv_shim/utils.py:337
 msgid "Unkn"
@@ -2828,11 +2663,12 @@ msgstr "Anime4K x2 Perceptiu+ Desdifumina (Per a alta resolució)"
 
 #: jellyfin_mpv_shim/video_profile.py:42
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (Reducció de soroll + Enfocament)"
 
 #: jellyfin_mpv_shim/video_profile.py:43
+#, fuzzy
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN High (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py:334
 msgid "Select Shader Profile"
