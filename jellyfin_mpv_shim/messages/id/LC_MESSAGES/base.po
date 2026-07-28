@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2025-07-24 16:30+0000\n"
-"Last-Translator: Khoirul Umam <khoirul_229@yahoo.com>\n"
+"PO-Revision-Date: 2026-07-28 06:16+0000\n"
+"Last-Translator: arz <arizmuajianisan@gmail.com>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/id/>\n"
+"jellyfin-mpv-shim/id/>\n"
 "Language: id\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py:29
@@ -50,14 +50,15 @@ msgstr "Menyetel Tegangan..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Buka Jellyfin, pergi ke user menu -> Quick Connect, dan masukkan kode ini:"
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Menunggu persetujuan..."
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Menghapus seluruh akun."
 
 #: jellyfin_mpv_shim/clients.py:290 jellyfin_mpv_shim/clients.py:311
 #: jellyfin_mpv_shim/clients.py:329
@@ -71,7 +72,7 @@ msgstr "Penambahan server gagal."
 
 #: jellyfin_mpv_shim/clients.py:300
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Akun sudah terdaftar. Memperbarui kredensial."
 
 #: jellyfin_mpv_shim/clients.py:302
 #, fuzzy
