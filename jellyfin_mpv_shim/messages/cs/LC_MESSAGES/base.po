@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-27 15:25+0000\n"
-"Last-Translator: Helak <adamhavra@seznam.cz>\n"
+"PO-Revision-Date: 2026-07-29 00:32+0000\n"
+"Last-Translator: zdislav <martinp6282@gmail.com>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -55,11 +55,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py:260
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Čekání na autorizaci..."
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Vymazání všech stávajících účtů."
 
 #: jellyfin_mpv_shim/clients.py:290 jellyfin_mpv_shim/clients.py:311
 #: jellyfin_mpv_shim/clients.py:329
@@ -73,19 +73,15 @@ msgstr "Přidání serveru se nezdařilo."
 
 #: jellyfin_mpv_shim/clients.py:300
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Účet již existuje. Aktualizují se přihlašovací údaje."
 
 #: jellyfin_mpv_shim/clients.py:302
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Server byl úspěšně přidán."
+msgstr "Přihlašovací údaje serveru byly úspěšně aktualizovány."
 
 #: jellyfin_mpv_shim/clients.py:305
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Přidání serveru se nezdařilo."
+msgstr "Aktualizace přihlašovacích údajů serveru selhala."
 
 #: jellyfin_mpv_shim/clients.py:316
 msgid "Server URL: "
@@ -104,22 +100,16 @@ msgid "Add another server?"
 msgstr "Přidat další server?"
 
 #: jellyfin_mpv_shim/clients.py:617
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Server nebylo možné přidat.\n"
-"Zkontrolujte informace o připojení."
+msgstr "Nepodařilo se připojit k serveru."
 
 #: jellyfin_mpv_shim/clients.py:622
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Rychlé připojení není na tomto serveru povoleno."
 
 #: jellyfin_mpv_shim/clients.py:626
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Nepodařilo se spustit Rychlé připojení."
 
 #: jellyfin_mpv_shim/media.py:194
 msgid " (Transcode)"
@@ -415,66 +405,64 @@ msgstr "Zobrazit náhledy na časové ose"
 #: jellyfin_mpv_shim/menu.py:609 jellyfin_mpv_shim/mpvtk_browser/config.py:210
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:375
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Noční režim (automatické nastavení hlasitosti)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:751
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Načtení se nezdařilo. Zkontrolujte připojení."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:831
 msgid "Page"
-msgstr ""
+msgstr "stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:841
 msgid "of %d"
-msgstr ""
+msgstr "z %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:843
 msgid "First page"
-msgstr ""
+msgstr "První stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:844
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Server byl úspěšně přidán."
+msgstr "Předchozí stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:845
 msgid "Next page"
-msgstr ""
+msgstr "Další stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:846
 msgid "Last page"
-msgstr ""
+msgstr "Poslední stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1067
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:109
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:222
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:237
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Změnu nebylo možné použít."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1142
 msgid "Selected: %s"
-msgstr ""
+msgstr "Vybraný: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1211
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:215
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py:231
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py:234
 msgid "Loading…"
-msgstr ""
+msgstr "Načítání…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1280
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py:95
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:305
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Přehrávání se nepodařilo spustit."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1805
 #: jellyfin_mpv_shim/mpvtk_browser/music.py:169
 msgid "Queue"
-msgstr ""
+msgstr "Fronta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1830
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:457
@@ -486,23 +474,17 @@ msgstr "Zkusit znovu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1918
 #: jellyfin_mpv_shim/mpvtk_browser/app.py:1920
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Server nebylo možné přidat.\n"
-"Zkontrolujte informace o připojení."
+msgstr "Stále se nemohu připojit k serveru."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:73
 msgid "Switch to %s"
-msgstr ""
+msgstr "Přepnout na %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:78
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:540
 msgid "PIN"
-msgstr ""
+msgstr "PIN kód"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:82
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:145
@@ -514,18 +496,18 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py:252
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:257
 msgid "Cancel"
-msgstr ""
+msgstr "Zrušit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:84
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:554
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py:95
 msgid "Switch"
-msgstr ""
+msgstr "přepnout"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:91
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:582
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Nesprávný PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:123
 #, fuzzy
