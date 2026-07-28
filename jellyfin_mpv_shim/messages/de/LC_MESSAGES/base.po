@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-28 06:16+0000\n"
-"Last-Translator: David Wagener <david.wagener@pm.me>\n"
+"PO-Revision-Date: 2026-07-28 16:27+0000\n"
+"Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
 "Language: de\n"
@@ -684,31 +684,27 @@ msgstr "Wähle deine Medien in Jellyfin und spiele sie hier ab."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:76
 msgid "Cast & Crew"
-msgstr ""
+msgstr "Besetzung & Mitwirkende"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:99
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:285
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py:300
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py:124
 msgid "Download"
-msgstr ""
+msgstr "Downloaden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:102
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Server entfernen"
+msgstr "Download entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:115
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Verlassen und als ungesehen markieren"
+msgstr "Angesehen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:119
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
 msgid "Favorite"
-msgstr ""
+msgstr "Favorit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:83
 msgid "Interface"
@@ -718,7 +714,7 @@ msgstr "Schnittstelle"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:200
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py:66
 msgid "Theme"
-msgstr ""
+msgstr "Thema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Playback"
@@ -790,11 +786,11 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:155
 msgid "Theme default"
-msgstr ""
+msgstr "Standardthema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:157
 msgid "Medium"
-msgstr ""
+msgstr "Mittel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:159
 #, fuzzy
@@ -880,7 +876,7 @@ msgstr "\"Als Nächstes\" Einträge zum berücksichtigen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:189
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Vorzuhaltende Folgen (0 = aus)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:190
 msgid "Storage Limit for Automatic Downloads (GB)"
@@ -900,7 +896,7 @@ msgstr "Überprüfen alle (Minuten)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:194
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Ins Tray schließen (weiter laufen)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:195
 msgid "Keep Running in Background"
@@ -924,15 +920,15 @@ msgstr "Interface Skalierung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:201
 msgid "Cover Size"
-msgstr ""
+msgstr "Covergröße"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:202
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Castziel Modus (kein durchsuchen von Bibliotheken)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:203
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Casten öffnet den Bibliothekenbrowser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:204
 msgid "Fullscreen Library Browser"
