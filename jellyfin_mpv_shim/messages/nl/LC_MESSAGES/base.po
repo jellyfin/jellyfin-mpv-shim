@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-27 01:19+0000\n"
+"PO-Revision-Date: 2026-07-28 16:27+0000\n"
 "Last-Translator: Bas <44002186+854562@users.noreply.github.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
@@ -699,15 +699,13 @@ msgid "Remove Download"
 msgstr "Server verwijderen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:115
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Stop en markeer als niet bekeken"
+msgstr "Gekeken"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py:119
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py:621
 msgid "Favorite"
-msgstr ""
+msgstr "Favoriet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:83
 msgid "Interface"
@@ -717,7 +715,7 @@ msgstr "Interface"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:200
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py:66
 msgid "Theme"
-msgstr ""
+msgstr "Thema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:95
 msgid "Playback"
@@ -789,17 +787,15 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:155
 msgid "Theme default"
-msgstr ""
+msgstr "Themastandaard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:157
 msgid "Medium"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:159
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Groot"
+msgstr "Extra groot"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:162
 msgid "Automatic (recommended)"
@@ -915,7 +911,7 @@ msgstr "Stijl spelerbediening"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:198
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Op Discord laten zien wat je kijkt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:199
 msgid "Interface Scale"
@@ -1003,6 +999,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"\"Geminimaliseerd starten\" en \"Volledig scherm\" geven je de klassieke "
+"configuratie als cast-ontvanger: de app blijft op de achtergrond wachten, "
+"speelt media schermvullend af zodra er iets naartoe wordt gecast en keert "
+"terug naar de wachtstand wanneer het afspelen eindigt of je op Q drukt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:242
 msgid ""
@@ -1011,6 +1011,11 @@ msgid ""
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
 "does that."
 msgstr ""
+"\"Uit\" schakelt de opdrachtregelmodus in: er worden geen venster, "
+"systeemvakpictogram of instellingenscherm weergegeven. De enige manier om "
+"terug te gaan, is door conf.json handmatig te bewerken. Hiermee schakel je "
+"de schermbediening van MPV niet in; daarvoor gebruik je \"Stijl "
+"spelerbediening\" onder Interface."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:249
 msgid ""
@@ -1020,6 +1025,13 @@ msgid ""
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
 msgstr ""
+"Toon alleen media die naar dit apparaat wordt gecast. De bibliotheek, "
+"inclusief dit instellingenscherm, is vanaf dit apparaat niet toegankelijk. "
+"Zonder systeemvakpictogram kun je deze instelling alleen ongedaan maken door "
+"conf.json handmatig te bewerken. Voor een klassieke cast-"
+"ontvangerconfiguratie gebruik je de instellingen onder Interface; deze optie "
+"is bedoeld voor een gedeelde tv waarop niemand door de bibliotheek moet "
+"kunnen bladeren."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py:255
 msgid ""
