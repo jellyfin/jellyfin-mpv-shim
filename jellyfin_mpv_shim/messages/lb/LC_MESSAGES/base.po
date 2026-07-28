@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-07-27 11:01-0400\n"
-"PO-Revision-Date: 2026-07-28 06:16+0000\n"
+"PO-Revision-Date: 2026-07-28 16:27+0000\n"
 "Last-Translator: David Wagener <david.wagener@pm.me>\n"
 "Language-Team: Luxembourgish <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/lb/>\n"
@@ -60,7 +60,7 @@ msgstr "Waart op Authentifizéierung..."
 
 #: jellyfin_mpv_shim/clients.py:281
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Läsch all existéierend Konten."
 
 #: jellyfin_mpv_shim/clients.py:290 jellyfin_mpv_shim/clients.py:311
 #: jellyfin_mpv_shim/clients.py:329
@@ -579,7 +579,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:262
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:273
 msgid "Quick Connect"
-msgstr ""
+msgstr "Quick Connect"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py:274
 msgid "Enter this code in the Jellyfin app or web client:"
@@ -1716,7 +1716,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py:47
 msgid "Instant Mix"
-msgstr ""
+msgstr "Direkt-Mix"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py:61
 msgid "%d tracks"
@@ -1976,7 +1976,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py:77
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py:39
 msgid "Logs"
-msgstr ""
+msgstr "Protokoller"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py:47
 msgid "Invalid value: %s"
@@ -2296,7 +2296,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:142
 msgid "User"
-msgstr ""
+msgstr "Benotzer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py:147
 msgid "Search…"
@@ -2341,7 +2341,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py:123
 msgid "Transcode"
-msgstr ""
+msgstr "Transcodéierung"
 
 #: jellyfin_mpv_shim/osc_bridge.py:125 jellyfin_mpv_shim/osc_bridge.py:161
 msgid "External"
