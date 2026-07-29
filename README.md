@@ -11,6 +11,8 @@ features which set it apart from other multimedia clients:
 
 - Direct play most media using MPV.
 - Watch videos with friends using SyncPlay.
+- Full [Live TV](https://github.com/jellyfin/jellyfin-mpv-shim#live-tv): channel guide, channels,
+  recordings, schedule and series rules — including scheduling recordings.
 - Offers a shim mode which runs in the background.
 - The Jellyfin mobile apps can fully control the client.
 - Prevents having to regularly change subtitles/audio settings for each episode.
@@ -44,9 +46,6 @@ bare IP addresses and not specifying the port by default. If you want to connect
 
 ## Limitations
 
-- Live TV is partially supported. The home screen's "On Now" row appears when your server has a
-  tuner, and playing an entry from it tunes the channel. There is no channel guide, no Live TV
-  library browsing and no DVR/recording management — for those, use the web client.
 - A single active session still reports as one device to a given server. For sharing the player between
   people, see [Fast User Switching](#fast-user-switching), which keeps each local user on its own device
   identity. ([Related issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
@@ -147,6 +146,38 @@ If you would like to customize the shader pack, there are details in the configu
 SVP integration allows you to easily configure SVP support, change profiles, and enable/disable
 SVP without having to exit the player. It is not enabled by default, please see the configuration
 instructions for instructions on how to enable it.
+
+### Live TV
+
+If your server has a tuner, a **Live TV** entry appears with your other libraries (and a row of
+shortcuts on the home screen, next to "On Now"). It has the same six screens the web client does:
+
+- **Programs** — what is on now, plus upcoming episodes, movies, sports, kids and news.
+- **Guide** — channels down, time across. Move the window with the arrows either side of the
+  date, jump back to the present with **Now**, and change day with the double arrows. Clicking a
+  programme opens it; from there you can watch the channel or record.
+- **Channels** — every channel, with what is on it right now. Right-click one to favourite it;
+  favourites can be floated to the top of the guide. Categories you have unticked in Guide
+  Settings drop out of this list.
+- **Recordings** — what has been recorded, and the folders it is filed under.
+- **Schedule** — what is recording now and what is scheduled, grouped by day. Click one to edit
+  its padding or cancel it.
+- **Series** — your series recording rules, with the same options the web client offers (new
+  episodes only, one channel or all, keep up to N, and so on).
+
+You can record from a listing without opening it: right-click any programme, in the guide or in
+any row, for **Record** / **Record Series**.
+
+**Guide Settings** (top right of the Guide) controls channel order, favourites-first, the
+Live/New/Premiere/HD indicators, colour-coded categories and which categories are shown. These
+are **stored on your server in the same place the web client keeps them**, so changing them here
+changes them there and vice versa. Unticking a category empties the cells it covers rather than
+removing them, so the guide stays readable as a grid — again, as the web client does it.
+
+One deliberate difference from the web client: the guide shows one window at a time (two hours
+on a typical window, more if there is room) and the arrows page it, rather than being a 24-hour
+grid you scroll sideways. That suits a remote better, and it avoids the scroll-sync stutter a
+grid inside the player's window would have.
 
 ### Display Mirroring
 

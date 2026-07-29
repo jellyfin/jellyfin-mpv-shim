@@ -31,14 +31,23 @@ class SearchPage(Page):
 
         def work():
             if not term:
-                return {"items": [], "people": []}
+                return {"items": [], "people": [], "live": {}}
             items = source.search(srv, term)
             people = []
             try:
                 people = source.search_people(srv, term)
             except Exception:
                 pass
-            return {"items": items, "people": people}
+            # Live TV is searched separately — its items are not in the
+            # /Search/Hints media types — and only where there is a tuner,
+            # so the overwhelming majority of users pay nothing for it. Both
+            # halves are getattr'd: the offline source has neither.
+            live = {}
+            if getattr(source, "has_live_tv", lambda _s: False)(srv):
+                search_live = getattr(source, "search_live_tv", None)
+                if search_live is not None:
+                    live = search_live(srv, term) or {}
+            return {"items": items, "people": people, "live": live}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -95,11 +104,20 @@ class SearchPage(Page):
                 lambda i: self.ctx.actions.play_list(ids, server, i,
                                                      audio=True),
                 menu=True))
+        live = data.get("live") or {}
+        if live.get("channels"):
+            rows.append(tiles.tile_row(_("Channels"), live["channels"],
+                                       "search-channels",
+                                       geom=art.geom_square))
+        if live.get("programs"):
+            rows.append(tiles.tile_row(_("On TV"), live["programs"],
+                                       "search-programs", geom=art.geom_wide,
+                                       image_type="Thumb"))
         other = [it for it in items
                  if it.get("Type") not in used and it.get("Type") != "Audio"]
         if other:
             rows.append(tiles.tile_row(_("Other"), other, "search-other"))
-        if not items and not people:
+        if not items and not people and not any(live.values()):
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
                               align="stretch"), id="search", flex=1,

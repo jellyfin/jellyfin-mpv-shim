@@ -60,6 +60,54 @@ class TestTheConverter(unittest.TestCase):
                 self.assertTrue(vector.icon_ass(name).startswith(vector._ANCHOR),
                                 "%s is not anchored" % name)
 
+    def test_every_drawing_stays_on_the_24x24_canvas(self):
+        """The bug this exists for: several Material icons are authored as
+        two ``<path>`` elements, the second starting with a *relative*
+        moveto. gen_ui_icons joins them into one ``d``, at which point that
+        moveto becomes relative to where the first subpath ended — so
+        ``keyboard_double_arrow_left``'s second chevron was drawn at
+        (28.59, 36), off the canvas, and the icon rendered as one chevron
+        plus clipped debris.
+
+        Nothing else could see it: the path converts cleanly, the drawing is
+        anchored, and the only symptom is on screen. Bounds are the check
+        that catches the whole class.
+        """
+        import re
+
+        for name in ICON_PATHS:
+            with self.subTest(icon=name):
+                numbers = [float(v) for v in
+                           re.findall(r"-?\d+(?:\.\d+)?",
+                                      vector.icon_ass(name))]
+                xs, ys = numbers[0::2], numbers[1::2]
+                # A hair of slack: the SVG->ASS conversion rounds, and a few
+                # icons legitimately touch the edge.
+                self.assertGreaterEqual(min(xs + ys), -1.0, name)
+                self.assertLessEqual(max(xs + ys), 25.0, name)
+
+    def test_every_icon_rasterizes_to_visible_ink(self):
+        """The PIL side of the same data, used for decorations baked into a
+        strip bitmap (an ASS glyph over a tile would be hidden under it —
+        GUIDE §6). A contour parser that dropped everything would produce a
+        blank image rather than an error."""
+        for name in ICON_PATHS:
+            with self.subTest(icon=name):
+                image = vector.icon_image(name, 24, (255, 0, 0))
+                self.assertEqual(image.size, (24, 24))
+                self.assertGreater(image.getchannel("A").getextrema()[1], 200,
+                                   "%s rasterized to nothing" % name)
+
+    def test_rasterized_icons_are_cached(self):
+        """Drawn per tile, so potentially dozens per composited row."""
+        first = vector.icon_image("play_arrow", 20, (1, 2, 3))
+        self.assertIs(vector.icon_image("play_arrow", 20, (1, 2, 3)), first)
+
+    def test_an_unknown_icon_rasterizes_to_nothing(self):
+        image = vector.icon_image("no_such_icon_anywhere", 16, (255, 0, 0))
+        self.assertEqual(image.size, (16, 16))
+        self.assertEqual(image.getchannel("A").getextrema()[1], 0)
+
     def test_an_unknown_icon_degrades_rather_than_raising(self):
         """It used to raise KeyError out of the middle of layout, which took
         down the whole scene — one mistyped name blanked the entire UI."""

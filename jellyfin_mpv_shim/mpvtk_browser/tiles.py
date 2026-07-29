@@ -102,6 +102,44 @@ class TilesMixin:
 
     MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "Series", "Season", "Playlist"}
 
+    #: Live types get their own entries: a channel is watched rather than
+    #: played into a queue, and a program is not itself playable at all.
+    MENU_LIVE = {"TvChannel", "Program"}
+
+    def _live_menu_entries(self, item):
+        """Menu for a channel or a guide entry.
+
+        The guide's context menu in jellyfin-web, which is where recording a
+        programme from a listing actually happens — without it the only way
+        to set a timer is to open each programme in turn.
+        """
+        from . import live_tv
+
+        out = []
+        if item.get("Type") == "TvChannel":
+            out.append((_("Watch"), "play_arrow", "play"))
+            return out
+        if item.get("ChannelId"):
+            out.append((_("Watch Channel"), "play_arrow", "play"))
+        if not self._actions.can_record():
+            return out
+        # single_timer_state, not timer_state: the two answer different
+        # questions and a showing covered by a series rule answers yes to
+        # both. See live_tv.single_timer_state.
+        single = live_tv.single_timer_state(item)
+        if single:
+            out.append((_("Stop Recording") if single == "recording"
+                        else _("Do Not Record"), "cancel", "unrecord"))
+        else:
+            out.append((_("Record"), "fiber_manual_record", "record"))
+        if item.get("IsSeries"):
+            if item.get("SeriesTimerId"):
+                out.append((_("Cancel Series"), "cancel", "unrecordseries"))
+            else:
+                out.append((_("Record Series"), "fiber_smart_record",
+                            "recordseries"))
+        return out
+
     def _tile_menu_entries(self, item):
         """``[(label, icon, action-key)]`` for this item's type."""
         t = item.get("Type")
@@ -109,6 +147,16 @@ class TilesMixin:
         watched = components.is_watched(item)
         fav = bool(ud.get("IsFavorite"))
         out = []
+        if t in self.MENU_LIVE:
+            out = self._live_menu_entries(item)
+            if t == "TvChannel":
+                # Favourites float to the top of the guide and the channel
+                # list (see live_tv.channel_sort_kwargs), so this is the one
+                # piece of user data a channel has that does anything.
+                out.append((_("Remove from Favorites") if fav
+                            else _("Add to Favorites"), "favorite",
+                            "favorite"))
+            return out
         if t in self.MENU_PLAYABLE:
             out.append((_("Play"), "play_arrow", "play"))
             out.append((_("Add to Queue"), "playlist_add", "queue"))
@@ -180,7 +228,36 @@ class TilesMixin:
             self._close_menu()
             self._remove_from_collection(item)
             return
+        elif action in ("record", "recordseries", "unrecord",
+                        "unrecordseries"):
+            self._close_menu()
+            self._live_menu_action(action, item, server)
+            return
         self._close_menu()
+
+    def _live_menu_action(self, action, item, server):
+        """Record / cancel from a tile or guide cell.
+
+        Followed by a reload of the screen rather than an optimistic flip:
+        the DTO on the tile has no timer id until the server issues one, so
+        there is nothing to flip to (see ItemActions).
+        """
+        route = self.route
+
+        def done():
+            self._reload_route(route)
+
+        if action == "record":
+            self._actions.schedule_recording(item, server, on_done=done)
+        elif action == "recordseries":
+            self._actions.schedule_recording(item, server, series=True,
+                                             on_done=done)
+        elif action == "unrecord":
+            self._actions.cancel_timer(item.get("TimerId"), server,
+                                       on_done=done)
+        else:
+            self._actions.cancel_series_timer(item.get("SeriesTimerId"),
+                                              server, on_done=done)
 
     def _remove_from_playlist(self, item):
         entry = item.get("PlaylistItemId")
@@ -299,6 +376,12 @@ class TilesMixin:
 
     def _menu_play(self, item, server):
         t = item.get("Type")
+        if t in self.MENU_LIVE:
+            # What you watch is the channel, never the guide entry — the
+            # generic path below would resolve a Program to its own id and
+            # try to play a listing.
+            self._play_list([item.get("ChannelId") or item.get("Id")], server)
+            return
         if t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
             return

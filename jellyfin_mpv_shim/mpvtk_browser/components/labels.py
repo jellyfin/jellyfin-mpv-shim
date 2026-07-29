@@ -24,12 +24,37 @@ def episode_subtitle(item):
             se = "S%dE%d" % (s, e)
             return "%s · %s" % (series, se) if series else se
         return series
-    if item.get("Type") == "Program":
-        # The channel, not the year: "On Now" is a list of things airing
-        # right now, so which channel to turn to is the useful half. Guide
-        # data frequently has no ProductionYear at all.
-        return item.get("ChannelName") or ""
+    kind = item.get("Type")
+    if kind in ("Program", "Timer", "Recording"):
+        # The channel and when it is on, not the year: these are listings,
+        # so "which channel, and when" is the whole useful content of the
+        # line. Guide data frequently has no ProductionYear at all.
+        from .. import live_tv
+
+        return "   ·   ".join(p for p in (item.get("ChannelName") or "",
+                                          live_tv.air_time_label(item)) if p)
+    if kind == "SeriesTimer":
+        # A series rule has no single air time; what identifies it is the
+        # channel it watches and whether it is pinned to one time slot.
+        from .. import live_tv
+
+        when = (_a_time(item, live_tv) if not item.get("RecordAnyTime")
+                else "")
+        channel = ("" if item.get("RecordAnyChannel")
+                   else (item.get("ChannelName") or ""))
+        return "   ·   ".join(p for p in (channel, when) if p)
+    if kind == "TvChannel":
+        # The channel number and what is on it right now — which is why the
+        # channel list asks for AddCurrentProgram.
+        current = (item.get("CurrentProgram") or {}).get("Name") or ""
+        number = str(item.get("Number") or "").strip()
+        return "   ·   ".join(p for p in (number, current) if p)
     return str(item.get("ProductionYear") or "")
+
+
+def _a_time(item, live_tv):
+    start = live_tv.parse_time(item.get("StartDate"))
+    return live_tv.fmt_time(start) if start else ""
 
 
 def tile_lines(item, parent_item=False):

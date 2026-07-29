@@ -8,6 +8,7 @@ Every method returns plain Jellyfin item DTO dicts (or lists of them) so the
 same shapes work whether they came from the server or a local cache.
 """
 
+import datetime
 import json
 import logging
 import os
@@ -22,6 +23,19 @@ from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
 from . import home_sections
+from . import live_tv
+
+
+def _iso_utc(when):
+    """An aware datetime as the ISO 8601 the Live TV endpoints require.
+
+    With the ``Z``, always: the server binds these dates with
+    ``AdjustToUniversal``, which accepts an offset-less string *without*
+    shifting it — so a bare ``str(datetime)`` queries a window that is out by
+    the local UTC offset and answers successfully with the wrong programmes.
+    """
+    return when.astimezone(datetime.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
 
 log = logging.getLogger("mpvtk_browser.repository")
 
@@ -75,10 +89,23 @@ DETAIL_FIELDS = (
 # "musicvideos" is NOT excluded: a MusicVideo is an ordinary video item
 # (it is in PLAYABLE_TYPES and plays through the normal video player), so a
 # music-video library browses and plays like any other video library.
-EXCLUDED_COLLECTION_TYPES = {"books", "livetv"}
+# "livetv" is no longer excluded either: it is a real destination now (the
+# tabbed Live TV screen), reached by opening its library tile. It is still
+# special-cased in two places — it never gets a "Latest" row (a tuner has no
+# recently-added anything) and clicking it routes to the Live TV page rather
+# than to a grid of its children.
+EXCLUDED_COLLECTION_TYPES = {"books"}
+
+#: CollectionType of the Live TV view. Its own constant because three modules
+#: test for it and a bare string in each is how one of them ends up spelled
+#: "liveTv".
+LIVE_TV_COLLECTION = "livetv"
 
 # Item types that open the detail/play view rather than drilling deeper.
-PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo"}
+# "Recording" is one of them: a finished recording is an ordinary file on the
+# server and plays like any other item. Servers before 10.7 label them that
+# way; newer ones hand back a Movie/Episode/Video, which was already covered.
+PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo", "Recording"}
 # Item types that drill into a series view.
 SERIES_TYPES = {"Series"}
 # Live TV entries, which play immediately rather than opening a detail view.
@@ -90,6 +117,24 @@ FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
 # only these are surfaced (and downloaded). Audio is included so music
 # playlists play, queue, and download (the now-playing bar drives them).
 PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
+
+#: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
+#:
+#: **Two fields, not one.** ``ChannelInfo`` alone gets ``ChannelName`` and
+#: ``ChannelNumber``; the channel's *logo* is gated separately on
+#: ``ChannelImage`` (``LiveTvManager.AddInfoToProgramDto`` sets
+#: ``ChannelPrimaryImageTag`` only under ``hasChannelImage``). Most guide
+#: data carries no artwork of its own and the channel logo is the whole
+#: fallback, so asking for only the first turns every listing row into a
+#: wall of letter glyphs. jellyfin-web asks for the pair together.
+PROGRAM_FIELDS = ",ChannelInfo,ChannelImage"
+
+#: Channels per guide page. The guide asks for programmes with the channel
+#: ids in the query string, and past roughly 150-200 GUIDs that overflows the
+#: request-line limit in Kestrel and common reverse proxies (414/431) — so
+#: this bounds the guide fetch as much as it bounds the list. jellyfin-web
+#: pages at 500 and gets away with it only because it splits nothing.
+CHANNEL_PAGE = 100
 
 
 class ServerConn:
@@ -140,6 +185,10 @@ class LibrarySource:
         # rather than paid on every back-navigation. Refreshed whenever the
         # settings screen reads them, and rewritten on save.
         self._home_prefs: dict[str, Any] = {}
+        # uuid -> the resolved guide preference dict. Same document as
+        # _home_prefs, cached separately: the home screen reads on startup
+        # and the guide may never be opened at all.
+        self._live_tv_prefs: dict[str, Any] = {}
         # uuid -> whether this server offers Live TV to this user. Derived for
         # free from the /Views response get_libraries already fetches; see
         # has_live_tv for why that answer is authoritative.
@@ -175,17 +224,18 @@ class LibrarySource:
         has_live_tv = False
         for item in result.get("Items", []):
             if item.get("CollectionType") in EXCLUDED_COLLECTION_TYPES:
-                # Noted on the way past rather than fetched separately: the
-                # server adds this view only when the user may use Live TV AND
-                # a tuner is configured (UserViewManager consults
-                # LiveTvManager.GetEnabledUsers, which is
-                # EnableLiveTvAccess && tuner hosts exist). So its presence
-                # here is the whole gate, at no extra request — which matters
-                # because Live TV sits in the stock home layout, and without a
-                # gate every user without a tuner would pay for a row that can
-                # never have anything in it.
-                has_live_tv = has_live_tv or item.get("CollectionType") == "livetv"
                 continue
+            # Noted on the way past rather than fetched separately: the
+            # server adds this view only when the user may use Live TV AND
+            # a tuner is configured (UserViewManager consults
+            # LiveTvManager.GetEnabledUsers, which is
+            # EnableLiveTvAccess && tuner hosts exist). So its presence
+            # here is the whole gate, at no extra request — which matters
+            # because Live TV sits in the stock home layout, and without a
+            # gate every user without a tuner would pay for a row that can
+            # never have anything in it.
+            has_live_tv = (has_live_tv
+                           or item.get("CollectionType") == LIVE_TV_COLLECTION)
             out.append(item)
         self._has_live_tv[server_uuid] = has_live_tv
         return out
@@ -368,20 +418,26 @@ class LibrarySource:
             # an "On Now" strip; the strip is the part that lists anything, so
             # it is the part reproduced here.
             #
-            # ChannelInfo is what adds ChannelName/ChannelPrimaryImageTag to
+            # PROGRAM_FIELDS is what adds the channel name and its logo to
             # each program, which is the only art most guide data carries.
             #
             # Not jellyfin-web's separate limit=1 probe: an empty row is
             # already dropped by the comprehension below, so probing first
             # would only add a round trip to reach the same result.
+            # User data is deliberately NOT disabled, unlike the other home
+            # rows — jellyfin-web's query does not disable it either, and an
+            # On Now tile shows a watched tick and a favourite heart like
+            # any other. It has no bearing on the recording state: TimerId,
+            # SeriesTimerId and Status are attached by LiveTvManager's
+            # AddRecordingInfo regardless of EnableUserData, which only ever
+            # gates the DTO's UserData block.
             onnow = api.get_recommended_programs(
                 is_airing=True,
                 limit=24,
-                fields=LIST_FIELDS + ",ChannelInfo",
+                fields=LIST_FIELDS + PROGRAM_FIELDS,
                 enable_image_types="Primary,Thumb,Backdrop",
                 image_type_limit=1,
                 enable_total_record_count=False,
-                enable_user_data=False,
             ) or {}
             return (_("On Now"), onnow.get("Items", []), "livetv")
 
@@ -408,12 +464,26 @@ class LibrarySource:
                         lib.get("CollectionType"))
             return fetch
 
+        def active_recordings_row():
+            return (_("Active Recordings"),
+                    self.get_recordings(server_uuid, limit=12,
+                                        is_in_progress=True),
+                    "livetv")
+
         builders = {
             home_sections.RESUME: video_resume_row,
             home_sections.RESUME_AUDIO: audio_resume_row,
             home_sections.NEXT_UP: next_up_row,
             home_sections.LIVE_TV: live_tv_row,
+            home_sections.ACTIVE_RECORDINGS: active_recordings_row,
         }
+
+        #: Sections that only mean anything on a server with a tuner. Both are
+        #: in reach of the stock layout, and a server without Live TV can only
+        #: ever answer them empty — so the gate is what keeps them free for
+        #: the large majority of users who have no tuner.
+        live_tv_sections = (home_sections.LIVE_TV,
+                            home_sections.ACTIVE_RECORDINGS)
 
         # (slot, kind, callable). The slot travels with the row so the caller
         # can restore the user's order after merging the two fetch batches.
@@ -424,17 +494,15 @@ class LibrarySource:
             stage = home_sections.STAGE.get(kind)
             if stage is None or stage == "local" or stage not in sections:
                 continue
-            if kind == home_sections.LIVE_TV and not self.has_live_tv(server_uuid):
-                # No tuner (or no access): the request could only ever answer
-                # empty, and this section is in the stock layout, so skipping
-                # it here is what keeps Live TV free for everyone not using it.
+            if kind in live_tv_sections and not self.has_live_tv(server_uuid):
                 continue
             if kind == home_sections.LATEST:
                 # One request per library, so this is where the user's
                 # exclusions have to be honoured — the ParentId these carry
                 # stops the server from doing it.
                 tasks += [(slot, kind, latest_row(lib)) for lib in libraries
-                          if lib.get("CollectionType") != "playlists"
+                          if lib.get("CollectionType") not in (
+                              "playlists", LIVE_TV_COLLECTION)
                           and lib.get("Id") not in latest_excludes]
             else:
                 tasks.append((slot, kind, builders[kind]))
@@ -469,6 +537,358 @@ class LibrarySource:
         return [{"title": t, "items": i, "collection_type": c,
                  "slot": slot, "kind": kind}
                 for slot, kind, t, i, c in rows if i]
+
+    # -- Live TV -----------------------------------------------------------
+    #
+    # Reads only. Creating and cancelling recordings is a mutation and goes
+    # through the gateway (gateway/livetv.py), exactly as playlist editing
+    # does — this class is the browse seam an offline source has to be able
+    # to stand in for, and an offline source cannot schedule a recording.
+
+    def get_live_tv_prefs(self, server_uuid, refresh=False):
+        """The guide preference dict (see ``live_tv.resolve_prefs``), cached.
+
+        Shares the DisplayPreferences document the home layout lives in, so
+        one read serves both — but they are cached separately because the
+        home screen loads on startup and the guide may never be opened.
+
+        Never raises: an unreachable or ancient server gets jellyfin-web's
+        defaults, which is a working guide rather than no guide.
+        """
+        if not refresh and server_uuid in self._live_tv_prefs:
+            return self._live_tv_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        try:
+            custom = self._display_prefs_dto(api).get("CustomPrefs") or {}
+        except Exception:
+            log.warning("Failed to read Live TV preferences; using defaults",
+                        exc_info=True)
+            custom = {}
+        prefs = live_tv.resolve_prefs(custom)
+        self._live_tv_prefs[server_uuid] = prefs
+        return prefs
+
+    def cache_live_tv_prefs(self, server_uuid, prefs):
+        """Adopt ``prefs`` as the cached answer without writing anything.
+
+        **Called on the loop thread, before the save is submitted.** Saving
+        the guide settings repaints the guide, and repainting it means
+        re-fetching it — a pool job whose first act is ``get_live_tv_prefs``.
+        That job is submitted *first*, so no amount of care inside the save
+        worker wins the race: by the time the save runs, the reload has
+        already read the old cache and the guide comes back drawn with the
+        settings the user just changed away from.
+
+        So the cache moves on the thread that ordered both, where there is
+        no race to lose. A dict assignment, which is why that is safe.
+        """
+        self._live_tv_prefs[server_uuid] = dict(prefs)
+
+    def save_live_tv_prefs(self, server_uuid, prefs):
+        """Persist the guide preferences. Raises on failure.
+
+        Read-modify-write of the whole DTO, for the same reason
+        ``save_home_layout`` does it: there is no partial-update path on this
+        API, so posting only our keys would drop jellyfin-web's home layout,
+        landing screens and everything else the same document holds.
+
+        The cache is adopted before the write and rolled back if it fails —
+        the alternative is a cache that disagrees with the server for the
+        rest of the session. Callers that also repaint must additionally
+        call :meth:`cache_live_tv_prefs` on the loop thread; see there.
+        """
+        api = self._conn(server_uuid).api
+        previous = self._live_tv_prefs.get(server_uuid)
+        self._live_tv_prefs[server_uuid] = dict(prefs)
+        try:
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom.update(live_tv.prefs_to_custom(prefs))
+            dto["CustomPrefs"] = custom
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+        except Exception:
+            if previous is None:
+                self._live_tv_prefs.pop(server_uuid, None)
+            else:
+                self._live_tv_prefs[server_uuid] = previous
+            raise
+
+    def get_channels(self, server_uuid, start_index=0, limit=CHANNEL_PAGE,
+                     prefs=None, categories=(), add_current_program=True,
+                     favorites_only=False):
+        """Live TV channels as ``(items, total)``.
+
+        Paged, because an IPTV line-up runs to thousands of channels and this
+        endpoint has no way to skip the total record count — the unbounded
+        call returns every one of them with artwork and user data attached.
+
+        ``add_current_program`` is what puts "what is on now" on each channel
+        tile; the guide turns it off because it fetches the programmes for
+        the whole window anyway.
+        """
+        api = self._conn(server_uuid).api
+        kwargs = dict(live_tv.channel_sort_kwargs(prefs or {}))
+        kwargs.update(live_tv.category_kwargs(categories))
+        if favorites_only:
+            kwargs["is_favorite"] = True
+        result = api.get_channels(
+            start_index=start_index, limit=limit,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            add_current_program=add_current_program,
+            **kwargs) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
+
+    def get_guide_info(self, server_uuid):
+        """The provider's guide date range, for the date picker. ``{}`` when
+        the server cannot answer — the picker then imposes no limit."""
+        api = self._conn(server_uuid).api
+        try:
+            return api.get_live_tv_guide_info() or {}
+        except Exception:
+            log.debug("GuideInfo unavailable", exc_info=True)
+            return {}
+
+    def get_guide(self, server_uuid, channel_ids, start, end, want_hd=False):
+        """Guide entries for ``channel_ids`` overlapping [start, end).
+
+        ``start``/``end`` are aware datetimes; they go out as UTC ISO 8601
+        **with the Z**, because the server binds these with
+        ``AdjustToUniversal`` and silently accepts an offset-less string
+        without shifting it — i.e. quietly answers for the wrong window.
+
+        The bounds are the pair jellyfin-web uses and they are not symmetric:
+        ``MaxStartDate`` is the window end and ``MinEndDate`` its start, which
+        is what includes a programme that began before the window opened.
+
+        **No category filter.** The guide's categories are applied by
+        drawing (``live_tv.program_displayed``), as jellyfin-web does, and
+        not here. Two reasons, one of which is a bug this used to have: the
+        server's ``IsMovie`` is a column predicate while the other three are
+        a tag filter, so two categories AND together and the guide came back
+        empty; and dropping the rows entirely turns a filtered guide into a
+        field of dead air rather than a grid with quiet cells.
+        """
+        api = self._conn(server_uuid).api
+        ids = [c for c in (channel_ids or []) if c]
+        if not ids:
+            return []
+        result = api.get_programs(
+            channel_ids=ids,
+            # +/- a second, as jellyfin-web does, so a programme that ends
+            # exactly as the window opens (or starts exactly as it closes)
+            # does not occupy a zero-width cell at the edge.
+            max_start_date=_iso_utc(end - datetime.timedelta(seconds=1)),
+            min_end_date=_iso_utc(start + datetime.timedelta(seconds=1)),
+            sort_by="StartDate",
+            # ChannelInfo without ChannelImage, unlike every other program
+            # query: a guide cell is text, so it wants ChannelName for its
+            # second line and has nowhere to put a logo. Asking for the
+            # image tag would cost a channel lookup per programme across the
+            # whole window for something never drawn.
+            fields="ChannelInfo" + (",IsHD" if want_hd else ""),
+            enable_user_data=False,
+            enable_total_record_count=False,
+            enable_image_types="Primary",
+            image_type_limit=1) or {}
+        return result.get("Items", [])
+
+    def get_programs(self, server_uuid, limit=24, **filters):
+        """Upcoming guide entries for the Programs screen's category rows.
+
+        ``filters`` are the ``is_movie``/``is_sports``/… flags plus
+        ``has_aired``; they go straight through to ``LiveTv/Programs``.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_programs(
+            limit=limit,
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=False,
+            **filters) or {}
+        return result.get("Items", [])
+
+    def get_recommended_programs(self, server_uuid, limit=24, **filters):
+        """The server's own recommendations — the "On Now" strip."""
+        api = self._conn(server_uuid).api
+        result = api.get_recommended_programs(
+            limit=limit,
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=False,
+            **filters) or {}
+        return result.get("Items", [])
+
+    #: The Programs screen's rows: (key, title-factory, query). Mirrors
+    #: jellyfin-web's livetvsuggested, including the shape of the "Upcoming
+    #: Episodes" query — its four ``False`` flags are what stop a sports
+    #: fixture or a kids' show turning up in it, and they have to be sent as
+    #: explicit falses rather than omitted.
+    PROGRAM_SECTIONS = (
+        ("onnow", lambda: _("On Now"), {"is_airing": True}),
+        ("episodes", lambda: _("Upcoming Episodes"),
+         {"has_aired": False, "is_series": True, "is_movie": False,
+          "is_sports": False, "is_kids": False, "is_news": False}),
+        ("movies", lambda: _("Upcoming Movies"),
+         {"has_aired": False, "is_movie": True}),
+        ("sports", lambda: _("Upcoming Sports"),
+         {"has_aired": False, "is_sports": True}),
+        ("kids", lambda: _("Upcoming Kids"),
+         {"has_aired": False, "is_kids": True}),
+        ("news", lambda: _("Upcoming News"),
+         {"has_aired": False, "is_news": True}),
+    )
+
+    def get_program_sections(self, server_uuid, limit=12):
+        """The Programs screen's rows as ``[{"key", "title", "items"}]``.
+
+        Fanned out, like the home screen: six independent requests walked
+        serially is six round trips before the screen can draw anything, and
+        guide queries are not fast. Order is preserved by collecting in
+        submit order, and one failed row costs only that row.
+
+        Empty rows are dropped, so a provider with no sports data simply has
+        no Sports row rather than an empty heading.
+        """
+        def fetch(key, title, query):
+            def work():
+                if key == "onnow":
+                    # The server's own recommendations, which is what the
+                    # official clients show — not a plain is_airing query.
+                    items = self.get_recommended_programs(
+                        server_uuid, limit=limit * 2, **query)
+                else:
+                    items = self.get_programs(server_uuid, limit=limit,
+                                              **query)
+                return {"key": key, "title": title(), "items": items}
+            return work
+
+        tasks = [fetch(key, title, query)
+                 for key, title, query in self.PROGRAM_SECTIONS]
+        rows = []
+        with ThreadPoolExecutor(max_workers=min(HOME_FANOUT, len(tasks)),
+                                thread_name_prefix="livetv") as pool:
+            for future in [pool.submit(task) for task in tasks]:
+                try:
+                    row = future.result()
+                except Exception:
+                    log.warning("a Live TV programs row failed to load",
+                                exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
+    def search_live_tv(self, server_uuid, term, limit=24):
+        """Channels and guide entries matching ``term``.
+
+        Two requests, not jellyfin-web's seven: it splits programmes into
+        movies/episodes/sports/kids/news/other so each row can have its own
+        card shape, and then draws them all the same. One Programs row is
+        the same information for a fifth of the traffic.
+
+        Never raises — a search that half-worked is better than a search
+        screen that reports failure because the tuner was busy.
+        """
+        api = self._conn(server_uuid).api
+
+        def find(item_type, fields):
+            try:
+                result = api.get_user_items(
+                    include_item_types=item_type, search_term=term,
+                    recursive=True, limit=limit, fields=fields,
+                    image_type_limit=1,
+                    enable_image_types="Primary,Thumb") or {}
+            except Exception:
+                log.debug("Live TV search for %s failed", item_type,
+                          exc_info=True)
+                return []
+            return result.get("Items", [])
+
+        return {"channels": find("TvChannel", LIST_FIELDS),
+                "programs": find("LiveTvProgram",
+                                 LIST_FIELDS + PROGRAM_FIELDS)}
+
+    def get_live_program(self, server_uuid, program_id):
+        """One guide entry with its live recording state, for the program
+        page. ``None`` when the entry has expired out of the guide."""
+        api = self._conn(server_uuid).api
+        try:
+            return api.get_live_tv_program(program_id)
+        except Exception:
+            log.debug("program %s unavailable", program_id, exc_info=True)
+            return None
+
+    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
+                       series_timer_id=None):
+        """Recordings, newest first. In-progress ones with
+        ``is_in_progress=True``; everything else is the recordings library.
+
+        An in-progress result is stamped ``_recording`` — a recording DTO
+        carries no timer state, so the *query* is the only thing that knows
+        it is still being written, and the tile needs to (it draws the red
+        dot and a broadcast-progress bar rather than a resume bar). Stamped
+        here rather than at each of the three call sites so none of them can
+        forget.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_live_tv_recordings(
+            limit=limit,
+            is_in_progress=is_in_progress,
+            series_timer_id=series_timer_id,
+            fields=LIST_FIELDS + ",CanDelete",
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=False) or {}
+        items = result.get("Items", [])
+        if is_in_progress:
+            for item in items:
+                item["_recording"] = True
+        return items
+
+    def get_recording_folders(self, server_uuid):
+        """The virtual folders recordings are filed under. These are ordinary
+        folder items, so opening one lands in the normal grid."""
+        api = self._conn(server_uuid).api
+        try:
+            result = api.get_recording_folders() or {}
+        except Exception:
+            log.debug("recording folders unavailable", exc_info=True)
+            return []
+        return result.get("Items", [])
+
+    def get_timers(self, server_uuid, is_active=None, is_scheduled=None,
+                   series_timer_id=None):
+        """Single recording timers, in start order.
+
+        Sorted here rather than by the server: ``LiveTv/Timers`` takes no
+        sort arguments, and the screen groups them by day — which only reads
+        as a schedule if they arrive in time order.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_live_tv_timers(is_active=is_active,
+                                        is_scheduled=is_scheduled,
+                                        series_timer_id=series_timer_id) or {}
+        items = result.get("Items", [])
+        return sorted(items, key=lambda t: t.get("StartDate") or "")
+
+    def get_timer(self, server_uuid, timer_id):
+        api = self._conn(server_uuid).api
+        return api.get_live_tv_timer(timer_id)
+
+    def get_series_timers(self, server_uuid):
+        api = self._conn(server_uuid).api
+        result = api.get_live_tv_series_timers(
+            sort_by="SortName", sort_order="Ascending") or {}
+        return result.get("Items", [])
+
+    def get_series_timer(self, server_uuid, timer_id):
+        api = self._conn(server_uuid).api
+        return api.get_live_tv_series_timer(timer_id)
 
     @staticmethod
     def _filter_kwargs(filters):
@@ -868,6 +1288,25 @@ class LibrarySource:
         if item.get("SeriesId") and item.get("SeriesPrimaryImageTag"):
             return item["SeriesId"], "Primary", item["SeriesPrimaryImageTag"]
 
+        if (image_type != "Thumb" and item.get("ParentPrimaryImageItemId")
+                and item.get("ParentPrimaryImageTag")):
+            # How a SeriesTimer carries its artwork: the DTO is not an item,
+            # so it has no ImageTags of its own — the poster belongs to the
+            # *series* the rule was made from, and these two fields are the
+            # only pointer to it. Without this the whole Series tab was a
+            # wall of placeholder glyphs.
+            #
+            # SeriesTimerInfoDto only: a plain TimerInfoDto has no
+            # ParentPrimaryImage* at all (nor any ImageTags), and falls
+            # through to the channel-logo branch below — which is also what
+            # jellyfin-web's schedule shows, via showChannelLogo.
+            #
+            # Not for a Thumb request: that means a landscape tile, and the
+            # parent *thumb* below is the right shape for one. This branch
+            # is repeated after it as the fallback for when there is none.
+            return (item["ParentPrimaryImageItemId"], "Primary",
+                    item["ParentPrimaryImageTag"])
+
         if "Thumb" in tags:
             # The mirror of the Thumb->Primary fallback above: guide programs
             # routinely carry one of the two and not the other, so a poster
@@ -879,6 +1318,14 @@ class LibrarySource:
             # Live TV programs inherit the channel's thumb this way.
             return (item["ParentThumbItemId"], "Thumb",
                     item["ParentThumbImageTag"])
+
+        if (item.get("ParentPrimaryImageItemId")
+                and item.get("ParentPrimaryImageTag")):
+            # The Thumb-request half of the branch above: a timer whose
+            # programme has a poster but no thumb still gets its artwork
+            # rather than falling through to the channel logo.
+            return (item["ParentPrimaryImageItemId"], "Primary",
+                    item["ParentPrimaryImageTag"])
 
         if item.get("ChannelId") and item.get("ChannelPrimaryImageTag"):
             # Last resort for a program: the channel logo. Guide data often
@@ -1218,6 +1665,15 @@ class OfflineLibrarySource:
                          sort_by="SortName", sort_order="Ascending"):
         # People aren't cached offline; the person page simply comes up empty.
         return [], 0
+
+    def has_live_tv(self, server_uuid):
+        """There is no tuner in a folder of downloaded files.
+
+        Declared rather than left to fail: the offline source is what the
+        online one falls back TO, so a missing method here turns a degraded
+        screen into an AttributeError on the fallback path.
+        """
+        return False
 
     def get_genres(self, server_uuid, parent_id=None):
         genres: set[str] = set()

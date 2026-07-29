@@ -317,7 +317,7 @@ class Settings(SettingsBase):
     # Seeking forward during an intro/credits window skips the whole
     # segment. Applies to keyboard/remote seeks; seeks made from the
     # jellyfin OSC's seekbar never trigger it (it has its own button).
-    skip_intro_on_seek: bool = True
+    skip_intro_on_seek: bool = False
     thumbnail_enable: bool = True
     thumbnail_osc_builtin: bool = True
     # In-player UI: "mpvtk" (the in-window playback HUD rendered by the
