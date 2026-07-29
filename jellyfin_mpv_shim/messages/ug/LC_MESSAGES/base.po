@@ -1370,10 +1370,12 @@ msgstr ""
 msgid "My Media"
 msgstr ""
 
+# seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Continue Watching"
-msgstr ""
+msgstr "داۋاملىق كۆرۈش"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -1744,11 +1746,13 @@ msgstr ""
 msgid "Repeat Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Movies"
-msgstr ""
+msgstr "فىلىملەر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Sports"
@@ -1936,9 +1940,11 @@ msgstr ""
 msgid "Random"
 msgstr ""
 
+# seeded from jellyfin-web: Collections
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Collections"
-msgstr ""
+msgstr "توپلام"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
@@ -1957,10 +1963,12 @@ msgstr ""
 msgid "Unplayed"
 msgstr ""
 
+# seeded from jellyfin-web: Favorites
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Favorites"
-msgstr ""
+msgstr "ساقلىغۇچ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -1994,10 +2002,12 @@ msgstr ""
 msgid "Guide"
 msgstr ""
 
+# seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Channels"
-msgstr ""
+msgstr "قانال"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
@@ -2143,11 +2153,13 @@ msgstr ""
 msgid "Channel"
 msgstr ""
 
+# seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Albums"
-msgstr ""
+msgstr "پىلاستىنكا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
@@ -2171,19 +2183,25 @@ msgstr ""
 msgid "Album Artists"
 msgstr ""
 
+# seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Artists"
-msgstr ""
+msgstr "سەنئەتكار"
 
+# seeded from jellyfin-web: Songs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Songs"
-msgstr ""
+msgstr "ناخشىلار"
 
+# seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
 msgid "Genres"
-msgstr ""
+msgstr "ئۇسلۇبلار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "Play All"
@@ -2312,9 +2330,11 @@ msgstr "مۇلازىمىتېر URL: "
 msgid "People"
 msgstr ""
 
+# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Shows"
-msgstr ""
+msgstr "پروگراممىلار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -2386,9 +2406,11 @@ msgstr ""
 msgid "TV Shows"
 msgstr ""
 
+# seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Playlists"
-msgstr ""
+msgstr "قويۇش تىزىملىكى"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -2715,9 +2737,11 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
+# seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Album"
-msgstr ""
+msgstr "البم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"

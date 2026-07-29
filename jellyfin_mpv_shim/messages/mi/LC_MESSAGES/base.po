@@ -721,10 +721,12 @@ msgstr ""
 msgid "Playback"
 msgstr ""
 
+# seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Audio"
-msgstr ""
+msgstr "Ororongo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
@@ -1723,11 +1725,13 @@ msgstr ""
 msgid "Repeat Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Movies"
-msgstr ""
+msgstr "Kiriata"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Sports"
@@ -1915,9 +1919,11 @@ msgstr ""
 msgid "Random"
 msgstr ""
 
+# seeded from jellyfin-web: Collections
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Collections"
-msgstr ""
+msgstr "Kohinga"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
@@ -2116,11 +2122,13 @@ msgstr ""
 msgid "Channel"
 msgstr ""
 
+# seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Albums"
-msgstr ""
+msgstr "Pukaemi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
@@ -2144,10 +2152,12 @@ msgstr ""
 msgid "Album Artists"
 msgstr ""
 
+# seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Artists"
-msgstr ""
+msgstr "Kaiwaiata"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2670,9 +2680,11 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
+# seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Album"
-msgstr ""
+msgstr "Pukaemi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"

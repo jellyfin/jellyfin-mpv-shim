@@ -455,11 +455,13 @@ msgstr ""
 msgid "The change could not be applied."
 msgstr ""
 
+# seeded from jellyfin-web: LiveTV
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
+#, fuzzy
 msgid "Live TV"
-msgstr ""
+msgstr "TV Trực Tiếp"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
@@ -512,13 +514,15 @@ msgstr ""
 msgid "PIN"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Cancel"
-msgstr ""
+msgstr "Hủy bỏ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -558,10 +562,12 @@ msgstr ""
 msgid "Remove PIN"
 msgstr "Xóa máy chủ"
 
+# seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Save"
-msgstr ""
+msgstr "Lưu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
@@ -602,9 +608,11 @@ msgstr "Đã thêm máy chủ thành công."
 msgid "Use"
 msgstr ""
 
+# seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Quick Connect"
-msgstr ""
+msgstr "Kết Nối Nhanh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
@@ -634,13 +642,17 @@ msgstr "Tên đăng nhập:"
 msgid "Password"
 msgstr "Mật khẩu:"
 
+# seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Use Quick Connect"
-msgstr ""
+msgstr "Dùng kết nối nhanh"
 
+# seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Connect"
-msgstr ""
+msgstr "Kết nối"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
@@ -691,9 +703,11 @@ msgstr ""
 msgid "Work Offline"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Sign In"
-msgstr ""
+msgstr "Đăng nhập"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
@@ -730,15 +744,19 @@ msgstr "Sẵn sàng truyền"
 msgid "Select your media in Jellyfin and play it here."
 msgstr "Chọn phương tiện của bạn trong Jellyfin và phát nó ở đây"
 
+# seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#, fuzzy
 msgid "Cast & Crew"
-msgstr ""
+msgstr "Diễn Viên & Ê-kíp"
 
+# seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Download"
-msgstr ""
+msgstr "Tải về"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #, fuzzy
@@ -752,28 +770,36 @@ msgstr "Xóa máy chủ"
 msgid "Watched"
 msgstr "Thoát và đánh dấu là chưa xem"
 
+# seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
 msgid "Favorite"
-msgstr ""
+msgstr "Yêu thích"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface"
 msgstr ""
 
+# seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Theme"
-msgstr ""
+msgstr "Chủ đề"
 
+# seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Playback"
-msgstr ""
+msgstr "Phát lại"
 
+# seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Audio"
-msgstr ""
+msgstr "Âm thanh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
@@ -799,11 +825,13 @@ msgstr "Đi tới để bỏ qua đoạn giới thiệu"
 msgid "Library Browser"
 msgstr ""
 
+# seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
 msgid "Downloads"
-msgstr ""
+msgstr "Tải xuống"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1169,10 +1197,12 @@ msgid ""
 "gets the audio."
 msgstr ""
 
+# seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Advanced"
-msgstr ""
+msgstr "Nâng cao"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1189,9 +1219,11 @@ msgstr ""
 msgid "New playlist name…"
 msgstr ""
 
+# seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Create"
-msgstr ""
+msgstr "Tạo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
@@ -1226,11 +1258,13 @@ msgstr "Xóa máy chủ"
 msgid "New collection name…"
 msgstr "Tên đăng nhập: "
 
+# seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Back"
-msgstr ""
+msgstr "Quay lại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1264,12 +1298,12 @@ msgstr ""
 msgid "%d watched"
 msgstr ""
 
+# seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
-#| msgid "Remove Server"
 msgctxt "dialog heading"
 msgid "Download"
-msgstr "Xóa máy chủ"
+msgstr "Tải về"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
@@ -1287,9 +1321,11 @@ msgstr ""
 msgid "Notice"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "OK"
-msgstr ""
+msgstr "Đồng Ý"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1344,11 +1380,13 @@ msgstr "Nhóm Mới"
 msgid "Leave"
 msgstr "Nhóm Mới"
 
+# seeded from jellyfin-web: Refresh
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Refresh"
-msgstr ""
+msgstr "Làm mới"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1403,10 +1441,12 @@ msgstr "Tự động"
 msgid "Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: OptionSpecialEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Specials"
-msgstr ""
+msgstr "Đặc biệt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
@@ -1434,10 +1474,12 @@ msgstr ""
 msgid "Failed"
 msgstr "Thất bại"
 
+# seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Playlist"
-msgstr ""
+msgstr "Danh sách phát"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
@@ -1460,43 +1502,55 @@ msgstr ""
 msgid "No channels available."
 msgstr ""
 
+# seeded from jellyfin-web: None
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #, fuzzy
-#| msgid "None"
 msgctxt "home screen section type"
 msgid "None"
 msgstr "Không có"
 
+# seeded from jellyfin-web: HeaderMyMedia
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#, fuzzy
 msgid "My Media"
-msgstr ""
+msgstr "Phương Tiện Của Tôi"
 
+# seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Continue Watching"
-msgstr ""
+msgstr "Xem Tiếp"
 
+# seeded from jellyfin-web: HeaderContinueListening
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Continue Listening"
-msgstr ""
+msgstr "Tiếp Tục Nghe"
 
+# seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Next Up"
-msgstr ""
+msgstr "Tiếp Theo"
 
+# seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#, fuzzy
 msgid "Recently Added"
-msgstr ""
+msgstr "Thêm Gần Đây"
 
+# seeded from jellyfin-web: HeaderActiveRecordings
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Active Recordings"
-msgstr ""
+msgstr "Bản Ghi Hình/Ghi Âm Đang Hoạt Động"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
@@ -1530,13 +1584,17 @@ msgstr "Chọn bản âm thanh"
 msgid "Video Quality"
 msgstr "Thay đổi chất lượng video"
 
+# seeded from jellyfin-web: PlaybackRate
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Playback Speed"
-msgstr ""
+msgstr "Tốc Độ Phát"
 
+# seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Aspect Ratio"
-msgstr ""
+msgstr "Tỷ Lệ Khung Hình"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -1571,11 +1629,13 @@ msgstr "Tự Động Phát"
 msgid "None (Disabled)"
 msgstr "Không có (Đã tắt)"
 
+# seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Previous"
-msgstr ""
+msgstr "Trước"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -1595,20 +1655,25 @@ msgstr ""
 msgid "Next Chapter"
 msgstr ""
 
+# seeded from jellyfin-web: Next
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Next"
-msgstr ""
+msgstr "Kế tiếp"
 
+# seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Ends at {0}"
-msgstr ""
+msgstr "Kết thúc lúc {0}"
 
+# seeded from jellyfin-web: Mute
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
 msgid "Mute"
-msgstr ""
+msgstr "Tắt Tiếng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -1629,13 +1694,17 @@ msgstr "Tự Động Toàn Màn Hình"
 msgid "Those items could not be added to the queue."
 msgstr ""
 
+# seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy
 msgid "Series recording scheduled."
-msgstr ""
+msgstr "Đã lên lịch ghi loạt phim."
 
+# seeded from jellyfin-web: RecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy
 msgid "Recording scheduled."
-msgstr ""
+msgstr "Ghi theo lịch trình."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be scheduled."
@@ -1645,14 +1714,18 @@ msgstr ""
 msgid "Cancel this recording?"
 msgstr ""
 
+# seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy
 msgid "Recording cancelled."
-msgstr ""
+msgstr "Đã hủy ghi lại."
 
+# seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Cancel Recording"
-msgstr ""
+msgstr "Hủy Ghi Lại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
@@ -1697,12 +1770,14 @@ msgstr "Xóa máy chủ"
 msgid "Delete Download"
 msgstr "Xóa máy chủ"
 
+# seeded from jellyfin-web: Delete
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Delete"
-msgstr ""
+msgstr "Xóa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1713,10 +1788,12 @@ msgstr ""
 msgid "The recording could not be read."
 msgstr ""
 
+# seeded from jellyfin-web: HeaderSeriesOptions
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Series Options"
-msgstr ""
+msgstr "Tuỳ Chọn Series"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -1724,20 +1801,24 @@ msgstr ""
 msgid "Recording"
 msgstr " (Chuyển mã)"
 
+# seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (Chuyển mã)"
+msgstr "Ghi lại"
 
+# seeded from jellyfin-web: NewEpisodesOnly
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "New episodes only"
-msgstr ""
+msgstr "Chỉ Các Tập Mới"
 
+# seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All episodes"
-msgstr ""
+msgstr "Tất cả các tập"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Skip episodes already in my library"
@@ -1748,24 +1829,30 @@ msgstr ""
 msgid "Only %s"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "One channel"
-msgstr ""
-
+# seeded from jellyfin-web: OneChannel
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
-#| msgid "Quit and Mark Unwatched"
+msgid "One channel"
+msgstr "Một kênh"
+
+# seeded from jellyfin-web: LabelChannels
+#: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Channels"
-msgstr "Thoát và đánh dấu là chưa xem"
+msgstr "Kênh"
 
+# seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All channels"
-msgstr ""
+msgstr "Tất cả các kênh"
 
+# seeded from jellyfin-web: LabelAirTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Air time"
-msgstr ""
+msgstr "Thời gian phát sóng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
@@ -1780,9 +1867,11 @@ msgstr ""
 msgid "Any time"
 msgstr ""
 
+# seeded from jellyfin-web: LabelKeepUpTo
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Keep up to"
-msgstr ""
+msgstr "Theo kịp"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Start early (minutes)"
@@ -1792,22 +1881,28 @@ msgstr ""
 msgid "Stop late (minutes)"
 msgstr ""
 
+# seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "As many as possible"
-msgstr ""
+msgstr "Càng nhiều càng tốt"
 
+# seeded from jellyfin-web: ValueOneEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "1 episode"
-msgstr ""
+msgstr "1 tập"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "%d episodes"
 msgstr ""
 
+# seeded from jellyfin-web: SortChannelsBy
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Sort channels by"
-msgstr ""
+msgstr "Sắp xếp các kênh theo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -1829,13 +1924,17 @@ msgstr ""
 msgid "Color-coded backgrounds"
 msgstr ""
 
+# seeded from jellyfin-web: ShowIndicatorsFor
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Show indicators for"
-msgstr ""
+msgstr "Hiển thị các chỉ số cho"
 
+# seeded from jellyfin-web: Categories
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Categories"
-msgstr ""
+msgstr "Phân loại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1860,51 +1959,69 @@ msgstr ""
 msgid "New Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Premieres"
-msgstr ""
+msgstr "Công chiếu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Repeat Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Movies"
-msgstr ""
+msgstr "Phim"
 
+# seeded from jellyfin-web: Sports
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Sports"
-msgstr ""
+msgstr "Thể thao"
 
+# seeded from jellyfin-web: Kids
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Kids"
-msgstr ""
+msgstr "Trẻ Em"
 
+# seeded from jellyfin-web: News
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "News"
-msgstr ""
+msgstr "Tin Tức"
 
+# seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Live"
-msgstr ""
+msgstr "Trực tiếp"
 
+# seeded from jellyfin-web: Premiere
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Premiere"
-msgstr ""
+msgstr "Công chiếu"
 
+# seeded from jellyfin-web: New
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "New"
-msgstr ""
+msgstr "Mới"
 
+# seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Repeat"
-msgstr ""
+msgstr "Lặp lại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
@@ -1951,13 +2068,17 @@ msgstr ""
 msgid "Play"
 msgstr "Đồng bộ phát"
 
+# seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, fuzzy
 msgid "Pause"
-msgstr ""
+msgstr "Tạm dừng"
 
+# seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, fuzzy
 msgid "Stop"
-msgstr ""
+msgstr "Ngưng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1981,18 +2102,22 @@ msgstr ""
 msgid "Item not available."
 msgstr ""
 
+# seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
+#, fuzzy
 msgid "More Like This"
-msgstr ""
+msgstr "Nội Dung Tương Tự"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Go to Series"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Resume"
-msgstr ""
+msgstr "Tiếp tục"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -2001,18 +2126,22 @@ msgstr ""
 msgid "Trailer"
 msgstr "Thất bại"
 
+# seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Scenes"
-msgstr ""
+msgstr "Phân Cảnh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
 msgstr ""
 
+# seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Version"
-msgstr ""
+msgstr "Phiên bản"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
@@ -2034,21 +2163,29 @@ msgstr ""
 msgid "Ends at %s"
 msgstr ""
 
+# seeded from jellyfin-web: LabelName
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Name"
-msgstr ""
+msgstr "Tên"
 
+# seeded from jellyfin-web: OptionDateAdded
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Date Added"
-msgstr ""
+msgstr "Ngày thêm"
 
+# seeded from jellyfin-web: OptionReleaseDate
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Release Date"
-msgstr ""
+msgstr "Ngày Phát Hành"
 
+# seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Community Rating"
-msgstr ""
+msgstr "Đánh Giá Cộng Đồng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2056,25 +2193,33 @@ msgstr ""
 msgid "Date Played"
 msgstr "Tự Động Phát"
 
+# seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Play Count"
-msgstr ""
+msgstr "Số lần phát"
 
+# seeded from jellyfin-web: LabelRuntimeMinutes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Runtime"
-msgstr ""
+msgstr "Thời lượng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Critic Rating"
 msgstr ""
 
+# seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Parental Rating"
-msgstr ""
+msgstr "Xếp hạng Phụ Huynh"
 
+# seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Random"
-msgstr ""
+msgstr "Ngẫu Nhiên"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2095,9 +2240,11 @@ msgstr ""
 msgid "All Years"
 msgstr ""
 
+# seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Unplayed"
-msgstr ""
+msgstr "Chưa Phát"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2111,50 +2258,68 @@ msgstr "Xóa máy chủ"
 msgid "Paginated"
 msgstr ""
 
+# seeded from jellyfin-web: Shuffle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
+#, fuzzy
 msgid "Shuffle"
-msgstr ""
+msgstr "Phát ngẫu nhiên"
 
+# seeded from jellyfin-web: Sort
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Sort"
-msgstr ""
+msgstr "Sắp xếp"
 
+# seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
+#, fuzzy
 msgid "Libraries"
-msgstr ""
+msgstr "Thư viện"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
 msgstr ""
 
+# seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Programs"
-msgstr ""
+msgstr "Chương Trình"
 
+# seeded from jellyfin-web: Guide
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Guide"
-msgstr ""
+msgstr "Lịch phát sóng"
 
+# seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Channels"
-msgstr ""
+msgstr "Kênh"
 
+# seeded from jellyfin-web: Recordings
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Recordings"
-msgstr ""
+msgstr "Bản ghi"
 
+# seeded from jellyfin-web: Schedule
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Schedule"
-msgstr ""
+msgstr "Lên lịch"
 
+# seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Series"
-msgstr ""
+msgstr "Loạt Phim"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
@@ -2260,20 +2425,24 @@ msgstr "Thoát và đánh dấu là chưa xem"
 msgid "Watch Channel"
 msgstr "Thoát và đánh dấu là chưa xem"
 
+# seeded from jellyfin-web: HeaderStopRecording
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Stop Recording"
-msgstr ""
+msgstr "Ngừng Ghi Hình/Ghi Âm"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Do Not Record"
 msgstr ""
 
+# seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Record"
-msgstr ""
+msgstr "Ghi lại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2297,11 +2466,13 @@ msgstr ""
 msgid "Channel"
 msgstr "Thoát và đánh dấu là chưa xem"
 
+# seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Albums"
-msgstr ""
+msgstr "Album"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
@@ -2312,9 +2483,11 @@ msgstr ""
 msgid "Add to Queue"
 msgstr ""
 
+# seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
 msgid "Instant Mix"
-msgstr ""
+msgstr "Trộn Lẫn Nhanh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #, fuzzy, python-format
@@ -2331,14 +2504,18 @@ msgstr ""
 msgid "Artists"
 msgstr ""
 
+# seeded from jellyfin-web: Songs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Songs"
-msgstr ""
+msgstr "Bài Hát"
 
+# seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
 msgid "Genres"
-msgstr ""
+msgstr "Thể Loại"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #, fuzzy
@@ -2346,10 +2523,12 @@ msgstr ""
 msgid "Play All"
 msgstr "Đồng bộ phát"
 
+# seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Edit"
-msgstr ""
+msgstr "Sửa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
@@ -2363,22 +2542,28 @@ msgstr ""
 msgid "Play Queue"
 msgstr ""
 
+# seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Up"
-msgstr ""
+msgstr "Lên"
 
+# seeded from jellyfin-web: Down
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Down"
-msgstr ""
+msgstr "Xuống"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
 msgstr ""
 
+# seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Select All"
-msgstr ""
+msgstr "Chọn Tất Cả"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
@@ -2434,19 +2619,25 @@ msgstr "Xóa máy chủ"
 msgid "Delete the playlist %s?"
 msgstr "Xóa máy chủ"
 
+# seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Title"
-msgstr ""
+msgstr "Tiêu đề"
 
+# seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Type"
-msgstr ""
+msgstr "Kiểu"
 
+# seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Time"
-msgstr ""
+msgstr "Thời gian"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
@@ -2472,26 +2663,34 @@ msgstr ""
 msgid "Results for \"%s\""
 msgstr "Máy chủ:"
 
+# seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "People"
-msgstr ""
+msgstr "Diễn Viên"
 
+# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Shows"
-msgstr ""
+msgstr "Chương Trình TV"
 
+# seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Videos"
-msgstr ""
+msgstr "Các đoạn video"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
 msgstr ""
 
+# seeded from jellyfin-web: Other
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Other"
-msgstr ""
+msgstr "Khác"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "No results."
@@ -2525,9 +2724,11 @@ msgstr ""
 "Không thể thêm máy chủ.\n"
 "Vui lòng kiểm tra thông tin kết nối của bạn."
 
+# seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "On Now"
-msgstr ""
+msgstr "Ngay Bây Giờ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
@@ -2558,13 +2759,17 @@ msgstr ""
 msgid "Downloaded"
 msgstr ""
 
+# seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "TV Shows"
-msgstr ""
+msgstr "Chương Trình TV"
 
+# seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Playlists"
-msgstr ""
+msgstr "Danh sách phát"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -2625,9 +2830,11 @@ msgstr "Thoát và đánh dấu là chưa xem"
 msgid "Delete the watched downloads in %s?"
 msgstr "Xóa máy chủ"
 
+# seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Show advanced settings"
-msgstr ""
+msgstr "Hiển thị cài đặt nâng cao"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Cover size and interface scale require a restart."
@@ -2755,9 +2962,11 @@ msgstr ""
 "Không thể thêm máy chủ.\n"
 "Vui lòng kiểm tra thông tin kết nối của bạn."
 
+# seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
 msgid "General"
-msgstr ""
+msgstr "Tổng Hợp"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
@@ -2769,14 +2978,18 @@ msgstr ""
 msgid "Servers & Users"
 msgstr "URL máy chủ: "
 
+# seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Logs"
-msgstr ""
+msgstr "Nhật ký"
 
+# seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Copy"
-msgstr ""
+msgstr "Sao chép"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
 msgid "Open Config Folder"
@@ -2869,9 +3082,11 @@ msgstr "Máy chủ:"
 msgid "Delete user %s and its saved logins?"
 msgstr ""
 
+# seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Delete User"
-msgstr ""
+msgstr "Xóa Người Dùng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
@@ -2919,9 +3134,11 @@ msgstr ""
 msgid "Nothing here yet."
 msgstr ""
 
+# seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Artist"
-msgstr ""
+msgstr "Ca Sĩ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Album"
@@ -2967,14 +3184,18 @@ msgstr "Xóa máy chủ"
 msgid "There is nothing here to queue."
 msgstr ""
 
+# seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Search"
-msgstr ""
+msgstr "Tìm kiếm"
 
+# seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Home"
-msgstr ""
+msgstr "Trang chủ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, fuzzy
@@ -3037,9 +3258,11 @@ msgstr ""
 msgid "Transcode"
 msgstr " (Chuyển mã)"
 
+# seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "External"
-msgstr ""
+msgstr "Bên ngoài"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy

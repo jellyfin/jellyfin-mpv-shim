@@ -131,57 +131,79 @@ msgstr ""
 msgid " (Transcode)"
 msgstr ""
 
+# seeded from jellyfin-web: SubtitleWhite
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "White"
-msgstr ""
+msgstr "Gwenn"
 
+# seeded from jellyfin-web: SubtitleYellow
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Yellow"
-msgstr ""
+msgstr "Melen"
 
+# seeded from jellyfin-web: SubtitleBlack
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Black"
-msgstr ""
+msgstr "Du"
 
+# seeded from jellyfin-web: SubtitleCyan
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Cyan"
-msgstr ""
+msgstr "Siañ"
 
+# seeded from jellyfin-web: SubtitleBlue
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Blue"
-msgstr ""
+msgstr "Glas"
 
+# seeded from jellyfin-web: SubtitleGreen
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Green"
-msgstr ""
+msgstr "Gwer"
 
+# seeded from jellyfin-web: SubtitleMagenta
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Magenta"
-msgstr ""
+msgstr "Limestra"
 
+# seeded from jellyfin-web: SubtitleRed
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Red"
-msgstr ""
+msgstr "Ruz"
 
+# seeded from jellyfin-web: SubtitleGray
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Gray"
-msgstr ""
+msgstr "Griz"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Tiny"
 msgstr ""
 
+# seeded from jellyfin-web: Small
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Small"
-msgstr ""
+msgstr "Bihan"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Normal"
 msgstr ""
 
+# seeded from jellyfin-web: Large
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Large"
-msgstr ""
+msgstr "Bras"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Huge"
@@ -247,9 +269,11 @@ msgstr ""
 msgid "Player Preferences"
 msgstr ""
 
+# seeded from jellyfin-web: MenuClose
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Close Menu"
-msgstr ""
+msgstr "Serriñ al Lañser"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Audio Track"
@@ -259,10 +283,12 @@ msgstr ""
 msgid "Select Subtitle Track"
 msgstr ""
 
+# seeded from jellyfin-web: LogLevel.None
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "None"
-msgstr ""
+msgstr "Netra"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Transcode Quality"
@@ -489,13 +515,15 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
+# seeded from jellyfin-web: Retry
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #: jellyfin_mpv_shim/svp_integration.py
+#, fuzzy
 msgid "Retry"
-msgstr ""
+msgstr "Klask en-dro"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, fuzzy
@@ -516,13 +544,15 @@ msgstr ""
 msgid "PIN"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Cancel"
-msgstr ""
+msgstr "Nullañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -562,10 +592,12 @@ msgstr ""
 msgid "Remove PIN"
 msgstr "Dilemel ar Servijer"
 
+# seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Save"
-msgstr ""
+msgstr "Enrollañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
@@ -640,9 +672,11 @@ msgstr "Ger tremen :"
 msgid "Use Quick Connect"
 msgstr ""
 
+# seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Connect"
-msgstr ""
+msgstr "Kevreañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
@@ -693,9 +727,11 @@ msgstr ""
 msgid "Work Offline"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Sign In"
-msgstr ""
+msgstr "Kevreañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
@@ -736,11 +772,13 @@ msgstr "Choazit ho media e-barzh Jellyfin ha lennit anezhañ amañ"
 msgid "Cast & Crew"
 msgstr ""
 
+# seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Download"
-msgstr ""
+msgstr "Pellgargañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #, fuzzy
@@ -748,40 +786,52 @@ msgstr ""
 msgid "Remove Download"
 msgstr "Dilemel ar Servijer"
 
+# seeded from jellyfin-web: Watched
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#, fuzzy
 msgid "Watched"
-msgstr ""
+msgstr "Sellet"
 
+# seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
 msgid "Favorite"
-msgstr ""
+msgstr "Sined"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface"
 msgstr ""
 
+# seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Theme"
-msgstr ""
+msgstr "Tem"
 
+# seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Playback"
-msgstr ""
+msgstr "Lenn"
 
+# seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Audio"
-msgstr ""
+msgstr "Aodio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
 msgstr ""
 
+# seeded from jellyfin-web: Transcoding
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Transcoding"
-msgstr ""
+msgstr "Transkodiñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -795,11 +845,13 @@ msgstr ""
 msgid "Library Browser"
 msgstr ""
 
+# seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
 msgid "Downloads"
-msgstr ""
+msgstr "Pellgargadurioù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1159,10 +1211,12 @@ msgid ""
 "gets the audio."
 msgstr ""
 
+# seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Advanced"
-msgstr ""
+msgstr "Kempleshoc'h"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1179,9 +1233,11 @@ msgstr ""
 msgid "New playlist name…"
 msgstr ""
 
+# seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Create"
-msgstr ""
+msgstr "Krouiñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
@@ -1216,11 +1272,13 @@ msgstr "Dilemel ar Servijer"
 msgid "New collection name…"
 msgstr "Anv-implijer : "
 
+# seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Back"
-msgstr ""
+msgstr "Distreiñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1252,12 +1310,12 @@ msgstr ""
 msgid "%d watched"
 msgstr ""
 
+# seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
-#| msgid "Remove Server"
 msgctxt "dialog heading"
 msgid "Download"
-msgstr "Dilemel ar Servijer"
+msgstr "Pellgargañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
@@ -1275,9 +1333,11 @@ msgstr ""
 msgid "Notice"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "OK"
-msgstr ""
+msgstr "Mat eo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1325,11 +1385,13 @@ msgstr ""
 msgid "Leave"
 msgstr ""
 
+# seeded from jellyfin-web: Refresh
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Refresh"
-msgstr ""
+msgstr "Freskaat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1376,16 +1438,20 @@ msgstr "Dilemel ar Servijer"
 msgid "Automatic"
 msgstr ""
 
+# seeded from jellyfin-web: Episodes
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Episodes"
-msgstr ""
+msgstr "Rannoù"
 
+# seeded from jellyfin-web: OptionSpecialEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Specials"
-msgstr ""
+msgstr "Ispisial"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
@@ -1413,10 +1479,12 @@ msgstr ""
 msgid "Failed"
 msgstr "C'hwitadenn"
 
+# seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Playlist"
-msgstr ""
+msgstr "Roll-lenn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
@@ -1430,28 +1498,34 @@ msgstr ""
 msgid "Default (mpv decides)"
 msgstr ""
 
+# seeded from jellyfin-web: ChannelResolutionHD
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
+#, fuzzy
 msgid "HD"
-msgstr ""
+msgstr "HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
 msgstr ""
 
+# seeded from jellyfin-web: None
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#, fuzzy
 msgctxt "home screen section type"
 msgid "None"
-msgstr ""
+msgstr "Netra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
 msgstr ""
 
+# seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Continue Watching"
-msgstr ""
+msgstr "Kenderc'hel da sellet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -1465,9 +1539,11 @@ msgstr ""
 msgid "Next Up"
 msgstr ""
 
+# seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#, fuzzy
 msgid "Recently Added"
-msgstr ""
+msgstr "Ouzhpennet Nevez ‘zo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1503,13 +1579,17 @@ msgstr ""
 msgid "Video Quality"
 msgstr ""
 
+# seeded from jellyfin-web: PlaybackRate
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Playback Speed"
-msgstr ""
+msgstr "Tizh lenn"
 
+# seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Aspect Ratio"
-msgstr ""
+msgstr "Kenfeur an neuz"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -1533,20 +1613,24 @@ msgstr "{0}: Istitl ebet"
 msgid "Playback Data"
 msgstr ""
 
+# seeded from jellyfin-web: Auto
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Auto"
-msgstr ""
+msgstr "Emgefreek"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
 msgid "None (Disabled)"
 msgstr ""
 
+# seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Previous"
-msgstr ""
+msgstr "War-gil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -1566,30 +1650,38 @@ msgstr ""
 msgid "Next Chapter"
 msgstr ""
 
+# seeded from jellyfin-web: Next
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Next"
-msgstr ""
+msgstr "War-lerc’h"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, python-brace-format
 msgid "Ends at {0}"
 msgstr ""
 
+# seeded from jellyfin-web: Mute
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
 msgid "Mute"
-msgstr ""
+msgstr "Hep son"
 
+# seeded from jellyfin-web: Settings
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Settings"
-msgstr ""
+msgstr "Arventennoù"
 
+# seeded from jellyfin-web: ButtonFullscreen
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
 msgid "Fullscreen"
-msgstr ""
+msgstr "Skramm a-bezh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1664,12 +1756,14 @@ msgstr "Dilemel ar Servijer"
 msgid "Delete Download"
 msgstr "Dilemel ar Servijer"
 
+# seeded from jellyfin-web: Delete
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Delete"
-msgstr ""
+msgstr "Dilemel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1689,20 +1783,22 @@ msgstr ""
 msgid "Recording"
 msgstr ""
 
+# seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
-#| msgid "Remove Server"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr "Dilemel ar Servijer"
+msgstr "Enrollañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
 msgstr ""
 
+# seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All episodes"
-msgstr ""
+msgstr "An holl rannoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Skip episodes already in my library"
@@ -1717,16 +1813,18 @@ msgstr ""
 msgid "One channel"
 msgstr ""
 
+# seeded from jellyfin-web: LabelChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
-#| msgid "Successfully added server."
 msgctxt "series recording rule setting"
 msgid "Channels"
-msgstr "Servijer ouzhpennet gant berzh."
+msgstr "Chadennoù"
 
+# seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All channels"
-msgstr ""
+msgstr "An holl chadennoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Air time"
@@ -1796,9 +1894,11 @@ msgstr ""
 msgid "Show indicators for"
 msgstr ""
 
+# seeded from jellyfin-web: Categories
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "Categories"
-msgstr ""
+msgstr "Rummadoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1821,51 +1921,67 @@ msgstr ""
 msgid "New Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Premieres"
-msgstr ""
+msgstr "Rakskignañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Repeat Episodes"
 msgstr ""
 
+# seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Movies"
-msgstr ""
+msgstr "Filmoù"
 
+# seeded from jellyfin-web: Sports
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Sports"
-msgstr ""
+msgstr "Sportoù"
 
+# seeded from jellyfin-web: Kids
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "Kids"
-msgstr ""
+msgstr "Yaouankiz"
 
+# seeded from jellyfin-web: News
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "News"
-msgstr ""
+msgstr "Keleier"
 
+# seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Live"
-msgstr ""
+msgstr "War-eeun"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Premiere"
 msgstr ""
 
+# seeded from jellyfin-web: New
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
+#, fuzzy
 msgid "New"
-msgstr ""
+msgstr "Nevez"
 
+# seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Repeat"
-msgstr ""
+msgstr "Adlenn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
@@ -1910,13 +2026,17 @@ msgstr ""
 msgid "Play"
 msgstr "SyncPlay"
 
+# seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, fuzzy
 msgid "Pause"
-msgstr ""
+msgstr "Ehan"
 
+# seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, fuzzy
 msgid "Stop"
-msgstr ""
+msgstr "Paouez"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1949,9 +2069,11 @@ msgstr ""
 msgid "Go to Series"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Resume"
-msgstr ""
+msgstr "Adkregiñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -1960,18 +2082,22 @@ msgstr ""
 msgid "Trailer"
 msgstr "C'hwitadenn"
 
+# seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Scenes"
-msgstr ""
+msgstr "Senennoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
 msgstr ""
 
+# seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Version"
-msgstr ""
+msgstr "Stumm"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
@@ -1993,17 +2119,21 @@ msgstr ""
 msgid "Ends at %s"
 msgstr ""
 
+# seeded from jellyfin-web: LabelName
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Name"
-msgstr ""
+msgstr "Anv"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Added"
 msgstr ""
 
+# seeded from jellyfin-web: OptionReleaseDate
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Release Date"
-msgstr ""
+msgstr "Deiziad an embannadur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Community Rating"
@@ -2017,9 +2147,11 @@ msgstr ""
 msgid "Play Count"
 msgstr ""
 
+# seeded from jellyfin-web: LabelRuntimeMinutes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Runtime"
-msgstr ""
+msgstr "Padelezh"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Critic Rating"
@@ -2029,9 +2161,11 @@ msgstr ""
 msgid "Parental Rating"
 msgstr ""
 
+# seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Random"
-msgstr ""
+msgstr "Dargouezhek"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2068,45 +2202,59 @@ msgstr "Dilemel ar Servijer"
 msgid "Paginated"
 msgstr ""
 
+# seeded from jellyfin-web: Shuffle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
+#, fuzzy
 msgid "Shuffle"
-msgstr ""
+msgstr "Dargouezhek"
 
+# seeded from jellyfin-web: Sort
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
 msgid "Sort"
-msgstr ""
+msgstr "Urzhiañ"
 
+# seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
+#, fuzzy
 msgid "Libraries"
-msgstr ""
+msgstr "Levraouegoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
 msgstr ""
 
+# seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Programs"
-msgstr ""
+msgstr "Programmoù"
 
+# seeded from jellyfin-web: Guide
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Guide"
-msgstr ""
+msgstr "Heñcher"
 
+# seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Channels"
-msgstr ""
+msgstr "Chadennoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
 msgstr ""
 
+# seeded from jellyfin-web: Schedule
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Schedule"
-msgstr ""
+msgstr "Steuñviñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -2201,10 +2349,12 @@ msgstr ""
 msgid "This series is set to record, but this showing is not scheduled"
 msgstr ""
 
+# seeded from jellyfin-web: Watch
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Watch"
-msgstr ""
+msgstr "Sellet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2221,10 +2371,12 @@ msgstr ""
 msgid "Do Not Record"
 msgstr ""
 
+# seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
 msgid "Record"
-msgstr ""
+msgstr "Enrollañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2246,11 +2398,13 @@ msgstr ""
 msgid "Channel"
 msgstr ""
 
+# seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Albums"
-msgstr ""
+msgstr "Albomoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
@@ -2274,19 +2428,25 @@ msgstr ""
 msgid "Album Artists"
 msgstr ""
 
+# seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Artists"
-msgstr ""
+msgstr "Arzourien"
 
+# seeded from jellyfin-web: Songs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Songs"
-msgstr ""
+msgstr "Tonioù"
 
+# seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
 msgid "Genres"
-msgstr ""
+msgstr "Doareoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #, fuzzy
@@ -2294,10 +2454,12 @@ msgstr ""
 msgid "Play All"
 msgstr "SyncPlay"
 
+# seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Edit"
-msgstr ""
+msgstr "Kemmañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
@@ -2311,22 +2473,28 @@ msgstr ""
 msgid "Play Queue"
 msgstr ""
 
+# seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Up"
-msgstr ""
+msgstr "Sevel"
 
+# seeded from jellyfin-web: Down
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Down"
-msgstr ""
+msgstr "Traoñ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
 msgstr ""
 
+# seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Select All"
-msgstr ""
+msgstr "Diuzañ an holl"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
@@ -2382,19 +2550,25 @@ msgstr "Dilemel ar Servijer"
 msgid "Delete the playlist %s?"
 msgstr "Dilemel ar Servijer"
 
+# seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Title"
-msgstr ""
+msgstr "Titl"
 
+# seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Type"
-msgstr ""
+msgstr "Doare"
 
+# seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Time"
-msgstr ""
+msgstr "Eur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
@@ -2420,26 +2594,34 @@ msgstr ""
 msgid "Results for \"%s\""
 msgstr "Servijer :"
 
+# seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "People"
-msgstr ""
+msgstr "Tud"
 
+# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Shows"
-msgstr ""
+msgstr "Heuliadennoù"
 
+# seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Videos"
-msgstr ""
+msgstr "Videoioù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
 msgstr ""
 
+# seeded from jellyfin-web: Other
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Other"
-msgstr ""
+msgstr "All"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "No results."
@@ -2449,9 +2631,11 @@ msgstr ""
 msgid "To Series"
 msgstr ""
 
+# seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
+#, fuzzy
 msgid "Seasons"
-msgstr ""
+msgstr "Koulzadoù"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
 #, fuzzy
@@ -2510,9 +2694,11 @@ msgstr ""
 msgid "TV Shows"
 msgstr ""
 
+# seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Playlists"
-msgstr ""
+msgstr "Rolloù-lenn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -2571,9 +2757,11 @@ msgstr ""
 msgid "Delete the watched downloads in %s?"
 msgstr "Dilemel ar Servijer"
 
+# seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Show advanced settings"
-msgstr ""
+msgstr "Diskouez an arventennoù kempleshoc’h"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Cover size and interface scale require a restart."
@@ -2701,9 +2889,11 @@ msgstr ""
 "Ouzhpennañ ar servijer dibosupl.\n"
 "Trugarez da wiriañ titouroù ar c'hennask."
 
+# seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
 msgid "General"
-msgstr ""
+msgstr "Hollek"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
@@ -2715,14 +2905,18 @@ msgstr ""
 msgid "Servers & Users"
 msgstr "URL ar servijer: "
 
+# seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Logs"
-msgstr ""
+msgstr "Marilhoù"
 
+# seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Copy"
-msgstr ""
+msgstr "Eilañ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
 msgid "Open Config Folder"
@@ -2813,9 +3007,11 @@ msgstr "Servijer :"
 msgid "Delete user %s and its saved logins?"
 msgstr ""
 
+# seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Delete User"
-msgstr ""
+msgstr "Dilemel an implijer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
@@ -2863,13 +3059,17 @@ msgstr ""
 msgid "Nothing here yet."
 msgstr ""
 
+# seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Artist"
-msgstr ""
+msgstr "Arzour"
 
+# seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Album"
-msgstr ""
+msgstr "Albom"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
@@ -2907,14 +3107,18 @@ msgstr "Dilemel ar Servijer"
 msgid "There is nothing here to queue."
 msgstr ""
 
+# seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Search"
-msgstr ""
+msgstr "Klask"
 
+# seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Home"
-msgstr ""
+msgstr "Degemer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, fuzzy
@@ -2975,9 +3179,11 @@ msgstr ""
 msgid "Transcode"
 msgstr ""
 
+# seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "External"
-msgstr ""
+msgstr "Diavaez"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -3045,9 +3251,11 @@ msgstr ""
 msgid "SVP is Not Active"
 msgstr ""
 
+# seeded from jellyfin-web: DisablePlugin
 #: jellyfin_mpv_shim/svp_integration.py
+#, fuzzy
 msgid "Disable"
-msgstr ""
+msgstr "Diweredekaet"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "SVP is Disabled"
