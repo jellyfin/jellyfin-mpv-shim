@@ -70,6 +70,26 @@ if [ "$MERGE_PO" -eq 1 ] \
 fi
 
 echo "Regenerating $POT from source..."
+# xgettext, not pygettext3. Three reasons, in order of how much they cost us:
+#
+# 1. pygettext3 cannot extract msgctxt AT ALL -- it has no --keyword syntax for
+#    a context argument, and emits zero contexts for a file full of pgettext
+#    calls. So `_p()` (see i18n.py) is unusable without this swap, and `_p` is
+#    the only way to translate a word that is a form label in one place and an
+#    imperative verb in another ("Record", "Channels", "Download", "None").
+# 2. --add-location=file. pygettext3 only offers GNU-vs-Solaris *style*, not
+#    granularity, so every reference carried a line number and every string
+#    added above another rewrote all of them: 87% of a 17k-line .po sweep was
+#    `#:` comments alone. File-only references churn when a string moves
+#    between files, which is rare.
+# 3. It marks format strings (`#, python-format`) -- 50 of ours -- which lets
+#    Weblate check that a translation kept its placeholders. pygettext emitted
+#    none, so a translation that dropped a %s failed at runtime instead.
+#
+# --foreign-user omits the FSF copyright block xgettext otherwise writes into
+# a project that is not FSF-assigned. Verified against pygettext3: identical
+# msgid set, 677 either way.
+#
 # find, not a glob. This was `jellyfin_mpv_shim/*.py jellyfin_mpv_shim/**/*.py`,
 # and without `shopt -s globstar` bash expands `**` exactly like `*` -- one
 # level. So every package nested two deep was silently never scanned:
@@ -88,7 +108,15 @@ if [ "${#SOURCES[@]}" -eq 0 ]; then
     exit 1
 fi
 echo "  scanning ${#SOURCES[@]} source files"
-pygettext3 --default-domain=base -o "$POT" "${SOURCES[@]}"
+xgettext \
+    --language=Python \
+    --keyword=_ \
+    --keyword=_p:1c,2 \
+    --from-code=UTF-8 \
+    --add-location=file \
+    --foreign-user \
+    --package-name=jellyfin-mpv-shim \
+    -o "$POT" "${SOURCES[@]}"
 
 if [ "$MERGE_PO" -eq 0 ]; then
     echo
@@ -123,17 +151,19 @@ trap 'rm -rf "$tmpdir"' EXIT
     if [ "$have_master" -eq 1 ] && [ "$have_working" -eq 1 ]; then
         # master translations win; working tree fills gaps master lacks.
         echo "merging (master + local): $po"
-        msgmerge --quiet --previous \
+        msgmerge --quiet --previous --add-location=file \
             --compendium "$po" "$master_po" "$POT" -o "$po"
     elif [ "$have_master" -eq 1 ]; then
         # locale only on master -> pull it into the working tree.
         echo "adding from master: $po"
         mkdir -p "$(dirname "$po")"
-        msgmerge --quiet --previous "$master_po" "$POT" -o "$po"
+        msgmerge --quiet --previous --add-location=file \
+            "$master_po" "$POT" -o "$po"
     else
         # locale only in working tree -> just refresh against the new template.
         echo "local only: $po"
-        msgmerge --quiet --previous "$po" "$POT" -o "$po"
+        msgmerge --quiet --previous --add-location=file \
+            "$po" "$POT" -o "$po"
     fi
 done
 
