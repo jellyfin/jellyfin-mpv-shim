@@ -53,8 +53,16 @@ INDICATOR_DEFAULTS = {
 
 #: Guide category filters. Order is the order the settings dialog lists them.
 #: "series" is deliberately absent: jellyfin-web has no checkbox for it and
-#: infers it from the other four (see ``categories_to_prefs``).
+#: infers it from the other four (see ``program_displayed``).
 CATEGORIES = ("movies", "sports", "kids", "news")
+
+#: Category -> the query flag that selects it. Spelled out rather than
+#: derived as ``"is_" + name``, which is how "movies" became ``is_movies``
+#: and every category-filtered fetch raised ``TypeError`` before reaching
+#: the server. The server's parameter is ``IsMovie``, singular, and it is
+#: the only one of the four whose flag is not its own name.
+CATEGORY_FLAGS = {"movies": "is_movie", "sports": "is_sports",
+                  "kids": "is_kids", "news": "is_news"}
 
 
 def indicator_labels():
@@ -127,17 +135,52 @@ def prefs_to_custom(prefs):
 
 
 def category_kwargs(categories):
-    """``get_channels``/``get_programs`` flags for a category selection.
+    """``get_channels`` flags for a category selection.
 
-    Empty (or all four) means "no filter at all" rather than four flags OR'd
-    together — jellyfin-web is explicit about this and it matters: the server
-    treats the flags as an OR, so passing all four would still drop every
-    channel that is none of movies/sports/kids/news (a plain series channel).
+    Empty (or all four) means "no filter at all", which is what jellyfin-web
+    sends and is not the same as passing all four: the server's ``IsMovie``
+    is a column predicate while ``IsSports``/``IsNews``/``IsKids`` become a
+    tag filter, so the four together read as "a movie that is also tagged
+    sports and news and kids" and match nothing.
+
+    **Channels only.** The guide's programmes are filtered by drawing (see
+    :func:`program_displayed`), because that is what jellyfin-web does and
+    because sending these to ``LiveTv/Programs`` would AND them the same
+    way — a two-category guide came back empty.
     """
     picked = {c for c in (categories or ()) if c in CATEGORIES}
     if not picked or picked == set(CATEGORIES):
         return {}
-    return {"is_" + name: True for name in sorted(picked)}
+    return {CATEGORY_FLAGS[name]: True for name in sorted(picked)}
+
+
+def program_displayed(item, categories):
+    """Whether a guide cell draws its contents under the category filter.
+
+    jellyfin-web's ``getChannelProgramsHtml`` ladder. The cell itself is
+    always drawn — only its *contents* are suppressed — which is what keeps
+    a filtered guide a grid rather than a field of gaps, and what lets the
+    programme still be opened.
+
+    A programme in none of the four categories (and a plain series) is
+    hidden whenever any filter is on. That looks arbitrary but is exactly
+    jellyfin-web: its "series" pseudo-category is only ever added when all
+    four boxes are ticked, i.e. when there is no filter at all.
+
+    **One deliberate divergence.** Zero boxes ticked reads as "no filter"
+    here and as "hide everything" in jellyfin-web, which always appends an
+    "all" sentinel so the empty selection is still a selection. Its version
+    draws a grid of blank cells and offers no way back except the settings
+    dialog; a filter that hides its own escape hatch is not worth
+    reproducing.
+    """
+    picked = {c for c in (categories or ()) if c in CATEGORIES}
+    if not picked or picked == set(CATEGORIES):
+        return True
+    for field, _colour, key in CATEGORY_ORDER:
+        if item.get(field):
+            return key in picked
+    return False
 
 
 def channel_sort_kwargs(prefs):
@@ -291,9 +334,10 @@ MAX_CELLS = 8
 def cells_for_width(width, min_cell_w=MIN_CELL_W):
     """How many 30-minute columns fit in ``width`` logical px.
 
-    Clamped both ways: never fewer than one hour (a guide showing half an
-    hour is not a guide) and never more than four, past which every cell is
-    wide enough that the row is mostly whitespace.
+    Clamped both ways: never fewer than two columns (one hour — a guide
+    showing half an hour is not a guide) and never more than eight (four
+    hours), past which every cell is narrow enough that a programme name
+    has no room.
     """
     return max(MIN_CELLS, min(MAX_CELLS, int(width // max(1, min_cell_w))))
 
@@ -400,17 +444,19 @@ def timer_state(item):
     (a series rule exists but this showing is not scheduled — already in the
     library, or cancelled individually).
 
-    The ladder jellyfin-web spreads across ``getTimerIndicator`` and
-    ``recordingfields``' ``loadData``, in one place because four screens ask
-    the same question. Two deliberate differences from ``getTimerIndicator``:
+    This answers **which symbol to draw**, and nothing else. What a Record
+    button should do is :func:`single_timer_state`, which is a genuinely
+    different question — a programme covered by a series rule answers
+    ``"series"`` here while still having a single timer of its own.
 
-    * ``InProgress`` is its own state, because the affordance changes from
-      "cancel" to "stop" and the caller has to know which;
-    * a **cancelled** single timer reads as no timer at all. jellyfin-web's
-      guide still draws the record dot for one (its status is only consulted
-      on the series branch), but its own recording editor treats a cancelled
-      timer as absent — so following the guide would leave a "Cancel
-      Recording" button on a programme that is not being recorded.
+    jellyfin-web's ``getTimerIndicator``, with one addition: ``InProgress``
+    is split out from ``"timer"``, because the tile paints it differently.
+
+    A cancelled single timer reads as no timer at all. On a *program* DTO
+    the server never emits one anyway — ``AddRecordingInfo`` sets ``TimerId``
+    only when the status is neither Cancelled nor Error — so this branch is
+    reached only by a ``Type == "Timer"`` DTO, where jellyfin-web would draw
+    the dot and we would rather not claim a cancelled timer is recording.
     """
     if item.get("Type") == "SeriesTimer":
         return "series"
@@ -424,6 +470,31 @@ def timer_state(item):
         return None
     if item.get("SeriesTimerId"):
         return "series" if status != "Cancelled" else "series_inactive"
+    if status == "Cancelled":
+        return None
+    return "recording" if status == "InProgress" else "timer"
+
+
+def single_timer_state(item):
+    """Whether this showing has a **single recording of its own**, and which
+    kind: ``None``, ``"timer"`` (scheduled) or ``"recording"`` (in progress).
+
+    Deliberately not :func:`timer_state`, and the difference is the whole
+    point. That one answers "which symbol", and a showing covered by a
+    series rule answers ``"series"`` *even when it also has its own live
+    timer* — which is right for an icon and wrong for a button. Driving the
+    Record button off it left every episode of a series you are recording
+    offering "Record" (a second timer for a programme that already has one),
+    with no way to skip one showing and no way to stop one in progress.
+
+    This is jellyfin-web's ``recordingfields`` test — ``program.TimerId &&
+    program.Status !== 'Cancelled'`` — which does not consult
+    ``SeriesTimerId`` at all. The two questions are independent there, and
+    a programme can legitimately answer yes to both.
+    """
+    if not item.get("TimerId"):
+        return None
+    status = item.get("Status")
     if status == "Cancelled":
         return None
     return "recording" if status == "InProgress" else "timer"
@@ -472,20 +543,31 @@ def program_indicators(item, indicators):
     if (item.get("IsSeries") and not item.get("IsRepeat")
             and indicators.get("new")):
         return _("New")
-    if item.get("IsRepeat") and indicators.get("repeat"):
+    # Both halves test IsSeries, as jellyfin-web does: "Repeat" is a
+    # statement about an episode, and a film shown twice is not one.
+    if (item.get("IsSeries") and item.get("IsRepeat")
+            and indicators.get("repeat")):
         return _("Repeat")
     return ""
 
 
-#: Category -> the accent colour key a colour-coded cell uses. Checked in
-#: this order, matching jellyfin-web: a kids' sports programme reads as kids.
-CATEGORY_ORDER = (("IsKids", "kids"), ("IsSports", "sports"),
-                  ("IsNews", "news"), ("IsMovie", "movie"))
+#: ``(DTO flag, colour key, category key)``. The one ladder jellyfin-web
+#: checks a programme against: the first match decides both which accent
+#: colour a colour-coded cell gets and which category checkbox governs it.
+#: Checked in this order, so a kids' sports programme reads as kids.
+#:
+#: The last two columns differ for exactly one entry — the checkbox is
+#: "movies" and the colour class is "movie" — which is why both are here
+#: rather than one being derived from the other.
+CATEGORY_ORDER = (("IsKids", "kids", "kids"),
+                  ("IsSports", "sports", "sports"),
+                  ("IsNews", "news", "news"),
+                  ("IsMovie", "movie", "movies"))
 
 
 def program_category(item):
     """The colour-coding category of a program, or None."""
-    for field, name in CATEGORY_ORDER:
+    for field, name, _key in CATEGORY_ORDER:
         if item.get(field):
             return name
     return None

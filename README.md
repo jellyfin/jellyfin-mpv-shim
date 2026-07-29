@@ -157,7 +157,8 @@ shortcuts on the home screen, next to "On Now"). It has the same six screens the
   date, jump back to the present with **Now**, and change day with the double arrows. Clicking a
   programme opens it; from there you can watch the channel or record.
 - **Channels** — every channel, with what is on it right now. Right-click one to favourite it;
-  favourites can be floated to the top of the guide.
+  favourites can be floated to the top of the guide. Categories you have unticked in Guide
+  Settings drop out of this list.
 - **Recordings** — what has been recorded, and the folders it is filed under.
 - **Schedule** — what is recording now and what is scheduled, grouped by day. Click one to edit
   its padding or cancel it.
@@ -170,7 +171,8 @@ any row, for **Record** / **Record Series**.
 **Guide Settings** (top right of the Guide) controls channel order, favourites-first, the
 Live/New/Premiere/HD indicators, colour-coded categories and which categories are shown. These
 are **stored on your server in the same place the web client keeps them**, so changing them here
-changes them there and vice versa.
+changes them there and vice versa. Unticking a category empties the cells it covers rather than
+removing them, so the guide stays readable as a grid — again, as the web client does it.
 
 One deliberate difference from the web client: the guide shows one window at a time (two hours
 on a typical window, more if there is room) and the arrows page it, rather than being a 24-hour

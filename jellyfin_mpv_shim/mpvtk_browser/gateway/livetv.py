@@ -91,8 +91,12 @@ class LiveTvMixin(GatewayCore):
             from jellyfin_apiclient_python.api import API
         except Exception:
             return False
+        # Every method this mixin calls, including the two the editor's
+        # read-modify-write needs: a probe that clears while update_timer
+        # would still AttributeError is not a probe.
         return all(hasattr(API, name) for name in (
             "get_new_timer_defaults", "create_live_tv_timer",
             "create_live_tv_series_timer", "cancel_live_tv_timer",
-            "cancel_live_tv_series_timer", "get_live_tv_series_timer",
-            "update_live_tv_series_timer"))
+            "cancel_live_tv_series_timer",
+            "get_live_tv_timer", "update_live_tv_timer",
+            "get_live_tv_series_timer", "update_live_tv_series_timer"))

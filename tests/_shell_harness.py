@@ -281,6 +281,9 @@ class FakeSource:
     def get_live_tv_prefs(self, server_uuid, refresh=False):
         return live_tv.resolve_prefs({})
 
+    def cache_live_tv_prefs(self, server_uuid, prefs):
+        self.cached_live_tv_prefs = dict(prefs)
+
     def save_live_tv_prefs(self, server_uuid, prefs):
         self.saved_live_tv_prefs = dict(prefs)
 
@@ -305,8 +308,7 @@ class FakeSource:
                               "Type": "TvChannel"}],
                 "programs": [self._program(7, 15)]}
 
-    def get_guide(self, server_uuid, channel_ids, start, end, categories=(),
-                  want_hd=False):
+    def get_guide(self, server_uuid, channel_ids, start, end, want_hd=False):
         return [self._program(0, -5), self._program(2, 30)]
 
     def get_live_program(self, server_uuid, program_id):

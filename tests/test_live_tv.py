@@ -125,8 +125,56 @@ class AiringAndLabels(unittest.TestCase):
         self.assertEqual(live_tv.air_time_label({"Name": "Recording"}), "")
 
 
+class SingleRecordingState(unittest.TestCase):
+    """What the Record button asks — a different question from the icon's.
+
+    jellyfin-web's ``recordingfields``: ``TimerId && Status !== 'Cancelled'``,
+    which never consults SeriesTimerId.
+    """
+
+    def test_nothing_scheduled(self):
+        self.assertIsNone(live_tv.single_timer_state({"Type": "Program"}))
+
+    def test_a_scheduled_timer(self):
+        self.assertEqual(
+            live_tv.single_timer_state({"TimerId": "t1", "Status": "New"}),
+            "timer")
+
+    def test_recording_right_now(self):
+        self.assertEqual(
+            live_tv.single_timer_state({"TimerId": "t1",
+                                        "Status": "InProgress"}),
+            "recording")
+
+    def test_a_cancelled_timer_is_not_a_timer(self):
+        self.assertIsNone(
+            live_tv.single_timer_state({"TimerId": "t1",
+                                        "Status": "Cancelled"}))
+
+    def test_a_series_rule_does_not_hide_this_showings_own_timer(self):
+        """The bug this encodes. Keying the button off timer_state answered
+        "series" here, so every episode of a series being recorded offered
+        Record — a second timer for a programme that already had one, with
+        no way to skip the showing."""
+        item = {"TimerId": "t1", "SeriesTimerId": "s1", "Status": "New"}
+        self.assertEqual(live_tv.timer_state(item), "series")
+        self.assertEqual(live_tv.single_timer_state(item), "timer")
+
+    def test_a_series_recording_in_progress_can_be_stopped(self):
+        self.assertEqual(
+            live_tv.single_timer_state({"TimerId": "t1",
+                                        "SeriesTimerId": "s1",
+                                        "Status": "InProgress"}),
+            "recording")
+
+    def test_a_rule_that_skipped_this_showing_offers_record(self):
+        # The series rule exists but nothing is recording this showing, so
+        # the single-recording button is a plain Record.
+        self.assertIsNone(live_tv.single_timer_state({"SeriesTimerId": "s1"}))
+
+
 class RecordingState(unittest.TestCase):
-    """The ladder four screens ask their Record button about."""
+    """The ladder four screens ask their Record ICON about."""
 
     def test_nothing_scheduled(self):
         self.assertIsNone(live_tv.timer_state({"Type": "Program"}))
@@ -230,16 +278,64 @@ class CategoryFilters(unittest.TestCase):
         self.assertEqual(live_tv.category_kwargs(()), {})
 
     def test_all_four_also_means_no_filter(self):
-        """The server ORs the flags, so sending all four would still drop a
-        plain series channel — "everything" has to be *no* flags."""
+        """The server ANDs IsMovie against the tag-backed three, so sending
+        all four matches nothing — "everything" has to be *no* flags."""
         self.assertEqual(live_tv.category_kwargs(live_tv.CATEGORIES), {})
 
     def test_a_subset_becomes_flags(self):
         self.assertEqual(live_tv.category_kwargs(("movies", "news")),
-                         {"is_movies": True, "is_news": True})
+                         {"is_movie": True, "is_news": True})
+
+    def test_every_category_maps_to_a_real_query_parameter(self):
+        """"movies" is the one whose flag is not its own name — it is
+        IsMovie, singular. Deriving it as "is_" + name gave is_movies, and
+        every category-filtered fetch died with a TypeError before it
+        reached the server."""
+        try:
+            import inspect
+
+            from jellyfin_apiclient_python.api import API
+        except ImportError:            # pragma: no cover - apiclient absent
+            self.skipTest("jellyfin-apiclient-python is not installed")
+        for endpoint in (API.get_channels, API.get_programs):
+            accepted = set(inspect.signature(endpoint).parameters)
+            for name in live_tv.CATEGORIES:
+                with self.subTest(endpoint=endpoint.__name__, category=name):
+                    self.assertIn(live_tv.CATEGORY_FLAGS[name], accepted)
 
     def test_unknown_names_are_ignored(self):
         self.assertEqual(live_tv.category_kwargs(("opera",)), {})
+
+
+class CategoryDisplay(unittest.TestCase):
+    """Guide cells are filtered by drawing, not by the query."""
+
+    def test_no_filter_shows_everything(self):
+        self.assertTrue(live_tv.program_displayed({"IsMovie": True}, ()))
+        self.assertTrue(live_tv.program_displayed({}, ()))
+        self.assertTrue(live_tv.program_displayed({}, live_tv.CATEGORIES))
+
+    def test_a_selected_category_is_shown(self):
+        self.assertTrue(
+            live_tv.program_displayed({"IsMovie": True}, ("movies",)))
+
+    def test_an_unselected_category_is_hidden(self):
+        self.assertFalse(
+            live_tv.program_displayed({"IsMovie": True}, ("news",)))
+
+    def test_the_ladder_is_first_match_wins(self):
+        """A kids' sports programme is governed by the Kids checkbox, like
+        jellyfin-web's displayInnerContent."""
+        kids_sports = {"IsKids": True, "IsSports": True}
+        self.assertTrue(live_tv.program_displayed(kids_sports, ("kids",)))
+        self.assertFalse(live_tv.program_displayed(kids_sports, ("sports",)))
+
+    def test_uncategorised_content_is_hidden_while_a_filter_is_on(self):
+        """jellyfin-web only ever grants its "series" pseudo-category when
+        all four boxes are ticked, i.e. when there is no filter at all."""
+        for item in ({"IsSeries": True}, {}):
+            with self.subTest(item=item):
+                self.assertFalse(live_tv.program_displayed(item, ("news",)))
 
 
 class Indicators(unittest.TestCase):
@@ -413,6 +509,30 @@ class RecordingApi(unittest.TestCase):
         src.get_guide("srv", ["c1"], at(20), at(22))
         self.assertIn("ChannelInfo", self.kwargs(api, "get_programs")["fields"])
 
+    def test_program_lists_ask_for_the_channel_logo_as_well(self):
+        """ChannelInfo alone gets the channel's NAME. Its logo is gated on
+        ChannelImage — AddInfoToProgramDto only sets ChannelPrimaryImageTag
+        under hasChannelImage — and that logo is the whole artwork fallback
+        for guide data, so asking for only the first turns every listing
+        row into a wall of letter glyphs."""
+        src, api = self.source()
+        src.get_programs("srv")
+        src.get_recommended_programs("srv")
+        src.search_live_tv("srv", "x")
+        for call, _a, kw in api.calls:
+            if "fields" in kw and "ChannelInfo" in (kw["fields"] or ""):
+                with self.subTest(call=call):
+                    self.assertIn("ChannelImage", kw["fields"])
+
+    def test_the_guide_does_not_pay_for_a_logo_it_cannot_draw(self):
+        # A guide cell is text; the channel column's art comes off the
+        # channel DTO. Asking for the tag would cost a channel lookup per
+        # programme across the whole window.
+        src, api = self.source()
+        src.get_guide("srv", ["c1"], at(20), at(22))
+        self.assertNotIn("ChannelImage",
+                         self.kwargs(api, "get_programs")["fields"])
+
     def test_the_hd_field_is_only_requested_when_it_is_drawn(self):
         src, api = self.source()
         src.get_guide("srv", ["c1"], at(20), at(22), want_hd=False)
@@ -425,6 +545,21 @@ class RecordingApi(unittest.TestCase):
         src, api = self.source()
         self.assertEqual(src.get_guide("srv", [], at(20), at(22)), [])
         self.assertEqual(api.calls, [])
+
+    def test_the_guide_fetch_carries_no_category_flags(self):
+        """The categories filter the channel list and the drawing, never
+        this query: the server ANDs IsMovie against the tag-backed three, so
+        a two-category guide came back empty."""
+        src, api = self.source()
+        src.get_guide("srv", ["c1"], at(20), at(22))
+        kw = self.kwargs(api, "get_programs")
+        for key in ("is_movie", "is_sports", "is_kids", "is_news"):
+            self.assertNotIn(key, kw)
+
+    def test_the_channel_list_does_carry_them(self):
+        src, api = self.source()
+        src.get_channels("srv", categories=("movies",))
+        self.assertEqual(self.kwargs(api, "get_channels")["is_movie"], True)
 
     def test_channels_are_paged(self):
         src, api = self.source()
@@ -462,6 +597,43 @@ class RecordingApi(unittest.TestCase):
         self.assertEqual(custom["homesection0"], "resume")
         self.assertEqual(custom["landing-movies"], "x")
         self.assertIn(live_tv.CHANNEL_ORDER_KEY, custom)
+
+    def test_saving_prefs_updates_the_cache_before_it_writes(self):
+        src, api = self.source()
+        api.get_user_settings = lambda client=None: {"CustomPrefs": {}}
+        seen = []
+        wanted = dict(live_tv.resolve_prefs({}), color_coded=True)
+
+        def update(dto, client=None):
+            seen.append(src.get_live_tv_prefs("srv"))
+        api.update_user_settings = update
+        src.save_live_tv_prefs("srv", wanted)
+        self.assertTrue(seen[0]["color_coded"])
+
+    def test_the_cache_can_be_moved_without_any_io(self):
+        """The loop thread's half of a save. It has to touch nothing on the
+        wire: it runs on the render loop, where a round trip is a freeze."""
+        src, api = self.source()
+        api.get_user_settings = lambda client=None: {"CustomPrefs": {}}
+        src.get_live_tv_prefs("srv")
+        api.calls.clear()
+        wanted = dict(live_tv.resolve_prefs({}), color_coded=True)
+        src.cache_live_tv_prefs("srv", wanted)
+        self.assertEqual(api.calls, [])
+        self.assertTrue(src.get_live_tv_prefs("srv")["color_coded"])
+
+    def test_a_failed_save_rolls_the_cache_back(self):
+        src, api = self.source()
+        api.get_user_settings = lambda client=None: {"CustomPrefs": {}}
+        before = src.get_live_tv_prefs("srv")
+
+        def boom(dto, client=None):
+            raise OSError("down")
+        api.update_user_settings = boom
+        with self.assertRaises(OSError):
+            src.save_live_tv_prefs(
+                "srv", dict(before, color_coded=not before["color_coded"]))
+        self.assertEqual(src.get_live_tv_prefs("srv"), before)
 
     def test_prefs_are_cached_after_the_first_read(self):
         src, api = self.source()
@@ -667,6 +839,42 @@ class Screens(unittest.TestCase):
         self.assertEqual(self.b.route["kind"], "program")
         self.assertEqual(self.b.route["channel_id"], "c1")
 
+    def _guide_cells(self):
+        """The scene's guide cells, i.e. the right-clickable ones."""
+        nodes, handlers = build_scene(self.b, (1280, 720))
+        cells = [(n, handlers[n["id"]]) for n in nodes
+                 if n.get("ctx") and n.get("sc") == "livetv-guide"]
+        return nodes, cells
+
+    def test_a_guide_cell_offers_the_recording_menu(self):
+        """Recording from the guide is what a guide is for; without this the
+        only way to set a timer is to open each programme in turn."""
+        open_live_tv(self.b, "guide")
+        _nodes, cells = self._guide_cells()
+        self.assertTrue(cells, "no guide cell has a context menu")
+        cells[0][1]["context"](400, 300)
+        self.assertIsNotNone(self.b._menu)
+        self.assertIn("tilemenu", ids(build_scene(self.b, (1280, 720))[0]))
+
+    def test_a_filtered_out_cell_keeps_its_place_but_says_nothing(self):
+        """jellyfin-web's displayInnerContent: the cell stays so the row is
+        still a grid, and only its text goes. Filtering the *fetch* instead
+        left dead air where the programmes were — and, because the server
+        ANDs IsMovie against the other three, emptied the guide outright as
+        soon as two categories were picked."""
+        page = open_live_tv(self.b, "guide")
+        _nodes, before = self._guide_cells()
+        self.assertTrue(before)
+        # The fixture's programmes are plain series, which jellyfin-web
+        # hides whenever any category filter is on.
+        page.route["_categories"] = ("news",)
+        page._reload_tab()
+        nodes, after = self._guide_cells()
+        self.assertEqual(len(after), len(before),
+                         "a filtered guide should keep its cells")
+        self.assertNotIn("Program 0",
+                         [n.get("text") for n in nodes if n.get("text")])
+
 
 class SectionSnapping(unittest.TestCase):
     """The stacked-carousel tabs snap to section tops, like the home screen.
@@ -797,6 +1005,36 @@ class ProgramScreen(unittest.TestCase):
         self.assertIn("pg-cancelseries", found)
         self.assertIn("pg-seriesopts", found)
 
+    def test_a_showing_covered_by_a_series_rule_can_still_be_skipped(self):
+        """Its own timer and the series rule are separate facts, and the
+        page has to offer both. Keying the single-recording button off
+        timer_state answered "series" here, so the page showed Record for a
+        programme that already had a timer."""
+        self._open({"Id": "pr1", "Name": "Thing", "Type": "Program",
+                    "ChannelId": "c1", "IsSeries": True,
+                    "SeriesTimerId": "s1", "TimerId": "t1", "Status": "New"})
+        found = self._ids()
+        self.assertIn("pg-cancel", found)
+        self.assertIn("pg-cancelseries", found)
+        self.assertNotIn("pg-record", found)
+
+    def test_a_series_recording_in_progress_can_be_stopped(self):
+        self._open({"Id": "pr1", "Name": "Thing", "Type": "Program",
+                    "ChannelId": "c1", "IsSeries": True,
+                    "SeriesTimerId": "s1", "TimerId": "t1",
+                    "Status": "InProgress"})
+        nodes, _h = build_scene(self.b, (1280, 720))
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("Stop Recording", texts)
+
+    def test_a_rule_that_skipped_this_showing_offers_record(self):
+        self._open({"Id": "pr1", "Name": "Thing", "Type": "Program",
+                    "ChannelId": "c1", "IsSeries": True,
+                    "SeriesTimerId": "s1"})
+        found = self._ids()
+        self.assertIn("pg-record", found)
+        self.assertNotIn("pg-cancel", found)
+
     def test_a_non_series_gets_no_series_buttons(self):
         self._open({"Id": "pr1", "Name": "Film", "Type": "Program",
                     "ChannelId": "c1"})
@@ -876,6 +1114,33 @@ class Dialogs(unittest.TestCase):
         self.assertTrue(page.route["_prefs"]["color_coded"])
         self.assertIsNone(self.b._dialog, "the dialog stayed open after Save")
 
+    def test_the_new_prefs_are_cached_before_the_guide_reloads(self):
+        """The race this exists for. Saving repaints the guide, and
+        repainting it re-fetches it — a pool job whose first act is
+        get_live_tv_prefs, submitted BEFORE the save job. Adopting the new
+        prefs anywhere inside the save (however early) loses, and the guide
+        comes back drawn with the settings just changed away from.
+
+        Asserted as an ordering rather than by racing threads: the shell's
+        test pool is synchronous, so the two jobs would never overlap here
+        even when the ordering is wrong.
+        """
+        source = self.b.source
+        order = []
+        source.cache_live_tv_prefs = lambda srv, prefs: order.append("cache")
+        real_read = source.get_live_tv_prefs
+        source.get_live_tv_prefs = lambda srv, refresh=False: (
+            order.append("read") or real_read(srv))
+        page = open_live_tv(self.b, "guide")
+        order.clear()
+        page._open_guide_settings()
+        self.b._guide_set("color_coded", True)
+        self.b._guide_save()
+        self.assertIn("read", order, "the guide did not reload")
+        self.assertEqual(order[0], "cache",
+                         "the reload read the prefs before the save "
+                         "published them")
+
     def test_deselecting_a_category_starts_from_all_of_them(self):
         # The empty set means "everything", so the boxes show all ticked;
         # un-ticking one from that state must leave the other three.
@@ -922,6 +1187,30 @@ class Dialogs(unittest.TestCase):
         self.assertEqual(saved[0][0], "st1")
         self.assertEqual(saved[0][1]["PrePaddingSeconds"], 300)
         self.assertEqual(saved[0][1]["KeepUpTo"], 3)
+
+    def test_keep_up_to_can_show_a_value_the_shim_does_not_list(self):
+        """jellyfin-web offers every integer to 50 and this dropdown offers
+        the round numbers, so a rule set to 12 there had no row to select
+        and read back as "As many as possible" — a lie about somebody
+        else's recording rule."""
+        from jellyfin_mpv_shim.mpvtk_browser import livetv_dialogs
+
+        choices = livetv_dialogs._keep_choices(12)
+        self.assertIn(12, choices)
+        self.assertEqual(sorted(choices), list(choices))
+        self.assertLessEqual(set(livetv_dialogs.KEEP_UP_TO), set(choices))
+
+    def test_an_unlisted_keep_up_to_survives_being_opened_and_saved(self):
+        saved = []
+        self.b.source.get_series_timer = lambda srv, tid: {
+            "Id": tid, "Name": "A Series", "KeepUpTo": 12,
+            "PrePaddingSeconds": 60, "PostPaddingSeconds": 120}
+        self.b.controller.update_series_timer = (
+            lambda srv, tid, changes: saved.append(changes))
+        page = open_live_tv(self.b, "series")
+        page._open_series_timer({"Id": "st1"})
+        self.b._timer_save()
+        self.assertEqual(saved[0]["KeepUpTo"], 12)
 
     def test_unparsable_padding_keeps_the_stored_value(self):
         saved = []
@@ -988,6 +1277,25 @@ class TileMenu(unittest.TestCase):
                               "IsSeries": True, "SeriesTimerId": "s1"})
         self.assertIn("unrecordseries", acts)
 
+    def test_a_showing_covered_by_a_series_rule_can_still_be_skipped(self):
+        """Both questions get an answer: this showing has its own timer AND
+        the series is being recorded. Asking timer_state instead answered
+        "series", so the menu offered Record for a programme that already
+        had a timer and there was no way to drop one episode."""
+        acts = self._actions({"Id": "p1", "Type": "Program", "ChannelId": "c1",
+                              "IsSeries": True, "TimerId": "t1",
+                              "SeriesTimerId": "s1", "Status": "New"})
+        self.assertIn("unrecord", acts)
+        self.assertIn("unrecordseries", acts)
+        self.assertNotIn("record", acts)
+
+    def test_a_series_recording_in_progress_offers_stop(self):
+        labels = dict((e[2], e[0]) for e in self.b._tile_menu_entries(
+            {"Id": "p1", "Type": "Program", "ChannelId": "c1",
+             "IsSeries": True, "TimerId": "t1", "SeriesTimerId": "s1",
+             "Status": "InProgress"}))
+        self.assertEqual(labels["unrecord"], "Stop Recording")
+
     def test_watching_from_the_menu_tunes_the_channel(self):
         plays = []
         self.b.controller.play_list = lambda ids_, srv, i, **kw: plays.append(
@@ -1013,7 +1321,17 @@ class TileMenu(unittest.TestCase):
 
 
 class Artwork(unittest.TestCase):
-    """A Timer/SeriesTimer is not an item and has no ImageTags of its own."""
+    """A SeriesTimer is not an item and has no ImageTags of its own.
+
+    Every fixture below is a SeriesTimer, because that is the only timer DTO
+    that carries these fields: ``ParentPrimaryImage*`` and ``ParentThumb*``
+    are declared on ``SeriesTimerInfoDto`` alone, and a plain
+    ``TimerInfoDto`` (which inherits only ``BaseTimerInfoDto``) has neither
+    — its programme's art lives in a nested ``ProgramInfo``, and its tiles
+    fall through to the channel logo. Pinning these branches with a
+    ``Type: "Timer"`` shape would be pinning them against a DTO the server
+    never sends.
+    """
 
     def spec(self, item, image_type="Primary"):
         return LibrarySource.__new__(LibrarySource).image_spec(item,
@@ -1028,10 +1346,10 @@ class Artwork(unittest.TestCase):
             ("prog1", "Primary", "tag"))
 
     def test_a_landscape_row_prefers_the_parent_thumb(self):
-        # Both fields are present on a timer; a Thumb request means a 16:9
-        # tile, so the thumb is the right shape for it.
+        # Both fields are present on a series rule; a Thumb request means
+        # a 16:9 tile, so the thumb is the right shape for it.
         self.assertEqual(
-            self.spec({"Id": "t1", "Type": "Timer",
+            self.spec({"Id": "st1", "Type": "SeriesTimer",
                        "ParentPrimaryImageItemId": "prog1",
                        "ParentPrimaryImageTag": "ptag",
                        "ParentThumbItemId": "prog1",
@@ -1040,19 +1358,29 @@ class Artwork(unittest.TestCase):
 
     def test_a_landscape_row_still_falls_back_to_the_poster(self):
         self.assertEqual(
-            self.spec({"Id": "t1", "Type": "Timer",
+            self.spec({"Id": "st1", "Type": "SeriesTimer",
                        "ParentPrimaryImageItemId": "prog1",
                        "ParentPrimaryImageTag": "ptag"}, "Thumb"),
             ("prog1", "Primary", "ptag"))
 
     def test_the_parent_poster_beats_the_channel_logo(self):
         self.assertEqual(
-            self.spec({"Id": "t1", "Type": "Timer",
+            self.spec({"Id": "st1", "Type": "SeriesTimer",
                        "ParentPrimaryImageItemId": "prog1",
                        "ParentPrimaryImageTag": "ptag",
                        "ChannelId": "c1",
                        "ChannelPrimaryImageTag": "ctag"}),
             ("prog1", "Primary", "ptag"))
+
+    def test_a_plain_timer_falls_through_to_the_channel_logo(self):
+        """A TimerInfoDto has no image fields of its own — no ImageTags, no
+        ParentPrimaryImage*, no ParentThumb*. The channel logo is all the
+        Schedule tab has, which is also what jellyfin-web's getTimersHtml
+        draws (showChannelLogo)."""
+        self.assertEqual(
+            self.spec({"Id": "t1", "Type": "Timer", "ChannelId": "c1",
+                       "ChannelPrimaryImageTag": "ctag"}),
+            ("c1", "Primary", "ctag"))
 
     def test_an_ordinary_item_is_unaffected(self):
         self.assertEqual(

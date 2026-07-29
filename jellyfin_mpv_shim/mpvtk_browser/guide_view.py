@@ -35,6 +35,18 @@ GAP = 3
 #: Height of the time-slot header.
 HEADER_H = 26
 
+
+def grid_width(size):
+    """Px available to the 30-minute columns in a content area of ``size``.
+
+    Exported because the page decides how many columns to draw and this
+    module decides how wide they are, and the two subtracting slightly
+    different things (one forgot the inter-column gap) is how a window ends
+    up with one more column than fits.
+    """
+    return max(120, max(200, size[0] - 2 * chrome.CONTENT_PAD)
+               - CHANNEL_W - GAP)
+
 #: Channel-logo edge. Small enough that a screenful of rows stays well inside
 #: mpv's 63-overlay budget (each logo is one overlay), large enough to
 #: recognise. Rows outside the virtual window draw a placeholder instead and
@@ -78,7 +90,8 @@ def _slot(child, width):
     return Box([child], w=width, h=ROW_H, direction="row")
 
 
-def _cell(program, width, prefs, airing, on_click):
+def _cell(program, width, prefs, airing, on_click, categories=(),
+          on_context=None):
     """One programme in a channel row."""
     inner_w = max(1, width - GAP)
     if program is None:
@@ -88,15 +101,22 @@ def _cell(program, width, prefs, airing, on_click):
         return _slot(Box(w=inner_w, h=ROW_H,
                          bg=theme.mix(theme.WINDOW_BG, theme.CARD_BG, 0.4),
                          radius=4), width)
+    # Filtered out by the category selection: the cell stays — with its
+    # size, its place in the row and its click — but says nothing. That is
+    # jellyfin-web's ``displayInnerContent``, and it is what keeps a
+    # filtered guide legible as a grid: dropping the programmes instead
+    # leaves a row of gaps with no way to tell a filtered showing from a
+    # hole in the listings.
+    shown = live_tv.program_displayed(program, categories)
     bg = theme.CARD_BG
-    if prefs.get("color_coded"):
+    if prefs.get("color_coded") and shown:
         bg = _category_bg(live_tv.program_category(program)) or bg
-    if airing:
+    if airing and shown:
         # What is on right now is the one cell you look for, so it gets the
         # accent wash — not the category colour, which would hide it.
         bg = theme.ACCENT_SOFT
     children = []
-    if inner_w >= TEXT_MIN_W:
+    if inner_w >= TEXT_MIN_W and shown:
         state = live_tv.timer_state(program)
         title_bits = []
         if state:
@@ -124,7 +144,13 @@ def _cell(program, width, prefs, airing, on_click):
         Box(children, w=inner_w, h=ROW_H, bg=bg, radius=4, pad=(8, 6),
             direction="column", justify="center",
             hover={"fill": theme.BUTTON_ACTIVE},
-            on_click=(lambda p=program: on_click(p))),
+            on_click=(lambda p=program: on_click(p)),
+            # The same context menu a tile has, so a recording can be set
+            # from the listing rather than only from the programme's own
+            # page — which is what the guide is for, and what jellyfin-web's
+            # guide offers.
+            on_context=(None if on_context is None
+                        else (lambda x, y, p=program: on_context(p, x, y)))),
         width)
 
 
@@ -171,24 +197,34 @@ def time_header(start, end, width):
 
 
 def guide_grid(channels, programs_by_channel, start, end, size, prefs, tiles,
-               scroll, scroll_id, on_program, offset=None, on_scroll=None):
+               scroll, scroll_id, on_program, offset=None, on_scroll=None,
+               categories=(), on_context=None):
     """The whole grid: time header plus one row per channel.
 
     ``programs_by_channel`` maps channel id -> that channel's programmes;
     grouping is the caller's because it also holds the raw fetch.
+
+    ``categories`` is the session's category filter. It reaches the cells
+    rather than the fetch on purpose — see ``_cell`` and
+    ``LibrarySource.get_guide``.
 
     ``size`` is the content area. Rows are virtualized against ``scroll``:
     a 900-channel line-up is 900 rows, and compositing a logo for each would
     blow both the strip cache and mpv's overlay budget long before the user
     scrolled to any of them.
     """
-    width = max(200, size[0] - 2 * chrome.CONTENT_PAD)
-    grid_w = max(120, width - CHANNEL_W - GAP)
+    grid_w = grid_width(size)
     header = Row([Spacer(w=CHANNEL_W + GAP), time_header(start, end, grid_w)])
+
+    # The columns are sized for a padded width, so the Column has to carry
+    # that padding: laid out from x=0 the whole grid sat flush against the
+    # left edge — out of line with the date controls above it — and stopped
+    # two pads short of the right.
+    pad = (chrome.CONTENT_PAD, 0)
 
     if not channels:
         return Column([header, chrome.error(_("No channels available."))],
-                      gap=GAP, flex=1, align="stretch")
+                      gap=GAP, flex=1, align="stretch", pad=pad)
 
     # Which rows may composite artwork this frame. Same window arithmetic
     # grid_of uses: a screen either side of the viewport, so a scroll lands
@@ -213,10 +249,10 @@ def guide_grid(channels, programs_by_channel, start, end, size, prefs, tiles,
             cells.append(_cell(program, seg_w, prefs,
                                program is not None
                                and live_tv.is_airing(program),
-                               on_program))
+                               on_program, categories, on_context))
         rows.append(Row(cells, h=ROW_H))
     return Column([
         header,
         VScroll(Column(rows, gap=GAP), id=scroll_id, flex=1,
                 offset=offset, snap=pitch, on_scroll=on_scroll),
-    ], gap=GAP, flex=1, align="stretch")
+    ], gap=GAP, flex=1, align="stretch", pad=pad)

@@ -123,9 +123,12 @@ class TilesMixin:
             out.append((_("Watch Channel"), "play_arrow", "play"))
         if not self._actions.can_record():
             return out
-        state = live_tv.timer_state(item)
-        if state in ("timer", "recording"):
-            out.append((_("Stop Recording") if state == "recording"
+        # single_timer_state, not timer_state: the two answer different
+        # questions and a showing covered by a series rule answers yes to
+        # both. See live_tv.single_timer_state.
+        single = live_tv.single_timer_state(item)
+        if single:
+            out.append((_("Stop Recording") if single == "recording"
                         else _("Do Not Record"), "cancel", "unrecord"))
         else:
             out.append((_("Record"), "fiber_manual_record", "record"))

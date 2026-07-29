@@ -118,6 +118,17 @@ FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
 # playlists play, queue, and download (the now-playing bar drives them).
 PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
 
+#: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
+#:
+#: **Two fields, not one.** ``ChannelInfo`` alone gets ``ChannelName`` and
+#: ``ChannelNumber``; the channel's *logo* is gated separately on
+#: ``ChannelImage`` (``LiveTvManager.AddInfoToProgramDto`` sets
+#: ``ChannelPrimaryImageTag`` only under ``hasChannelImage``). Most guide
+#: data carries no artwork of its own and the channel logo is the whole
+#: fallback, so asking for only the first turns every listing row into a
+#: wall of letter glyphs. jellyfin-web asks for the pair together.
+PROGRAM_FIELDS = ",ChannelInfo,ChannelImage"
+
 #: Channels per guide page. The guide asks for programmes with the channel
 #: ids in the query string, and past roughly 150-200 GUIDs that overflows the
 #: request-line limit in Kestrel and common reverse proxies (414/431) — so
@@ -407,22 +418,23 @@ class LibrarySource:
             # an "On Now" strip; the strip is the part that lists anything, so
             # it is the part reproduced here.
             #
-            # ChannelInfo is what adds ChannelName/ChannelPrimaryImageTag to
+            # PROGRAM_FIELDS is what adds the channel name and its logo to
             # each program, which is the only art most guide data carries.
             #
             # Not jellyfin-web's separate limit=1 probe: an empty row is
             # already dropped by the comprehension below, so probing first
             # would only add a round trip to reach the same result.
             # User data is deliberately NOT disabled, unlike the other home
-            # rows. Turning it off is what dropped SeriesTimerId from these
-            # DTOs, so every programme a series rule was recording drew the
-            # single-recording dot instead of the series symbol — and its
-            # progress bar came out blue rather than red. jellyfin-web's
-            # query does not disable it either.
+            # rows — jellyfin-web's query does not disable it either, and an
+            # On Now tile shows a watched tick and a favourite heart like
+            # any other. It has no bearing on the recording state: TimerId,
+            # SeriesTimerId and Status are attached by LiveTvManager's
+            # AddRecordingInfo regardless of EnableUserData, which only ever
+            # gates the DTO's UserData block.
             onnow = api.get_recommended_programs(
                 is_airing=True,
                 limit=24,
-                fields=LIST_FIELDS + ",ChannelInfo",
+                fields=LIST_FIELDS + PROGRAM_FIELDS,
                 enable_image_types="Primary,Thumb,Backdrop",
                 image_type_limit=1,
                 enable_total_record_count=False,
@@ -556,6 +568,22 @@ class LibrarySource:
         self._live_tv_prefs[server_uuid] = prefs
         return prefs
 
+    def cache_live_tv_prefs(self, server_uuid, prefs):
+        """Adopt ``prefs`` as the cached answer without writing anything.
+
+        **Called on the loop thread, before the save is submitted.** Saving
+        the guide settings repaints the guide, and repainting it means
+        re-fetching it — a pool job whose first act is ``get_live_tv_prefs``.
+        That job is submitted *first*, so no amount of care inside the save
+        worker wins the race: by the time the save runs, the reload has
+        already read the old cache and the guide comes back drawn with the
+        settings the user just changed away from.
+
+        So the cache moves on the thread that ordered both, where there is
+        no race to lose. A dict assignment, which is why that is safe.
+        """
+        self._live_tv_prefs[server_uuid] = dict(prefs)
+
     def save_live_tv_prefs(self, server_uuid, prefs):
         """Persist the guide preferences. Raises on failure.
 
@@ -563,15 +591,28 @@ class LibrarySource:
         ``save_home_layout`` does it: there is no partial-update path on this
         API, so posting only our keys would drop jellyfin-web's home layout,
         landing screens and everything else the same document holds.
+
+        The cache is adopted before the write and rolled back if it fails —
+        the alternative is a cache that disagrees with the server for the
+        rest of the session. Callers that also repaint must additionally
+        call :meth:`cache_live_tv_prefs` on the loop thread; see there.
         """
         api = self._conn(server_uuid).api
-        dto = self._display_prefs_dto(api)
-        custom = dict(dto.get("CustomPrefs") or {})
-        custom.update(live_tv.prefs_to_custom(prefs))
-        dto["CustomPrefs"] = custom
-        api.update_user_settings(dto,
-                                 client=home_sections.DISPLAY_PREFS_CLIENT)
+        previous = self._live_tv_prefs.get(server_uuid)
         self._live_tv_prefs[server_uuid] = dict(prefs)
+        try:
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom.update(live_tv.prefs_to_custom(prefs))
+            dto["CustomPrefs"] = custom
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+        except Exception:
+            if previous is None:
+                self._live_tv_prefs.pop(server_uuid, None)
+            else:
+                self._live_tv_prefs[server_uuid] = previous
+            raise
 
     def get_channels(self, server_uuid, start_index=0, limit=CHANNEL_PAGE,
                      prefs=None, categories=(), add_current_program=True,
@@ -610,8 +651,7 @@ class LibrarySource:
             log.debug("GuideInfo unavailable", exc_info=True)
             return {}
 
-    def get_guide(self, server_uuid, channel_ids, start, end,
-                  categories=(), want_hd=False):
+    def get_guide(self, server_uuid, channel_ids, start, end, want_hd=False):
         """Guide entries for ``channel_ids`` overlapping [start, end).
 
         ``start``/``end`` are aware datetimes; they go out as UTC ISO 8601
@@ -622,12 +662,19 @@ class LibrarySource:
         The bounds are the pair jellyfin-web uses and they are not symmetric:
         ``MaxStartDate`` is the window end and ``MinEndDate`` its start, which
         is what includes a programme that began before the window opened.
+
+        **No category filter.** The guide's categories are applied by
+        drawing (``live_tv.program_displayed``), as jellyfin-web does, and
+        not here. Two reasons, one of which is a bug this used to have: the
+        server's ``IsMovie`` is a column predicate while the other three are
+        a tag filter, so two categories AND together and the guide came back
+        empty; and dropping the rows entirely turns a filtered guide into a
+        field of dead air rather than a grid with quiet cells.
         """
         api = self._conn(server_uuid).api
         ids = [c for c in (channel_ids or []) if c]
         if not ids:
             return []
-        kwargs = dict(live_tv.category_kwargs(categories))
         result = api.get_programs(
             channel_ids=ids,
             # +/- a second, as jellyfin-web does, so a programme that ends
@@ -636,12 +683,16 @@ class LibrarySource:
             max_start_date=_iso_utc(end - datetime.timedelta(seconds=1)),
             min_end_date=_iso_utc(start + datetime.timedelta(seconds=1)),
             sort_by="StartDate",
+            # ChannelInfo without ChannelImage, unlike every other program
+            # query: a guide cell is text, so it wants ChannelName for its
+            # second line and has nowhere to put a logo. Asking for the
+            # image tag would cost a channel lookup per programme across the
+            # whole window for something never drawn.
             fields="ChannelInfo" + (",IsHD" if want_hd else ""),
             enable_user_data=False,
             enable_total_record_count=False,
             enable_image_types="Primary",
-            image_type_limit=1,
-            **kwargs) or {}
+            image_type_limit=1) or {}
         return result.get("Items", [])
 
     def get_programs(self, server_uuid, limit=24, **filters):
@@ -653,7 +704,7 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_programs(
             limit=limit,
-            fields=LIST_FIELDS + ",ChannelInfo",
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
             image_type_limit=1,
             enable_image_types="Primary,Thumb,Backdrop",
             enable_total_record_count=False,
@@ -665,7 +716,7 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_recommended_programs(
             limit=limit,
-            fields=LIST_FIELDS + ",ChannelInfo",
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
             image_type_limit=1,
             enable_image_types="Primary,Thumb,Backdrop",
             enable_total_record_count=False,
@@ -760,7 +811,7 @@ class LibrarySource:
 
         return {"channels": find("TvChannel", LIST_FIELDS),
                 "programs": find("LiveTvProgram",
-                                 LIST_FIELDS + ",ChannelInfo")}
+                                 LIST_FIELDS + PROGRAM_FIELDS)}
 
     def get_live_program(self, server_uuid, program_id):
         """One guide entry with its live recording state, for the program
@@ -1239,11 +1290,16 @@ class LibrarySource:
 
         if (image_type != "Thumb" and item.get("ParentPrimaryImageItemId")
                 and item.get("ParentPrimaryImageTag")):
-            # How a Timer or a SeriesTimer carries its artwork: the DTO is
-            # not an item, so it has no ImageTags of its own — the poster
-            # belongs to the *programme* the rule was made from, and these
-            # two fields are the only pointer to it. Without this the whole
-            # Series tab was a wall of placeholder glyphs.
+            # How a SeriesTimer carries its artwork: the DTO is not an item,
+            # so it has no ImageTags of its own — the poster belongs to the
+            # *series* the rule was made from, and these two fields are the
+            # only pointer to it. Without this the whole Series tab was a
+            # wall of placeholder glyphs.
+            #
+            # SeriesTimerInfoDto only: a plain TimerInfoDto has no
+            # ParentPrimaryImage* at all (nor any ImageTags), and falls
+            # through to the channel-logo branch below — which is also what
+            # jellyfin-web's schedule shows, via showChannelLogo.
             #
             # Not for a Thumb request: that means a landscape tile, and the
             # parent *thumb* below is the right shape for one. This branch

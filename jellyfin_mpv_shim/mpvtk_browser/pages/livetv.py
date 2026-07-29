@@ -119,9 +119,12 @@ class LiveTvPage(Page):
             channels, total = source.get_channels(
                 srv, start_index=page * CHANNEL_PAGE, limit=CHANNEL_PAGE,
                 prefs=prefs, categories=cats, add_current_program=False)
+            # The categories filter the CHANNEL list, not the programmes:
+            # the guide fetch asks for everything on the channels it drew
+            # and the cells suppress what is filtered out, exactly as
+            # jellyfin-web does (see live_tv.program_displayed).
             programs = source.get_guide(
                 srv, [c.get("Id") for c in channels], start, end,
-                categories=cats,
                 want_hd=bool((prefs.get("indicators") or {}).get("hd")))
             by_channel: dict = {}
             for program in programs:
@@ -271,9 +274,10 @@ class LiveTvPage(Page):
         art = self.ctx.art
         # How many 30-minute columns fit. Purely a render-time decision —
         # the fetch always covers MAX_CELLS, so a resize redraws rather than
-        # re-requesting (see _load_guide).
-        cells = live_tv.cells_for_width(
-            max(200, size[0] - 2 * chrome.CONTENT_PAD - guide_view.CHANNEL_W))
+        # re-requesting (see _load_guide). The width comes from the grid
+        # itself: measuring it here as well is how the two came to disagree
+        # by a gap, and one column too many at the boundary.
+        cells = live_tv.cells_for_width(guide_view.grid_width(size))
         head = self._guide_controls(data, cells)
         if data is None:
             return Column([head, chrome.busy()], flex=1, align="stretch")
@@ -287,7 +291,9 @@ class LiveTvPage(Page):
             on_program=self._open_program,
             offset=self.parked_scroll("livetv-guide"),
             on_scroll=lambda off, mx: art.scroll.on_scroll(
-                "livetv-guide", off, mx))
+                "livetv-guide", off, mx),
+            categories=self._categories(),
+            on_context=art.tiles.on_context)
         return Column([head, grid], flex=1, align="stretch", gap=6)
 
     def _guide_controls(self, data, cells):
@@ -303,9 +309,13 @@ class LiveTvPage(Page):
         page = int(self.route.get("_chan_page") or 0)
 
         def nav(icon, node_id, delta, tip):
+            # ``cells`` travels with the press: the end-of-guide clamp is in
+            # units of drawn columns, and clamping a two-column window as if
+            # it were eight stops the arrows up to three windows early.
             return Button("", id=node_id, icon=icon, flat=True, icon_size=20,
-                          tip=tip, on_click=lambda: self._move_window(delta,
-                                                                      info))
+                          tip=tip,
+                          on_click=lambda: self._move_window(delta, info,
+                                                             cells))
 
         controls_row = [
             nav("keyboard_double_arrow_left", "lt-prevday", -DAY,
@@ -340,9 +350,9 @@ class LiveTvPage(Page):
         return Row(controls_row, gap=6, align="center",
                    pad=(chrome.CONTENT_PAD, 0))
 
-    def _move_window(self, delta, info):
+    def _move_window(self, delta, info, cells=live_tv.MAX_CELLS):
         target = live_tv.clamp_window(self._window_start() + delta, info,
-                                      live_tv.MAX_CELLS)
+                                      cells)
         if target == self.route.get("_start"):
             return          # already against the end of the guide data
         self.route["_start"] = target
@@ -671,7 +681,12 @@ class ProgramPage(Page):
         actions = self.ctx.actions
         server = self._srv()
         channel = item.get("ChannelId") or self.route.get("channel_id")
-        state = live_tv.timer_state(item)
+        # Two independent questions, as in jellyfin-web's recordingfields:
+        # does THIS showing have a timer of its own, and is the series being
+        # recorded. Both can be true at once, and asking timer_state instead
+        # (which answers "series" for such a showing) offered Record for a
+        # programme that already had one. See live_tv.single_timer_state.
+        single = live_tv.single_timer_state(item)
         btns = []
         if channel:
             # Airing now: watch it. Otherwise the same button tunes to the
@@ -685,10 +700,10 @@ class ProgramPage(Page):
                 primary=live_tv.is_airing(item), size=18))
         if not actions.can_record():
             return Row(btns, gap=10)
-        if state in ("timer", "recording"):
+        if single:
             btns.append(controls.action_btn(
                 "cancel",
-                _("Stop Recording") if state == "recording"
+                _("Stop Recording") if single == "recording"
                 else _("Do Not Record"),
                 "pg-cancel",
                 lambda: actions.cancel_timer(item.get("TimerId"), server,
@@ -701,7 +716,7 @@ class ProgramPage(Page):
                                                    on_done=self._refresh),
                 size=18))
         if item.get("IsSeries"):
-            if state == "series" or item.get("SeriesTimerId"):
+            if item.get("SeriesTimerId"):
                 btns.append(controls.action_btn(
                     "cancel", _("Cancel Series"), "pg-cancelseries",
                     lambda: actions.cancel_series_timer(

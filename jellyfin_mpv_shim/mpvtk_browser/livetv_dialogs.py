@@ -18,8 +18,23 @@ from ..mpvtk.widgets import (
     Button, Checkbox, Column, Dialog, Dropdown, Row, Text, TextBox, VScroll)
 from . import live_tv, theme
 
-#: Keep-up-to choices, as jellyfin-web offers them (0 = as many as possible).
+#: Keep-up-to choices (0 = as many as possible). jellyfin-web offers every
+#: integer from 0 to 50; a 51-row dropdown does not fit over a 720p window,
+#: so this is the round numbers — plus, at open time, whatever the rule is
+#: actually set to (see :func:`_keep_choices`). Without that last part a
+#: series set to 12 in the web client read back as "As many as possible",
+#: because an unlisted value has no row to select.
 KEEP_UP_TO = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50)
+
+
+def _keep_choices(current):
+    """The keep-up-to values to offer, always including ``current``."""
+    values = set(KEEP_UP_TO)
+    try:
+        values.add(max(0, int(current or 0)))
+    except (TypeError, ValueError):
+        pass
+    return tuple(sorted(values))
 
 
 def _minutes(seconds):
@@ -27,6 +42,21 @@ def _minutes(seconds):
         return str(int(seconds or 0) // 60)
     except (TypeError, ValueError):
         return "0"
+
+
+def _int(value, fallback=0):
+    """A DTO number as an int, tolerantly.
+
+    Everything read out of a timer goes through one of these. A dialog whose
+    *seeding* can raise is worse than it looks: ``_show_timer_editor``
+    installs a builder that runs every frame, so a half-built form throws
+    KeyError out of the render loop on every repaint and cannot be
+    dismissed.
+    """
+    try:
+        return int(value or fallback)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def _seconds(text, fallback=0):
@@ -73,8 +103,12 @@ class LiveTvDialogsMixin:
             dlg = self._timer_dlg
             if dlg is None or dlg["id"] != timer_id:
                 return           # the dialog was closed or replaced
+            # Fields first: "timer is not None" is what tells the builder
+            # the form is ready, so setting it before the fields exist would
+            # publish a half-built dialog if this raised.
+            fields = self._timer_fields(dto or {}, series)
+            dlg["fields"] = fields
             dlg["timer"] = dto or {}
-            dlg["fields"] = self._timer_fields(dto or {}, series)
             self._show_timer_editor()
 
         def failed(_exc):
@@ -103,7 +137,7 @@ class LiveTvDialogsMixin:
                 "skip_in_library": bool(dto.get("SkipEpisodesInLibrary")),
                 "any_channel": bool(dto.get("RecordAnyChannel")),
                 "any_time": bool(dto.get("RecordAnyTime")),
-                "keep_up_to": int(dto.get("KeepUpTo") or 0),
+                "keep_up_to": _int(dto.get("KeepUpTo")),
             })
         return fields
 
@@ -187,11 +221,12 @@ class LiveTvDialogsMixin:
                 1 if fields["any_time"] else 0,
                 lambda i, v: self._timer_set("any_time", i == 1)))
             keep = fields["keep_up_to"]
+            choices = _keep_choices(keep)
             rows.append(self._picker(
                 _("Keep up to"), "tm-keep",
-                [self._keep_label(n) for n in KEEP_UP_TO],
-                KEEP_UP_TO.index(keep) if keep in KEEP_UP_TO else 0,
-                lambda i, v: self._timer_set("keep_up_to", KEEP_UP_TO[i])))
+                [self._keep_label(n) for n in choices],
+                choices.index(keep) if keep in choices else 0,
+                lambda i, v, c=choices: self._timer_set("keep_up_to", c[i])))
         rows.append(self._padding_row(
             _("Start early (minutes)"), "tm-pre", fields["pre"],
             lambda s: self._timer_set("pre", s)))
@@ -384,13 +419,20 @@ class LiveTvDialogsMixin:
             categories = set()
         on_save = dlg["on_save"]
         self._close_guide_settings()
+        ep = self._epoch
+        source = self.source
+        # Adopt the new prefs HERE, on the loop thread, before anything is
+        # reloaded. ``on_save`` repaints the guide, which re-fetches it, and
+        # that fetch reads the prefs cache — from a pool worker submitted
+        # before the save below. Doing this inside the save worker instead
+        # loses the race however early in that worker it happens, and the
+        # guide comes back drawn with the settings just changed away from.
+        source.cache_live_tv_prefs(server, prefs)
         # Applied to the screen first and persisted in the background: these
         # are view settings, and making the guide wait on a DisplayPreferences
         # round trip to redraw would be a second of nothing happening.
         if on_save is not None:
             on_save(prefs, sorted(categories))
-        ep = self._epoch
-        source = self.source
 
         def work():
             source.save_live_tv_prefs(server, prefs)
