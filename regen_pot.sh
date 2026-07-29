@@ -1,11 +1,30 @@
 #!/bin/bash
 #
-# Regenerate the gettext template (base.pot) and merge it into every locale's
-# base.po -- while making sure translation work living on the master branch is
-# folded in first, so volunteer/Weblate translations are never lost when this
-# runs on a feature branch.
+# Regenerate the gettext template (base.pot).
 #
-# How it works, per locale:
+# By DEFAULT that is all it does. Pass --merge to also merge the new template
+# into every locale's base.po.
+#
+#   ./regen_pot.sh            # base.pot only -- what feature work wants
+#   ./regen_pot.sh --merge    # also rewrite all ~86 base.po files
+#
+# Why the merge is opt-in: it rewrites every locale, and because msgmerge
+# rewrites line references and re-wraps entries it touches, that is ~10k lines
+# of churn across 86 files even when no translation has actually changed.
+# Meanwhile Weblate is landing real translations on master continuously, so a
+# feature branch carrying that churn conflicts with master in files nobody on
+# the branch edited -- and the conflicts are unreadable, because the diff is
+# almost entirely reference comments.
+#
+# base.pot alone is what translators actually need from a feature branch: it is
+# the template Weblate reads to discover new strings. Filling the .po files in
+# is Weblate's job. So: add strings, run this without --merge, commit the .pot.
+#
+# A --merge run must be committed and merged to master promptly -- within the
+# hour, not the week -- or it is stale before it lands. It is a maintainer
+# operation, not part of finishing a feature.
+#
+# How --merge works, per locale:
 #   1. Regenerate base.pot from the current source.
 #   2. Take master's base.po as the authoritative translation source (that is
 #      where Weblate lands, so it holds the freshest volunteer work).
@@ -21,17 +40,31 @@
 #
 # The master ref is configurable in case you want to merge against a fetched
 # remote instead of your local branch:
-#   MASTER_REF=origin/master ./regen_pot_merge_master.sh
+#   MASTER_REF=origin/master ./regen_pot.sh --merge
 # Run `git fetch` first if you want the very latest volunteer work from remote.
 
 set -euo pipefail
 
 MASTER_REF="${MASTER_REF:-master}"
 POT="jellyfin_mpv_shim/messages/base.pot"
+MERGE_PO=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --merge) MERGE_PO=1 ;;
+        -h|--help)
+            sed -n '2,/^set -euo/p' "$0" | sed 's/^# \{0,1\}//; $d'
+            exit 0 ;;
+        *)
+            echo "error: unknown argument '$arg' (try --help)" >&2
+            exit 1 ;;
+    esac
+done
 
 cd "$(dirname "$0")"
 
-if ! git rev-parse --verify --quiet "$MASTER_REF" >/dev/null; then
+if [ "$MERGE_PO" -eq 1 ] \
+        && ! git rev-parse --verify --quiet "$MASTER_REF" >/dev/null; then
     echo "error: git ref '$MASTER_REF' not found (set MASTER_REF to override)" >&2
     exit 1
 fi
@@ -56,6 +89,15 @@ if [ "${#SOURCES[@]}" -eq 0 ]; then
 fi
 echo "  scanning ${#SOURCES[@]} source files"
 pygettext3 --default-domain=base -o "$POT" "${SOURCES[@]}"
+
+if [ "$MERGE_PO" -eq 0 ]; then
+    echo
+    echo "Wrote $POT. The per-locale .po files were NOT touched:"
+    echo "  that is Weblate's job, and merging them here is ~10k lines of"
+    echo "  churn across 86 files that conflicts with master."
+    echo "Pass --merge if you are the maintainer doing a translation sync."
+    exit 0
+fi
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -95,4 +137,7 @@ trap 'rm -rf "$tmpdir"' EXIT
     fi
 done
 
+echo
 echo "Done. Review 'git diff' before committing."
+echo "Weblate is landing translations on master continuously -- commit and"
+echo "merge this promptly or it is stale before it lands."
