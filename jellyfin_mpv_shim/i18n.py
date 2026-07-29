@@ -36,3 +36,27 @@ def get_translation():
 
 def _(string: str) -> str:
     return translation.gettext(string)
+
+
+def _p(context: str, string: str) -> str:
+    """Translate ``string`` in a named ``context``.
+
+    gettext keys on the English, so one word used in two senses collapses to
+    one entry and no language can tell them apart. "Record" is a form label
+    on the timer editor's picker ("Record: New episodes only") and an
+    imperative verb on the program page's button; jellyfin-web needs two keys
+    for exactly that pair and Filipino translates them differently. Same for
+    "Channels" (picker label vs the Live TV tab), "Download" (button verb vs
+    dialog heading) and "None" (no track vs no home section, which is a
+    gender-agreement problem in Italian).
+
+    Use it only where the senses genuinely differ. A context is part of the
+    key, so adding one to a string that did not need it throws away every
+    existing translation of it.
+
+    ``context`` is never shown to the user; it is a note to the translator.
+    Extraction is ``--keyword=_p:1c,2`` in ``regen_pot.sh`` -- and note that
+    ``pygettext3`` cannot extract this at all, which is why that script uses
+    ``xgettext``.
+    """
+    return translation.pgettext(context, string)

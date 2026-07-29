@@ -20,7 +20,7 @@ bearing for interop:
 * A stored "folders" is a pre-10.x alias for smalllibrarytiles.
 """
 
-from ..i18n import _
+from ..i18n import _, _p
 
 #: The DisplayPreferences client namespace. jellyfin-web's, and it must match
 #: exactly or we read/write a preference set nothing else can see. (The
@@ -99,7 +99,10 @@ def section_labels():
     after import on some paths.
     """
     return [
-        (NONE, _("None")),
+        # "no section here", not the "no subtitle track" of the six
+        # other _("None") sites. Italian needs Nessuna/Niente/None to
+        # agree with the noun each one stands in for.
+        (NONE, _p("home screen section type", "None")),
         (LIBRARIES, _("My Media")),
         (RESUME, _("Continue Watching")),
         (RESUME_AUDIO, _("Continue Listening")),

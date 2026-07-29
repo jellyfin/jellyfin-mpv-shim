@@ -54,7 +54,10 @@ To regenerate `base.pot` after adding or changing user-facing strings:
 ./regen_pot.sh
 ```
 
-That is all a pull request needs. The per-locale `.po` files are managed by
+That is all a pull request needs. If a word means two different things in
+two places — a form label and a button verb, say — reach for
+`i18n._p(context, string)` rather than `_()`, so translators can tell them
+apart. The per-locale `.po` files are managed by
 [Weblate](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/),
 which reads `base.pot` to discover new strings — please leave them alone.
 
