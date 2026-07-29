@@ -477,19 +477,20 @@ class StripStore:
         box = [x, 0, x + g.tile_w - 1, g.tile_h - 1]
         card = theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
                          else theme.CARD_BG, 255)
+        plate = None
         if t.poster is not None:
             # Artwork on a transparent background is composited onto the card,
             # so the card is what it has to read against — and a black-on-
             # transparent channel logo does not read against a near-black one.
-            # Repainting the whole card in a contrasting neutral, rather than
-            # sliding a plate in behind just the art, keeps the tile a single
-            # shape: the silhouette, the border and the rounded corners are all
-            # still drawn once, by the code below.
-            from ..imageutil import plate_color
+            # Repainting the whole card in the light plate such artwork is
+            # drawn for, rather than sliding one in behind just the art, keeps
+            # the tile a single shape: the silhouette, the border and the
+            # rounded corners are all still drawn once, by the code below.
+            from ..imageutil import plate_for
 
-            plate = plate_color(t.poster, card[:3])
+            plate = plate_for(t.poster)
             if plate is not None:
-                card = tuple(plate) + (255,)
+                card = tuple(plate.color) + (255,)
         if rounded:
             # The corners are left transparent so the window background shows
             # through — that is what gives the card its rounded silhouette.
@@ -498,6 +499,15 @@ class StripStore:
             dr.rectangle(box, fill=card)
         if t.poster is not None:
             poster = t.poster
+            if plate is not None and plate.shadow:
+                # White ink meets the transparency, so the plate the rest of
+                # the row gets would swallow the logo's outer edge. Shadow it
+                # here, before the resize: with_shadow scales its blur to the
+                # bitmap, so the halo comes out the same either way, and doing
+                # it once covers both paths below.
+                from ..imageutil import with_shadow
+
+                poster = with_shadow(poster)
             # The checker is wrong below, not the code: PIL installs its
             # filter constants onto its own module with setattr() at
             # import time, so they exist at runtime and are invisible to

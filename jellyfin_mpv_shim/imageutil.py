@@ -60,12 +60,15 @@ class AlphaStats(NamedTuple):
     ``clear`` is the share of pixels that are at least half transparent.
     ``luma`` is the 0-255 luma averaged over the pixels that are not — a
     summary, nothing decides on it. ``hist`` is the 256-bin luma histogram
-    that mean was taken over, and it is what :func:`plate_color` asks about.
+    that mean was taken over. ``edge`` is the same histogram over the ink that
+    *meets* the transparency — the outermost ring of the artwork — and it is
+    what :func:`plate_for` asks about.
     """
 
     clear: float
     luma: float
     hist: tuple
+    edge: tuple
 
 
 def measure_transparency(image: "Image.Image"):
@@ -81,10 +84,19 @@ def measure_transparency(image: "Image.Image"):
     its mean luma (71) describes no pixel in the image. Deciding anything from
     that average is deciding about ink that is not there.
 
+    ``edge`` is the one *spatial* thing measured here, and the question it
+    answers is "which ink touches the background": erode the opaque mask by a
+    pixel and the ring that falls away is the artwork's outline. A white
+    wordmark with a dark keyline round it and a bare white wordmark have the
+    same luma histogram and want opposite treatment on a white plate; they
+    differ in the ring.
+
     ``None`` for an image without an alpha channel; there is nothing to decide.
     """
     if image.mode != "RGBA":
         return None
+    from PIL import ImageChops, ImageFilter
+
     alpha = image.getchannel("A")
     total = image.width * image.height
     if not total:
@@ -94,10 +106,17 @@ def measure_transparency(image: "Image.Image"):
     # would pull the anti-aliased fringe of dark-on-transparent text towards
     # the black underneath it.
     opaque = alpha.point(lambda v: 255 if v >= 128 else 0)
-    hist = image.convert("L").histogram(mask=opaque)
+    gray = image.convert("L")
+    hist = gray.histogram(mask=opaque)
     ink = sum(hist)
     luma = sum(v * n for v, n in enumerate(hist)) / ink if ink else 0.0
-    stats = AlphaStats(clear, luma, tuple(hist))
+    # MinFilter is erosion on a 0/255 mask; the difference is the outer ring.
+    # Ink thinner than the filter erodes away entirely and is *all* ring,
+    # which is the right answer — a hairline stroke is nothing but edge.
+    band = ImageChops.subtract(opaque, opaque.filter(ImageFilter.MinFilter(3)))
+    edge = gray.histogram(mask=band)
+    stats = AlphaStats(clear, luma, tuple(hist),
+                       tuple(edge) if sum(edge) else tuple(hist))
     image.info[ALPHA_INFO] = stats
     return stats
 
@@ -134,10 +153,10 @@ def _lost_fraction(hist, surface, min_ratio: float = 3.0) -> float:
       ratio it is 1.2:1, which is the answer. Hence WCAG.
 
     Luma is the only axis, and it is an approximation: it under-rates
-    saturated ink, which reads better against a dark surface than its luma
-    suggests. Two axes were tried and are not worth their complexity — the
-    thing that would decide the remaining cases is *spatial* (whether the PBS
-    logo's white glyph sits inside its blue disc), and no histogram sees that.
+    saturated ink, which reads better against a surface than its luma suggests.
+    Judged acceptable, because the surface asked about is now always a light
+    plate and the ink that decides is the boundary ring rather than the whole
+    logo — the case that axis got wrong was a saturated mark against near-black.
     """
     ink = sum(hist)
     if not ink:
@@ -154,49 +173,75 @@ def _lost_fraction(hist, surface, min_ratio: float = 3.0) -> float:
     return lost / ink
 
 
-def plate_color(image: "Image.Image", behind, light=(240, 240, 240),
-                dark=(16, 16, 18), min_ratio=3.0, min_clear=0.10,
-                max_lost=0.25):
-    """Colour to flatten a transparent ``image`` onto, or ``None`` to let its
-    transparency through to ``behind``.
+class Plate(NamedTuple):
+    """What goes behind a transparent image: a plate ``color``, and whether
+    the artwork needs a ``shadow`` to hold its shape against it."""
+
+    color: tuple
+    shadow: bool
+
+
+def plate_for(image: "Image.Image", light=(240, 240, 240), min_ratio=3.0,
+              min_clear=0.10, max_edge=0.35):
+    """The plate for a transparent ``image``, or ``None`` to leave it alone.
 
     Broadcasters ship channel logos as artwork on a transparent background,
-    and a good few of them are *black* artwork — drawn for a white page. Let
-    through onto this UI's near-black surfaces they are invisible, which is no
-    better than the solid black block they used to flatten to. So when a
-    genuinely transparent image has too much of its ink swallowed by what is
-    behind it, it gets a contrasting neutral plate of its own instead.
+    drawn for the white page every other client puts them on. Let through onto
+    this UI's near-black surfaces the black ones are invisible, which is no
+    better than the solid black block they used to flatten to. So a genuinely
+    transparent logo gets a light plate — **all** of them, so a row of channels
+    is a row of one kind of chip rather than a per-logo judgement call about
+    contrast that lands differently on every tile.
 
-    One question, asked twice: :func:`_lost_fraction` against ``behind`` says
-    whether the artwork needs rescuing, and against each neutral says whether
-    that one would rescue it. ``max_lost`` is the share of ink allowed to
-    disappear, and art no flat plate can get under that — half light ink, half
-    dark — is left alone rather than given a white box for nothing.
+    The one thing a white plate cannot carry is white ink lying *directly* on
+    the transparency. That is not "the logo is bright" — a white wordmark
+    almost always comes with a keyline or a coloured mark around it, and those
+    read on white perfectly well. It is specifically whether the ink at the
+    artwork's boundary is itself white, which is what :attr:`AlphaStats.edge`
+    measures and ``max_edge`` bounds. Such a logo still gets the same white
+    plate, for consistency, plus a :func:`with_shadow` halo to give its
+    outermost ink an edge to sit against.
 
-    "Too much" is measured over the ink's distribution, never its mean: the
-    mean is the average of a distribution the artwork need not have anywhere.
-    A bright mark beside a black wordmark averages to mid-grey, which reads as
-    "contrasts fine against a dark surface" while half the logo is invisible.
-
-    Deliberately narrow, because plating art that does not need it is its own
-    kind of wrong: an image with no alpha channel, one whose transparency is
-    just an anti-aliased edge (``min_clear``), or one that already reads
-    against ``behind`` is all left alone.
+    Deliberately narrow at the top: an image with no alpha channel, or one
+    whose transparency is only an anti-aliased fringe (``min_clear``), is
+    opaque artwork carrying its own background and is left alone.
     """
     if image.mode != "RGBA":
         return None
     m = image.info.get(ALPHA_INFO) or measure_transparency(image)
     if m is None:
         return None
-    clear, _mean, hist = m
-    if clear < min_clear:
+    if m.clear < min_clear:
         return None
-    if _lost_fraction(hist, behind, min_ratio) <= max_lost:
-        return None
-    best = min((light, dark), key=lambda c: _lost_fraction(hist, c, min_ratio))
-    if _lost_fraction(hist, best, min_ratio) > max_lost:
-        return None
-    return best
+    return Plate(light, _lost_fraction(m.edge, light, min_ratio) > max_edge)
+
+
+def with_shadow(image: "Image.Image", color=(0, 0, 0), opacity: float = 0.8):
+    """``image`` over a soft drop shadow of its own silhouette.
+
+    For the white-on-white case: the shadow is the artwork's alpha, blurred and
+    nudged down, so white ink on a white plate keeps a visible boundary. Blur
+    and offset scale with the image because this runs on whatever size the
+    thumbnail pipeline produced, from a 275px tile down to a 24px art cell.
+
+    The shadow is drawn inside the image's own bounds, so ink that runs to the
+    very edge of its bitmap has that side of its shadow clipped. Logos have
+    margins; the alternative is growing the bitmap, which would move the art.
+    """
+    if image.mode != "RGBA":
+        return image
+    from PIL import ImageFilter
+
+    span = max(image.size)
+    blur = max(1.0, span / 60)
+    drop = max(1, round(span / 90))
+    silhouette = Image.new("L", image.size, 0)
+    silhouette.paste(image.getchannel("A"), (0, drop))
+    silhouette = silhouette.filter(ImageFilter.GaussianBlur(blur))
+    silhouette = silhouette.point(lambda v: int(v * opacity))
+    layer = Image.new("RGBA", image.size, tuple(color) + (0,))
+    layer.putalpha(silhouette)
+    return Image.alpha_composite(layer, image)
 
 
 def flatten_onto(image: "Image.Image", color, radius: int = 0) -> "Image.Image":

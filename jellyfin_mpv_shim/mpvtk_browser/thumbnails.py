@@ -313,7 +313,7 @@ class ThumbnailStore:
         if image.mode == "RGBA":
             # Measured here, on the worker, because the answer is a property of
             # the artwork and the callers that need it are the loop thread and
-            # the strip pool. See imageutil.plate_color.
+            # the strip pool. See imageutil.plate_for.
             from ..imageutil import measure_transparency
 
             measure_transparency(image)

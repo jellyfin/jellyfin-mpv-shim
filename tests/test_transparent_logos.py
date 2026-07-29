@@ -8,8 +8,10 @@ Live TV channel grid and the guide's channel column rendered a wall of solid
 black blocks.
 
 Two things have to hold for that to stay fixed: the alpha has to survive
-decode and compositing, and an image that would be unreadable against the
-near-black surface behind it has to get a plate of its own.
+decode and compositing, and the artwork has to get the light plate it was
+drawn for — every transparent logo, so a row of channels is a row of one kind
+of chip. The one thing that plate cannot carry is white ink lying directly on
+the transparency, and that gets a drop shadow rather than a different plate.
 """
 
 import os
@@ -55,6 +57,18 @@ def _two_tone(bright, dark, split=0.5, size=(120, 120), margin=20):
     return img
 
 
+def _keylined(fill, keyline, size=(120, 120), margin=20, width=4):
+    """``fill`` artwork with a ``keyline`` around it — the shape of every white
+    wordmark that ships with an outline. Same ink as ``_logo(fill)`` bar the
+    border; what differs is which of it touches the background."""
+    img = _logo(keyline, size=size, margin=margin)
+    ImageDraw.Draw(img).rectangle(
+        [margin + width, margin + width,
+         size[0] - margin - width - 1, size[1] - margin - width - 1],
+        fill=fill + (255,))
+    return img
+
+
 class TestMeasurement(unittest.TestCase):
     def test_luma_ignores_the_black_under_the_transparency(self):
         """The whole point of the mask: an unmasked mean would call a white
@@ -86,48 +100,79 @@ class TestMeasurement(unittest.TestCase):
         got = imageutil.measure_transparency(img)
         self.assertEqual(img.info[imageutil.ALPHA_INFO], got)
 
+    def test_the_edge_ring_is_the_ink_that_meets_the_background(self):
+        """A keylined block and a bare one have near-identical ink; they
+        differ in which of it is on the boundary, and that is the whole
+        question a white plate asks."""
+        bare = imageutil.measure_transparency(_logo((255, 255, 255)))
+        keyed = imageutil.measure_transparency(
+            _keylined((255, 255, 255), (0, 0, 0)))
+        self.assertGreater(sum(bare.edge[250:]), sum(bare.edge) * 0.9)
+        self.assertGreater(sum(keyed.edge[:5]), sum(keyed.edge) * 0.9)
+        # ...while the ink as a whole is white in both cases.
+        self.assertGreater(keyed.luma, 200)
+
+    def test_ink_thinner_than_the_erosion_is_all_edge(self):
+        """A hairline stroke has no interior, and the ring must not come back
+        empty — an empty measurement reads as "nothing is lost"."""
+        img = Image.new("RGBA", (60, 60), (0, 0, 0, 0))
+        ImageDraw.Draw(img).line([(5, 30), (55, 30)], fill=(255, 255, 255, 255))
+        stats = imageutil.measure_transparency(img)
+        self.assertEqual(sum(stats.edge), sum(stats.hist))
+
 
 class TestPlateDecision(unittest.TestCase):
-    def test_dark_logo_on_a_dark_surface_gets_a_light_plate(self):
-        plate = imageutil.plate_color(_logo((0, 0, 0)), WINDOW_BG)
+    def test_a_transparent_logo_gets_the_light_plate(self):
+        plate = imageutil.plate_for(_logo((0, 0, 0)))
         self.assertIsNotNone(plate)
-        self.assertGreater(imageutil._luma(plate), 200)
+        self.assertGreater(imageutil._luma(plate.color), 200)
+        self.assertFalse(plate.shadow)
 
-    def test_light_logo_on_a_dark_surface_is_left_alone(self):
-        """These already read, and plating them would be the same bug with
-        the colours swapped."""
-        self.assertIsNone(imageutil.plate_color(_logo((255, 255, 255)),
-                                                WINDOW_BG))
+    def test_every_transparent_logo_gets_the_same_plate(self):
+        """The point of the rule. A dark logo, a bright one, a saturated one:
+        one plate, so a row of channels is a row of one kind of chip instead
+        of a per-logo contrast judgement that lands differently on each."""
+        plates = [imageutil.plate_for(_logo(c)).color
+                  for c in ((0, 0, 0), (255, 255, 255), (38, 56, 196),
+                            (230, 60, 60), (128, 128, 128))]
+        self.assertEqual(plates, [plates[0]] * len(plates))
 
-    def test_light_logo_on_a_light_surface_gets_a_dark_plate(self):
-        plate = imageutil.plate_color(_logo((255, 255, 255)),
-                                      (240, 240, 240))
-        self.assertIsNotNone(plate)
-        self.assertLess(imageutil._luma(plate), 40)
+    def test_white_ink_against_the_background_gets_a_shadow(self):
+        """The one thing a white plate cannot carry. Same plate — consistency
+        is the point — with a shadow to give the outer ink an edge."""
+        self.assertTrue(imageutil.plate_for(_logo((255, 255, 255))).shadow)
+
+    def test_a_keyline_is_what_the_white_sits_against(self):
+        """Nearly every white wordmark ships with an outline or a coloured
+        mark around it, and those read on white perfectly well. It is not
+        "the logo is bright" that wants a shadow — the same white ink behind a
+        4px keyline is left flat."""
+        self.assertFalse(
+            imageutil.plate_for(_keylined((255, 255, 255), (0, 0, 0))).shadow)
+        self.assertFalse(
+            imageutil.plate_for(_keylined((255, 255, 255), (200, 30, 30))).shadow)
 
     def test_opaque_art_is_never_plated(self):
         """A poster carries its own background. Even a very dark one."""
-        self.assertIsNone(imageutil.plate_color(
-            Image.new("RGB", (60, 60), (5, 5, 5)), WINDOW_BG))
-        self.assertIsNone(imageutil.plate_color(
-            Image.new("RGBA", (60, 60), (5, 5, 5, 255)), WINDOW_BG))
+        self.assertIsNone(imageutil.plate_for(
+            Image.new("RGB", (60, 60), (5, 5, 5))))
+        self.assertIsNone(imageutil.plate_for(
+            Image.new("RGBA", (60, 60), (5, 5, 5, 255))))
 
     def test_a_soft_edge_is_not_a_transparent_background(self):
         """min_clear: art that fills its frame apart from a few anti-aliased
         corner pixels is opaque art, and plating it would show as a border."""
         img = _logo((0, 0, 0), size=(120, 120), margin=1)
-        self.assertIsNone(imageutil.plate_color(img, WINDOW_BG))
+        self.assertIsNone(imageutil.plate_for(img))
 
-    def test_a_dark_wordmark_beside_a_bright_mark_is_plated(self):
-        """The NBC logo. Half its ink is a black wordmark, invisible on this
-        UI's surfaces; the bright half drags the *mean* to mid-grey, which
-        reads as "contrasts fine" and left the wordmark unreadable. The
-        decision is about how much ink the surface swallows, not the mean."""
+    def test_a_dark_wordmark_beside_a_bright_mark_needs_no_shadow(self):
+        """The NBC logo: a saturated mark against the background, a black
+        wordmark beside it. Its *mean* luma is mid-grey, a colour neither half
+        of the artwork contains — nothing here decides on the mean, and the
+        boundary ink is what a white plate has to carry."""
         logo = _two_tone((230, 60, 60), (0, 0, 0))
         self.assertGreater(imageutil.measure_transparency(logo).luma, 48)
-        plate = imageutil.plate_color(logo, WINDOW_BG)
-        self.assertIsNotNone(plate)
-        self.assertGreater(imageutil._luma(plate), 200)
+        self.assertFalse(imageutil.plate_for(logo).shadow)
 
     def test_the_plate_decision_survives_a_downscale(self):
         """It used to sit on the threshold: the full-size logo was plated and
@@ -139,15 +184,17 @@ class TestPlateDecision(unittest.TestCase):
         for size in sizes:
             small = logo.resize(size, Image.LANCZOS)
             imageutil.measure_transparency(small)
-            plates.append(imageutil.plate_color(small, WINDOW_BG))
+            plates.append(imageutil.plate_for(small))
         self.assertEqual(plates, [plates[0]] * len(sizes), plates)
         self.assertIsNotNone(plates[0])
 
-    def test_art_no_flat_plate_can_rescue_is_left_alone(self):
-        """Half white ink, half black: every neutral loses as much as the
-        surface did. Plating buys nothing and costs a white box."""
-        logo = _two_tone((255, 255, 255), (0, 0, 0))
-        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
+    def test_half_white_half_black_is_plated_and_shadowed(self):
+        """No flat plate carries both halves, which used to mean neither got
+        one. White plus a shadow does: the black half reads on the plate and
+        the white half against its own edge."""
+        plate = imageutil.plate_for(_two_tone((255, 255, 255), (0, 0, 0)))
+        self.assertGreater(imageutil._luma(plate.color), 200)
+        self.assertTrue(plate.shadow)
 
     def test_a_semi_transparent_panel_is_judged_by_the_ink_on_it(self):
         """The alpha threshold cuts both ways, pinned so it is not a surprise.
@@ -156,39 +203,37 @@ class TestPlateDecision(unittest.TestCase):
         the *text* — a panel at alpha 89 is under the mask's 128 and counts
         towards ``clear``, so 5% of the pixels decide for all of them. Right
         here, since the text is what has to be readable and the panel is what
-        the plate would sit behind: white text is left alone on a dark surface
-        and plated dark on a light one. It would be wrong for a translucent
-        *bright* panel carrying white text, which no measurement taken through
-        this mask can see.
+        the plate sits behind: white text on it is shadowed, as bare white ink
+        should be. It would be wrong for a translucent *bright* panel carrying
+        white text, which no measurement taken through this mask can see.
         """
         logo = Image.new("RGBA", (120, 120), (150, 140, 200, 89))
         ImageDraw.Draw(logo).rectangle([30, 50, 90, 70],
                                        fill=(255, 255, 255, 255))
         stats = imageutil.measure_transparency(logo)
         self.assertLess(sum(stats.hist), 120 * 120 * 0.1)   # the text, not the panel
-        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
-        self.assertIsNotNone(imageutil.plate_color(logo, (0xf2, 0xf2, 0xf2)))
+        self.assertTrue(imageutil.plate_for(logo).shadow)
 
-    def test_saturated_mid_luma_ink_is_plated_too(self):
-        """A known approximation, pinned so a change to it is deliberate.
+    def test_a_small_bright_detail_does_not_shadow_a_dark_logo(self):
+        """max_edge: a dark mark with a bright corner to it reads on the plate
+        as it is, and shadowing everything with a white pixel on its boundary
+        is the old all-or-nothing decision wearing a different hat."""
+        logo = _two_tone((0, 0, 0), (255, 255, 255), split=0.9)
+        self.assertFalse(imageutil.plate_for(logo).shadow)
 
-        Luma under-rates saturated ink — the PBS blue is luma 66 and reads on
-        near-black better than that suggests — so a logo like it is plated
-        where a colour-aware measure might leave it. Judged acceptable: at
-        2.2:1 against the surface it is genuinely low contrast, and a white
-        chip is the page these logos were drawn for. Measuring value as a
-        second axis fixes this one and breaks the NBC peacock against a white
-        plate; what would settle the rest is spatial, and no histogram sees it.
-        """
-        logo = _logo((38, 56, 196))
-        self.assertIsNotNone(imageutil.plate_color(logo, WINDOW_BG))
+    def test_the_shadow_darkens_only_around_the_ink(self):
+        """It has to reach *outside* the silhouette — that is the edge the
+        white ink is given — without dulling the artwork itself."""
+        logo = _logo((255, 255, 255), size=(120, 120), margin=20)
+        out = imageutil.flatten_onto(imageutil.with_shadow(logo),
+                                     (240, 240, 240))
+        self.assertEqual(out.getpixel((60, 60))[:3], (255, 255, 255))
+        self.assertLess(imageutil._luma(out.getpixel((60, 102))), 200)
+        self.assertGreater(imageutil._luma(out.getpixel((2, 2))), 200)
 
-    def test_a_small_dark_detail_does_not_plate_a_bright_logo(self):
-        """max_lost: a bright mark with a little dark detail in it reads fine,
-        and plating everything with a dark pixel in it is the old bug with the
-        colours swapped."""
-        logo = _two_tone((235, 235, 235), (0, 0, 0), split=0.9)
-        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
+    def test_the_shadow_leaves_opaque_art_alone(self):
+        opaque = Image.new("RGB", (40, 40), (10, 20, 30))
+        self.assertIs(imageutil.with_shadow(opaque), opaque)
 
     def test_flatten_onto_makes_the_clear_pixels_the_plate(self):
         out = imageutil.flatten_onto(_logo((0, 0, 0)), (240, 240, 240))
@@ -296,16 +341,20 @@ class TestTileCompositing(unittest.TestCase):
         self.assertLess(imageutil._luma(img.getpixel((g.tile_w // 2,
                                                       g.tile_h // 2))), 20)
 
-    def test_a_white_logo_keeps_the_card_behind_it(self):
-        """No plate: the card colour shows through the transparency, which is
-        exactly what the alpha is for."""
+    def test_a_white_logo_gets_the_same_card_and_a_shadow(self):
+        """The card is the light plate every other logo gets — a row of
+        channels should not be half light chips and half dark ones — and the
+        white artwork is held off it by its shadow."""
         logo = _logo((255, 255, 255), size=(140, 140))
         imageutil.measure_transparency(logo)
         img, g = self._painted(logo)
-        card = theme.rgb(theme.CARD_BG, 255)
-        self.assertEqual(img.getpixel((4, 4)), card)
+        self.assertGreater(imageutil._luma(img.getpixel((4, 4))), 200)
         self.assertGreater(
             imageutil._luma(img.getpixel((g.tile_w // 2, g.tile_h // 2))), 240)
+        # Between the plate and the artwork, all the way across the tile.
+        band = [imageutil._luma(img.getpixel((x, g.tile_h // 2)))
+                for x in range(g.tile_w)]
+        self.assertLess(min(band), 180, band)
 
     def test_the_rounded_theme_composites_the_alpha_too(self):
         """The rounded path passes paste() a corner mask, and paste takes only
@@ -314,8 +363,8 @@ class TestTileCompositing(unittest.TestCase):
         logo = _logo((255, 255, 255), size=(140, 140))
         imageutil.measure_transparency(logo)
         img, g = self._painted(logo, rounded=True)
-        self.assertEqual(img.getpixel((g.tile_w // 2, 6)),
-                         theme.rgb(theme.CARD_BG, 255))
+        self.assertGreater(imageutil._luma(img.getpixel((g.tile_w // 2, 6))),
+                           200)
 
     def test_an_opaque_poster_is_unchanged(self):
         """Every non-logo tile in the app goes down this path."""
