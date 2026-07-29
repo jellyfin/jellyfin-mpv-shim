@@ -2117,6 +2117,20 @@ class ChannelScreen(unittest.TestCase):
         page._buttons().children[1].on_click()
         self.assertIn("Remove from Favorites", self._texts())
 
+    def test_the_rows_fill_the_content_width(self):
+        """Without align="stretch" on the outer Column the rows took their
+        natural width: a 747px content area drew a 479px row and ellipsized
+        both the programme title and the episode title with 268px of empty
+        space to the right of them."""
+        self._open()
+        nodes, _h = build_scene(self.b, (779, 707))
+        rows = [n for n in nodes if (n.get("id") or "").startswith("ch-pg-")]
+        self.assertTrue(rows)
+        for row in rows:
+            with self.subTest(row=row["id"]):
+                # The content area is the window less the two content pads.
+                self.assertGreater(row["w"], 779 - 2 * 24)
+
     def test_a_listing_row_opens_the_program_page(self):
         page = self._open()
         page._program_row(page.route["_data"][1]).on_click()
@@ -2179,6 +2193,202 @@ class ChannelScreen(unittest.TestCase):
     def test_the_guide_channel_cells_are_clickable(self):
         open_live_tv(self.b, "guide")
         self.assertIn("guide-ch-c1", ids(self._nodes()))
+
+
+class ChannelListingIsWindowed(unittest.TestCase):
+    """A fortnight of listings is ~670 rows and the fetch allows a thousand.
+    Building them all put ~2400 nodes in one scene and cost 35ms a frame, so
+    the page draws only the days near the viewport -- the same windowing the
+    grid and the guide do."""
+
+    N = 1000          # ~21 days at half-hour granularity
+    PER_DAY = 48
+
+    def setUp(self):
+        self.b = browser()
+        self.b.source.get_channel_listing = lambda srv, cid, limit=1000: {
+            "channel": {"Id": cid, "Name": "Channel 1", "Type": "TvChannel"},
+            "programs": self._programs(self.N), "capped": False}
+        self.b.navigate({"kind": "channel", "server": "srv1",
+                         "item_id": "c1", "title": "Channel 1"})
+
+    @staticmethod
+    def _programs(n):
+        base = datetime.datetime.now().astimezone().replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        out = []
+        for i in range(n):
+            start = base + datetime.timedelta(minutes=30 * i)
+            out.append({
+                "Id": "pr%d" % i, "Name": "P%d" % i, "Type": "Program",
+                "ChannelId": "c1",
+                "StartDate": start.astimezone(datetime.timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%S.0000000Z"),
+                "EndDate": (start + datetime.timedelta(minutes=30)).astimezone(
+                    datetime.timezone.utc).strftime(
+                        "%Y-%m-%dT%H:%M:%S.0000000Z")})
+        return out
+
+    def _rows(self, offset=None):
+        if offset is not None:
+            self.b._scroll.on_scroll("channel", offset, 100000)
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return [n for n in nodes
+                if (n.get("id") or "").startswith("ch-pg-")]
+
+    def test_only_a_few_days_are_built(self):
+        rows = self._rows(0)
+        self.assertTrue(rows)
+        self.assertLess(len(rows), self.N // 4,
+                        "the whole listing was built into one scene")
+
+    def test_the_scene_stays_the_size_of_the_window_not_the_guide(self):
+        """The property that lets the fetch be a thousand rather than two
+        hundred: node count must not track the listing length."""
+        short, _h = build_scene(self.b, (1280, 720))
+        self.b.route["_data"] = self._programs(100)
+        self.b.route.pop("_groups", None)
+        few, _h = build_scene(self.b, (1280, 720))
+        self.assertLess(abs(len(short) - len(few)), 60)
+
+    def test_the_window_follows_the_scroll(self):
+        first = {n["id"] for n in self._rows(0)}
+        later = {n["id"] for n in self._rows(20000)}
+        self.assertTrue(later)
+        self.assertFalse(first & later, "the window did not move")
+
+    def test_the_built_rows_cover_the_viewport_at_every_offset(self):
+        """The failure this guards is a screenful of blanks: the placeholder
+        heights have to reproduce the Column layout exactly, or the computed
+        window drifts further from the real one the longer the listing gets.
+        """
+        every = {n["id"]: n["y"] for n in self._all_rows()}
+        top, bottom = min(every.values()), max(every.values())
+        for offset in (0, 5000, 12000, 20000, 30000):
+            with self.subTest(offset=offset):
+                ys = [n["y"] for n in self._rows(offset)]
+                self.assertTrue(ys, "nothing drawn at %d" % offset)
+                # Everything in the viewport that HAS content is built. The
+                # clamps are the ends of the listing: at the top the header
+                # occupies the first screen, at the bottom there is no more.
+                self.assertLessEqual(min(ys), max(offset, top))
+                self.assertGreaterEqual(max(ys), min(offset + 720, bottom))
+
+    def test_every_day_heading_is_drawn(self):
+        """Headings are one node each and there are a couple of dozen, so
+        they are cheaper to draw than to place a heading-shaped hole for --
+        and the listing keeps its shape while you scroll."""
+        nodes, _h = build_scene(self.b, (1280, 720))
+        texts = [n.get("text") or "" for n in nodes]
+        days = [t for t in texts if t.count(",") == 1 and len(t) <= 13]
+        self.assertGreaterEqual(len(days), self.N // self.PER_DAY)
+
+    def _all_rows(self):
+        """Every row's y, from a build with the window opened wide enough to
+        hold the whole listing."""
+        page = self.b._page_for(self.b.route)
+        rows = {}
+        for offset in range(0, 40000, 1000):
+            for node in self._rows(offset):
+                rows[node["id"]] = node
+        return list(rows.values())
+
+    def test_the_scroll_is_reported_back(self):
+        """``watch`` is what makes the renderer send scroll events back for
+        this container; without it the window would be computed once and
+        never move again."""
+        nodes, _h = build_scene(self.b, (1280, 720))
+        scroller = next(n for n in nodes
+                        if n.get("id") == "channel" and n.get("t") == "scroll")
+        self.assertTrue(scroller.get("watch"),
+                        "the channel scroller reports nothing: %r" % scroller)
+
+    def test_the_day_grouping_is_computed_once_per_fetch(self):
+        """parse_time is not cheap and render needs the grouping every
+        frame; re-grouping a thousand programmes per repaint was the whole
+        residual cost once the rows were windowed."""
+        page = self.b._page_for(self.b.route)
+        first = page._groups()
+        self.assertIs(page._groups(), first)
+        page.route["_data"] = self._programs(20)
+        self.assertIsNot(page._groups(), first)
+
+
+class ChannelListingFetch(unittest.TestCase):
+    def test_the_cap_is_a_backstop_not_a_page(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_LISTING
+
+        # A fortnight of half-hour listings is ~670 rows; the ceiling is
+        # about the response now, not the render.
+        self.assertGreaterEqual(CHANNEL_LISTING, 672)
+
+    @staticmethod
+    def _source():
+        api = type("Api", (), {})()
+        api.get_item = lambda *a, **kw: {"Id": "c1", "Type": "TvChannel"}
+        src = LibrarySource.__new__(LibrarySource)
+        src._conn = lambda _uuid: type("C", (), {"api": api})()
+        return src, api
+
+    def _captured(self):
+        src, api = self._source()
+        captured = {}
+        api.get_programs = lambda **kw: captured.update(kw) or {"Items": []}
+        src.get_channel_listing("srv", "c1")
+        return captured
+
+    def test_it_asks_for_no_image_fields(self):
+        """These rows are text. ChannelImage in particular costs a channel
+        lookup per programme -- across a thousand of them -- for a tag
+        nothing on this screen draws. jellyfin-web passes EnableImages:false
+        here for the same reason."""
+        captured = self._captured()
+        self.assertNotIn("ChannelImage", captured.get("fields") or "")
+        self.assertIsNone(captured.get("enable_image_types"))
+        self.assertIsNone(captured.get("image_type_limit"))
+        self.assertIn("ChannelInfo", captured["fields"])
+
+    def test_it_asks_for_what_has_not_finished_yet(self):
+        """HasAired=False keeps whatever is mid-broadcast, which is what
+        makes the first row "on now" rather than "on next"."""
+        captured = self._captured()
+        self.assertIs(captured["has_aired"], False)
+        self.assertEqual(captured["sort_by"], "StartDate")
+
+    def test_a_channel_that_cannot_be_read_still_returns_its_listing(self):
+        """The tile that linked here seeded the header; the listing is what
+        the page is for."""
+        src, api = self._source()
+        api.get_programs = lambda **kw: {"Items": [{"Id": "pr1"}]}
+        api.get_item = lambda *a, **kw: (_ for _ in ()).throw(OSError("no"))
+        out = src.get_channel_listing("srv", "c1")
+        self.assertIsNone(out["channel"])
+        self.assertEqual(len(out["programs"]), 1)
+
+
+class GuideChannelColumn(unittest.TestCase):
+    """It was ellipsizing names it had the room to draw."""
+
+    def _label_w(self):
+        # The logo, the Row gap and the pad come off before the label.
+        return guide_view.CHANNEL_W - guide_view.LOGO - 8 - 12
+
+    def test_a_long_channel_name_fits(self):
+        from jellyfin_mpv_shim.mpvtk.layout import text_width
+
+        for name in ("Sky Sports Main Event", "Discovery Turbo Xtra"):
+            with self.subTest(name):
+                self.assertLessEqual(text_width(name, 14), self._label_w())
+
+    def test_the_wider_column_costs_the_grid_no_cells(self):
+        """The window is a whole number of 30-minute cells, so the extra
+        width comes out of each cell rather than out of the count -- but
+        only while they stay above MIN_CELL_W."""
+        for window in (800, 1024, 1280, 1366, 1600, 1920, 2560):
+            with self.subTest(window=window):
+                grid = guide_view.grid_width((window, 720))
+                cells = live_tv.cells_for_width(grid)
+                self.assertGreaterEqual(grid / cells, live_tv.MIN_CELL_W)
 
 
 class ChannelNumber(unittest.TestCase):

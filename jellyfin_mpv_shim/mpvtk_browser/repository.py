@@ -137,10 +137,14 @@ PROGRAM_FIELDS = ",ChannelInfo,ChannelImage"
 CHANNEL_PAGE = 100
 
 #: Programmes the channel page asks for. jellyfin-web asks for the whole
-#: guide, which for a channel with a fortnight of listings is several hundred
-#: rows in one scene; this bounds it and the page says so when it bites,
-#: rather than appearing to run out of programmes early.
-CHANNEL_LISTING = 200
+#: guide with no limit at all, which it can afford because a browser drops
+#: off-screen rows itself; this was 200 while the page built every row into
+#: one scene. It windows now (``ChannelPage``), so the ceiling is about the
+#: response rather than the render: a fortnight of half-hour listings is
+#: ~670 rows and two weeks is as deep as guide data usually goes. A backstop
+#: rather than a budget -- the page still says so when it bites, so a
+#: provider with more does not look like it has less.
+CHANNEL_LISTING = 1000
 
 
 class ServerConn:
@@ -713,11 +717,18 @@ class LibrarySource:
         bool}``. Both halves in one call because they are one screen and the
         page would otherwise draw twice, half-empty.
 
-        Two departures from jellyfin-web, which asks for neither a limit nor
-        images: ``limit`` bounds a fortnight of a busy channel to something a
-        single scene can hold (``capped`` says so, so the page can admit it
-        rather than silently stopping), and images are asked for because a
-        row that is clicked seeds the program page with this DTO.
+        One departure from jellyfin-web: ``limit``, a backstop rather than a
+        budget now that the page windows its rows (``capped`` says so, so a
+        provider with a deeper guide does not look like it has a shallower
+        one).
+
+        **No image fields**, which is jellyfin-web's call here too
+        (``EnableImages: false``) and the same one ``get_guide`` makes for
+        the same reason: these rows are text. ``ChannelImage`` in particular
+        costs a channel lookup per programme -- across a thousand of them --
+        for a tag nothing on this screen draws. A row that is clicked still
+        seeds the program page, which re-reads the authoritative DTO anyway
+        and already draws its heading as text while artwork is absent.
         """
         api = self._conn(server_uuid).api
         channel = None
@@ -732,9 +743,8 @@ class LibrarySource:
             has_aired=False,
             sort_by="StartDate",
             limit=limit,
-            fields=LIST_FIELDS + PROGRAM_FIELDS,
-            image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
+            fields=LIST_FIELDS + ",ChannelInfo",
+            enable_user_data=False,
             enable_total_record_count=False) or {}
         programs = result.get("Items", [])
         return {"channel": channel, "programs": programs,

@@ -848,6 +848,13 @@ class ChannelPage(Page):
     ROW_H = 34
     LOGO = 84
 
+    #: Gaps the render uses. Named because the windowing arithmetic below
+    #: has to reproduce the Column layout exactly -- a listing whose
+    #: placeholder heights are a few px out drifts further the longer it
+    #: gets, and the rows stop lining up with where the scroll thinks it is.
+    GAP = 14
+    ROW_GAP = 2
+
     def load(self, epoch):
         source, srv = self.ctx.source, self._srv()
         channel_id = self.route["item_id"]
@@ -869,6 +876,23 @@ class ChannelPage(Page):
         self.route["_capped"] = bool(data.get("capped"))
         self.route["_loading"] = False
 
+    def _groups(self):
+        """The listing grouped by day, computed once per fetch.
+
+        Cached because ``render`` needs it every frame and
+        ``live_tv.parse_time`` is not cheap -- it exists precisely because
+        the shorter ways of parsing these are wrong. Re-grouping a thousand
+        programmes on every repaint was the whole of the residual cost once
+        the rows themselves were windowed. Keyed on the list's identity, so
+        a refresh that replaces it regroups and nothing else does.
+        """
+        programs = self.route.get("_data") or []
+        cached = self.route.get("_groups")
+        if cached is None or cached[0] is not programs:
+            cached = (programs, live_tv.group_by_day(programs))
+            self.route["_groups"] = cached
+        return cached[1]
+
     def _srv(self):
         return self.route.get("server") or self.ctx.server
 
@@ -889,19 +913,66 @@ class ChannelPage(Page):
             blocks.append(chrome.error(
                 _("No guide data is available for this channel.")))
         else:
-            for day, items in live_tv.group_by_day(programs):
-                blocks.append(Text(day, size=20, bold=True))
-                blocks.append(Column([self._program_row(p) for p in items],
-                                     align="stretch", gap=2))
+            blocks += self._listing(blocks, size)
             if self.route.get("_capped"):
                 # Say so rather than just stopping: a listing that ends at a
                 # round number looks like the provider ran out of guide data.
                 blocks.append(Text(
                     _("Showing the next %d programs.") % len(programs),
                     size=15, color=theme.SUBTLE_FG))
-        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=14),
+        # align="stretch", or the rows take their NATURAL width and the two
+        # flex columns inside them have nothing to expand into: a 747px
+        # content area drew a 479px row and ellipsized both the programme
+        # title and the episode title with 268px of empty space to the right
+        # of them.
+        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=self.GAP,
+                              align="stretch"),
                        id="channel", flex=1,
-                       offset=self.parked_scroll("channel"))
+                       offset=self.parked_scroll("channel"),
+                       on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
+                           "channel", off, mx))
+
+    def _listing(self, head_blocks, size):
+        """The day sections, with the off-screen ones as exact-height gaps.
+
+        Same windowing ``grid_of`` and the guide do -- a screen of slack
+        either side of the viewport, so a scroll lands on rows that are
+        already drawn -- and it is what lets the fetch be a thousand
+        programmes rather than two hundred: the scene stays the size of the
+        window instead of the size of the guide.
+
+        **Day granularity, and the headings always drawn.** A heading is one
+        node and there are at most a couple of dozen; drawing them all is
+        cheaper than the arithmetic to place a heading-shaped hole, and it
+        means only the row blocks -- whose height is exactly
+        ``n * ROW_H + (n - 1) * ROW_GAP`` -- need a measured stand-in. A day
+        materializes whole, which for half-hour listings is ~48 rows, about
+        two screens. A provider slicing five-minute segments would want this
+        windowed per row as well.
+        """
+        from ...mpvtk.layout import measure
+
+        # Content-space y of the first heading. Measured rather than assumed:
+        # the header block's height depends on whether the channel name wrapped
+        # and on whether its logo has arrived yet, and both change under us.
+        y = float(chrome.CONTENT_PAD)
+        for block in head_blocks:
+            y += measure(block)[1] + self.GAP
+        offset = max(0.0, self.ctx.art.scroll.offset("channel"))
+        view = max(240.0, float(size[1]))
+        out = []
+        for day, items in self._groups():
+            heading = Text(day, size=20, bold=True)
+            out.append(heading)
+            y += measure(heading)[1] + self.GAP
+            h = len(items) * self.ROW_H + (len(items) - 1) * self.ROW_GAP
+            if y + h >= offset - view and y <= offset + 2 * view:
+                out.append(Column([self._program_row(p) for p in items],
+                                  align="stretch", gap=self.ROW_GAP))
+            else:
+                out.append(Spacer(h=h))
+            y += h + self.GAP
+        return out
 
     def _header(self, size):
         """Logo, name and number, plus what is on right now.
