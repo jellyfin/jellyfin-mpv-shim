@@ -35,9 +35,18 @@ def busy():
 
 def error(msg):
     """A terminal message where content would be — a failed load, an empty
-    search box. Not a dialog: the user is already looking here."""
+    search box. Not a dialog: the user is already looking here.
+
+    Top-aligned, because it stands in for *content* and content starts at
+    the top. ``direction="row"`` makes ``align`` the vertical axis, so this
+    used to read ``align="center"`` and floated the line in the middle of
+    whatever space was left — under the Live TV tab bar that put "Nothing is
+    scheduled to record." halfway down an otherwise empty screen, attached
+    to nothing. ``flex=1`` stays: the message still owns the content area,
+    it just no longer hovers in it.
+    """
     return Box([Text(msg, size=20, color=theme.SUBTLE_FG)],
-               pad=24, flex=1, align="center", direction="row")
+               pad=24, flex=1, align="start", direction="row")
 
 
 def body_width(w, pad=CONTENT_PAD):

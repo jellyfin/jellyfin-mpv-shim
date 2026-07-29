@@ -2366,6 +2366,38 @@ class ChannelListingFetch(unittest.TestCase):
         self.assertEqual(len(out["programs"]), 1)
 
 
+class EmptyStatesSitWhereContentWould(unittest.TestCase):
+    """chrome.error is direction="row", which makes align the VERTICAL axis
+    — it read align="center" and floated the line halfway down an otherwise
+    empty screen, attached to nothing."""
+
+    EMPTY = (
+        ("recordings", "Nothing has been recorded yet."),
+        ("schedule", "Nothing is scheduled to record."),
+        ("series", "No series are set to record."),
+        ("programs", "No programs are listed right now."),
+    )
+
+    def _empty(self, tab):
+        b = browser()
+        b.source.get_recordings = lambda *a, **kw: []
+        b.source.get_recording_folders = lambda *a, **kw: []
+        b.source.get_timers = lambda *a, **kw: []
+        b.source.get_series_timers = lambda *a, **kw: []
+        b.source.get_program_sections = lambda *a, **kw: []
+        open_live_tv(b, tab)
+        return build_scene(b, (1280, 720))[0]
+
+    def test_the_message_sits_under_the_tab_bar(self):
+        for tab, text in self.EMPTY:
+            with self.subTest(tab=tab):
+                nodes = self._empty(tab)
+                node = next(n for n in nodes if n.get("text") == text)
+                # The tab bar ends around y=110; centred it landed near 380.
+                self.assertLess(node["y"], 200,
+                                "%r floated at y=%s" % (text, node["y"]))
+
+
 class GuideChannelColumn(unittest.TestCase):
     """It was ellipsizing names it had the room to draw."""
 
