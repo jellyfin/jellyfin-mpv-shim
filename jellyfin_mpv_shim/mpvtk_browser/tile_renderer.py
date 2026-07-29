@@ -371,6 +371,7 @@ class TileRenderer:
                                         itag, ps, ps, fill=True)
             img = self._request_image(key, url, (ps, ps))
             if img is not None:
+                img = self._plated(img)
                 # No lsize: this is decoded artwork, not a canvas we sized.
                 # The server preserves aspect, so a "square" request comes
                 # back e.g. 56x52 and the logical footprint is whatever the
@@ -380,6 +381,26 @@ class TileRenderer:
                 return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0),
                              w=b["lw"], h=b["lh"])
         return self._art_placeholder(size)
+    @staticmethod
+    def _plated(img):
+        """``img``, given an opaque backing if its transparency would make it
+        unreadable against the window.
+
+        An art cell is its own overlay with nothing drawn behind it, so a
+        transparent logo composites straight onto ``WINDOW_BG`` — which is
+        where the guide's channel column draws every logo it has. A tile gets
+        the same treatment by recolouring its card (see
+        ``StripStore._paint_poster``); this is the no-card version of it.
+        """
+        from ..imageutil import flatten_onto, plate_color
+
+        plate = plate_color(img, theme.rgb(theme.WINDOW_BG))
+        if plate is None:
+            return img
+        # Same corner radius _art_placeholder uses, so a plated logo and the
+        # box standing in for a missing one are the same shape.
+        return flatten_onto(img, plate, radius=px(4))
+
     @staticmethod
     def _art_placeholder(size=28):
         """Same-sized stand-in for an art cell — while it loads, when the

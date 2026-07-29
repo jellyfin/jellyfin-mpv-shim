@@ -477,6 +477,19 @@ class StripStore:
         box = [x, 0, x + g.tile_w - 1, g.tile_h - 1]
         card = theme.rgb(theme.PLACEHOLDER_BG if t.poster is None
                          else theme.CARD_BG, 255)
+        if t.poster is not None:
+            # Artwork on a transparent background is composited onto the card,
+            # so the card is what it has to read against — and a black-on-
+            # transparent channel logo does not read against a near-black one.
+            # Repainting the whole card in a contrasting neutral, rather than
+            # sliding a plate in behind just the art, keeps the tile a single
+            # shape: the silhouette, the border and the rounded corners are all
+            # still drawn once, by the code below.
+            from ..imageutil import plate_color
+
+            plate = plate_color(t.poster, card[:3])
+            if plate is not None:
+                card = tuple(plate) + (255,)
         if rounded:
             # The corners are left transparent so the window background shows
             # through — that is what gives the card its rounded silhouette.
@@ -502,6 +515,14 @@ class StripStore:
                 mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
                 ImageDraw.Draw(mask).rounded_rectangle(
                     [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                if poster.mode == "RGBA":
+                    # paste() takes ONE mask, so the art's own transparency has
+                    # to be folded into the corner clip — passing the rounded
+                    # rect alone would stamp the art opaquely over the card and
+                    # put the black back.
+                    from PIL import ImageChops
+
+                    mask = ImageChops.multiply(mask, poster.getchannel("A"))
                 img.paste(poster, (x, 0), mask)
             else:
                 if poster.size != (g.tile_w, g.tile_h):
@@ -509,7 +530,8 @@ class StripStore:
                     poster.thumbnail((g.tile_w, g.tile_h), lanczos)
                 px = x + (g.tile_w - poster.width) // 2
                 py = (g.tile_h - poster.height) // 2
-                img.paste(poster, (px, py))
+                img.paste(poster, (px, py),
+                          poster if poster.mode == "RGBA" else None)
         elif t.glyph:
             # A muted centered glyph (first initial / ♪) so blank tiles read.
             gsize = max(_px(24), g.tile_h // 4)

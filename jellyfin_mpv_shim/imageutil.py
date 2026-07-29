@@ -44,6 +44,97 @@ def apply_dark_gradient(
     return Image.alpha_composite(image, overlay)
 
 
+#: Key under which :func:`measure_transparency` parks its measurement in a
+#: decoded image's ``info`` dict. Measuring happens once, on the thumbnail
+#: worker thread; the compositors that need it run on the loop thread and on
+#: the strip pool, and neither should be scanning pixels to find out whether a
+#: logo has a transparent background.
+ALPHA_INFO = "mpvshim_alpha"
+
+
+def measure_transparency(image: "Image.Image"):
+    """Measure ``image``'s transparency and how bright its *visible* pixels are.
+
+    Returns (and records under :data:`ALPHA_INFO`) ``(clear_fraction,
+    mean_luma)``: the share of pixels that are at least half transparent, and
+    the 0-255 luma averaged over the pixels that are not. The mask matters —
+    Pillow leaves black under a PNG's transparent pixels, so an unmasked mean
+    says "dark" about every logo on a transparent background, which is the
+    exact distinction this is here to make.
+
+    ``None`` for an image without an alpha channel; there is nothing to decide.
+    """
+    if image.mode != "RGBA":
+        return None
+    alpha = image.getchannel("A")
+    total = image.width * image.height
+    if not total:
+        return None
+    clear = sum(alpha.histogram()[:128]) / total
+    # Threshold rather than use alpha directly as the mask: a weighted mean
+    # would pull the anti-aliased fringe of dark-on-transparent text towards
+    # the black underneath it.
+    opaque = alpha.point(lambda v: 255 if v >= 128 else 0)
+    from PIL import ImageStat
+
+    stat = ImageStat.Stat(image.convert("L"), mask=opaque)
+    luma = stat.mean[0] if stat.count[0] else 0.0
+    image.info[ALPHA_INFO] = (clear, luma)
+    return clear, luma
+
+
+def _luma(rgb) -> float:
+    return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
+
+
+def plate_color(image: "Image.Image", behind, light=(240, 240, 240),
+                dark=(16, 16, 18), min_contrast=48, min_clear=0.10):
+    """Colour to flatten a transparent ``image`` onto, or ``None`` to let its
+    transparency through to ``behind``.
+
+    Broadcasters ship channel logos as artwork on a transparent background,
+    and a good few of them are *black* artwork — drawn for a white page. Let
+    through onto this UI's near-black surfaces they are invisible, which is no
+    better than the solid black block they used to flatten to. So when a
+    genuinely transparent image has too little contrast against what is behind
+    it, it gets a contrasting neutral plate of its own instead.
+
+    Deliberately narrow, because plating art that does not need it is its own
+    kind of wrong: an image with no alpha channel, one whose transparency is
+    just an anti-aliased edge (``min_clear``), or one that already reads
+    against ``behind`` (``min_contrast``) is all left alone.
+    """
+    if image.mode != "RGBA":
+        return None
+    m = image.info.get(ALPHA_INFO) or measure_transparency(image)
+    if m is None:
+        return None
+    clear, luma = m
+    if clear < min_clear:
+        return None
+    if abs(luma - _luma(behind)) >= min_contrast:
+        return None
+    return light if luma < 128 else dark
+
+
+def flatten_onto(image: "Image.Image", color, radius: int = 0) -> "Image.Image":
+    """``image`` composited over an opaque ``color`` plate of the same size.
+
+    ``radius`` rounds the plate's corners (the pixels outside stay
+    transparent), so a light plate in a dark list reads as a chip rather than
+    a hard white square.
+    """
+    back = Image.new("RGBA", image.size, tuple(color) + (255,))
+    if radius > 0:
+        from PIL import ImageDraw
+
+        mask = Image.new("L", image.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle(
+            [0, 0, image.width - 1, image.height - 1], radius=radius, fill=255)
+        back.putalpha(mask)
+    return Image.alpha_composite(back, image)
+
+
 def pil_font(size, bold=False, text=None):
     """Font for a baked text block. ``text`` picks a face that covers the
     string's script — Pillow has no fallback, so a CJK title drawn with the

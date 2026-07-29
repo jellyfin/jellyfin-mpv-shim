@@ -292,13 +292,31 @@ class ThumbnailStore:
         # Annotated as the base class: open() hands back an ImageFile and
         # convert() a plain Image, and the name is reused for both.
         image: Image.Image = Image.open(BytesIO(data))
-        image = image.convert("RGB")
+        # RGB unconditionally used to be the rule here, and convert() does not
+        # composite — it simply drops the alpha channel and keeps whatever RGB
+        # was underneath, which for a transparent PNG is black. Channel logos
+        # are shipped exactly that way, so a black-on-transparent logo arrived
+        # as a solid black block. Carry the alpha instead and let the
+        # compositors decide what goes behind it; RGB is still the path for
+        # everything without transparency (every poster and backdrop), which
+        # keeps a byte per pixel off the decoded-image cache.
+        if image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info:
+            image = image.convert("RGBA")
+        else:
+            image = image.convert("RGB")
         # The checker is wrong below, not the code: PIL installs its filter
         # constants onto its own module with setattr() at import time, so they
         # exist at runtime and are invisible to any static analysis. Spelling
         # it Resampling.LANCZOS instead would require Pillow >= 9.1, which this
         # project does not pin.
         image.thumbnail(box, Image.LANCZOS)  # type: ignore[attr-defined]
+        if image.mode == "RGBA":
+            # Measured here, on the worker, because the answer is a property of
+            # the artwork and the callers that need it are the loop thread and
+            # the strip pool. See imageutil.plate_color.
+            from ..imageutil import measure_transparency
+
+            measure_transparency(image)
         return image
 
     def _load_remote(self, key, url):
