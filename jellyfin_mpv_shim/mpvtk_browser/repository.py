@@ -136,6 +136,12 @@ PROGRAM_FIELDS = ",ChannelInfo,ChannelImage"
 #: pages at 500 and gets away with it only because it splits nothing.
 CHANNEL_PAGE = 100
 
+#: Programmes the channel page asks for. jellyfin-web asks for the whole
+#: guide, which for a channel with a fortnight of listings is several hundred
+#: rows in one scene; this bounds it and the page says so when it bites,
+#: rather than appearing to run out of programmes early.
+CHANNEL_LISTING = 200
+
 
 class ServerConn:
     """A single browse-only connection to one Jellyfin server."""
@@ -694,6 +700,45 @@ class LibrarySource:
             enable_image_types="Primary",
             image_type_limit=1) or {}
         return result.get("Items", [])
+
+    def get_channel_listing(self, server_uuid, channel_id,
+                            limit=CHANNEL_LISTING):
+        """A channel and everything still to come on it, for the channel page.
+
+        jellyfin-web's ``renderChannelGuide``: ``HasAired=False`` sorted by
+        start, which is "has not finished yet" rather than "has not started"
+        — so the first entry is what is on right now, not what is on next.
+
+        Returns ``{"channel": dto-or-None, "programs": [...], "capped":
+        bool}``. Both halves in one call because they are one screen and the
+        page would otherwise draw twice, half-empty.
+
+        Two departures from jellyfin-web, which asks for neither a limit nor
+        images: ``limit`` bounds a fortnight of a busy channel to something a
+        single scene can hold (``capped`` says so, so the page can admit it
+        rather than silently stopping), and images are asked for because a
+        row that is clicked seeds the program page with this DTO.
+        """
+        api = self._conn(server_uuid).api
+        channel = None
+        try:
+            channel = api.get_item(channel_id, fields=DETAIL_FIELDS)
+        except Exception:
+            # Not fatal: the tile that linked here seeded the header, and
+            # what the page is actually for is the listing below it.
+            log.debug("channel %s unavailable", channel_id, exc_info=True)
+        result = api.get_programs(
+            channel_ids=[channel_id],
+            has_aired=False,
+            sort_by="StartDate",
+            limit=limit,
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=False) or {}
+        programs = result.get("Items", [])
+        return {"channel": channel, "programs": programs,
+                "capped": len(programs) >= limit}
 
     def get_programs(self, server_uuid, limit=24, **filters):
         """Upcoming guide entries for the Programs screen's category rows.

@@ -293,7 +293,8 @@ class LiveTvPage(Page):
             on_scroll=lambda off, mx: art.scroll.on_scroll(
                 "livetv-guide", off, mx),
             categories=self._categories(),
-            on_context=art.tiles.on_context)
+            on_context=art.tiles.on_context,
+            on_channel=self._open_channel)
         return Column([head, grid], flex=1, align="stretch", gap=6)
 
     def _guide_controls(self, data, cells):
@@ -465,21 +466,9 @@ class LiveTvPage(Page):
 
     @staticmethod
     def _group_by_day(timers):
-        """``[(day-label, [timer, ...])]`` in start order.
-
-        jellyfin-web's ``getTimersHtml`` grouping. A flat list of upcoming
-        recordings is unreadable past about a day — the same programme name
-        appears three times and nothing says which showing is which.
-        """
-        groups: list = []
-        for timer in timers:
-            start = live_tv.parse_time(timer.get("StartDate"))
-            label = live_tv.fmt_day(start) if start else _("Scheduled")
-            if groups and groups[-1][0] == label:
-                groups[-1][1].append(timer)
-            else:
-                groups.append((label, [timer]))
-        return groups
+        """Day grouping — see ``live_tv.group_by_day``, which the channel
+        page shares."""
+        return live_tv.group_by_day(timers)
 
     # -- Series ------------------------------------------------------------
 
@@ -519,6 +508,17 @@ class LiveTvPage(Page):
             # The list DTO, so the page can draw immediately and refine when
             # the authoritative fetch (with the live timer state) lands.
             "_seed": program,
+        })
+
+    def _open_channel(self, channel):
+        """Open the guide's channel column, which is a link in jellyfin-web
+        too (``guide-channelHeaderCell``, ``data-action="link"``) — not a
+        tune-in button."""
+        self.ctx.nav.navigate({
+            "kind": "channel", "server": self._srv(),
+            "item_id": channel.get("Id"),
+            "title": channel.get("Name", ""),
+            "_seed": channel,
         })
 
     def _open_timer(self, timer):
@@ -749,3 +749,184 @@ class ProgramPage(Page):
         self.route.pop("_data", None)
         self.route["_loading"] = False
         self.ctx.nav.reload(self.route)
+
+
+class ChannelPage(Page):
+    """One channel: its logo and number, and everything still to come on it.
+
+    jellyfin-web's item detail page for a ``TvChannel``, whose entire content
+    is ``renderChannelGuide`` — the channel's upcoming programmes grouped by
+    day. Reaching it is the point: a channel tile used to tune straight in,
+    so there was no way at all to see what was on later without going back
+    out to the guide and finding the row again. Clicking now opens this and
+    Watch is the first button on it, which is the split every jellyfin client
+    makes (the tile's context menu still tunes in directly, for when that is
+    all you wanted).
+
+    A page rather than a dialog for the same reason ``ProgramPage`` is one:
+    Watch lives here, and a modal that starts playback has to tear itself
+    down over a window it no longer owns.
+    """
+
+    kind = "channel"
+
+    #: Logical height of one programme row, and of the logo in the header.
+    ROW_H = 34
+    LOGO = 84
+
+    def load(self, epoch):
+        source, srv = self.ctx.source, self._srv()
+        channel_id = self.route["item_id"]
+        # Draw the header from the tile that was clicked while the listing
+        # loads — same seeding as ProgramPage. The fetch replaces it, because
+        # a route can be reloaded (a favourite toggled) long after the tile
+        # that seeded it stopped being true.
+        if self.route.get("_channel") is None and self.route.get("_seed"):
+            self.route["_channel"] = self.route["_seed"]
+        self.route_async(
+            lambda: source.get_channel_listing(srv, channel_id),
+            self._done, epoch)
+
+    def _done(self, data):
+        data = data or {}
+        if data.get("channel"):
+            self.route["_channel"] = data["channel"]
+        self.route["_data"] = data.get("programs") or []
+        self.route["_capped"] = bool(data.get("capped"))
+        self.route["_loading"] = False
+
+    def _srv(self):
+        return self.route.get("server") or self.ctx.server
+
+    def _channel(self):
+        return self.route.get("_channel") or {}
+
+    # -- render ------------------------------------------------------------
+
+    def render(self, size):
+        channel = self.route.get("_channel")
+        programs = self.route.get("_data")
+        if channel is None and programs is None:
+            return chrome.busy()
+        blocks = [self._header(size), self._buttons()]
+        if programs is None:
+            blocks.append(chrome.busy())
+        elif not programs:
+            blocks.append(chrome.error(
+                _("No guide data is available for this channel.")))
+        else:
+            for day, items in live_tv.group_by_day(programs):
+                blocks.append(Text(day, size=20, bold=True))
+                blocks.append(Column([self._program_row(p) for p in items],
+                                     align="stretch", gap=2))
+            if self.route.get("_capped"):
+                # Say so rather than just stopping: a listing that ends at a
+                # round number looks like the provider ran out of guide data.
+                blocks.append(Text(
+                    _("Showing the next %d programs.") % len(programs),
+                    size=15, color=theme.SUBTLE_FG))
+        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=14),
+                       id="channel", flex=1,
+                       offset=self.parked_scroll("channel"))
+
+    def _header(self, size):
+        """Logo, name and number, plus what is on right now.
+
+        The logo comes through ``art_cell`` — the same path the guide's
+        channel column uses, so a channel that draws there draws here. A
+        channel has no backdrop to bake a heading into (``backdrop_node``
+        would return its placeholder for every one of them), so the heading
+        is ordinary text.
+        """
+        channel = self._channel()
+        tiles = self.ctx.art.tiles
+        number = live_tv.channel_number(channel)
+        lines = []
+        if number:
+            lines.append(Text(number, size=16, color=theme.SUBTLE_FG))
+        lines.append(Text(channel.get("Name") or _("Channel"), size=28,
+                          bold=True, wrap=True, w=tiles.body_w(size[0])
+                          - self.LOGO - 16))
+        now = self._now_playing_program()
+        if now is not None:
+            lines.append(Text("%s   ·   %s" % (live_tv.program_title(now),
+                                               live_tv.air_time_label(now)),
+                              size=17, color=theme.ACCENT))
+        return Row([tiles.art_cell(channel, size=self.LOGO),
+                    Column(lines, gap=4)], gap=16, align="center")
+
+    def _now_playing_program(self):
+        """What is on right now — but only while the listing is still loading.
+
+        Once it lands, its first row *is* what is on air (the fetch asks for
+        ``HasAired=False``, which keeps whatever is mid-broadcast) and that
+        row is drawn in the accent colour, so a header line saying the same
+        thing is noise. This covers the moment before that: the tile that
+        seeded the page carries ``CurrentProgram``, which is the only place
+        it exists — the ordinary item endpoint the channel is re-fetched
+        from does not populate it.
+        """
+        if self.route.get("_data") is not None:
+            return None
+        current = (self._channel().get("CurrentProgram") or {})
+        return current if current and live_tv.is_airing(current) else None
+
+    def _buttons(self):
+        actions = self.ctx.actions
+        channel = self._channel()
+        server = self._srv()
+        channel_id = channel.get("Id") or self.route.get("item_id")
+        btns = [controls.action_btn(
+            "play_arrow", _("Watch"), "ch-watch",
+            lambda: actions.play_list([channel_id], server, 0),
+            primary=True, size=18)]
+        if channel.get("Id"):
+            # Favourites float to the top of both the guide and the channel
+            # list (live_tv.channel_sort_kwargs), so this is the one piece of
+            # user data a channel has that does anything.
+            #
+            # The live dict, NOT a copy: toggle_favorite writes the new state
+            # into the item it is given and repaints, and a copy would leave
+            # this page showing the old label until something reloaded it.
+            fav = bool((channel.get("UserData") or {}).get("IsFavorite"))
+            btns.append(controls.action_btn(
+                "favorite",
+                _("Remove from Favorites") if fav else _("Add to Favorites"),
+                "ch-fav", lambda: actions.toggle_favorite(channel, server),
+                on=fav, size=18))
+        return Row(btns, gap=10)
+
+    def _program_row(self, program):
+        """One listing row: when it is on, whether it is being recorded, and
+        what it is. Clicking opens the program page, which is where Record
+        lives — the same destination a guide cell has."""
+        airing = live_tv.is_airing(program)
+        state = live_tv.timer_state(program)
+        cells = [
+            Text(live_tv.air_time_label(program), size=16,
+                 color=theme.ACCENT if airing else theme.SUBTLE_FG, w=130),
+            Icon(live_tv.STATE_ICONS[state], 16,
+                 color=(theme.SUBTLE_FG if state == "series_inactive"
+                        else theme.FAV_RED)) if state else Spacer(w=16, h=1),
+            Text(live_tv.program_title(program), size=17, flex=1),
+        ]
+        subtitle = program.get("EpisodeTitle")
+        if subtitle:
+            cells.append(Text(subtitle, size=15, color=theme.SUBTLE_FG,
+                              flex=1))
+        return Row(cells, id="ch-pg-" + str(program.get("Id") or ""),
+                   h=self.ROW_H, gap=12, pad=(8, 0), align="center",
+                   radius=4, hover={"fill": theme.BUTTON_BG},
+                   on_click=lambda p=program: self._open_program(p),
+                   on_context=(lambda x, y, p=program:
+                               self.ctx.art.tiles.on_context(p, x, y)))
+
+    def _open_program(self, program):
+        self.ctx.nav.navigate({
+            "kind": "program", "server": self._srv(),
+            "item_id": program.get("Id"),
+            "channel_id": program.get("ChannelId")
+            or self.route.get("item_id"),
+            "title": program.get("Name", ""),
+            "_seed": program,
+        })

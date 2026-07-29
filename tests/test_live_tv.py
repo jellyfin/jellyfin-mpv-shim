@@ -826,12 +826,13 @@ class Screens(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertTrue(groups[0][0])
 
-    def test_a_channel_tile_plays_it(self):
+    def test_a_channel_tile_opens_the_channel_page(self):
         plays = []
         self.b.controller.play_list = lambda ids_, srv, i, **kw: plays.append(
             list(ids_))
         self.b._open_item({"Id": "c1", "Type": "TvChannel", "Name": "One"})
-        self.assertEqual(plays, [["c1"]])
+        self.assertEqual(self.b.route["kind"], "channel")
+        self.assertEqual(plays, [])
 
     def test_a_guide_cell_opens_the_program_page(self):
         page = open_live_tv(self.b, "guide")
@@ -1778,6 +1779,144 @@ class HomeSection(unittest.TestCase):
         self.b.navigate({"kind": "home", "server": "srv1"})
         nodes, _h = build_scene(self.b, (1280, 720))
         self.assertNotIn("home-lt-guide", ids(nodes))
+
+
+class ChannelScreen(unittest.TestCase):
+    """The channel page: what a channel tile opens now instead of tuning in.
+
+    jellyfin-web's item detail page for a TvChannel — a link, not a play
+    button, whose whole content is that channel's upcoming programmes.
+    """
+
+    def setUp(self):
+        self.b = browser()
+
+    def _open(self, listing=None, seed=None):
+        if listing is not None:
+            self.b.source.get_channel_listing = (
+                lambda srv, cid, limit=200: listing)
+        route = {"kind": "channel", "server": "srv1", "item_id": "c1",
+                 "title": "Channel 1"}
+        if seed is not None:
+            route["_seed"] = seed
+        self.b.navigate(route)
+        return self.b._page_for(self.b.route)
+
+    def _nodes(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return nodes
+
+    def _texts(self):
+        return [n.get("text") for n in self._nodes() if n.get("text")]
+
+    def test_it_renders_the_channel_and_a_watch_button(self):
+        self._open()
+        found = ids(self._nodes())
+        self.assertIn("ch-watch", found)
+        self.assertIn("ch-fav", found)
+        self.assertIn("Channel 1", self._texts())
+
+    def test_it_lists_the_upcoming_programmes(self):
+        self._open()
+        self.assertIn("Program 0", self._texts())
+        self.assertIn("Program 2", self._texts())
+
+    def test_watch_tunes_the_channel(self):
+        """Playing directly is still one click — it just is not the ONLY
+        thing the tile can do any more."""
+        plays = []
+        self.b.controller.play_list = lambda ids_, srv, i, **kw: plays.append(
+            list(ids_))
+        page = self._open()
+        page._buttons().children[0].on_click()
+        self.assertEqual(plays, [["c1"]])
+
+    def test_favoriting_flips_the_button_on_the_page(self):
+        """toggle_favorite writes into the item it is handed, so the page has
+        to hand it the live dict — a copy left the old label up until
+        something else reloaded the route."""
+        page = self._open()
+        page._buttons().children[1].on_click()
+        self.assertIn("Remove from Favorites", self._texts())
+
+    def test_a_listing_row_opens_the_program_page(self):
+        page = self._open()
+        page._program_row(page.route["_data"][1]).on_click()
+        self.assertEqual(self.b.route["kind"], "program")
+        self.assertEqual(self.b.route["item_id"], "pr2")
+
+    def test_a_listing_row_carries_the_channel_for_watch(self):
+        """The program page's Watch tunes ChannelId; guide data that omits it
+        would leave the button off entirely."""
+        page = self._open()
+        row = dict(page.route["_data"][1])
+        row.pop("ChannelId")
+        page._program_row(row).on_click()
+        self.assertEqual(self.b.route["channel_id"], "c1")
+
+    def test_the_programmes_are_grouped_by_day(self):
+        page = self._open()
+        groups = live_tv.group_by_day(page.route["_data"])
+        self.assertTrue(groups)
+        self.assertTrue(all(label for label, _items in groups))
+
+    def test_the_seed_draws_before_the_fetch_lands(self):
+        """Clicking a channel tile must not show a spinner for a channel
+        whose DTO the caller already had."""
+        from tests._shell_harness import _NeverPool
+
+        self.b._pool = _NeverPool()
+        self._open(seed={"Id": "c1", "Name": "Seeded", "Type": "TvChannel"})
+        self.assertIn("Seeded", self._texts())
+
+    def test_the_fetch_replaces_the_seed(self):
+        """A route outlives the tile that seeded it — a favourite toggled on
+        the page would otherwise redraw from a stale DTO forever."""
+        page = self._open(seed={"Id": "c1", "Name": "Seeded",
+                                "Type": "TvChannel"})
+        self.assertEqual(page.route["_channel"]["Name"], "Channel 1")
+
+    def test_an_empty_listing_says_so(self):
+        self._open({"channel": {"Id": "c1", "Name": "Channel 1",
+                                "Type": "TvChannel"},
+                    "programs": [], "capped": False})
+        self.assertIn("ch-watch", ids(self._nodes()))
+        self.assertTrue(any("No guide data" in t for t in self._texts()))
+
+    def test_a_capped_listing_admits_it(self):
+        """A listing that just stops at a round number reads as the provider
+        having run out of guide data."""
+        self._open({"channel": {"Id": "c1", "Name": "Channel 1",
+                                "Type": "TvChannel"},
+                    "programs": [FakeSource._program(0, -5)], "capped": True})
+        self.assertTrue(any("Showing the next" in t for t in self._texts()))
+
+    def test_the_guide_channel_column_opens_it(self):
+        """jellyfin-web's guide-channelHeaderCell is data-action="link" too."""
+        page = open_live_tv(self.b, "guide")
+        page._open_channel({"Id": "c7", "Name": "Seven"})
+        self.assertEqual(self.b.route["kind"], "channel")
+        self.assertEqual(self.b.route["item_id"], "c7")
+
+    def test_the_guide_channel_cells_are_clickable(self):
+        open_live_tv(self.b, "guide")
+        self.assertIn("guide-ch-c1", ids(self._nodes()))
+
+
+class ChannelNumber(unittest.TestCase):
+    """Two endpoints, two spellings — the page reaches a channel by id and
+    sees the one the tile that linked to it did not."""
+
+    def test_the_channel_list_spelling(self):
+        self.assertEqual(live_tv.channel_number({"Number": "101"}), "101")
+
+    def test_the_item_endpoint_spelling(self):
+        self.assertEqual(live_tv.channel_number({"ChannelNumber": "101"}),
+                         "101")
+
+    def test_no_number_is_empty_not_none(self):
+        self.assertEqual(live_tv.channel_number({}), "")
+        self.assertEqual(live_tv.channel_number({"Number": "  "}), "")
 
 
 if __name__ == "__main__":

@@ -588,3 +588,42 @@ def program_title(item):
 def program_subtitle(item):
     """The second line for a program: its episode title, else its channel."""
     return item.get("EpisodeTitle") or item.get("ChannelName") or ""
+
+
+def group_by_day(items, fallback=None):
+    """``[(day-label, [item, ...])]`` in start order.
+
+    jellyfin-web's ``getTimersHtml`` grouping, which its channel listing
+    (``renderProgramsForChannel``) repeats verbatim: a flat list of upcoming
+    entries is unreadable past about a day — the same programme name appears
+    three times and nothing says which showing is which.
+
+    Consecutive runs, not a dict: the caller's list is already in start
+    order and that order is the grouping. Bucketing by label would put a
+    channel's Thursday showings under Wednesday's heading if the list ever
+    came back unsorted, which is the failure that looks like data loss.
+    """
+    fallback = fallback or _("Scheduled")
+    groups: list = []
+    for item in items:
+        start = parse_time(item.get("StartDate"))
+        label = fmt_day(start) if start else fallback
+        if groups and groups[-1][0] == label:
+            groups[-1][1].append(item)
+        else:
+            groups.append((label, [item]))
+    return groups
+
+
+def channel_number(channel):
+    """A channel's number as a display string, or "".
+
+    Two spellings: ``LiveTv/Channels`` answers with ``Number`` and the
+    ordinary item endpoint with ``ChannelNumber``, so a page that reaches a
+    channel by id sees the other one from the tile that linked to it.
+    """
+    for key in ("Number", "ChannelNumber"):
+        value = channel.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""

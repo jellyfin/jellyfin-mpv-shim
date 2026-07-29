@@ -1133,12 +1133,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="program",
                                channel_id=item.get("ChannelId"), _seed=item))
         elif t in LIVE_TYPES:
-            # Straight to playback: a live channel has no detail page to open
-            # and nothing to resume. Falling back to the item's own id covers
-            # a channel whose ChannelInfo fields are missing, which then
-            # fails as a normal unplayable item rather than silently doing
-            # nothing.
-            self._play_list([item.get("ChannelId") or item.get("Id")], server)
+            # A channel page, not immediate playback — the same split
+            # jellyfin-web makes (its channel card is data-action="link",
+            # and a TvChannel routes to the item details page, whose whole
+            # content is that channel's upcoming programmes). Tuning in used
+            # to be the ONLY thing a channel tile could do, which left no way
+            # to see what was on later without going back to the guide. Watch
+            # is the first button on the page, and the tile's context menu
+            # still tunes straight in.
+            #
+            # ChannelId first: a channel's own id is in Id, but LIVE_TYPES
+            # also holds Program, and for one of those the channel is what
+            # this page would be about.
+            self.navigate(dict(base, kind="channel",
+                               item_id=item.get("ChannelId") or item.get("Id"),
+                               _seed=item))
         elif item.get("CollectionType") == "music":
             self.navigate(dict(base, kind="music", parent_id=item.get("Id")))
         elif t in SERIES_TYPES:

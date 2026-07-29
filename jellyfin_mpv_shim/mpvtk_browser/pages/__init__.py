@@ -19,7 +19,7 @@ from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
 from .playlist import PlaylistPage
 from .queue_edit import PlaylistEditPage, QueuePage
 from .home import HomePage
-from .livetv import LiveTvPage, ProgramPage
+from .livetv import ChannelPage, LiveTvPage, ProgramPage
 from .search import SearchPage
 from .season import SeasonPage
 from .series import SeriesPage
@@ -38,6 +38,7 @@ PAGES = {
     PersonPage.kind: PersonPage,
     HomePage.kind: HomePage,
     LiveTvPage.kind: LiveTvPage,
+    ChannelPage.kind: ChannelPage,
     ProgramPage.kind: ProgramPage,
     SearchPage.kind: SearchPage,
     SeasonPage.kind: SeasonPage,
