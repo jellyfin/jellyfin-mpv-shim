@@ -26,7 +26,15 @@ from . import live_tv, theme
 from .components import chrome
 
 #: Width of the fixed channel column.
-CHANNEL_W = 168
+#:
+#: 30% wider than it was, because it was ellipsizing names it had room for:
+#: at 168 the label got 114px after the logo and the padding, and anything
+#: past about "Channel 4 +1" was cut — "Sky Sports Main Event" needs 142.
+#: It costs the grid nothing. The window is a whole number of 30-minute
+#: cells capped at MAX_CELLS, so what the grid does with the extra 50px is
+#: make each cell 5-7px narrower, not drop one: the count is unchanged from
+#: 800px up (see live_tv.cells_for_width, floor MIN_CELL_W = 120).
+CHANNEL_W = 218
 
 #: Height of one channel row, and the gap between rows/cells.
 ROW_H = 62
@@ -154,8 +162,12 @@ def _cell(program, width, prefs, airing, on_click, categories=(),
         width)
 
 
-def _channel_cell(channel, tiles):
+def _channel_cell(channel, tiles, on_channel=None, on_context=None):
     """The fixed left column: logo, number, name.
+
+    Clickable, like jellyfin-web's ``guide-channelHeaderCell`` — which is a
+    button with ``data-action="link"``, i.e. it opens the channel rather than
+    tuning to it. Same destination the channel grid's tiles have.
 
     Only ever called for a row inside the virtual window. That is not an
     optimisation: an art cell composites a bitmap into the strip cache as it
@@ -163,12 +175,20 @@ def _channel_cell(channel, tiles):
     the rows actually on screen — the trap ``track_list`` documents.
     """
     art = tiles.art_cell(channel, size=LOGO)
-    number = str(channel.get("Number") or "").strip()
+    number = live_tv.channel_number(channel)
     label = [Text(channel.get("Name") or "", size=14)]
     if number:
         label.insert(0, Text(number, size=12, color=theme.SUBTLE_FG))
     return Row([art, Column(label, gap=1)], w=CHANNEL_W, h=ROW_H, gap=8,
-               pad=(6, 6), align="center")
+               pad=(6, 6), align="center",
+               id=("guide-ch-" + str(channel.get("Id") or "")
+                   if on_channel else None),
+               radius=4,
+               hover={"fill": theme.BUTTON_BG} if on_channel else None,
+               on_click=(None if on_channel is None
+                         else (lambda c=channel: on_channel(c))),
+               on_context=(None if on_context is None
+                           else (lambda x, y, c=channel: on_context(c, x, y))))
 
 
 def time_header(start, end, width):
@@ -198,7 +218,7 @@ def time_header(start, end, width):
 
 def guide_grid(channels, programs_by_channel, start, end, size, prefs, tiles,
                scroll, scroll_id, on_program, offset=None, on_scroll=None,
-               categories=(), on_context=None):
+               categories=(), on_context=None, on_channel=None):
     """The whole grid: time header plus one row per channel.
 
     ``programs_by_channel`` maps channel id -> that channel's programmes;
@@ -242,7 +262,8 @@ def guide_grid(channels, programs_by_channel, start, end, size, prefs, tiles,
             continue
         programs = programs_by_channel.get(channel.get("Id")) or []
         segments = live_tv.row_segments(programs, start, end, grid_w)
-        cells = [_channel_cell(channel, tiles), Spacer(w=GAP)]
+        cells = [_channel_cell(channel, tiles, on_channel, on_context),
+                 Spacer(w=GAP)]
         for program, seg_w in segments:
             if seg_w <= 0:
                 continue

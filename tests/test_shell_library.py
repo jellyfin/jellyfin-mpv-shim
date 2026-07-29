@@ -751,9 +751,13 @@ class TestLiveTvActivation(unittest.TestCase):
                            "ChannelId": "c1"})
         self.assertEqual(self.b.route.get("channel_id"), "c1")
 
-    def test_channel_plays_itself(self):
+    def test_channel_opens_its_page(self):
+        """It used to tune in on the click, which left no way to see what was
+        on the channel later. jellyfin-web's channel card is a link too."""
         self.b._open_item({"Id": "c1", "Name": "BBC One", "Type": "TvChannel"})
-        self.assertEqual(self.plays, [["c1"]])
+        self.assertEqual(self.b.route.get("kind"), "channel")
+        self.assertEqual(self.b.route.get("item_id"), "c1")
+        self.assertEqual(self.plays, [], "a channel tile started playback")
 
     def test_a_live_tv_library_opens_the_live_tv_screen(self):
         # Not a grid of its children: browsing channels as a grid loses the

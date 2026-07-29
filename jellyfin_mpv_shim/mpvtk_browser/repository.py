@@ -136,6 +136,16 @@ PROGRAM_FIELDS = ",ChannelInfo,ChannelImage"
 #: pages at 500 and gets away with it only because it splits nothing.
 CHANNEL_PAGE = 100
 
+#: Programmes the channel page asks for. jellyfin-web asks for the whole
+#: guide with no limit at all, which it can afford because a browser drops
+#: off-screen rows itself; this was 200 while the page built every row into
+#: one scene. It windows now (``ChannelPage``), so the ceiling is about the
+#: response rather than the render: a fortnight of half-hour listings is
+#: ~670 rows and two weeks is as deep as guide data usually goes. A backstop
+#: rather than a budget -- the page still says so when it bites, so a
+#: provider with more does not look like it has less.
+CHANNEL_LISTING = 1000
+
 
 class ServerConn:
     """A single browse-only connection to one Jellyfin server."""
@@ -694,6 +704,51 @@ class LibrarySource:
             enable_image_types="Primary",
             image_type_limit=1) or {}
         return result.get("Items", [])
+
+    def get_channel_listing(self, server_uuid, channel_id,
+                            limit=CHANNEL_LISTING):
+        """A channel and everything still to come on it, for the channel page.
+
+        jellyfin-web's ``renderChannelGuide``: ``HasAired=False`` sorted by
+        start, which is "has not finished yet" rather than "has not started"
+        — so the first entry is what is on right now, not what is on next.
+
+        Returns ``{"channel": dto-or-None, "programs": [...], "capped":
+        bool}``. Both halves in one call because they are one screen and the
+        page would otherwise draw twice, half-empty.
+
+        One departure from jellyfin-web: ``limit``, a backstop rather than a
+        budget now that the page windows its rows (``capped`` says so, so a
+        provider with a deeper guide does not look like it has a shallower
+        one).
+
+        **No image fields**, which is jellyfin-web's call here too
+        (``EnableImages: false``) and the same one ``get_guide`` makes for
+        the same reason: these rows are text. ``ChannelImage`` in particular
+        costs a channel lookup per programme -- across a thousand of them --
+        for a tag nothing on this screen draws. A row that is clicked still
+        seeds the program page, which re-reads the authoritative DTO anyway
+        and already draws its heading as text while artwork is absent.
+        """
+        api = self._conn(server_uuid).api
+        channel = None
+        try:
+            channel = api.get_item(channel_id, fields=DETAIL_FIELDS)
+        except Exception:
+            # Not fatal: the tile that linked here seeded the header, and
+            # what the page is actually for is the listing below it.
+            log.debug("channel %s unavailable", channel_id, exc_info=True)
+        result = api.get_programs(
+            channel_ids=[channel_id],
+            has_aired=False,
+            sort_by="StartDate",
+            limit=limit,
+            fields=LIST_FIELDS + ",ChannelInfo",
+            enable_user_data=False,
+            enable_total_record_count=False) or {}
+        programs = result.get("Items", [])
+        return {"channel": channel, "programs": programs,
+                "capped": len(programs) >= limit}
 
     def get_programs(self, server_uuid, limit=24, **filters):
         """Upcoming guide entries for the Programs screen's category rows.

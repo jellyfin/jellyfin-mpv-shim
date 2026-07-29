@@ -74,10 +74,21 @@ class LiveTvPage(Page):
         source, srv = self.ctx.source, self._srv()
         cats = self._categories()
 
+        favorites = bool(self.route.get("_fav_only"))
+        # Re-read everything the list currently holds, not just the first
+        # page. This tab pages in on scroll, so a background refresh (see
+        # MpvtkBrowser.refresh_live_tv) that asked for one page would drop
+        # every page after it out from under a scroll already past them —
+        # the renderer clamps to the shorter content and the list jumps to
+        # the top. max(), because the initial load has nothing yet.
+        have = len(self.route.get("_data") or ())
+        limit = max(CHANNEL_PAGE, have)
+
         def work():
             prefs = source.get_live_tv_prefs(srv)
-            items, total = source.get_channels(srv, prefs=prefs,
-                                               categories=cats)
+            items, total = source.get_channels(srv, prefs=prefs, limit=limit,
+                                               categories=cats,
+                                               favorites_only=favorites)
             return {"prefs": prefs, "items": items, "total": total}
 
         def done(data):
@@ -293,7 +304,8 @@ class LiveTvPage(Page):
             on_scroll=lambda off, mx: art.scroll.on_scroll(
                 "livetv-guide", off, mx),
             categories=self._categories(),
-            on_context=art.tiles.on_context)
+            on_context=art.tiles.on_context,
+            on_channel=self._open_channel)
         return Column([head, grid], flex=1, align="stretch", gap=6)
 
     def _guide_controls(self, data, cells):
@@ -373,7 +385,12 @@ class LiveTvPage(Page):
         self._reload_tab()
 
     def _open_guide_settings(self):
-        prefs = ((self.route.get("_data") or {}).get("prefs")
+        # The guide tab keeps its prefs inside _data; every other tab's _data
+        # is a list, so this cannot index into it blindly -- the Channels tab
+        # opens the same dialog, because the categories in it filter the
+        # channel LIST as well as the grid.
+        data = self.route.get("_data")
+        prefs = ((data.get("prefs") if isinstance(data, dict) else None)
                  or self.route.get("_prefs"))
         if prefs is None:
             return          # still loading; nothing to edit yet
@@ -391,15 +408,26 @@ class LiveTvPage(Page):
 
     # -- Channels ----------------------------------------------------------
 
+    #: Height the controls row takes off the channel grid's viewport, for
+    #: the same reason GUIDE_CHROME_H exists: the grid virtualizes against
+    #: the size it is given, and counting the row twice windows the wrong
+    #: rows.
+    CHANNEL_CHROME_H = 44
+
     def _render_channels(self, size):
         items = self.route.get("_data")
+        head = self._channel_controls()
         if items is None:
-            return chrome.busy()
+            return Column([head, chrome.busy()], flex=1, align="stretch")
         if not items:
-            return chrome.error(_("No channels available."))
+            return Column([head, chrome.error(
+                _("No favorite channels yet.") if self.route.get("_fav_only")
+                else _("No channels available."))],
+                flex=1, align="stretch")
         art = self.ctx.art
-        return VScroll(
-            Column(art.tiles.grid_of(items, "ltchan", size,
+        grid_size = (size[0], max(120, size[1] - self.CHANNEL_CHROME_H))
+        return Column([head, VScroll(
+            Column(art.tiles.grid_of(items, "ltchan", grid_size,
                                      geom=art.geom_square,
                                      scroll_id="livetv-channels"),
                    pad=chrome.CONTENT_PAD, gap=GRID_GAP),
@@ -408,7 +436,44 @@ class LiveTvPage(Page):
             snap=art.geom_square.strip_h + GRID_GAP,
             snap_off=chrome.CONTENT_PAD,
             on_scroll=lambda off, mx: art.scroll.on_scroll(
-                "livetv-channels", off, mx, self._channels_scrolled))
+                "livetv-channels", off, mx, self._channels_scrolled))],
+            flex=1, align="stretch", gap=6)
+
+    def _channel_controls(self):
+        """Filter and settings above the channel grid.
+
+        jellyfin-web's Channels tab has a filter button whose dialog, in
+        ``livetvchannels`` mode, collapses to exactly one control: Favorites.
+        The settings button is ours, and it earns its place — the categories
+        in that dialog filter this list too (see ``LibrarySource``), and the
+        only door to them used to be on the Guide tab, so filtering the
+        channel grid meant leaving it.
+        """
+        favorites = bool(self.route.get("_fav_only"))
+        row = [
+            controls.action_btn("favorite", _("Favorites"), "lt-chanfav",
+                                self._toggle_channel_favorites,
+                                on=favorites, size=16),
+            controls.action_btn("settings", _("Guide Settings"), "lt-chancfg",
+                                self._open_guide_settings, size=16),
+        ]
+        total = self.route.get("_total") or 0
+        if total:
+            row.append(Text(_("%d channels") % total, size=14,
+                            color=theme.SUBTLE_FG))
+        return Row(row, gap=6, align="center", pad=(chrome.CONTENT_PAD, 0))
+
+    def _toggle_channel_favorites(self):
+        """Show only favourites, or everything again.
+
+        Session state on the route, not a saved preference: jellyfin-web's
+        filter is the same -- it lives in that tab's query object and is gone
+        when you leave. ``favorites_first`` in the guide settings is the
+        durable half of this and is a different question.
+        """
+        self.route["_fav_only"] = not self.route.get("_fav_only")
+        self.ctx.art.scroll.forget("livetv-channels")
+        self._reload_tab()
 
     def _channels_scrolled(self, offset, maximum):
         """Page the next block of channels in near the bottom. A tuner
@@ -425,8 +490,9 @@ class LiveTvPage(Page):
             self.route, offset, maximum,
             lambda r: (r.get("_data") or [], r.get("_total") or 0),
             put,
-            lambda start: source.get_channels(srv, start_index=start,
-                                              prefs=prefs, categories=cats))
+            lambda start: source.get_channels(
+                srv, start_index=start, prefs=prefs, categories=cats,
+                favorites_only=bool(self.route.get("_fav_only"))))
 
     # -- Recordings --------------------------------------------------------
 
@@ -465,21 +531,9 @@ class LiveTvPage(Page):
 
     @staticmethod
     def _group_by_day(timers):
-        """``[(day-label, [timer, ...])]`` in start order.
-
-        jellyfin-web's ``getTimersHtml`` grouping. A flat list of upcoming
-        recordings is unreadable past about a day — the same programme name
-        appears three times and nothing says which showing is which.
-        """
-        groups: list = []
-        for timer in timers:
-            start = live_tv.parse_time(timer.get("StartDate"))
-            label = live_tv.fmt_day(start) if start else _("Scheduled")
-            if groups and groups[-1][0] == label:
-                groups[-1][1].append(timer)
-            else:
-                groups.append((label, [timer]))
-        return groups
+        """Day grouping — see ``live_tv.group_by_day``, which the channel
+        page shares."""
+        return live_tv.group_by_day(timers)
 
     # -- Series ------------------------------------------------------------
 
@@ -519,6 +573,17 @@ class LiveTvPage(Page):
             # The list DTO, so the page can draw immediately and refine when
             # the authoritative fetch (with the live timer state) lands.
             "_seed": program,
+        })
+
+    def _open_channel(self, channel):
+        """Open the guide's channel column, which is a link in jellyfin-web
+        too (``guide-channelHeaderCell``, ``data-action="link"``) — not a
+        tune-in button."""
+        self.ctx.nav.navigate({
+            "kind": "channel", "server": self._srv(),
+            "item_id": channel.get("Id"),
+            "title": channel.get("Name", ""),
+            "_seed": channel,
         })
 
     def _open_timer(self, timer):
@@ -571,9 +636,18 @@ class LiveTvPage(Page):
                                    "livetv-schedule", "livetv-series")
         hit = cache.get(tab)
         if hit is not None:
+            # Paint what this tab last held, then re-read it underneath. The
+            # cache is what stops a Guide → Channels → Guide flip paying for
+            # the guide fetch twice, but Live TV data is live in a way the
+            # rest of the library is not — a recording starts, a programme
+            # ends — so serving the cache and stopping there is how the
+            # Schedule tab came back without an in-progress recording that
+            # had begun while the screen was up. The refresh is a load, not
+            # a reload: no epoch bump, no spinner over the cached data.
             route["_data"], route["_total"] = hit
             self.ctx.run.bump()
             self.ctx.invalidate()
+            self.ctx.nav.load(route)
         else:
             self.ctx.nav.reload(route)
 
@@ -749,3 +823,255 @@ class ProgramPage(Page):
         self.route.pop("_data", None)
         self.route["_loading"] = False
         self.ctx.nav.reload(self.route)
+
+
+class ChannelPage(Page):
+    """One channel: its logo and number, and everything still to come on it.
+
+    jellyfin-web's item detail page for a ``TvChannel``, whose entire content
+    is ``renderChannelGuide`` — the channel's upcoming programmes grouped by
+    day. Reaching it is the point: a channel tile used to tune straight in,
+    so there was no way at all to see what was on later without going back
+    out to the guide and finding the row again. Clicking now opens this and
+    Watch is the first button on it, which is the split every jellyfin client
+    makes (the tile's context menu still tunes in directly, for when that is
+    all you wanted).
+
+    A page rather than a dialog for the same reason ``ProgramPage`` is one:
+    Watch lives here, and a modal that starts playback has to tear itself
+    down over a window it no longer owns.
+    """
+
+    kind = "channel"
+
+    #: Logical height of one programme row, and of the logo in the header.
+    ROW_H = 34
+    LOGO = 84
+
+    #: Gaps the render uses. Named because the windowing arithmetic below
+    #: has to reproduce the Column layout exactly -- a listing whose
+    #: placeholder heights are a few px out drifts further the longer it
+    #: gets, and the rows stop lining up with where the scroll thinks it is.
+    GAP = 14
+    ROW_GAP = 2
+
+    def load(self, epoch):
+        source, srv = self.ctx.source, self._srv()
+        channel_id = self.route["item_id"]
+        # Draw the header from the tile that was clicked while the listing
+        # loads — same seeding as ProgramPage. The fetch replaces it, because
+        # a route can be reloaded (a favourite toggled) long after the tile
+        # that seeded it stopped being true.
+        if self.route.get("_channel") is None and self.route.get("_seed"):
+            self.route["_channel"] = self.route["_seed"]
+        self.route_async(
+            lambda: source.get_channel_listing(srv, channel_id),
+            self._done, epoch)
+
+    def _done(self, data):
+        data = data or {}
+        if data.get("channel"):
+            self.route["_channel"] = data["channel"]
+        self.route["_data"] = data.get("programs") or []
+        self.route["_capped"] = bool(data.get("capped"))
+        self.route["_loading"] = False
+
+    def _groups(self):
+        """The listing grouped by day, computed once per fetch.
+
+        Cached because ``render`` needs it every frame and
+        ``live_tv.parse_time`` is not cheap -- it exists precisely because
+        the shorter ways of parsing these are wrong. Re-grouping a thousand
+        programmes on every repaint was the whole of the residual cost once
+        the rows themselves were windowed. Keyed on the list's identity, so
+        a refresh that replaces it regroups and nothing else does.
+        """
+        programs = self.route.get("_data") or []
+        cached = self.route.get("_groups")
+        if cached is None or cached[0] is not programs:
+            cached = (programs, live_tv.group_by_day(programs))
+            self.route["_groups"] = cached
+        return cached[1]
+
+    def _srv(self):
+        return self.route.get("server") or self.ctx.server
+
+    def _channel(self):
+        return self.route.get("_channel") or {}
+
+    # -- render ------------------------------------------------------------
+
+    def render(self, size):
+        channel = self.route.get("_channel")
+        programs = self.route.get("_data")
+        if channel is None and programs is None:
+            return chrome.busy()
+        blocks = [self._header(size), self._buttons()]
+        if programs is None:
+            blocks.append(chrome.busy())
+        elif not programs:
+            blocks.append(chrome.error(
+                _("No guide data is available for this channel.")))
+        else:
+            blocks += self._listing(blocks, size)
+            if self.route.get("_capped"):
+                # Say so rather than just stopping: a listing that ends at a
+                # round number looks like the provider ran out of guide data.
+                blocks.append(Text(
+                    _("Showing the next %d programs.") % len(programs),
+                    size=15, color=theme.SUBTLE_FG))
+        # align="stretch", or the rows take their NATURAL width and the two
+        # flex columns inside them have nothing to expand into: a 747px
+        # content area drew a 479px row and ellipsized both the programme
+        # title and the episode title with 268px of empty space to the right
+        # of them.
+        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=self.GAP,
+                              align="stretch"),
+                       id="channel", flex=1,
+                       offset=self.parked_scroll("channel"),
+                       on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
+                           "channel", off, mx))
+
+    def _listing(self, head_blocks, size):
+        """The day sections, with the off-screen ones as exact-height gaps.
+
+        Same windowing ``grid_of`` and the guide do -- a screen of slack
+        either side of the viewport, so a scroll lands on rows that are
+        already drawn -- and it is what lets the fetch be a thousand
+        programmes rather than two hundred: the scene stays the size of the
+        window instead of the size of the guide.
+
+        **Day granularity, and the headings always drawn.** A heading is one
+        node and there are at most a couple of dozen; drawing them all is
+        cheaper than the arithmetic to place a heading-shaped hole, and it
+        means only the row blocks -- whose height is exactly
+        ``n * ROW_H + (n - 1) * ROW_GAP`` -- need a measured stand-in. A day
+        materializes whole, which for half-hour listings is ~48 rows, about
+        two screens. A provider slicing five-minute segments would want this
+        windowed per row as well.
+        """
+        from ...mpvtk.layout import measure
+
+        # Content-space y of the first heading. Measured rather than assumed:
+        # the header block's height depends on whether the channel name wrapped
+        # and on whether its logo has arrived yet, and both change under us.
+        y = float(chrome.CONTENT_PAD)
+        for block in head_blocks:
+            y += measure(block)[1] + self.GAP
+        offset = max(0.0, self.ctx.art.scroll.offset("channel"))
+        view = max(240.0, float(size[1]))
+        out = []
+        for day, items in self._groups():
+            heading = Text(day, size=20, bold=True)
+            out.append(heading)
+            y += measure(heading)[1] + self.GAP
+            h = len(items) * self.ROW_H + (len(items) - 1) * self.ROW_GAP
+            if y + h >= offset - view and y <= offset + 2 * view:
+                out.append(Column([self._program_row(p) for p in items],
+                                  align="stretch", gap=self.ROW_GAP))
+            else:
+                out.append(Spacer(h=h))
+            y += h + self.GAP
+        return out
+
+    def _header(self, size):
+        """Logo, name and number, plus what is on right now.
+
+        The logo comes through ``art_cell`` — the same path the guide's
+        channel column uses, so a channel that draws there draws here. A
+        channel has no backdrop to bake a heading into (``backdrop_node``
+        would return its placeholder for every one of them), so the heading
+        is ordinary text.
+        """
+        channel = self._channel()
+        tiles = self.ctx.art.tiles
+        number = live_tv.channel_number(channel)
+        lines = []
+        if number:
+            lines.append(Text(number, size=16, color=theme.SUBTLE_FG))
+        lines.append(Text(channel.get("Name") or _("Channel"), size=28,
+                          bold=True, wrap=True, w=tiles.body_w(size[0])
+                          - self.LOGO - 16))
+        now = self._now_playing_program()
+        if now is not None:
+            lines.append(Text("%s   ·   %s" % (live_tv.program_title(now),
+                                               live_tv.air_time_label(now)),
+                              size=17, color=theme.ACCENT))
+        return Row([tiles.art_cell(channel, size=self.LOGO),
+                    Column(lines, gap=4)], gap=16, align="center")
+
+    def _now_playing_program(self):
+        """What is on right now — but only while the listing is still loading.
+
+        Once it lands, its first row *is* what is on air (the fetch asks for
+        ``HasAired=False``, which keeps whatever is mid-broadcast) and that
+        row is drawn in the accent colour, so a header line saying the same
+        thing is noise. This covers the moment before that: the tile that
+        seeded the page carries ``CurrentProgram``, which is the only place
+        it exists — the ordinary item endpoint the channel is re-fetched
+        from does not populate it.
+        """
+        if self.route.get("_data") is not None:
+            return None
+        current = (self._channel().get("CurrentProgram") or {})
+        return current if current and live_tv.is_airing(current) else None
+
+    def _buttons(self):
+        actions = self.ctx.actions
+        channel = self._channel()
+        server = self._srv()
+        channel_id = channel.get("Id") or self.route.get("item_id")
+        btns = [controls.action_btn(
+            "play_arrow", _("Watch"), "ch-watch",
+            lambda: actions.play_list([channel_id], server, 0),
+            primary=True, size=18)]
+        if channel.get("Id"):
+            # Favourites float to the top of both the guide and the channel
+            # list (live_tv.channel_sort_kwargs), so this is the one piece of
+            # user data a channel has that does anything.
+            #
+            # The live dict, NOT a copy: toggle_favorite writes the new state
+            # into the item it is given and repaints, and a copy would leave
+            # this page showing the old label until something reloaded it.
+            fav = bool((channel.get("UserData") or {}).get("IsFavorite"))
+            btns.append(controls.action_btn(
+                "favorite",
+                _("Remove from Favorites") if fav else _("Add to Favorites"),
+                "ch-fav", lambda: actions.toggle_favorite(channel, server),
+                on=fav, size=18))
+        return Row(btns, gap=10)
+
+    def _program_row(self, program):
+        """One listing row: when it is on, whether it is being recorded, and
+        what it is. Clicking opens the program page, which is where Record
+        lives — the same destination a guide cell has."""
+        airing = live_tv.is_airing(program)
+        state = live_tv.timer_state(program)
+        cells = [
+            Text(live_tv.air_time_label(program), size=16,
+                 color=theme.ACCENT if airing else theme.SUBTLE_FG, w=130),
+            Icon(live_tv.STATE_ICONS[state], 16,
+                 color=(theme.SUBTLE_FG if state == "series_inactive"
+                        else theme.FAV_RED)) if state else Spacer(w=16, h=1),
+            Text(live_tv.program_title(program), size=17, flex=1),
+        ]
+        subtitle = program.get("EpisodeTitle")
+        if subtitle:
+            cells.append(Text(subtitle, size=15, color=theme.SUBTLE_FG,
+                              flex=1))
+        return Row(cells, id="ch-pg-" + str(program.get("Id") or ""),
+                   h=self.ROW_H, gap=12, pad=(8, 0), align="center",
+                   radius=4, hover={"fill": theme.BUTTON_BG},
+                   on_click=lambda p=program: self._open_program(p),
+                   on_context=(lambda x, y, p=program:
+                               self.ctx.art.tiles.on_context(p, x, y)))
+
+    def _open_program(self, program):
+        self.ctx.nav.navigate({
+            "kind": "program", "server": self._srv(),
+            "item_id": program.get("Id"),
+            "channel_id": program.get("ChannelId")
+            or self.route.get("item_id"),
+            "title": program.get("Name", ""),
+            "_seed": program,
+        })

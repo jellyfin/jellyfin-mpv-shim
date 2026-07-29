@@ -826,12 +826,13 @@ class Screens(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertTrue(groups[0][0])
 
-    def test_a_channel_tile_plays_it(self):
+    def test_a_channel_tile_opens_the_channel_page(self):
         plays = []
         self.b.controller.play_list = lambda ids_, srv, i, **kw: plays.append(
             list(ids_))
         self.b._open_item({"Id": "c1", "Type": "TvChannel", "Name": "One"})
-        self.assertEqual(plays, [["c1"]])
+        self.assertEqual(self.b.route["kind"], "channel")
+        self.assertEqual(plays, [])
 
     def test_a_guide_cell_opens_the_program_page(self):
         page = open_live_tv(self.b, "guide")
@@ -1778,6 +1779,664 @@ class HomeSection(unittest.TestCase):
         self.b.navigate({"kind": "home", "server": "srv1"})
         nodes, _h = build_scene(self.b, (1280, 720))
         self.assertNotIn("home-lt-guide", ids(nodes))
+
+
+class LiveTvStaysFresh(unittest.TestCase):
+    """Live TV is the one part of the library a third party changes while
+    you are looking at it: a recording starts, a programme ends, another
+    client sets a timer. Everything else is loaded once per navigation."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _count_calls(self, name):
+        calls = []
+        real = getattr(self.b.source, name)
+
+        def counted(*a, **kw):
+            calls.append(kw)
+            return real(*a, **kw)
+
+        setattr(self.b.source, name, counted)
+        return calls
+
+    def test_returning_to_a_cached_tab_re_reads_it(self):
+        """The cache still paints instantly -- it is what stops a Guide flip
+        paying for the guide fetch twice -- but it must not be the last word.
+        Serving it and stopping is how the Schedule tab came back without an
+        in-progress recording that had started while the screen was up."""
+        page = open_live_tv(self.b, "schedule")
+        calls = self._count_calls("get_recordings")
+        page._set_tab("channels")
+        page._set_tab("schedule")
+        self.assertTrue(calls, "a cached tab was served without re-reading")
+
+    def test_the_cached_data_is_shown_while_the_re_read_runs(self):
+        """No spinner over what the user is already reading."""
+        page = open_live_tv(self.b, "programs")
+        loaded = page.route["_data"]
+        page._set_tab("channels")
+        from tests._shell_harness import _NeverPool
+
+        self.b._pool = _NeverPool()      # the re-read never lands
+        page._set_tab("programs")
+        self.assertEqual(page.route["_data"], loaded)
+
+    def test_a_timer_event_refreshes_the_screen(self):
+        open_live_tv(self.b, "schedule")
+        calls = self._count_calls("get_timers")
+        self.b.refresh_live_tv()
+        self.assertTrue(calls)
+
+    def test_a_timer_event_ignores_a_screen_that_is_not_live_tv(self):
+        """It arrives from the websocket thread whatever is showing, and
+        re-loading an unrelated route would refetch it for no reason."""
+        self.b.navigate({"kind": "home", "server": "srv1"})
+        calls = self._count_calls("get_timers")
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_refresh_does_not_bump_the_epoch(self):
+        """A bump cancels in-flight work the user DID ask for. Nobody asked
+        for this refresh, so it must not cancel anything."""
+        open_live_tv(self.b, "guide")
+        before = self.b._epoch
+        self.b.refresh_live_tv()
+        self.assertEqual(self.b._epoch, before)
+
+    def test_the_channel_page_refreshes_too(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import LIVE_KINDS
+
+        self.assertIn("channel", LIVE_KINDS)
+        self.assertIn("livetv", LIVE_KINDS)
+
+    def test_every_timer_event_is_bound(self):
+        """The four jellyfin-web subscribes to. There is deliberately no
+        "recording started" among them -- the server has no such message --
+        which is why the screen polls as well."""
+        from jellyfin_mpv_shim.event_handler import EventHandler, bindings
+
+        for name in EventHandler.LIVE_TV_EVENTS:
+            with self.subTest(name):
+                self.assertIn(name, bindings)
+
+    def test_the_event_reaches_the_hook(self):
+        from jellyfin_mpv_shim.event_handler import EventHandler
+
+        handler = EventHandler()
+        seen = []
+        handler.live_tv_changed = lambda client: seen.append(client)
+        handler.handle_event("client", "TimerCreated", {})
+        self.assertEqual(seen, ["client"])
+
+    def test_a_broken_hook_does_not_kill_the_websocket_thread(self):
+        """This runs on the socket thread; an escaping exception there takes
+        the connection down with it."""
+        from jellyfin_mpv_shim.event_handler import EventHandler
+
+        handler = EventHandler()
+
+        def boom(_client):
+            raise OSError("no")
+
+        handler.live_tv_changed = boom
+        handler.handle_event("client", "TimerCancelled", {})   # must not raise
+
+
+class RefreshKeepsTheUsersPlace(unittest.TestCase):
+    """An auto-refresh is the one screen update nobody asked for, so it has
+    to be invisible: same scroll, same open menu, same dialog, same list."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _scene(self):
+        return build_scene(self.b, (1280, 720))
+
+    def test_it_does_not_park_or_reset_the_scroll(self):
+        """park/reset are the navigation pair. A refresh is not navigation;
+        resetting would drop the renderer's offset for every container."""
+        open_live_tv(self.b, "channels")
+        calls = []
+        self.b._scroll.reset = lambda: calls.append("reset")
+        self.b._scroll.park = lambda *a, **kw: calls.append("park")
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_scroll_container_keeps_its_id(self):
+        """The renderer applies a parked offset only to a container it has
+        no offset for yet, so a stable id IS the preserved scroll."""
+        open_live_tv(self.b, "channels")
+        before = ids(self._scene()[0])
+        self.assertIn("livetv-channels", before)
+        self.b.refresh_live_tv()
+        self.assertIn("livetv-channels", ids(self._scene()[0]))
+
+    def test_it_does_not_run_while_a_context_menu_is_open(self):
+        open_live_tv(self.b, "channels")
+        self.b._open_tile_menu({"Id": "c1", "Type": "TvChannel",
+                                "Name": "One"}, 100, 100)
+        calls = []
+        self.b.source.get_channels = lambda *a, **kw: (calls.append(1),
+                                                       ([], 0))[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [], "the ground moved under an open menu")
+
+    def test_the_menu_is_still_up_afterwards(self):
+        open_live_tv(self.b, "channels")
+        self.b._open_tile_menu({"Id": "c1", "Type": "TvChannel",
+                                "Name": "One"}, 100, 100)
+        self.b.refresh_live_tv()
+        self.assertIsNotNone(self.b._menu)
+        self.assertIn("tilemenu", ids(self._scene()[0]))
+
+    def test_it_does_not_run_while_a_dialog_is_open(self):
+        page = open_live_tv(self.b, "guide")
+        page._open_guide_settings()
+        calls = []
+        self.b.source.get_guide = lambda *a, **kw: (calls.append(1), [])[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_dialog_survives_a_refresh(self):
+        """Its state is the dialog's own, not the route's — but a repaint
+        rebuilds it, so this pins that the rebuild still finds it."""
+        page = open_live_tv(self.b, "guide")
+        page._open_guide_settings()
+        self.b._guide_set("color_coded", True)
+        self.b.refresh_live_tv()
+        self.assertIn("gs-cat-movies", ids(self._scene()[0]))
+        self.assertTrue(self.b._guide_dlg["prefs"]["color_coded"])
+
+    def test_it_does_not_run_while_a_page_in_is_in_flight(self):
+        """Paginator.more computes its merge against the list length at
+        submit time; replacing the list under it duplicates or drops a
+        page."""
+        open_live_tv(self.b, "channels")
+        self.b.route["_loading"] = True
+        calls = []
+        self.b.source.get_channels = lambda *a, **kw: (calls.append(1),
+                                                       ([], 0))[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_a_refresh_re_reads_every_page_the_user_scrolled_in(self):
+        """The failure this guards: the tab pages in on scroll, so asking
+        for one page would shrink a 250-item list back to 100 and the
+        renderer would clamp the scroll to the top of it."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_PAGE
+
+        page = open_live_tv(self.b, "channels")
+        asked = []
+
+        def channels(server_uuid, start_index=0, limit=CHANNEL_PAGE, **kw):
+            asked.append(limit)
+            return ([{"Id": "c%d" % i, "Name": "Ch %d" % i,
+                      "Type": "TvChannel"}
+                     for i in range(start_index, start_index + limit)], 400)
+
+        self.b.source.get_channels = channels
+        # Two pages already scrolled in.
+        page.route["_data"] = [{"Id": "c%d" % i, "Type": "TvChannel"}
+                               for i in range(250)]
+        page.route["_total"] = 400
+        asked.clear()
+        self.b.refresh_live_tv()
+        self.assertTrue(asked)
+        self.assertGreaterEqual(asked[0], 250)
+        self.assertGreaterEqual(len(page.route["_data"]), 250)
+
+    def test_the_first_load_still_asks_for_one_page(self):
+        """The preservation above must not turn every cold load into a
+        request for the whole line-up."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_PAGE
+
+        asked = []
+        real = self.b.source.get_channels
+        self.b.source.get_channels = (
+            lambda *a, **kw: (asked.append(kw.get("limit")), real(*a, **kw))[1])
+        open_live_tv(self.b, "channels")
+        self.assertEqual(asked, [CHANNEL_PAGE])
+
+
+class ChannelFilter(unittest.TestCase):
+    """The Channels tab's filter row. jellyfin-web has a filter button whose
+    dialog, in livetvchannels mode, is exactly one checkbox: Favorites."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _ids(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return ids(nodes)
+
+    def _texts(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return [n.get("text") for n in nodes if n.get("text")]
+
+    def test_the_controls_are_there(self):
+        open_live_tv(self.b, "channels")
+        found = self._ids()
+        self.assertIn("lt-chanfav", found)
+        self.assertIn("lt-chancfg", found)
+
+    def test_the_favorites_toggle_filters_the_fetch(self):
+        """get_channels has carried favorites_only since the tab was written
+        and nothing ever passed it."""
+        page = open_live_tv(self.b, "channels")
+        seen = []
+        real = self.b.source.get_channels
+        self.b.source.get_channels = (
+            lambda *a, **kw: (seen.append(kw.get("favorites_only")),
+                              real(*a, **kw))[1])
+        page._toggle_channel_favorites()
+        self.assertTrue(page.route["_fav_only"])
+        self.assertIn(True, seen)
+
+    def test_toggling_it_back_clears_the_filter(self):
+        page = open_live_tv(self.b, "channels")
+        page._toggle_channel_favorites()
+        page._toggle_channel_favorites()
+        self.assertFalse(page.route["_fav_only"])
+
+    def test_an_empty_favorites_list_says_why_it_is_empty(self):
+        page = open_live_tv(self.b, "channels")
+        self.b.source.get_channels = lambda *a, **kw: ([], 0)
+        page._toggle_channel_favorites()
+        self.assertTrue(any("favorite" in (t or "").lower()
+                            for t in self._texts()))
+
+    def test_guide_settings_opens_from_the_channels_tab(self):
+        """The categories in it filter the channel LIST as well as the grid,
+        and this tab's _data is a list -- indexing "prefs" out of it the way
+        the guide tab does raises."""
+        page = open_live_tv(self.b, "channels")
+        page._open_guide_settings()
+        self.assertIn("gs-cat-movies", self._ids())
+
+    def test_the_channel_count_is_shown(self):
+        open_live_tv(self.b, "channels")
+        self.assertTrue(any("3" in (t or "") for t in self._texts()))
+
+
+class ChannelScreen(unittest.TestCase):
+    """The channel page: what a channel tile opens now instead of tuning in.
+
+    jellyfin-web's item detail page for a TvChannel — a link, not a play
+    button, whose whole content is that channel's upcoming programmes.
+    """
+
+    def setUp(self):
+        self.b = browser()
+
+    def _open(self, listing=None, seed=None):
+        if listing is not None:
+            self.b.source.get_channel_listing = (
+                lambda srv, cid, limit=200: listing)
+        route = {"kind": "channel", "server": "srv1", "item_id": "c1",
+                 "title": "Channel 1"}
+        if seed is not None:
+            route["_seed"] = seed
+        self.b.navigate(route)
+        return self.b._page_for(self.b.route)
+
+    def _nodes(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return nodes
+
+    def _texts(self):
+        return [n.get("text") for n in self._nodes() if n.get("text")]
+
+    def test_it_renders_the_channel_and_a_watch_button(self):
+        self._open()
+        found = ids(self._nodes())
+        self.assertIn("ch-watch", found)
+        self.assertIn("ch-fav", found)
+        self.assertIn("Channel 1", self._texts())
+
+    def test_it_lists_the_upcoming_programmes(self):
+        self._open()
+        self.assertIn("Program 0", self._texts())
+        self.assertIn("Program 2", self._texts())
+
+    def test_watch_tunes_the_channel(self):
+        """Playing directly is still one click — it just is not the ONLY
+        thing the tile can do any more."""
+        plays = []
+        self.b.controller.play_list = lambda ids_, srv, i, **kw: plays.append(
+            list(ids_))
+        page = self._open()
+        page._buttons().children[0].on_click()
+        self.assertEqual(plays, [["c1"]])
+
+    def test_favoriting_flips_the_button_on_the_page(self):
+        """toggle_favorite writes into the item it is handed, so the page has
+        to hand it the live dict — a copy left the old label up until
+        something else reloaded the route."""
+        page = self._open()
+        page._buttons().children[1].on_click()
+        self.assertIn("Remove from Favorites", self._texts())
+
+    def test_the_rows_fill_the_content_width(self):
+        """Without align="stretch" on the outer Column the rows took their
+        natural width: a 747px content area drew a 479px row and ellipsized
+        both the programme title and the episode title with 268px of empty
+        space to the right of them."""
+        self._open()
+        nodes, _h = build_scene(self.b, (779, 707))
+        rows = [n for n in nodes if (n.get("id") or "").startswith("ch-pg-")]
+        self.assertTrue(rows)
+        for row in rows:
+            with self.subTest(row=row["id"]):
+                # The content area is the window less the two content pads.
+                self.assertGreater(row["w"], 779 - 2 * 24)
+
+    def test_a_listing_row_opens_the_program_page(self):
+        page = self._open()
+        page._program_row(page.route["_data"][1]).on_click()
+        self.assertEqual(self.b.route["kind"], "program")
+        self.assertEqual(self.b.route["item_id"], "pr2")
+
+    def test_a_listing_row_carries_the_channel_for_watch(self):
+        """The program page's Watch tunes ChannelId; guide data that omits it
+        would leave the button off entirely."""
+        page = self._open()
+        row = dict(page.route["_data"][1])
+        row.pop("ChannelId")
+        page._program_row(row).on_click()
+        self.assertEqual(self.b.route["channel_id"], "c1")
+
+    def test_the_programmes_are_grouped_by_day(self):
+        page = self._open()
+        groups = live_tv.group_by_day(page.route["_data"])
+        self.assertTrue(groups)
+        self.assertTrue(all(label for label, _items in groups))
+
+    def test_the_seed_draws_before_the_fetch_lands(self):
+        """Clicking a channel tile must not show a spinner for a channel
+        whose DTO the caller already had."""
+        from tests._shell_harness import _NeverPool
+
+        self.b._pool = _NeverPool()
+        self._open(seed={"Id": "c1", "Name": "Seeded", "Type": "TvChannel"})
+        self.assertIn("Seeded", self._texts())
+
+    def test_the_fetch_replaces_the_seed(self):
+        """A route outlives the tile that seeded it — a favourite toggled on
+        the page would otherwise redraw from a stale DTO forever."""
+        page = self._open(seed={"Id": "c1", "Name": "Seeded",
+                                "Type": "TvChannel"})
+        self.assertEqual(page.route["_channel"]["Name"], "Channel 1")
+
+    def test_an_empty_listing_says_so(self):
+        self._open({"channel": {"Id": "c1", "Name": "Channel 1",
+                                "Type": "TvChannel"},
+                    "programs": [], "capped": False})
+        self.assertIn("ch-watch", ids(self._nodes()))
+        self.assertTrue(any("No guide data" in t for t in self._texts()))
+
+    def test_a_capped_listing_admits_it(self):
+        """A listing that just stops at a round number reads as the provider
+        having run out of guide data."""
+        self._open({"channel": {"Id": "c1", "Name": "Channel 1",
+                                "Type": "TvChannel"},
+                    "programs": [FakeSource._program(0, -5)], "capped": True})
+        self.assertTrue(any("Showing the next" in t for t in self._texts()))
+
+    def test_the_guide_channel_column_opens_it(self):
+        """jellyfin-web's guide-channelHeaderCell is data-action="link" too."""
+        page = open_live_tv(self.b, "guide")
+        page._open_channel({"Id": "c7", "Name": "Seven"})
+        self.assertEqual(self.b.route["kind"], "channel")
+        self.assertEqual(self.b.route["item_id"], "c7")
+
+    def test_the_guide_channel_cells_are_clickable(self):
+        open_live_tv(self.b, "guide")
+        self.assertIn("guide-ch-c1", ids(self._nodes()))
+
+
+class ChannelListingIsWindowed(unittest.TestCase):
+    """A fortnight of listings is ~670 rows and the fetch allows a thousand.
+    Building them all put ~2400 nodes in one scene and cost 35ms a frame, so
+    the page draws only the days near the viewport -- the same windowing the
+    grid and the guide do."""
+
+    N = 1000          # ~21 days at half-hour granularity
+    PER_DAY = 48
+
+    def setUp(self):
+        self.b = browser()
+        self.b.source.get_channel_listing = lambda srv, cid, limit=1000: {
+            "channel": {"Id": cid, "Name": "Channel 1", "Type": "TvChannel"},
+            "programs": self._programs(self.N), "capped": False}
+        self.b.navigate({"kind": "channel", "server": "srv1",
+                         "item_id": "c1", "title": "Channel 1"})
+
+    @staticmethod
+    def _programs(n):
+        base = datetime.datetime.now().astimezone().replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        out = []
+        for i in range(n):
+            start = base + datetime.timedelta(minutes=30 * i)
+            out.append({
+                "Id": "pr%d" % i, "Name": "P%d" % i, "Type": "Program",
+                "ChannelId": "c1",
+                "StartDate": start.astimezone(datetime.timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%S.0000000Z"),
+                "EndDate": (start + datetime.timedelta(minutes=30)).astimezone(
+                    datetime.timezone.utc).strftime(
+                        "%Y-%m-%dT%H:%M:%S.0000000Z")})
+        return out
+
+    def _rows(self, offset=None):
+        if offset is not None:
+            self.b._scroll.on_scroll("channel", offset, 100000)
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return [n for n in nodes
+                if (n.get("id") or "").startswith("ch-pg-")]
+
+    def test_only_a_few_days_are_built(self):
+        rows = self._rows(0)
+        self.assertTrue(rows)
+        self.assertLess(len(rows), self.N // 4,
+                        "the whole listing was built into one scene")
+
+    def test_the_scene_stays_the_size_of_the_window_not_the_guide(self):
+        """The property that lets the fetch be a thousand rather than two
+        hundred: node count must not track the listing length."""
+        short, _h = build_scene(self.b, (1280, 720))
+        self.b.route["_data"] = self._programs(100)
+        self.b.route.pop("_groups", None)
+        few, _h = build_scene(self.b, (1280, 720))
+        self.assertLess(abs(len(short) - len(few)), 60)
+
+    def test_the_window_follows_the_scroll(self):
+        first = {n["id"] for n in self._rows(0)}
+        later = {n["id"] for n in self._rows(20000)}
+        self.assertTrue(later)
+        self.assertFalse(first & later, "the window did not move")
+
+    def test_the_built_rows_cover_the_viewport_at_every_offset(self):
+        """The failure this guards is a screenful of blanks: the placeholder
+        heights have to reproduce the Column layout exactly, or the computed
+        window drifts further from the real one the longer the listing gets.
+        """
+        every = {n["id"]: n["y"] for n in self._all_rows()}
+        top, bottom = min(every.values()), max(every.values())
+        for offset in (0, 5000, 12000, 20000, 30000):
+            with self.subTest(offset=offset):
+                ys = [n["y"] for n in self._rows(offset)]
+                self.assertTrue(ys, "nothing drawn at %d" % offset)
+                # Everything in the viewport that HAS content is built. The
+                # clamps are the ends of the listing: at the top the header
+                # occupies the first screen, at the bottom there is no more.
+                self.assertLessEqual(min(ys), max(offset, top))
+                self.assertGreaterEqual(max(ys), min(offset + 720, bottom))
+
+    def test_every_day_heading_is_drawn(self):
+        """Headings are one node each and there are a couple of dozen, so
+        they are cheaper to draw than to place a heading-shaped hole for --
+        and the listing keeps its shape while you scroll."""
+        nodes, _h = build_scene(self.b, (1280, 720))
+        texts = [n.get("text") or "" for n in nodes]
+        days = [t for t in texts if t.count(",") == 1 and len(t) <= 13]
+        self.assertGreaterEqual(len(days), self.N // self.PER_DAY)
+
+    def _all_rows(self):
+        """Every row's y, from a build with the window opened wide enough to
+        hold the whole listing."""
+        page = self.b._page_for(self.b.route)
+        rows = {}
+        for offset in range(0, 40000, 1000):
+            for node in self._rows(offset):
+                rows[node["id"]] = node
+        return list(rows.values())
+
+    def test_the_scroll_is_reported_back(self):
+        """``watch`` is what makes the renderer send scroll events back for
+        this container; without it the window would be computed once and
+        never move again."""
+        nodes, _h = build_scene(self.b, (1280, 720))
+        scroller = next(n for n in nodes
+                        if n.get("id") == "channel" and n.get("t") == "scroll")
+        self.assertTrue(scroller.get("watch"),
+                        "the channel scroller reports nothing: %r" % scroller)
+
+    def test_the_day_grouping_is_computed_once_per_fetch(self):
+        """parse_time is not cheap and render needs the grouping every
+        frame; re-grouping a thousand programmes per repaint was the whole
+        residual cost once the rows were windowed."""
+        page = self.b._page_for(self.b.route)
+        first = page._groups()
+        self.assertIs(page._groups(), first)
+        page.route["_data"] = self._programs(20)
+        self.assertIsNot(page._groups(), first)
+
+
+class ChannelListingFetch(unittest.TestCase):
+    def test_the_cap_is_a_backstop_not_a_page(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_LISTING
+
+        # A fortnight of half-hour listings is ~670 rows; the ceiling is
+        # about the response now, not the render.
+        self.assertGreaterEqual(CHANNEL_LISTING, 672)
+
+    @staticmethod
+    def _source():
+        api = type("Api", (), {})()
+        api.get_item = lambda *a, **kw: {"Id": "c1", "Type": "TvChannel"}
+        src = LibrarySource.__new__(LibrarySource)
+        src._conn = lambda _uuid: type("C", (), {"api": api})()
+        return src, api
+
+    def _captured(self):
+        src, api = self._source()
+        captured = {}
+        api.get_programs = lambda **kw: captured.update(kw) or {"Items": []}
+        src.get_channel_listing("srv", "c1")
+        return captured
+
+    def test_it_asks_for_no_image_fields(self):
+        """These rows are text. ChannelImage in particular costs a channel
+        lookup per programme -- across a thousand of them -- for a tag
+        nothing on this screen draws. jellyfin-web passes EnableImages:false
+        here for the same reason."""
+        captured = self._captured()
+        self.assertNotIn("ChannelImage", captured.get("fields") or "")
+        self.assertIsNone(captured.get("enable_image_types"))
+        self.assertIsNone(captured.get("image_type_limit"))
+        self.assertIn("ChannelInfo", captured["fields"])
+
+    def test_it_asks_for_what_has_not_finished_yet(self):
+        """HasAired=False keeps whatever is mid-broadcast, which is what
+        makes the first row "on now" rather than "on next"."""
+        captured = self._captured()
+        self.assertIs(captured["has_aired"], False)
+        self.assertEqual(captured["sort_by"], "StartDate")
+
+    def test_a_channel_that_cannot_be_read_still_returns_its_listing(self):
+        """The tile that linked here seeded the header; the listing is what
+        the page is for."""
+        src, api = self._source()
+        api.get_programs = lambda **kw: {"Items": [{"Id": "pr1"}]}
+        api.get_item = lambda *a, **kw: (_ for _ in ()).throw(OSError("no"))
+        out = src.get_channel_listing("srv", "c1")
+        self.assertIsNone(out["channel"])
+        self.assertEqual(len(out["programs"]), 1)
+
+
+class EmptyStatesSitWhereContentWould(unittest.TestCase):
+    """chrome.error is direction="row", which makes align the VERTICAL axis
+    — it read align="center" and floated the line halfway down an otherwise
+    empty screen, attached to nothing."""
+
+    EMPTY = (
+        ("recordings", "Nothing has been recorded yet."),
+        ("schedule", "Nothing is scheduled to record."),
+        ("series", "No series are set to record."),
+        ("programs", "No programs are listed right now."),
+    )
+
+    def _empty(self, tab):
+        b = browser()
+        b.source.get_recordings = lambda *a, **kw: []
+        b.source.get_recording_folders = lambda *a, **kw: []
+        b.source.get_timers = lambda *a, **kw: []
+        b.source.get_series_timers = lambda *a, **kw: []
+        b.source.get_program_sections = lambda *a, **kw: []
+        open_live_tv(b, tab)
+        return build_scene(b, (1280, 720))[0]
+
+    def test_the_message_sits_under_the_tab_bar(self):
+        for tab, text in self.EMPTY:
+            with self.subTest(tab=tab):
+                nodes = self._empty(tab)
+                node = next(n for n in nodes if n.get("text") == text)
+                # The tab bar ends around y=110; centred it landed near 380.
+                self.assertLess(node["y"], 200,
+                                "%r floated at y=%s" % (text, node["y"]))
+
+
+class GuideChannelColumn(unittest.TestCase):
+    """It was ellipsizing names it had the room to draw."""
+
+    def _label_w(self):
+        # The logo, the Row gap and the pad come off before the label.
+        return guide_view.CHANNEL_W - guide_view.LOGO - 8 - 12
+
+    def test_a_long_channel_name_fits(self):
+        from jellyfin_mpv_shim.mpvtk.layout import text_width
+
+        for name in ("Sky Sports Main Event", "Discovery Turbo Xtra"):
+            with self.subTest(name):
+                self.assertLessEqual(text_width(name, 14), self._label_w())
+
+    def test_the_wider_column_costs_the_grid_no_cells(self):
+        """The window is a whole number of 30-minute cells, so the extra
+        width comes out of each cell rather than out of the count -- but
+        only while they stay above MIN_CELL_W."""
+        for window in (800, 1024, 1280, 1366, 1600, 1920, 2560):
+            with self.subTest(window=window):
+                grid = guide_view.grid_width((window, 720))
+                cells = live_tv.cells_for_width(grid)
+                self.assertGreaterEqual(grid / cells, live_tv.MIN_CELL_W)
+
+
+class ChannelNumber(unittest.TestCase):
+    """Two endpoints, two spellings — the page reaches a channel by id and
+    sees the one the tile that linked to it did not."""
+
+    def test_the_channel_list_spelling(self):
+        self.assertEqual(live_tv.channel_number({"Number": "101"}), "101")
+
+    def test_the_item_endpoint_spelling(self):
+        self.assertEqual(live_tv.channel_number({"ChannelNumber": "101"}),
+                         "101")
+
+    def test_no_number_is_empty_not_none(self):
+        self.assertEqual(live_tv.channel_number({}), "")
+        self.assertEqual(live_tv.channel_number({"Number": "  "}), "")
 
 
 if __name__ == "__main__":

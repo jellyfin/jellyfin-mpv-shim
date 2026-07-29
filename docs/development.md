@@ -48,11 +48,21 @@ If you are on Windows there are additional dependencies. Please see the Windows 
 
 This project uses gettext for translation. The current template language file is `base.pot` in `jellyfin_mpv_shim/messages/`.
 
-To regenerate `base.pot` and update an existing translation with new strings:
+To regenerate `base.pot` after adding or changing user-facing strings:
 
 ```bash
 ./regen_pot.sh
 ```
+
+That is all a pull request needs. The per-locale `.po` files are managed by
+[Weblate](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/),
+which reads `base.pot` to discover new strings — please leave them alone.
+
+Maintainers doing a translation sync can merge the template into every locale
+with `./regen_pot.sh --merge`, folding in `master`'s translations first so
+volunteer work is never lost (override the ref with `MASTER_REF=origin/master`).
+That rewrites all 86 `.po` files, so it wants to be committed and merged
+promptly or it goes stale against Weblate.
 
 To compile all `*.po` files to `*.mo`:
 

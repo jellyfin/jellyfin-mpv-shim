@@ -315,6 +315,13 @@ class FakeSource:
         return dict(self._program(0, -5), Id=program_id,
                     Overview="What it is about.")
 
+    def get_channel_listing(self, server_uuid, channel_id, limit=200):
+        return {"channel": {"Id": channel_id, "Name": "Channel 1",
+                            "Type": "TvChannel", "Number": "1",
+                            "UserData": {"IsFavorite": False}},
+                "programs": [self._program(0, -5), self._program(2, 30)],
+                "capped": False}
+
     def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
                        series_timer_id=None):
         return [{"Id": "rec1", "Name": "A Recording", "Type": "Recording"}]

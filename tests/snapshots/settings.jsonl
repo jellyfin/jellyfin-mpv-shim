@@ -202,8 +202,7 @@
 {"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.74.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2807.5}
 {"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.74.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Credits Always", "w": 181.8, "x": 46.0, "y": 2805.0}
 {"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_on_seek", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2838.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.75.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2840.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.75.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2841.1}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.75.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2840.5}
 {"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.75.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro On Seek", "w": 164.0, "x": 46.0, "y": 2838.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.76", "sc": "settings", "size": 20, "t": "text", "text": "Library Browser", "w": 1238.0, "x": 16.0, "y": 2871.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.77.0", "sc": "settings", "size": 17, "t": "text", "text": "Library Image Cache Mb", "w": 340.0, "x": 16.0, "y": 2912.4}

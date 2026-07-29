@@ -90,6 +90,9 @@ class EventHandler(object):
     mirror = None
     # Set by the in-window browser: (client, item_id) -> open that item.
     display_content: Optional[Callable[..., Any]] = None
+    # Set by the in-window browser: (client) -> a recording rule changed
+    # somewhere, refresh the Live TV screen if that is what is showing.
+    live_tv_changed: Optional[Callable[..., Any]] = None
 
     def handle_event(
         self,
@@ -210,6 +213,34 @@ class EventHandler(object):
     def pause_play(self, _client: "JellyfinClient_type", _event_name, _arguments: dict):
         playerManager.toggle_pause()
         timelineManager.send_timeline()
+
+    #: Timer events the server pushes when a recording rule changes. There
+    #: is deliberately no "recording started" among them — the server has no
+    #: such message — which is why the Live TV screen also polls. These are
+    #: the four jellyfin-web subscribes to (see its emby-itemscontainer).
+    LIVE_TV_EVENTS = ("TimerCreated", "TimerCancelled",
+                      "SeriesTimerCreated", "SeriesTimerCancelled")
+
+    @bind("TimerCreated")
+    @bind("TimerCancelled")
+    @bind("SeriesTimerCreated")
+    @bind("SeriesTimerCancelled")
+    def live_tv_timers_changed(
+        self, client: "JellyfinClient_type", _event_name, _arguments: dict
+    ):
+        """A recording rule changed — possibly from another client entirely.
+
+        Only a nudge: the browser decides whether the screen it is showing
+        cares. Recording state is the one thing in the library that a *third
+        party* changes while you are looking at it, so a stale Schedule tab
+        is not a cosmetic problem — it is the screen telling you something
+        will be taped when it will not.
+        """
+        if self.live_tv_changed:
+            try:
+                self.live_tv_changed(client)
+            except Exception:
+                log.warning("live tv refresh hook failed", exc_info=True)
 
     @bind("SyncPlayGroupUpdate")
     def sync_play_group_update(
