@@ -1781,6 +1781,168 @@ class HomeSection(unittest.TestCase):
         self.assertNotIn("home-lt-guide", ids(nodes))
 
 
+class LiveTvStaysFresh(unittest.TestCase):
+    """Live TV is the one part of the library a third party changes while
+    you are looking at it: a recording starts, a programme ends, another
+    client sets a timer. Everything else is loaded once per navigation."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _count_calls(self, name):
+        calls = []
+        real = getattr(self.b.source, name)
+
+        def counted(*a, **kw):
+            calls.append(kw)
+            return real(*a, **kw)
+
+        setattr(self.b.source, name, counted)
+        return calls
+
+    def test_returning_to_a_cached_tab_re_reads_it(self):
+        """The cache still paints instantly -- it is what stops a Guide flip
+        paying for the guide fetch twice -- but it must not be the last word.
+        Serving it and stopping is how the Schedule tab came back without an
+        in-progress recording that had started while the screen was up."""
+        page = open_live_tv(self.b, "schedule")
+        calls = self._count_calls("get_recordings")
+        page._set_tab("channels")
+        page._set_tab("schedule")
+        self.assertTrue(calls, "a cached tab was served without re-reading")
+
+    def test_the_cached_data_is_shown_while_the_re_read_runs(self):
+        """No spinner over what the user is already reading."""
+        page = open_live_tv(self.b, "programs")
+        loaded = page.route["_data"]
+        page._set_tab("channels")
+        from tests._shell_harness import _NeverPool
+
+        self.b._pool = _NeverPool()      # the re-read never lands
+        page._set_tab("programs")
+        self.assertEqual(page.route["_data"], loaded)
+
+    def test_a_timer_event_refreshes_the_screen(self):
+        open_live_tv(self.b, "schedule")
+        calls = self._count_calls("get_timers")
+        self.b.refresh_live_tv()
+        self.assertTrue(calls)
+
+    def test_a_timer_event_ignores_a_screen_that_is_not_live_tv(self):
+        """It arrives from the websocket thread whatever is showing, and
+        re-loading an unrelated route would refetch it for no reason."""
+        self.b.navigate({"kind": "home", "server": "srv1"})
+        calls = self._count_calls("get_timers")
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_refresh_does_not_bump_the_epoch(self):
+        """A bump cancels in-flight work the user DID ask for. Nobody asked
+        for this refresh, so it must not cancel anything."""
+        open_live_tv(self.b, "guide")
+        before = self.b._epoch
+        self.b.refresh_live_tv()
+        self.assertEqual(self.b._epoch, before)
+
+    def test_the_channel_page_refreshes_too(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import LIVE_KINDS
+
+        self.assertIn("channel", LIVE_KINDS)
+        self.assertIn("livetv", LIVE_KINDS)
+
+    def test_every_timer_event_is_bound(self):
+        """The four jellyfin-web subscribes to. There is deliberately no
+        "recording started" among them -- the server has no such message --
+        which is why the screen polls as well."""
+        from jellyfin_mpv_shim.event_handler import EventHandler, bindings
+
+        for name in EventHandler.LIVE_TV_EVENTS:
+            with self.subTest(name):
+                self.assertIn(name, bindings)
+
+    def test_the_event_reaches_the_hook(self):
+        from jellyfin_mpv_shim.event_handler import EventHandler
+
+        handler = EventHandler()
+        seen = []
+        handler.live_tv_changed = lambda client: seen.append(client)
+        handler.handle_event("client", "TimerCreated", {})
+        self.assertEqual(seen, ["client"])
+
+    def test_a_broken_hook_does_not_kill_the_websocket_thread(self):
+        """This runs on the socket thread; an escaping exception there takes
+        the connection down with it."""
+        from jellyfin_mpv_shim.event_handler import EventHandler
+
+        handler = EventHandler()
+
+        def boom(_client):
+            raise OSError("no")
+
+        handler.live_tv_changed = boom
+        handler.handle_event("client", "TimerCancelled", {})   # must not raise
+
+
+class ChannelFilter(unittest.TestCase):
+    """The Channels tab's filter row. jellyfin-web has a filter button whose
+    dialog, in livetvchannels mode, is exactly one checkbox: Favorites."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _ids(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return ids(nodes)
+
+    def _texts(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        return [n.get("text") for n in nodes if n.get("text")]
+
+    def test_the_controls_are_there(self):
+        open_live_tv(self.b, "channels")
+        found = self._ids()
+        self.assertIn("lt-chanfav", found)
+        self.assertIn("lt-chancfg", found)
+
+    def test_the_favorites_toggle_filters_the_fetch(self):
+        """get_channels has carried favorites_only since the tab was written
+        and nothing ever passed it."""
+        page = open_live_tv(self.b, "channels")
+        seen = []
+        real = self.b.source.get_channels
+        self.b.source.get_channels = (
+            lambda *a, **kw: (seen.append(kw.get("favorites_only")),
+                              real(*a, **kw))[1])
+        page._toggle_channel_favorites()
+        self.assertTrue(page.route["_fav_only"])
+        self.assertIn(True, seen)
+
+    def test_toggling_it_back_clears_the_filter(self):
+        page = open_live_tv(self.b, "channels")
+        page._toggle_channel_favorites()
+        page._toggle_channel_favorites()
+        self.assertFalse(page.route["_fav_only"])
+
+    def test_an_empty_favorites_list_says_why_it_is_empty(self):
+        page = open_live_tv(self.b, "channels")
+        self.b.source.get_channels = lambda *a, **kw: ([], 0)
+        page._toggle_channel_favorites()
+        self.assertTrue(any("favorite" in (t or "").lower()
+                            for t in self._texts()))
+
+    def test_guide_settings_opens_from_the_channels_tab(self):
+        """The categories in it filter the channel LIST as well as the grid,
+        and this tab's _data is a list -- indexing "prefs" out of it the way
+        the guide tab does raises."""
+        page = open_live_tv(self.b, "channels")
+        page._open_guide_settings()
+        self.assertIn("gs-cat-movies", self._ids())
+
+    def test_the_channel_count_is_shown(self):
+        open_live_tv(self.b, "channels")
+        self.assertTrue(any("3" in (t or "") for t in self._texts()))
+
+
 class ChannelScreen(unittest.TestCase):
     """The channel page: what a channel tile opens now instead of tuning in.
 

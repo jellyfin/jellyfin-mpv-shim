@@ -104,6 +104,19 @@ class UserInterface:
         # interrupt playback, so waking the client is its call, not ours.
         self._browser.display_item(uuid, item_id)
 
+    def _live_tv_changed(self, _client=None):
+        """Forward a timer websocket event to the browser.
+
+        Not filtered by server here: the browser refreshes whatever Live TV
+        route is on screen, and a timer event only ever comes from a server
+        this client is logged into. Guarding on identity would mean the
+        common single-server case paid for a lookup to reach the same
+        answer.
+        """
+        if self._browser is None:
+            return
+        self._browser.refresh_live_tv()
+
     def _open_config_folder(self):
         PlayerGateway().open_config_folder()
 
@@ -271,6 +284,9 @@ class UserInterface:
         from ..event_handler import eventHandler
 
         eventHandler.display_content = self._display_content
+        # A recording rule changed, possibly from another client. The browser
+        # refreshes only if a Live TV screen is up — see refresh_live_tv.
+        eventHandler.live_tv_changed = self._live_tv_changed
         # A startup PIN gates connection: show the lock screen and let the
         # unlock drive the connect. Otherwise connect in the background.
         from ..users import userManager

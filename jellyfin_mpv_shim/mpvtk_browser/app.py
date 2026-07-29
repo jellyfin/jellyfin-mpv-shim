@@ -130,6 +130,21 @@ CHROME_FREE = {"login", "locked", "connecting", "cast"}
 # nothing can be playing.
 NO_NOW_PLAYING = {"login", "locked", "connecting"}
 
+# Route kinds whose data goes stale on its own. Everything else in the
+# library changes only when this user changes it, so it is loaded once per
+# navigation and left alone; Live TV is the exception in both directions —
+# a programme ends, a recording starts, and another client can set a timer
+# on the screen you are looking at. The server pushes the timer half (see
+# EventHandler.LIVE_TV_EVENTS) and has no message at all for the rest, which
+# is why these also poll.
+LIVE_KINDS = {"livetv", "channel", "program"}
+
+#: How often a Live TV route re-reads itself. jellyfin-web's own staleness
+#: guard is five minutes, but it re-renders on every tab change and this
+#: screen is often left sitting on the Guide — a two-minute floor keeps "on
+#: now" meaning now without making the guide fetch a background job.
+LIVE_POLL_SECS = 120
+
 
 class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                    MusicMixin, ViewsMixin, TilesMixin, CastMixin):
@@ -398,6 +413,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._toast_timer = None
         # Repaints once a load has been slow enough to deserve the spinner.
         self._spinner_timer = None
+        # Re-read loop for the Live TV routes; see _poll_live_tv.
+        self._livetv_poll = None
         # live text of the download-folder field
         self._sync_path = {}
         self.status = ""
@@ -472,6 +489,42 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
+
+    def _poll_live_tv(self, route):
+        """Re-read a Live TV route every ``LIVE_POLL_SECS`` while it is up.
+
+        Started from the render path, like the logs tail and the downloads
+        list, and ``restartable`` for the same reason: the thread only
+        notices the route has changed on its next tick, so leaving and
+        coming straight back would otherwise find the slot still taken and
+        leave nobody polling.
+        """
+        def tick():
+            while not self._shutdown_evt.wait(LIVE_POLL_SECS):
+                if self.route is not route or not self._browsing:
+                    break
+                self.refresh_live_tv()
+
+        self._start_daemon("_livetv_poll", "mpvtk-livetv", tick,
+                           restartable=True)
+
+    def refresh_live_tv(self, _client=None):
+        """Re-fetch the Live TV screen, if that is what is showing.
+
+        Reached from the websocket thread (a timer created or cancelled,
+        possibly by another client entirely) and from the poller above, so
+        it must be safe off the loop thread and cheap when it does not apply.
+
+        A **load, not a reload**: the epoch stays where it is, so nothing in
+        flight is cancelled and — because every Live TV loader writes its
+        result in place rather than clearing first — the screen keeps the
+        data it has until the new data lands. A refresh nobody asked for
+        must not blink a spinner over what they are reading.
+        """
+        route = self.route
+        if route.get("kind") not in LIVE_KINDS or self.source is None:
+            return
+        self._load_route(route)
 
     def _reload_route(self, route):
         """Re-run a route's loader in place: the data changed, the screen did
@@ -1696,6 +1749,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if self.thumbs is not None:
             self.thumbs.pump()
         route = self.route
+        if route["kind"] in LIVE_KINDS:
+            self._poll_live_tv(route)
         content = self._render_route(route, size)
         children = []
         if route["kind"] not in CHROME_FREE:

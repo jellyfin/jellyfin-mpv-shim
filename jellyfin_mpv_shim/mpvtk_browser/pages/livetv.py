@@ -74,10 +74,13 @@ class LiveTvPage(Page):
         source, srv = self.ctx.source, self._srv()
         cats = self._categories()
 
+        favorites = bool(self.route.get("_fav_only"))
+
         def work():
             prefs = source.get_live_tv_prefs(srv)
             items, total = source.get_channels(srv, prefs=prefs,
-                                               categories=cats)
+                                               categories=cats,
+                                               favorites_only=favorites)
             return {"prefs": prefs, "items": items, "total": total}
 
         def done(data):
@@ -374,7 +377,12 @@ class LiveTvPage(Page):
         self._reload_tab()
 
     def _open_guide_settings(self):
-        prefs = ((self.route.get("_data") or {}).get("prefs")
+        # The guide tab keeps its prefs inside _data; every other tab's _data
+        # is a list, so this cannot index into it blindly -- the Channels tab
+        # opens the same dialog, because the categories in it filter the
+        # channel LIST as well as the grid.
+        data = self.route.get("_data")
+        prefs = ((data.get("prefs") if isinstance(data, dict) else None)
                  or self.route.get("_prefs"))
         if prefs is None:
             return          # still loading; nothing to edit yet
@@ -392,15 +400,26 @@ class LiveTvPage(Page):
 
     # -- Channels ----------------------------------------------------------
 
+    #: Height the controls row takes off the channel grid's viewport, for
+    #: the same reason GUIDE_CHROME_H exists: the grid virtualizes against
+    #: the size it is given, and counting the row twice windows the wrong
+    #: rows.
+    CHANNEL_CHROME_H = 44
+
     def _render_channels(self, size):
         items = self.route.get("_data")
+        head = self._channel_controls()
         if items is None:
-            return chrome.busy()
+            return Column([head, chrome.busy()], flex=1, align="stretch")
         if not items:
-            return chrome.error(_("No channels available."))
+            return Column([head, chrome.error(
+                _("No favorite channels yet.") if self.route.get("_fav_only")
+                else _("No channels available."))],
+                flex=1, align="stretch")
         art = self.ctx.art
-        return VScroll(
-            Column(art.tiles.grid_of(items, "ltchan", size,
+        grid_size = (size[0], max(120, size[1] - self.CHANNEL_CHROME_H))
+        return Column([head, VScroll(
+            Column(art.tiles.grid_of(items, "ltchan", grid_size,
                                      geom=art.geom_square,
                                      scroll_id="livetv-channels"),
                    pad=chrome.CONTENT_PAD, gap=GRID_GAP),
@@ -409,7 +428,44 @@ class LiveTvPage(Page):
             snap=art.geom_square.strip_h + GRID_GAP,
             snap_off=chrome.CONTENT_PAD,
             on_scroll=lambda off, mx: art.scroll.on_scroll(
-                "livetv-channels", off, mx, self._channels_scrolled))
+                "livetv-channels", off, mx, self._channels_scrolled))],
+            flex=1, align="stretch", gap=6)
+
+    def _channel_controls(self):
+        """Filter and settings above the channel grid.
+
+        jellyfin-web's Channels tab has a filter button whose dialog, in
+        ``livetvchannels`` mode, collapses to exactly one control: Favorites.
+        The settings button is ours, and it earns its place — the categories
+        in that dialog filter this list too (see ``LibrarySource``), and the
+        only door to them used to be on the Guide tab, so filtering the
+        channel grid meant leaving it.
+        """
+        favorites = bool(self.route.get("_fav_only"))
+        row = [
+            controls.action_btn("favorite", _("Favorites"), "lt-chanfav",
+                                self._toggle_channel_favorites,
+                                on=favorites, size=16),
+            controls.action_btn("settings", _("Guide Settings"), "lt-chancfg",
+                                self._open_guide_settings, size=16),
+        ]
+        total = self.route.get("_total") or 0
+        if total:
+            row.append(Text(_("%d channels") % total, size=14,
+                            color=theme.SUBTLE_FG))
+        return Row(row, gap=6, align="center", pad=(chrome.CONTENT_PAD, 0))
+
+    def _toggle_channel_favorites(self):
+        """Show only favourites, or everything again.
+
+        Session state on the route, not a saved preference: jellyfin-web's
+        filter is the same -- it lives in that tab's query object and is gone
+        when you leave. ``favorites_first`` in the guide settings is the
+        durable half of this and is a different question.
+        """
+        self.route["_fav_only"] = not self.route.get("_fav_only")
+        self.ctx.art.scroll.forget("livetv-channels")
+        self._reload_tab()
 
     def _channels_scrolled(self, offset, maximum):
         """Page the next block of channels in near the bottom. A tuner
@@ -426,8 +482,9 @@ class LiveTvPage(Page):
             self.route, offset, maximum,
             lambda r: (r.get("_data") or [], r.get("_total") or 0),
             put,
-            lambda start: source.get_channels(srv, start_index=start,
-                                              prefs=prefs, categories=cats))
+            lambda start: source.get_channels(
+                srv, start_index=start, prefs=prefs, categories=cats,
+                favorites_only=bool(self.route.get("_fav_only"))))
 
     # -- Recordings --------------------------------------------------------
 
@@ -571,9 +628,18 @@ class LiveTvPage(Page):
                                    "livetv-schedule", "livetv-series")
         hit = cache.get(tab)
         if hit is not None:
+            # Paint what this tab last held, then re-read it underneath. The
+            # cache is what stops a Guide → Channels → Guide flip paying for
+            # the guide fetch twice, but Live TV data is live in a way the
+            # rest of the library is not — a recording starts, a programme
+            # ends — so serving the cache and stopping there is how the
+            # Schedule tab came back without an in-progress recording that
+            # had begun while the screen was up. The refresh is a load, not
+            # a reload: no epoch bump, no spinner over the cached data.
             route["_data"], route["_total"] = hit
             self.ctx.run.bump()
             self.ctx.invalidate()
+            self.ctx.nav.load(route)
         else:
             self.ctx.nav.reload(route)
 
