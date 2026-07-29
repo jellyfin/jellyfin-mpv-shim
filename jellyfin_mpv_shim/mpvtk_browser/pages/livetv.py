@@ -75,10 +75,18 @@ class LiveTvPage(Page):
         cats = self._categories()
 
         favorites = bool(self.route.get("_fav_only"))
+        # Re-read everything the list currently holds, not just the first
+        # page. This tab pages in on scroll, so a background refresh (see
+        # MpvtkBrowser.refresh_live_tv) that asked for one page would drop
+        # every page after it out from under a scroll already past them —
+        # the renderer clamps to the shorter content and the list jumps to
+        # the top. max(), because the initial load has nothing yet.
+        have = len(self.route.get("_data") or ())
+        limit = max(CHANNEL_PAGE, have)
 
         def work():
             prefs = source.get_live_tv_prefs(srv)
-            items, total = source.get_channels(srv, prefs=prefs,
+            items, total = source.get_channels(srv, prefs=prefs, limit=limit,
                                                categories=cats,
                                                favorites_only=favorites)
             return {"prefs": prefs, "items": items, "total": total}

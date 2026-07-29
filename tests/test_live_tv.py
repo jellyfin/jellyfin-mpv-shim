@@ -1883,6 +1883,122 @@ class LiveTvStaysFresh(unittest.TestCase):
         handler.handle_event("client", "TimerCancelled", {})   # must not raise
 
 
+class RefreshKeepsTheUsersPlace(unittest.TestCase):
+    """An auto-refresh is the one screen update nobody asked for, so it has
+    to be invisible: same scroll, same open menu, same dialog, same list."""
+
+    def setUp(self):
+        self.b = browser()
+
+    def _scene(self):
+        return build_scene(self.b, (1280, 720))
+
+    def test_it_does_not_park_or_reset_the_scroll(self):
+        """park/reset are the navigation pair. A refresh is not navigation;
+        resetting would drop the renderer's offset for every container."""
+        open_live_tv(self.b, "channels")
+        calls = []
+        self.b._scroll.reset = lambda: calls.append("reset")
+        self.b._scroll.park = lambda *a, **kw: calls.append("park")
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_scroll_container_keeps_its_id(self):
+        """The renderer applies a parked offset only to a container it has
+        no offset for yet, so a stable id IS the preserved scroll."""
+        open_live_tv(self.b, "channels")
+        before = ids(self._scene()[0])
+        self.assertIn("livetv-channels", before)
+        self.b.refresh_live_tv()
+        self.assertIn("livetv-channels", ids(self._scene()[0]))
+
+    def test_it_does_not_run_while_a_context_menu_is_open(self):
+        open_live_tv(self.b, "channels")
+        self.b._open_tile_menu({"Id": "c1", "Type": "TvChannel",
+                                "Name": "One"}, 100, 100)
+        calls = []
+        self.b.source.get_channels = lambda *a, **kw: (calls.append(1),
+                                                       ([], 0))[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [], "the ground moved under an open menu")
+
+    def test_the_menu_is_still_up_afterwards(self):
+        open_live_tv(self.b, "channels")
+        self.b._open_tile_menu({"Id": "c1", "Type": "TvChannel",
+                                "Name": "One"}, 100, 100)
+        self.b.refresh_live_tv()
+        self.assertIsNotNone(self.b._menu)
+        self.assertIn("tilemenu", ids(self._scene()[0]))
+
+    def test_it_does_not_run_while_a_dialog_is_open(self):
+        page = open_live_tv(self.b, "guide")
+        page._open_guide_settings()
+        calls = []
+        self.b.source.get_guide = lambda *a, **kw: (calls.append(1), [])[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_the_dialog_survives_a_refresh(self):
+        """Its state is the dialog's own, not the route's — but a repaint
+        rebuilds it, so this pins that the rebuild still finds it."""
+        page = open_live_tv(self.b, "guide")
+        page._open_guide_settings()
+        self.b._guide_set("color_coded", True)
+        self.b.refresh_live_tv()
+        self.assertIn("gs-cat-movies", ids(self._scene()[0]))
+        self.assertTrue(self.b._guide_dlg["prefs"]["color_coded"])
+
+    def test_it_does_not_run_while_a_page_in_is_in_flight(self):
+        """Paginator.more computes its merge against the list length at
+        submit time; replacing the list under it duplicates or drops a
+        page."""
+        open_live_tv(self.b, "channels")
+        self.b.route["_loading"] = True
+        calls = []
+        self.b.source.get_channels = lambda *a, **kw: (calls.append(1),
+                                                       ([], 0))[1]
+        self.b.refresh_live_tv()
+        self.assertEqual(calls, [])
+
+    def test_a_refresh_re_reads_every_page_the_user_scrolled_in(self):
+        """The failure this guards: the tab pages in on scroll, so asking
+        for one page would shrink a 250-item list back to 100 and the
+        renderer would clamp the scroll to the top of it."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_PAGE
+
+        page = open_live_tv(self.b, "channels")
+        asked = []
+
+        def channels(server_uuid, start_index=0, limit=CHANNEL_PAGE, **kw):
+            asked.append(limit)
+            return ([{"Id": "c%d" % i, "Name": "Ch %d" % i,
+                      "Type": "TvChannel"}
+                     for i in range(start_index, start_index + limit)], 400)
+
+        self.b.source.get_channels = channels
+        # Two pages already scrolled in.
+        page.route["_data"] = [{"Id": "c%d" % i, "Type": "TvChannel"}
+                               for i in range(250)]
+        page.route["_total"] = 400
+        asked.clear()
+        self.b.refresh_live_tv()
+        self.assertTrue(asked)
+        self.assertGreaterEqual(asked[0], 250)
+        self.assertGreaterEqual(len(page.route["_data"]), 250)
+
+    def test_the_first_load_still_asks_for_one_page(self):
+        """The preservation above must not turn every cold load into a
+        request for the whole line-up."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import CHANNEL_PAGE
+
+        asked = []
+        real = self.b.source.get_channels
+        self.b.source.get_channels = (
+            lambda *a, **kw: (asked.append(kw.get("limit")), real(*a, **kw))[1])
+        open_live_tv(self.b, "channels")
+        self.assertEqual(asked, [CHANNEL_PAGE])
+
+
 class ChannelFilter(unittest.TestCase):
     """The Channels tab's filter row. jellyfin-web has a filter button whose
     dialog, in livetvchannels mode, is exactly one checkbox: Favorites."""

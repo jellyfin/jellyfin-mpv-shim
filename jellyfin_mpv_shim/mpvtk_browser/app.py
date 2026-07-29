@@ -519,10 +519,25 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         flight is cancelled and — because every Live TV loader writes its
         result in place rather than clearing first — the screen keeps the
         data it has until the new data lands. A refresh nobody asked for
-        must not blink a spinner over what they are reading.
+        must not blink a spinner over what they are reading. Scroll survives
+        for the same reason plus one more: the container id does not change,
+        and the renderer applies a parked offset only to a container it has
+        no offset for yet (``off0`` in renderer.lua), so a repaint of a
+        scrolled list leaves it where it is.
+
+        **Deferred, never forced, while the user is mid-interaction.** An
+        open context menu or dialog means they are acting on what is on
+        screen, and ``_loading`` means a page-in is in flight whose merge was
+        computed against the list length at submit time — replacing the list
+        under it would duplicate or drop a page. Skipping costs at most one
+        poll interval; the next tick picks it up.
         """
         route = self.route
         if route.get("kind") not in LIVE_KINDS or self.source is None:
+            return
+        if self._menu is not None or self._dialog is not None:
+            return
+        if route.get("_loading"):
             return
         self._load_route(route)
 
