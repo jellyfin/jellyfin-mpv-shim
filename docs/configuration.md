@@ -612,7 +612,7 @@ Intro and credits detection uses Jellyfin's MediaSegments API.
 - `skip_intro_on_seek` - Seeking forward during an intro/credits window skips
   the whole segment. Applies to keyboard and remote seeks only; scrubbing or
   seeking from the Jellyfin player UI never triggers it (use its Skip button).
-  Default: `true`
+  Default: `false`
 
 ## Language Config (Power User)
 
