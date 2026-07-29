@@ -26,6 +26,10 @@ The Python build uses PEP 517 / pyproject.toml with `setuptools` as the backend.
 - `Jellyfin MPV Shim.iss` → `#define MyAppVersion`
 - `jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml` → first `<release version="...">`
 
+**Pre-releases skip the appdata.** A version containing `pre` (`3.0.0pre10`) is not published to Flathub, and the appdata is Flathub's changelog — so it is *expected* to sit at the last stable version, and `gen_pkg.sh` exempts it from the match check for those. It warns the other way instead: an appdata entry that names the current pre-release would ship to Flathub with the next stable build. Constants ↔ Inno Setup are still checked unconditionally.
+
+`pre` is a legal PEP 440 pre-release spelling (an alias for `rc`), so setuptools accepts `3.0.0pre10` and normalizes it — the wheel and sdist come out as `3.0.0rc10` while the tag, the Inno Setup installer and `artifacts.sh`'s filename keep the `pre` spelling. `version.py` parses both spellings, so the update check orders a pre-release correctly against stable tags rather than offering 2.10.0 as an "upgrade".
+
 ## Architecture
 
 Entry point is `jellyfin_mpv_shim/mpv_shim.py:main` (invoked via the `jellyfin-mpv-shim` console script or `run.py`). It wires together a set of **module-level singletons** that talk to each other via direct references and `threading.Event` triggers — there is no DI container, no event bus, just imports.

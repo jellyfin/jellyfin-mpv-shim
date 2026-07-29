@@ -82,11 +82,30 @@ then
     echo "If you are building a release, the publish will not succeed."
 fi
 
-if [[ "$constants_version" != "$iss_version" || "$iss_version" != "$appdata_version" ]]
+if [[ "$constants_version" != "$iss_version" ]]
 then
     echo "Error: The release does not have the same version numbers in all files!"
     echo "Please correct this before releasing!"
-    echo "Constants: $constants_version, ISS: $iss_version, Flatpak: $appdata_version"
+    echo "Constants: $constants_version, ISS: $iss_version"
+fi
+
+# The appdata is Flathub's changelog, and pre-releases are not published there,
+# so it is expected to lag behind a "pre" version rather than match it. It is
+# still checked for a stable release, and a pre-release that *did* get an entry
+# is flagged, since that entry would ship to Flathub with the next stable build.
+if [[ "$constants_version" == *pre* ]]
+then
+    if [[ "$appdata_version" == "$constants_version" ]]
+    then
+        echo "Warning: The Flatpak appdata has a release entry for pre-release"
+        echo "$constants_version. Pre-releases are not published to Flathub;"
+        echo "remove the entry unless you mean to ship it."
+    fi
+elif [[ "$constants_version" != "$appdata_version" ]]
+then
+    echo "Error: The release does not have the same version numbers in all files!"
+    echo "Please correct this before releasing!"
+    echo "Constants: $constants_version, Flatpak: $appdata_version"
 fi
 
 # Generate translations
@@ -128,13 +147,7 @@ fi
 # Generate package
 if [[ "$1" == "--install" ]]
 then
-    if [[ "$(which sudo 2> /dev/null)" != "" && ! "$*" =~ "--local" ]]
-    then
-        sudo pip3 install .[all]
-    else
-        pip3 install .[all]
-    fi
-
+    pip3 install .[all]
 elif [[ "$1" != "--skip-build" ]]
 then
     rm -r build/ dist/ .eggs 2> /dev/null
