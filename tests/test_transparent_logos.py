@@ -44,18 +44,37 @@ def _logo(color, size=(120, 120), margin=20):
     return img
 
 
+def _two_tone(bright, dark, split=0.5, size=(120, 120), margin=20):
+    """The NBC shape: one bright mark beside one dark one, on transparency.
+    Its *mean* luma is a colour neither half of the artwork contains."""
+    img = _logo(bright, size=size, margin=margin)
+    edge = margin + int((size[0] - 2 * margin) * split)
+    ImageDraw.Draw(img).rectangle(
+        [edge, margin, size[0] - margin - 1, size[1] - margin - 1],
+        fill=dark + (255,))
+    return img
+
+
 class TestMeasurement(unittest.TestCase):
     def test_luma_ignores_the_black_under_the_transparency(self):
         """The whole point of the mask: an unmasked mean would call a white
         logo on a transparent background dark, because Pillow leaves black
         under every clear pixel."""
-        clear, luma = imageutil.measure_transparency(_logo((255, 255, 255)))
-        self.assertGreater(luma, 250)
-        self.assertAlmostEqual(clear, 1 - (80 * 80) / (120 * 120), places=2)
+        stats = imageutil.measure_transparency(_logo((255, 255, 255)))
+        self.assertGreater(stats.luma, 250)
+        self.assertAlmostEqual(stats.clear, 1 - (80 * 80) / (120 * 120),
+                               places=2)
 
     def test_black_artwork_measures_dark(self):
-        _clear, luma = imageutil.measure_transparency(_logo((0, 0, 0)))
-        self.assertLess(luma, 5)
+        self.assertLess(imageutil.measure_transparency(_logo((0, 0, 0))).luma,
+                        5)
+
+    def test_the_histogram_covers_the_visible_pixels_only(self):
+        """It is the ink's distribution, so its total is the ink, not the
+        frame — the clear pixels are excluded, not counted as black."""
+        stats = imageutil.measure_transparency(_logo((0, 0, 0)))
+        self.assertEqual(sum(stats.hist), 80 * 80)
+        self.assertEqual(stats.hist[0], 80 * 80)
 
     def test_an_image_without_alpha_is_not_measured(self):
         self.assertIsNone(
@@ -98,6 +117,78 @@ class TestPlateDecision(unittest.TestCase):
         corner pixels is opaque art, and plating it would show as a border."""
         img = _logo((0, 0, 0), size=(120, 120), margin=1)
         self.assertIsNone(imageutil.plate_color(img, WINDOW_BG))
+
+    def test_a_dark_wordmark_beside_a_bright_mark_is_plated(self):
+        """The NBC logo. Half its ink is a black wordmark, invisible on this
+        UI's surfaces; the bright half drags the *mean* to mid-grey, which
+        reads as "contrasts fine" and left the wordmark unreadable. The
+        decision is about how much ink the surface swallows, not the mean."""
+        logo = _two_tone((230, 60, 60), (0, 0, 0))
+        self.assertGreater(imageutil.measure_transparency(logo).luma, 48)
+        plate = imageutil.plate_color(logo, WINDOW_BG)
+        self.assertIsNotNone(plate)
+        self.assertGreater(imageutil._luma(plate), 200)
+
+    def test_the_plate_decision_survives_a_downscale(self):
+        """It used to sit on the threshold: the full-size logo was plated and
+        the guide's smaller copy of the same file was not, because resampling
+        moved the mean by a fraction of a luma step."""
+        logo = _two_tone((230, 60, 60), (0, 0, 0), size=(275, 206), margin=24)
+        sizes = [(275, 206), (96, 72), (48, 36), (24, 18)]
+        plates = []
+        for size in sizes:
+            small = logo.resize(size, Image.LANCZOS)
+            imageutil.measure_transparency(small)
+            plates.append(imageutil.plate_color(small, WINDOW_BG))
+        self.assertEqual(plates, [plates[0]] * len(sizes), plates)
+        self.assertIsNotNone(plates[0])
+
+    def test_art_no_flat_plate_can_rescue_is_left_alone(self):
+        """Half white ink, half black: every neutral loses as much as the
+        surface did. Plating buys nothing and costs a white box."""
+        logo = _two_tone((255, 255, 255), (0, 0, 0))
+        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
+
+    def test_a_semi_transparent_panel_is_judged_by_the_ink_on_it(self):
+        """The alpha threshold cuts both ways, pinned so it is not a surprise.
+
+        Artwork that is a translucent panel with opaque text on it measures as
+        the *text* — a panel at alpha 89 is under the mask's 128 and counts
+        towards ``clear``, so 5% of the pixels decide for all of them. Right
+        here, since the text is what has to be readable and the panel is what
+        the plate would sit behind: white text is left alone on a dark surface
+        and plated dark on a light one. It would be wrong for a translucent
+        *bright* panel carrying white text, which no measurement taken through
+        this mask can see.
+        """
+        logo = Image.new("RGBA", (120, 120), (150, 140, 200, 89))
+        ImageDraw.Draw(logo).rectangle([30, 50, 90, 70],
+                                       fill=(255, 255, 255, 255))
+        stats = imageutil.measure_transparency(logo)
+        self.assertLess(sum(stats.hist), 120 * 120 * 0.1)   # the text, not the panel
+        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
+        self.assertIsNotNone(imageutil.plate_color(logo, (0xf2, 0xf2, 0xf2)))
+
+    def test_saturated_mid_luma_ink_is_plated_too(self):
+        """A known approximation, pinned so a change to it is deliberate.
+
+        Luma under-rates saturated ink — the PBS blue is luma 66 and reads on
+        near-black better than that suggests — so a logo like it is plated
+        where a colour-aware measure might leave it. Judged acceptable: at
+        2.2:1 against the surface it is genuinely low contrast, and a white
+        chip is the page these logos were drawn for. Measuring value as a
+        second axis fixes this one and breaks the NBC peacock against a white
+        plate; what would settle the rest is spatial, and no histogram sees it.
+        """
+        logo = _logo((38, 56, 196))
+        self.assertIsNotNone(imageutil.plate_color(logo, WINDOW_BG))
+
+    def test_a_small_dark_detail_does_not_plate_a_bright_logo(self):
+        """max_lost: a bright mark with a little dark detail in it reads fine,
+        and plating everything with a dark pixel in it is the old bug with the
+        colours swapped."""
+        logo = _two_tone((235, 235, 235), (0, 0, 0), split=0.9)
+        self.assertIsNone(imageutil.plate_color(logo, WINDOW_BG))
 
     def test_flatten_onto_makes_the_clear_pixels_the_plate(self):
         out = imageutil.flatten_onto(_logo((0, 0, 0)), (240, 240, 240))

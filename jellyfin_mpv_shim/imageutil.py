@@ -12,6 +12,8 @@ dependencies has to degrade gracefully when its package is missing (see
 CONTRIBUTING.md).
 """
 
+from typing import NamedTuple
+
 from PIL import Image
 
 
@@ -52,15 +54,32 @@ def apply_dark_gradient(
 ALPHA_INFO = "mpvshim_alpha"
 
 
-def measure_transparency(image: "Image.Image"):
-    """Measure ``image``'s transparency and how bright its *visible* pixels are.
+class AlphaStats(NamedTuple):
+    """What :func:`measure_transparency` records about a transparent image.
 
-    Returns (and records under :data:`ALPHA_INFO`) ``(clear_fraction,
-    mean_luma)``: the share of pixels that are at least half transparent, and
-    the 0-255 luma averaged over the pixels that are not. The mask matters —
-    Pillow leaves black under a PNG's transparent pixels, so an unmasked mean
-    says "dark" about every logo on a transparent background, which is the
-    exact distinction this is here to make.
+    ``clear`` is the share of pixels that are at least half transparent.
+    ``luma`` is the 0-255 luma averaged over the pixels that are not — a
+    summary, nothing decides on it. ``hist`` is the 256-bin luma histogram
+    that mean was taken over, and it is what :func:`plate_color` asks about.
+    """
+
+    clear: float
+    luma: float
+    hist: tuple
+
+
+def measure_transparency(image: "Image.Image"):
+    """Measure ``image``'s transparency and the luma of its *visible* pixels.
+
+    Returns (and records under :data:`ALPHA_INFO`) an :class:`AlphaStats`. The
+    mask matters — Pillow leaves black under a PNG's transparent pixels, so an
+    unmasked measurement says "dark" about every logo on a transparent
+    background, which is the exact distinction this is here to make.
+
+    The whole histogram is kept, not just its mean, because a logo is routinely
+    *bimodal*: the NBC peacock is a bright mark next to a black wordmark, and
+    its mean luma (71) describes no pixel in the image. Deciding anything from
+    that average is deciding about ink that is not there.
 
     ``None`` for an image without an alpha channel; there is nothing to decide.
     """
@@ -75,20 +94,69 @@ def measure_transparency(image: "Image.Image"):
     # would pull the anti-aliased fringe of dark-on-transparent text towards
     # the black underneath it.
     opaque = alpha.point(lambda v: 255 if v >= 128 else 0)
-    from PIL import ImageStat
-
-    stat = ImageStat.Stat(image.convert("L"), mask=opaque)
-    luma = stat.mean[0] if stat.count[0] else 0.0
-    image.info[ALPHA_INFO] = (clear, luma)
-    return clear, luma
+    hist = image.convert("L").histogram(mask=opaque)
+    ink = sum(hist)
+    luma = sum(v * n for v, n in enumerate(hist)) / ink if ink else 0.0
+    stats = AlphaStats(clear, luma, tuple(hist))
+    image.info[ALPHA_INFO] = stats
+    return stats
 
 
 def _luma(rgb) -> float:
     return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
 
 
+#: sRGB -> linear, per 0-255 level. Built once; :func:`_lost_fraction` reads it
+#: up to 256 times per decision and the exponent is not cheap.
+_LINEAR = tuple(
+    (i / 255.0) / 12.92 if i / 255.0 <= 0.04045
+    else ((i / 255.0 + 0.055) / 1.055) ** 2.4
+    for i in range(256)
+)
+
+
+def _lost_fraction(hist, surface, min_ratio: float = 3.0) -> float:
+    """Share of the visible ink that ``surface`` swallows, 0-1: each pixel
+    counts by how far its contrast against ``surface`` falls short of
+    ``min_ratio``, WCAG's floor for graphics.
+
+    Two things this is not, both of which were tried and both of which put the
+    decision on a knife edge — the same edge the mean did, one level down:
+
+    * Not a count of the ink within some distance. Logo ink comes in tight
+      clusters and a hard edge through one flips the whole cluster at once: the
+      PBS logo keeps 68% of its ink inside two luma steps, so a counting rule
+      scored a 6-step change of plate as having rescued the logo. Hence a ramp.
+    * Not a distance in luma. That axis is not perceptually uniform at the dark
+      end, which is the end this UI lives at: black ink is 23 steps from
+      ``WINDOW_BG`` and completely invisible on it, so a linear ramp wide
+      enough to be useful scores "invisible" as about half lost. As a contrast
+      ratio it is 1.2:1, which is the answer. Hence WCAG.
+
+    Luma is the only axis, and it is an approximation: it under-rates
+    saturated ink, which reads better against a dark surface than its luma
+    suggests. Two axes were tried and are not worth their complexity — the
+    thing that would decide the remaining cases is *spatial* (whether the PBS
+    logo's white glyph sits inside its blue disc), and no histogram sees that.
+    """
+    ink = sum(hist)
+    if not ink:
+        return 0.0
+    sl = _LINEAR[int(_luma(surface))] + 0.05
+    span = min_ratio - 1.0
+    lost = 0.0
+    for v, n in enumerate(hist):
+        if not n:
+            continue
+        il = _LINEAR[v] + 0.05
+        ratio = il / sl if il > sl else sl / il
+        lost += n * min(1.0, max(0.0, (min_ratio - ratio) / span))
+    return lost / ink
+
+
 def plate_color(image: "Image.Image", behind, light=(240, 240, 240),
-                dark=(16, 16, 18), min_contrast=48, min_clear=0.10):
+                dark=(16, 16, 18), min_ratio=3.0, min_clear=0.10,
+                max_lost=0.25):
     """Colour to flatten a transparent ``image`` onto, or ``None`` to let its
     transparency through to ``behind``.
 
@@ -96,25 +164,39 @@ def plate_color(image: "Image.Image", behind, light=(240, 240, 240),
     and a good few of them are *black* artwork — drawn for a white page. Let
     through onto this UI's near-black surfaces they are invisible, which is no
     better than the solid black block they used to flatten to. So when a
-    genuinely transparent image has too little contrast against what is behind
-    it, it gets a contrasting neutral plate of its own instead.
+    genuinely transparent image has too much of its ink swallowed by what is
+    behind it, it gets a contrasting neutral plate of its own instead.
+
+    One question, asked twice: :func:`_lost_fraction` against ``behind`` says
+    whether the artwork needs rescuing, and against each neutral says whether
+    that one would rescue it. ``max_lost`` is the share of ink allowed to
+    disappear, and art no flat plate can get under that — half light ink, half
+    dark — is left alone rather than given a white box for nothing.
+
+    "Too much" is measured over the ink's distribution, never its mean: the
+    mean is the average of a distribution the artwork need not have anywhere.
+    A bright mark beside a black wordmark averages to mid-grey, which reads as
+    "contrasts fine against a dark surface" while half the logo is invisible.
 
     Deliberately narrow, because plating art that does not need it is its own
     kind of wrong: an image with no alpha channel, one whose transparency is
     just an anti-aliased edge (``min_clear``), or one that already reads
-    against ``behind`` (``min_contrast``) is all left alone.
+    against ``behind`` is all left alone.
     """
     if image.mode != "RGBA":
         return None
     m = image.info.get(ALPHA_INFO) or measure_transparency(image)
     if m is None:
         return None
-    clear, luma = m
+    clear, _mean, hist = m
     if clear < min_clear:
         return None
-    if abs(luma - _luma(behind)) >= min_contrast:
+    if _lost_fraction(hist, behind, min_ratio) <= max_lost:
         return None
-    return light if luma < 128 else dark
+    best = min((light, dark), key=lambda c: _lost_fraction(hist, c, min_ratio))
+    if _lost_fraction(hist, best, min_ratio) > max_lost:
+        return None
+    return best
 
 
 def flatten_onto(image: "Image.Image", color, radius: int = 0) -> "Image.Image":
