@@ -26,7 +26,15 @@ from . import live_tv, theme
 from .components import chrome
 
 #: Width of the fixed channel column.
-CHANNEL_W = 168
+#:
+#: 30% wider than it was, because it was ellipsizing names it had room for:
+#: at 168 the label got 114px after the logo and the padding, and anything
+#: past about "Channel 4 +1" was cut — "Sky Sports Main Event" needs 142.
+#: It costs the grid nothing. The window is a whole number of 30-minute
+#: cells capped at MAX_CELLS, so what the grid does with the extra 50px is
+#: make each cell 5-7px narrower, not drop one: the count is unchanged from
+#: 800px up (see live_tv.cells_for_width, floor MIN_CELL_W = 120).
+CHANNEL_W = 218
 
 #: Height of one channel row, and the gap between rows/cells.
 ROW_H = 62
