@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 03:58-0400\n"
+"POT-Creation-Date: 2026-07-29 04:04-0400\n"
 "PO-Revision-Date: 2026-07-28 16:27+0000\n"
 "Last-Translator: Natawan Jongnetiwisit <TKGAME11@outlook.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
@@ -248,8 +248,7 @@ msgstr "เลือกแทร็กเสียง"
 msgid "Select Subtitle Track"
 msgstr "เลือกซับไตเติ้ล"
 
-#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "None"
 msgstr "ไม่มี"
@@ -1259,6 +1258,13 @@ msgid "%d watched"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Remove Server"
+msgctxt "dialog heading"
+msgid "Download"
+msgstr "ลบเซิร์ฟเวอร์"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
 msgstr ""
 
@@ -1446,6 +1452,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#, fuzzy
+#| msgid "None"
+msgctxt "home screen section type"
+msgid "None"
+msgstr "ไม่มี"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
@@ -1705,10 +1718,11 @@ msgid "Recording"
 msgstr " (Transcode)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+#| msgid " (Transcode)"
+msgctxt "series recording rule setting"
 msgid "Record"
-msgstr ""
+msgstr " (Transcode)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
@@ -1732,10 +1746,11 @@ msgid "One channel"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgctxt "series recording rule setting"
 msgid "Channels"
-msgstr ""
+msgstr "ออกจากโปรแกรมและทำเครื่องหมายว่าไม่ได้ดู"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "All channels"
@@ -2116,6 +2131,11 @@ msgid "Guide"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+msgid "Channels"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
 msgstr ""
 
@@ -2240,6 +2260,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Do Not Record"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Record"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py

@@ -13,7 +13,7 @@ a timer belongs to the server's DVR. So neither dialog writes anything until
 Save, and both re-read rather than assuming their edit landed.
 """
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Button, Checkbox, Column, Dialog, Dropdown, Row, Text, TextBox, VScroll)
 from . import live_tv, theme
@@ -197,7 +197,11 @@ class LiveTvDialogsMixin:
             rows.append(Text(subtitle, size=15, color=theme.SUBTLE_FG))
         if series:
             rows.append(self._picker(
-                _("Record"), "tm-showtype",
+                # A LABEL on a picker ("Record: New episodes only"), not the
+                # imperative on the button two screens away. Filipino
+                # translates the two differently; jellyfin-web needs
+                # LabelRecord and Record to say so.
+                _p("series recording rule setting", "Record"), "tm-showtype",
                 [_("New episodes only"), _("All episodes")],
                 0 if fields["new_only"] else 1,
                 lambda i, v: self._timer_set("new_only", i == 0)))
@@ -209,7 +213,9 @@ class LiveTvDialogsMixin:
             one_channel = (_("Only %s") % channel if channel
                            else _("One channel"))
             rows.append(self._picker(
-                _("Channels"), "tm-channels",
+                # Likewise a label, not the Live TV tab of the same name.
+                _p("series recording rule setting", "Channels"),
+                "tm-channels",
                 [one_channel, _("All channels")],
                 1 if fields["any_channel"] else 0,
                 lambda i, v: self._timer_set("any_channel", i == 1)))

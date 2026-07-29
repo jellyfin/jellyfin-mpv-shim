@@ -10,7 +10,7 @@ modal slot, rendered by core's ``build()``. Also ``_addto_build``,
 dialog), and ``_dl`` (download dialog). All are loop-thread only.
 """
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Button,
     Checkbox,
@@ -282,7 +282,10 @@ class DialogsMixin:
                     line += "   (" + ", ".join(extra) + ")"
                 info = Text(line, size=15, color=theme.SUBTLE_FG)
             return Dialog("download", self._dialog_shell("download", [
-                Text(_("Download"), size=22, bold=True),
+                # The dialog's NOUN heading. The button below it and the
+                # tile menu entry are the verb, and German splits them:
+                # Download vs Herunterladen.
+                Text(_p("dialog heading", "Download"), size=22, bold=True),
                 Text(dl["item"].get("Name", ""), size=17),
                 info,
             ] + ([Checkbox(_("Include watched"), dl["watched"],

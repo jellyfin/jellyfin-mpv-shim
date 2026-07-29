@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 03:58-0400\n"
+"POT-Creation-Date: 2026-07-29 04:04-0400\n"
 "PO-Revision-Date: 2025-12-10 05:20+0000\n"
 "Last-Translator: Veldermon-rbg <burtjayden3@gmail.com>\n"
 "Language-Team: Maori <https://translate.jellyfin.org/projects/jellyfin/"
@@ -245,8 +245,7 @@ msgstr ""
 msgid "Select Subtitle Track"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "None"
 msgstr ""
@@ -1187,6 +1186,11 @@ msgid "%d watched"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgctxt "dialog heading"
+msgid "Download"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
 msgstr ""
 
@@ -1340,6 +1344,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+msgctxt "home screen section type"
+msgid "None"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -1581,8 +1590,7 @@ msgid "Recording"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgctxt "series recording rule setting"
 msgid "Record"
 msgstr ""
 
@@ -1608,8 +1616,7 @@ msgid "One channel"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+msgctxt "series recording rule setting"
 msgid "Channels"
 msgstr ""
 
@@ -1967,6 +1974,11 @@ msgid "Guide"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+msgid "Channels"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
 msgstr ""
 
@@ -2079,6 +2091,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Do Not Record"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Record"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
