@@ -383,8 +383,7 @@ class TileRenderer:
         return self._art_placeholder(size)
     @staticmethod
     def _plated(img):
-        """``img``, given an opaque backing if its transparency would make it
-        unreadable against the window.
+        """``img``, given the light backing transparent artwork is drawn for.
 
         An art cell is its own overlay with nothing drawn behind it, so a
         transparent logo composites straight onto ``WINDOW_BG`` — which is
@@ -392,14 +391,16 @@ class TileRenderer:
         the same treatment by recolouring its card (see
         ``StripStore._paint_poster``); this is the no-card version of it.
         """
-        from ..imageutil import flatten_onto, plate_color
+        from ..imageutil import flatten_onto, plate_for, with_shadow
 
-        plate = plate_color(img, theme.rgb(theme.WINDOW_BG))
+        plate = plate_for(img)
         if plate is None:
             return img
+        if plate.shadow:
+            img = with_shadow(img)
         # Same corner radius _art_placeholder uses, so a plated logo and the
         # box standing in for a missing one are the same shape.
-        return flatten_onto(img, plate, radius=px(4))
+        return flatten_onto(img, plate.color, radius=px(4))
 
     @staticmethod
     def _art_placeholder(size=28):
