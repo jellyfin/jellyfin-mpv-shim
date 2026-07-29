@@ -128,13 +128,7 @@ fi
 # Generate package
 if [[ "$1" == "--install" ]]
 then
-    if [[ "$(which sudo 2> /dev/null)" != "" && ! "$*" =~ "--local" ]]
-    then
-        sudo pip3 install .[all]
-    else
-        pip3 install .[all]
-    fi
-
+    pip3 install .[all]
 elif [[ "$1" != "--skip-build" ]]
 then
     rm -r build/ dist/ .eggs 2> /dev/null
