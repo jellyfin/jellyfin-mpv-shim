@@ -1732,9 +1732,11 @@ msgstr " (تڕانسکۆد)"
 msgid "New episodes only"
 msgstr ""
 
+# seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All episodes"
-msgstr ""
+msgstr "هەموو ئەڵقەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Skip episodes already in my library"
@@ -1756,9 +1758,11 @@ msgctxt "series recording rule setting"
 msgid "Channels"
 msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکراوەکان"
 
+# seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "All channels"
-msgstr ""
+msgstr "هەموو کەناڵەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Air time"
@@ -2294,11 +2298,13 @@ msgstr ""
 msgid "Channel"
 msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکراوەکان"
 
+# seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Albums"
-msgstr ""
+msgstr "ئەلبوومەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
@@ -2920,9 +2926,11 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
+# seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Album"
-msgstr ""
+msgstr "ئەلبووم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
