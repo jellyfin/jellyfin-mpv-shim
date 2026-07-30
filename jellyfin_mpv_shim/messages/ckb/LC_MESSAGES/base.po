@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-07-30 16:43+0000\n"
+"PO-Revision-Date: 2026-07-30 17:13+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -2983,10 +2983,8 @@ msgid "Server"
 msgstr "ڕاژە:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "ناوی بەکار‌هێنەر:"
+msgstr "بەکارهێنەر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -3032,10 +3030,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (تڕانسکۆد)"
+msgstr "وەرگێڕانی کۆد"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
