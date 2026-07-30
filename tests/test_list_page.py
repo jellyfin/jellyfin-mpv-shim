@@ -710,5 +710,135 @@ class ByNameTest(unittest.TestCase):
         self.assertEqual(src.get_by_name_sections("srv", {}), [])
 
 
+class FilterBarOverflowTest(unittest.TestCase):
+    """The view controls ride the filter row, and drop to a second row only
+    when they genuinely do not fit.
+
+    Measured rather than switched on a width constant, for the same reason
+    the top bar is: what fits depends on how many controls this library has
+    -- a movies library carries a Collections toggle and a Genres button a
+    music one does not -- and the dropdowns are sized to their contents.
+    """
+
+    def _bar(self, width, ctype="movies"):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": ctype, "title": "Lib"})
+        nodes, _h = build_scene(b, size=(width, 720))
+        return {n["id"]: n for n in nodes if n.get("id")}
+
+    def test_the_buttons_are_there_at_every_width(self):
+        for w in (1920, 1280, 900, 760):
+            with self.subTest(w=w):
+                self.assertIn("grid-genres", self._bar(w))
+
+    def test_they_share_the_filter_row_when_there_is_space(self):
+        found = self._bar(1920)
+        self.assertLess(
+            abs(found["grid-genres"]["y"] - found["grid-sort"]["y"]), 20,
+            "the view controls took their own row on a wide window")
+
+    def test_they_lead_the_row_rather_than_sitting_among_the_filters(self):
+        """A filter changes what this grid shows; these navigate somewhere
+        else entirely. Mixing them made Collections (a filter) and Genres
+        (a door) look like the same kind of control."""
+        found = self._bar(1920)
+        self.assertLess(found["grid-genres"]["x"], found["grid-sort"]["x"])
+
+    def test_and_move_ABOVE_it_when_there_is_not(self):
+        """Above, not below: a row of doors under the filters reads as more
+        filtering."""
+        narrow = self._bar(760)
+        self.assertLess(narrow["grid-genres"]["y"],
+                        narrow["grid-sort"]["y"] - 20,
+                        "the doors did not move above the filter row")
+
+    def test_a_library_with_no_view_controls_keeps_one_row(self):
+        """Nothing to fit, so nothing to split -- and no empty second row."""
+        found = self._bar(760, ctype="music")
+        self.assertNotIn("grid-genres", found)
+        self.assertNotIn("grid-studios", found)
+
+
+class FavoritesInTheTopBarTest(unittest.TestCase):
+    """Home only.
+
+    On a library "favorites" already means something else and better -- the
+    Favorites *filter* on that library's own filter row. A top-bar button
+    that jumps to a global screen instead is the same word doing two jobs
+    one bar apart, and dropping it gives the title the space back.
+    """
+
+    def _has_it(self, route):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate(route)
+        nodes, _h = build_scene(b)
+        return "nav-favorites" in ids(nodes)
+
+    def test_it_is_there_on_home(self):
+        self.assertTrue(self._has_it({"kind": "home", "server": "srv1"}))
+
+    def test_and_not_on_a_library(self):
+        self.assertFalse(self._has_it(
+            {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+             "title": "Movies"}))
+
+    def test_the_library_still_has_its_own_favorites_filter(self):
+        """Which is the point -- the function is not lost, it is the one
+        that was already better."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        nodes, _h = build_scene(b)
+        self.assertIn("grid-fav", ids(nodes))
+
+
+class FilterOrderTest(unittest.TestCase):
+    """The order of the movies filter row, which is a design decision and
+    therefore the kind of thing that drifts."""
+
+    def test_collections_sits_between_favorites_and_paginated(self):
+        """It is a filter -- it swaps the grid for this library's
+        collections -- so it belongs with the checkboxes, not with the
+        buttons that leave. Paginated is not a filter at all and stays
+        last."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        b.route["_collection_capable"] = True
+        nodes, _h = build_scene(b, size=(1920, 720))
+        want = ("grid-genres", "grid-sort", "grid-unplayed", "grid-fav",
+                "grid-collections", "grid-paginated", "grid-shuffle")
+        got = [i for _x, i in sorted(
+            (n.get("x", 0), n["id"]) for n in nodes
+            if n.get("id") in want)]
+        self.assertEqual(got, list(want))
+
+
+class ByNameIconsTest(unittest.TestCase):
+    def test_the_view_buttons_have_icons_that_exist(self):
+        """A name that is not in the rasterized set draws nothing at all --
+        the button keeps the space for an icon and shows a gap. Only 64
+        icons are generated, so an invented name fails silently."""
+        from jellyfin_mpv_shim.ui_icon_paths import ICON_PATHS
+
+        for name in ("label", "apartment", "chevron_right", "favorite"):
+            with self.subTest(name):
+                self.assertIn(name, ICON_PATHS)
+                self.assertTrue(ICON_PATHS[name].strip())
+
+
 if __name__ == "__main__":
     unittest.main()

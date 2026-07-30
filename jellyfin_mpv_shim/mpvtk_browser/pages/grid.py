@@ -123,7 +123,7 @@ class GridPage(Page):
         items = route.get("_items")
         if items is None:
             return chrome.busy()
-        header = self._header(items)
+        header = self._header(items, size[0])
         geom, image_type = self._grid_shape(items)
         if self._pages.enabled():
             return self._paged_grid(size, header, geom, image_type)
@@ -156,32 +156,12 @@ class GridPage(Page):
         reason ``tiles`` and ``scroll`` are: it is a render-time service."""
         return self.ctx.art.pages
 
-    def _header(self, items):
+    def _header(self, items, width=0):
         route = self.route
         # Annotated: the collections Row and the filter bar join a list that
         # starts with a Text, so mypy would infer list[Text] from it.
         header: list = [Text(route.get("title", ""), size=26, bold=True)]
-        bar = []
-        if route.get("_collection_capable"):
-            bar.append(Checkbox(_("Collections"),
-                                bool(route.get("_collections")),
-                                id="grid-collections",
-                                on_toggle=self._toggle_collections))
-        if route.get("collection_type") in STUDIO_LIBRARIES:
-            # Web calls this "Networks" on a TV library and offers it only
-            # there, which is where studio metadata actually is.
-            bar.append(Button(_("Networks"), id="grid-studios",
-                              icon="apartment", on_click=self._open_studios))
-        if route.get("collection_type") in GENRE_LIBRARIES:
-            # jellyfin-web reaches its Genres screen through a library tab.
-            # We have no tabs, so it rides the same bar the Collections
-            # toggle does -- the one place on a library that already holds
-            # "another way to look at this".
-            bar.append(Button(_("Genres"), id="grid-genres", icon="label",
-                              on_click=self._open_genres))
-        if bar:
-            header.append(Row(bar, gap=10, align="center"))
-        header.append(self._filter_bar())
+        header.append(self._filter_bar(width))
         # The count line is redundant with the pagination bar's "of N".
         if not self._pages.enabled():
             total = route.get("_total") or 0
@@ -190,7 +170,31 @@ class GridPage(Page):
                 size=14, color=theme.SUBTLE_FG))
         return header
 
-    def _filter_bar(self):
+    def _view_controls(self):
+        """Buttons that LEAVE this library -- Genres, Networks.
+
+        They lead the filter row rather than sitting among the filters,
+        because they are a different kind of thing: a filter changes what
+        this grid shows and these navigate somewhere else entirely. Mixing
+        them in made "Collections" (which really is a filter) and "Genres"
+        (which is a door) look like the same control.
+
+        jellyfin-web reaches both through library tabs, which we do not
+        have -- so leading the bar is the nearest thing to a tab strip.
+        """
+        route = self.route
+        out = []
+        if route.get("collection_type") in STUDIO_LIBRARIES:
+            # Web calls this "Networks" on a TV library and offers it only
+            # there, which is where studio metadata actually is.
+            out.append(Button(_("Networks"), id="grid-studios",
+                              icon="apartment", on_click=self._open_studios))
+        if route.get("collection_type") in GENRE_LIBRARIES:
+            out.append(Button(_("Genres"), id="grid-genres", icon="label",
+                              on_click=self._open_genres))
+        return out
+
+    def _filter_bar(self, width=0):
         route = self.route
         vals = route.get("_filtervals") or {}
         filters = route.get("_filters") or {}
@@ -224,6 +228,15 @@ class GridPage(Page):
             Checkbox(_("Favorites"), bool(filters.get("favorite")),
                      id="grid-fav",
                      on_toggle=lambda: self._toggle_filter("favorite")),
+        ] + ([
+            # A filter, not a door: it swaps this library's grid for its
+            # collections. So it sits with the other checkboxes rather than
+            # with Genres and Networks -- after Favorites, before the
+            # Paginated toggle, which is not a filter at all.
+            Checkbox(_("Collections"), bool(route.get("_collections")),
+                     id="grid-collections",
+                     on_toggle=self._toggle_collections),
+        ] if route.get("_collection_capable") else []) + [
             # Reflects and writes the GLOBAL paginated setting — a convenient
             # place to flip it, not a per-view filter.
             Checkbox(_("Paginated"), self._pages.enabled(),
@@ -233,6 +246,7 @@ class GridPage(Page):
             Spacer(),
             Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
         ], gap=10, align="center")
+        bar = self._fit_bar(bar, self._view_controls(), width)
         cur_letter = filters.get("letter")
         letters = Row([
             # flex + align="center" centres the glyph horizontally; a bare
@@ -374,7 +388,37 @@ class GridPage(Page):
             "collection_type": route.get("collection_type"),
             "title": _("Genres")})
 
+    def _fit_bar(self, bar, extras, width):
+        """``bar`` with ``extras`` appended, or stacked under it if that
+        would not fit.
+
+        Measured rather than switched on a width constant, for the same
+        reason the top bar is: what fits depends on how many controls this
+        particular library has -- a movies library carries a Collections
+        toggle and a Genres button that a music one does not, and the sort
+        and genre dropdowns are sized to their contents.
+        """
+        if not extras:
+            return bar
+        wide = Row(extras + bar.children, gap=10, align="center")
+        avail = (width or 0) - 2 * chrome.CONTENT_PAD
+        if avail <= 0:
+            return wide
+        try:
+            from ...mpvtk.layout import measure
+            fits = measure(wide)[0] <= avail
+        except Exception:
+            log.debug("could not measure the filter bar", exc_info=True)
+            fits = True
+        if fits:
+            return wide
+        # Above, not below: these are the doors out of this library, and a
+        # row of them under the filters reads as more filtering.
+        return Column([Row(extras, gap=10, align="center"), bar], gap=8,
+                      align="stretch")
+
     def _grid_shape(self, items):
+
         """``(geom, image_type)`` for this grid, shaped by its own artwork.
 
         jellyfin-web's library grid asks for ``CardShape.Auto`` and lets the
@@ -559,7 +603,7 @@ class ListPage(GridPage):
         attr, image_type = named
         return getattr(self.ctx.art, attr), image_type
 
-    def _header(self, items):
+    def _header(self, items, width=0):
         header = [Text(self.route.get("title", ""), size=26, bold=True)]
         if self._sortable():
             header.append(self._sort_bar())
@@ -608,7 +652,7 @@ class PersonPage(GridPage):
 
         self.route_async(work, done, epoch)
 
-    def _header(self, items):
+    def _header(self, items, width=0):
         return [Text(self.route.get("title", ""), size=26, bold=True),
                 self._sort_bar()]
 

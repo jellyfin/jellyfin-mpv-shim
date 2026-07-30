@@ -115,11 +115,19 @@ def chrome_bar(b, compact, probe=False, servers=None,
         _("Home"), "nav-home", "home",
         lambda: b.navigate({"kind": "home", "server": b.server},
                               reset=True)))
-    # Not while offline: every row on it is a server-side IsFavorite query,
+    # Home only, and not while offline.
+    #
+    # Not offline because every row on it is a server-side IsFavorite query
     # and a downloaded subset cannot stand in for one -- an empty screen
     # would read as "you have no favourites" rather than "this needs the
     # server". Same reasoning as the Live TV tile, which is also hidden.
-    if not b._offline:
+    #
+    # Home only because on a library "favorites" already means something
+    # else and better: the Favorites *filter* on that library's own filter
+    # row. A top-bar button that jumps to a global screen instead is the
+    # same word doing two jobs one bar apart, and dropping it gives the
+    # title the space back.
+    if not b._offline and (b.route or {}).get("kind") == "home":
         left.append(nav_button(
             _("Favorites"), "nav-favorites", "favorite",
             lambda: b.navigate({"kind": "favorites", "server": b.server,

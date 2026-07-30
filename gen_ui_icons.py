@@ -72,6 +72,10 @@ ICON_NAMES = [
     "edit",
     "movie",
     "radio",
+    # by-name screens (genres, networks) -- the same two jellyfin-web uses
+    # for them, so a user coming from that client recognises the buttons.
+    "label",
+    "apartment",
     # navigation / arrows
     "arrow_back",
     "chevron_left",
