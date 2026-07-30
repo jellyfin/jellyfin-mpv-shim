@@ -132,6 +132,17 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        self.list_specs = getattr(self, "list_specs", [])
+        self.list_specs.append(dict(spec or {}))
+        items = getattr(self, "list_items", None)
+        if items is None:
+            items = self.grid_items
+        page = items[start_index:start_index + 20]
+        return page, len(items)
+
     def get_filter_values(self, server_uuid, parent_id=None):
         return {"genres": ["Action", "Comedy"], "years": [2020, 2021]}
 

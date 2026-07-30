@@ -468,7 +468,7 @@ class LibrarySource:
                     # (jellyfin-web passes this on all three home queries).
                     enable_total_record_count=False,
                     **extra) or {}
-                return (title, resume.get("Items", []), collection_type)
+                return (title, resume.get("Items", []), collection_type, None)
             return fetch
 
         def video_resume_row():
@@ -497,7 +497,7 @@ class LibrarySource:
                 # did not, so a series with twenty backdrops sent twenty tags
                 # per card for the one the tile draws.
                 image_type_limit=1) or {}
-            return (_("Next Up"), nextup.get("Items", []), None)
+            return (_("Next Up"), nextup.get("Items", []), None, None)
 
         def live_tv_row():
             # jellyfin-web's Live TV home section is a row of nav buttons plus
@@ -525,7 +525,7 @@ class LibrarySource:
                 image_type_limit=1,
                 enable_total_record_count=False,
             ) or {}
-            return (_("On Now"), onnow.get("Items", []), "livetv")
+            return (_("On Now"), onnow.get("Items", []), "livetv", None)
 
         def latest_row(lib):
             def fetch():
@@ -546,15 +546,19 @@ class LibrarySource:
                 # /Latest answers with a bare list, not an Items dict.
                 items = (latest.get("Items", []) if isinstance(latest, dict)
                          else (latest or []))
+                # The library id rides along so the row's heading can link
+                # to it. Nothing else in the tuple identifies which library
+                # a Latest row came from -- the title is a translated
+                # string and the collection type is shared.
                 return (_("Latest %s") % lib.get("Name", ""), items,
-                        lib.get("CollectionType"))
+                        lib.get("CollectionType"), lib.get("Id"))
             return fetch
 
         def active_recordings_row():
             return (_("Active Recordings"),
                     self.get_recordings(server_uuid, limit=12,
                                         is_in_progress=True),
-                    "livetv")
+                    "livetv", None)
 
         builders = {
             home_sections.RESUME: video_resume_row,
@@ -621,8 +625,8 @@ class LibrarySource:
         # landscape by library kind — a TV "Latest" row mixes Series and stray
         # Episodes, so scanning item types alone mis-classifies it.
         return [{"title": t, "items": i, "collection_type": c,
-                 "slot": slot, "kind": kind}
-                for slot, kind, t, i, c in rows if i]
+                 "slot": slot, "kind": kind, "parent_id": pid}
+                for slot, kind, t, i, c, pid in rows if i]
 
     # -- Live TV -----------------------------------------------------------
     #
@@ -899,7 +903,11 @@ class LibrarySource:
                 else:
                     items = self.get_programs(server_uuid, limit=limit,
                                               **query)
-                return {"key": key, "title": title(), "items": items}
+                # The query rides along: the row's own predicate is what a
+                # "see all" listing re-runs without the limit, and keeping
+                # it here means the destination cannot drift from the row.
+                return {"key": key, "title": title(), "items": items,
+                        "filters": dict(query)}
             return work
 
         tasks = [fetch(key, title, query)
@@ -1048,6 +1056,83 @@ class LibrarySource:
         elif letter:
             kwargs["name_starts_with"] = letter
         return kwargs
+
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        """``(items, total)`` for a generic list route -- jellyfin-web's
+        ``#/list?type=…``.
+
+        One entry point for every "see all" destination, because they are the
+        same screen with different `where`: Next Up in full, a Live TV
+        category beyond the twelve a row shows, everything in a genre, a
+        studio's catalogue, the favourites.
+
+        ``spec`` is a plain dict so it can live in a route and survive
+        back-navigation. ``spec["type"]`` selects the query; everything else
+        in it is that query's arguments. Unknown types raise rather than
+        quietly returning an empty list -- a typo in a route should not look
+        like an empty library.
+        """
+        kind = (spec or {}).get("type")
+        if kind == "nextup":
+            api = self._conn(server_uuid).api
+            result = api.get_next(
+                index=start_index, limit=limit, fields=LIST_FIELDS,
+                enable_image_types="Primary,Thumb,Backdrop",
+                image_type_limit=1) or {}
+            return (result.get("Items", []),
+                    result.get("TotalRecordCount", 0))
+        if kind == "programs":
+            # The six Programs rows cap at twelve with nothing behind them;
+            # this is that nothing. The flags ride in the spec exactly as
+            # PROGRAM_SECTIONS holds them.
+            items = self.get_programs(server_uuid, limit=limit,
+                                      **(spec.get("filters") or {}))
+            return items, len(items)
+        if kind == "recordings":
+            items = self.get_recordings(server_uuid, limit=limit)
+            return items, len(items)
+        if kind == "items":
+            return self._list_items(server_uuid, spec, sort_by, sort_order,
+                                    start_index, limit, filters)
+        raise ValueError("unknown list type %r" % (kind,))
+
+    def _list_items(self, server_uuid, spec, sort_by, sort_order,
+                    start_index, limit, filters):
+        """The ``Users/{id}/Items`` half of :meth:`get_list`.
+
+        Genre, studio, person and favourites are all one query with a
+        different predicate, which is also how jellyfin-web routes them
+        (``#/list?genreId=…``, ``&IsFavorite=true``).
+        """
+        api = self._conn(server_uuid).api
+        kwargs = dict(self._filter_kwargs(filters))
+        for key in ("genre_ids", "person_ids", "artist_ids",
+                    "include_item_types", "parent_id"):
+            if spec.get(key) is not None:
+                kwargs[key] = spec[key]
+        if spec.get("is_favorite"):
+            kwargs["is_favorite"] = "true"
+        # StudioIds has no named argument on get_user_items; params is the
+        # documented way through for query parameters the signature does not
+        # spell out, and it merges last.
+        if spec.get("studio_ids") is not None:
+            kwargs["params"] = {"StudioIds": spec["studio_ids"]}
+        result = api.get_user_items(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            # Recursive: these predicates are about the whole library, not
+            # one folder's direct children -- a genre listing that stopped at
+            # the top level would be empty on any library with folders in it.
+            recursive=True,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            **kwargs) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
@@ -2059,6 +2144,21 @@ class OfflineLibrarySource:
             if start_item_id in ids:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
+
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        """Signature parity with the live source, which is load-bearing: the
+        offline catalog is what a failed load falls back TO, so a call it
+        cannot accept makes the fallback itself raise.
+
+        Answers empty rather than guessing. Every list type is a server-side
+        predicate -- still-to-air programmes, a genre across a library, the
+        favourites -- and a downloaded subset cannot stand in for any of
+        them; a partial answer here would read as "you have nothing in this
+        genre" rather than "this needs the server".
+        """
+        return [], 0
 
     def get_next_up(self, server_uuid, series_id):
         eps = self.get_series_queue(server_uuid, series_id)

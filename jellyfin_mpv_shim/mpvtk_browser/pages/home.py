@@ -100,6 +100,49 @@ class HomePage(Page):
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
+    #: Rows with a full listing behind them, by section kind. Only Next Up
+    #: for now; jellyfin-web also links Latest and On Now, which need their
+    #: own list specs.
+    #:
+    #: Everything absent is absent on purpose, and matches web: Continue
+    #: Watching, Continue Listening, Active Recordings and My Media have no
+    #: chevron in any layout. A resume row is not the top of a longer list --
+    #: it *is* the list -- and "see all of what you have not finished" is not
+    #: a screen anyone asked for.
+    SEE_ALL_ROWS = {
+        home_sections.NEXT_UP: {"type": "nextup"},
+        # jellyfin-web's On Now chevron is #/list?type=Programs&IsAiring=true
+        # -- the plain guide query, not the recommendations endpoint the row
+        # itself uses. Same destination here.
+        home_sections.LIVE_TV: {"type": "programs",
+                                "filters": {"is_airing": True}},
+    }
+
+    #: Sort index for "Date Added", descending. Named because a Latest row's
+    #: destination is its library in that order, and a bare 1 in the middle
+    #: of a navigate() says nothing.
+    _DATE_ADDED_SORT = 1
+
+    def _see_all(self, row_id, title, row=None):
+        """``on_click`` for a row's heading, or None if it has no listing."""
+        kind = row_id[4:].rsplit("-", 1)[0] if row_id.startswith("row-") else ""
+        server = self.route.get("server") or self.ctx.server
+        if kind == home_sections.LATEST and (row or {}).get("parent_id"):
+            # Web opens the library on its Latest *tab*; we have no tabs, so
+            # the honest equivalent is that library sorted newest-first --
+            # the same items in the same order, without the 16-item cap.
+            return lambda: self.ctx.nav.navigate({
+                "kind": "grid", "server": server,
+                "parent_id": row["parent_id"],
+                "collection_type": row.get("collection_type"),
+                "title": title, "_sort": self._DATE_ADDED_SORT})
+        spec = self.SEE_ALL_ROWS.get(kind)
+        if spec is None:
+            return None
+        return lambda: self.ctx.nav.navigate({
+            "kind": "list", "server": server, "title": title,
+            "list": dict(spec)})
+
     @staticmethod
     def _order_rows(rows):
         """Restore the user's section order across the two fetch batches.
@@ -143,7 +186,8 @@ class HomePage(Page):
                             _("Libraries"), data["libraries"],
                             # Libraries read as landscape cards, like the web
                             # client.
-                            art.geom_wide, "Primary", "row-libs", False, True))
+                            art.geom_wide, "Primary", "row-libs", False, True,
+                            None))
         # Ids are derived from section kind and ordinal, not from position:
         # they key the scroll containers, so an index-based id would hand a
         # reordered section the previous occupant's scroll offset.
@@ -158,10 +202,13 @@ class HomePage(Page):
                             geom, itype, "row-%s-%d" % (kind, n),
                             self._latest_tv(hr),
                             inherit if kind in self.EPISODE_IMAGE_ROWS
-                            else True))
+                            else True,
+                            self._see_all("row-%s-%d" % (kind, n),
+                                          hr["title"], hr)))
         entries.sort(key=lambda e: e[0])
         rows = []
-        for _slot, title, items, geom, itype, row_id, pitem, inh in entries:
+        for (_slot, title, items, geom, itype, row_id, pitem, inh,
+             see_all) in entries:
             # "-0": the FIRST Live TV row only. Nothing stops a layout from
             # holding the section twice, and a second button row would
             # duplicate every node id in it — the renderer then targets only
@@ -175,7 +222,8 @@ class HomePage(Page):
                 rows.append(self._live_tv_buttons())
             rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
                                            image_type=itype, bleed=True,
-                                           parent_item=pitem, inherit=inh))
+                                           parent_item=pitem, inherit=inh,
+                                           see_all=see_all))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size=20,

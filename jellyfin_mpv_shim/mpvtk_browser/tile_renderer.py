@@ -546,7 +546,7 @@ class TileRenderer:
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False,
-                  inherit=True):
+                  inherit=True, see_all=None):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
@@ -556,8 +556,27 @@ class TileRenderer:
         geom = geom or self.art.geom
         # Section-title size is theme-controlled (24 = the stock value), so a
         # theme with larger covers can size its headings to match.
-        heading = Text(title, size=(theme.active() or {}).get(
-            "heading_size", 24), bold=True)
+        title_size = (theme.active() or {}).get("heading_size", 24)
+        heading: object = Text(title, size=title_size, bold=True)
+        if see_all is not None:
+            # jellyfin-web's chevron: the heading becomes the link to the
+            # full listing, because a row is a top-N of something and this
+            # is the only route to the rest of it.
+            #
+            # A Box with on_click, not a bare Text, so the toolkit picks it
+            # up: renderer.lua's nav_candidates collects any node carrying
+            # click, which is what makes the heading a D-pad target with a
+            # focus ring for free. We draw it in every layout -- web hides
+            # it in its TV layout, but that is web having two layouts and
+            # hiding the affordance in one, not a judgement that a remote
+            # cannot use it.
+            heading = Box(
+                [Text(title, size=title_size, bold=True),
+                 Icon("chevron_right", int(title_size * 0.9),
+                      color=theme.TEXT_FG)],
+                id="%s-more" % row_id, direction="row", align="center",
+                gap=2, pad=(6, 2), radius=6,
+                hover={"fill": theme.BUTTON_BG}, on_click=see_all)
         head = [heading]
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with

@@ -374,7 +374,11 @@ class TestEveryRouteKindActuallyRenders(unittest.TestCase):
     #: Enough keys to satisfy every loader's route lookups.
     ROUTE = {"server": "srv1", "parent_id": "lib1", "item_id": "m1",
              "person_id": "p1", "series_id": "sh1", "title": "T",
-             "term": "q", "_tab": "albums"}
+             "term": "q", "_tab": "albums",
+             # The list route is defined by a predicate rather than a
+             # parent; "items" is the sortable, pageable variant, so it
+             # exercises the most of the page.
+             "list": {"type": "items", "genre_ids": "g1"}}
 
     #: Kinds whose screen is app state rather than library content, and which
     #: need a live controller/compositor to render at all. Covered by

@@ -309,6 +309,22 @@ class GridPage(Page):
                                          len(items))
         return lambda start, limit: self._fetch_at(start, limit)
 
+    def _sort_bar(self):
+        """Just the sort dropdown, for routes with no filterable axes.
+
+        On ``GridPage`` rather than a subclass because two of them want it
+        now. The node id carries the route kind: the renderer targets by id
+        and keeps per-node state against it, so two screens sharing one id
+        would share a dropdown -- and the id was literally "person-sort"
+        while the list route was being built on top of it.
+        """
+        return Row([
+            Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
+            Dropdown("%s-sort" % self.kind, [s[0] for s in SORTS],
+                     selected=self.route.get("_sort", 0), w=180,
+                     on_select=lambda i, v: self._set("_sort", i)),
+        ], gap=10, align="center")
+
     def _grid_shape(self, items):
         """``(geom, image_type)`` for this grid, shaped by its own artwork.
 
@@ -407,6 +423,89 @@ class GridPage(Page):
         self.ctx.run.run(work, done, self.ctx.run.epoch)
 
 
+class ListPage(GridPage):
+    """A generic "everything of this kind" listing -- jellyfin-web's
+    ``#/list?type=…``.
+
+    The destination behind a section heading. Every row on the home and
+    Live TV screens is a top-N of something (twelve upcoming films, twenty
+    Next Up) with no way to see the rest, and this is the rest. One page
+    rather than one per section because they differ only in the query:
+    the grid, the paging, the sort and the shape are the same screen.
+
+    A ``GridPage`` subclass for that reason, exactly as ``PersonPage`` is.
+    What it replaces is ``parent_id`` -- a list is defined by a *predicate*
+    (this genre, this studio, favourites, still-to-air films) rather than by
+    a folder, which is the one thing the grid could not express.
+    """
+
+    kind = "list"
+
+    HEAD_H = 40 + 46
+
+    #: Specs whose query has no meaningful ordering to offer. Next Up is
+    #: already in the server's watch order and re-sorting it by name would
+    #: be actively worse; guide listings are chronological, and a programme
+    #: list out of time order is not a listing of anything.
+    UNSORTABLE = frozenset({"nextup", "programs", "recordings"})
+
+    def _spec(self):
+        return self.route.get("list") or {}
+
+    def _sortable(self):
+        return self._spec().get("type") not in self.UNSORTABLE
+
+    def load(self, epoch):
+        route = self.route
+        source = self.ctx.source
+        srv = route.get("server") or self.ctx.server
+        spec = self._spec()
+        sort_by, sort_order = self._sort_args()
+
+        def work():
+            return source.get_list(srv, spec, sort_by=sort_by,
+                                   sort_order=sort_order)
+
+        def done(res):
+            items, total = res
+            route["_items"] = items
+            # Same Random cap as the grid: the server reshuffles per request,
+            # so paging one yields duplicates and skips.
+            route["_total"] = len(items) if sort_by == "Random" else total
+
+        self.route_async(work, done, epoch)
+
+    def _sort_args(self):
+        if not self._sortable():
+            return None, None
+        _label, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
+        return sort_by, sort_order
+
+    def _bound_query(self):
+        sort_by, sort_order = self._sort_args()
+        return (sort_by, sort_order, self.route.get("_filters") or {}, None,
+                self.route.get("server") or self.ctx.server)
+
+    def _fetch_at(self, start, limit=None, bound=None):
+        sort_by, sort_order, filters, _person, srv = (
+            bound or self._bound_query())
+        kw = {} if limit is None else {"limit": limit}
+        return self.ctx.source.get_list(
+            srv, self._spec(), sort_by=sort_by, sort_order=sort_order,
+            start_index=start, filters=filters, **kw)
+
+    def _header(self, items):
+        header = [Text(self.route.get("title", ""), size=26, bold=True)]
+        if self._sortable():
+            header.append(self._sort_bar())
+        if not self._pages.enabled():
+            total = self.route.get("_total") or 0
+            header.append(Text(_("%(shown)d of %(total)d") % {
+                "shown": len(items), "total": total},
+                size=14, color=theme.SUBTLE_FG))
+        return header
+
+
 class PersonPage(GridPage):
     """A person's filmography. Same grid, different source and header.
 
@@ -448,11 +547,3 @@ class PersonPage(GridPage):
         return [Text(self.route.get("title", ""), size=26, bold=True),
                 self._sort_bar()]
 
-    def _sort_bar(self):
-        """Just the sort dropdown, for routes with no filterable axes."""
-        return Row([
-            Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
-            Dropdown("person-sort", [s[0] for s in SORTS],
-                     selected=self.route.get("_sort", 0), w=180,
-                     on_select=lambda i, v: self._set("_sort", i)),
-        ], gap=10, align="center")
