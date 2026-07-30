@@ -12,109 +12,100 @@
 {"click": true, "fill": "2e3138", "h": 36.0, "hover": {"fill": "3a3e46"}, "id": "nav-settings", "radius": 6, "t": "rect", "w": 120.4, "x": 1147.6, "y": 12.0}
 {"c": "e8e8e8", "h": 19.0, "id": "r.0.7.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19.14 12.94 b 19.18 12.64 19.2 12.33 19.2 12 b 19.2 11.68 19.18 11.36 19.13 11.06 l 21.16 9.48 b 21.34 9.33 21.39 9.08 21.28 8.87 l 19.36 5.55 b 19.24 5.34 18.99 5.25 18.77 5.33 l 16.38 6.29 b 15.88 5.91 15.35 5.59 14.76 5.35 l 14.4 2.81 b 14.36 2.57 14.16 2.4 13.92 2.4 l 10.08 2.4 b 9.84 2.4 9.65 2.57 9.61 2.81 l 9.25 5.35 b 8.66 5.59 8.12 5.92 7.63 6.29 l 5.24 5.33 b 5.02 5.25 4.77 5.33 4.65 5.55 l 2.74 8.87 b 2.62 9.08 2.66 9.34 2.86 9.48 l 4.89 11.06 b 4.84 11.36 4.8 11.69 4.8 12 b 4.8 12.31 4.82 12.64 4.87 12.94 l 2.84 14.52 b 2.66 14.67 2.61 14.92 2.72 15.13 l 4.64 18.45 b 4.76 18.67 5.01 18.74 5.23 18.67 l 7.62 17.71 b 8.12 18.09 8.65 18.41 9.24 18.65 l 9.6 21.19 b 9.65 21.43 9.84 21.6 10.08 21.6 l 13.92 21.6 b 14.16 21.6 14.36 21.43 14.39 21.19 l 14.75 18.65 b 15.34 18.41 15.88 18.09 16.37 17.71 l 18.76 18.67 b 18.98 18.75 19.23 18.67 19.35 18.45 l 21.27 15.13 b 21.39 14.91 21.34 14.66 21.15 14.52 l 19.14 12.94 m 12 15.6 b 10.02 15.6 8.4 13.98 8.4 12 b 8.4 10.02 10.02 8.4 12 8.4 b 13.98 8.4 15.6 10.02 15.6 12 b 15.6 13.98 13.98 15.6 12 15.6", "t": "icon", "w": 19.0, "x": 1157.6, "y": 20.5}
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.7.1", "size": 20, "t": "text", "text": "Settings", "w": 74.4, "x": 1183.6, "y": 22.0}
-{"axis": "y", "bar": true, "ch": 1034.0, "cw": 1270.0, "h": 660.0, "id": "grid", "snap": 283, "snap_off": 181.0, "t": "scroll", "w": 1280.0, "watch": true, "x": 0.0, "y": 60.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0", "sc": "grid", "size": 26, "t": "text", "text": "Movies", "w": 1238.0, "x": 16.0, "y": 76.0}
-{"h": 38.0, "id": "grid-sort", "items": ["Name", "Date Added", "Release Date", "Community Rating", "Date Played", "Play Count", "Runtime", "Critic Rating", "Parental Rating", "Random"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 130.0, "x": 16.0, "y": 124.0}
-{"h": 38.0, "id": "grid-genre", "items": ["All Genres", "Action", "Comedy"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 130.0, "x": 156.0, "y": 124.0}
-{"h": 38.0, "id": "grid-imagetype", "items": ["Auto", "Thumbnail", "Banner", "Logo", "Disc"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 108.4, "x": 296.1, "y": 124.0}
-{"h": 38.0, "id": "grid-year", "items": ["All Years", "2020", "2021"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 101.1, "x": 414.5, "y": 124.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-unplayed", "sc": "grid", "t": "rect", "w": 112.4, "x": 525.6, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.4.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 525.6, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.4.1", "sc": "grid", "size": 20, "t": "text", "text": "Unplayed", "w": 82.4, "x": 555.6, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-fav", "sc": "grid", "t": "rect", "w": 115.2, "x": 648.0, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.5.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 648.0, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.5.1", "sc": "grid", "size": 20, "t": "text", "text": "Favorites", "w": 85.2, "x": 678.0, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-showtitle", "sc": "grid", "t": "rect", "w": 82.8, "x": 773.2, "y": 130.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.0.1.0.6.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 773.2, "y": 133.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.0.1.0.6.0.0", "sc": "grid", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 773.2, "y": 133.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.6.1", "sc": "grid", "size": 20, "t": "text", "text": "Titles", "w": 52.8, "x": 803.2, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-showyear", "sc": "grid", "t": "rect", "w": 80.0, "x": 866.0, "y": 130.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.0.1.0.7.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 866.0, "y": 133.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.0.1.0.7.0.0", "sc": "grid", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 866.0, "y": 133.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.1", "sc": "grid", "size": 20, "t": "text", "text": "Years", "w": 50.0, "x": 896.0, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-listview", "sc": "grid", "t": "rect", "w": 65.2, "x": 956.0, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.8.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 956.0, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.8.1", "sc": "grid", "size": 20, "t": "text", "text": "List", "w": 35.2, "x": 986.0, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-paginated", "sc": "grid", "t": "rect", "w": 119.2, "x": 1031.2, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.9.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 1031.2, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.9.1", "sc": "grid", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 1061.2, "y": 130.5}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 1170.4, "y": 120.5}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.11.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 1180.4, "y": 130.5}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-#", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 16.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.0.0", "sc": "grid", "size": 15, "t": "text", "text": "#", "w": 26.0, "x": 16.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-A", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 44.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.1.0", "sc": "grid", "size": 15, "t": "text", "text": "A", "w": 26.0, "x": 44.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-B", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 72.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.2.0", "sc": "grid", "size": 15, "t": "text", "text": "B", "w": 26.0, "x": 72.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-C", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 100.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.3.0", "sc": "grid", "size": 15, "t": "text", "text": "C", "w": 26.0, "x": 100.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-D", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 128.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.4.0", "sc": "grid", "size": 15, "t": "text", "text": "D", "w": 26.0, "x": 128.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-E", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 156.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.5.0", "sc": "grid", "size": 15, "t": "text", "text": "E", "w": 26.0, "x": 156.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-F", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 184.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.6.0", "sc": "grid", "size": 15, "t": "text", "text": "F", "w": 26.0, "x": 184.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-G", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 212.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.7.0", "sc": "grid", "size": 15, "t": "text", "text": "G", "w": 26.0, "x": 212.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-H", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 240.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.8.0", "sc": "grid", "size": 15, "t": "text", "text": "H", "w": 26.0, "x": 240.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-I", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 268.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.9.0", "sc": "grid", "size": 15, "t": "text", "text": "I", "w": 26.0, "x": 268.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-J", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 296.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.10.0", "sc": "grid", "size": 15, "t": "text", "text": "J", "w": 26.0, "x": 296.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-K", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 324.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.11.0", "sc": "grid", "size": 15, "t": "text", "text": "K", "w": 26.0, "x": 324.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-L", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 352.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.12.0", "sc": "grid", "size": 15, "t": "text", "text": "L", "w": 26.0, "x": 352.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-M", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 380.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.13.0", "sc": "grid", "size": 15, "t": "text", "text": "M", "w": 26.0, "x": 380.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-N", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 408.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.14.0", "sc": "grid", "size": 15, "t": "text", "text": "N", "w": 26.0, "x": 408.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-O", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 436.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.15.0", "sc": "grid", "size": 15, "t": "text", "text": "O", "w": 26.0, "x": 436.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-P", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 464.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.16.0", "sc": "grid", "size": 15, "t": "text", "text": "P", "w": 26.0, "x": 464.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Q", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 492.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.17.0", "sc": "grid", "size": 15, "t": "text", "text": "Q", "w": 26.0, "x": 492.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-R", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 520.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.18.0", "sc": "grid", "size": 15, "t": "text", "text": "R", "w": 26.0, "x": 520.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-S", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 548.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.19.0", "sc": "grid", "size": 15, "t": "text", "text": "S", "w": 26.0, "x": 548.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-T", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 576.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.20.0", "sc": "grid", "size": 15, "t": "text", "text": "T", "w": 26.0, "x": 576.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-U", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 604.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.21.0", "sc": "grid", "size": 15, "t": "text", "text": "U", "w": 26.0, "x": 604.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-V", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 632.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.22.0", "sc": "grid", "size": 15, "t": "text", "text": "V", "w": 26.0, "x": 632.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-W", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 660.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.23.0", "sc": "grid", "size": 15, "t": "text", "text": "W", "w": 26.0, "x": 660.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-X", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 688.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.24.0", "sc": "grid", "size": 15, "t": "text", "text": "X", "w": 26.0, "x": 688.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Y", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 716.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.25.0", "sc": "grid", "size": 15, "t": "text", "text": "Y", "w": 26.0, "x": 716.0, "y": 177.1}
-{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Z", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 744.0, "y": 173.5}
-{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.26.0", "sc": "grid", "size": 15, "t": "text", "text": "Z", "w": 26.0, "x": 744.0, "y": 177.1}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.0.2", "sc": "grid", "size": 14, "t": "text", "text": "20 of 30", "w": 1238.0, "x": 16.0, "y": 211.5}
-{"h": 271.0, "id": "r.1.0.3", "ih": 271, "iw": 1134, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1134.0, "x": 16.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g0", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g1", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g2", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g3", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g4", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g5", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 241.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g6", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1000.0, "y": 241.0}
-{"h": 271.0, "id": "r.1.0.4", "ih": 271, "iw": 1134, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1134.0, "x": 16.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g7", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g8", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g9", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g10", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g11", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g12", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 524.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g13", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1000.0, "y": 524.0}
-{"h": 271.0, "id": "r.1.0.5", "ih": 271, "iw": 970, "sc": "grid", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 970.0, "x": 16.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g14", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g15", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g16", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g17", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g18", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 807.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g19", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 807.0}
+{"axis": "y", "bar": true, "ch": 1041.5, "cw": 1270.0, "h": 660.0, "id": "grid", "snap": 283, "snap_off": 188.5, "t": "scroll", "w": 1280.0, "watch": true, "x": 0.0, "y": 60.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0.0", "sc": "grid", "size": 26, "t": "text", "text": "Movies", "w": 97.6, "x": 16.0, "y": 79.8}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "grid-viewcfg", "radius": 6, "sc": "grid", "t": "rect", "w": 81.3, "x": 1182.7, "y": 76.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.0.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19.14 12.94 b 19.18 12.64 19.2 12.33 19.2 12 b 19.2 11.68 19.18 11.36 19.13 11.06 l 21.16 9.48 b 21.34 9.33 21.39 9.08 21.28 8.87 l 19.36 5.55 b 19.24 5.34 18.99 5.25 18.77 5.33 l 16.38 6.29 b 15.88 5.91 15.35 5.59 14.76 5.35 l 14.4 2.81 b 14.36 2.57 14.16 2.4 13.92 2.4 l 10.08 2.4 b 9.84 2.4 9.65 2.57 9.61 2.81 l 9.25 5.35 b 8.66 5.59 8.12 5.92 7.63 6.29 l 5.24 5.33 b 5.02 5.25 4.77 5.33 4.65 5.55 l 2.74 8.87 b 2.62 9.08 2.66 9.34 2.86 9.48 l 4.89 11.06 b 4.84 11.36 4.8 11.69 4.8 12 b 4.8 12.31 4.82 12.64 4.87 12.94 l 2.84 14.52 b 2.66 14.67 2.61 14.92 2.72 15.13 l 4.64 18.45 b 4.76 18.67 5.01 18.74 5.23 18.67 l 7.62 17.71 b 8.12 18.09 8.65 18.41 9.24 18.65 l 9.6 21.19 b 9.65 21.43 9.84 21.6 10.08 21.6 l 13.92 21.6 b 14.16 21.6 14.36 21.43 14.39 21.19 l 14.75 18.65 b 15.34 18.41 15.88 18.09 16.37 17.71 l 18.76 18.67 b 18.98 18.75 19.23 18.67 19.35 18.45 l 21.27 15.13 b 21.39 14.91 21.34 14.66 21.15 14.52 l 19.14 12.94 m 12 15.6 b 10.02 15.6 8.4 13.98 8.4 12 b 8.4 10.02 10.02 8.4 12 8.4 b 13.98 8.4 15.6 10.02 15.6 12 b 15.6 13.98 13.98 15.6 12 15.6", "sc": "grid", "t": "icon", "w": 18.0, "x": 1192.7, "y": 87.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.2.1", "sc": "grid", "size": 16, "t": "text", "text": "View", "w": 36.3, "x": 1217.7, "y": 86.0}
+{"h": 38.0, "id": "grid-sort", "items": ["Name", "Date Added", "Release Date", "Community Rating", "Date Played", "Play Count", "Runtime", "Critic Rating", "Parental Rating", "Random"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 180.0, "x": 16.0, "y": 131.5}
+{"h": 38.0, "id": "grid-genre", "items": ["All Genres", "Action", "Comedy"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 180.0, "x": 206.0, "y": 131.5}
+{"h": 38.0, "id": "grid-year", "items": ["All Years", "2020", "2021"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 140.0, "x": 396.0, "y": 131.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-unplayed", "sc": "grid", "t": "rect", "w": 112.4, "x": 546.0, "y": 138.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.3.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 546.0, "y": 140.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.3.1", "sc": "grid", "size": 20, "t": "text", "text": "Unplayed", "w": 82.4, "x": 576.0, "y": 138.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-fav", "sc": "grid", "t": "rect", "w": 115.2, "x": 668.4, "y": 138.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.4.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 668.4, "y": 140.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.4.1", "sc": "grid", "size": 20, "t": "text", "text": "Favorites", "w": 85.2, "x": 698.4, "y": 138.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-paginated", "sc": "grid", "t": "rect", "w": 119.2, "x": 793.6, "y": 138.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.5.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 793.6, "y": 140.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.5.1", "sc": "grid", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 823.6, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 932.8, "y": 128.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 942.8, "y": 138.0}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-#", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 16.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.0.0", "sc": "grid", "size": 15, "t": "text", "text": "#", "w": 26.0, "x": 16.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-A", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 44.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.1.0", "sc": "grid", "size": 15, "t": "text", "text": "A", "w": 26.0, "x": 44.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-B", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 72.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.2.0", "sc": "grid", "size": 15, "t": "text", "text": "B", "w": 26.0, "x": 72.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-C", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 100.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.3.0", "sc": "grid", "size": 15, "t": "text", "text": "C", "w": 26.0, "x": 100.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-D", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 128.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.4.0", "sc": "grid", "size": 15, "t": "text", "text": "D", "w": 26.0, "x": 128.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-E", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 156.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.5.0", "sc": "grid", "size": 15, "t": "text", "text": "E", "w": 26.0, "x": 156.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-F", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 184.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.6.0", "sc": "grid", "size": 15, "t": "text", "text": "F", "w": 26.0, "x": 184.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-G", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 212.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.7.0", "sc": "grid", "size": 15, "t": "text", "text": "G", "w": 26.0, "x": 212.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-H", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 240.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.8.0", "sc": "grid", "size": 15, "t": "text", "text": "H", "w": 26.0, "x": 240.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-I", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 268.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.9.0", "sc": "grid", "size": 15, "t": "text", "text": "I", "w": 26.0, "x": 268.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-J", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 296.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.10.0", "sc": "grid", "size": 15, "t": "text", "text": "J", "w": 26.0, "x": 296.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-K", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 324.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.11.0", "sc": "grid", "size": 15, "t": "text", "text": "K", "w": 26.0, "x": 324.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-L", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 352.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.12.0", "sc": "grid", "size": 15, "t": "text", "text": "L", "w": 26.0, "x": 352.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-M", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 380.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.13.0", "sc": "grid", "size": 15, "t": "text", "text": "M", "w": 26.0, "x": 380.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-N", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 408.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.14.0", "sc": "grid", "size": 15, "t": "text", "text": "N", "w": 26.0, "x": 408.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-O", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 436.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.15.0", "sc": "grid", "size": 15, "t": "text", "text": "O", "w": 26.0, "x": 436.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-P", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 464.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.16.0", "sc": "grid", "size": 15, "t": "text", "text": "P", "w": 26.0, "x": 464.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Q", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 492.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.17.0", "sc": "grid", "size": 15, "t": "text", "text": "Q", "w": 26.0, "x": 492.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-R", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 520.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.18.0", "sc": "grid", "size": 15, "t": "text", "text": "R", "w": 26.0, "x": 520.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-S", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 548.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.19.0", "sc": "grid", "size": 15, "t": "text", "text": "S", "w": 26.0, "x": 548.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-T", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 576.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.20.0", "sc": "grid", "size": 15, "t": "text", "text": "T", "w": 26.0, "x": 576.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-U", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 604.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.21.0", "sc": "grid", "size": 15, "t": "text", "text": "U", "w": 26.0, "x": 604.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-V", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 632.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.22.0", "sc": "grid", "size": 15, "t": "text", "text": "V", "w": 26.0, "x": 632.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-W", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 660.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.23.0", "sc": "grid", "size": 15, "t": "text", "text": "W", "w": 26.0, "x": 660.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-X", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 688.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.24.0", "sc": "grid", "size": 15, "t": "text", "text": "X", "w": 26.0, "x": 688.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Y", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 716.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.25.0", "sc": "grid", "size": 15, "t": "text", "text": "Y", "w": 26.0, "x": 716.0, "y": 184.6}
+{"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Z", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 744.0, "y": 181.0}
+{"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.26.0", "sc": "grid", "size": 15, "t": "text", "text": "Z", "w": 26.0, "x": 744.0, "y": 184.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.0.2", "sc": "grid", "size": 14, "t": "text", "text": "20 of 30", "w": 1238.0, "x": 16.0, "y": 219.0}
+{"h": 271.0, "id": "r.1.0.3", "ih": 271, "iw": 1134, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1134.0, "x": 16.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g0", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g1", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g2", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g3", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g4", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g5", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 248.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g6", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1000.0, "y": 248.5}
+{"h": 271.0, "id": "r.1.0.4", "ih": 271, "iw": 1134, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1134.0, "x": 16.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g7", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g8", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g9", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g10", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g11", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g12", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 531.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g13", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1000.0, "y": 531.5}
+{"h": 271.0, "id": "r.1.0.5", "ih": 271, "iw": 970, "sc": "grid", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 970.0, "x": 16.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g14", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g15", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 180.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g16", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 344.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g17", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 508.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g18", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 672.0, "y": 814.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g19", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 836.0, "y": 814.5}

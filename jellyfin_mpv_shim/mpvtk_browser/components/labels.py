@@ -108,6 +108,30 @@ def placeholder_glyph(item):
     return name[0].upper() if name else "?"
 
 
+#: Types a mixed grid has to tell apart at a glance. A Home Videos library
+#: holds folders, photo albums, photos and clips side by side, and with
+#: artwork on all four there is nothing in the tile that says which will open
+#: and which will start playing.
+#:
+#: Only these four. A movies library is all one kind, so a chip on every tile
+#: would be noise -- which is why the *grid* decides whether to draw them (see
+#: TileRenderer.image_map) rather than each tile deciding for itself.
+MIXED_KIND_GLYPHS = {
+    "Folder": "▸",
+    "CollectionFolder": "▸",
+    "PhotoAlbum": "▣",
+    "Photo": "▣",
+    "Video": "▶",
+    "MusicVideo": "▶",
+}
+
+
+def mixed_kind_glyph(item):
+    """The type chip for a tile in a mixed grid, or "" for types that do not
+    need one."""
+    return MIXED_KIND_GLYPHS.get(item.get("Type"), "")
+
+
 #: Types whose placeholder says *what it is* rather than what it is called.
 #:
 #: A first initial is a decent label when the name distinguishes things --

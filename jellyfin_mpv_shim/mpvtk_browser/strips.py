@@ -140,6 +140,10 @@ class Tile:
     badge: int = 0
     progress: float = 0.0
     downloaded: bool = False
+    #: Type chip drawn bottom-left ("▸" folder, "▣" photo, "▶" video), or ""
+    #: for none. Set only where a grid holds more than one kind -- see
+    #: components.mixed_kind_glyph.
+    kind: str = ""
     glyph: str = ""
     #: Being written to disk right now. Turns the progress bar (which for
     #: these is how far through the *broadcast* is, not how far through you
@@ -232,6 +236,7 @@ class StripStore:
             int(t.badge),
             round(float(t.progress), 2),
             bool(t.downloaded),
+            t.kind,
             bool(t.recording),
             t.record,
             t.glyph if t.poster is None else "",
@@ -596,6 +601,17 @@ class StripStore:
                 radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
             dr.text((x + g.tile_w - _px(5) - bw / 2, _px(15)), str(t.badge),
+                    font=_font(g.badge_size, bold=True), anchor="mm",
+                    fill=(255, 255, 255))
+        if t.kind:
+            # Bottom-left, above the progress bar's 6px and clear of the
+            # top-right corner the record/download/unplayed badges share.
+            chip = _px(20)
+            cx, cy = x + _px(6), g.tile_h - _px(12) - chip
+            dr.rounded_rectangle([cx, cy, cx + chip, cy + chip],
+                                 radius=_px(5),
+                                 fill=theme.rgb(theme.WINDOW_BG, 205))
+            dr.text((cx + chip / 2, cy + chip / 2), t.kind,
                     font=_font(g.badge_size, bold=True), anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:

@@ -884,20 +884,26 @@ class ViewImageTypeTest(unittest.TestCase):
         b, _src = self._grid(imageType="banner")
         self.assertEqual(self._tile_w(b), BANNER_GEOM.tile_w)
 
-    def test_the_picker_shows_what_is_stored(self):
+    def test_the_modal_shows_what_is_stored(self):
+        """The controls moved off the filter row into a modal -- four
+        settings read once and rarely touched did not earn permanent space
+        beside the sort and the filters."""
         b, _src = self._grid(imageType="thumb")
         page = b._page_for(b.route)
-        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import (
-            IMAGE_TYPE_OPTIONS)
-        self.assertEqual(IMAGE_TYPE_OPTIONS[page._image_type_index()][0],
-                         "thumb")
+        self.assertEqual(page._view("imageType"), "thumb")
+        page._open_view_settings()
+        nodes, _h = build_scene(b)
+        got = ids(nodes)
+        for nid in ("vs-imagetype", "vs-showtitle", "vs-showyear",
+                    "vs-listview"):
+            self.assertIn(nid, got)
 
     def test_choosing_one_saves_it_to_the_key_it_was_read_from(self):
         """Writing elsewhere would leave the user's web client still
         reading the old value."""
         b, src = self._grid(imageType=("primary", "items-lib1-Movie-imageType"))
         page = b._page_for(b.route)
-        page._set_image_type("banner")
+        page._set_view("imageType", "banner")
         self.assertEqual(
             src.saved_view_settings,
             [("lib1", "imageType", "banner", "items-lib1-Movie-imageType")])
@@ -905,22 +911,22 @@ class ViewImageTypeTest(unittest.TestCase):
     def test_the_grid_reshapes_before_the_round_trip(self):
         from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
         b, _src = self._grid()
-        b._page_for(b.route)._set_image_type("thumb")
+        b._page_for(b.route)._set_view("imageType", "thumb")
         self.assertEqual(self._tile_w(b), LANDSCAPE_GEOM.tile_w)
 
     def test_a_rejected_save_rolls_the_shape_back(self):
         from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
         b, src = self._grid()
         src.save_view_fails = True
-        b._page_for(b.route)._set_image_type("thumb")
+        b._page_for(b.route)._set_view("imageType", "thumb")
         self.assertEqual(self._tile_w(b), POSTER_GEOM.tile_w)
 
     def test_going_back_to_auto_measures_afresh(self):
         """The parked median was computed for a different shape."""
         b, _src = self._grid()
         page = b._page_for(b.route)
-        page._set_image_type("thumb")
-        page._set_image_type("primary")
+        page._set_view("imageType", "thumb")
+        page._set_view("imageType", "primary")
         from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
         self.assertEqual(self._tile_w(b), POSTER_GEOM.tile_w)
 
@@ -1022,12 +1028,15 @@ class ViewLabelsAndListTest(unittest.TestCase):
         self.assertEqual(src.saved_view_settings[0][1:3],
                          ("showTitle", False))
 
-    def test_the_toggles_are_on_the_filter_row(self):
+    def test_the_filter_row_no_longer_carries_them(self):
+        """They live in the View modal now; the bar was overcrowded."""
         b, _src = self._grid()
         nodes, _h = build_scene(b)
         got = ids(nodes)
-        for nid in ("grid-showtitle", "grid-showyear", "grid-listview"):
-            self.assertIn(nid, got)
+        for nid in ("grid-showtitle", "grid-showyear", "grid-listview",
+                    "grid-imagetype"):
+            self.assertNotIn(nid, got)
+        self.assertIn("grid-viewcfg", got)
 
     def test_a_rejected_save_rolls_the_setting_back(self):
         b, src = self._grid()
@@ -1035,6 +1044,52 @@ class ViewLabelsAndListTest(unittest.TestCase):
         page = b._page_for(b.route)
         page._set_view("showTitle", False)
         self.assertTrue(page._view("showTitle"))
+
+
+class MixedKindChipsTest(unittest.TestCase):
+    """A Home Videos grid holds folders, albums, photos and clips side by
+    side, and with artwork on all four nothing in the tile says which will
+    open and which will start playing."""
+
+    def _tiles(self, types):
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser as B
+
+        b = B(app=None, source=FakeSource(), controller=FakeController())
+        b._pool = _SyncPool()
+        captured = []
+        real = b.tiles._tile
+
+        def spy(item, geom, image_type="Primary", parent_item=False,
+                inherit=True, labels=None, kind_chips=False):
+            tile = real(item, geom, image_type, parent_item, inherit, labels,
+                        kind_chips)
+            captured.append(tile)
+            return tile
+
+        b.tiles._tile = spy
+        items = [{"Id": "i%d" % i, "Name": "N", "Type": t}
+                 for i, t in enumerate(types)]
+        b.tiles.image_map(items, "x", b.geom)
+        return captured
+
+    def test_a_mixed_grid_chips_every_tile(self):
+        kinds = [t.kind for t in self._tiles(["Folder", "Photo", "Video"])]
+        self.assertEqual(kinds, ["▸", "▣", "▶"])
+
+    def test_a_grid_of_one_kind_chips_nothing(self):
+        """A movies library is all one kind, so a chip on every tile would
+        be noise. Decided per row, not per tile."""
+        kinds = [t.kind for t in self._tiles(["Video", "Video", "Video"])]
+        self.assertEqual(kinds, ["", "", ""])
+
+    def test_types_with_no_chip_do_not_force_one_on_the_others(self):
+        """A movie next to a series is still one kind of question."""
+        kinds = [t.kind for t in self._tiles(["Movie", "Series"])]
+        self.assertEqual(kinds, ["", ""])
+
+    def test_a_movie_among_folders_gets_no_chip_but_the_folders_do(self):
+        kinds = [t.kind for t in self._tiles(["Folder", "Video", "Movie"])]
+        self.assertEqual(kinds, ["▸", "▶", ""])
 
 
 if __name__ == "__main__":

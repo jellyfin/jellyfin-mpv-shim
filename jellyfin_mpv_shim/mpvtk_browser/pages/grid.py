@@ -19,7 +19,7 @@ from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
 from .. import theme, view_prefs
-from ..components import chrome
+from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
 
@@ -39,25 +39,16 @@ SORTS = [
 ]
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-#: The image-type picker's options, in jellyfin-web's order.
-#: "Primary" means "no override" -- shape the grid by its artwork,
-#: which is what it does with no setting at all.
-#: A view with nothing stored: web's defaults, which are also what the
-#: shim did before any of this existed.
+#: A view with nothing stored: web's defaults, which are also what the shim
+#: did before any of this existed, so an untouched library is unchanged.
+#: ``(value, key)`` pairs -- the key each was read from rides along so a save
+#: lands where the user's web client will look for it (see ``view_prefs``).
 _DEFAULT_VIEW = {
     "imageType": (view_prefs.DEFAULT_IMAGE_TYPE, None),
     "viewType": (view_prefs.GRID_VIEW, None),
     "showTitle": (True, None),
     "showYear": (True, None),
 }
-
-IMAGE_TYPE_OPTIONS = [
-    ("primary", _("Auto")),
-    ("thumb", _("Thumbnail")),
-    ("banner", _("Banner")),
-    ("logo", _("Logo")),
-    ("disc", _("Disc")),
-]
 
 #: Collection types with a Genres screen. Music has its own, in the
 #: music library's Genres tab, and it is a different screen: a music
@@ -205,7 +196,16 @@ class GridPage(Page):
         route = self.route
         # Annotated: the collections Row and the filter bar join a list that
         # starts with a Text, so mypy would infer list[Text] from it.
-        header: list = [Text(route.get("title", ""), size=26, bold=True)]
+        # The view-settings button rides the heading, trailing -- the same
+        # placement the guide's does, and for the same reason: four controls
+        # read once and rarely touched do not earn permanent space on a
+        # filter row already carrying a sort, three filters and a shuffle.
+        header: list = [Row([
+            Text(route.get("title", ""), size=26, bold=True),
+            Spacer(flex=1),
+            controls.action_btn("settings", _("View"), "grid-viewcfg",
+                                self._open_view_settings, size=16),
+        ], align="center", w=max(0, (width or 0) - 2 * chrome.CONTENT_PAD))]
         header.append(self._filter_bar(width))
         # The count line is redundant with the pagination bar's "of N".
         if not self._pages.enabled():
@@ -262,11 +262,6 @@ class GridPage(Page):
                      w=180,
                      on_select=lambda i, v: self._set_filter(
                          "genre", None if i == 0 else genres[i - 1])),
-            Dropdown("grid-imagetype",
-                     [lbl for _v, lbl in IMAGE_TYPE_OPTIONS],
-                     selected=self._image_type_index(), w=150,
-                     on_select=lambda i, v: self._set_image_type(
-                         IMAGE_TYPE_OPTIONS[i][0])),
             Dropdown("grid-year",
                      [_("All Years")] + [str(y) for y in years],
                      selected=yi, w=140,
@@ -289,22 +284,6 @@ class GridPage(Page):
         ] if route.get("_collection_capable") else []) + [
             # Reflects and writes the GLOBAL paginated setting — a convenient
             # place to flip it, not a per-view filter.
-            Checkbox(_("Titles"), bool(self._view("showTitle")),
-                     id="grid-showtitle",
-                     on_toggle=lambda: self._set_view(
-                         "showTitle", not self._view("showTitle"))),
-            Checkbox(_("Years"), bool(self._view("showYear")),
-                     id="grid-showyear",
-                     on_toggle=lambda: self._set_view(
-                         "showYear", not self._view("showYear"))),
-            Checkbox(_("List"),
-                     view_prefs.is_list_view(self._view("viewType")),
-                     id="grid-listview",
-                     on_toggle=lambda: self._set_view(
-                         "viewType",
-                         view_prefs.GRID_VIEW
-                         if view_prefs.is_list_view(self._view("viewType"))
-                         else view_prefs.LIST_VIEW)),
             Checkbox(_("Paginated"), self._pages.enabled(),
                      id="grid-paginated",
                      on_toggle=lambda: self._pages.toggle(self.route,
@@ -483,19 +462,8 @@ class GridPage(Page):
             "collection_type": route.get("collection_type"),
             "title": _("Genres")})
 
-    def _image_type_index(self):
-        current = self._view("imageType")
-        values = [v for v, _l in IMAGE_TYPE_OPTIONS]
-        return values.index(current) if current in values else 0
-
-    def _set_image_type(self, value):
-        """Persist the library's image type and redraw with it.
-
-        Optimistic, like every other edit here: the grid reshapes on the
-        next frame and rolls back if the server refuses. No reload -- the
-        items are the same, only how they are drawn changes.
-        """
-        return self._set_view("imageType", value)
+    def _open_view_settings(self):
+        self.ctx.dialogs.view_settings(self._view, self._set_view)
 
     def _view(self, setting):
         """The stored value of one view setting, or its default.
