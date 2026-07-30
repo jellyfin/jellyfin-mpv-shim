@@ -199,7 +199,12 @@ class MusicLibraryPage(MusicPage):
 
     def _grid_body(self, data, size, tab):
         art = self.ctx.art
-        geom = art.geom_wide if tab == "genres" else art.geom_square
+        # Every music tab is square, genres included. jellyfin-web renders a
+        # MusicGenre as shape:'auto' with nothing to measure -- a genre carries
+        # no Primary image -- and setCardData's no-aspect-ratio fallback is
+        # square, so square is what it draws. The modern app says it outright:
+        # Music -> SquareOverflow, everything else PortraitOverflow.
+        geom = art.geom_square
         return VScroll(
             Column(art.tiles.grid_of(data, "music", size, geom=geom,
                                      scroll_id="music-grid"),
