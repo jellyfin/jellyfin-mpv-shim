@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-07-28 16:27+0000\n"
+"PO-Revision-Date: 2026-07-30 11:39+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -657,7 +657,6 @@ msgid "Sign In"
 msgstr "Anmelden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "There is nothing downloaded to browse."
 msgstr "Es gibt nichts heruntergeladenes zum durchsuchen."
 
@@ -798,10 +797,8 @@ msgid "Medium"
 msgstr "Mittel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Groß"
+msgstr "Extragroß"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
