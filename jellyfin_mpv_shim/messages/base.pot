@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 15:26-0400\n"
+"POT-Creation-Date: 2026-07-30 17:17-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1809,6 +1809,11 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Nothing here yet."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
 msgstr ""
@@ -2354,6 +2359,10 @@ msgid "Upcoming News"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Trailers"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
 msgstr ""
 
@@ -2705,10 +2714,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Nothing here yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py

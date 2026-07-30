@@ -1188,17 +1188,18 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
         elif t == "Studio":
-            # Like a Genre: nothing of its own to show, so it opens as the
-            # listing of what it made.
-            self.navigate(dict(base, kind="list",
+            # A studio spans films and shows, so it opens as a row per kind
+            # rather than one grid of everything sorted by name.
+            self.navigate(dict(base, kind="byname",
                                list={"type": "items",
                                      "studio_ids": item.get("Id")}))
         elif t == "Genre":
             # A video genre, from a search result or a detail page's Genres
-            # line. It has nothing of its own to show, so it opens as its
-            # listing -- which is also where the Genres screen's headings
-            # go, and what jellyfin-web's #/list?genreId= is.
-            self.navigate(dict(base, kind="list",
+            # line. It spans films, shows and albums, so it opens as a row
+            # per kind -- jellyfin-web's ItemsByName. The Genres *screen*
+            # links its headings straight to a single-type listing instead,
+            # because there the type is already known.
+            self.navigate(dict(base, kind="byname",
                                list={"type": "items",
                                      "genre_ids": item.get("Id")}))
         elif t == PHOTO_TYPE:

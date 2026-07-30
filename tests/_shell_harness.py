@@ -132,6 +132,15 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        self.byname_specs = getattr(self, "byname_specs", [])
+        self.byname_specs.append(dict(spec or {}))
+        return getattr(self, "byname_rows", [
+            {"key": "movies", "title": "Movies", "types": "Movie",
+             "total": 40,
+             "items": [{"Id": "bm1", "Name": "Film", "Type": "Movie"}]},
+        ])
+
     def get_genre_sections(self, server_uuid, parent_id, collection_type,
                            limit=10, max_genres=40):
         return getattr(self, "genre_rows", [

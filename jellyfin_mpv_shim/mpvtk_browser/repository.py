@@ -1057,6 +1057,57 @@ class LibrarySource:
             kwargs["name_starts_with"] = letter
         return kwargs
 
+    #: The by-name screens' rows: (key, title-factory, item types).
+    #: jellyfin-web's ``itemsByName.js``, in its order. A genre, a studio or
+    #: a person spans several kinds of thing, and one flat grid of all of
+    #: them sorted by name is a worse answer than a row each.
+    BY_NAME_SECTIONS = (
+        ("movies", lambda: _("Movies"), "Movie"),
+        ("shows", lambda: _("Shows"), "Series"),
+        ("episodes", lambda: _("Episodes"), "Episode"),
+        ("videos", lambda: _("Videos"), "Video,MusicVideo"),
+        ("trailers", lambda: _("Trailers"), "Trailer"),
+        ("albums", lambda: _("Albums"), "MusicAlbum"),
+        ("songs", lambda: _("Songs"), "Audio"),
+    )
+
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        """``[{"key", "title", "items", "types", "total"}]`` for a by-name
+        screen -- everything a genre, studio or person is attached to,
+        grouped by what kind of thing it is.
+
+        ``spec`` is a :meth:`get_list` ``items`` spec minus the item types;
+        each row adds its own. Fanned out, empty rows dropped, and ``total``
+        rides along so a row only offers "see all" when there is more behind
+        it than it is showing -- which is jellyfin-web's rule for its own
+        More button (``itemsByName.js:96``).
+        """
+        def fetch(key, title, types):
+            def work():
+                row_spec = dict(spec or {})
+                row_spec["include_item_types"] = types
+                items, total = self._list_items(
+                    server_uuid, row_spec, "SortName", "Ascending", 0,
+                    limit, None)
+                return {"key": key, "title": title(), "items": items,
+                        "types": types, "total": total}
+            return work
+
+        rows = []
+        tasks = [fetch(*section) for section in self.BY_NAME_SECTIONS]
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, max(1, len(tasks))),
+                thread_name_prefix="byname") as pool:
+            for future in [pool.submit(task) for task in tasks]:
+                try:
+                    row = future.result()
+                except Exception:
+                    log.warning("Failed to load a by-name row", exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
     #: Item type a genre row lists, by the library's collection type.
     #: jellyfin-web's per-collection view definitions (``views/movies.ts``,
     #: ``views/tvshows.ts``): a movies library's genres are rows of films, a
@@ -2268,6 +2319,11 @@ class OfflineLibrarySource:
             if start_item_id in ids:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
+
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        """Empty offline: every row is a server-side predicate over the
+        whole library. Signature parity with the live source."""
+        return []
 
     def get_genre_sections(self, server_uuid, parent_id, collection_type,
                            limit=10, max_genres=40):

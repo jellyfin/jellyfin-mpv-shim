@@ -467,15 +467,18 @@ class GenresTest(unittest.TestCase):
         self.assertEqual(b.route.get("kind"), "genres")
         self.assertEqual(b.route.get("parent_id"), "lib1")
 
-    def test_a_genre_tile_opens_its_listing(self):
-        """It used to fall through to a status line."""
+    def test_a_genre_tile_opens_a_row_per_kind(self):
+        """It used to fall through to a status line. A genre spans films,
+        shows and albums, so it opens as ItemsByName rather than one grid
+        of everything sorted by name -- the Genres *screen* links straight
+        to a single-type listing instead, because there the type is known."""
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
         b.navigate({"kind": "home", "server": "srv1"})
         b._open_item({"Id": "g7", "Name": "Comedy", "Type": "Genre"})
-        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route.get("kind"), "byname")
         self.assertEqual(b.route["list"]["genre_ids"], "g7")
 
     def test_a_tv_library_lists_shows_not_episodes(self):
@@ -586,7 +589,7 @@ class StudiosTest(unittest.TestCase):
         self.assertEqual(b.route["list"]["type"], "studios")
         self.assertEqual(b.route["list"]["include_item_types"], "Series")
 
-    def test_a_studio_tile_opens_its_catalogue(self):
+    def test_a_studio_tile_opens_a_row_per_kind(self):
         """It used to fall through to a status line."""
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
@@ -594,8 +597,117 @@ class StudiosTest(unittest.TestCase):
         b.server = "srv1"
         b.navigate({"kind": "home", "server": "srv1"})
         b._open_item({"Id": "st1", "Name": "HBO", "Type": "Studio"})
-        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route.get("kind"), "byname")
         self.assertEqual(b.route["list"]["studio_ids"], "st1")
+
+
+class ByNameTest(unittest.TestCase):
+    """A genre, studio or person spans several kinds of thing, so it opens
+    as a row per kind rather than one grid sorted by name."""
+
+    ROWS = [
+        {"key": "movies", "title": "Movies", "types": "Movie", "total": 40,
+         "items": [{"Id": "m1", "Name": "M", "Type": "Movie"}]},
+        {"key": "episodes", "title": "Episodes", "types": "Episode",
+         "total": 2,
+         "items": [{"Id": "e1", "Name": "E", "Type": "Episode",
+                    "SeriesId": "S1"},
+                   {"Id": "e2", "Name": "E2", "Type": "Episode",
+                    "SeriesId": "S1"}]},
+    ]
+
+    def _browser(self, rows=None, spec=None):
+        src = FakeSource()
+        src.byname_rows = self.ROWS if rows is None else rows
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "byname", "server": "srv1", "title": "Comedy",
+                    "list": spec or {"type": "items", "genre_ids": "g1"}})
+        return b, src
+
+    def test_it_draws_a_row_per_kind(self):
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        got = ids(nodes)
+        self.assertTrue(any(str(i).startswith("byname-movies") for i in got))
+        self.assertTrue(any(str(i).startswith("byname-episodes") for i in got))
+
+    def test_the_shapes_are_webs_table(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            LANDSCAPE_GEOM, POSTER_GEOM)
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        widths = {}
+        for n in nodes:
+            m = re.match(r"^byname-([a-z]+)-(?!more$)", str(n.get("id", "")))
+            if m and n.get("t") == "rect":
+                widths.setdefault(m.group(1), n["w"])
+        self.assertEqual(widths.get("movies"), POSTER_GEOM.tile_w)
+        self.assertEqual(widths.get("episodes"), LANDSCAPE_GEOM.tile_w)
+
+    def test_the_predicate_reaches_the_source(self):
+        b, src = self._browser(spec={"type": "items", "person_ids": "p9"})
+        build_scene(b)
+        self.assertEqual(src.byname_specs[0]["person_ids"], "p9")
+
+    def test_a_truncated_row_offers_the_full_listing(self):
+        b, _src = self._browser()
+        _n, handlers = build_scene(b)
+        handlers["byname-movies-more"]["click"]()
+        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route["list"],
+                         {"type": "items", "genre_ids": "g1",
+                          "include_item_types": "Movie"})
+
+    def test_a_complete_row_offers_nothing(self):
+        """web's rule for its own More button (itemsByName.js:96): a chevron
+        onto a page holding the same tiles is a promise the destination
+        cannot keep."""
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        self.assertNotIn("byname-episodes-more", ids(nodes))
+
+    def test_episode_rows_do_not_inherit_series_artwork(self):
+        """This is a list of the episodes the name is attached to; one
+        series' thumb across all of them says nothing about any of them."""
+        seen = {}
+        src = FakeSource()
+        src.byname_rows = self.ROWS
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen[str(item.get("Id"))] = inherit
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "byname", "server": "srv1", "title": "C",
+                    "list": {"type": "items", "genre_ids": "g1"}})
+        build_scene(b)
+        self.assertIs(seen.get("e1"), False)
+        self.assertIs(seen.get("m1"), True)
+
+    def test_nothing_attached_says_so(self):
+        b, _src = self._browser(rows=[])
+        nodes, _h = build_scene(b)
+        self.assertTrue(any(n.get("text") for n in nodes))
+
+    def test_the_query_carries_the_row_type_and_the_predicate(self):
+        api = _Api()
+        rows = _source(api).get_by_name_sections(
+            "srv", {"type": "items", "person_ids": "p1"})
+        self.assertTrue(rows)
+        kw = api.calls[0][1]
+        self.assertEqual(kw["person_ids"], "p1")
+        self.assertIn("include_item_types", kw)
+        self.assertTrue(kw["recursive"])
+
+    def test_offline_has_none(self):
+        src = OfflineLibrarySource.__new__(OfflineLibrarySource)
+        self.assertEqual(src.get_by_name_sections("srv", {}), [])
 
 
 if __name__ == "__main__":
