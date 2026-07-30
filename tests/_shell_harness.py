@@ -89,8 +89,13 @@ class FakeSource:
                  "ProductionYear": 2001}],
              "collection_type": None},
         ]
+        # PrimaryImageAspectRatio because a real Jellyfin sets it from the
+        # Primary image, and the library grid is shaped by the median of it
+        # (GridPage._grid_shape). A fixture without one exercises only the
+        # no-artwork fallback, which is not what a movies library is.
         self.grid_items = [
-            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie",
+             "PrimaryImageAspectRatio": 2 / 3}
             for i in range(30)
         ]
         # What the view actually asked the source for. See

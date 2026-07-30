@@ -12,6 +12,8 @@ the paged-grid layout, the infinite-scroll fetcher, the reload-on-change
 handlers.
 """
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
@@ -35,6 +37,8 @@ SORTS = [
     (_("Random"), "Random", "Ascending"),
 ]
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+log = logging.getLogger("mpvtk_browser.pages.grid")
 
 
 class GridPage(Page):
@@ -105,11 +109,11 @@ class GridPage(Page):
         if items is None:
             return chrome.busy()
         header = self._header(items)
-        geom = tiles.square_geom(items) or art.geom
+        geom, image_type = self._grid_shape(items)
         if self._pages.enabled():
-            return self._paged_grid(size, header, geom)
+            return self._paged_grid(size, header, geom, image_type)
         rows = header + tiles.grid_of(
-            items, "grid", size, geom=geom,
+            items, "grid", size, geom=geom, image_type=image_type,
             scroll_id="grid", head_h=self.HEAD_H)
         return VScroll(
             Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
@@ -223,7 +227,7 @@ class GridPage(Page):
             for ch in _LETTERS], gap=2, align="center")
         return Column([bar, letters], gap=8)
 
-    def _paged_grid(self, size, header, geom):
+    def _paged_grid(self, size, header, geom, image_type="Primary"):
         """Paginated grid/person: one screenful of tiles, no scroll — the
         bottom pagination bar (drawn by the shell) moves between pages."""
         tiles = self.ctx.art.tiles
@@ -236,7 +240,8 @@ class GridPage(Page):
         if page_items is None:
             body = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
         else:
-            body = tiles.grid_of(page_items, "grid", size, geom=geom)
+            body = tiles.grid_of(page_items, "grid", size, geom=geom,
+                                 image_type=image_type)
         return Column(header + body, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                       align="stretch", flex=1)
 
@@ -304,10 +309,61 @@ class GridPage(Page):
                                          len(items))
         return lambda start, limit: self._fetch_at(start, limit)
 
+    def _grid_shape(self, items):
+        """``(geom, image_type)`` for this grid, shaped by its own artwork.
+
+        jellyfin-web's library grid asks for ``CardShape.Auto`` and lets the
+        median ``PrimaryImageAspectRatio`` decide (``ItemsView.tsx:87``);
+        movies come out as posters because movie posters *are* 2:3, not
+        because anything says "movies are posters". Ours said it, for every
+        collection type at once, which is why a Home Videos library -- 16:9
+        camcorder clips with no poster art to crop -- came out portrait.
+
+        **Computed once per route and parked.** A grid is paged, and a
+        median taken per page would change the grid's shape as you scroll
+        through one library. A route is one folder, so the first page's
+        median is the folder's, which is the granularity the answer actually
+        depends on. Cleared wherever ``_items`` is (see ``_reload``): a
+        filter or a sort is a different set of items and deserves a fresh
+        look.
+
+        The fallback when *nothing* carries a ratio is square, matching web
+        (``cardBuilder.js:102-104``). That case is precisely a grid of
+        art-less items -- the server sets the ratio from the Primary image,
+        so no image means no ratio -- and square placeholders tile better
+        than tall ones.
+        """
+        route = self.route
+        parked = route.get("_grid_shape")
+        if parked is None:
+            art = self.ctx.art
+            parked = art.tiles.auto_geom(items, default=art.geom_square,
+                                         default_type="Primary")
+            route["_grid_shape"] = parked
+            # Logged because the inputs are the user's artwork, so "why is
+            # this library the shape it is" is otherwise unanswerable
+            # without their server. Ratios, not just the verdict: a grid
+            # that came out portrait because nothing carried a ratio and one
+            # that came out portrait because the content really is portrait
+            # want different fixes.
+            if log.isEnabledFor(logging.DEBUG):
+                ratios = sorted(r for r in
+                                (i.get("PrimaryImageAspectRatio")
+                                 for i in items or ())
+                                if isinstance(r, (int, float)) and r > 0)
+                log.debug(
+                    "grid %s (%s): %d/%d items carry a ratio %s -> %dx%d %s",
+                    route.get("title"), route.get("collection_type"),
+                    len(ratios), len(items or ()),
+                    ("%.3f..%.3f" % (ratios[0], ratios[-1])) if ratios
+                    else "(none)",
+                    parked[0].tile_w, parked[0].tile_h, parked[1])
+        return parked
+
     # -- header actions -----------------------------------------------------
 
     def _reload(self):
-        for k in ("_items", "_total"):
+        for k in ("_items", "_total", "_grid_shape"):
             self.route.pop(k, None)
         self.route["_loading"] = False
         self._pages.reset(self.route)
@@ -331,7 +387,7 @@ class GridPage(Page):
         Collections are server-wide and recursive, so this is a different
         query rather than a filter."""
         self.route["_collections"] = not self.route.get("_collections")
-        for k in ("_items", "_total", "_loading"):
+        for k in ("_items", "_total", "_loading", "_grid_shape"):
             self.route.pop(k, None)
         self.ctx.nav.reload(self.route)
 

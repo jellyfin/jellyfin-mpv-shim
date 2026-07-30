@@ -1,6 +1,7 @@
 """Browsing video libraries: tiles, grids, detail pages and their actions.
 """
 
+import re
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
@@ -21,6 +22,131 @@ from tests._shell_harness import (
     series_page,
     types,
 )
+
+
+class TestLibraryGridShape(unittest.TestCase):
+    """A library grid is shaped by its own artwork, like jellyfin-web's.
+
+    It used to be poster for every collection type, which is why a Home
+    Videos library -- 16:9 clips with no poster art to crop -- came out
+    portrait. Web asks for CardShape.Auto everywhere and lets the median
+    PrimaryImageAspectRatio decide; movies look like posters because movie
+    posters are 2:3, not because anything says "movies are posters".
+    """
+
+    def _grid(self, ratios, kind="grid"):
+        src = FakeSource()
+        src.grid_items = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Video",
+             **({"PrimaryImageAspectRatio": r} if r else {})}
+            for i, r in enumerate(ratios)]
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": kind, "server": "srv1", "parent_id": "lib1",
+                    "title": "Lib"})
+        return b
+
+    def _tile_size(self, ratios):
+        b = self._grid(ratios)
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if re.match(r"^grid-\d+-", str(n.get("id", "")))
+               and n["t"] == "rect"]
+        self.assertTrue(hit, "no grid tiles")
+        return hit[0]["w"], hit[0]["h"]
+
+    def test_posters_stay_posters(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        w, _h = self._tile_size([2 / 3] * 6)
+        self.assertEqual(w, POSTER_GEOM.tile_w)
+
+    def test_sixteen_by_nine_clips_get_landscape_tiles(self):
+        """The Home Videos complaint."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([16 / 9] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_four_three_clips_get_landscape_tiles_too(self):
+        """4/3 is 1.3333 and the threshold is 1.33 -- a 0.0033 margin, so
+        this is arithmetic worth pinning rather than trusting."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([4 / 3] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_phone_verticals_get_poster_tiles(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        w, _h = self._tile_size([0.5625] * 6)
+        self.assertEqual(w, POSTER_GEOM.tile_w)
+
+    def test_square_art_gets_square_tiles(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import SQUARE_GEOM
+        w, _h = self._tile_size([1.0] * 6)
+        self.assertEqual(w, SQUARE_GEOM.tile_w)
+
+    def test_no_artwork_at_all_falls_back_to_square(self):
+        """Web's fallback (cardBuilder.js:102-104). It fires precisely for
+        an art-less grid -- the server sets the ratio from the Primary
+        image -- and square placeholders tile better than tall ones."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import SQUARE_GEOM
+        w, _h = self._tile_size([None] * 6)
+        self.assertEqual(w, SQUARE_GEOM.tile_w)
+
+    def test_the_median_ignores_items_with_no_ratio(self):
+        """A handful of art-less items in a real library must not drag the
+        shape to the fallback."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([16 / 9, None, 16 / 9, None, 16 / 9])
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_a_median_near_four_three_snaps_up_to_landscape(self):
+        """jellyfin-web rounds the median onto a canonical ratio before
+        bucketing (imageLoader.js:209-233), and the bands overlap the
+        thresholds: 1.19 is inside 4:3's +/-0.15 and outside square's, so
+        web calls it 4:3 and draws landscape. Without the snap it is 1.19,
+        which is > 0.8 and < 1.33 -- square. Real libraries sit near these
+        numbers rather than on them, which is why web rounds at all."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([1.19] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_a_median_below_every_band_is_left_alone(self):
+        """The snap must not invent a shape for content that is genuinely
+        between the canonical ratios."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import _snap_ratio
+        self.assertEqual(_snap_ratio(0.82), 0.82)
+        self.assertEqual(_snap_ratio(2.4), 2.4)
+
+    def test_the_snap_bands_are_webs(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import _snap_ratio
+        self.assertAlmostEqual(_snap_ratio(0.5625), 2 / 3)
+        self.assertAlmostEqual(_snap_ratio(0.75), 2 / 3)
+        self.assertAlmostEqual(_snap_ratio(1.6), 16 / 9)
+        self.assertAlmostEqual(_snap_ratio(1.05), 1.0)
+
+    def test_the_shape_is_parked_so_paging_cannot_change_it(self):
+        """A median taken per page would change the grid's shape as you
+        scroll one library. A route is one folder, so the first page's
+        median is the folder's."""
+        b = self._grid([16 / 9] * 6)
+        build_scene(b)
+        first = b.route["_grid_shape"]
+        # A later page of nothing but posters must not re-shape the grid.
+        b.route["_items"] = b.route["_items"] + [
+            {"Id": "p%d" % i, "Name": "P", "Type": "Movie",
+             "PrimaryImageAspectRatio": 2 / 3} for i in range(40)]
+        build_scene(b)
+        self.assertEqual(b.route["_grid_shape"], first)
+
+    def test_a_filter_change_takes_a_fresh_look(self):
+        """_reload drops the items, so the parked shape has to go with them
+        -- a different set of items deserves a different answer."""
+        b = self._grid([16 / 9] * 6)
+        build_scene(b)
+        self.assertIn("_grid_shape", b.route)
+        page = b._page_for(b.route)
+        page._set_filter("genre", "Action")
+        self.assertNotIn("_grid_shape", b.route)
 
 
 class TestSearchEpisodeArtwork(unittest.TestCase):

@@ -98,6 +98,32 @@ PAGE_SLIDE_MS = 180
 _EDGE_EPS = 1.0
 
 
+#: Canonical aspect ratios a measured median is rounded onto, with the
+#: tolerance jellyfin-web uses for each (``imageLoader.js:209-233``). Order
+#: matters -- the first match wins, and the bands overlap.
+#:
+#: This is not cosmetic. The buckets are decided *after* snapping, so a
+#: library whose median lands at 1.19 -- inside 4:3's band and outside
+#: square's -- is landscape in web and would be square without this step.
+#: Real libraries sit near these numbers rather than on them, which is the
+#: whole reason web rounds.
+_SNAP_RATIOS = (
+    (2 / 3, 0.15),      # poster
+    (16 / 9, 0.2),      # still / backdrop
+    (1.0, 0.15),        # square
+    (4 / 3, 0.15),      # 4:3 video
+)
+
+
+def _snap_ratio(value):
+    """Round a measured median onto the nearest canonical ratio, or leave it
+    alone. jellyfin-web's ``getPrimaryImageAspectRatio`` tail."""
+    for target, tolerance in _SNAP_RATIOS:
+        if abs(target - value) <= tolerance:
+            return target
+    return value
+
+
 def page_geometry(view, count, geom):
     """``(pitch, per_page, max_offset)`` for a carousel of ``count`` tiles of
     ``geom`` laid out in a ``view``-wide viewport. All logical px.
@@ -275,6 +301,7 @@ class TileRenderer:
         middle = len(ratios) // 2
         median = (ratios[middle] if len(ratios) % 2
                   else (ratios[middle - 1] + ratios[middle]) / 2.0)
+        median = _snap_ratio(median)
         if median >= self.LANDSCAPE_RATIO:
             return self.art.geom_wide, "Thumb"
         if median > self.SQUARE_RATIO:
