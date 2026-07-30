@@ -1057,6 +1057,66 @@ class LibrarySource:
             kwargs["name_starts_with"] = letter
         return kwargs
 
+    #: Item type a genre row lists, by the library's collection type.
+    #: jellyfin-web's per-collection view definitions (``views/movies.ts``,
+    #: ``views/tvshows.ts``): a movies library's genres are rows of films, a
+    #: TV library's are rows of *shows* rather than episodes.
+    GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
+
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        """``[{"key", "title", "items", "types"}]`` -- one row per genre.
+
+        jellyfin-web's ``moviegenres`` / ``tvgenres``: a heading per genre
+        over a random sample of that genre's items, with the heading linking
+        to the unbounded listing. ``SortBy: Random`` is theirs too, and it is
+        the point -- a fixed sample of ten would make the screen the same
+        ten films forever.
+
+        ``max_genres`` bounds the fan-out. A library can have a hundred
+        genres and each row is a request; web lazy-loads them on scroll
+        (IntersectionObserver), which we have no equivalent for, so a cap is
+        the honest version. It is logged when it bites rather than silently
+        truncating.
+        """
+        types = self.GENRE_ITEM_TYPES.get(collection_type)
+        if not types:
+            return []
+        api = self._conn(server_uuid).api
+        result = api.get_genres(parent_id, include_item_types=types) or {}
+        genres = [g for g in result.get("Items", []) if g.get("Id")]
+        if len(genres) > max_genres:
+            log.info("Showing %d of %d genres; the rest need the search or "
+                     "the genre filter.", max_genres, len(genres))
+            genres = genres[:max_genres]
+
+        def fetch(genre):
+            def work():
+                items, _total = self._list_items(
+                    server_uuid,
+                    {"type": "items", "genre_ids": genre["Id"],
+                     "include_item_types": types, "parent_id": parent_id},
+                    "Random", "Ascending", 0, limit, None)
+                return {"key": genre["Id"], "title": genre.get("Name") or "",
+                        "items": items, "types": types}
+            return work
+
+        rows = []
+        if not genres:
+            return rows
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, len(genres)),
+                thread_name_prefix="genres") as pool:
+            for future in [pool.submit(fetch(g)) for g in genres]:
+                try:
+                    row = future.result()
+                except Exception:
+                    log.warning("Failed to load a genre row", exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
     #: The Favorites screen's rows: (key, title-factory, item types).
     #: jellyfin-web's favoriteitems.js, in its order -- which is roughly
     #: "biggest thing first" and worth keeping, because a favourites screen
@@ -2197,6 +2257,13 @@ class OfflineLibrarySource:
             if start_item_id in ids:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
+
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        """Empty offline: a genre row is a server-side GenreIds query over
+        the whole library. Signature parity, as with every other source
+        method -- the offline catalog is the failure path's fallback."""
+        return []
 
     def get_favorite_sections(self, server_uuid, limit=24):
         """Empty offline, and hidden rather than shown empty -- see the

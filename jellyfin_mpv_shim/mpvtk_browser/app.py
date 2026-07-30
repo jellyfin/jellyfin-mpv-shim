@@ -1187,6 +1187,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == "Genre":
+            # A video genre, from a search result or a detail page's Genres
+            # line. It has nothing of its own to show, so it opens as its
+            # listing -- which is also where the Genres screen's headings
+            # go, and what jellyfin-web's #/list?genreId= is.
+            self.navigate(dict(base, kind="list",
+                               list={"type": "items",
+                                     "genre_ids": item.get("Id")}))
         elif t == PHOTO_TYPE:
             # Straight to the picture, like Audio and unlike everything in
             # PLAYABLE_TYPES -- a detail page for a photo would be a

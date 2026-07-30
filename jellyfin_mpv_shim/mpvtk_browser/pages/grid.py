@@ -38,6 +38,12 @@ SORTS = [
 ]
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+#: Collection types with a Genres screen. Music has its own, in the
+#: music library's Genres tab, and it is a different screen: a music
+#: genre has albums to draw as tiles, a video genre has nothing of
+#: its own and is a heading over a row.
+GENRE_LIBRARIES = frozenset({"movies", "tvshows"})
+
 log = logging.getLogger("mpvtk_browser.pages.grid")
 
 
@@ -146,12 +152,21 @@ class GridPage(Page):
         # Annotated: the collections Row and the filter bar join a list that
         # starts with a Text, so mypy would infer list[Text] from it.
         header: list = [Text(route.get("title", ""), size=26, bold=True)]
+        bar = []
         if route.get("_collection_capable"):
-            header.append(Row([
-                Checkbox(_("Collections"), bool(route.get("_collections")),
-                         id="grid-collections",
-                         on_toggle=self._toggle_collections)],
-                gap=10, align="center"))
+            bar.append(Checkbox(_("Collections"),
+                                bool(route.get("_collections")),
+                                id="grid-collections",
+                                on_toggle=self._toggle_collections))
+        if route.get("collection_type") in GENRE_LIBRARIES:
+            # jellyfin-web reaches its Genres screen through a library tab.
+            # We have no tabs, so it rides the same bar the Collections
+            # toggle does -- the one place on a library that already holds
+            # "another way to look at this".
+            bar.append(Button(_("Genres"), id="grid-genres", icon="label",
+                              on_click=self._open_genres))
+        if bar:
+            header.append(Row(bar, gap=10, align="center"))
         header.append(self._filter_bar())
         # The count line is redundant with the pagination bar's "of N".
         if not self._pages.enabled():
@@ -324,6 +339,15 @@ class GridPage(Page):
                      selected=self.route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
         ], gap=10, align="center")
+
+    def _open_genres(self):
+        route = self.route
+        self.ctx.nav.navigate({
+            "kind": "genres",
+            "server": route.get("server") or self.ctx.server,
+            "parent_id": route.get("parent_id"),
+            "collection_type": route.get("collection_type"),
+            "title": _("Genres")})
 
     def _grid_shape(self, items):
         """``(geom, image_type)`` for this grid, shaped by its own artwork.

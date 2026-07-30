@@ -392,5 +392,116 @@ class FavoritesTest(unittest.TestCase):
         self.assertEqual(src.get_favorite_sections("srv"), [])
 
 
+class GenresTest(unittest.TestCase):
+    """A heading per genre over a random sample, each linking to the full
+    listing. Video genres only -- music genres are tiles in the music
+    library's own tab and open a page of albums, which is also the split
+    jellyfin-web makes."""
+
+    def _browser(self, rows=None, collection_type="movies"):
+        src = FakeSource()
+        if rows is not None:
+            src.genre_rows = rows
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "genres", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": collection_type, "title": "Genres"})
+        return b, src
+
+    def test_it_draws_a_row_per_genre(self):
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        self.assertTrue(any(str(n.get("id", "")).startswith("genre-g1")
+                            for n in nodes))
+
+    def test_a_heading_links_to_the_full_listing(self):
+        """The row is a random sample of ten, so this is the only way to
+        see the eleventh -- and the only reason random is tolerable."""
+        b, _src = self._browser()
+        _n, handlers = build_scene(b)
+        handlers["genre-g1-more"]["click"]()
+        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route["list"]["genre_ids"], "g1")
+        self.assertEqual(b.route["list"]["parent_id"], "lib1")
+
+    def test_an_empty_library_says_so(self):
+        b, _src = self._browser(rows=[])
+        nodes, _h = build_scene(b)
+        self.assertTrue(any("genres" in str(n.get("text", "")).lower()
+                            for n in nodes))
+
+    def test_the_button_is_offered_on_video_libraries(self):
+        for ctype in ("movies", "tvshows"):
+            with self.subTest(ctype):
+                b = MpvtkBrowser(app=None, source=FakeSource(),
+                                 controller=FakeController())
+                b._pool = _SyncPool()
+                b.server = "srv1"
+                b.navigate({"kind": "grid", "server": "srv1",
+                            "parent_id": "lib1", "collection_type": ctype,
+                            "title": "Lib"})
+                nodes, _h = build_scene(b)
+                self.assertIn("grid-genres", ids(nodes))
+
+    def test_and_not_on_a_music_library(self):
+        """Music genres are a tab in the music library, not this screen."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "music", "title": "Lib"})
+        nodes, _h = build_scene(b)
+        self.assertNotIn("grid-genres", ids(nodes))
+
+    def test_the_button_opens_the_screen(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Lib"})
+        _n, handlers = build_scene(b)
+        handlers["grid-genres"]["click"]()
+        self.assertEqual(b.route.get("kind"), "genres")
+        self.assertEqual(b.route.get("parent_id"), "lib1")
+
+    def test_a_genre_tile_opens_its_listing(self):
+        """It used to fall through to a status line."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._open_item({"Id": "g7", "Name": "Comedy", "Type": "Genre"})
+        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route["list"]["genre_ids"], "g7")
+
+    def test_a_tv_library_lists_shows_not_episodes(self):
+        api = _Api()
+
+        class _G(_Api):
+            def get_genres(self, parent_id=None, include_item_types=None):
+                self.calls.append(("get_genres",
+                                   {"include_item_types": include_item_types}))
+                return {"Items": [{"Id": "g1", "Name": "Drama"}]}
+
+        g = _G()
+        _source(g).get_genre_sections("srv", "lib1", "tvshows")
+        self.assertEqual(g.calls[0][1]["include_item_types"], "Series")
+        self.assertEqual(g.calls[1][1]["include_item_types"], "Series")
+        del api
+
+    def test_an_unknown_collection_type_has_no_genres_screen(self):
+        self.assertEqual(
+            _source(_Api()).get_genre_sections("srv", "lib1", "homevideos"),
+            [])
+
+    def test_offline_has_none(self):
+        src = OfflineLibrarySource.__new__(OfflineLibrarySource)
+        self.assertEqual(src.get_genre_sections("srv", "l", "movies"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

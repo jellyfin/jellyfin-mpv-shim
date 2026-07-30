@@ -132,6 +132,14 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        return getattr(self, "genre_rows", [
+            {"key": "g1", "title": "Action", "types": "Movie",
+             "items": [{"Id": "gm1", "Name": "Film", "Type": "Movie",
+                        "PrimaryImageAspectRatio": 2 / 3}]},
+        ])
+
     def get_favorite_sections(self, server_uuid, limit=24):
         return getattr(self, "favorite_rows", [
             {"key": "movies", "title": "Movies", "types": "Movie",

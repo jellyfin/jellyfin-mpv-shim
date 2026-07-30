@@ -378,7 +378,8 @@ class TestEveryRouteKindActuallyRenders(unittest.TestCase):
              # The list route is defined by a predicate rather than a
              # parent; "items" is the sortable, pageable variant, so it
              # exercises the most of the page.
-             "list": {"type": "items", "genre_ids": "g1"}}
+             "list": {"type": "items", "genre_ids": "g1"},
+             "collection_type": "movies"}
 
     #: Kinds whose screen is app state rather than library content, and which
     #: need a live controller/compositor to render at all. Covered by
