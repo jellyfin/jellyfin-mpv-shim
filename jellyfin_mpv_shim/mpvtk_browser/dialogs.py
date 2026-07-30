@@ -12,6 +12,7 @@ dialog), and ``_dl`` (download dialog). All are loop-thread only.
 
 from ..i18n import _, _p
 from ..mpvtk.widgets import (
+    Box,
     Button,
     Checkbox,
     Column,
@@ -345,18 +346,25 @@ class DialogsMixin:
 
     # ---------------------------------------------------------- view settings
 
-    def view_settings(self, current, on_set):
+    def view_settings(self, current, on_set, paginated=None):
         """A library's view settings, in a modal.
 
         Same shape as the guide's settings dialog and for the same reason:
-        four controls that are read once and then rarely touched do not earn
+        controls that are read once and then rarely touched do not earn
         permanent space on the filter row, which is already carrying the
-        sort, three filters and a shuffle.
+        sort, three filters, Play All and Shuffle.
 
         ``current(setting)`` reads a live value and ``on_set(setting,
         value)`` writes one -- applied immediately rather than on a Save
         button, because each is a one-click change the user can see happen
         and undo. There is nothing to validate and nothing to batch.
+
+        ``paginated`` is ``(is_on, toggle)`` for the pagination switch, or
+        None to leave it out. A separate argument rather than another
+        ``current``/``on_set`` name because it is not the same kind of
+        setting: the others are this library's and live on the server, this
+        one is the application's and lives in ``conf.json``. The dialog says
+        so rather than quietly filing it with them.
         """
         from . import view_prefs
 
@@ -396,6 +404,20 @@ class DialogsMixin:
                        "Jellyfin Web."), size=13, color=theme.SUBTLE_FG,
                      wrap=True),
             ]
+            if paginated is not None:
+                is_on, toggle = paginated
+                body += [
+                    # A rule, because what follows is not one of the above:
+                    # everything over the line is this library's and lives
+                    # on the server, everything under it is this device's.
+                    Box(h=1, bg=theme.BORDER),
+                    Checkbox(_("Paginated"), bool(is_on()), id="vs-paginated",
+                             on_toggle=toggle),
+                    Text(_("Show one page of tiles at a time instead of "
+                           "scrolling. Applies to every library on this "
+                           "device."), size=13, color=theme.SUBTLE_FG,
+                         wrap=True),
+                ]
             return Dialog("viewcfg", self._dialog_shell("viewcfg", [
                 Text(_("View Settings"), size=22, bold=True),
                 Column(body, gap=12, align="stretch"),

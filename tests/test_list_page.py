@@ -806,11 +806,7 @@ class FilterOrderTest(unittest.TestCase):
     """The order of the movies filter row, which is a design decision and
     therefore the kind of thing that drifts."""
 
-    def test_collections_sits_between_favorites_and_paginated(self):
-        """It is a filter -- it swaps the grid for this library's
-        collections -- so it belongs with the checkboxes, not with the
-        buttons that leave. Paginated is not a filter at all and stays
-        last."""
+    def _row(self, want):
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
         b._pool = _SyncPool()
@@ -819,12 +815,52 @@ class FilterOrderTest(unittest.TestCase):
                     "collection_type": "movies", "title": "Movies"})
         b.route["_collection_capable"] = True
         nodes, _h = build_scene(b, size=(1920, 720))
-        want = ("grid-genres", "grid-sort", "grid-unplayed", "grid-fav",
-                "grid-collections", "grid-paginated", "grid-shuffle")
-        got = [i for _x, i in sorted(
+        return [i for _x, i in sorted(
             (n.get("x", 0), n["id"]) for n in nodes
             if n.get("id") in want)]
-        self.assertEqual(got, list(want))
+
+    def test_collections_sits_last_among_the_filters(self):
+        """It is a filter -- it swaps the grid for this library's
+        collections -- so it belongs with the checkboxes, not with the
+        buttons that leave, and after the two that filter the grid it is
+        replacing."""
+        want = ("grid-genres", "grid-sort", "grid-unplayed", "grid-fav",
+                "grid-collections", "grid-playall", "grid-shuffle")
+        self.assertEqual(self._row(want), list(want))
+
+    def test_play_all_leads_shuffle(self):
+        """Paired, and in web's order."""
+        want = ("grid-playall", "grid-shuffle")
+        self.assertEqual(self._row(want), list(want))
+
+    def test_a_tv_library_has_no_play_all(self):
+        """A TV grid is a grid of shows, so "play all" over it means every
+        episode of everything in name order. Shuffle stays -- a random
+        episode is a perfectly good ask."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib2",
+                    "collection_type": "tvshows", "title": "Shows"})
+        got = ids(build_scene(b, size=(1920, 720))[0])
+        self.assertNotIn("grid-playall", got)
+        self.assertIn("grid-shuffle", got)
+
+    def test_a_home_videos_library_keeps_it(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib3",
+                    "collection_type": "homevideos", "title": "Home Videos"})
+        self.assertIn("grid-playall",
+                      ids(build_scene(b, size=(1920, 720))[0]))
+
+    def test_paginated_is_not_on_the_filter_row(self):
+        """It moved into the View modal: it is not a filter, and the row was
+        carrying a sort, three filters and two play buttons."""
+        self.assertEqual(self._row(("grid-paginated",)), [])
 
 
 class ByNameIconsTest(unittest.TestCase):
@@ -897,6 +933,29 @@ class ViewImageTypeTest(unittest.TestCase):
         for nid in ("vs-imagetype", "vs-showtitle", "vs-showyear",
                     "vs-listview"):
             self.assertIn(nid, got)
+
+    def test_the_modal_also_carries_pagination(self):
+        """Not a view setting of this library's -- it is the application's,
+        and lives in conf.json rather than on the server -- but it is the
+        same question asked once and then left alone, and the filter row is
+        not where you go looking for it a second time."""
+        b, _src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        self.assertIn("vs-paginated", ids(build_scene(b)[0]))
+
+    def test_the_pagination_switch_is_wired_to_the_paginator(self):
+        """It reads the live global rather than a copy, and clicking it goes
+        through Paginator.toggle -- which also has to reset the page state
+        and forget the grid's scroll offset, neither of which a bare
+        settings write would do."""
+        b, _src = self._grid()
+        page = b._page_for(b.route)
+        toggled = []
+        page._pages.toggle = lambda route, *ids: toggled.append((route, ids))
+        page._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-paginated"]["click"]()
+        self.assertEqual(toggled, [(b.route, ("grid",))])
 
     def test_choosing_one_saves_it_to_the_key_it_was_read_from(self):
         """Writing elsewhere would leave the user's web client still
@@ -1073,10 +1132,78 @@ class ViewLabelsAndListTest(unittest.TestCase):
         self.assertTrue(page._view("showTitle"))
 
 
-class MixedKindIconsTest(unittest.TestCase):
+class PlayAllTest(unittest.TestCase):
+    """Play All next to Shuffle.
+
+    Shuffle alone was the whole of "play this library", which on a Home
+    Videos folder of holiday clips in date order is the one thing you do
+    not want.
+    """
+
+    def _page(self, **route):
+        src = FakeSource()
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate(dict({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Home Videos"},
+                        **route))
+        return b, src
+
+    def test_it_queues_what_the_source_returns(self):
+        b, _src = self._page()
+        b._page_for(b.route)._play_all()
+        self.assertEqual(b.controller.played[0][0], ["g0", "g1", "g2"])
+
+    def test_it_asks_in_the_grids_own_order_not_the_loaded_page(self):
+        """What is on screen is one screenful of an infinite scroll, so a
+        Play All built from it would play the first hundred items."""
+        b, src = self._page()
+        b.route["_sort"] = 1                      # Date Added, descending
+        b.route["_filters"] = {"unplayed": True}
+        b._page_for(b.route)._play_all()
+        parent, sort_by, sort_order, filters = src.play_all_args
+        self.assertEqual(parent, "lib1")
+        self.assertEqual((sort_by, sort_order), ("DateCreated", "Descending"))
+        self.assertEqual(filters, {"unplayed": True})
+
+    def test_shuffle_is_still_random_rather_than_the_sorted_list(self):
+        b, _src = self._page()
+        b._page_for(b.route)._shuffle()
+        self.assertEqual(b.controller.played[0][0], ["g0", "g5", "g9"])
+
+    def test_an_empty_library_says_so_rather_than_doing_nothing(self):
+        b, src = self._page()
+        src.get_play_all_ids = lambda *a, **k: []
+        b._page_for(b.route)._play_all()
+        self.assertFalse(b.controller.played)
+        self.assertTrue(b.status)
+
+    def test_both_buttons_start_the_slideshow_rather_than_pausing_on_it(self):
+        """These mean "run it". A queue that opens on a photo would sit
+        paused on frame one -- clicking a single picture is what asks for a
+        viewer."""
+        b, _src = self._page()
+        page = b._page_for(b.route)
+        page._play_all()
+        page._shuffle()
+        self.assertEqual(b.controller.pause_stills, [False, False])
+
+    def test_clicking_a_photo_still_opens_a_viewer(self):
+        """The other half of the same rule, and the reason it is a
+        parameter rather than a default change."""
+        b, _src = self._page()
+        b._play_list(["p1"], "srv1", 0, items=[{"Id": "p1"}])
+        self.assertEqual(b.controller.pause_stills, [True])
+
+
+class TypeIndicatorIconsTest(unittest.TestCase):
     """A Home Videos grid holds folders, albums, photos and clips side by
     side, and with artwork on all four nothing in the tile says which will
-    open and which will start playing."""
+    open and which will start playing.
+
+    jellyfin-web's ``getTypeIndicator``: four types, drawn on every card of
+    those types wherever it appears."""
 
     def _tiles(self, types):
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser as B
@@ -1087,9 +1214,8 @@ class MixedKindIconsTest(unittest.TestCase):
         real = b.tiles._tile
 
         def spy(item, geom, image_type="Primary", parent_item=False,
-                inherit=True, labels=None, kind_chips=False):
-            tile = real(item, geom, image_type, parent_item, inherit, labels,
-                        kind_chips)
+                inherit=True, labels=None):
+            tile = real(item, geom, image_type, parent_item, inherit, labels)
             captured.append(tile)
             return tile
 
@@ -1099,35 +1225,37 @@ class MixedKindIconsTest(unittest.TestCase):
         b.tiles.image_map(items, "x", b.geom)
         return captured
 
-    def test_a_mixed_grid_chips_every_tile(self):
-        kinds = [t.kind for t in self._tiles(["Folder", "Photo", "Video"])]
-        self.assertEqual(kinds, ["folder", "photo", "movie"])
+    def test_a_mixed_grid_marks_every_tile(self):
+        kinds = [t.kind for t in
+                 self._tiles(["Folder", "Photo", "PhotoAlbum", "Video"])]
+        self.assertEqual(kinds, ["folder", "photo", "photo_album", "videocam"])
 
-    def test_a_grid_of_one_kind_chips_nothing(self):
-        """A movies library is all one kind, so a chip on every tile would
-        be noise. Decided per row, not per tile."""
+    def test_a_uniform_row_is_marked_too(self):
+        """The regression this replaced: the marker was decided per ROW, on
+        the reasoning that a row of one kind needs no telling apart. Which
+        row a tile lands in is not something a user can see, so it read as
+        icons flickering in and out while scrolling one folder."""
         kinds = [t.kind for t in self._tiles(["Video", "Video", "Video"])]
-        self.assertEqual(kinds, ["", "", ""])
+        self.assertEqual(kinds, ["videocam", "videocam", "videocam"])
 
-    def test_types_with_no_chip_do_not_force_one_on_the_others(self):
-        """A movie next to a series is still one kind of question."""
-        kinds = [t.kind for t in self._tiles(["Movie", "Series"])]
-        self.assertEqual(kinds, ["", ""])
+    def test_types_outside_webs_four_get_nothing(self):
+        """A movies or TV library is one kind of question, and web draws no
+        indicator there either."""
+        kinds = [t.kind for t in
+                 self._tiles(["Movie", "Series", "Episode", "MusicAlbum"])]
+        self.assertEqual(kinds, ["", "", "", ""])
 
     def test_every_icon_it_asks_for_is_rasterized(self):
-        """A name missing from the generated set draws nothing at all, and
-        only 66 are generated -- so an invented name fails silently."""
+        """A name missing from the generated set draws nothing at all, so an
+        invented name fails silently -- which is how `videocam` shipped
+        blank the first time."""
         from jellyfin_mpv_shim.mpvtk_browser.components.labels import (
-            MIXED_KIND_ICONS)
+            TYPE_INDICATOR_ICONS)
         from jellyfin_mpv_shim.ui_icon_paths import ICON_PATHS
 
-        for name in set(MIXED_KIND_ICONS.values()):
+        for name in set(TYPE_INDICATOR_ICONS.values()):
             with self.subTest(name):
                 self.assertIn(name, ICON_PATHS)
-
-    def test_a_movie_among_folders_gets_no_chip_but_the_folders_do(self):
-        kinds = [t.kind for t in self._tiles(["Folder", "Video", "Movie"])]
-        self.assertEqual(kinds, ["folder", "movie", ""])
 
 
 if __name__ == "__main__":

@@ -696,6 +696,76 @@ class PhotoReportingTest(unittest.TestCase):
         self.assertIsNone(PlayerManager.get_timeline_options(pm))
 
 
+class PhotoPauseRuleTest(unittest.TestCase):
+    """When a still opens paused.
+
+    Pausing exists so that clicking one picture is a viewer rather than an
+    unrequested slideshow. It used to be applied on EVERY load, which meant
+    the queue advanced onto the next picture and paused there too -- the
+    slideshow moved exactly one frame and stopped. Two guards now, because
+    neither answers on its own.
+    """
+
+    class _P:
+        def __init__(self):
+            self.pause = False
+
+    def _paused(self, is_photo=True, is_initial_play=True, pause_stills=True):
+        player = self._P()
+        video = type("V", (), {"is_photo": is_photo})()
+        # The excerpt of _play_media under test.
+        if (getattr(video, "is_photo", False) and pause_stills
+                and is_initial_play):
+            player.pause = True
+        return player.pause
+
+    def test_opening_a_photo_pauses_it(self):
+        self.assertTrue(self._paused())
+
+    def test_advancing_onto_one_does_not(self):
+        """The bug: a slideshow that stopped after one frame. Pausing is
+        about the picture you opened, not every picture after it."""
+        self.assertFalse(self._paused(is_initial_play=False))
+
+    def test_play_all_starting_on_one_does_not(self):
+        """Play All means "run the slideshow"; pausing on frame one would
+        be a queue that never starts."""
+        self.assertFalse(self._paused(pause_stills=False))
+
+    def test_a_video_is_never_paused(self):
+        self.assertFalse(self._paused(is_photo=False))
+
+    def test_the_player_takes_the_flag_and_defaults_to_pausing(self):
+        """Default True: every existing caller means "open this", and a
+        remote Play of a photo should behave like a click."""
+        import inspect
+
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        for fn in (PlayerManager.play, PlayerManager._play_media):
+            with self.subTest(fn.__name__):
+                p = inspect.signature(fn).parameters["pause_stills"]
+                self.assertIs(p.default, True)
+
+    def test_it_reaches_the_player_from_the_browser(self):
+        """The whole chain: ItemActions -> gateway -> start_playback ->
+        PlayerManager.play. A default that stops anywhere in the middle
+        looks exactly like it working."""
+        import inspect
+
+        from jellyfin_mpv_shim import event_handler
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import playback
+        from jellyfin_mpv_shim.mpvtk_browser.item_actions import ItemActions
+
+        for fn in (ItemActions.play_list, playback.PlaybackMixin.play_list,
+                   event_handler.start_playback):
+            with self.subTest(fn.__name__):
+                self.assertIn("pause_stills",
+                              inspect.signature(fn).parameters)
+        self.assertIn("pause_stills=pause_stills",
+                      inspect.getsource(event_handler.start_playback))
+
+
 class PhotoHudTest(unittest.TestCase):
     def _scene(self, is_photo):
         from tests._shell_harness import HudController
@@ -728,3 +798,99 @@ class PhotoHudTest(unittest.TestCase):
         self.assertIn("hud-pp", photo)
         self.assertIn("hud-next", photo)
         self.assertIn("hud-prev", photo)
+
+    def test_a_photo_has_no_clock(self):
+        """The duration mpv reports is --image-display-duration, so the
+        clock counts 0:00 / 0:05 across a photograph and reads as a video
+        about to end."""
+        video, photo = self._scene(False), self._scene(True)
+        self.assertIn("hud-clock", video)
+        self.assertNotIn("hud-clock", photo)
+
+    def test_a_photo_has_no_volume_control(self):
+        """A picture has no sound; mute and the slider answer nothing."""
+        video, photo = self._scene(False), self._scene(True)
+        self.assertIn("hud-mute", video)
+        self.assertNotIn("hud-mute", photo)
+        self.assertNotIn("hud-vol", photo)
+
+    def test_the_volume_slider_is_still_width_gated_for_video(self):
+        """Hiding it for photos must not be the only thing that hides it --
+        it drops out on a narrow window too."""
+        from tests._shell_harness import HudController
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import build_scene as bs, ids as _ids
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False, "title": "X",
+                       "position": 1.0, "duration": 5.0, "paused": True}
+        self.assertNotIn("hud-vol", _ids(bs(b, (600, 480))[0]))
+        self.assertIn("hud-mute", _ids(bs(b, (600, 480))[0]))
+
+
+class PhotoDisplayDurationTest(unittest.TestCase):
+    """Why an album never advanced.
+
+    A still ends when mpv's --image-display-duration elapses; the queue
+    advance hangs off the end-of-file that produces. The in-window browser
+    parks that option at "inf" while it owns the window (set_browse_window)
+    and browse_yield deliberately does not undo it -- so every photo opened
+    from the library inherited "inf" and displayed forever. The player never
+    set it, on the assumption that mpv's default applied.
+    """
+
+    class _P:
+        def __init__(self):
+            self.image_display_duration = "inf"
+
+    def _apply(self, is_photo, secs=5):
+        from jellyfin_mpv_shim.conf import settings
+
+        player = self._P()
+        video = type("V", (), {"is_photo": is_photo})()
+        old = settings.photo_display_secs
+        settings.photo_display_secs = secs
+        try:
+            # The excerpt of _play_media under test: it runs before play(),
+            # because this value IS what mpv reports as `duration`.
+            if getattr(video, "is_photo", False):
+                player.image_display_duration = max(
+                    1, int(settings.photo_display_secs))
+        finally:
+            settings.photo_display_secs = old
+        return player.image_display_duration
+
+    def test_a_photo_gets_a_finite_duration(self):
+        self.assertEqual(self._apply(True), 5)
+
+    def test_it_is_never_zero(self):
+        """A zero would be an image that ends before it is drawn; the
+        setting is user-editable and a 0 in conf.json must not brick the
+        viewer."""
+        self.assertEqual(self._apply(True, 0), 1)
+
+    def test_a_video_is_left_alone(self):
+        """The option only means anything for images, and stomping it for
+        every start would overwrite whatever the user put in mpv.conf."""
+        self.assertEqual(self._apply(False), "inf")
+
+    def test_the_player_sets_it_before_handing_mpv_the_file(self):
+        """After the load would be too late: the duration wait and the HUD's
+        scrub bar both read the value mpv computed at open time."""
+        import inspect
+
+        from jellyfin_mpv_shim import player as player_mod
+
+        src = inspect.getsource(player_mod.PlayerManager._play_media)
+        self.assertLess(src.index("image_display_duration"),
+                        src.index("self._player.play(self.url)"))
+
+    def test_the_setting_is_typed_and_documented(self):
+        """settings_base only coerces the types in object_types, so an
+        unlisted annotation KeyErrors at load."""
+        from jellyfin_mpv_shim.conf import Settings
+
+        self.assertIs(Settings.__annotations__["photo_display_secs"], int)

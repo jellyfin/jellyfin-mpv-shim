@@ -96,10 +96,13 @@ class Video(object):
 
         self.is_tv = self.item.get("Type") == "Episode"
         #: A still image rather than a moving one. mpv plays it happily --
-        #: it holds an image for --image-display-duration (5s by default)
-        #: and moves on -- but everything *around* playback has to know:
-        #: it starts paused, it reports nothing, and the seek controls are
-        #: meaningless. See get_playback_url for why it skips PlaybackInfo.
+        #: it holds an image for --image-display-duration and moves on --
+        #: but everything *around* playback has to know: it starts paused,
+        #: it reports nothing, and the seek controls are meaningless. The
+        #: player sets that duration per start (see _play_media); the
+        #: browser leaves it at "inf" while it owns the window, and a photo
+        #: inheriting that is a photo that never advances. See
+        #: get_playback_url for why this skips PlaybackInfo.
         self.is_photo = self.item.get("Type") == "Photo"
         #: Set by the player before it asks for a URL: True once mpv has been
         #: handed this server's Authorization header, in which case the URL

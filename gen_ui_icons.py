@@ -76,8 +76,10 @@ ICON_NAMES = [
     # for them, so a user coming from that client recognises the buttons.
     "label",
     "apartment",
-    # mixed-content type markers (a Home Videos grid of folders, albums,
-    # photos and clips). getItemTypeIcon's names, same reason.
+    # type indicators on a card -- jellyfin-web's getTypeIndicator set
+    # (indicators.js:140-149), exactly: Video, Folder, PhotoAlbum, Photo.
+    # "folder" is already above, for the settings panels.
+    "videocam",
     "photo",
     "photo_album",
     # navigation / arrows

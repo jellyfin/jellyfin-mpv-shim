@@ -556,7 +556,7 @@ class TileRenderer:
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
     def _tile(self, item, geom, image_type="Primary", parent_item=False,
-              inherit=True, labels=None, kind_chips=False):
+              inherit=True, labels=None):
         """One tile. ``parent_item`` draws an Episode as its *series* —
         the show's name and the show's poster instead of the episode's name
         over the episode still — which is what a Latest-TV row is a list of.
@@ -608,7 +608,7 @@ class TileRenderer:
             badge=int(ud.get("UnplayedItemCount") or 0),
             progress=progress,
             downloaded=self.is_downloaded(item),
-            kind=(components.mixed_kind_icon(item) if kind_chips else ""),
+            kind=components.type_indicator_icon(item),
             recording=recording,
             record=record,
         )
@@ -743,15 +743,8 @@ class TileRenderer:
                    on_click=None, async_=False, parent_item=False,
                    inherit=True, labels=None):
         geom = geom or self.art.geom
-        # Whether this row holds more than one KIND of thing -- a Home
-        # Videos grid of folders, albums, photos and clips, where the
-        # artwork says nothing about which will open and which will play.
-        # Decided per row rather than per tile: a movies library is all one
-        # kind, and a chip on every tile there would be noise.
-        kinds = {components.mixed_kind_icon(it) for it in items or ()}
-        kind_chips = len(kinds - {""}) > 1
         tiles = [self._tile(it, geom, image_type, parent_item, inherit,
-                            labels, kind_chips)
+                            labels)
                  for it in items]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []

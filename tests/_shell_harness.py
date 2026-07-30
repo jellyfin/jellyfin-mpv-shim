@@ -182,6 +182,13 @@ class FakeSource:
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         return ["g0", "g5", "g9"]
 
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        # Echoes what it was asked with, so a caller that drops the sort or
+        # the filters is visible rather than merely untested.
+        self.play_all_args = (parent_id, sort_by, sort_order, filters)
+        return ["g0", "g1", "g2"]
+
     def image_spec(self, item, image_type="Primary", width=280,
                    inherit=True):
         return None  # no artwork in tests -> placeholder tiles, no network
@@ -497,8 +504,9 @@ class FakeController:
             {"srcid": srcid, "aid": aid, "sid": sid})
 
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
-                  srcid=None, aid=None, sid=None):
+                  srcid=None, aid=None, sid=None, pause_stills=True):
         self.played.append((list(item_ids), server_uuid, start_index))
+        self.__dict__.setdefault("pause_stills", []).append(pause_stills)
         self.__dict__.setdefault("tracks", []).append(
             {"srcid": srcid, "aid": aid, "sid": sid})
 

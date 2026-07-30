@@ -514,21 +514,26 @@ def build_hud(b, size):
     def sz(v):
         return int(v * scale + 0.5)
 
-    # A still has nothing to seek within: mpv's duration for one is
-    # --image-display-duration, i.e. when the NEXT photo arrives, so ±10s
-    # would either do nothing or skip the picture entirely. Prev/next and
-    # pause stay -- those are how you move through an album and how you
-    # stop it moving on its own.
+    # A still has no timeline and no sound. mpv reports a duration for one
+    # -- --image-display-duration, i.e. when the NEXT photo arrives -- and
+    # dressing that up as playback is worse than saying nothing: ±10s either
+    # does nothing or skips the picture, and a clock counting 0:00 / 0:05
+    # across a photograph reads as a video about to end. Volume is simply
+    # not a question a picture answers.
+    #
+    # What survives is what an album needs: pause (stop it moving on), and
+    # prev/next (move through it).
     photo = bool(st.get("is_photo"))
     tiers = {
         "seek_btns": w >= 500 and not photo,   # ±10s/±30s step buttons
-        "clock": w >= 500,
+        "clock": w >= 500 and not photo,
         "quality": w >= 560,
         "favorite": w >= 560,
         "ch_btns": w >= 700,     # chapter prev/next buttons
         "chapters": w >= 700,    # chapter list dropdown
-        "volbar": w >= 760,      # volume slider (mute button always)
-        "ends_at": w >= 1000,    # wall-clock end time
+        "volume": not photo,     # mute button
+        "volbar": w >= 760 and not photo,      # volume slider
+        "ends_at": w >= 1000 and not photo,    # wall-clock end time
     }
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
@@ -628,11 +633,12 @@ def build_hud(b, size):
     right.extend(_pickers(b, menu_state, pos, chapters, tiers))
     muted = bool(st.get("muted"))
     vol = st.get("volume", 100) or 0
-    right.append(tbtn(
-        "volume_off" if muted else
-        ("volume_up" if vol >= 50 else "volume_down"),
-        "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
-        tip=_("Mute")))
+    if tiers["volume"]:
+        right.append(tbtn(
+            "volume_off" if muted else
+            ("volume_up" if vol >= 50 else "volume_down"),
+            "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
+            tip=_("Mute")))
     if tiers["volbar"]:
         right.append(Slider(
             "hud-vol", value=0 if muted else vol, min=0, max=100,

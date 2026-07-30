@@ -60,6 +60,9 @@ GENRE_LIBRARIES = frozenset({"movies", "tvshows"})
 #: studio metadata is where the networks are.
 STUDIO_LIBRARIES = frozenset({"tvshows"})
 
+#: Collection types with no Play All button -- see GridPage._play_all_capable.
+NO_PLAY_ALL = frozenset({"tvshows"})
+
 #: What a by-name screen lists, per collection type. Mirrors
 #: LibrarySource.GENRE_ITEM_TYPES; kept here too because the button
 #: builds the spec and the page should not import the repository.
@@ -282,13 +285,15 @@ class GridPage(Page):
                      id="grid-collections",
                      on_toggle=self._toggle_collections),
         ] if route.get("_collection_capable") else []) + [
-            # Reflects and writes the GLOBAL paginated setting — a convenient
-            # place to flip it, not a per-view filter.
-            Checkbox(_("Paginated"), self._pages.enabled(),
-                     id="grid-paginated",
-                     on_toggle=lambda: self._pages.toggle(self.route,
-                                                          "grid")),
+            # The play buttons are trailing; the Spacer is what pushes them
+            # away from the filters.
             Spacer(),
+        ] + ([
+            # Ahead of Shuffle, as jellyfin-web pairs them. Shuffle alone was
+            # the whole of "play this library", which on a Home Videos folder
+            # of holiday clips in date order is the one thing you do not want.
+            Button(_("Play All"), id="grid-playall", on_click=self._play_all),
+        ] if self._play_all_capable() else []) + [
             Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
         ], gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
@@ -468,7 +473,14 @@ class GridPage(Page):
             "title": _("Genres")})
 
     def _open_view_settings(self):
-        self.ctx.dialogs.view_settings(self._view, self._set_view)
+        # Pagination rides along even though it is not a view setting of
+        # this library's: it is the same question ("how do I want this
+        # drawn?"), asked once and then left alone, and the filter row is
+        # not where you go looking for it a second time.
+        self.ctx.dialogs.view_settings(
+            self._view, self._set_view,
+            paginated=(self._pages.enabled,
+                       lambda: self._pages.toggle(self.route, "grid")))
 
     def _view(self, setting):
         """The stored value of one view setting, or its default.
@@ -645,18 +657,64 @@ class GridPage(Page):
             self.route.pop(k, None)
         self.ctx.nav.reload(self.route)
 
+    def _play_all_capable(self):
+        """Whether this library gets a Play All button.
+
+        Everywhere but a TV library. A TV grid is a grid of *shows*, so
+        "play all" over it means every episode of everything in name order,
+        which is not a thing anyone wants and is a large queue to build by
+        accident. Shuffle over the same set is fine -- a random episode is a
+        perfectly good ask, and it is why Shuffle stays.
+
+        (jellyfin-web does offer it there, on a tab that lists episodes
+        rather than series. We have no such tab, so the button would mean
+        something different from the one it is copying.)
+        """
+        return self.route.get("collection_type") not in NO_PLAY_ALL
+
     def _shuffle(self):
+        self._queue_library(lambda source, srv, parent, _bound:
+                            source.get_shuffle_ids(srv, parent))
+
+    def _play_all(self):
+        """Queue the library in the order the grid is showing it.
+
+        The sort and the filters go to the server, not the loaded page: what
+        is on screen is one screenful of an infinite scroll, and "Play All"
+        that plays the first hundred is a worse answer than no button. Same
+        as web, which hands its query options straight to playbackManager.
+        """
+        def work(source, srv, parent, bound):
+            sort_by, sort_order, filters = bound[0], bound[1], bound[2]
+            return source.get_play_all_ids(srv, parent, sort_by=sort_by,
+                                           sort_order=sort_order,
+                                           filters=filters)
+
+        self._queue_library(work)
+
+    def _queue_library(self, fetch_ids):
+        """Shared body of Play All and Shuffle: resolve ids off the loop
+        thread, then start the queue."""
         srv = self.route.get("server") or self.ctx.server
         source = self.ctx.source
         parent = self.route["parent_id"]
         actions = self.ctx.actions
+        # Bound on the loop thread, like every other fetch here: the sort and
+        # filters a queue is built from must be the ones the user could see
+        # when they pressed the button.
+        bound = self._bound_query()
 
         def work():
-            return source.get_shuffle_ids(srv, parent)
+            return fetch_ids(source, srv, parent, bound)
 
         def done(ids):
             if ids:
-                actions.play_list(ids, srv, 0)
+                # pause_stills=False: these buttons mean "run it", and a
+                # queue that opens on a photo would otherwise sit paused on
+                # frame one. Clicking a single picture still opens a viewer.
+                actions.play_list(ids, srv, 0, pause_stills=False)
+            else:
+                self.ctx.status(_("There is nothing here to play."))
 
         self.ctx.run.run(work, done, self.ctx.run.epoch)
 

@@ -1445,6 +1445,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
         apply_memory: bool = True,
+        pause_stills: bool = True,
     ):
         if video is None:
             # build_video returns None when fully offline with no downloaded
@@ -1469,7 +1470,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.error("PlayerManager::play no URL found")
                 return
             self._play_media(video, url, offset, no_initial_timeline,
-                             is_initial_play, apply_memory)
+                             is_initial_play, apply_memory, pause_stills)
         finally:
             self._start_in_progress = False
 
@@ -1562,6 +1563,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
         apply_memory: bool = True,
+        pause_stills: bool = True,
     ):
         self._ensure_mpv()
 
@@ -1599,6 +1601,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
+        # How long mpv holds a still. BEFORE play(), not after the load
+        # succeeds: this is what mpv reports as the file's `duration`, so
+        # the duration wait below and the HUD's scrub bar both depend on it
+        # already being right.
+        #
+        # It has to be set at all because the in-window browser parks it at
+        # "inf" while it owns the window (set_browse_window) and browse_yield
+        # deliberately does not undo that -- so a photo opened from the
+        # library inherited "inf", displayed forever, and never reached
+        # end-of-file. That is the whole of "photo auto-advance is broken":
+        # the queue was waiting on an EOF mpv had been told never to send.
+        if getattr(video, "is_photo", False):
+            try:
+                self._player.image_display_duration = max(
+                    1, int(settings.photo_display_secs))
+            except (_mpv_errors, ValueError, TypeError):
+                log.debug("could not set the photo display duration",
+                          exc_info=True)
         # Arm load-failure detection before play(): mpv can report the file
         # unloadable before the duration wait below even starts.
         self._load_generation += 1
@@ -1679,16 +1699,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A start that got this far succeeded; nothing is left to retry.
         self._failed_playback = None
         self._video = video
-        if getattr(video, "is_photo", False):
+        if getattr(video, "is_photo", False) and pause_stills and is_initial_play:
             # A photo is a video that happens to be still: mpv holds it for
-            # --image-display-duration (5s) and then advances, which is a
+            # --image-display-duration and then advances, which is a
             # slideshow nobody asked for when they opened one picture. Paused
-            # it is a viewer; unpause and the album plays through at 5s a
-            # frame, which is the slideshow they *would* ask for.
+            # it is a viewer; unpause and the album plays through, which is
+            # the slideshow they *would* ask for.
             #
-            # Here rather than as a load option so it applies to each item as
-            # the queue advances -- a photo after a video has to stop, and a
-            # video after a photo must not inherit the pause.
+            # Both guards earn their place, and neither did on its own:
+            #
+            # `is_initial_play` -- this used to pause on EVERY load, so the
+            # queue advanced onto the next picture and paused there too. The
+            # slideshow moved exactly one frame and stopped. Pausing is about
+            # the picture you opened, not about every picture after it.
+            #
+            # `pause_stills` -- what the *request* asked for. Clicking one
+            # photo is "show me this", and pausing is the whole point; Play
+            # All on an album is "run the slideshow", and pausing on frame
+            # one would be a queue that never starts.
             try:
                 self._player.pause = True
             except _mpv_errors:

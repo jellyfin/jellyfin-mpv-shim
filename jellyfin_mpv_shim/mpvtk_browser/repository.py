@@ -133,6 +133,27 @@ FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView",
 # playlists play, queue, and download (the now-playing bar drives them).
 PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
 
+#: What Play All and Shuffle will put in a queue.
+#:
+#: **MediaType, not Type.** Type is the concrete entity the library scanner
+#: resolved to, so it depends on which resolver ran: the same clip is a
+#: ``Video`` under a Home Videos library and a ``Movie`` under a movies one
+#: (MovieResolver.cs:158-215). MediaType is the question actually being
+#: asked -- is this a stream, or a container? -- and it is also the axis
+#: jellyfin-web's playbackManager filters on.
+#:
+#: Photos are in. "Play all" in an album of pictures means the slideshow,
+#: and leaving them out made that button dead in exactly the folders it was
+#: added for. What keeps it from being a queue that stalls on every still is
+#: that the pause-on-open rule is a property of the *request* -- clicking one
+#: picture opens a viewer, Play All starts a slideshow (see
+#: PlayerManager.play's pause_stills).
+QUEUEABLE_MEDIA = frozenset({"Video", "Audio", "Photo"})
+
+#: The same set as a ``MediaTypes`` query parameter. Sorted so the URL is
+#: stable, which matters only for reading logs.
+QUEUEABLE_MEDIA_PARAM = ",".join(sorted(QUEUEABLE_MEDIA))
+
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
 #: **Two fields, not one.** ``ChannelInfo`` alone gets ``ChannelName`` and
@@ -1729,9 +1750,54 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_random_items(
             parent_id=parent_id,
-            include_item_types="Movie,Episode,Video",
+            media_types=QUEUEABLE_MEDIA_PARAM,
             limit=limit,
             enable_images=False) or {}
+        return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
+
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        """Ids Play All should queue, in the grid's own order.
+
+        **Deliberately the grid's own query.** This used to ask a different
+        one -- ``Recursive`` plus ``IncludeItemTypes=Movie,Episode,Video`` --
+        and on a Home Videos album holding photos and clips it came back
+        empty, so a folder whose videos were on screen reported nothing to
+        play. Asking the same question the grid asks makes that class of
+        disagreement unrepresentable: whatever is drawn is what is queued,
+        and the answer cannot depend on a second query's filters agreeing
+        with the first's.
+
+        The filter is then :data:`QUEUEABLE_MEDIA`, on **MediaType**, not on
+        ``Type``. Type is the concrete entity the scanner chose, which
+        depends on which resolver ran -- the same clip is a ``Video`` in a
+        Home Videos library and a ``Movie`` in a movies one -- whereas
+        MediaType is the question actually being asked: is this a stream or
+        a container?
+
+        The recursive query survives only as the fallback for a level that
+        is *all folders*, which is the top of a Home Videos library and the
+        one case a flat listing genuinely cannot answer.
+
+        Capped at ``limit``; a queue is not a library export.
+        """
+        items, _total = self.get_library_items(
+            server_uuid, parent_id, sort_by=sort_by, sort_order=sort_order,
+            limit=limit, filters=filters)
+        ids = [i["Id"] for i in items
+               if i.get("Id") and i.get("MediaType") in QUEUEABLE_MEDIA]
+        if ids or not any(i.get("IsFolder") for i in items):
+            return ids
+        api = self._conn(server_uuid).api
+        result = api.get_user_items(
+            parent_id=parent_id,
+            recursive=True,
+            media_types=QUEUEABLE_MEDIA_PARAM,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            enable_images=False,
+            **self._filter_kwargs(filters)) or {}
         return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_playlist_items(self, server_uuid, playlist_id):
@@ -2337,6 +2403,21 @@ class OfflineLibrarySource:
         ids = [i["Id"] for i in pool if i.get("Id")]
         random.shuffle(ids)
         return ids[:limit]
+
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        """Downloaded items of a library, in the grid's order.
+
+        Reuses the grid loader rather than re-deriving the pools: it already
+        knows how each offline parent id maps onto the snapshot, and the two
+        drifting is how Play All would come to queue something the grid does
+        not show.
+        """
+        items, _total = self.get_library_items(
+            server_uuid, parent_id, sort_by=sort_by, sort_order=sort_order,
+            limit=limit, filters=filters)
+        return [i["Id"] for i in items
+                if i.get("Id") and i.get("MediaType") in QUEUEABLE_MEDIA]
 
     def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
                           width=320):

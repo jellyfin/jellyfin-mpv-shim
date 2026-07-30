@@ -15,12 +15,12 @@ from .labels import (
     heading_for,
     human_size,
     is_watched,
-    mixed_kind_icon,
     placeholder_glyph,
     section_offsets,
     tile_lines,
     track_artists,
     track_duration,
+    type_indicator_icon,
 )
 from .banner import compose_banner, wrap_pil
 
@@ -30,11 +30,11 @@ __all__ = [
     "heading_for",
     "human_size",
     "is_watched",
-    "mixed_kind_icon",
     "placeholder_glyph",
     "section_offsets",
     "tile_lines",
     "track_artists",
     "track_duration",
+    "type_indicator_icon",
     "wrap_pil",
 ]

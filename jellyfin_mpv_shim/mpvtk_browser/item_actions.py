@@ -164,7 +164,8 @@ class ItemActions:
                 lambda ctl: ctl.play(item, server, offset_ticks=offset_ticks,
                                      srcid=srcid, aid=aid, sid=sid))
 
-    def play_list(self, ids, server, start_index=0, audio=False, items=None):
+    def play_list(self, ids, server, start_index=0, audio=False, items=None,
+                  pause_stills=True):
         """Play a whole list from ``start_index`` (album/playlist/song).
 
         ``items`` (the DTOs behind ``ids``) supplies the resume offset for
@@ -173,7 +174,11 @@ class ItemActions:
 
         The chosen entry is re-located by id after dropping empty ones:
         filtering first and trusting the caller's index shifted the queue
-        out from under the entry that was clicked."""
+        out from under the entry that was clicked.
+
+        ``pause_stills`` says whether a photo at the head of the queue opens
+        paused -- true for "show me this picture", false for "run the
+        slideshow". See PlayerManager.play."""
         start_id = ids[start_index] if 0 <= start_index < len(ids) else None
         offset = None
         title = ""
@@ -191,7 +196,8 @@ class ItemActions:
             pos = 0
         self._on_launch(audio=audio, title=title)
         self._launch(
-            lambda ctl: ctl.play_list(ids, server, pos, offset_ticks=offset))
+            lambda ctl: ctl.play_list(ids, server, pos, offset_ticks=offset,
+                                      pause_stills=pause_stills))
 
     def play_shuffle(self, ids, server, audio=True):
         ids = [i for i in ids if i]

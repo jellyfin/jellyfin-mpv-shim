@@ -391,8 +391,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._open_timer_editor(server, timer, series, on_change),
             guide_settings=lambda server, prefs, categories, on_save=None:
                 self._open_guide_settings(server, prefs, categories, on_save),
-            view_settings=lambda current, on_set:
-                self.view_settings(current, on_set))
+            view_settings=lambda current, on_set, paginated=None:
+                self.view_settings(current, on_set, paginated))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,

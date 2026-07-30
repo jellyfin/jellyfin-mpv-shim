@@ -26,11 +26,10 @@
 {"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-fav", "sc": "grid", "t": "rect", "w": 115.2, "x": 668.4, "y": 138.0}
 {"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.4.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 668.4, "y": 140.5}
 {"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.4.1", "sc": "grid", "size": 20, "t": "text", "text": "Favorites", "w": 85.2, "x": 698.4, "y": 138.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-paginated", "sc": "grid", "t": "rect", "w": 119.2, "x": 793.6, "y": 138.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.5.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 793.6, "y": 140.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.5.1", "sc": "grid", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 823.6, "y": 138.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 932.8, "y": 128.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 942.8, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-playall", "radius": 6, "sc": "grid", "t": "rect", "w": 89.6, "x": 803.6, "y": 128.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.6.0", "sc": "grid", "size": 20, "t": "text", "text": "Play All", "w": 69.6, "x": 813.6, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 903.2, "y": 128.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 913.2, "y": 138.0}
 {"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-#", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 16.0, "y": 181.0}
 {"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.0.0", "sc": "grid", "size": 15, "t": "text", "text": "#", "w": 26.0, "x": 16.0, "y": 184.6}
 {"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-A", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 44.0, "y": 181.0}

@@ -45,6 +45,7 @@ def start_playback(
     srcid=None,
     sync_play_group=None,
     explicit_tracks=False,
+    pause_stills=True,
 ):
     """Begin playback of one or more items from the beginning of `item_ids`.
 
@@ -55,6 +56,11 @@ def start_playback(
     `explicit_tracks` marks aid/sid as a deliberate user choice (the library
     browser's track pickers) that should be used as-is, bypassing the
     language_config and server-default selection in Media.map_streams.
+
+    `pause_stills` is whether a photo at the head of the queue opens paused.
+    True is "show me this picture" (a click on one); False is "run the
+    slideshow" (Play All / Shuffle), where pausing on frame one would be a
+    queue that never starts.
     """
     media = Media(
         client,
@@ -77,7 +83,8 @@ def start_playback(
 
     if settings.pre_media_cmd:
         os.system(settings.pre_media_cmd)
-    playerManager.play(video, offset, is_initial_play=True)
+    playerManager.play(video, offset, is_initial_play=True,
+                       pause_stills=pause_stills)
     timelineManager.send_timeline()
     if sync_play_group is not None:
         playerManager.syncplay.join_group(sync_play_group)
