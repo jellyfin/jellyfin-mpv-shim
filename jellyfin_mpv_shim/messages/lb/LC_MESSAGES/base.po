@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-07-28 16:27+0000\n"
+"PO-Revision-Date: 2026-07-30 14:13+0000\n"
 "Last-Translator: David Wagener <david.wagener@pm.me>\n"
 "Language-Team: Luxembourgish <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/lb/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
-msgstr "Wielt Titel aus…"
+msgstr "Spueren auswielen…"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
@@ -379,7 +379,7 @@ msgstr "Protokoller an Datei späicheren"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Check for Updates"
-msgstr ""
+msgstr "Op Updatë préiwen"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Discord Rich Presence"
