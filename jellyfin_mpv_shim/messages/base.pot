@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 15:04-0400\n"
+"POT-Creation-Date: 2026-07-30 15:26-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1912,6 +1912,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Collections"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Networks"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py

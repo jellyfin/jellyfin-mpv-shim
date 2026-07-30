@@ -1187,6 +1187,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == "Studio":
+            # Like a Genre: nothing of its own to show, so it opens as the
+            # listing of what it made.
+            self.navigate(dict(base, kind="list",
+                               list={"type": "items",
+                                     "studio_ids": item.get("Id")}))
         elif t == "Genre":
             # A video genre, from a search result or a detail page's Genres
             # line. It has nothing of its own to show, so it opens as its

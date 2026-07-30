@@ -1206,6 +1206,17 @@ class LibrarySource:
         if kind == "recordings":
             items = self.get_recordings(server_uuid, limit=limit)
             return items, len(items)
+        if kind == "studios":
+            # A flat list of Studio items rather than media -- the by-name
+            # counterpart to genres. They render in the same grid because
+            # they are tiles like any other; only the query differs.
+            api = self._conn(server_uuid).api
+            result = api.get_studios(
+                parent_id=spec.get("parent_id"),
+                include_item_types=spec.get("include_item_types"),
+                start_index=start_index, limit=limit) or {}
+            return (result.get("Items", []),
+                    result.get("TotalRecordCount", 0))
         if kind == "items":
             return self._list_items(server_uuid, spec, sort_by, sort_order,
                                     start_index, limit, filters)

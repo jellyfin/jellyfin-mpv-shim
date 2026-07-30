@@ -503,5 +503,100 @@ class GenresTest(unittest.TestCase):
         self.assertEqual(src.get_genre_sections("srv", "l", "movies"), [])
 
 
+class StudiosTest(unittest.TestCase):
+    """Networks: a flat grid of Studio tiles, then that studio's catalogue.
+
+    Web offers it on TV libraries only, which is where studio metadata
+    actually lives, and forces backdrop + preferThumb for the tiles."""
+
+    def test_the_spec_queries_the_studios_endpoint(self):
+        class _S(_Api):
+            def get_studios(self, **kw):
+                return self._record("get_studios", kw)
+
+        api = _S()
+        items, _total = _source(api).get_list(
+            "srv", {"type": "studios", "parent_id": "lib1",
+                    "include_item_types": "Series"})
+        name, kw = api.calls[0]
+        self.assertEqual(name, "get_studios")
+        self.assertEqual(kw["include_item_types"], "Series")
+        self.assertEqual(kw["parent_id"], "lib1")
+        self.assertTrue(items)
+
+    def test_a_named_shape_overrides_the_median(self):
+        """Most studios carry no PrimaryImageAspectRatio, so the median
+        would fall back to square and draw every network logo in a box."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        src = FakeSource()
+        src.list_items = [{"Id": "s1", "Name": "HBO", "Type": "Studio"}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "list", "server": "srv1", "title": "Networks",
+                    "list": {"type": "studios", "shape": "landscape"}})
+        nodes, _h = build_scene(b)
+        tiles = [n for n in nodes
+                 if re.match(r"^grid-\d+-", str(n.get("id", "")))
+                 and n.get("t") == "rect"]
+        self.assertTrue(tiles)
+        self.assertEqual(tiles[0]["w"], LANDSCAPE_GEOM.tile_w)
+
+    def test_without_a_named_shape_the_median_still_decides(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        src = FakeSource()
+        src.list_items = [{"Id": "m%d" % i, "Name": "M", "Type": "Movie",
+                           "PrimaryImageAspectRatio": 2 / 3}
+                          for i in range(4)]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "list", "server": "srv1", "title": "L",
+                    "list": {"type": "items"}})
+        nodes, _h = build_scene(b)
+        tiles = [n for n in nodes
+                 if re.match(r"^grid-\d+-", str(n.get("id", "")))
+                 and n.get("t") == "rect"]
+        self.assertEqual(tiles[0]["w"], POSTER_GEOM.tile_w)
+
+    def test_the_button_is_tv_only(self):
+        for ctype, want in (("tvshows", True), ("movies", False),
+                            ("music", False)):
+            with self.subTest(ctype):
+                b = MpvtkBrowser(app=None, source=FakeSource(),
+                                 controller=FakeController())
+                b._pool = _SyncPool()
+                b.server = "srv1"
+                b.navigate({"kind": "grid", "server": "srv1",
+                            "parent_id": "lib1", "collection_type": ctype,
+                            "title": "Lib"})
+                nodes, _h = build_scene(b)
+                self.assertEqual("grid-studios" in ids(nodes), want)
+
+    def test_the_button_opens_the_screen(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "tvshows", "title": "Lib"})
+        _n, handlers = build_scene(b)
+        handlers["grid-studios"]["click"]()
+        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route["list"]["type"], "studios")
+        self.assertEqual(b.route["list"]["include_item_types"], "Series")
+
+    def test_a_studio_tile_opens_its_catalogue(self):
+        """It used to fall through to a status line."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._open_item({"Id": "st1", "Name": "HBO", "Type": "Studio"})
+        self.assertEqual(b.route.get("kind"), "list")
+        self.assertEqual(b.route["list"]["studio_ids"], "st1")
+
+
 if __name__ == "__main__":
     unittest.main()

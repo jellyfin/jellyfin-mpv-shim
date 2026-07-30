@@ -44,6 +44,15 @@ _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #: its own and is a heading over a row.
 GENRE_LIBRARIES = frozenset({"movies", "tvshows"})
 
+#: Collection types with a Networks screen. TV only, as in web:
+#: studio metadata is where the networks are.
+STUDIO_LIBRARIES = frozenset({"tvshows"})
+
+#: What a by-name screen lists, per collection type. Mirrors
+#: LibrarySource.GENRE_ITEM_TYPES; kept here too because the button
+#: builds the spec and the page should not import the repository.
+GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
+
 log = logging.getLogger("mpvtk_browser.pages.grid")
 
 
@@ -158,6 +167,11 @@ class GridPage(Page):
                                 bool(route.get("_collections")),
                                 id="grid-collections",
                                 on_toggle=self._toggle_collections))
+        if route.get("collection_type") in STUDIO_LIBRARIES:
+            # Web calls this "Networks" on a TV library and offers it only
+            # there, which is where studio metadata actually is.
+            bar.append(Button(_("Networks"), id="grid-studios",
+                              icon="apartment", on_click=self._open_studios))
         if route.get("collection_type") in GENRE_LIBRARIES:
             # jellyfin-web reaches its Genres screen through a library tab.
             # We have no tabs, so it rides the same bar the Collections
@@ -340,6 +354,17 @@ class GridPage(Page):
                      on_select=lambda i, v: self._set("_sort", i)),
         ], gap=10, align="center")
 
+    def _open_studios(self):
+        route = self.route
+        self.ctx.nav.navigate({
+            "kind": "list",
+            "server": route.get("server") or self.ctx.server,
+            "title": _("Networks"),
+            "list": {"type": "studios", "parent_id": route.get("parent_id"),
+                     "include_item_types": GENRE_ITEM_TYPES.get(
+                         route.get("collection_type")),
+                     "shape": "landscape"}})
+
     def _open_genres(self):
         route = self.route
         self.ctx.nav.navigate({
@@ -517,6 +542,22 @@ class ListPage(GridPage):
         return self.ctx.source.get_list(
             srv, self._spec(), sort_by=sort_by, sort_order=sort_order,
             start_index=start, filters=filters, **kw)
+
+    #: A spec may name its own shape where the artwork cannot be trusted to
+    #: say it. Studios are the case: their tiles are wide logos, web forces
+    #: backdrop + preferThumb for them (tvstudios.js:38-40), and most carry
+    #: no PrimaryImageAspectRatio at all -- so the median would fall back to
+    #: square and draw every network logo in a box.
+    SHAPES = {"poster": ("geom", "Primary"),
+              "landscape": ("geom_wide", "Thumb"),
+              "square": ("geom_square", "Primary")}
+
+    def _grid_shape(self, items):
+        named = self.SHAPES.get(self._spec().get("shape"))
+        if named is None:
+            return super()._grid_shape(items)
+        attr, image_type = named
+        return getattr(self.ctx.art, attr), image_type
 
     def _header(self, items):
         header = [Text(self.route.get("title", ""), size=26, bold=True)]
