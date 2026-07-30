@@ -396,3 +396,78 @@ class SubtitleSidecarAuthTest(unittest.TestCase):
                       DeliveryUrl="https://example.com:8920/subs/2.srt")
         _url, headers = self._download(stream)[0]
         self.assertFalse(headers)
+
+
+class ThumbnailAuthTest(unittest.TestCase):
+    """Images are the highest-volume first-party traffic here, so a token in
+    their query strings is a token in the access log of every one of them --
+    and it means Jellyfin cannot sit behind a proxy that rejects
+    unauthenticated requests, because every tile would 401.
+    """
+
+    def _store(self, origins):
+        import tempfile
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
+
+        store = ThumbnailStore.__new__(ThumbnailStore)
+        store._auth = {}
+        store.set_auth(origins)
+        del tempfile
+        return store
+
+    HDR = 'MediaBrowser Client="c", Token="T0KEN"'
+
+    def test_our_own_server_gets_the_header(self):
+        store = self._store({("https", "example.com", None): self.HDR})
+        got = store._headers_for("https://example.com/Items/1/Images/Primary")
+        self.assertEqual(got, {"Authorization": self.HDR})
+
+    def test_another_host_gets_nothing(self):
+        store = self._store({("https", "example.com", None): self.HDR})
+        self.assertEqual(
+            store._headers_for("https://elsewhere.example/Items/1/Images/X"),
+            {})
+
+    def test_a_downgrade_to_http_gets_nothing(self):
+        store = self._store({("https", "example.com", None): self.HDR})
+        self.assertEqual(
+            store._headers_for("http://example.com/Items/1/Images/X"), {})
+
+    def test_a_second_server_gets_its_own_token(self):
+        """One store serves every connected server, and a token only ever
+        goes to the server it came from."""
+        other = 'MediaBrowser Client="c", Token="OTHER"'
+        store = self._store({("https", "a.example", None): self.HDR,
+                             ("https", "b.example", None): other})
+        self.assertEqual(store._headers_for("https://b.example/i")[
+            "Authorization"], other)
+
+    def test_signing_out_revokes_the_token(self):
+        """set_auth replaces wholesale rather than merging, so a server the
+        user has left stops receiving its old token."""
+        store = self._store({("https", "example.com", None): self.HDR})
+        store.set_auth({})
+        self.assertEqual(store._headers_for("https://example.com/i"), {})
+
+    def test_a_junk_url_is_not_an_exception(self):
+        store = self._store({("https", "example.com", None): self.HDR})
+        self.assertEqual(store._headers_for("not a url"), {})
+
+    def test_image_urls_no_longer_carry_the_token(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+
+        seen = {}
+
+        class _Api:
+            def image_url(self, item_id, image_type="Primary", index=None,
+                          tag=None, max_width=None, fill_width=None,
+                          fill_height=None, quality=90, include_apikey=True):
+                seen["include_apikey"] = include_apikey
+                return "https://example.com/img"
+
+        src = LibrarySource.__new__(LibrarySource)
+        src._conns = {"srv": type("C", (), {"api": _Api()})()}
+        src.image_url("srv", "i1", "Primary", "t", 150, 225, fill=True)
+        self.assertIs(seen["include_apikey"], False)
+        src.image_url("srv", "i1", "Primary", "t", 150)
+        self.assertIs(seen["include_apikey"], False)

@@ -353,7 +353,7 @@ class BackdropIndexTest(unittest.TestCase):
         class FakeApi:
             def image_url(self, item_id, image_type, index=None, tag=None,
                           max_width=None, fill_width=None, fill_height=None,
-                          quality=90):
+                          quality=90, include_apikey=True):
                 seen.update(item_id=item_id, image_type=image_type,
                             index=index, tag=tag)
                 return "url"

@@ -1682,6 +1682,27 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
         self._start_daemon("_np_thread", "mpvtk-np-tick", tick)
 
+    def _publish_auth_origins(self):
+        """Tell the thumbnail store which token belongs to which server.
+
+        Images are fetched on the store's own session, so this is how they
+        authenticate by header rather than by query string. Called on every
+        source swap, which is also what revokes a signed-out server's token
+        -- the store replaces its map wholesale.
+        """
+        origins = {}
+        get = getattr(self.source, "auth_origins", None)
+        if get is not None:
+            try:
+                origins = get()
+            except Exception:
+                log.debug("could not publish auth origins", exc_info=True)
+        try:
+            self.thumbs.set_auth(origins)
+        except Exception:
+            log.debug("thumbnail store would not take auth origins",
+                      exc_info=True)
+
     def set_source(self, source, server_uuid=None, keep_place=False):
         """Swap in a live data source once servers connect (the browser opens
         immediately on a spinner and populates when the network settles).
@@ -1706,6 +1727,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.set_offline(isinstance(source, OfflineLibrarySource))
         self._locked = False
         self.source = source
+        self._publish_auth_origins()
         try:
             servers = source.servers()
         except Exception:

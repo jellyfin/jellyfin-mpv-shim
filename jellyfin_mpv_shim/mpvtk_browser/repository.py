@@ -11,6 +11,7 @@ same shapes work whether they came from the server or a local cache.
 import datetime
 import json
 import logging
+from urllib.parse import urlparse
 import os
 import random
 
@@ -231,6 +232,32 @@ class LibrarySource:
 
     def servers(self):
         return [{"uuid": uuid, "name": self._conns[uuid].name} for uuid in self._order]
+
+    def auth_origins(self):
+        """``{(scheme, host, port): authorization-header}`` for every server
+        this source is connected to.
+
+        For the thumbnail store, which fetches image URLs on its own session
+        and would otherwise have to carry the token in the query string. The
+        header is the apiclient's own -- the non-legacy MediaBrowser scheme
+        -- so there is one spelling of it in the app.
+        """
+        out = {}
+        for conn in self._conns.values():
+            try:
+                client = conn.client
+                base = client.config.data.get("auth.server") or ""
+                header = client.http._get_authenication_header()
+            except Exception:
+                log.debug("no auth header for a browse connection",
+                          exc_info=True)
+                continue
+            if not header or "Token=" not in header:
+                continue
+            parts = urlparse(base)
+            if parts.hostname:
+                out[(parts.scheme, parts.hostname, parts.port)] = header
+        return out
 
     def _conn(self, server_uuid) -> ServerConn:
         return self._conns[server_uuid]
@@ -1870,13 +1897,18 @@ class LibrarySource:
             # the bitmap under -- backdrop_url has always passed index=0 for
             # the same reason.
             index = 0
+        # include_apikey=False throughout: the thumbnail store sends the
+        # Authorization header instead (see auth_origins). Images are the
+        # highest-volume first-party traffic here, so a token in these query
+        # strings is a token in the access log of every one of them.
         if fill and height:
             # Crop to the exact tile aspect so wide library/banner art still
             # reads as a uniform poster instead of a letterboxed thumbnail.
             return api.image_url(item_id, image_type, index=index, tag=tag,
-                                 fill_width=int(width), fill_height=int(height))
+                                 fill_width=int(width), fill_height=int(height),
+                                 include_apikey=False)
         return api.image_url(item_id, image_type, index=index, tag=tag,
-                             max_width=int(width))
+                             max_width=int(width), include_apikey=False)
 
     def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
                           width=320):
