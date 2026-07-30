@@ -5,6 +5,7 @@ way to see the rest. This is the rest, and the chevron on the heading is
 the only route to it.
 """
 
+import re
 import sys
 import unittest
 
@@ -283,6 +284,112 @@ class ProgramsSeeAllTest(unittest.TestCase):
         open_live_tv(b, "programs")
         nodes, _h = build_scene(b)
         self.assertNotIn("lt-mystery-more", ids(nodes))
+
+
+class FavoritesTest(unittest.TestCase):
+    """One row per item type, each a top-N with a chevron into the full
+    listing. The shapes are jellyfin-web's favoriteitems.js table -- the
+    clearest statement of type-to-shape intent in that codebase, and the
+    only place it is written down.
+    """
+
+    ROWS = [
+        {"key": "movies", "title": "Movies", "types": "Movie",
+         "items": [{"Id": "m1", "Name": "M", "Type": "Movie"}]},
+        {"key": "episodes", "title": "Episodes", "types": "Episode",
+         "items": [{"Id": "e1", "Name": "E", "Type": "Episode",
+                    "SeriesId": "S1"}]},
+        {"key": "albums", "title": "Albums", "types": "MusicAlbum",
+         "items": [{"Id": "a1", "Name": "A", "Type": "MusicAlbum"}]},
+    ]
+
+    def _browser(self, rows=None):
+        src = FakeSource()
+        src.favorite_rows = self.ROWS if rows is None else rows
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "favorites", "server": "srv1",
+                    "title": "Favorites"})
+        return b, src
+
+    def test_it_draws_a_row_per_type(self):
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        got = ids(nodes)
+        for key in ("movies", "episodes", "albums"):
+            self.assertTrue(any(str(i).startswith("fav-" + key)
+                                for i in got), key)
+
+    def test_the_shapes_are_webs_table(self):
+        """Movies portrait, episodes backdrop, albums square -- three
+        different tile widths in one scene."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM)
+        b, _src = self._browser()
+        nodes, _h = build_scene(b)
+        # These rows are carousels, so a tile is fav-<key>-<itemid> -- no
+        # row index. Two other nodes share the prefix and must not be
+        # measured: the chevron (fav-<key>-more, a clickable rect whose
+        # width is the heading's) and the scroll container.
+        widths = {}
+        for n in nodes:
+            nid = str(n.get("id", ""))
+            m = re.match(r"^fav-([a-z]+)-(?!more$)", nid)
+            if m and n.get("t") == "rect":
+                widths.setdefault(m.group(1), n["w"])
+        self.assertEqual(widths.get("movies"), POSTER_GEOM.tile_w)
+        self.assertEqual(widths.get("episodes"), LANDSCAPE_GEOM.tile_w)
+        self.assertEqual(widths.get("albums"), SQUARE_GEOM.tile_w)
+
+    def test_favourite_episodes_show_their_own_artwork(self):
+        """preferThumb: false in web. A favourites list is a list of the
+        things you marked, so a row of one series' episodes all wearing the
+        series thumb would defeat the screen."""
+        seen = {}
+        src = FakeSource()
+        src.favorite_rows = self.ROWS
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen[str(item.get("Id"))] = inherit
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "favorites", "server": "srv1", "title": "F"})
+        build_scene(b)
+        self.assertIs(seen.get("e1"), False)
+        self.assertIs(seen.get("m1"), True)
+
+    def test_a_row_links_to_its_own_unbounded_query(self):
+        b, _src = self._browser()
+        _n, handlers = build_scene(b)
+        handlers["fav-movies-more"]["click"]()
+        self.assertEqual(b.route["list"],
+                         {"type": "items", "is_favorite": True,
+                          "include_item_types": "Movie"})
+
+    def test_nothing_favourited_says_so(self):
+        b, _src = self._browser(rows=[])
+        nodes, _h = build_scene(b)
+        self.assertTrue(any("favourite" in str(n.get("text", "")).lower()
+                            for n in nodes))
+
+    def test_the_query_is_recursive_and_filtered(self):
+        api = _Api()
+        rows = _source(api).get_favorite_sections("srv")
+        self.assertTrue(rows)
+        kw = api.calls[0][1]
+        self.assertEqual(kw["is_favorite"], "true")
+        self.assertTrue(kw["recursive"])
+        self.assertIn("include_item_types", kw)
+
+    def test_offline_has_none(self):
+        src = OfflineLibrarySource.__new__(OfflineLibrarySource)
+        self.assertEqual(src.get_favorite_sections("srv"), [])
 
 
 if __name__ == "__main__":

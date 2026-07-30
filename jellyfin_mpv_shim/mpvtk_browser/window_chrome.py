@@ -115,6 +115,15 @@ def chrome_bar(b, compact, probe=False, servers=None,
         _("Home"), "nav-home", "home",
         lambda: b.navigate({"kind": "home", "server": b.server},
                               reset=True)))
+    # Not while offline: every row on it is a server-side IsFavorite query,
+    # and a downloaded subset cannot stand in for one -- an empty screen
+    # would read as "you have no favourites" rather than "this needs the
+    # server". Same reasoning as the Live TV tile, which is also hidden.
+    if not b._offline:
+        left.append(nav_button(
+            _("Favorites"), "nav-favorites", "favorite",
+            lambda: b.navigate({"kind": "favorites", "server": b.server,
+                                "title": _("Favorites")})))
 
     right = []
     if servers is None:

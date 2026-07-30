@@ -13,6 +13,7 @@ consulted first, which is exactly the silent-winner hazard
 
 from .base import Page, PageContext
 from .detail import DetailPage
+from .favorites import FavoritesPage
 from .grid import GridPage, ListPage, PersonPage
 from .music import MusicLibraryPage
 from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
@@ -27,6 +28,7 @@ from .series import SeriesPage
 #: kind -> Page subclass.
 PAGES = {
     DetailPage.kind: DetailPage,
+    FavoritesPage.kind: FavoritesPage,
     AlbumPage.kind: AlbumPage,
     ArtistPage.kind: ArtistPage,
     GridPage.kind: GridPage,

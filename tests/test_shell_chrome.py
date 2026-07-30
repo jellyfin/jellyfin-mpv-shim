@@ -196,7 +196,11 @@ class TestChromePolish(unittest.TestCase):
                         {"id": "u2", "name": "Guest", "locked": True,
                          "active": False}]
 
-        at = 1160, 900
+        # The width has to be one where the two cases actually differ, and
+        # it moves whenever the bar gains a button -- it was 1160 before the
+        # Favorites entry, which now collapses on its own at that size. That
+        # is the behaviour under test, not a problem with it.
+        at = 1240, 900
         self.assertIn("Settings", self._labels(at))       # no switcher
 
         self.b = MpvtkBrowser(app=None, source=MultiServerSource(),

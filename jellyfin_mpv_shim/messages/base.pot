@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 14:12-0400\n"
+"POT-Creation-Date: 2026-07-30 14:46-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1862,6 +1862,10 @@ msgstr ""
 msgid "Ends at %s"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
+msgid "Nothing is marked as a favourite yet."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Name"
 msgstr ""
@@ -1925,6 +1929,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Favorites"
 msgstr ""
 
@@ -2106,6 +2111,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Albums"
 msgstr ""
 
@@ -2133,11 +2139,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Artists"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Songs"
 msgstr ""
 
@@ -2270,6 +2278,7 @@ msgid "People"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
 msgstr ""
 

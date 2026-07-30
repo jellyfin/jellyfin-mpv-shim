@@ -1057,6 +1057,59 @@ class LibrarySource:
             kwargs["name_starts_with"] = letter
         return kwargs
 
+    #: The Favorites screen's rows: (key, title-factory, item types).
+    #: jellyfin-web's favoriteitems.js, in its order -- which is roughly
+    #: "biggest thing first" and worth keeping, because a favourites screen
+    #: is read top-down rather than searched.
+    FAVORITE_SECTIONS = (
+        ("movies", lambda: _("Movies"), "Movie"),
+        ("shows", lambda: _("Shows"), "Series"),
+        ("episodes", lambda: _("Episodes"), "Episode"),
+        ("videos", lambda: _("Videos"), "Video,MusicVideo"),
+        ("artists", lambda: _("Artists"), "MusicArtist"),
+        ("albums", lambda: _("Albums"), "MusicAlbum"),
+        ("songs", lambda: _("Songs"), "Audio"),
+    )
+
+    def get_favorite_sections(self, server_uuid, limit=24):
+        """The Favorites screen's rows as ``[{"key", "title", "items",
+        "types"}]``.
+
+        Fanned out for the same reason the Programs screen is: seven
+        independent queries walked serially is seven round trips before
+        anything draws. Empty rows are dropped, so a user with no favourite
+        albums has no Albums heading rather than an empty one.
+
+        ``types`` rides along so the row's heading can link to the unbounded
+        listing, exactly as the Live TV rows carry their filters.
+        """
+        def fetch(key, title, types):
+            def work():
+                items, _total = self._list_items(
+                    server_uuid, {"type": "items", "include_item_types": types,
+                                  "is_favorite": True},
+                    "SortName", "Ascending", 0, limit, None)
+                return {"key": key, "title": title(), "items": items,
+                        "types": types}
+            return work
+
+        rows = []
+        tasks = [fetch(*section) for section in self.FAVORITE_SECTIONS]
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, max(1, len(tasks))),
+                thread_name_prefix="favorites") as pool:
+            for future in [pool.submit(task) for task in tasks]:
+                try:
+                    row = future.result()
+                except Exception:
+                    # One dead row must not cost the whole screen.
+                    log.warning("Failed to load a favourites row",
+                                exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
     def get_list(self, server_uuid, spec, sort_by="SortName",
                  sort_order="Ascending", start_index=0, limit=100,
                  filters=None):
@@ -2144,6 +2197,12 @@ class OfflineLibrarySource:
             if start_item_id in ids:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
+
+    def get_favorite_sections(self, server_uuid, limit=24):
+        """Empty offline, and hidden rather than shown empty -- see the
+        Favorites nav button. Present for signature parity: the offline
+        source is what a failed load falls back TO."""
+        return []
 
     def get_list(self, server_uuid, spec, sort_by="SortName",
                  sort_order="Ascending", start_index=0, limit=100,
