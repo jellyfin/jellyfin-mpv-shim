@@ -1,13 +1,16 @@
 """The Settings route.
 
-Five tabs -- general, home screen, servers & users, downloads, logs. This
+Six tabs -- general, home screen, display, servers & users, downloads,
+logs. This
 module is the frame: the route entry, the tab bar, and the dispatch to
 whichever tab is selected. Each tab is a mixin in its own module, composed
 into ``SettingsMixin`` below.
 
-The home-screen tab is the odd one out: unlike every other setting here, its
-layout lives on the *server* (DisplayPreferences, shared with jellyfin-web),
-so it loads and saves asynchronously rather than through the config module.
+The home-screen and display tabs are the odd ones out: unlike every other
+setting here, their contents live on the *server* (DisplayPreferences,
+shared with jellyfin-web), so they load and save asynchronously rather than
+through the config module. They sit next to each other in the tab bar for
+that reason.
 
 State on ``self``: ``_config_obj`` (the settings accessor; None means the
 real config module, tests inject a fake), ``_sync_path`` (download-folder
@@ -27,6 +30,7 @@ from .. import theme
 from ..components import controls
 
 from .base import SettingsBase
+from .display import DisplayTabMixin
 from .downloads import DownloadsTabMixin
 from .general import GeneralTabMixin
 from .home import HomeTabMixin
@@ -37,6 +41,7 @@ from .servers import ServersTabMixin
 class SettingsMixin(
     GeneralTabMixin,
     HomeTabMixin,
+    DisplayTabMixin,
     ServersTabMixin,
     DownloadsTabMixin,
     LogsTabMixin,
@@ -55,7 +60,11 @@ class SettingsMixin(
     ROUTES = {
         "settings": (None, "_render_settings"),
     }
-    SETTINGS_TABS = ("general", "home", "servers", "downloads", "logs")
+    #: "display" sits next to "home" because they are the two tabs whose
+    #: contents live on the server rather than in this installation's
+    #: config, and grouping them is the only hint the tab bar can give.
+    SETTINGS_TABS = ("general", "home", "display", "servers", "downloads",
+                     "logs")
     def _open_settings(self):
         self.open_settings()
     def open_settings(self, tab="general"):
@@ -73,6 +82,7 @@ class SettingsMixin(
     def _render_settings(self, route, size):
         tab = route.get("_tab", "general")
         labels = {"general": _("General"), "home": _("Home Screen"),
+                  "display": _("Display"),
                   "servers": _("Servers & Users"),
                   "downloads": _("Downloads"), "logs": _("Logs")}
         # Same treatment as the top bar's buttons (accent border + hover
@@ -90,6 +100,7 @@ class SettingsMixin(
         tabs = Row([tab_button(t) for t in self.SETTINGS_TABS], gap=8)
         body = {
             "home": self._settings_home,
+            "display": self._settings_display,
             "servers": self._settings_servers,
             "downloads": self._settings_downloads,
             "logs": self._settings_logs,
@@ -102,7 +113,8 @@ class SettingsMixin(
         # server-side, cross-client setting, so a cached copy goes stale the
         # moment the user touches Jellyfin Web — and saving from a stale copy
         # would overwrite what they did there.
-        for key in ("_home_layout", "_home_error", "_home_loading"):
+        for key in ("_home_layout", "_home_error", "_home_loading",
+                    "_display_prefs", "_display_error", "_display_loading"):
             route.pop(key, None)
         self.status = ""
         self.invalidate()

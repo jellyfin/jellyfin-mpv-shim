@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 04:04-0400\n"
+"POT-Creation-Date: 2026-07-30 11:57-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2379,6 +2379,50 @@ msgstr ""
 msgid "Saved: %s (also turned off \"%s\")"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Display"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Connect to a server to change these settings."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "These settings could not be loaded from your server."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Try Again"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "These settings are stored on your server and shared with Jellyfin Web."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Use episode images in Next Up and Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid ""
+"Off by default: the show's artwork is used instead, because an episode image "
+"can spoil the episode you have not watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Could not load your display settings."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Display settings saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Could not save your display settings."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
 msgstr ""
@@ -2481,10 +2525,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "The layout could not be loaded from your server."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Try Again"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py

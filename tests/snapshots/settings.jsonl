@@ -16,12 +16,14 @@
 {"align": "center", "c": "ffffff", "h": 25.0, "id": "r.1.0.0.0.0", "size": 20, "t": "text", "text": "General", "w": 67.6, "x": 22.0, "y": 82.0}
 {"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-home", "radius": 6, "t": "rect", "w": 136.2, "x": 107.6, "y": 72.0}
 {"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.1.0", "size": 20, "t": "text", "text": "Home Screen", "w": 116.2, "x": 117.6, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-servers", "radius": 6, "t": "rect", "w": 166.6, "x": 251.8, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.2.0", "size": 20, "t": "text", "text": "Servers & Users", "w": 146.6, "x": 261.8, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-downloads", "radius": 6, "t": "rect", "w": 119.4, "x": 426.4, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.3.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 436.4, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 553.8, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 563.8, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-display", "radius": 6, "t": "rect", "w": 87.6, "x": 251.8, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.2.0", "size": 20, "t": "text", "text": "Display", "w": 67.6, "x": 261.8, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-servers", "radius": 6, "t": "rect", "w": 166.6, "x": 347.4, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.3.0", "size": 20, "t": "text", "text": "Servers & Users", "w": 146.6, "x": 357.4, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-downloads", "radius": 6, "t": "rect", "w": 119.4, "x": 522.0, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 532.0, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 649.4, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.5.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 659.4, "y": 82.0}
 {"axis": "y", "bar": true, "ch": 3584.5, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "Interface", "w": 1238.0, "x": 16.0, "y": 145.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 186.4}
