@@ -840,5 +840,202 @@ class ByNameIconsTest(unittest.TestCase):
                 self.assertTrue(ICON_PATHS[name].strip())
 
 
+class ViewImageTypeTest(unittest.TestCase):
+    """A library remembers which image type to draw its items with, and an
+    explicit choice beats the median outright -- which is the whole point:
+    the artwork got it wrong for this library."""
+
+    def _grid(self, ratios=(2 / 3,) * 6, **settings):
+        src = FakeSource()
+        src.view_settings = {k: (v if isinstance(v, tuple) else (v, None))
+                             for k, v in settings.items()}
+        src.grid_items = [
+            {"Id": "g%d" % i, "Name": "I", "Type": "Movie",
+             "PrimaryImageAspectRatio": r} for i, r in enumerate(ratios)]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b, src
+
+    def _tile_w(self, b):
+        nodes, _h = build_scene(b)
+        tiles = [n for n in nodes
+                 if re.match(r"^grid-\d+-", str(n.get("id", "")))
+                 and n.get("t") == "rect"]
+        self.assertTrue(tiles, "no tiles")
+        return tiles[0]["w"]
+
+    def test_auto_still_follows_the_artwork(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        b, _src = self._grid()
+        self.assertEqual(self._tile_w(b), POSTER_GEOM.tile_w)
+
+    def test_thumb_overrides_the_median(self):
+        """The Home Videos case: posters everywhere, and the user wants
+        landscape anyway."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        b, _src = self._grid(imageType=("thumb", "items-lib1-Movie-imageType"))
+        self.assertEqual(self._tile_w(b), LANDSCAPE_GEOM.tile_w)
+
+    def test_banner_gets_a_real_banner(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import BANNER_GEOM
+        b, _src = self._grid(imageType="banner")
+        self.assertEqual(self._tile_w(b), BANNER_GEOM.tile_w)
+
+    def test_the_picker_shows_what_is_stored(self):
+        b, _src = self._grid(imageType="thumb")
+        page = b._page_for(b.route)
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import (
+            IMAGE_TYPE_OPTIONS)
+        self.assertEqual(IMAGE_TYPE_OPTIONS[page._image_type_index()][0],
+                         "thumb")
+
+    def test_choosing_one_saves_it_to_the_key_it_was_read_from(self):
+        """Writing elsewhere would leave the user's web client still
+        reading the old value."""
+        b, src = self._grid(imageType=("primary", "items-lib1-Movie-imageType"))
+        page = b._page_for(b.route)
+        page._set_image_type("banner")
+        self.assertEqual(
+            src.saved_view_settings,
+            [("lib1", "imageType", "banner", "items-lib1-Movie-imageType")])
+
+    def test_the_grid_reshapes_before_the_round_trip(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        b, _src = self._grid()
+        b._page_for(b.route)._set_image_type("thumb")
+        self.assertEqual(self._tile_w(b), LANDSCAPE_GEOM.tile_w)
+
+    def test_a_rejected_save_rolls_the_shape_back(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        b, src = self._grid()
+        src.save_view_fails = True
+        b._page_for(b.route)._set_image_type("thumb")
+        self.assertEqual(self._tile_w(b), POSTER_GEOM.tile_w)
+
+    def test_going_back_to_auto_measures_afresh(self):
+        """The parked median was computed for a different shape."""
+        b, _src = self._grid()
+        page = b._page_for(b.route)
+        page._set_image_type("thumb")
+        page._set_image_type("primary")
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        self.assertEqual(self._tile_w(b), POSTER_GEOM.tile_w)
+
+    def test_a_source_without_the_method_still_renders(self):
+        """The offline catalog has no view settings."""
+        src = FakeSource()
+        src.get_view_settings = None   # class attribute; shadow it
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "M"})
+        nodes, _h = build_scene(b)
+        self.assertTrue(nodes)
+
+
+class ViewLabelsAndListTest(unittest.TestCase):
+    """showTitle, showYear and the grid-or-list choice, all per library and
+    all shared with jellyfin-web."""
+
+    def _grid(self, **settings):
+        src = FakeSource()
+        src.view_settings = {k: (v if isinstance(v, tuple) else (v, None))
+                             for k, v in settings.items()}
+        src.grid_items = [{"Id": "g1", "Name": "Alpha", "Type": "Movie",
+                           "ProductionYear": 1999,
+                           "RunTimeTicks": 102 * 600000000,
+                           "PrimaryImageAspectRatio": 2 / 3}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b, src
+
+    def _scene(self, b):
+        nodes, handlers = build_scene(b)
+        return nodes, handlers, {n["t"] for n in nodes}
+
+    def test_the_defaults_are_titles_years_and_a_grid(self):
+        b, _src = self._grid()
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "the default view is not a grid")
+
+    def test_list_view_draws_a_table_and_no_artwork(self):
+        """Which is also what makes it cheap: no strips, no overlays, so a
+        library of thousands costs nothing to draw."""
+        b, _src = self._grid(viewType="List")
+        nodes, _h, types = self._scene(b)
+        self.assertNotIn("img", types)
+        texts = {n.get("text") for n in nodes}
+        self.assertTrue({"Name", "Year", "Length"} <= texts)
+
+    def test_the_list_shows_the_year_and_runtime(self):
+        b, _src = self._grid(viewType="List")
+        nodes, _h, _t = self._scene(b)
+        texts = {n.get("text") for n in nodes}
+        self.assertIn("1999", texts)
+        self.assertIn("1h 42m", texts)
+
+    def test_showyear_off_empties_the_year_column(self):
+        b, _src = self._grid(viewType="List", showYear=False)
+        nodes, _h, _t = self._scene(b)
+        self.assertNotIn("1999", {n.get("text") for n in nodes})
+
+    def test_showtitle_off_takes_the_caption_space_with_it(self):
+        """The strip reserves caption_h under every tile whether or not
+        anything is drawn there, so leaving it would be a band of
+        background."""
+        b_on, _s = self._grid()
+        b_off, _s2 = self._grid(showTitle=False)
+
+        def tile_h(b):
+            nodes, _h = build_scene(b)
+            hit = [n for n in nodes
+                   if re.match(r"^grid-\d+-", str(n.get("id", "")))
+                   and n.get("t") == "rect"]
+            self.assertTrue(hit)
+            return hit[0]["h"]
+
+        self.assertLess(tile_h(b_off), tile_h(b_on))
+
+    def test_showyear_off_still_leaves_a_live_tv_line_alone(self):
+        """Every other subtitle branch is a channel, an air time or an
+        episode number. Switching years off was not a request to blank
+        those."""
+        from jellyfin_mpv_shim.mpvtk_browser.components.labels import (
+            episode_subtitle)
+        ep = {"Type": "Episode", "SeriesName": "Show",
+              "ParentIndexNumber": 1, "IndexNumber": 2}
+        self.assertEqual(episode_subtitle(ep, show_year=False),
+                         episode_subtitle(ep, show_year=True))
+
+    def test_toggling_persists_the_web_spelling_of_a_boolean(self):
+        """web compares these as strings, so a JSON boolean reads there as
+        false and the setting appears to revert."""
+        b, src = self._grid()
+        b._page_for(b.route)._set_view("showTitle", False)
+        self.assertEqual(src.saved_view_settings[0][1:3],
+                         ("showTitle", False))
+
+    def test_the_toggles_are_on_the_filter_row(self):
+        b, _src = self._grid()
+        nodes, _h = build_scene(b)
+        got = ids(nodes)
+        for nid in ("grid-showtitle", "grid-showyear", "grid-listview"):
+            self.assertIn(nid, got)
+
+    def test_a_rejected_save_rolls_the_setting_back(self):
+        b, src = self._grid()
+        src.save_view_fails = True
+        page = b._page_for(b.route)
+        page._set_view("showTitle", False)
+        self.assertTrue(page._view("showTitle"))
+
+
 if __name__ == "__main__":
     unittest.main()

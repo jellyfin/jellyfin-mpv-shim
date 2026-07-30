@@ -14,20 +14,32 @@
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.7.1", "size": 20, "t": "text", "text": "Settings", "w": 74.4, "x": 1183.6, "y": 22.0}
 {"axis": "y", "bar": true, "ch": 1034.0, "cw": 1270.0, "h": 660.0, "id": "grid", "snap": 283, "snap_off": 181.0, "t": "scroll", "w": 1280.0, "watch": true, "x": 0.0, "y": 60.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0", "sc": "grid", "size": 26, "t": "text", "text": "Movies", "w": 1238.0, "x": 16.0, "y": 76.0}
-{"h": 38.0, "id": "grid-sort", "items": ["Name", "Date Added", "Release Date", "Community Rating", "Date Played", "Play Count", "Runtime", "Critic Rating", "Parental Rating", "Random"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 180.0, "x": 16.0, "y": 124.0}
-{"h": 38.0, "id": "grid-genre", "items": ["All Genres", "Action", "Comedy"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 180.0, "x": 206.0, "y": 124.0}
-{"h": 38.0, "id": "grid-year", "items": ["All Years", "2020", "2021"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 140.0, "x": 396.0, "y": 124.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-unplayed", "sc": "grid", "t": "rect", "w": 112.4, "x": 546.0, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.3.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 546.0, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.3.1", "sc": "grid", "size": 20, "t": "text", "text": "Unplayed", "w": 82.4, "x": 576.0, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-fav", "sc": "grid", "t": "rect", "w": 115.2, "x": 668.4, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.4.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 668.4, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.4.1", "sc": "grid", "size": 20, "t": "text", "text": "Favorites", "w": 85.2, "x": 698.4, "y": 130.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-paginated", "sc": "grid", "t": "rect", "w": 119.2, "x": 793.6, "y": 130.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.5.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 793.6, "y": 133.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.5.1", "sc": "grid", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 823.6, "y": 130.5}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 932.8, "y": 120.5}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 942.8, "y": 130.5}
+{"h": 38.0, "id": "grid-sort", "items": ["Name", "Date Added", "Release Date", "Community Rating", "Date Played", "Play Count", "Runtime", "Critic Rating", "Parental Rating", "Random"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 130.0, "x": 16.0, "y": 124.0}
+{"h": 38.0, "id": "grid-genre", "items": ["All Genres", "Action", "Comedy"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 130.0, "x": 156.0, "y": 124.0}
+{"h": 38.0, "id": "grid-imagetype", "items": ["Auto", "Thumbnail", "Banner", "Logo", "Disc"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 108.4, "x": 296.1, "y": 124.0}
+{"h": 38.0, "id": "grid-year", "items": ["All Years", "2020", "2021"], "sc": "grid", "sel": 0, "size": 20, "t": "dropdown", "w": 101.1, "x": 414.5, "y": 124.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-unplayed", "sc": "grid", "t": "rect", "w": 112.4, "x": 525.6, "y": 130.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.4.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 525.6, "y": 133.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.4.1", "sc": "grid", "size": 20, "t": "text", "text": "Unplayed", "w": 82.4, "x": 555.6, "y": 130.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-fav", "sc": "grid", "t": "rect", "w": 115.2, "x": 648.0, "y": 130.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.5.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 648.0, "y": 133.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.5.1", "sc": "grid", "size": 20, "t": "text", "text": "Favorites", "w": 85.2, "x": 678.0, "y": 130.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-showtitle", "sc": "grid", "t": "rect", "w": 82.8, "x": 773.2, "y": 130.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.0.1.0.6.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 773.2, "y": 133.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.0.1.0.6.0.0", "sc": "grid", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 773.2, "y": 133.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.6.1", "sc": "grid", "size": 20, "t": "text", "text": "Titles", "w": 52.8, "x": 803.2, "y": 130.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-showyear", "sc": "grid", "t": "rect", "w": 80.0, "x": 866.0, "y": 130.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.0.1.0.7.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 866.0, "y": 133.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.0.1.0.7.0.0", "sc": "grid", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 866.0, "y": 133.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.7.1", "sc": "grid", "size": 20, "t": "text", "text": "Years", "w": 50.0, "x": 896.0, "y": 130.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-listview", "sc": "grid", "t": "rect", "w": 65.2, "x": 956.0, "y": 130.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.8.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 956.0, "y": 133.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.8.1", "sc": "grid", "size": 20, "t": "text", "text": "List", "w": 35.2, "x": 986.0, "y": 130.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "grid-paginated", "sc": "grid", "t": "rect", "w": 119.2, "x": 1031.2, "y": 130.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.0.1.0.9.0", "radius": 5, "sc": "grid", "t": "rect", "w": 20.0, "x": 1031.2, "y": 133.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.9.1", "sc": "grid", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 1061.2, "y": 130.5}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "grid-shuffle", "radius": 6, "sc": "grid", "t": "rect", "w": 83.6, "x": 1170.4, "y": 120.5}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.1.0.11.0", "sc": "grid", "size": 20, "t": "text", "text": "Shuffle", "w": 63.6, "x": 1180.4, "y": 130.5}
 {"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-#", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 16.0, "y": 173.5}
 {"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.0.0", "sc": "grid", "size": 15, "t": "text", "text": "#", "w": 26.0, "x": 16.0, "y": 177.1}
 {"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-A", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 44.0, "y": 173.5}

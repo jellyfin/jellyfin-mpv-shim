@@ -132,6 +132,16 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        return dict(getattr(self, "view_settings", {}))
+
+    def save_view_setting(self, server_uuid, parent_id, collection_type,
+                          setting, value, key=None):
+        self.saved_view_settings = getattr(self, "saved_view_settings", [])
+        if getattr(self, "save_view_fails", False):
+            raise RuntimeError("server refused")
+        self.saved_view_settings.append((parent_id, setting, value, key))
+
     def get_by_name_sections(self, server_uuid, spec, limit=20):
         self.byname_specs = getattr(self, "byname_specs", [])
         self.byname_specs.append(dict(spec or {}))

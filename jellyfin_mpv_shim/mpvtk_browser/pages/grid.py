@@ -12,12 +12,13 @@ the paged-grid layout, the infinite-scroll fetcher, the reload-on-change
 handlers.
 """
 
+import dataclasses
 import logging
 
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
-from .. import theme
+from .. import theme, view_prefs
 from ..components import chrome
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -38,6 +39,26 @@ SORTS = [
 ]
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+#: The image-type picker's options, in jellyfin-web's order.
+#: "Primary" means "no override" -- shape the grid by its artwork,
+#: which is what it does with no setting at all.
+#: A view with nothing stored: web's defaults, which are also what the
+#: shim did before any of this existed.
+_DEFAULT_VIEW = {
+    "imageType": (view_prefs.DEFAULT_IMAGE_TYPE, None),
+    "viewType": (view_prefs.GRID_VIEW, None),
+    "showTitle": (True, None),
+    "showYear": (True, None),
+}
+
+IMAGE_TYPE_OPTIONS = [
+    ("primary", _("Auto")),
+    ("thumb", _("Thumbnail")),
+    ("banner", _("Banner")),
+    ("logo", _("Logo")),
+    ("disc", _("Disc")),
+]
+
 #: Collection types with a Genres screen. Music has its own, in the
 #: music library's Genres tab, and it is a different screen: a music
 #: genre has albums to draw as tiles, a video genre has nothing of
@@ -54,6 +75,15 @@ STUDIO_LIBRARIES = frozenset({"tvshows"})
 GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
 
 log = logging.getLogger("mpvtk_browser.pages.grid")
+
+
+def _fmt_runtime(ticks):
+    """``1h 42m`` for a list row, or "" with no runtime."""
+    mins = int((ticks or 0) // 600000000)
+    if not mins:
+        return ""
+    return ("%dh %dm" % (mins // 60, mins % 60) if mins >= 60
+            else "%dm" % mins)
 
 
 class GridPage(Page):
@@ -94,11 +124,17 @@ class GridPage(Page):
                     vals = source.get_filter_values(srv, parent)
                 except Exception:
                     vals = {"genres": [], "years": []}
-            return items, total, vals
+            # Read here rather than in render: it comes off a cached blob,
+            # but "cached" is not "free" and render runs every frame.
+            get_view = getattr(source, "get_view_settings", None)
+            view = (get_view(srv, parent, route.get("collection_type"))
+                    if get_view else dict(_DEFAULT_VIEW))
+            return items, total, vals, view
 
         def done(res):
-            items, total, vals = res
+            items, total, vals, view = res
             route["_items"], route["_filtervals"] = items, vals
+            route["_view"] = view
             # Random reshuffles server-side on every request, so page two is
             # drawn from a different ordering than page one: paging it yields
             # duplicates and silently skips items. Reporting the first page as
@@ -124,12 +160,21 @@ class GridPage(Page):
         if items is None:
             return chrome.busy()
         header = self._header(items, size[0])
+        if view_prefs.is_list_view(self._view("viewType")):
+            return self._list_view(items, header)
         geom, image_type = self._grid_shape(items)
+        labels = (bool(self._view("showTitle")),
+                  bool(self._view("showYear")))
+        if not labels[0]:
+            # No caption means no room for one: the strip reserves
+            # caption_h under every tile whether or not anything is drawn
+            # there, so leaving it would just be a band of background.
+            geom = dataclasses.replace(geom, caption_h=0)
         if self._pages.enabled():
-            return self._paged_grid(size, header, geom, image_type)
+            return self._paged_grid(size, header, geom, image_type, labels)
         rows = header + tiles.grid_of(
             items, "grid", size, geom=geom, image_type=image_type,
-            scroll_id="grid", head_h=self.HEAD_H)
+            scroll_id="grid", head_h=self.HEAD_H, labels=labels)
         return VScroll(
             Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                    align="stretch"), id="grid",
@@ -217,6 +262,11 @@ class GridPage(Page):
                      w=180,
                      on_select=lambda i, v: self._set_filter(
                          "genre", None if i == 0 else genres[i - 1])),
+            Dropdown("grid-imagetype",
+                     [lbl for _v, lbl in IMAGE_TYPE_OPTIONS],
+                     selected=self._image_type_index(), w=150,
+                     on_select=lambda i, v: self._set_image_type(
+                         IMAGE_TYPE_OPTIONS[i][0])),
             Dropdown("grid-year",
                      [_("All Years")] + [str(y) for y in years],
                      selected=yi, w=140,
@@ -239,6 +289,22 @@ class GridPage(Page):
         ] if route.get("_collection_capable") else []) + [
             # Reflects and writes the GLOBAL paginated setting — a convenient
             # place to flip it, not a per-view filter.
+            Checkbox(_("Titles"), bool(self._view("showTitle")),
+                     id="grid-showtitle",
+                     on_toggle=lambda: self._set_view(
+                         "showTitle", not self._view("showTitle"))),
+            Checkbox(_("Years"), bool(self._view("showYear")),
+                     id="grid-showyear",
+                     on_toggle=lambda: self._set_view(
+                         "showYear", not self._view("showYear"))),
+            Checkbox(_("List"),
+                     view_prefs.is_list_view(self._view("viewType")),
+                     id="grid-listview",
+                     on_toggle=lambda: self._set_view(
+                         "viewType",
+                         view_prefs.GRID_VIEW
+                         if view_prefs.is_list_view(self._view("viewType"))
+                         else view_prefs.LIST_VIEW)),
             Checkbox(_("Paginated"), self._pages.enabled(),
                      id="grid-paginated",
                      on_toggle=lambda: self._pages.toggle(self.route,
@@ -270,7 +336,8 @@ class GridPage(Page):
             for ch in _LETTERS], gap=2, align="center")
         return Column([bar, letters], gap=8)
 
-    def _paged_grid(self, size, header, geom, image_type="Primary"):
+    def _paged_grid(self, size, header, geom, image_type="Primary",
+                    labels=None):
         """Paginated grid/person: one screenful of tiles, no scroll — the
         bottom pagination bar (drawn by the shell) moves between pages."""
         tiles = self.ctx.art.tiles
@@ -284,7 +351,7 @@ class GridPage(Page):
             body = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
         else:
             body = tiles.grid_of(page_items, "grid", size, geom=geom,
-                                 image_type=image_type)
+                                 image_type=image_type, labels=labels)
         return Column(header + body, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                       align="stretch", flex=1)
 
@@ -352,6 +419,34 @@ class GridPage(Page):
                                          len(items))
         return lambda start, limit: self._fetch_at(start, limit)
 
+    def _list_view(self, items, header):
+        """The library as a table rather than a grid.
+
+        jellyfin-web's List view type. Deliberately plain -- name, year,
+        runtime -- because the point of choosing it is that the artwork was
+        not helping, so re-introducing art in a leading column would defeat
+        it. It is also what makes the view cheap: no strips, no overlays, so
+        a library of thousands costs nothing to draw.
+        """
+        rows = [
+            {"cells": [it.get("Name") or "",
+                       str(it.get("ProductionYear") or "")
+                       if self._view("showYear") else "",
+                       _fmt_runtime(it.get("RunTimeTicks"))],
+             "item": it}
+            for it in items]
+        table = self.ctx.art.tiles.item_list(
+            rows, "grid", on_click=lambda i: self.ctx.art.tiles.on_open(
+                items[i]),
+            scroll_id="grid")
+        return VScroll(
+            Column(header + [table], pad=chrome.CONTENT_PAD, gap=GRID_GAP,
+                   align="stretch"), id="grid", flex=1,
+            offset=self.parked_scroll("grid"),
+            on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
+                "grid", off, mx,
+                lambda o, m: self._on_scroll_end(o, m)))
+
     def _sort_bar(self):
         """Just the sort dropdown, for routes with no filterable axes.
 
@@ -387,6 +482,76 @@ class GridPage(Page):
             "parent_id": route.get("parent_id"),
             "collection_type": route.get("collection_type"),
             "title": _("Genres")})
+
+    def _image_type_index(self):
+        current = self._view("imageType")
+        values = [v for v, _l in IMAGE_TYPE_OPTIONS]
+        return values.index(current) if current in values else 0
+
+    def _set_image_type(self, value):
+        """Persist the library's image type and redraw with it.
+
+        Optimistic, like every other edit here: the grid reshapes on the
+        next frame and rolls back if the server refuses. No reload -- the
+        items are the same, only how they are drawn changes.
+        """
+        return self._set_view("imageType", value)
+
+    def _view(self, setting):
+        """The stored value of one view setting, or its default.
+
+        Per setting, not per dict: a source may answer with only the
+        settings it knows about -- the offline catalog answers ``{}`` -- and
+        falling to None for the rest would read as "off", blanking every
+        caption rather than leaving them alone.
+        """
+        view = self.route.get("_view") or {}
+        stored = view.get(setting)
+        if stored is None:
+            stored = _DEFAULT_VIEW.get(setting) or (None, None)
+        return stored[0]
+
+    def _set_view(self, setting, value):
+        """Persist one view setting and redraw with it.
+
+        Optimistic, like every other edit here: the grid changes on the next
+        frame and rolls back if the server refuses. No reload -- the items
+        are the same, only how they are drawn changes.
+        """
+        route = self.route
+        view = dict(route.get("_view") or _DEFAULT_VIEW)
+        previous, key = view.get(setting) or (None, None)
+        if value == previous:
+            return
+        view[setting] = (value, key)
+        route["_view"] = view
+        # The parked median is only consulted when there is no override, but
+        # it was computed for a different shape; drop it so returning to
+        # "Primary" measures afresh.
+        # The parked median was measured for a different shape.
+        route.pop("_grid_shape", None)
+        self.ctx.invalidate()
+        server = route.get("server") or self.ctx.server
+        parent = route.get("parent_id")
+        ctype = route.get("collection_type")
+        source = self.ctx.source
+        save = getattr(source, "save_view_setting", None)
+        if save is None:
+            return
+
+        def work():
+            save(server, parent, ctype, setting, value, key=key)
+
+        def failed(_exc):
+            rolled = dict(route.get("_view") or {})
+            rolled[setting] = (previous, key)
+            route["_view"] = rolled
+            route.pop("_grid_shape", None)
+            self.ctx.status(_("That view setting could not be saved."))
+            self.ctx.invalidate()
+
+        self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
+                         on_error=failed)
 
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
@@ -443,6 +608,13 @@ class GridPage(Page):
         than tall ones.
         """
         route = self.route
+        named = view_prefs.shape_for(self._view("imageType"))
+        if named is not None:
+            # An explicit choice beats the median outright, exactly as it
+            # does in web (ItemsView.tsx:75-88) -- the whole point of the
+            # setting is that the artwork got it wrong for this library.
+            attr, image_type = named
+            return getattr(self.ctx.art, attr), image_type
         parked = route.get("_grid_shape")
         if parked is None:
             art = self.ctx.art

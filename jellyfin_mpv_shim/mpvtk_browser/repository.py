@@ -26,6 +26,7 @@ from ..sync.db import SyncDB, STATUS_COMPLETE
 from . import home_sections
 from . import live_tv
 from . import user_prefs
+from . import view_prefs
 
 
 def _iso_utc(when):
@@ -214,6 +215,8 @@ class LibrarySource:
         # and the guide may never be opened at all.
         self._live_tv_prefs: dict[str, Any] = {}
         self._user_prefs: dict[str, Any] = {}
+        # The whole CustomPrefs blob, shared by every consumer of it.
+        self._custom_prefs: dict[str, Any] = {}
         # uuid -> whether this server offers Live TV to this user. Derived for
         # free from the /Views response get_libraries already fetches; see
         # has_live_tv for why that answer is authoritative.
@@ -414,6 +417,74 @@ class LibrarySource:
             else:
                 self._user_prefs[server_uuid] = previous
             raise
+
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        """``{setting: (value, key)}`` for a library's saved view settings.
+
+        All four in one read, because they live in one document -- and the
+        key each came from rides along so a save lands where the user's web
+        client will look for it (see ``view_prefs``).
+        """
+        try:
+            custom = self._display_prefs_custom(server_uuid)
+        except Exception:
+            log.debug("could not read view preferences", exc_info=True)
+            custom = {}
+        out = {
+            "imageType": view_prefs.resolve_image_type(
+                custom, parent_id, collection_type),
+            "viewType": view_prefs.resolve_view_type(
+                custom, parent_id, collection_type),
+        }
+        for setting in view_prefs.BOOL_SETTINGS:
+            out[setting] = view_prefs.resolve_bool(
+                custom, parent_id, collection_type, setting)
+        return out
+
+    def _display_prefs_custom(self, server_uuid, refresh=False):
+        """The raw CustomPrefs blob, cached.
+
+        One cache for the whole document rather than one per consumer: the
+        home layout, the guide settings, the display prefs and the per-view
+        settings are all in it, and re-fetching it per screen would be four
+        round trips for one document.
+        """
+        if not refresh and server_uuid in self._custom_prefs:
+            return self._custom_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        custom = self._display_prefs_dto(api).get("CustomPrefs") or {}
+        self._custom_prefs[server_uuid] = custom
+        return custom
+
+    def save_view_setting(self, server_uuid, parent_id, collection_type,
+                          setting, value, key=None):
+        """Persist one of a library's view settings. Raises on failure.
+
+        ``key`` is the one it was read from, so a change lands where the
+        user's web client will look for it; with none stored yet the first
+        candidate is used. Read-modify-write of the whole DTO, as every
+        other writer here does.
+
+        Booleans go out as ``"true"``/``"false"`` strings for the reason
+        every other boolean in this document does: web compares them as
+        strings, so a JSON boolean reads there as false.
+        """
+        api = self._conn(server_uuid).api
+        if not key:
+            candidates = view_prefs.keys_for(parent_id, collection_type,
+                                             setting)
+            if not candidates:
+                return
+            key = candidates[0]
+        if isinstance(value, bool):
+            value = "true" if value else "false"
+        dto = self._display_prefs_dto(api)
+        custom = dict(dto.get("CustomPrefs") or {})
+        custom[key] = value
+        dto["CustomPrefs"] = custom
+        api.update_user_settings(dto,
+                                 client=home_sections.DISPLAY_PREFS_CLIENT)
+        self._custom_prefs[server_uuid] = custom
 
     def get_latest_excludes(self, server_uuid):
         """Library ids excluded from the home screen's generated rows.
@@ -2406,6 +2477,10 @@ class OfflineLibrarySource:
         the whole library. Signature parity, as with every other source
         method -- the offline catalog is the failure path's fallback."""
         return []
+
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        """No server, no saved view settings. Signature parity."""
+        return {}
 
     def get_favorite_sections(self, server_uuid, limit=24):
         """Empty offline, and hidden rather than shown empty -- see the

@@ -7,7 +7,7 @@ it later.
 """
 
 
-def episode_subtitle(item):
+def episode_subtitle(item, show_year=True):
     """The line under a tile's title.
 
     Was ``TilesMixin._subtitle``.
@@ -49,7 +49,11 @@ def episode_subtitle(item):
         current = (item.get("CurrentProgram") or {}).get("Name") or ""
         number = str(item.get("Number") or "").strip()
         return "   ·   ".join(p for p in (number, current) if p)
-    return str(item.get("ProductionYear") or "")
+    # The year is the ONLY thing show_year governs. Every branch above is a
+    # channel, an air time or an episode number -- a Live TV listing with
+    # "showYear off" must still say which channel and when, because that is
+    # not a year and switching it off was not a request to blank the line.
+    return str(item.get("ProductionYear") or "") if show_year else ""
 
 
 def _a_time(item, live_tv):
@@ -57,7 +61,7 @@ def _a_time(item, live_tv):
     return live_tv.fmt_time(start) if start else ""
 
 
-def tile_lines(item, parent_item=False):
+def tile_lines(item, parent_item=False, show_year=True):
     """``(title, subtitle)`` for a tile.
 
     ``parent_item`` flips an episode around: the series becomes the title
@@ -71,7 +75,7 @@ def tile_lines(item, parent_item=False):
         series = item.get("SeriesName")
         if series:
             return series, item.get("Name", "")
-    return item.get("Name", ""), episode_subtitle(item)
+    return item.get("Name", ""), episode_subtitle(item, show_year)
 
 
 def is_watched(item):

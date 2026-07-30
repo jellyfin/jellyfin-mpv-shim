@@ -97,8 +97,8 @@ from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
                          PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
-from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
-                     TileGeom)
+from .strips import (BANNER_GEOM, LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM,
+                     StripStore, TileGeom)
 from .dialogs import DialogsMixin
 from .livetv_dialogs import LiveTvDialogsMixin
 from .auth import AuthMixin
@@ -310,6 +310,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 tile_w=_lw, tile_h=_lh,
                 caption_h=LANDSCAPE_GEOM.caption_h)
         self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
+        # ~5.4:1. Only a user asking for the Banner image type reaches this.
+        self.geom_banner = BANNER_GEOM.scaled(_cs)
         # A theme may also pin the tile caption font so it does NOT grow with
         # the cover (big art, modest labels), which lets a long title show
         # more of itself before it is ellipsized. Section headings are
@@ -1019,6 +1021,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             strips=self.strips, thumbs=self.thumbs,
             geom=self.geom, geom_wide=self.geom_wide,
             geom_square=self.geom_square,
+            geom_banner=self.geom_banner,
             tiles=self.tiles, scroll=self._scroll, pages=self._pages)
 
     def _page_context(self):

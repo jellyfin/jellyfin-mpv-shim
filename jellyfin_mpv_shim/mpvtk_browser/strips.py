@@ -112,6 +112,12 @@ class TileGeom:
 POSTER_GEOM = TileGeom(tile_w=150, tile_h=225, caption_h=46)        # 2:3
 LANDSCAPE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)     # 16:9
 SQUARE_GEOM = TileGeom(tile_w=170, tile_h=170, caption_h=44)        # 1:1
+# ~5.4:1, jellyfin-web's banner (card.scss's cardPadder-banner is
+# padding-bottom: 18.5%). Only reachable by a user explicitly choosing the
+# Banner image type for a library -- nothing infers it, and auto_geom folds
+# its own >=3 bucket into landscape instead. Wider than the poster row is
+# tall, so it is sized to sit two-across rather than to match the others.
+BANNER_GEOM = TileGeom(tile_w=486, tile_h=90, caption_h=44)         # ~5.4:1
 WIDE_GEOM = LANDSCAPE_GEOM  # backwards-compatible alias
 
 

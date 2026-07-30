@@ -556,7 +556,7 @@ class TileRenderer:
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
     def _tile(self, item, geom, image_type="Primary", parent_item=False,
-              inherit=True):
+              inherit=True, labels=None):
         """One tile. ``parent_item`` draws an Episode as its *series* —
         the show's name and the show's poster instead of the episode's name
         over the episode still — which is what a Latest-TV row is a list of.
@@ -590,7 +590,13 @@ class TileRenderer:
             image_type = "ParentPrimary"
         poster, tag = self.poster_for(item, geom, image_type,
                                       inherit=inherit)
-        title, subtitle = components.tile_lines(item, parent_item)
+        # labels: (show_title, show_year) from the library's view settings.
+        # None means "as always", which is both on.
+        show_title, show_year = labels or (True, True)
+        title, subtitle = components.tile_lines(item, parent_item,
+                                                show_year=show_year)
+        if not show_title:
+            title = subtitle = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
@@ -690,7 +696,7 @@ class TileRenderer:
                 + sum(measure(h)[1] for h in hs))
     def grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
-                 on_click=None, inherit=True):
+                 on_click=None, inherit=True, labels=None):
         """Tile rows for a vertical grid.
 
         With ``scroll_id`` the rows are **virtualized**: only those within a
@@ -720,6 +726,7 @@ class TileRenderer:
                                             geom, image_type,
                                             on_click=on_click,
                                             inherit=inherit,
+                                            labels=labels,
                                             # Grid rows share one bounded blank
                                             # shape, so composite them off the
                                             # loop thread (see StripStore.strip).
@@ -733,9 +740,10 @@ class TileRenderer:
 
     def image_map(self, items, prefix, geom=None, image_type="Primary",
                    on_click=None, async_=False, parent_item=False,
-                   inherit=True):
+                   inherit=True, labels=None):
         geom = geom or self.art.geom
-        tiles = [self._tile(it, geom, image_type, parent_item, inherit)
+        tiles = [self._tile(it, geom, image_type, parent_item, inherit,
+                            labels)
                  for it in items]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
@@ -905,6 +913,30 @@ class TileRenderer:
         # and the last one is clipped.
         return max(1, int(
             (self.body_w(w) + geom.gap) // (geom.tile_w + geom.gap)))
+    def item_list(self, rows, prefix, on_click, scroll_id=None):
+        """A library as a plain table -- jellyfin-web's List view type.
+
+        Deliberately without an art column, unlike ``track_list``: the point
+        of choosing this view is that the artwork was not helping, and it is
+        also what makes it cheap. No strips and no overlays, so a library of
+        thousands costs nothing to draw and needs no virtualization.
+        """
+        columns = [{"label": _("Name"), "flex": 4},
+                   {"label": _("Year"), "w": 80},
+                   {"label": _("Length"), "w": 110, "align": "right"}]
+        table_rows = []
+        for i, row in enumerate(rows):
+            table_rows.append({
+                "id": "%s-%d-%s" % (prefix, i,
+                                    (row.get("item") or {}).get("Id", "")),
+                "cells": row["cells"],
+                "on_click": (lambda i=i: on_click(i)),
+                "on_context": (lambda x, y, it=row.get("item"):
+                               self.on_context(it, x, y)),
+            })
+        return Table(columns, table_rows, row_h=TRACK_ROW_H,
+                     id=(scroll_id or prefix) + "-table")
+
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
                     art=False, scroll_id=None, head_h=0, menu=False):
