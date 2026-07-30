@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-07-27 01:19+0000\n"
+"PO-Revision-Date: 2026-07-30 11:39+0000\n"
 "Last-Translator: Kityn <kitynska@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
@@ -450,7 +450,6 @@ msgstr "Zmiany nie udało się zastosować."
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Live TV"
 msgstr "Telewizja"
 
@@ -692,7 +691,6 @@ msgstr "Wybierz swoje multimedia w Jellyfin i odtwarzaj je tutaj."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
 msgid "Cast & Crew"
 msgstr "Obsada i ekipa"
 
@@ -700,26 +698,20 @@ msgstr "Obsada i ekipa"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Download"
 msgstr "Pobierz"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Usuń serwer"
+msgstr "Usuń pobieranie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Zakończ i zaznacz jako nieobejrzane"
+msgstr "Obejrzane"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Favorite"
 msgstr "Ulubione"
 
@@ -730,7 +722,6 @@ msgstr "Interfejs"
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Theme"
 msgstr "Motyw"
 
@@ -749,7 +740,7 @@ msgstr "Napisy i języki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Transcoding"
-msgstr "Transkoduj"
+msgstr "Transkodowanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -803,17 +794,15 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Motyw domyślny"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Średnie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Duży"
+msgstr "Bardzo duże"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
@@ -889,21 +878,19 @@ msgstr "Uwzględnij następne"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Pozycje następnych do rozważenia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Odcinki do obejrzenia (0 = wyłączone)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Limit pamięci dla automatycznego pobierania (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Usuń serwer"
+msgstr "Usuń automatycznie pobrane pliki po obejrzeniu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
@@ -1166,10 +1153,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Usuń serwer"
+msgstr "Kolekcje…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1183,16 +1168,12 @@ msgid "Add to Collection"
 msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Usuń serwer"
+msgstr "Brak kolekcji."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Nazwa użytkownika: "
+msgstr "Nowa nazwa kolekcji…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1213,10 +1194,8 @@ msgstr ""
 "Proszę sprawdzić informacje o połączeniu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "Ustawienia SVP"
+msgstr "Szacowanie…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1287,10 +1266,9 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} dołączył."
+msgstr "%s (dołączyło)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1299,10 +1277,8 @@ msgid "Group"
 msgstr "Nowa grupa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Nowa grupa"
+msgstr "Brak aktywnych grup."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -1578,10 +1554,8 @@ msgid "Previous"
 msgstr "Poprzedni"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "Serwer został pomyślnie dodany."
+msgstr "Poprzedni rozdział"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -1704,10 +1678,9 @@ msgstr "Zmiany nie udało się zastosować."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Usuń serwer"
+msgstr "Usunąć pobraną kopię %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1982,14 +1955,8 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"Nie można dodać serwera.\n"
-"Proszę sprawdzić informacje o połączeniu."
+msgstr "Nie można odtworzyć tej pozycji"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -2305,10 +2272,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Serwer został pomyślnie dodany."
+msgstr "Poprzednie kanały"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -2334,10 +2299,8 @@ msgid "Recording Folders"
 msgstr "Otwórz folder konfiguracji"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Konfiguracja serwera"
+msgstr "Jeszcze nic nie nagrano."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -2365,10 +2328,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "Zakończ i zaznacz jako nieobejrzane"
+msgstr "Obejrzyj"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2440,10 +2401,9 @@ msgid "Instant Mix"
 msgstr "Szybki miks"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Wybierz ścieżkę dźwiękową"
+msgstr "%d ścieżki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Album Artists"
@@ -2550,10 +2510,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Nazwa użytkownika:"
+msgstr "Zmień nazwę"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -2566,10 +2524,9 @@ msgid "Delete Playlist"
 msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Usuń serwer"
+msgstr "Usunąć listę odtwarzania %s?"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -2610,10 +2567,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Serwer:"
+msgstr "Wyniki dla „%s”"
 
 # seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2777,10 +2733,9 @@ msgid "watched"
 msgstr "Zakończ i zaznacz jako nieobejrzane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Usuń serwer"
+msgstr "Usunąć obserwowane pliki do pobrania w %s?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -2925,10 +2880,8 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "Serwer URL: "
+msgstr "Serwery i użytkownicy"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -2976,10 +2929,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Nazwa użytkownika: "
+msgstr "Nowa nazwa użytkownika…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -2988,16 +2939,12 @@ msgid "Add User"
 msgstr "Dodaj serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Konfiguracja serwera"
+msgstr "Nie skonfigurowano jeszcze żadnych serwerów."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Nazwa użytkownika:"
+msgstr "Użytkownicy"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -3006,16 +2953,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Serwer:"
+msgstr "Serwery dla %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Serwer:"
+msgstr "Serwery"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3024,10 +2968,8 @@ msgid "Change PIN"
 msgstr "Zmiana dźwięku"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Serwer:"
+msgstr "Ustaw kod PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3057,10 +2999,9 @@ msgid "Auto-download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Usuń serwer"
+msgstr "Usunąć %s i jego zapisane dane logowania?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3123,16 +3064,14 @@ msgid "Remove from Collection"
 msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Usuń serwer"
+msgstr "Usunąć %s z tej listy odtwarzania?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Usuń serwer"
+msgstr "Usunąć %s z tej kolekcji?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -3152,16 +3091,12 @@ msgid "Home"
 msgstr "Start"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Serwer:"
+msgstr "Serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Nazwa użytkownika:"
+msgstr "Użytkownik"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -3207,10 +3142,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transkoduj)"
+msgstr "Transkoduj"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -3219,10 +3152,8 @@ msgid "External"
 msgstr "Zewnętrzny"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay włączone."
+msgstr "SyncPlay włączone"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
