@@ -54,9 +54,11 @@ class FakeApi:
         # /Latest answers with a bare list, not an Items envelope.
         return list(self.latest_items)
 
-    def get_next(self, limit=1, fields=None, enable_image_types=None):
+    def get_next(self, limit=1, fields=None, enable_image_types=None,
+                 image_type_limit=None):
         self._enter("get_next", {"fields": fields,
-                                 "enable_image_types": enable_image_types})
+                                 "enable_image_types": enable_image_types,
+                                 "image_type_limit": image_type_limit})
         return {"Items": [{"Id": "n", "Name": "NextUp"}]}
 
 
@@ -302,6 +304,15 @@ class LeanFieldsTest(HomeRowsHarness):
         nextup = [p for name, p in zip(api.calls, api.params)
                   if name == "get_next"][0]
         self.assertEqual(nextup.get("fields"), LIST_FIELDS)
+
+    def test_next_up_caps_image_tags_like_every_other_home_query(self):
+        """It was the one that did not, so a series with twenty backdrops
+        sent twenty tags per card for the one the tile draws."""
+        api = FakeApi()
+        self._source(api).get_home_rows("srv", libraries=LIBS)
+        nextup = [p for name, p in zip(api.calls, api.params)
+                  if name == "get_next"][0]
+        self.assertEqual(nextup.get("image_type_limit"), 1)
 
 
 if __name__ == "__main__":

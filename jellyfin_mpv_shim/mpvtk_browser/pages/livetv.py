@@ -231,10 +231,25 @@ class LiveTvPage(Page):
             return chrome.busy()
         if not rows:
             return chrome.error(_("No programs are listed right now."))
-        return self._scroll([self._auto_row(row["title"], row["items"],
-                                            "lt-" + row["key"])
-                             for row in rows],
+        return self._scroll([self._program_row(row) for row in rows],
                             "livetv-programs")
+
+    def _program_row(self, row):
+        """One Programs-tab row.
+
+        Upcoming Movies is the exception jellyfin-web also makes: it forces
+        portrait with preferThumb off (``livetvsuggested.js:87-91``) rather
+        than letting the artwork decide. Films are the one guide category
+        that reliably carries poster art, and a median over a handful of
+        them lands on landscape often enough to make the row inconsistent
+        between refreshes.
+        """
+        art = self.ctx.art
+        if row["key"] == "movies":
+            return art.tiles.tile_row(row["title"], row["items"],
+                                      "lt-" + row["key"], geom=art.geom,
+                                      image_type="Primary")
+        return self._auto_row(row["title"], row["items"], "lt-" + row["key"])
 
     def _auto_row(self, title, items, row_id, on_click=None):
         """A row shaped by its own artwork, like jellyfin-web's.

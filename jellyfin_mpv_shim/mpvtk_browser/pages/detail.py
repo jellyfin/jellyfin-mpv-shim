@@ -96,8 +96,18 @@ class DetailPage(Page):
         if people is not None:
             blocks.append(people)
         if data.get("similar"):
+            # Shaped by its own artwork, like jellyfin-web
+            # (shape: autooverflow, itemDetails/index.js:1245).
+            # "More Like This" for a film is posters and for a
+            # music album is square covers; one fixed poster row
+            # cropped the second case. Poster stays the fallback
+            # for a row where nothing carries an aspect ratio.
+            sim_geom, sim_type = tiles.auto_geom(
+                data["similar"], default=tiles.art.geom,
+                default_type="Primary")
             blocks.append(tiles.tile_row(
-                _("More Like This"), data["similar"], "detail-similar"))
+                _("More Like This"), data["similar"], "detail-similar",
+                geom=sim_geom, image_type=sim_type))
         return VScroll(Column(blocks, pad=16, gap=16), id="detail", flex=1,
                        offset=self.parked_scroll("detail"))
 
@@ -155,6 +165,17 @@ class DetailPage(Page):
         if len(chapters) < 2:
             return None          # a single chapter is just the start
         iid = item.get("Id")
+        # A chapter thumbnail is a frame of the video, so the tile has to be
+        # the video's shape, not 16:9 by assumption -- a 4:3 or portrait
+        # source letterboxed inside a landscape card. jellyfin-web reads the
+        # first video stream and goes square at <= 1.2
+        # (chaptercardbuilder.js:30-39); same rule, same threshold.
+        streams = ((item.get("MediaSources") or [{}])[0]
+                   .get("MediaStreams") or [])
+        video = next((s for s in streams if s.get("Type") == "Video"), {})
+        vw, vh = video.get("Width"), video.get("Height")
+        geom = (art.geom_square if vw and vh and (vw / vh) <= 1.2
+                else art.geom_wide)
         scene_tiles = []
         for i, ch in enumerate(chapters):
             url = None
@@ -164,7 +185,7 @@ class DetailPage(Page):
                 # thumbnail() only ever downscales, so a logical request
                 # here leaves the art stranded at 1x inside a scaled card.
                 url = self.ctx.source.chapter_image_url(
-                    server, iid, i, ch, width=px(art.geom_wide.tile_w))
+                    server, iid, i, ch, width=px(geom.tile_w))
             except Exception:
                 log.debug("chapter art failed", exc_info=True)
             start = ch.get("StartPositionTicks") or 0
@@ -186,7 +207,7 @@ class DetailPage(Page):
                  or ((item.get("MediaSources") or [{}])[0]).get("Id"))
         aid, sid = self._effective_tracks(item)
         return art.tiles.tile_row(
-            _("Scenes"), scene_tiles, "detail-scenes", geom=art.geom_wide,
+            _("Scenes"), scene_tiles, "detail-scenes", geom=geom,
             on_click=lambda t: self.ctx.actions.play(
                 item, server, offset_ticks=t.get("_start_ticks") or 0,
                 srcid=srcid, aid=aid, sid=sid))

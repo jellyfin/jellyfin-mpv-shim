@@ -68,22 +68,31 @@ class SearchPage(Page):
             rows.append(tiles.tile_row(_("People"), people, "search-people",
                                        geom=art.geom))
         # Group by type, each with its natural tile shape (like the Tk browser).
+        # The last column is ``inherit``: whether a tile may fall back to its
+        # series' artwork. Episodes say no -- a result row of episodes is
+        # about the episodes, and inheriting draws one show's thumb over
+        # several of them, which is the same thing that made a season grid
+        # useless. jellyfin-web gets there differently (its search Episodes
+        # row sets no preferThumb at all, so it lands on the episode's own
+        # Primary); asking for a *landscape* image of the episode first is
+        # the same intent in a shape that fits the tile.
         groups = [
-            (_("Movies"), ("Movie",), art.geom, "Primary"),
-            (_("Shows"), ("Series",), art.geom, "Primary"),
-            (_("Episodes"), ("Episode",), art.geom_wide, "Thumb"),
-            (_("Videos"), ("Video", "MusicVideo"), art.geom_wide, "Primary"),
-            (_("Albums"), ("MusicAlbum",), art.geom_square, "Primary"),
-            (_("Artists"), ("MusicArtist",), art.geom_square, "Primary"),
+            (_("Movies"), ("Movie",), art.geom, "Primary", True),
+            (_("Shows"), ("Series",), art.geom, "Primary", True),
+            (_("Episodes"), ("Episode",), art.geom_wide, "Thumb", False),
+            (_("Videos"), ("Video", "MusicVideo"), art.geom_wide, "Primary",
+             True),
+            (_("Albums"), ("MusicAlbum",), art.geom_square, "Primary", True),
+            (_("Artists"), ("MusicArtist",), art.geom_square, "Primary", True),
         ]
         used = set()
-        for label, types_, geom, itype in groups:
+        for label, types_, geom, itype, inherit in groups:
             group = [it for it in items if it.get("Type") in types_]
             if group:
                 used.update(types_)
                 rows.append(tiles.tile_row(
                     label, group, "search-" + label, geom=geom,
-                    image_type=itype))
+                    image_type=itype, inherit=inherit))
         songs = [it for it in items if it.get("Type") == "Audio"]
         if songs:
             server = route.get("server") or self.ctx.server
@@ -99,6 +108,16 @@ class SearchPage(Page):
             # permanently. Search is capped at 60 results across all types and
             # this table has no art cells, so there is nothing to virtualize
             # away — no overlays, just text rows.
+            #
+            # **And art=True must stay off here**, tempting as it is: these
+            # results span every album, which is exactly the mixed-album case
+            # the art column is for, and jellyfin-web draws them as square
+            # cards *with* covers. But an art cell is one mpv overlay per
+            # visible row, the budget is 63 (renderer.lua MAX_OVERLAYS), and
+            # 60 songs plus the ten carousels above them is already past it —
+            # with no virtualization to trim the list, for the reason above.
+            # The failure would not be subtle or local: overlays simply stop
+            # appearing, anywhere on the screen.
             rows.append(tiles.track_list(
                 songs, "search-song",
                 lambda i: self.ctx.actions.play_list(ids, server, i,

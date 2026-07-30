@@ -1466,22 +1466,43 @@ class RowShapes(unittest.TestCase):
                              "PrimaryImageAspectRatio": 1.777}]}
         self.assertIs(page._row_shape(stills)[0], LANDSCAPE_GEOM)
 
+    def _program_rows(self, sections):
+        self.b.source.get_program_sections = lambda srv, limit=12: sections
+        page = open_live_tv(self.b, "programs")
+        nodes, _h = build_scene(self.b, (1280, 720))
+        del page
+        return {n["id"]: n for n in nodes if n.get("id")}
+
     def test_the_programs_rows_are_shaped_individually(self):
-        source = self.b.source
-        source.get_program_sections = lambda srv, limit=12: [
+        """Deliberately not the movies row, which is forced portrait — see
+        below. Two auto rows whose artwork disagrees."""
+        found = self._program_rows([
             {"key": "onnow", "title": "On Now",
              "items": [{"Id": "a", "Type": "Program",
                         "PrimaryImageAspectRatio": 1.777}]},
-            {"key": "movies", "title": "Upcoming Movies",
+            {"key": "episodes", "title": "Upcoming Episodes",
              "items": [{"Id": "b", "Type": "Program",
-                        "PrimaryImageAspectRatio": 0.666}]}]
-        page = open_live_tv(self.b, "programs")
-        nodes, _h = build_scene(self.b, (1280, 720))
-        found = {n["id"]: n for n in nodes if n.get("id")}
-        del page
+                        "PrimaryImageAspectRatio": 0.666}]}])
         # The two carousels come out at different heights, which is the
         # whole observable difference between a poster row and a wide one.
-        self.assertNotEqual(found["lt-onnow"]["h"], found["lt-movies"]["h"])
+        self.assertNotEqual(found["lt-onnow"]["h"], found["lt-episodes"]["h"])
+
+    def test_upcoming_movies_is_portrait_whatever_its_artwork_says(self):
+        """jellyfin-web forces this one row (livetvsuggested.js:87-91) rather
+        than letting the median decide. Films are the one guide category that
+        reliably carries poster art, and a median over a handful of them
+        lands on landscape often enough to make the row change shape between
+        refreshes."""
+        found = self._program_rows([
+            {"key": "episodes", "title": "Upcoming Episodes",
+             "items": [{"Id": "a", "Type": "Program",
+                        "PrimaryImageAspectRatio": 0.666}]},
+            # Landscape artwork: an auto row would go wide here.
+            {"key": "movies", "title": "Upcoming Movies",
+             "items": [{"Id": "b", "Type": "Program",
+                        "PrimaryImageAspectRatio": 1.777}]}])
+        self.assertEqual(found["lt-movies"]["h"], found["lt-episodes"]["h"],
+                         "the movies row followed its artwork")
 
 
 class RecordingIndicator(unittest.TestCase):

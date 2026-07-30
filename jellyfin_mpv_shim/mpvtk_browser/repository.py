@@ -468,13 +468,23 @@ class LibrarySource:
             # media_types rather than include_item_types, matching
             # jellyfin-web: it catches Audio and AudioBook without enumerating
             # types. The music collection_type gives the row square art.
+            #
+            # Square is a DELIBERATE divergence, not a side effect of that
+            # tag. jellyfin-web shapes every resume row 16:9 except Book
+            # (homesections/sections/resume.ts:557) -- audio included -- which
+            # crops a square cover on both sides for no gain. Album art is
+            # square; the row that lists it should be too.
             return resume_row(_("Continue Listening"), collection_type="music",
                               media_types="Audio")()
 
         def next_up_row():
             nextup = api.get_next(
                 limit=20, fields=LIST_FIELDS,
-                enable_image_types="Primary,Thumb,Backdrop") or {}
+                enable_image_types="Primary,Thumb,Backdrop",
+                # Every other home query caps this; Next Up was the one that
+                # did not, so a series with twenty backdrops sent twenty tags
+                # per card for the one the tile draws.
+                image_type_limit=1) or {}
             return (_("Next Up"), nextup.get("Items", []), None)
 
         def live_tv_row():
@@ -799,6 +809,10 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS + ",ChannelInfo",
             enable_user_data=False,
+            # The docstring above has always said this; the call did not
+            # send it, so the server was resolving image tags for a
+            # thousand programmes to fill a screen of text rows.
+            enable_images=False,
             enable_total_record_count=False) or {}
         programs = result.get("Items", [])
         return {"channel": channel, "programs": programs,
@@ -1356,7 +1370,8 @@ class LibrarySource:
         """The next episode to watch for a series (resume or next unwatched)."""
         api = self._conn(server_uuid).api
         result = api.get_next(limit=1, series_id=series_id, fields=LIST_FIELDS,
-                              enable_image_types="Primary,Thumb,Backdrop") or {}
+                              enable_image_types="Primary,Thumb,Backdrop",
+                              image_type_limit=1) or {}
         items = result.get("Items", [])
         return items[0] if items else None
 

@@ -23,6 +23,103 @@ from tests._shell_harness import (
 )
 
 
+class TestSearchEpisodeArtwork(unittest.TestCase):
+    """A search result row of episodes is about the episodes.
+
+    Inheriting draws one show's thumb over several of them, which is what
+    made a season grid useless. jellyfin-web gets to the same place by a
+    different route -- its search Episodes row sets no preferThumb at all,
+    so it lands on the episode's own Primary -- but asking for a landscape
+    image of the episode first fits the tile better.
+    """
+
+    def test_episode_results_do_not_inherit_series_artwork(self):
+        seen = {}
+        src = FakeSource()
+        src.search = lambda server, term, limit=60: [
+            {"Id": "ep1", "Name": "Ep", "Type": "Episode", "SeriesId": "S1"},
+            {"Id": "mv1", "Name": "Film", "Type": "Movie"},
+        ]
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen[str(item.get("Id"))] = (image_type, inherit)
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        build_scene(b)
+        self.assertEqual(seen.get("ep1"), ("Thumb", False))
+        # Everything else keeps inheriting -- a Movie has no series to
+        # borrow from, but the flag must not have been flipped wholesale.
+        self.assertEqual(seen.get("mv1"), ("Primary", True))
+
+
+class TestChapterTileShape(unittest.TestCase):
+    """A chapter thumbnail is a frame of the video, so the tile has to be the
+    video's shape rather than 16:9 by assumption.
+
+    jellyfin-web reads the first video stream and goes square at <= 1.2
+    (chaptercardbuilder.js:30-39). Same rule, same threshold, because the
+    alternative is a 4:3 or portrait source letterboxed inside a landscape
+    card with black down both sides.
+    """
+
+    def _scene_tile(self, width, height):
+        src = FakeSource()
+        item = dict(src.get_item("srv1", "m1"))
+        item["Chapters"] = [
+            {"Name": "One", "StartPositionTicks": 0, "ImageTag": "t0"},
+            {"Name": "Two", "StartPositionTicks": 10 ** 8, "ImageTag": "t1"},
+        ]
+        streams = [{"Type": "Audio", "Index": 1}]
+        if width:
+            streams.insert(0, {"Type": "Video", "Width": width,
+                               "Height": height})
+        item["MediaSources"] = [{"Id": "src1", "MediaStreams": streams}]
+        src.get_item = lambda server, item_id: dict(item)
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1",
+                    "title": "Movie"})
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if str(n.get("id", "")).startswith("detail-scenes-")
+               and n["t"] == "rect"]
+        self.assertTrue(hit, "no scene tiles")
+        return hit[0]["w"], hit[0]["h"]
+
+    def test_a_widescreen_source_gets_landscape_scenes(self):
+        self.assertEqual(self._scene_tile(1920, 1080),
+                         self._scene_tile(1280, 720))
+
+    def test_a_four_three_source_gets_square_scenes(self):
+        """4:3 is 1.333, comfortably over the threshold, so it stays
+        landscape -- the square case is 1.2 and below."""
+        self.assertEqual(self._scene_tile(640, 480),
+                         self._scene_tile(1920, 1080))
+
+    def test_a_portrait_source_gets_square_scenes(self):
+        wide = self._scene_tile(1920, 1080)
+        tall = self._scene_tile(1080, 1920)
+        self.assertNotEqual(tall, wide,
+                            "a portrait video drew landscape scene tiles")
+
+    def test_a_square_source_gets_square_scenes(self):
+        self.assertNotEqual(self._scene_tile(1000, 1000),
+                            self._scene_tile(1920, 1080))
+
+    def test_no_video_stream_falls_back_to_landscape(self):
+        """Audio-only or a DTO without MediaStreams: the old behaviour, not
+        a crash and not an accidental square."""
+        self.assertEqual(self._scene_tile(None, None),
+                         self._scene_tile(1920, 1080))
+
+
 class TestEpisodeImagesPreference(unittest.TestCase):
     """``useEpisodeImagesInNextUpAndResume`` reaches the tiles.
 
