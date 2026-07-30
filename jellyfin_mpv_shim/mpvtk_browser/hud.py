@@ -644,16 +644,18 @@ def build_hud(b, size):
 
     transport = Row(controls + right, gap=sz(6), align="center")
 
-    bar = Column(
-        [
-            # the Slider has a fixed default width, so stretch can't
-            # touch it directly: an unsized Row wrapper stretches to the
-            # column width and flex=1 spreads the slider inside it
-            Row([seek], align="center"),
-            transport,
-        ],
-        gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
-        align="stretch")
+    # A photo has a duration -- mpv's --image-display-duration, i.e. when the
+    # next one arrives -- but scrubbing inside it means nothing, and a
+    # progress bar crawling across a picture reads as a video about to end.
+    # Prev/next and pause stay: those are how you move through an album and
+    # how you stop it moving on its own.
+    bar_rows = ([] if st.get("is_photo") else [
+        # the Slider has a fixed default width, so stretch can't
+        # touch it directly: an unsized Row wrapper stretches to the
+        # column width and flex=1 spreads the slider inside it
+        Row([seek], align="center")]) + [transport]
+    bar = Column(bar_rows, gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
+                 align="stretch")
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.

@@ -96,7 +96,7 @@ from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
-                         PLAYABLE_TYPES, SERIES_TYPES)
+                         PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
 from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
                      TileGeom)
 from .dialogs import DialogsMixin
@@ -1187,6 +1187,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == PHOTO_TYPE:
+            # Straight to the picture, like Audio and unlike everything in
+            # PLAYABLE_TYPES -- a detail page for a photo would be a
+            # heading, a date and no reason to be there.
+            #
+            # The rest of the album rides along as the queue, starting at
+            # this one, so next/prev walk the folder and unpausing plays it
+            # through at mpv's --image-display-duration. That is the whole
+            # slideshow, and it costs one already-loaded list.
+            self._play_photo(item, server)
         elif item.get("CollectionType") == LIVE_TV_COLLECTION:
             # The Live TV view is a destination, not a folder: its children
             # are channels, and browsing them as a grid loses the guide, the
@@ -1387,6 +1397,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def _play_list(self, ids, server, start_index=0, audio=False, items=None):
         self._actions.play_list(ids, server, start_index, audio, items)
+
+    def _play_photo(self, item, server):
+        """Open a photo, with the rest of its album queued behind it.
+
+        The album is whatever the grid this was clicked in is showing, which
+        is already loaded -- no fetch, and it matches what the user can see.
+        Falls back to the one photo when the route has no list (a search
+        result, say), which still opens the picture.
+        """
+        items = [i for i in (self.route.get("_items") or [])
+                 if i.get("Type") == PHOTO_TYPE and i.get("Id")]
+        ids = [i["Id"] for i in items]
+        try:
+            start = ids.index(item.get("Id"))
+        except ValueError:
+            ids, items, start = [item.get("Id")], [item], 0
+        self._play_list(ids, server, start, items=items)
 
     # ------------------------------------------------- browse <-> playback
 

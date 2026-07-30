@@ -1596,6 +1596,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A start that got this far succeeded; nothing is left to retry.
         self._failed_playback = None
         self._video = video
+        if getattr(video, "is_photo", False):
+            # A photo is a video that happens to be still: mpv holds it for
+            # --image-display-duration (5s) and then advances, which is a
+            # slideshow nobody asked for when they opened one picture. Paused
+            # it is a viewer; unpause and the album plays through at 5s a
+            # frame, which is the slideshow they *would* ask for.
+            #
+            # Here rather than as a load option so it applies to each item as
+            # the queue advances -- a photo after a video has to stop, and a
+            # video after a photo must not inherit the pause.
+            try:
+                self._player.pause = True
+            except _mpv_errors:
+                log.debug("could not pause on a photo", exc_info=True)
         # Music has no picture — going fullscreen for it just blanks the
         # screen (and, with the in-window browser, hides the library the
         # now-playing bar belongs to).

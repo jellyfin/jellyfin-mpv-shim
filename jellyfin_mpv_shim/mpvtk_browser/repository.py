@@ -107,13 +107,25 @@ LIVE_TV_COLLECTION = "livetv"
 # server and plays like any other item. Servers before 10.7 label them that
 # way; newer ones hand back a Movie/Episode/Video, which was already covered.
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo", "Recording"}
+
+#: Photos play, but they are deliberately NOT in PLAYABLE_TYPES: that set
+#: also drives the tile context menu, and Download / Add to Playlist /
+#: Mark Watched are all either meaningless or broken for a still image.
+#: A photo click is routed on its own in ``app._open_item``.
+PHOTO_TYPE = "Photo"
 # Item types that drill into a series view.
 SERIES_TYPES = {"Series"}
 # Live TV entries, which play immediately rather than opening a detail view.
 # A Program plays its ChannelId, not its own id.
 LIVE_TYPES = {"Program", "TvChannel"}
 # Item types that drill into another grid (by ParentId).
-FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
+# "PhotoAlbum" is a folder that Jellyfin gives its own type: a Home Videos
+# directory holding both clips and images comes back as PhotoAlbum with
+# IsFolder true. Without it here those folders dead-ended at _open_item's
+# else branch -- the single reason a mixed home-video library had holes
+# in it.
+FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView",
+                "PhotoAlbum"}
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
 # only these are surfaced (and downloaded). Audio is included so music
 # playlists play, queue, and download (the now-playing bar drives them).

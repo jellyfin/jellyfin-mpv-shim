@@ -58,6 +58,7 @@ EPISODE = {
     "SeriesName": "The Show", "ParentIndexNumber": 1, "IndexNumber": 2,
 }
 MOVIE = {"Name": "The Movie", "Type": "Movie", "MediaType": "Video"}
+PHOTO = {"Name": "A Photo", "Type": "Photo", "MediaType": "Photo"}
 SONG = {"Name": "A Song", "Type": "Audio", "MediaType": "Audio",
         "Artists": ["A Band"], "Album": "An Album"}
 
@@ -196,6 +197,24 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
         is how "it works on my machine" starts."""
         state = self._snapshot_with_client(object(), {})
         self.assertIn("server_uuid", state)
+
+
+class TestPhotoFlag(unittest.TestCase):
+    """The HUD hides its scrubber for a still.
+
+    mpv reports a duration for a photo -- --image-display-duration, i.e.
+    when the next one arrives -- which is real but not seekable, and a
+    progress bar crawling across a picture reads as a video about to end.
+    """
+
+    def test_a_photo_is_flagged(self):
+        self.assertTrue(snapshot(PHOTO)["is_photo"])
+
+    def test_a_video_is_not(self):
+        self.assertFalse(snapshot(MOVIE)["is_photo"])
+
+    def test_the_key_is_always_present(self):
+        self.assertIn("is_photo", snapshot(SONG))
 
 
 class TestSkipButtonIsIndependentOfSeekToSkip(unittest.TestCase):

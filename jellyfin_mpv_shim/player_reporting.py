@@ -147,6 +147,13 @@ class ReportingMixin:
                 "stopped": False,
                 "is_audio": (item.get("MediaType") == "Audio"
                              or item.get("Type") == "Audio"),
+                # A still image. The HUD hides its scrubber and time
+                # readout for one: mpv reports a 5s "duration" from
+                # --image-display-duration, which is real -- that is when
+                # the next photo arrives -- but scrubbing within it means
+                # nothing, and a progress bar crawling across a photo reads
+                # as a video about to end.
+                "is_photo": item.get("Type") == "Photo",
                 "skip_label": (
                     (_("Skip Credits") if skip.type == "Outro"
                      else _("Skip Intro"))

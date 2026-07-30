@@ -97,10 +97,34 @@ def placeholder_glyph(item):
 
     Was ``TilesMixin._glyph``.
     """
-    if item.get("Type") in ("Audio", "MusicAlbum", "MusicArtist"):
-        return "♪"  # ♪
+    glyph = _TYPE_GLYPHS.get(item.get("Type"))
+    if glyph:
+        return glyph
     name = (item.get("Name") or "").strip()
     return name[0].upper() if name else "?"
+
+
+#: Types whose placeholder says *what it is* rather than what it is called.
+#:
+#: A first initial is a decent label when the name distinguishes things --
+#: films, shows, people. It is useless where the name does not: a Home Videos
+#: library is folders and albums named "2019", "2020", "Holiday", and a wall
+#: of digits says nothing about which tiles you can open and which will start
+#: playing. jellyfin-web draws an icon for exactly these
+#: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
+#:
+#: Glyphs rather than the Material icons used elsewhere in the chrome because
+#: this is baked into the tile bitmap by the strip compositor, which draws
+#: text, not icon fonts.
+_TYPE_GLYPHS = {
+    "Audio": "♪",
+    "MusicAlbum": "♪",
+    "MusicArtist": "♪",
+    "Folder": "▸",
+    "CollectionFolder": "▸",
+    "PhotoAlbum": "▣",
+    "Photo": "▣",
+}
 
 
 def heading_for(item):

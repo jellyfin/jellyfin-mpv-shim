@@ -29,6 +29,17 @@ def set_video_factory(factory):
     _video_factory = factory
 
 
+#: Image containers mpv's ffmpeg commonly cannot decode, so the server is
+#: asked to convert them instead of handing over the original bytes. HEIC is
+#: the one that matters -- it is what every recent iPhone writes.
+_SERVER_CONVERTED_IMAGES = {"heic", "heif", "avif", "cr2", "nef", "arw",
+                            "dng", "orf", "raf", "rw2"}
+
+#: Cap for a server-converted photo. Large enough for any display we draw on,
+#: small enough that the conversion is not the reason the slideshow stalls.
+_PHOTO_MAX_WIDTH = 3840
+
+
 def build_video(item_id, parent, aid=None, sid=None, srcid=None,
                 explicit_tracks=False):
     if _video_factory is not None:
@@ -84,6 +95,12 @@ class Video(object):
         self.item = self.client.jellyfin.get_item(item_id)
 
         self.is_tv = self.item.get("Type") == "Episode"
+        #: A still image rather than a moving one. mpv plays it happily --
+        #: it holds an image for --image-display-duration (5s by default)
+        #: and moves on -- but everything *around* playback has to know:
+        #: it starts paused, it reports nothing, and the seek controls are
+        #: meaningless. See get_playback_url for why it skips PlaybackInfo.
+        self.is_photo = self.item.get("Type") == "Photo"
 
         self.subtitle_seq = {}
         self.subtitle_uid = {}
@@ -515,6 +532,27 @@ class Video(object):
         Returns the URL to use for the transcoded file.
         """
         self.terminate_transcode()
+
+        if self.is_photo:
+            # Photos do not go through PlaybackInfo at all. That endpoint
+            # answers about MediaSources, and a Photo has none -- so there is
+            # no source to negotiate, no play-session id, and nothing to
+            # transcode. jellyfin-web fetches the file itself, which is what
+            # this is (confirmed against a live server).
+            #
+            # HEIC goes the other way, through the image endpoint, because
+            # that is where the server will convert it: mpv's ffmpeg often
+            # cannot decode HEIC, and finding out at decode time gives a
+            # black window rather than a fallback. Branching on the container
+            # up front is the cheap version of that test.
+            container = (self.item.get("Container") or "").lower()
+            path = (self.item.get("Path") or "").lower()
+            if container in _SERVER_CONVERTED_IMAGES or any(
+                    path.endswith("." + ext)
+                    for ext in _SERVER_CONVERTED_IMAGES):
+                return self.client.jellyfin.artwork(
+                    self.item_id, "Primary", _PHOTO_MAX_WIDTH)
+            return self.client.jellyfin.download_url(self.item_id)
 
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr
