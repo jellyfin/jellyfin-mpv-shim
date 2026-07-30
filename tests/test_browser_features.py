@@ -213,6 +213,160 @@ class ProgramPosterSpecTest(unittest.TestCase):
                          ("p1", "Primary", "own"))
 
 
+class ThumbChainTest(unittest.TestCase):
+    """A "Thumb" request means "this is a landscape tile" -- jellyfin-web's
+    preferThumb: true. Every landscape-shaped candidate must be tried before
+    the item's own poster, or a 2:3 image lands in a 16:9 tile.
+
+    The old chain went own Thumb -> own Primary and stopped, which is web's
+    step 6 taken as step 2. Recorded TV showed it worst: an Episode usually
+    carries only a Primary while its Series carries Thumb and Backdrop.
+    """
+
+    def spec(self, item, **kw):
+        return LibrarySource.__new__(LibrarySource).image_spec(
+            item, "Thumb", **kw)
+
+    # -- the ladder, in order (url.ts:39-82) ------------------------------
+
+    def test_1_own_thumb_wins(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Thumb": "own"},
+                "SeriesId": "S1", "SeriesThumbImageTag": "st"}
+        self.assertEqual(self.spec(item), ("e1", "Thumb", "own"))
+
+    def test_2_series_thumb_beats_the_episode_still(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "SeriesId": "S1", "SeriesThumbImageTag": "st"}
+        self.assertEqual(self.spec(item), ("S1", "Thumb", "st"))
+
+    def test_3_parent_thumb_beats_the_episode_still(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "ParentThumbItemId": "SE1", "ParentThumbImageTag": "pt"}
+        self.assertEqual(self.spec(item), ("SE1", "Thumb", "pt"))
+
+    def test_4_own_backdrop_beats_the_episode_still(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "BackdropImageTags": ["b1", "b2"]}
+        self.assertEqual(self.spec(item), ("e1", "Backdrop", "b1"))
+
+    def test_5_parent_backdrop_beats_the_episode_still(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "ParentBackdropItemId": "S1",
+                "ParentBackdropImageTags": ["pb"]}
+        self.assertEqual(self.spec(item), ("S1", "Backdrop", "pb"))
+
+    def test_6_own_primary_is_the_fallback_not_the_first_answer(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"}}
+        self.assertEqual(self.spec(item), ("e1", "Primary", "own"))
+
+    # -- the gates --------------------------------------------------------
+
+    def test_parent_backdrop_is_episodes_only_like_web(self):
+        """url.ts:67 gates this one on Type === 'Episode'. A Movie with a
+        parent backdrop must not take it."""
+        item = {"Id": "m1", "Type": "Movie", "ImageTags": {"Primary": "own"},
+                "ParentBackdropItemId": "C1",
+                "ParentBackdropImageTags": ["pb"]}
+        self.assertEqual(self.spec(item), ("m1", "Primary", "own"))
+
+    def test_a_photos_parent_thumb_is_not_borrowed(self):
+        """url.ts:59 -- a photo's parent is its album, whose thumb is some
+        other photo entirely."""
+        item = {"Id": "ph1", "Type": "Photo", "MediaType": "Photo",
+                "ImageTags": {"Primary": "own"},
+                "ParentThumbItemId": "A1", "ParentThumbImageTag": "pt"}
+        self.assertEqual(self.spec(item), ("ph1", "Primary", "own"))
+
+    # -- inherit=False (the episode-images setting turned ON) -------------
+
+    def test_inherit_off_skips_series_and_season_thumbs(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "SeriesId": "S1", "SeriesThumbImageTag": "st",
+                "ParentThumbItemId": "SE1", "ParentThumbImageTag": "pt"}
+        self.assertEqual(self.spec(item, inherit=False),
+                         ("e1", "Primary", "own"))
+
+    def test_inherit_off_keeps_the_items_own_backdrop(self):
+        """Only *inherited* art is disabled -- the episode's own backdrop is
+        still a better landscape image than its poster (url.ts:63 is not
+        gated on inheritThumb)."""
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "BackdropImageTags": ["b1"]}
+        self.assertEqual(self.spec(item, inherit=False),
+                         ("e1", "Backdrop", "b1"))
+
+    def test_inherit_off_skips_the_parent_backdrop(self):
+        item = {"Id": "e1", "Type": "Episode", "ImageTags": {"Primary": "own"},
+                "ParentBackdropItemId": "S1",
+                "ParentBackdropImageTags": ["pb"]}
+        self.assertEqual(self.spec(item, inherit=False),
+                         ("e1", "Primary", "own"))
+
+    # -- what must not have moved ----------------------------------------
+
+    def test_the_channel_logo_is_still_the_last_resort(self):
+        """Ours, not web's -- see the Live TV notes. It must stay below every
+        real candidate or a programme with artwork shows a logo instead."""
+        item = {"Id": "p1", "Type": "Program", "ChannelId": "c1",
+                "ChannelPrimaryImageTag": "cp"}
+        self.assertEqual(self.spec(item), ("c1", "Primary", "cp"))
+
+    def test_a_backdrop_outranks_the_channel_logo(self):
+        item = {"Id": "p1", "Type": "Program", "BackdropImageTags": ["b1"],
+                "ChannelId": "c1", "ChannelPrimaryImageTag": "cp"}
+        self.assertEqual(self.spec(item), ("p1", "Backdrop", "b1"))
+
+    def test_a_movie_with_only_a_poster_still_gets_its_poster(self):
+        item = {"Id": "m1", "Type": "Movie", "ImageTags": {"Primary": "p"}}
+        self.assertEqual(self.spec(item), ("m1", "Primary", "p"))
+
+    def test_nothing_at_all_is_still_none(self):
+        self.assertIsNone(self.spec({"Id": "x1", "Type": "Episode"}))
+
+
+class PrimaryChainUnchangedTest(unittest.TestCase):
+    """The Primary chain is deliberately NOT web's. Two differences, both
+    load-bearing, both easy to "fix" by accident later."""
+
+    def spec(self, item):
+        return LibrarySource.__new__(LibrarySource).image_spec(item, "Primary")
+
+    def test_a_poster_request_never_returns_a_backdrop(self):
+        """web's Primary tail reaches BackdropImageTags (url.ts:116); ours
+        must not. A 16:9 backdrop cropped into a 2:3 tile is the same defect
+        the Thumb chain was fixed for, in the other direction."""
+        item = {"Id": "m1", "Type": "Movie", "BackdropImageTags": ["b1"]}
+        self.assertIsNone(self.spec(item))
+
+    def test_a_poster_request_still_takes_the_items_own_thumb(self):
+        item = {"Id": "p1", "Type": "Program", "ImageTags": {"Thumb": "t"}}
+        self.assertEqual(self.spec(item), ("p1", "Thumb", "t"))
+
+
+class BackdropIndexTest(unittest.TestCase):
+    def test_a_backdrop_spec_builds_an_indexed_url(self):
+        """image_spec's 3-tuple has nowhere to say "index 0", so image_url
+        supplies it -- the cached bitmap is keyed on the tag, and only the
+        indexed URL is guaranteed to serve the image that tag names."""
+        seen = {}
+
+        class FakeApi:
+            def image_url(self, item_id, image_type, index=None, tag=None,
+                          max_width=None, fill_width=None, fill_height=None,
+                          quality=90):
+                seen.update(item_id=item_id, image_type=image_type,
+                            index=index, tag=tag)
+                return "url"
+
+        src = LibrarySource.__new__(LibrarySource)
+        src._conns = {"srv": type("C", (), {"api": FakeApi()})()}
+        src.image_url("srv", "e1", "Backdrop", "b1", 240, 135, fill=True)
+        self.assertEqual(seen["index"], 0)
+        seen.clear()
+        src.image_url("srv", "e1", "Primary", "p1", 150, 225, fill=True)
+        self.assertIsNone(seen["index"])
+
+
 class ChapterImageUrlTest(unittest.TestCase):
     def test_no_tag_no_url(self):
         src = LibrarySource.__new__(LibrarySource)

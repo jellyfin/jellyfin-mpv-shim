@@ -59,8 +59,9 @@ class TestTileShapes(unittest.TestCase):
     def test_only_episodes_swap_to_the_series_poster(self):
         """The Series entries the same row carries keep their own poster."""
         seen = []
-        self.b.source.image_spec = lambda i, t="Primary", w=280: seen.append(
-            (i.get("Id"), t))
+        self.b.source.image_spec = (
+            lambda i, t="Primary", w=280, inherit=True:
+            seen.append((i.get("Id"), t, inherit)))
         self.b.tiles._tile({"Id": "e1", "Type": "Episode"}, self.b.geom,
                            "Primary", True)
         self.b.tiles._tile({"Id": "s1", "Type": "Series"}, self.b.geom,
@@ -68,8 +69,12 @@ class TestTileShapes(unittest.TestCase):
         # ...and elsewhere an episode still shows its own still.
         self.b.tiles._tile({"Id": "e2", "Type": "Episode"}, self.b.geom_wide,
                            "Thumb")
-        self.assertEqual(seen, [("e1", "ParentPrimary"), ("s1", "Primary"),
-                                ("e2", "Thumb")])
+        # inherit rides along unchanged: parent_item is a different mechanism
+        # (it overrides the requested *type*), and a row that has not opted
+        # out still inherits.
+        self.assertEqual(seen, [("e1", "ParentPrimary", True),
+                                ("s1", "Primary", True),
+                                ("e2", "Thumb", True)])
 
     def test_live_tv_falls_back_to_a_landscape_row(self):
         """Live TV rows are shaped by their artwork (see

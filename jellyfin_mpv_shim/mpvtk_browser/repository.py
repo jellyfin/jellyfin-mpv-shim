@@ -1317,14 +1317,37 @@ class LibrarySource:
 
     # -- images ------------------------------------------------------------
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def image_spec(self, item, image_type="Primary", width=280, inherit=True):
         """Resolve which (item_id, type, tag) actually carries the image.
 
         Falls back from an item's own image to its series/parent image so
         episodes and seasons still show art. Returns ``None`` when there is no
         usable image (caller shows a placeholder).
+
+        ``image_type`` is a *request*, not a promise: ``"Thumb"`` means "this
+        is a landscape tile, find me something landscape-shaped", and is
+        jellyfin-web's ``preferThumb: true`` (``cardbuilder/utils/url.ts``).
+        ``"Primary"`` means a poster or square one. The type actually returned
+        is whatever the chain found.
+
+        ``inherit`` is web's ``inheritThumb``: with it off, a Thumb request
+        stops borrowing from the series and the season and resolves against
+        the item alone. Default on, matching web's default (its
+        ``useEpisodeImagesInNextUpAndResume`` setting defaults to *false*,
+        which reads as ``inheritThumb: true``).
+
+        **The Thumb chain used to reach the item's own Primary second**, so a
+        recorded episode -- which typically carries only a Primary while its
+        series carries Thumb and Backdrop -- put a 2:3 poster in a 16:9 tile.
+        Four landscape-shaped candidates come first now, which is web's order.
+
+        **The Primary chain is deliberately not web's.** Ours ends with the
+        channel logo (see below), which web has no equivalent for, and unlike
+        web it does not fall back to a Backdrop -- that would put 16:9 art in
+        a 2:3 tile, the same defect in the other direction.
         """
         tags = item.get("ImageTags") or {}
+        backdrops = item.get("BackdropImageTags") or []
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
 
@@ -1348,7 +1371,36 @@ class LibrarySource:
                 return owner, "Primary", item.get("SeriesPrimaryImageTag")
 
         if image_type == "Thumb":
-            # Fall back to a primary image, then the series thumb/primary.
+            # jellyfin-web's preferThumb ladder, url.ts:55-82. Everything
+            # landscape-shaped is tried before the item's own poster: a
+            # recorded Episode usually has only a Primary of its own while
+            # the Series carries the Thumb and the Backdrop, which is why
+            # recorded TV showed this worst.
+            if inherit and item.get("SeriesId") \
+                    and item.get("SeriesThumbImageTag"):
+                return item["SeriesId"], "Thumb", item["SeriesThumbImageTag"]
+
+            if (inherit and item.get("ParentThumbItemId")
+                    and item.get("ParentThumbImageTag")
+                    # web excludes photos here (url.ts:59): a photo's parent
+                    # is its album, whose thumb is some other photo.
+                    and item.get("MediaType") != "Photo"):
+                return (item["ParentThumbItemId"], "Thumb",
+                        item["ParentThumbImageTag"])
+
+            if backdrops:
+                return item["Id"], "Backdrop", backdrops[0]
+
+            # Episodes only, exactly as web has it (url.ts:67-70). The reason
+            # is not obvious -- a season's backdrop is a fine landscape image
+            # for anything -- but the gate is cheap and being bug-compatible
+            # here is worth more than being clever.
+            parent_backdrops = item.get("ParentBackdropImageTags") or []
+            if (inherit and item.get("Type") == "Episode"
+                    and item.get("ParentBackdropItemId") and parent_backdrops):
+                return (item["ParentBackdropItemId"], "Backdrop",
+                        parent_backdrops[0])
+
             if "Primary" in tags:
                 return item["Id"], "Primary", tags["Primary"]
 
@@ -1385,8 +1437,12 @@ class LibrarySource:
             # before it borrows the channel's.
             return item["Id"], "Thumb", tags["Thumb"]
 
-        if item.get("ParentThumbItemId") and item.get("ParentThumbImageTag"):
-            # Live TV programs inherit the channel's thumb this way.
+        if (inherit and item.get("ParentThumbItemId")
+                and item.get("ParentThumbImageTag")):
+            # Live TV programs inherit the channel's thumb this way. Gated on
+            # inherit to match web (url.ts:126), though only a Thumb request
+            # ever passes inherit=False today -- and that one tried this
+            # above.
             return (item["ParentThumbItemId"], "Thumb",
                     item["ParentThumbImageTag"])
 
@@ -1422,6 +1478,14 @@ class LibrarySource:
         if conn is None:
             return None
         api = conn.api
+        if index is None and image_type == "Backdrop":
+            # Backdrops are a numbered set, and image_spec resolves to the
+            # first one (BackdropImageTags[0]) without room in its 3-tuple to
+            # say so. The server does serve /Images/Backdrop unindexed, but
+            # only the indexed form is guaranteed to match the tag we cached
+            # the bitmap under -- backdrop_url has always passed index=0 for
+            # the same reason.
+            index = 0
         if fill and height:
             # Crop to the exact tile aspect so wide library/banner art still
             # reads as a uniform poster instead of a letterboxed thumbnail.
@@ -2035,7 +2099,10 @@ class OfflineLibrarySource:
                     return path
         return None
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def image_spec(self, item, image_type="Primary", width=280, inherit=True):
+        # inherit is accepted and ignored: it selects between an item's own
+        # artwork and its series', and a downloaded item has exactly one file
+        # per type on disk (_art_path already falls back season -> series).
         if self._art_path(item.get("Id"), image_type):
             return item["Id"], image_type, "offline"
         return None

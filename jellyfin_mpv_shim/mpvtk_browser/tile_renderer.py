@@ -333,9 +333,16 @@ class TileRenderer:
             attempts,
             time.time() + self.IMG_RETRY_BACKOFF * (2 ** (attempts - 1)))
         self._requested.discard(key)
-    def poster_for(self, item, geom, image_type="Primary"):
+    def poster_for(self, item, geom, image_type="Primary", inherit=True):
         """Return (PIL image or None, cache tag). Requests the poster once
-        if absent; the strip recomposites when it arrives (tag changes)."""
+        if absent; the strip recomposites when it arrives (tag changes).
+
+        ``inherit`` is passed straight to ``image_spec`` — see there. It is
+        not part of the cache key because it does not need to be: the key is
+        built from the spec the chain *resolved to*, so two rows asking about
+        the same item with different inherit settings land on different keys
+        whenever they resolve to different images, and share one when they
+        do not."""
         # Art is fetched at physical size: the renderer crops rather than
         # resamples, so a 1x poster under a 2x UI would render as a corner
         # fragment. Jellyfin resizes server-side, so this costs nothing but
@@ -349,7 +356,7 @@ class TileRenderer:
                 return None, ""
             key = make_key(spec[0], spec[1], spec[2], w, h)
             return self._request_image(key, url, (w, h)), key
-        spec = self.art.source.image_spec(item, image_type, w)
+        spec = self.art.source.image_spec(item, image_type, w, inherit=inherit)
         if not spec or self.art.server is None:
             return None, ""
         item_id, itype, itag = spec
@@ -460,7 +467,8 @@ class TileRenderer:
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
-    def _tile(self, item, geom, image_type="Primary", parent_item=False):
+    def _tile(self, item, geom, image_type="Primary", parent_item=False,
+              inherit=True):
         """One tile. ``parent_item`` draws an Episode as its *series* —
         the show's name and the show's poster instead of the episode's name
         over the episode still — which is what a Latest-TV row is a list of.
@@ -492,7 +500,8 @@ class TileRenderer:
             # LibrarySource.image_spec. Poster art, so it fits the poster
             # tile the row is already drawing.
             image_type = "ParentPrimary"
-        poster, tag = self.poster_for(item, geom, image_type)
+        poster, tag = self.poster_for(item, geom, image_type,
+                                      inherit=inherit)
         title, subtitle = components.tile_lines(item, parent_item)
         return Tile(
             key=item.get("Id", ""),
@@ -509,7 +518,8 @@ class TileRenderer:
             record=record,
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
-                  bleed=False, on_click=None, parent_item=False):
+                  bleed=False, on_click=None, parent_item=False,
+                  inherit=True):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
@@ -550,7 +560,8 @@ class TileRenderer:
                 self.hscroll_row(
                     self.image_map(items, row_id, geom, image_type,
                                     on_click=on_click,
-                                    parent_item=parent_item),
+                                    parent_item=parent_item,
+                                    inherit=inherit),
                     row_id, geom.strip_h + 2 * RING_PAD,
                     len(items), geom, bleed),
             ],
@@ -572,7 +583,7 @@ class TileRenderer:
                 + sum(measure(h)[1] for h in hs))
     def grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
-                 on_click=None):
+                 on_click=None, inherit=True):
         """Tile rows for a vertical grid.
 
         With ``scroll_id`` the rows are **virtualized**: only those within a
@@ -601,6 +612,7 @@ class TileRenderer:
                                             "%s-%d" % (prefix, start),
                                             geom, image_type,
                                             on_click=on_click,
+                                            inherit=inherit,
                                             # Grid rows share one bounded blank
                                             # shape, so composite them off the
                                             # loop thread (see StripStore.strip).
@@ -613,9 +625,10 @@ class TileRenderer:
         return rows
 
     def image_map(self, items, prefix, geom=None, image_type="Primary",
-                   on_click=None, async_=False, parent_item=False):
+                   on_click=None, async_=False, parent_item=False,
+                   inherit=True):
         geom = geom or self.art.geom
-        tiles = [self._tile(it, geom, image_type, parent_item)
+        tiles = [self._tile(it, geom, image_type, parent_item, inherit)
                  for it in items]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []

@@ -133,7 +133,8 @@ class FakeSource:
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         return ["g0", "g5", "g9"]
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def image_spec(self, item, image_type="Primary", width=280,
+                   inherit=True):
         return None  # no artwork in tests -> placeholder tiles, no network
 
     def image_url(self, *a, **k):

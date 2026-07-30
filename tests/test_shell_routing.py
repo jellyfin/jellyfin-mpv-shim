@@ -847,6 +847,58 @@ class TestRenderErrorBoundary(unittest.TestCase):
         app._render()          # must not raise
         self.assertFalse(app._dirty)
 
+class TestSeasonGridUsesEpisodeStills(unittest.TestCase):
+    """A season listing is a list of episodes, so every cell must be that
+    episode's own artwork.
+
+    The Thumb chain inherits from the series (its thumb, then the season's,
+    then their backdrops) before falling back to the episode's own image.
+    That is right for a Continue Watching card -- which is a pointer back to
+    the show -- and wrong here: it draws the same series artwork in every
+    cell and the grid stops distinguishing anything.
+
+    jellyfin-web is no help as a reference: it renders a season's episodes
+    as a *list view* with a leading image (itemDetails/index.js:1423-1435),
+    never as a card grid, so this behaviour is ours to pin.
+    """
+
+    def _specs_for(self, route):
+        """Every (item, image_type, inherit) the page asked artwork for."""
+        seen = []
+        src = FakeSource()
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen.append((item.get("Id"), image_type, inherit))
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate(route)
+        b.route["_data"] = {
+            "episodes": [{"Id": "ep1", "Type": "Episode", "Name": "One",
+                          "SeriesId": "sh1"},
+                         {"Id": "ep2", "Type": "Episode", "Name": "Two",
+                          "SeriesId": "sh1"}],
+            "seasons": [{"Id": "sea1", "Name": "Season 1"}]}
+        build_scene(b)
+        return seen
+
+    def test_the_season_grid_does_not_inherit_series_artwork(self):
+        specs = self._specs_for({"kind": "season", "server": "srv1",
+                                 "item_id": "sea1", "series_id": "sh1",
+                                 "title": "Season 1"})
+        eps = [s for s in specs if s[0] in ("ep1", "ep2")]
+        self.assertTrue(eps, "the season grid asked for no episode artwork")
+        for item_id, image_type, inherit in eps:
+            self.assertEqual(image_type, "Thumb",
+                             "%s is not a landscape tile" % item_id)
+            self.assertFalse(inherit,
+                             "%s inherited the series artwork" % item_id)
+
+
 class TestPageNavigationHandlersActuallyRun(unittest.TestCase):
     """Click the navigation buttons the converted pages build.
 
