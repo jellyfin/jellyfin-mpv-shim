@@ -211,7 +211,13 @@ class GridPage(Page):
                 id="grid-l-" + ch, w=26, h=26, align="center",
                 direction="row", radius=4,
                 bg=theme.ACCENT if cur_letter == ch else None,
-                hover=None if cur_letter == ch else {"fill": theme.BUTTON_BG},
+                # Lighten rather than suppress: the selected letter used to
+                # take hover=None so the fill would survive the pointer, but
+                # that also made it the one letter in the row that does not
+                # answer the cursor — and it is still clickable (clicking it
+                # clears the filter). Same rule as controls.tab_btn.
+                hover={"fill": theme.ACCENT_HOVER if cur_letter == ch
+                       else theme.BUTTON_BG},
                 on_click=lambda c=ch: self._set_filter(
                     "letter", None if cur_letter == c else c))
             for ch in _LETTERS], gap=2, align="center")

@@ -20,11 +20,11 @@ user leaves the tab they belong to.
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Button,
     Column,
     Row,
 )
 from .. import theme
+from ..components import controls
 
 from .base import SettingsBase
 from .downloads import DownloadsTabMixin
@@ -77,18 +77,15 @@ class SettingsMixin(
                   "downloads": _("Downloads"), "logs": _("Logs")}
         # Same treatment as the top bar's buttons (accent border + hover
         # glow) on themes that ask for it; the selected tab keeps its accent
-        # fill either way.
+        # fill either way — including under the pointer, which is controls
+        # .tab_btn's whole job.
         tab_style = theme.chrome_button_style()
 
         def tab_button(t):
-            style = dict(tab_style)
-            style["bg"] = (theme.ACCENT if tab == t
-                           else style.get("bg", theme.BUTTON_BG))
-            return Button(
-                labels[t], id="stab-" + t,
-                fg=theme.ACCENT_FG if tab == t else theme.TEXT_FG,
-                on_click=lambda t=t: self._set_settings_tab(route, t),
-                **style)
+            return controls.tab_btn(
+                labels[t], "stab-" + t, tab == t,
+                lambda t=t: self._set_settings_tab(route, t),
+                style=tab_style)
 
         tabs = Row([tab_button(t) for t in self.SETTINGS_TABS], gap=8)
         body = {

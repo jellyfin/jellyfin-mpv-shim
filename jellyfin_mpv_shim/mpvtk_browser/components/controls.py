@@ -11,7 +11,7 @@ render resources and callbacks, never ``nav``, ``source`` or ``route``.
 
 from typing import Any, List
 
-from ...mpvtk.widgets import Icon, Row, Text
+from ...mpvtk.widgets import Button, Icon, Row, Text
 from .. import theme
 
 
@@ -42,3 +42,36 @@ def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16):
                hover={"fill": theme.ACCENT_HOVER if accent
                       else theme.BUTTON_ACTIVE},
                radius=6, align="center", on_click=cb)
+
+
+def tab_btn(label, node_id, active, cb, style=None):
+    """One tab in a tab bar — music library, Live TV, Settings.
+
+    **Which tab you are on outranks which tab the pointer is over.** The
+    plain Button widget defaults to ``hover={"fill": CONTROL_HOVER}``, and a
+    hover fill paints over the background rather than blending with it — so
+    an accent-filled active tab lost its accent the moment the cursor landed
+    on it, which reads as the selection having moved away. Hovering the
+    active tab lightens the accent instead (``action_btn`` already does this
+    for its toggles; a tab bar is the same question asked of a set).
+
+    Every tab bar goes through here rather than each spelling the two
+    conditionals out, because that is how the bug survived in three places
+    at once: the fix is not the colour, it is that one function decides.
+
+    ``style`` merges a theme's chrome styling (``theme.chrome_button_style``
+    — accent border, rounder corners, hover glow) underneath. **Its ``bg``
+    and ``hover`` are overridden, never merged into**: those two keys are the
+    whole point of this function, and the accented-button themes set both.
+    A ``glow`` in the theme's hover is kept, since that is decoration on top
+    of a fill rather than a competing statement about which tab is current.
+    """
+    style = dict(style or {})
+    hover = {k: v for k, v in (style.pop("hover", None) or {}).items()
+             if k != "fill"}
+    hover["fill"] = theme.ACCENT_HOVER if active else theme.BUTTON_ACTIVE
+    style.pop("bg", None)
+    return Button(label, id=node_id,
+                  bg=theme.ACCENT if active else theme.BUTTON_BG,
+                  fg=theme.ACCENT_FG if active else theme.TEXT_FG,
+                  hover=hover, on_click=cb, **style)

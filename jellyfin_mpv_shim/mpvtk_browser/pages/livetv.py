@@ -196,11 +196,8 @@ class LiveTvPage(Page):
                       align="stretch")
 
     def _tab_bar(self, current):
-        tabs = [Button(label, id="lttab-" + key,
-                       bg=theme.ACCENT if key == current else theme.BUTTON_BG,
-                       fg=(theme.ACCENT_FG if key == current
-                           else theme.TEXT_FG),
-                       on_click=lambda k=key: self._set_tab(k))
+        tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
+                                 lambda k=key: self._set_tab(k))
                 for key, label in self.TABS]
         return Row(tabs, gap=8, pad=12, align="center")
 

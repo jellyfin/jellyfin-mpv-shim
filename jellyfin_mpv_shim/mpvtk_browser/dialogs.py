@@ -455,6 +455,11 @@ class DialogsMixin:
                             id="sp-join-%d" % i,
                             bg=theme.ACCENT if here else None,
                             fg=theme.ACCENT_FG if here else theme.TEXT_FG,
+                            # Same rule as a tab: being the joined group
+                            # outranks being under the pointer, and the
+                            # default hover fill would paint the accent out.
+                            hover={"fill": theme.ACCENT_HOVER if here
+                                   else theme.BUTTON_ACTIVE},
                             on_click=(self._close_dialog if here else
                                       (lambda gid=gid, srv=g.get("server_uuid"):
                                        self._sync_join(srv or server, gid)))),
