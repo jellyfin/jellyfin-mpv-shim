@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-07-30 02:32+0000\n"
+"PO-Revision-Date: 2026-07-30 16:43+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -56,14 +56,16 @@ msgstr "جێگیرکردنی ئێستا..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"جێلیفین بکەرەوە، بڕۆ بۆ پێڕستی بەکارهێنەرەکەت -> پەیوەندی خێرا ، و ئەم کۆدە "
+"بنووسە:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "چاوەڕێی ڕەزامەندی..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "پاککردنەوەی هەموو هەژمارە هەبووەکان."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -75,13 +77,12 @@ msgstr "زیادکردنی ڕاژەکار سەرکەوتوو نەبوو."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "هەژمارەکە پێشتر هەیە. لە ئێستادا زانیارییەکان نوێ دەکرێنەوە."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr ""
+"سەرکەوتووانە ڕاژەکار زیادکرا.زانیارییەکانی سێرڤەر بە سەرکەوتوویی نوێ کرانەوە."
 
 #: jellyfin_mpv_shim/clients.py
 #, fuzzy
@@ -106,18 +107,12 @@ msgid "Add another server?"
 msgstr "راژەکارێکی دیکە زیادکە؟"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانێت پەیوەندی بە ڕاژەکارەوە بکات."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "پەیوەندیی خێرا لەم ڕاژەکارەدا چالاک نەکراوە."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
@@ -610,7 +605,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr ""
+msgstr "پەیوەندیی خێرا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
