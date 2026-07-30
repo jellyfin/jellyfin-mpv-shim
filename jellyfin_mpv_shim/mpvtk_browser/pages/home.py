@@ -12,13 +12,32 @@ Reaches the shell for nothing. The first page to manage that.
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
-from .. import components, home_sections, theme
+from .. import components, home_sections, theme, user_prefs
 from ..components import chrome
 from .base import Page
 
 
 class HomePage(Page):
     kind = "home"
+
+    #: Sections the episode-images preference applies to, matching the set
+    #: jellyfin-web passes ``inheritThumb: !useEpisodeImages`` to
+    #: (``homesections/sections/nextUp.ts:119``, ``resume.ts:111``, which
+    #: dispatches all three resume kinds).
+    #:
+    #: **LATEST is deliberately absent, and that is not an oversight.** A
+    #: Latest-Episodes row sets ``preferThumb`` with no ``inheritThumb`` at
+    #: all (``utils/sections.ts:135-144``), so it *always* prefers the series
+    #: artwork and the setting does not reach it. We get there by a different
+    #: route -- ``_latest_tv`` turns those rows into ParentPrimary tiles
+    #: captioned with the show's name -- and folding LATEST in here would
+    #: make turning the setting on scatter episode stills through a row that
+    #: is a list of shows.
+    EPISODE_IMAGE_ROWS = frozenset({
+        home_sections.RESUME,
+        home_sections.RESUME_AUDIO,
+        home_sections.NEXT_UP,
+    })
 
     # -- load --------------------------------------------------------------
 
@@ -51,6 +70,12 @@ class HomePage(Page):
             layout, excludes = (get_prefs(server) if get_prefs
                                 else (list(home_sections.DEFAULT_LAYOUT),
                                       frozenset()))
+            # getattr for the same reason as get_home_prefs above: the
+            # offline source has no display preferences and must fall back
+            # to the defaults rather than raise from inside the fan-out.
+            get_user = getattr(source, "get_user_prefs", None)
+            inherit = user_prefs.inherit_artwork(
+                get_user(server) if get_user else None)
             libs = source.get_libraries(server)
 
             def rows(stage):
@@ -65,10 +90,12 @@ class HomePage(Page):
             # screen the user just left.
             if run.epoch == epoch:
                 route["_data"] = {"libraries": libs, "layout": layout,
+                                  "inherit": inherit,
                                   "rows": self._order_rows(primary)}
                 invalidate()
             latest = rows("latest")
             return {"libraries": libs, "layout": layout,
+                    "inherit": inherit,
                     "rows": self._order_rows(primary + latest)}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
@@ -101,6 +128,10 @@ class HomePage(Page):
         if data is None:
             return chrome.busy()
         layout = data.get("layout") or list(home_sections.DEFAULT_LAYOUT)
+        # Whether a resume/next-up tile may borrow the series' artwork; every
+        # other row always may. Defaults to True when the row data predates
+        # the key (an offline fallback, or a partial first paint).
+        inherit = data.get("inherit", True)
         # The Libraries row is a configurable section now, not a fixed header,
         # so it is placed by slot alongside the fetched rows. Its slot may be
         # absent entirely (the user set every slot to something else), in
@@ -112,7 +143,7 @@ class HomePage(Page):
                             _("Libraries"), data["libraries"],
                             # Libraries read as landscape cards, like the web
                             # client.
-                            art.geom_wide, "Primary", "row-libs", False))
+                            art.geom_wide, "Primary", "row-libs", False, True))
         # Ids are derived from section kind and ordinal, not from position:
         # they key the scroll containers, so an index-based id would hand a
         # reordered section the previous occupant's scroll offset.
@@ -125,10 +156,12 @@ class HomePage(Page):
             geom, itype = self._row_shape(hr)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
                             geom, itype, "row-%s-%d" % (kind, n),
-                            self._latest_tv(hr)))
+                            self._latest_tv(hr),
+                            inherit if kind in self.EPISODE_IMAGE_ROWS
+                            else True))
         entries.sort(key=lambda e: e[0])
         rows = []
-        for _slot, title, items, geom, itype, row_id, pitem in entries:
+        for _slot, title, items, geom, itype, row_id, pitem, inh in entries:
             # "-0": the FIRST Live TV row only. Nothing stops a layout from
             # holding the section twice, and a second button row would
             # duplicate every node id in it — the renderer then targets only
@@ -142,7 +175,7 @@ class HomePage(Page):
                 rows.append(self._live_tv_buttons())
             rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
                                            image_type=itype, bleed=True,
-                                           parent_item=pitem))
+                                           parent_item=pitem, inherit=inh))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size=20,

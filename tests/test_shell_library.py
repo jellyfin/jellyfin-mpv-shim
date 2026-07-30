@@ -23,6 +23,84 @@ from tests._shell_harness import (
 )
 
 
+class TestEpisodeImagesPreference(unittest.TestCase):
+    """``useEpisodeImagesInNextUpAndResume`` reaches the tiles.
+
+    The preference is web's and defaults to *off*, meaning series artwork
+    wins over the episode still -- the spoiler complaint. It applies to
+    Continue Watching / Listening and Next Up, and to nothing else.
+    """
+
+    def _rows_asking(self, episode_images, kinds):
+        """``{row kind: inherit}`` for a home screen built with the setting
+        at ``episode_images`` and one row of each of ``kinds``."""
+        src = FakeSource()
+        src.get_user_prefs = (
+            lambda server, refresh=False: {"episode_images": episode_images})
+        src.home_rows = [
+            {"title": k, "kind": k, "collection_type": None, "slot": i,
+             "items": [{"Id": "%s1" % k, "Name": "X", "Type": "Episode",
+                        "SeriesId": "S1"}]}
+            for i, k in enumerate(kinds)]
+
+        seen = {}
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        real = b.tiles.image_map
+
+        def spy(items, prefix, geom=None, image_type="Primary", **kw):
+            for it in items:
+                seen[str(it.get("Id"))] = kw.get("inherit", True)
+            return real(items, prefix, geom, image_type, **kw)
+
+        b.tiles.image_map = spy
+        b.navigate({"kind": "home", "server": "srv1"})
+        build_scene(b)
+        self.assertTrue(seen, "no tiles were built at all")
+        return seen
+
+    def test_the_default_inherits_series_artwork(self):
+        seen = self._rows_asking(False, ["resume", "nextup"])
+        self.assertEqual(seen.get("resume1"), True)
+        self.assertEqual(seen.get("nextup1"), True)
+
+    def test_turning_it_on_stops_inheriting(self):
+        seen = self._rows_asking(True, ["resume", "nextup", "resumeaudio"])
+        self.assertEqual(seen.get("resume1"), False)
+        self.assertEqual(seen.get("nextup1"), False)
+        self.assertEqual(seen.get("resumeaudio1"), False)
+
+    def test_latest_rows_never_follow_the_setting(self):
+        """The trap. A Latest-Episodes row sets preferThumb with no
+        inheritThumb at all in web (utils/sections.ts:135-144), so it always
+        prefers series artwork -- and ours goes further, drawing those rows
+        as the *show* (ParentPrimary, captioned with the series name). If
+        LATEST followed the setting, turning it on would scatter episode
+        stills through a row that is a list of shows.
+        """
+        seen = self._rows_asking(True, ["latestmedia"])
+        self.assertEqual(seen.get("latestmedia1"), True,
+                         "a Latest row followed the episode-images setting")
+
+    def test_an_unknown_row_kind_inherits(self):
+        seen = self._rows_asking(True, ["activerecordings"])
+        self.assertEqual(seen.get("activerecordings1"), True)
+
+    def test_a_source_without_the_method_still_loads(self):
+        """The offline source has no display preferences. It must fall back
+        to the default rather than raise inside the home fan-out -- that
+        exception re-triggers the fallback that got us there."""
+        src = FakeSource()
+        self.assertFalse(hasattr(src, "get_user_prefs"))
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        nodes, _h = build_scene(b)
+        self.assertTrue(nodes, "the home screen did not render at all")
+
+
 class TestTileShapes(unittest.TestCase):
     def setUp(self):
         self.b = MpvtkBrowser(app=None, source=FakeSource())

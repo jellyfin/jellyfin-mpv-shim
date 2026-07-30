@@ -24,6 +24,7 @@ from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
 from . import home_sections
 from . import live_tv
+from . import user_prefs
 
 
 def _iso_utc(when):
@@ -199,6 +200,7 @@ class LibrarySource:
         # _home_prefs, cached separately: the home screen reads on startup
         # and the guide may never be opened at all.
         self._live_tv_prefs: dict[str, Any] = {}
+        self._user_prefs: dict[str, Any] = {}
         # uuid -> whether this server offers Live TV to this user. Derived for
         # free from the /Views response get_libraries already fetches; see
         # has_live_tv for why that answer is authoritative.
@@ -321,6 +323,58 @@ class LibrarySource:
                                  client=home_sections.DISPLAY_PREFS_CLIENT)
         excludes = self._home_prefs.get(server_uuid, (None, frozenset()))[1]
         self._home_prefs[server_uuid] = (list(layout), excludes)
+
+    def get_user_prefs(self, server_uuid, refresh=False):
+        """Per-user display preferences, cached. See ``user_prefs``.
+
+        Shares the DisplayPreferences document the home layout and the guide
+        settings live in, cached separately for the same reason they are:
+        each screen wants its own without paying for the others.
+
+        Never raises: an unreachable or ancient server gets jellyfin-web's
+        defaults, which is the behaviour we had before the setting existed.
+        """
+        if not refresh and server_uuid in self._user_prefs:
+            return self._user_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        try:
+            custom = self._display_prefs_dto(api).get("CustomPrefs") or {}
+        except Exception:
+            log.warning("Failed to read display preferences; using defaults",
+                        exc_info=True)
+            custom = {}
+        prefs = user_prefs.resolve_prefs(custom)
+        self._user_prefs[server_uuid] = prefs
+        return prefs
+
+    def save_user_prefs(self, server_uuid, prefs):
+        """Persist the display preferences. Raises on failure.
+
+        Read-modify-write of the whole DTO, for the same reason
+        ``save_home_layout`` and ``save_live_tv_prefs`` do it: there is no
+        partial-update path on this API, so posting only our keys would drop
+        jellyfin-web's home layout, guide settings and landing screens.
+
+        The cache is adopted before the write and rolled back if it fails --
+        the alternative is a cache that disagrees with the server for the
+        rest of the session.
+        """
+        api = self._conn(server_uuid).api
+        previous = self._user_prefs.get(server_uuid)
+        self._user_prefs[server_uuid] = dict(prefs)
+        try:
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom.update(user_prefs.prefs_to_custom(prefs))
+            dto["CustomPrefs"] = custom
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+        except Exception:
+            if previous is None:
+                self._user_prefs.pop(server_uuid, None)
+            else:
+                self._user_prefs[server_uuid] = previous
+            raise
 
     def get_latest_excludes(self, server_uuid):
         """Library ids excluded from the home screen's generated rows.
