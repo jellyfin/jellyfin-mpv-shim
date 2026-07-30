@@ -24,6 +24,87 @@ from tests._shell_harness import (
 )
 
 
+class TestBannerFetchIsQuantised(unittest.TestCase):
+    """Issue #592: resizing the window re-requested the header image.
+
+    The artwork cache keys on exact pixel dimensions, so a banner width that
+    followed the window pixel-for-pixel meant a request and a decode per
+    pixel of drag, all resident until the LRU pushed them out.
+
+    The fix quantises the FETCH, not the layout. Quantising the layout is
+    what the first attempt did, and it overhung the scrollbar when the
+    rounded-up width exceeded the space available.
+    """
+
+    def _r(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer.__new__(TileRenderer)
+
+    def _layout(self, lo, hi):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        return [TileRenderer.banner_box(r, w)[0] for w in range(lo, hi)]
+
+    def _fetches(self, lo, hi):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        return [TileRenderer._banner_fetch_w(r, w) for w in self._layout(lo, hi)]
+
+    def test_the_drawn_banner_never_exceeds_the_space_it_has(self):
+        """The regression the first attempt caused: a rounded-up layout
+        width paints over the scrollbar."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (500, 700, 913, 1024, 1280, 1600):
+            with self.subTest(w=w):
+                got, _h = TileRenderer.banner_box(r, w)
+                self.assertLessEqual(got, w - 2 * chrome.CONTENT_PAD)
+
+    def test_and_leaves_no_gap_beside_full_width_content(self):
+        """Which is why the layout is not quantised at all: rounding down
+        would leave the header short of content that does reach the edge."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (913, 1001, 1077):
+            with self.subTest(w=w):
+                got, _h = TileRenderer.banner_box(r, w)
+                self.assertEqual(got, w - 2 * chrome.CONTENT_PAD)
+
+    def test_a_long_drag_asks_for_only_a_handful_of_images(self):
+        self.assertLessEqual(len(set(self._fetches(400, 1600))), 10,
+                             "a resize still asks for an image per pixel")
+
+    def test_neighbouring_widths_share_a_fetch(self):
+        """The property that matters: moving the edge by one pixel almost
+        never costs a request."""
+        f = self._fetches(400, 1600)
+        changes = sum(1 for a, b in zip(f, f[1:]) if a != b)
+        self.assertLessEqual(changes, 10)
+
+    def test_the_fetch_is_never_smaller_than_the_drawn_banner(self):
+        """compose_banner crops the fetched image into the banner, so larger
+        costs nothing and smaller would have to be upscaled."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for drawn in (300, 512, 513, 1000, 1084):
+            with self.subTest(drawn=drawn):
+                self.assertGreaterEqual(
+                    TileRenderer._banner_fetch_w(r, drawn), drawn)
+
+    def test_a_degenerate_width_does_not_go_negative(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        self.assertEqual(TileRenderer._banner_fetch_w(self._r(), 0), 0)
+        self.assertEqual(TileRenderer._banner_fetch_w(self._r(), -5), 0)
+
+    def test_the_aspect_ratio_survives(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        w, h = TileRenderer.banner_box(r, 1280)
+        self.assertEqual(h, int(w * TileRenderer.BANNER_RATIO))
+
+
 class TestLibraryGridShape(unittest.TestCase):
     """A library grid is shaped by its own artwork, like jellyfin-web's.
 

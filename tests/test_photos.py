@@ -242,6 +242,47 @@ class AuthHeaderTest(unittest.TestCase):
             "auth.server": "https://example.com"}})()
         return Video("v1", parent)
 
+    def _with_subs(self, *paths):
+        video = self._video()
+        video.item = dict(video.item, MediaSources=[{"MediaStreams": [
+            {"Type": "Subtitle", "Path": p} for p in paths]}])
+        return video
+
+    def test_a_foreign_subtitle_host_blocks_the_header_entirely(self):
+        """http-header-fields is GLOBAL -- it applies to every request mpv
+        makes, and an IsExternalUrl subtitle is handed to sub_add unchanged.
+        Setting it would send our token to whoever hosts that subtitle, and
+        mpv has no per-URL header option, so the only safe answer is to fall
+        back to a token in the stream URL."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        video = self._with_subs("https://opensubtitles.example/x.srt")
+        self.assertFalse(
+            PlayerManager._apply_auth_headers(self._pm(), video))
+
+    def test_a_subtitle_on_our_own_server_does_not(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        video = self._with_subs("https://example.com/subs/2.srt")
+        self.assertTrue(PlayerManager._apply_auth_headers(self._pm(), video))
+
+    def test_a_local_subtitle_path_does_not(self):
+        """Most external subtitles are files on the server's disk; only an
+        absolute http(s) Path becomes a URL mpv fetches."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        video = self._with_subs("/media/movie/movie.en.srt")
+        self.assertTrue(PlayerManager._apply_auth_headers(self._pm(), video))
+
+    def test_the_check_is_answerable_before_playbackinfo(self):
+        """It has to be: the header decides whether the stream URL carries a
+        token, so it is applied before the URL is built. media_source is
+        still None at that point."""
+        video = self._with_subs("https://elsewhere.example/x.srt")
+        self.assertIsNone(video.media_source)
+        self.assertEqual(video.foreign_subtitle_hosts(),
+                         {"elsewhere.example"})
+
     def test_the_header_is_the_non_legacy_scheme(self):
         from jellyfin_mpv_shim.player import PlayerManager
 

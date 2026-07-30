@@ -1504,6 +1504,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # claiming success would strip a url that needs one.
             return False
         try:
+            foreign = video.foreign_subtitle_hosts()
+        except Exception:
+            log.debug("could not check for foreign subtitle hosts",
+                      exc_info=True)
+            foreign = {"unknown"}
+        if foreign:
+            # http-header-fields is GLOBAL: mpv would send this token to
+            # whoever hosts that subtitle. There is no per-URL header option,
+            # so the only safe answer is to not set it at all and let the
+            # stream URL carry its own token, which is where it was before.
+            log.info("Not sending the auth header to mpv: this item has a "
+                     "subtitle on %s, and the option is not per-URL.",
+                     ", ".join(sorted(str(h) for h in foreign)))
+            return False
+        try:
             self._player.http_header_fields = ["Authorization: " + header]
         except Exception:
             log.warning("mpv would not take http-header-fields; falling back "

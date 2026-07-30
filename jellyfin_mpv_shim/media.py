@@ -122,6 +122,44 @@ class Video(object):
         self.intros: List[Intro] = []
         self.intro_tried = False
 
+    def foreign_subtitle_hosts(self):
+        """Hosts, other than our server, that mpv would fetch a subtitle from.
+
+        ``--http-header-fields`` is a **global** mpv option: it applies to
+        every HTTP request mpv makes, not just the stream. An external
+        subtitle whose Path is an absolute URI is handed to ``sub_add``
+        unchanged (see map_streams), so setting the header while one of
+        those is in play would send our access token to whoever hosts it.
+
+        Read off the item rather than the media source because this has to
+        be answerable *before* PlaybackInfo -- the header has to be decided
+        before the stream URL is built. IsExternalUrl is set by the server
+        exactly when a subtitle's Path is an absolute http(s) URI
+        (StreamInfo.cs:1264-1274), so the same test on Path is the honest
+        pre-check.
+        """
+        try:
+            base = urllib.parse.urlparse(
+                self.client.config.data.get("auth.server") or "")
+        except Exception:
+            return set()
+        mine = (base.scheme, base.hostname, base.port)
+        foreign = set()
+        for source in self.item.get("MediaSources") or []:
+            for stream in source.get("MediaStreams") or []:
+                if stream.get("Type") != "Subtitle":
+                    continue
+                path = stream.get("Path") or ""
+                if not path.lower().startswith(("http://", "https://")):
+                    continue
+                try:
+                    parts = urllib.parse.urlparse(path)
+                except Exception:
+                    continue
+                if (parts.scheme, parts.hostname, parts.port) != mine:
+                    foreign.add(parts.hostname)
+        return foreign
+
     def map_streams(self):
         self.subtitle_seq = {}
         self.subtitle_uid = {}

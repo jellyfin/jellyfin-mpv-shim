@@ -457,9 +457,55 @@ class TileRenderer:
         if t == "Season":
             return iid in self._downloaded_seasons
         return t == "Playlist" and iid in self._downloaded_playlists
+    #: Banner widths are rounded up to a multiple of this before they reach
+    #: the artwork cache.
+    #:
+    #: The cache keys on exact pixel dimensions, and the banner used to be a
+    #: *continuous* function of the window width -- so dragging a window edge
+    #: across 400px asked the server for up to 400 different backdrops, decoded
+    #: 400 bitmaps and kept them all resident until the LRU pushed them out.
+    #: That is issue #592, and it is why a resize both hammered the access log
+    #: and ballooned memory.
+    #:
+    #: jellyfin-web does the same thing for the same stated reason -- it rounds
+    #: the screen width down to a multiple of 100 "to improve cache hits"
+    #: (cardBuilder.js:126-129). 128 rather than 100 because these are pixels
+    #: in a cache key, not a CSS breakpoint: it makes at most nine distinct
+    #: banner widths between a small window and the 1100 cap.
+    #:
+    #: Rounding UP, not down, so the bitmap is never asked to upscale -- a
+    #: banner drawn slightly wider than requested is cropped by the compositor,
+    #: which is invisible; one drawn narrower is soft.
+    BANNER_STEP = 128
+
     def banner_box(self, width):
+        """The banner's LAID-OUT size: exactly the space it has.
+
+        Deliberately not quantised. The header spans the content width, so
+        rounding this up overhangs the scrollbar and rounding it down leaves
+        a gap beside content that does reach the edge. What gets quantised is
+        the *fetch* -- see ``_banner_fetch_w``.
+        """
         bw = min(width - 2 * chrome.CONTENT_PAD, 1100)
         return bw, int(bw * self.BANNER_RATIO)
+
+    def _banner_fetch_w(self, physical_w):
+        """Physical width to ask the server for, given the drawn width.
+
+        Rounded UP to a step so a resize stops minting a new request per
+        pixel (issue #592) -- the artwork cache keys on exact dimensions, so
+        a continuous width meant a continuous stream of misses. Up rather
+        than down because the fetched image is *cropped* into the banner by
+        compose_banner: larger than needed costs nothing, smaller would have
+        to be upscaled.
+
+        Only the fetch. The composed banner is still built at the exact drawn
+        size, because that one has to match the box it is drawn in.
+        """
+        step = self.BANNER_STEP
+        if physical_w <= 0:
+            return 0
+        return int(-(-physical_w // step) * step)
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
         """A backdrop banner for detail/series headers.
@@ -482,11 +528,16 @@ class TileRenderer:
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
-            url = self.art.source.backdrop_url(self.art.server, item, width=pbox[0],
-                                           height=pbox[1], fill=True)
             # Request at the *source* aspect and crop to the banner below, so
-            # a shallow banner doesn't ask the server for a squashed image.
-            img = self._request_image(key, url, (pbox[0], pbox[0]))
+            # a shallow banner doesn't ask the server for a squashed image --
+            # and at a quantised width, so dragging the window edge does not
+            # ask for a new one every pixel.
+            fetch_w = self._banner_fetch_w(pbox[0])
+            fetch_key = make_key(owner_id, "Backdrop", tag, fetch_w, fetch_w)
+            url = self.art.source.backdrop_url(self.art.server, item,
+                                               width=fetch_w, height=fetch_w,
+                                               fill=True)
+            img = self._request_image(fetch_key, url, (fetch_w, fetch_w))
             if img is not None:
                 b = self.art.strips.bitmap(key, components.compose_banner(
                     img, pbox, title, meta, context), lsize=box)
