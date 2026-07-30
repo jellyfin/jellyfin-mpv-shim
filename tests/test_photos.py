@@ -206,3 +206,193 @@ class PhotoOpensTheAlbumTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AuthHeaderTest(unittest.TestCase):
+    """The token travels in a header, not a query string.
+
+    Only ``Authorization: MediaBrowser Token="…"`` is un-gated on the
+    server; X-Emby-Token and api_key both sit behind
+    EnableLegacyAuthorization, which is off from Jellyfin v12
+    (AuthorizationContext.GetAuthorizationInfoFromDictionary).
+    """
+
+    def _pm(self, applied=True):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = type("P", (), {})()
+        return pm
+
+    def _video(self, token="T0KEN", raises=False):
+        item = {"Type": "Movie", "Name": "M"}
+        parent = _Parent(item)
+
+        class _HTTP:
+            def _get_authenication_header(self):
+                if raises:
+                    raise RuntimeError("nope")
+                if not token:
+                    return 'MediaBrowser Client="c"'
+                return 'MediaBrowser Client="c", Token="%s"' % token
+
+        parent.client.http = _HTTP()
+        parent.client.config = type("C", (), {"data": {
+            "auth.token": token or "",
+            "auth.server": "https://example.com"}})()
+        return Video("v1", parent)
+
+    def test_the_header_is_the_non_legacy_scheme(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm()
+        video = self._video()
+        self.assertTrue(PlayerManager._apply_auth_headers(pm, video))
+        sent = pm._player.http_header_fields
+        self.assertEqual(len(sent), 1)
+        self.assertTrue(sent[0].startswith("Authorization: MediaBrowser "))
+        self.assertIn('Token="T0KEN"', sent[0])
+
+    def test_a_client_with_no_token_is_not_claimed_as_authenticated(self):
+        """Claiming success would strip a token off a URL that needs one."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        self.assertFalse(
+            PlayerManager._apply_auth_headers(self._pm(), self._video(token="")))
+
+    def test_a_broken_header_falls_back_rather_than_raising(self):
+        """mpv has had http-header-fields for over a decade, so this should
+        not happen -- but the cost of being wrong is that nothing plays."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        self.assertFalse(PlayerManager._apply_auth_headers(
+            self._pm(), self._video(raises=True)))
+
+    def test_mpv_refusing_the_option_falls_back(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm()
+
+        class _P:
+            def __setattr__(self, name, value):
+                raise RuntimeError("no such option")
+
+        pm._player = _P()
+        self.assertFalse(PlayerManager._apply_auth_headers(pm, self._video()))
+
+    def test_the_url_drops_the_token_once_the_header_is_set(self):
+        video = self._video()
+        video.media_source = {"SupportsDirectStream": True, "Id": "src1",
+                              "Protocol": "Http", "SupportsDirectPlay": False}
+        video.auth_via_header = True
+        url = video._get_url_from_source()
+        self.assertNotIn("ApiKey", url)
+        self.assertNotIn("api_key", url)
+
+    def test_and_keeps_it_when_the_header_could_not_be_set(self):
+        video = self._video()
+        video.media_source = {"SupportsDirectStream": True, "Id": "src1",
+                              "Protocol": "Http", "SupportsDirectPlay": False}
+        video.auth_via_header = False
+        url = video._get_url_from_source()
+        self.assertIn("ApiKey=", url)
+        self.assertNotIn("api_key=", url)
+
+
+class SubtitleSidecarAuthTest(unittest.TestCase):
+    """The sidecar download is issued by us, so the token is a header --
+    except when the sidecar is somewhere else entirely."""
+
+    def _download(self, stream):
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+        import jellyfin_mpv_shim.sync.manager as mod
+
+        seen = []
+
+        class _Resp:
+            content = b"sub"
+
+            def raise_for_status(self):
+                pass
+
+        def fake_get(url, **kw):
+            seen.append((url, kw.get("headers")))
+            return _Resp()
+
+        class _HTTP:
+            def _get_authenication_header(self):
+                return 'MediaBrowser Client="c", Token="T0KEN"'
+
+        client = type("C", (), {})()
+        client.config = type("Cfg", (), {"data": {
+            "auth.server": "https://example.com",
+            "auth.token": "T0KEN"}})()
+        client.http = _HTTP()
+        client.jellyfin = type("J", (), {
+            "subtitle_url": staticmethod(
+                lambda *a, **kw: "https://example.com/built")})()
+
+        real_get, mod.requests.get = mod.requests.get, fake_get
+        real_mk, mod.os.makedirs = mod.os.makedirs, lambda *a, **kw: None
+        real_open = mod.open if hasattr(mod, "open") else None
+        try:
+            import builtins
+            import io
+            real_builtin_open = builtins.open
+            builtins.open = lambda *a, **kw: io.BytesIO()
+            try:
+                SyncManager._download_subs(
+                    SyncManager.__new__(SyncManager), client, "i1",
+                    {"Id": "s1", "MediaStreams": [stream]}, "/tmp/x")
+            finally:
+                builtins.open = real_builtin_open
+        finally:
+            mod.requests.get = real_get
+            mod.os.makedirs = real_mk
+            del real_open
+        return seen
+
+    OURS = {"Type": "Subtitle", "IsExternal": True, "Index": 2,
+            "Codec": "srt", "DeliveryUrl": "/Videos/1/Subtitles/2/Stream.srt"}
+
+    def test_our_own_server_gets_the_header_and_a_clean_url(self):
+        seen = self._download(self.OURS)
+        self.assertEqual(len(seen), 1)
+        url, headers = seen[0]
+        self.assertNotIn("ApiKey", url)
+        self.assertNotIn("api_key", url)
+        self.assertIn('Token="T0KEN"', headers["Authorization"])
+
+    def test_a_foreign_host_gets_no_credentials_at_all(self):
+        """IsExternalUrl does NOT mean third-party -- it means the stream's
+        Path was already an absolute URI, so the server handed that over
+        instead of proxying it (StreamInfo.cs:1264-1274). It is often the
+        same host. So the test is the origin, not the flag."""
+        stream = dict(self.OURS, IsExternalUrl=True,
+                      DeliveryUrl="https://opensubtitles.example/x.srt")
+        url, headers = self._download(stream)[0]
+        self.assertEqual(url, "https://opensubtitles.example/x.srt")
+        self.assertFalse(headers)
+
+    def test_an_external_url_on_our_own_server_still_gets_the_header(self):
+        """The case that made the old flag-based rule wrong: a plugin or a
+        co-located path on the very server we are logged in to."""
+        stream = dict(self.OURS, IsExternalUrl=True,
+                      DeliveryUrl="https://example.com/plugin/subs/2.srt")
+        url, headers = self._download(stream)[0]
+        self.assertEqual(url, "https://example.com/plugin/subs/2.srt")
+        self.assertIn('Token="T0KEN"', headers["Authorization"])
+
+    def test_a_downgrade_to_http_is_not_the_same_origin(self):
+        """Sending a bearer token over plain http hands it to anyone on the
+        path, however familiar the hostname looks."""
+        stream = dict(self.OURS, IsExternalUrl=True,
+                      DeliveryUrl="http://example.com/subs/2.srt")
+        _url, headers = self._download(stream)[0]
+        self.assertFalse(headers)
+
+    def test_a_different_port_is_not_the_same_origin(self):
+        stream = dict(self.OURS, IsExternalUrl=True,
+                      DeliveryUrl="https://example.com:8920/subs/2.srt")
+        _url, headers = self._download(stream)[0]
+        self.assertFalse(headers)

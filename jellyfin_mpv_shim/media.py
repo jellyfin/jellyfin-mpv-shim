@@ -101,6 +101,12 @@ class Video(object):
         #: it starts paused, it reports nothing, and the seek controls are
         #: meaningless. See get_playback_url for why it skips PlaybackInfo.
         self.is_photo = self.item.get("Type") == "Photo"
+        #: Set by the player before it asks for a URL: True once mpv has been
+        #: handed this server's Authorization header, in which case the URL
+        #: leaves the token out. A token in a URL is a token in logs, in
+        #: ``ps`` output and in every proxy in the path -- and it is a query
+        #: parameter whose accepted spelling has already changed twice.
+        self.auth_via_header = False
 
         self.subtitle_seq = {}
         self.subtitle_uid = {}
@@ -389,8 +395,15 @@ class Video(object):
             query_params = {
                 "static": "true",
                 "MediaSourceId": self.media_source["Id"],
-                "api_key": self.client.config.data["auth.token"],
             }
+            if not self.auth_via_header:
+                # Only when the player could not be given the Authorization
+                # header. ApiKey, not api_key: the server reads both in the
+                # same place, but api_key is gated on
+                # EnableLegacyAuthorization, off by default from Jellyfin v12
+                # (AuthorizationContext.GetAuthorizationInfoFromDictionary).
+                query_params["ApiKey"] = (
+                    self.client.config.data["auth.token"])
 
             if "LiveStreamId" in self.media_source:
                 query_params["LiveStreamId"] = self.media_source["LiveStreamId"]

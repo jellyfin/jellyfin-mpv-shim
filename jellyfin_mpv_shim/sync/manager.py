@@ -9,10 +9,10 @@ import json
 import logging
 import math
 import os
+from urllib.parse import urlparse
 import shutil
 import threading
 import time
-import urllib.parse
 
 import requests
 
@@ -39,6 +39,21 @@ class _Stopped(Exception):
 
 class _Cancelled(Exception):
     """Raised inside the worker when the active download is being deleted."""
+
+
+def _same_origin(url, server):
+    """Whether ``url`` is on the same host as ``server``.
+
+    Scheme and port count: an http URL is not the same origin as the https
+    server we authenticated to, and sending a bearer token over the first
+    would hand it to anyone on the path.
+    """
+    try:
+        a, b = urlparse(url), urlparse(server)
+    except Exception:
+        return False
+    return bool(a.hostname) and (a.scheme, a.hostname, a.port) == (
+        b.scheme, b.hostname, b.port)
 
 
 def _sub_format(codec):
@@ -1139,8 +1154,13 @@ class SyncManager:
         the downloaded original file and need no sidecar.
         """
         server = client.config.data.get("auth.server", "").rstrip("/")
-        token = client.config.data.get("auth.token", "")
         verify = not settings.ignore_ssl_cert
+        try:
+            headers = {"Authorization": client.http._get_authenication_header()}
+        except Exception:
+            log.debug("could not build an auth header for subtitles",
+                      exc_info=True)
+            headers = {}
         media_source_id = source.get("Id") or item_id
         subs_dir = os.path.join(item_dir, "subs")
         for stream in source.get("MediaStreams") or []:
@@ -1151,16 +1171,33 @@ class SyncManager:
                 continue
             fmt = _sub_format(stream.get("Codec"))
             delivery = stream.get("DeliveryUrl")
+            external = bool(stream.get("IsExternalUrl"))
             if delivery:
-                base = delivery if stream.get("IsExternalUrl") else (server + delivery)
-                sep = "&" if "?" in base else "?"
-                url = "%s%sapi_key=%s" % (base, sep, urllib.parse.quote(token))
+                url = delivery if external else (server + delivery)
             else:
                 url = client.jellyfin.subtitle_url(
-                    item_id, media_source_id, index, fmt)
+                    item_id, media_source_id, index, fmt,
+                    include_apikey=False)
+            # We issue this request ourselves, so the token goes in a header
+            # rather than the query string -- no token in logs, in ps output
+            # or in any proxy in the path.
+            #
+            # But only to our own server. IsExternalUrl does NOT mean "third
+            # party": it means the stream's Path was already an absolute
+            # http(s) URI, so the server handed that over instead of
+            # proxying it (StreamInfo.cs:1264-1274). That host is often the
+            # same one -- a plugin, a co-located file server -- and
+            # sometimes not, and the DTO does not say which. So the test is
+            # the origin, not the flag: same host as the server we are
+            # logged in to, send the header; anything else, send nothing.
+            #
+            # The old code attached api_key to these unconditionally, which
+            # handed our access token to whatever host the path named.
+            req_headers = headers if _same_origin(url, server) else {}
             try:
                 os.makedirs(subs_dir, exist_ok=True)
-                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                    headers=req_headers)
                 resp.raise_for_status()
                 with open(os.path.join(subs_dir, "%s.%s" % (index, fmt)), "wb") as fh:
                     fh.write(resp.content)

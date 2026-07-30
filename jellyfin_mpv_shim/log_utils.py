@@ -4,6 +4,9 @@ import re
 
 bad_patterns = (
     (re.compile("api_key=[a-f0-9]*"), "api_key=REDACTED"),
+    # ApiKey is the non-legacy spelling and is what we send now; the old one
+    # stays above because logs from an older build still reach us.
+    (re.compile("ApiKey=[a-f0-9]*"), "ApiKey=REDACTED"),
     (
         re.compile("'X-MediaBrowser-Token': '[a-f0-9]*'"),
         "'X-MediaBrowser-Token': 'REDACTED'",
@@ -17,7 +20,9 @@ bad_patterns = (
 # module unwraps it -- it becomes the %-formatting mapping rather than a
 # one-tuple -- so the formatter sees the values individually and a bare
 # token matches nothing. Redact those by key instead.
-sensitive_keys = ("x-mediabrowser-token", "accesstoken", "api_key",
+# Matched against str(key).lower(), so "ApiKey" needs its own lowercased
+# entry -- "api_key" does not cover it, and that is the spelling we send now.
+sensitive_keys = ("x-mediabrowser-token", "accesstoken", "api_key", "apikey",
                   "password", "authorization")
 
 sanitize_logs = False

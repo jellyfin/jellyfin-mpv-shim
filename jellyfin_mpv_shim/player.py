@@ -1461,6 +1461,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._load_cancelled = False
         self._start_in_progress = True
         try:
+            # BEFORE the url is built: whether the header took decides
+            # whether the url has to carry the token itself.
+            video.auth_via_header = self._apply_auth_headers(video)
             url = video.get_playback_url()
             if not url:
                 log.error("PlayerManager::play no URL found")
@@ -1469,6 +1472,44 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                              is_initial_play, apply_memory)
         finally:
             self._start_in_progress = False
+
+    def _apply_auth_headers(self, video):
+        """Hand mpv this server's Authorization header. True if it took.
+
+        Everything mpv fetches for this file goes through it -- the stream,
+        any external subtitle sidecar -- so one option covers them all, and
+        none of those URLs then needs a token in its query string.
+
+        ``Authorization: MediaBrowser Token="…"`` is the one header scheme
+        the server does not gate behind ``EnableLegacyAuthorization``
+        (``AuthorizationContext``); ``X-Emby-Token`` and friends are all
+        legacy. The apiclient already builds exactly this line for its own
+        requests, so it is borrowed rather than re-spelled here.
+
+        Returns False rather than raising on any failure, and the caller
+        falls back to putting the token in the url. mpv has had
+        ``http-header-fields`` for over a decade so this should not happen,
+        but the cost of being wrong is that nothing plays at all.
+        """
+        client = getattr(video, "client", None)
+        if client is None:
+            return False
+        try:
+            header = client.http._get_authenication_header()
+        except Exception:
+            log.debug("could not build an auth header", exc_info=True)
+            return False
+        if not header or "Token=" not in header:
+            # No token yet (an unauthenticated probe): nothing to send, and
+            # claiming success would strip a url that needs one.
+            return False
+        try:
+            self._player.http_header_fields = ["Authorization: " + header]
+        except Exception:
+            log.warning("mpv would not take http-header-fields; falling back "
+                        "to a token in the URL", exc_info=True)
+            return False
+        return True
 
     @synchronous("_lock")
     def _play_media(
