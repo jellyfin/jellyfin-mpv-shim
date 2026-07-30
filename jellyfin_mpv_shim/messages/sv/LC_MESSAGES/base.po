@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 04:04-0400\n"
-"PO-Revision-Date: 2026-05-23 07:46+0000\n"
-"Last-Translator: Viktor <viktor.engkvist@rivig.net>\n"
+"PO-Revision-Date: 2026-07-30 11:39+0000\n"
+"Last-Translator: felix-hedenstrom <felix.hedenstrom@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
 "Language: sv\n"
@@ -56,14 +56,16 @@ msgstr "Väljer nuvarande..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Öppna Jellyfin, gå till användarmenyn -> Quick Connect, och ange följande "
+"kod:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Väntar på auktorisering..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Rensar alla existerande konton."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -75,19 +77,15 @@ msgstr "Tilläggande av server misslyckades."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Konto finns redan. Uppdaterar autentiseringsuppgifter."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Servern har lagts till."
+msgstr "Serverns autentiseringsuppgifter har uppdaterats."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Tilläggande av server misslyckades."
+msgstr "Uppdaterandet av serverns autentiseringsuppgifter har misslyckats."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -106,22 +104,16 @@ msgid "Add another server?"
 msgstr "Lägg till en annan server?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Kunde inte lägga till server.\n"
-"Var snäll och kolla din uppkoppling."
+msgstr "Uppkopplingen till servern misslyckades."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect är inte tillgängligt på denna server."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Kunde inte starta Quick Connect."
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -416,15 +408,15 @@ msgstr "Använd miniatyr-förhandsvisning"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Nattläge (Automatisk volumsjustering)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Lyckades inte ladda. Undersök uppkopplingen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Page"
-msgstr ""
+msgstr "Sida"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
