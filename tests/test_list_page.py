@@ -1073,7 +1073,7 @@ class ViewLabelsAndListTest(unittest.TestCase):
         self.assertTrue(page._view("showTitle"))
 
 
-class MixedKindChipsTest(unittest.TestCase):
+class MixedKindIconsTest(unittest.TestCase):
     """A Home Videos grid holds folders, albums, photos and clips side by
     side, and with artwork on all four nothing in the tile says which will
     open and which will start playing."""
@@ -1101,7 +1101,7 @@ class MixedKindChipsTest(unittest.TestCase):
 
     def test_a_mixed_grid_chips_every_tile(self):
         kinds = [t.kind for t in self._tiles(["Folder", "Photo", "Video"])]
-        self.assertEqual(kinds, ["▸", "▣", "▶"])
+        self.assertEqual(kinds, ["folder", "photo", "movie"])
 
     def test_a_grid_of_one_kind_chips_nothing(self):
         """A movies library is all one kind, so a chip on every tile would
@@ -1114,9 +1114,20 @@ class MixedKindChipsTest(unittest.TestCase):
         kinds = [t.kind for t in self._tiles(["Movie", "Series"])]
         self.assertEqual(kinds, ["", ""])
 
+    def test_every_icon_it_asks_for_is_rasterized(self):
+        """A name missing from the generated set draws nothing at all, and
+        only 66 are generated -- so an invented name fails silently."""
+        from jellyfin_mpv_shim.mpvtk_browser.components.labels import (
+            MIXED_KIND_ICONS)
+        from jellyfin_mpv_shim.ui_icon_paths import ICON_PATHS
+
+        for name in set(MIXED_KIND_ICONS.values()):
+            with self.subTest(name):
+                self.assertIn(name, ICON_PATHS)
+
     def test_a_movie_among_folders_gets_no_chip_but_the_folders_do(self):
         kinds = [t.kind for t in self._tiles(["Folder", "Video", "Movie"])]
-        self.assertEqual(kinds, ["▸", "▶", ""])
+        self.assertEqual(kinds, ["folder", "movie", ""])
 
 
 if __name__ == "__main__":

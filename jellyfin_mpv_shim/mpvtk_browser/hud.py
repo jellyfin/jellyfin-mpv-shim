@@ -514,8 +514,14 @@ def build_hud(b, size):
     def sz(v):
         return int(v * scale + 0.5)
 
+    # A still has nothing to seek within: mpv's duration for one is
+    # --image-display-duration, i.e. when the NEXT photo arrives, so ±10s
+    # would either do nothing or skip the picture entirely. Prev/next and
+    # pause stay -- those are how you move through an album and how you
+    # stop it moving on its own.
+    photo = bool(st.get("is_photo"))
     tiers = {
-        "seek_btns": w >= 500,   # ±10s/±30s step buttons
+        "seek_btns": w >= 500 and not photo,   # ±10s/±30s step buttons
         "clock": w >= 500,
         "quality": w >= 560,
         "favorite": w >= 560,

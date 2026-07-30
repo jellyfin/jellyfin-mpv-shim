@@ -108,28 +108,32 @@ def placeholder_glyph(item):
     return name[0].upper() if name else "?"
 
 
-#: Types a mixed grid has to tell apart at a glance. A Home Videos library
-#: holds folders, photo albums, photos and clips side by side, and with
-#: artwork on all four there is nothing in the tile that says which will open
-#: and which will start playing.
+#: Types a mixed grid has to tell apart at a glance, and the Material icon
+#: for each -- the same names jellyfin-web uses in ``getItemTypeIcon``
+#: (``utils/image.ts:130-161``), so a user coming from that client
+#: recognises them.
 #:
-#: Only these four. A movies library is all one kind, so a chip on every tile
-#: would be noise -- which is why the *grid* decides whether to draw them (see
-#: TileRenderer.image_map) rather than each tile deciding for itself.
-MIXED_KIND_GLYPHS = {
-    "Folder": "▸",
-    "CollectionFolder": "▸",
-    "PhotoAlbum": "▣",
-    "Photo": "▣",
-    "Video": "▶",
-    "MusicVideo": "▶",
+#: A Home Videos library holds folders, photo albums, photos and clips side
+#: by side, and with artwork on all four there is nothing in the tile that
+#: says which will open and which will start playing.
+#:
+#: Only these. A movies library is all one kind, so an icon on every tile
+#: would be noise -- which is why the *grid* decides whether to draw them
+#: (see TileRenderer.image_map) rather than each tile deciding for itself.
+MIXED_KIND_ICONS = {
+    "Folder": "folder",
+    "CollectionFolder": "folder",
+    "PhotoAlbum": "photo_album",
+    "Photo": "photo",
+    "Video": "movie",
+    "MusicVideo": "movie",
 }
 
 
-def mixed_kind_glyph(item):
-    """The type chip for a tile in a mixed grid, or "" for types that do not
+def mixed_kind_icon(item):
+    """The type icon for a tile in a mixed grid, or "" for types that do not
     need one."""
-    return MIXED_KIND_GLYPHS.get(item.get("Type"), "")
+    return MIXED_KIND_ICONS.get(item.get("Type"), "")
 
 
 #: Types whose placeholder says *what it is* rather than what it is called.

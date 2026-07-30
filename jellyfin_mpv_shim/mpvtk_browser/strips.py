@@ -140,9 +140,9 @@ class Tile:
     badge: int = 0
     progress: float = 0.0
     downloaded: bool = False
-    #: Type chip drawn bottom-left ("▸" folder, "▣" photo, "▶" video), or ""
-    #: for none. Set only where a grid holds more than one kind -- see
-    #: components.mixed_kind_glyph.
+    #: Material icon name marking what kind of thing this is ("folder",
+    #: "photo", "movie"...), or "" for none. Set only where a grid holds
+    #: more than one kind -- see components.mixed_kind_icon.
     kind: str = ""
     glyph: str = ""
     #: Being written to disk right now. Turns the progress bar (which for
@@ -593,6 +593,14 @@ class StripStore:
                     fill=(255, 255, 255, 255), width=lw)
             dr.line([(cx - _px(5), cy + _px(7)), (cx + _px(5), cy + _px(7))],
                     fill=(255, 255, 255, 255), width=lw)
+        elif t.kind:
+            # Same corner and the same size as the record/download badges,
+            # and the real Material glyph rather than a hand-drawn stand-in
+            # -- for the reason _paint_record gives: these names are drawn
+            # elsewhere in the app as ASS, and two drawings of one symbol
+            # drift. On a chip, because a bare glyph over artwork is
+            # unreadable half the time.
+            self._paint_kind(img, dr, x + g.tile_w - _px(17), _px(17), t.kind)
         elif t.badge:
             bw = _px(26)
             dr.rounded_rectangle(
@@ -601,17 +609,6 @@ class StripStore:
                 radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
             dr.text((x + g.tile_w - _px(5) - bw / 2, _px(15)), str(t.badge),
-                    font=_font(g.badge_size, bold=True), anchor="mm",
-                    fill=(255, 255, 255))
-        if t.kind:
-            # Bottom-left, above the progress bar's 6px and clear of the
-            # top-right corner the record/download/unplayed badges share.
-            chip = _px(20)
-            cx, cy = x + _px(6), g.tile_h - _px(12) - chip
-            dr.rounded_rectangle([cx, cy, cx + chip, cy + chip],
-                                 radius=_px(5),
-                                 fill=theme.rgb(theme.WINDOW_BG, 205))
-            dr.text((cx + chip / 2, cy + chip / 2), t.kind,
                     font=_font(g.badge_size, bold=True), anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:
@@ -658,6 +655,18 @@ class StripStore:
     #: are a circle of radius 8 on a 24 canvas, so this gives a dot about
     #: 18px across at 1x — the size the other corner badges are.
     RECORD_BOX = 27
+
+    @staticmethod
+    def _paint_kind(img, dr, cx, cy, name):
+        """The mixed-content type marker, centred on (cx, cy)."""
+        from ..mpvtk import vector
+
+        r = _px(13)
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
+                   fill=theme.rgb(theme.WINDOW_BG, 210))
+        size = _px(16)
+        glyph = vector.icon_image(name, size, theme.rgb(theme.TEXT_FG))
+        img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     @staticmethod
     def _paint_record(img, cx, cy, state):

@@ -76,6 +76,10 @@ ICON_NAMES = [
     # for them, so a user coming from that client recognises the buttons.
     "label",
     "apartment",
+    # mixed-content type markers (a Home Videos grid of folders, albums,
+    # photos and clips). getItemTypeIcon's names, same reason.
+    "photo",
+    "photo_album",
     # navigation / arrows
     "arrow_back",
     "chevron_left",

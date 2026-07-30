@@ -608,7 +608,7 @@ class TileRenderer:
             badge=int(ud.get("UnplayedItemCount") or 0),
             progress=progress,
             downloaded=self.is_downloaded(item),
-            kind=(components.mixed_kind_glyph(item) if kind_chips else ""),
+            kind=(components.mixed_kind_icon(item) if kind_chips else ""),
             recording=recording,
             record=record,
         )
@@ -748,7 +748,7 @@ class TileRenderer:
         # artwork says nothing about which will open and which will play.
         # Decided per row rather than per tile: a movies library is all one
         # kind, and a chip on every tile there would be noise.
-        kinds = {components.mixed_kind_glyph(it) for it in items or ()}
+        kinds = {components.mixed_kind_icon(it) for it in items or ()}
         kind_chips = len(kinds - {""}) > 1
         tiles = [self._tile(it, geom, image_type, parent_item, inherit,
                             labels, kind_chips)

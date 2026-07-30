@@ -214,6 +214,16 @@ class ReportingMixin:
             video = self._video
         if video is None:
             return None
+        if getattr(video, "is_photo", False) or video.playback_info is None:
+            # A photo never went through PlaybackInfo -- it has no media
+            # source, no play session and nothing to report progress
+            # against. Reporting one anyway would also put every picture
+            # you looked at into Continue Watching.
+            #
+            # The playback_info check is the belt: anything else that
+            # reaches here without one is equally unreportable, and this
+            # used to be an AttributeError three frames deep in stop().
+            return None
         player = self._player
 
         # Cache player properties to reduce IPC calls (especially with external

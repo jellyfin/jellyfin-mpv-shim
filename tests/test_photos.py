@@ -646,3 +646,85 @@ class ThumbnailAuthTest(unittest.TestCase):
         self.assertIs(seen["include_apikey"], False)
         src.image_url("srv", "i1", "Primary", "t", 150)
         self.assertIs(seen["include_apikey"], False)
+
+
+class PhotoReportingTest(unittest.TestCase):
+    """A photo never went through PlaybackInfo, so it has no media source,
+    no play session and nothing to report progress against.
+
+    This crashed: stop() and play_next() both build timeline options, and
+    both dereferenced video.playback_info["PlaySessionId"] three frames
+    deep. Every caller already handles a None return -- the guard was
+    simply missing.
+    """
+
+    def _pm(self, video):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._video = video
+        return pm
+
+    def _video(self, is_photo, playback_info):
+        v = type("V", (), {})()
+        v.is_photo = is_photo
+        v.playback_info = playback_info
+        v.item_id = "i1"
+        return v
+
+    def test_a_photo_reports_no_timeline(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm(self._video(True, None))
+        self.assertIsNone(
+            PlayerManager.get_timeline_options(pm, video=pm._video))
+
+    def test_anything_without_playback_info_reports_none_rather_than_raising(
+            self):
+        """The belt: whatever else reaches here without one is equally
+        unreportable, and it used to be an AttributeError deep in stop()."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm(self._video(False, None))
+        self.assertIsNone(
+            PlayerManager.get_timeline_options(pm, video=pm._video))
+
+    def test_no_video_is_still_none(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm(None)
+        self.assertIsNone(PlayerManager.get_timeline_options(pm))
+
+
+class PhotoHudTest(unittest.TestCase):
+    def _scene(self, is_photo):
+        from tests._shell_harness import HudController
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import build_scene as bs, ids as _ids
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
+                       "is_photo": is_photo, "title": "X",
+                       "position": 1.0, "duration": 5.0, "paused": True}
+        return _ids(bs(b, (1280, 720))[0])
+
+    def test_a_photo_hides_the_ten_and_thirty_second_buttons(self):
+        """mpv's duration for a still is --image-display-duration, i.e.
+        when the NEXT photo arrives, so a 10s step either does nothing or
+        skips the picture entirely."""
+        video, photo = self._scene(False), self._scene(True)
+        self.assertIn("hud-seek-back", video)
+        self.assertIn("hud-seek-fwd", video)
+        self.assertNotIn("hud-seek-back", photo)
+        self.assertNotIn("hud-seek-fwd", photo)
+
+    def test_but_keeps_the_ones_an_album_needs(self):
+        """Pause is how you stop it moving on its own; prev/next is how you
+        move through the album."""
+        photo = self._scene(True)
+        self.assertIn("hud-pp", photo)
+        self.assertIn("hud-next", photo)
+        self.assertIn("hud-prev", photo)
