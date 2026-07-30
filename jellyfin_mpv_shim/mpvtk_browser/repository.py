@@ -1117,6 +1117,13 @@ class LibrarySource:
         Batched: a big queue's ids as one ``Ids=`` param overflows the server's
         request-URI limit (HTTP 414). A partial (failed) batch just leaves those
         rows without metadata rather than losing the whole list.
+
+        No fields: the only caller is the queue table, whose columns (index,
+        name, artist, album, runtime) are all unconditional BaseItemDto
+        properties — see LIST_FIELDS. It draws no artwork (``art=False``), so
+        neither ``PrimaryImageAspectRatio`` nor ``ItemCounts`` reaches a pixel,
+        and a field nothing reads is pure server work on a request that is
+        already 100 ids wide.
         """
         ids = [i for i in ids if i]
         if not ids:
@@ -1128,7 +1135,7 @@ class LibrarySource:
         for start in range(0, len(unique), CHUNK):
             chunk = unique[start:start + CHUNK]
             try:
-                result = api.get_items(chunk, fields=MUSIC_FIELDS) or {}
+                result = api.get_items(chunk, fields="") or {}
             except Exception:
                 log.warning("Failed to fetch a metadata batch of %d items",
                             len(chunk), exc_info=True)
@@ -1153,9 +1160,18 @@ class LibrarySource:
         return result.get("Items", [])
 
     def get_instant_mix(self, server_uuid, item_id, limit=200):
+        """A radio-style queue seeded from an album/artist/genre/song.
+
+        Asks for **no** fields, as jellyfin-web does. The caller only wants the
+        ids — it hands them to the player, which fetches the one item it is
+        about to start. The apiclient's default here is the ``music_info()``
+        set, and ``MediaStreams``/``People``/``ItemCounts`` are per-item
+        lookups the server repeats for every one of the 200 results: it turned
+        a single query into hundreds and took ~25s on a spinning-disk server.
+        """
         api = self._conn(server_uuid).api
         try:
-            result = api.get_instant_mix(item_id, limit=limit) or {}
+            result = api.get_instant_mix(item_id, limit=limit, fields="") or {}
         except Exception:
             return []
         return result.get("Items", [])
