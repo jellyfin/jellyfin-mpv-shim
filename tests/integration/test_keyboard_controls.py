@@ -135,13 +135,32 @@ class KeyboardRoutingTest(unittest.TestCase):
             self.assertEqual(_drain(self.pm), [])
 
     def test_media_next_skips_intro_when_in_intro(self):
+        """skip_intro_on_seek is OFF by default, so it has to be turned on
+        here -- without the patch this asserted the default's behaviour and
+        called it the opposite. See the counter-test below."""
         with mock.patch.object(settings, "media_key_seek", True), \
+                mock.patch.object(settings, "skip_intro_on_seek", True), \
                 mock.patch.object(self.pm, "skip_intro") as skip, \
                 mock.patch.object(self.pm, "seek") as seek:
             self.pm.is_in_intro = True
             self.pm._player.press_key("NEXT")
             skip.assert_called_once_with()
             seek.assert_not_called()
+
+    def test_media_next_seeks_through_an_intro_when_the_setting_is_off(self):
+        """The default. Seek-to-skip hijacks a seek the user asked for, so it
+        is opt-in: with it off, NEXT seeks past the intro like any other
+        moment in the file rather than jumping to its end."""
+        with mock.patch.object(settings, "media_key_seek", True), \
+                mock.patch.object(settings, "skip_intro_on_seek", False), \
+                mock.patch.object(self.pm, "skip_intro") as skip, \
+                mock.patch.object(self.pm, "seek") as seek, \
+                mock.patch.object(self.pm, "get_seek_times",
+                                  return_value=(-15.0, 30.0)):
+            self.pm.is_in_intro = True
+            self.pm._player.press_key("NEXT")
+            skip.assert_not_called()
+            seek.assert_called_once_with(30.0)
 
     # -- pause: toggle when menu hidden, confirm when menu shown ------------
 
@@ -257,7 +276,9 @@ class KeyboardRoutingTest(unittest.TestCase):
             menu_action.assert_not_called()
 
     def test_right_and_up_skip_intro_when_in_intro_and_menu_hidden(self):
-        with mock.patch.object(self.pm, "skip_intro") as skip, \
+        """Opt-in -- see the media-key pair above for why the patch is here."""
+        with mock.patch.object(settings, "skip_intro_on_seek", True), \
+                mock.patch.object(self.pm, "skip_intro") as skip, \
                 mock.patch.object(self.pm, "kb_seek") as kb_seek:
             self.pm.menu.is_menu_shown = False
             self.pm.is_in_intro = True
@@ -266,6 +287,23 @@ class KeyboardRoutingTest(unittest.TestCase):
                 self.pm._player.press_key(key)
                 skip.assert_called_once_with()
             kb_seek.assert_not_called()
+
+    def test_right_and_up_seek_through_an_intro_when_the_setting_is_off(self):
+        """The default: an intro does not make the seek keys mean something
+        else. Both keys, because they route through separate handlers
+        (_on_menu_right / _on_menu_up) that each carry their own copy of the
+        condition."""
+        with mock.patch.object(settings, "skip_intro_on_seek", False), \
+                mock.patch.object(self.pm, "skip_intro") as skip, \
+                mock.patch.object(self.pm, "kb_seek") as kb_seek:
+            self.pm.menu.is_menu_shown = False
+            self.pm.is_in_intro = True
+            for key, action in ((settings.kb_menu_right, "right"),
+                                (settings.kb_menu_up, "up")):
+                kb_seek.reset_mock()
+                self.pm._player.press_key(key)
+                kb_seek.assert_called_once_with(action)
+            skip.assert_not_called()
 
     def test_ok_key_always_routes_to_menu_action_ok(self):
         # menu_ok forwards to menu.menu_action("ok") regardless of menu state;

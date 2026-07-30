@@ -9,9 +9,11 @@ tests come at it from the other side.
 
 import sys
 import unittest
+from unittest import mock
 
 sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 
+from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.player import PlayerManager  # noqa: E402
 
 
@@ -194,6 +196,41 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
         is how "it works on my machine" starts."""
         state = self._snapshot_with_client(object(), {})
         self.assertIn("server_uuid", state)
+
+
+class TestSkipButtonIsIndependentOfSeekToSkip(unittest.TestCase):
+    """The Skip Intro *button* and seek-to-skip are two different features
+    that happen to call the same verb.
+
+    ``skip_intro_on_seek`` is off by default: hijacking a seek the user
+    asked for is opt-in. The button is not -- it is gated on
+    ``skip_intro_enable`` (default on) and surfaces through this payload's
+    ``skip_label``. Turning the seek behaviour off must not take the button
+    with it, which is the regression this pins; nothing else asserts the
+    two are separate.
+    """
+
+    def _label(self, seg_type):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = _Video(EPISODE)
+        pm._player = _Player()
+        pm._hud_skip = type("Seg", (), {"type": seg_type})()
+        pm.repeat_mode = "none"
+        PlayerManager.push_playstate(pm)
+        return got[0]["skip_label"]
+
+    def test_the_button_is_offered_with_seek_to_skip_turned_off(self):
+        with mock.patch.object(settings, "skip_intro_on_seek", False):
+            self.assertEqual(self._label("Intro"), "Skip Intro")
+
+    def test_credits_get_their_own_label(self):
+        with mock.patch.object(settings, "skip_intro_on_seek", False):
+            self.assertEqual(self._label("Outro"), "Skip Credits")
+
+    def test_no_live_segment_means_no_button(self):
+        self.assertIsNone(snapshot(EPISODE)["skip_label"])
 
 
 class TestReportingIsWiredIn(unittest.TestCase):
