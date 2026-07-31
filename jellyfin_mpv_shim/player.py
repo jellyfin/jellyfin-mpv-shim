@@ -1826,11 +1826,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         self.update_check.check()
 
+        # Not under the in-window OSC: the warning is mpv OSD text, so it
+        # draws *under* the mpvtk overlay bitmaps, and the key it names goes
+        # to the HUD's gear menu rather than the OSD menu it was written for.
+        # The same information is on the gear menu's quality entry, which
+        # marks the current stream "Transcode".
         if (
             not self._video.parent.is_local
             and self._video.is_transcode
             and not self.warned_about_transcode
             and settings.transcode_warning
+            and getattr(self, "_osc_style_resolved", None) != "mpvtk"
         ):
             self.warned_about_transcode = True
             self._player.show_text(

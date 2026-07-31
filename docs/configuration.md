@@ -61,6 +61,7 @@ You can adjust the basic transcoder settings via the menu.
   - If you enable this, it'll allow remuxing to HEVC but it'll also break force transcoding of Dolby Vision and HDR content if those settings are used. (See [this bug](https://github.com/jellyfin/jellyfin/issues/9313).)
 - `prefer_transcode_to_h265` - Requests the server to transcode media *to* `hevc` as the default. Default: `false`
 - `transcode_warning` - Display a warning the first time media transcodes in a session. Default: `true`
+  - This is an OSD message for the classic player controls only. With the in-window controls (`osc_style: mpvtk`) it is never shown; the gear menu's quality entry marks a transcoding stream instead.
 - `force_video_codec` - Force a specified video codec to be played. Default: `null`
   - This can be used in tandem with `always_transcode` to force the client to transcode into
       the specified format.
