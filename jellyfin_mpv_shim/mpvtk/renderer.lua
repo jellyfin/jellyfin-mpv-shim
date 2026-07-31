@@ -117,6 +117,7 @@ local state = {
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
+    hover_region = nil,     -- id of the hovered node that asked to be told
     pressed = nil,          -- node id armed by mbtn down
     mods = {},              -- {shift, ctrl} of the current mouse press
     rpt = nil,              -- {id, timer} while a hold-repeat is armed
@@ -1545,7 +1546,36 @@ local function notify_hover(id)
     end
 end
 
+-- Both pointer-enter/leave notifications the app can ask for. ONE function
+-- for two unrelated features because this chunk sits on LuaJIT's ceiling of
+-- 200 locals in a main function -- a new top-level local here does not fail
+-- at the call, it fails to load the renderer at all.
+--
+-- `hev` is enter/leave for a node that wants a control drawn over it: the
+-- tile strips' hit regions, and the play chip that then appears on one. The
+-- chip opts in too, or the pointer moving onto it would read as leaving the
+-- tile, the app would take the chip away, and the two would alternate for as
+-- long as the pointer sat there. Unthrottled, unlike the slider below: this
+-- is a control appearing under the pointer, and 150ms of that reads as
+-- broken. One event per tile crossed is the same order as the hover ring
+-- this already re-renders for.
+--
+-- `hoverev` is the slider's throttled value reporting (the HUD's seek bar
+-- floating its trickplay bubble), which is a preview rather than a control.
 local function update_slider_hover(node)
+    local hid = (node and node.hev) and node.id or nil
+    if hid ~= state.hover_region then
+        local prev = state.hover_region
+        state.hover_region = hid
+        -- ENTER BEFORE LEAVE, deliberately. The app decides what to draw
+        -- from the id it is entering, and a leave that arrived first would
+        -- describe a state that is already over: crossing from a tile to the
+        -- control floated on it, or from one tile to the next, would blank
+        -- what had just been asked for. Arriving in this order, a leave for
+        -- something the app has already moved on from is simply ignored.
+        if hid then send({ t = 'hover', id = hid }) end
+        if prev then send({ t = 'hover_end', id = prev }) end
+    end
     local id = nil
     if node and node.t == 'slider' and node.hoverev
         and state.slider_drag ~= node.id then
@@ -1968,6 +1998,7 @@ local function node_at(x, y)
             node.t ~= 'menu' and
             (not modal or node.mod) and
             (node.click or node.ctx or node.dbl or node.tip or
+             node.hev or
              node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then
@@ -3775,6 +3806,12 @@ local function reconcile()
     end
     if state.hover_watch and not state.byid[state.hover_watch] then
         state.hover_watch = nil  -- slider left the scene mid-hover
+    end
+    if state.hover_region and not state.byid[state.hover_region] then
+        -- Scrolled away, navigated away, or the app dropped the node.
+        -- Told rather than forgotten: the app is holding a chip open for it.
+        send({ t = 'hover_end', id = state.hover_region })
+        state.hover_region = nil
     end
     if state.slider_drag and not state.byid[state.slider_drag] then
         state.slider_drag = nil

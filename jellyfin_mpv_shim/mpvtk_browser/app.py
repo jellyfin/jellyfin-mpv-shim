@@ -336,11 +336,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Wake our loop when an async row composite lands (see StripStore.strip).
         # self.invalidate reads self.app at call time, so this survives mpv
         # re-creation without re-wiring in set_app.
-        self.strips.set_notify(self.invalidate)
+        self.strips.set_notify(self.invalidate_art)
         self.thumbs = thumbs      # ThumbnailStore (optional; None -> no art)
         if self.thumbs is not None:
             # Wake our loop when a decoded poster lands, so build() can pump it.
-            self.thumbs.set_notify(self.invalidate)
+            self.thumbs.set_notify(self.invalidate_art)
 
         servers = []
         try:
@@ -365,7 +365,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             art=self, scroll=self._scroll,
             on_open=lambda item: self._open_item(item),
             nav_mode=lambda: self._nav_mode,
-            get_app=lambda: self.app)
+            get_app=lambda: self.app,
+            on_play=lambda item: self._play_tile(item),
+            can_play=lambda item: self._tile_playable(item))
         self.tiles.on_context = lambda *a, **k: self._open_tile_menu(*a, **k)
         # The action counterpart to TileRenderer. `services=self` is a live
         # provider (source/controller/offline/invalidate/set_status), read
@@ -489,6 +491,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_scroll()
         if not self._nav.push(route, reset=reset, force=force):
             return          # refused by the headless lockdown
+        # The tile under the pointer is not on the next screen. The renderer
+        # would only say so on the next pointer MOVE, and a navigation
+        # triggered by a click leaves the pointer exactly where it was.
+        self.tiles.set_hover(None)
         self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
@@ -935,6 +941,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def invalidate(self):
         if self.app is not None:
             self.app.invalidate()
+
+    def invalidate_art(self):
+        """Repaint because a picture arrived.
+
+        Throttled and coalesced by the app loop (MpvtkApp.ART_RENDER_INTERVAL)
+        rather than drawn on the spot: a grid asks for a hundred thumbnails at
+        once and the decode pool answers one at a time, so this is called in
+        hundreds and each call would otherwise lay out the whole screen to
+        change the picture on one tile."""
+        if self.app is not None:
+            self.app.invalidate(soon=True)
 
     def run_async(self, work, on_done, epoch, on_error=None, always=None):
         """Run ``work()`` off the loop thread; apply ``on_done(result)`` only

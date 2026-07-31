@@ -52,6 +52,79 @@ log = logging.getLogger("mpvtk_browser.repository")
 # why doing so was invisible; a stricter server would 400 the whole query.
 LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
 
+# Fields for a library GRID, which is the one place a hundred items arrive at
+# once. Overview is a third of that response body (154KB -> 108KB for a
+# hundred series here) and a tile draws a name, a year and a runtime -- none
+# of them fields. Rows keep LIST_FIELDS: they are twelve to twenty items and
+# a clicked one seeds a page that shows the text while the real DTO loads.
+# jellyfin-web's grid asks for less again (MediaSourceCount, and the aspect
+# ratio only when the view is Primary).
+GRID_FIELDS = "PrimaryImageAspectRatio"
+
+# What a library's grid lists, by collection type -- jellyfin-web's default
+# tab for that view (LibraryTab.Movies -> Movie, and so on).
+#
+# Naming the type is a performance fix as much as a parity one. Without it the
+# query is answered with the library's own folders too, and the server builds
+# UserData for a Folder by walking everything under it: 8.0s for one page of a
+# 1334-film library against a real server here, 0.3s once the folders are out
+# of it. The recursion is what keeps the *contents* the same afterwards --
+# films inside those folders are still listed, just as films.
+#
+# Absent means "list this folder exactly as it is": Home Videos, photos and
+# mixed libraries are browsed BY folder, and flattening them would destroy
+# the only structure they have. Web does the same (its Folders tab passes
+# recursive: false and no type filter). Only a library ROOT carries a
+# collection type -- a folder inside one has none, see MpvtkBrowser.open_item
+# -- so this can never flatten a folder the user opened.
+LIBRARY_ITEM_TYPES = {
+    "movies": "Movie",
+    "tvshows": "Series",
+    "music": "MusicAlbum",
+    "musicvideos": "MusicVideo",
+    "boxsets": "BoxSet",
+}
+
+# Image types every browse query asks for. Primary is the artwork itself,
+# Thumb and Backdrop are what the landscape shapes fall back through
+# (image_spec's preferThumb ladder), and a view asking for one of the other
+# kinds gets it added -- see GRID_IMAGE_TYPES.
+BROWSE_IMAGE_TYPES = "Primary,Thumb,Backdrop"
+
+# Artwork a library view can be *set* to, which the server only sends when the
+# query asks for it. This is the whole of the Banner bug: Banner, Logo and Disc
+# are absent from BROWSE_IMAGE_TYPES, so ImageTags never carried one, so
+# image_spec fell through to the item's thumbnail and drew it letterboxed in a
+# 5.4:1 frame. jellyfin-web asks for exactly the type the view is set to
+# (useFetchItems.ts: `enableImageTypes: [ImageType, Backdrop]`).
+GRID_IMAGE_TYPES = ("Banner", "Logo", "Disc")
+
+# What each of those tries before giving up and taking the poster. A banner
+# and a logo are the same thing at different margins -- the show's name, drawn
+# to be read on a bar -- so they stand in for each other. A disc has no
+# stand-in: nothing else in a library is a round label.
+_WORDMARK_CHAIN = {
+    "Banner": ("Banner", "Logo"),
+    "Logo": ("Logo", "Banner"),
+    "Disc": ("Disc",),
+}
+
+
+def browse_image_types(image_type=None):
+    """``EnableImageTypes`` for a grid drawn with ``image_type``.
+
+    The base three plus everything that view can *resolve* to -- the whole
+    wordmark chain, not just the name asked for, or the Banner fallback to a
+    logo would be looking for a tag the query told the server to leave out.
+    The base set stays because our fallback chains are wider than web's: a
+    view set to Banner still draws the item's Primary where it has neither.
+    """
+    extra = (image_type or "").strip().capitalize()
+    chain = _WORDMARK_CHAIN.get(extra)
+    if not chain:
+        return BROWSE_IMAGE_TYPES
+    return BROWSE_IMAGE_TYPES + "," + ",".join(chain)
+
 # Concurrent home-screen fetches. The rows are independent, so this is bounded
 # only to keep a many-library server from opening a burst of connections at
 # once — well above the usual library count, so in practice the whole home
@@ -921,13 +994,20 @@ class LibrarySource:
         provider with a deeper guide does not look like it has a shallower
         one).
 
-        **No image fields**, which is jellyfin-web's call here too
-        (``EnableImages: false``) and the same one ``get_guide`` makes for
-        the same reason: these rows are text. ``ChannelImage`` in particular
-        costs a channel lookup per programme -- across a thousand of them --
-        for a tag nothing on this screen draws. A row that is clicked still
-        seeds the program page, which re-reads the authoritative DTO anyway
-        and already draws its heading as text while artwork is absent.
+        **No image fields**, which is jellyfin-web's call here too and the
+        same one ``get_guide`` makes for the same reason: these rows are
+        text. ``ChannelImage`` in particular costs a channel lookup per
+        programme -- across a thousand of them -- for a tag nothing on this
+        screen draws. A row that is clicked still seeds the program page,
+        which re-reads the authoritative DTO anyway and already draws its
+        heading as text while artwork is absent.
+
+        Web also sends ``EnableImages: false``, which suppresses the tags
+        themselves (~12% of the body here). We cannot: ``get_programs`` has
+        no such argument, and passing one raised a TypeError that took the
+        whole channel page down. Leaving the tags in is the cheap half of
+        the wrong answer; the fields above are the expensive half, and they
+        are gone.
         """
         api = self._conn(server_uuid).api
         channel = None
@@ -944,10 +1024,6 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS + ",ChannelInfo",
             enable_user_data=False,
-            # The docstring above has always said this; the call did not
-            # send it, so the server was resolving image tags for a
-            # thousand programmes to fill a screen of text rows.
-            enable_images=False,
             enable_total_record_count=False) or {}
         programs = result.get("Items", [])
         return {"channel": channel, "programs": programs,
@@ -1473,23 +1549,43 @@ class LibrarySource:
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
-                          filters=None):
+                          filters=None, image_type=None, collection_type=None):
+        """One page of a library grid.
+
+        ``image_type`` is the artwork the view is set to draw (see
+        :func:`browse_image_types`); without it a library set to Banner gets
+        no banner tags back and falls through to its thumbnails.
+
+        ``collection_type`` says what kind of library this is, which decides
+        whether the query is typed and recursive -- see
+        :data:`LIBRARY_ITEM_TYPES`. A folder inside a library has none and is
+        listed as it stands.
+        """
         api = self._conn(server_uuid).api
+        include = LIBRARY_ITEM_TYPES.get(collection_type or "")
+        # Built conditionally rather than passed as None: a folder listing
+        # must send neither, and "the grid's own query" is a claim other code
+        # relies on literally (get_play_all_ids, and the test that pins it).
+        # Recursive only ever travels WITH the type filter -- on its own it is
+        # how a TV library answers with 43,000 episodes.
+        typed = ({"include_item_types": include, "recursive": True}
+                 if include else {})
         result = api.get_user_items(
             parent_id=parent_id,
+            **typed,
             sort_by=sort_by,
             sort_order=sort_order,
             start_index=start_index,
             limit=limit,
-            fields=LIST_FIELDS,
+            fields=GRID_FIELDS,
             image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
+            enable_image_types=browse_image_types(image_type),
             **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_movie_collections(self, server_uuid, sort_by="SortName",
                               sort_order="Ascending", start_index=0, limit=100,
-                              filters=None):
+                              filters=None, image_type=None):
         """Collections (BoxSets) as a paged grid, for the Movies-library
         Collections toggle. Server-wide and recursive (a BoxSet can gather
         items from several libraries), mirroring jellyfin-web's Collections
@@ -1505,9 +1601,9 @@ class LibrarySource:
             sort_order=sort_order,
             start_index=start_index,
             limit=limit,
-            fields=LIST_FIELDS,
+            fields=GRID_FIELDS,
             image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
+            enable_image_types=browse_image_types(image_type),
             **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
@@ -1521,9 +1617,9 @@ class LibrarySource:
             sort_order=sort_order,
             start_index=start_index,
             limit=limit,
-            fields=LIST_FIELDS,
+            fields=GRID_FIELDS,
             image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop") or {}
+            enable_image_types=browse_image_types()) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     # -- music browse ------------------------------------------------------
@@ -1684,14 +1780,24 @@ class LibrarySource:
         result = api.get_genres(parent_id) or {}
         return [g.get("Name") for g in result.get("Items", []) if g.get("Name")]
 
-    def get_filter_values(self, server_uuid, parent_id=None):
+    def get_filter_values(self, server_uuid, parent_id=None,
+                          collection_type=None):
         """Filter-picker values: {"genres": [...], "years": [...]}.
 
         Years come from Items/Filters; where that is unavailable the year
-        picker is simply empty and only the genre list is offered."""
+        picker is simply empty and only the genre list is offered.
+
+        ``collection_type`` scopes the scan to the type the grid lists, which
+        is what web's filter menu does. Untyped, the endpoint walks every
+        episode of every series to collect the genres of their shows: 3.7s
+        against a real 950-series library here, 0.4s typed.
+        """
         api = self._conn(server_uuid).api
         try:
-            result = api.get_filters(parent_id) or {}
+            result = api.get_filters(
+                parent_id,
+                include_item_types=LIBRARY_ITEM_TYPES.get(
+                    collection_type or "")) or {}
             # Newest first, deduped, ints — the server returns them in
             # its own order, and the offline source compares against
             # ProductionYear directly.
@@ -1756,7 +1862,8 @@ class LibrarySource:
         return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
-                         sort_order="Ascending", filters=None, limit=200):
+                         sort_order="Ascending", filters=None, limit=200,
+                         collection_type=None):
         """Ids Play All should queue, in the grid's own order.
 
         **Deliberately the grid's own query.** This used to ask a different
@@ -1783,7 +1890,7 @@ class LibrarySource:
         """
         items, _total = self.get_library_items(
             server_uuid, parent_id, sort_by=sort_by, sort_order=sort_order,
-            limit=limit, filters=filters)
+            limit=limit, filters=filters, collection_type=collection_type)
         ids = [i["Id"] for i in items
                if i.get("Id") and i.get("MediaType") in QUEUEABLE_MEDIA]
         if ids or not any(i.get("IsFolder") for i in items):
@@ -1898,6 +2005,32 @@ class LibrarySource:
         backdrops = item.get("BackdropImageTags") or []
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
+
+        if image_type in GRID_IMAGE_TYPES:
+            # Banner / Logo / Disc are asked for by name, and about half a TV
+            # library carries no banner (measured: 107 of 200 on one server,
+            # 199 of 200 on another). jellyfin-web drops straight into the
+            # Primary chain for those (url.ts:42-52), which puts a poster in a
+            # 5.4:1 frame; ours goes through the OTHER wordmark first.
+            #
+            # A banner and a logo are the same artwork wearing different
+            # margins -- the show's name, drawn to be read on a bar -- so each
+            # stands in for the other far better than the poster does, and a
+            # mixed library comes out as one row instead of half title cards
+            # and half poster slices. That is the whole divergence from web
+            # here, and it is deliberate.
+            for candidate in _WORDMARK_CHAIN.get(image_type, ()):
+                if candidate in tags:
+                    return item["Id"], candidate, tags[candidate]
+                if candidate == "Logo" and item.get("ParentLogoItemId") \
+                        and item.get("ParentLogoImageTag"):
+                    # web's url.ts:51 -- an episode has no logo of its own
+                    # and its series does.
+                    return (item["ParentLogoItemId"], "Logo",
+                            item["ParentLogoImageTag"])
+            image_type = "Primary"
+            if image_type in tags:
+                return item["Id"], image_type, tags[image_type]
 
         if item.get("Type") == "Playlist":
             # A playlist has its own (square) Primary image — ask the server
@@ -2329,7 +2462,11 @@ class OfflineLibrarySource:
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
-                          filters=None):
+                          filters=None, image_type=None, collection_type=None):
+        # image_type and collection_type are accepted and ignored: one asks
+        # the server for a kind of artwork (a downloaded item has one file per
+        # type on disk) and the other scopes a server-side query. The offline
+        # parent ids below already say what they list.
         snap = self._snap
         if parent_id == "offline:movies":
             items = [i for i in snap.items if i.get("Type") == "Movie"]
@@ -2369,7 +2506,8 @@ class OfflineLibrarySource:
             genres.update(i.get("Genres") or [])
         return sorted(genres)
 
-    def get_filter_values(self, server_uuid, parent_id=None):
+    def get_filter_values(self, server_uuid, parent_id=None,
+                          collection_type=None):
         years = {i.get("ProductionYear") for i in self._snap.items
                  if i.get("ProductionYear")}
         return {"genres": self.get_genres(server_uuid, parent_id),
@@ -2405,7 +2543,8 @@ class OfflineLibrarySource:
         return ids[:limit]
 
     def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
-                         sort_order="Ascending", filters=None, limit=200):
+                         sort_order="Ascending", filters=None, limit=200,
+                         collection_type=None):
         """Downloaded items of a library, in the grid's order.
 
         Reuses the grid loader rather than re-deriving the pools: it already

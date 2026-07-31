@@ -967,6 +967,54 @@ class TestTileContextMenu(unittest.TestCase):
         menu_pick(self.b, "play")
         self.assertTrue(self.ctl.played)
 
+    # -- resume ---------------------------------------------------------
+    #
+    # The tile's play gesture is the one on the home screen's Continue
+    # Watching row, where every item has a position by definition. It used to
+    # start at zero, throwing that position away with nothing on screen to
+    # say so.
+
+    def _pos_item(self, ticks=600000000):
+        return {"Id": "m1", "Name": "A", "Type": "Movie",
+                "UserData": {"PlaybackPositionTicks": ticks}}
+
+    def test_the_play_chip_resumes(self):
+        self.b._play_tile(self._pos_item())
+        self.assertEqual([p[2] for p in self.ctl.played], [600000000])
+
+    def test_the_play_chip_starts_a_fresh_item_at_zero(self):
+        self.b._play_tile({"Id": "m2", "Type": "Movie", "UserData": {}})
+        self.assertEqual([p[2] for p in self.ctl.played], [None])
+
+    def test_a_resumable_item_offers_both_readings(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(self._pos_item())]
+        self.assertIn("play", acts)
+        self.assertIn("restart", acts)
+
+    def test_an_unstarted_item_offers_only_play(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "m2", "Type": "Movie", "UserData": {}})]
+        self.assertNotIn("restart", acts)
+
+    def test_a_container_offers_no_restart(self):
+        """Its Play resolves to a queue; there is no one position to skip."""
+        acts = [e[2] for e in self.b._tile_menu_entries(
+            {"Id": "a1", "Type": "MusicAlbum",
+             "UserData": {"PlaybackPositionTicks": 5}})]
+        self.assertNotIn("restart", acts)
+
+    def test_menu_play_resumes(self):
+        item = self._pos_item()
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "play")
+        self.assertEqual([p[2] for p in self.ctl.played], [600000000])
+
+    def test_menu_play_from_beginning_does_not_resume(self):
+        item = self._pos_item()
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "restart")
+        self.assertEqual([p[2] for p in self.ctl.played], [None])
+
     def test_dismiss_closes_menu(self):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
         self.b._close_menu()

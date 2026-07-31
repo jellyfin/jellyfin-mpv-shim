@@ -570,8 +570,15 @@ def _arrange_image(ctx, el, x, y, w, h, sc, path):
         if el.repeat:
             node["rpt"] = True
         _reg(ctx, node["id"], "click", el.on_click)
+    if el.on_context:
+        node["ctx"] = True
+        _reg(ctx, node["id"], "context", el.on_context)
     if el.hover:
         node["hover"] = el.hover
+    if el.on_hover is not None or el.on_hover_end is not None:
+        node["hev"] = True
+        _reg(ctx, node["id"], "hover", el.on_hover)
+        _reg(ctx, node["id"], "hover_end", el.on_hover_end)
     ctx.nodes.append(node)
     return
 
@@ -610,6 +617,12 @@ def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
         if reg.get("on_context"):
             rnode["ctx"] = True
             _reg(ctx, rid, "context", reg["on_context"])
+        if reg.get("on_hover") or reg.get("on_hover_end"):
+            # Enter/leave notification, for a region that wants a control
+            # drawn over it while the pointer is there.
+            rnode["hev"] = True
+            _reg(ctx, rid, "hover", reg.get("on_hover"))
+            _reg(ctx, rid, "hover_end", reg.get("on_hover_end"))
         if reg.get("autofocus"):
             # As Element.autofocus, for the one node in a strip that can
             # be a page's default (the first search result). A tile is a
@@ -1099,9 +1112,18 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             wrap_w = c.w if c.w is not None else max(1.0, inner_cross)
             nl = len(_wrap_lines(c, wrap_w))
             sizes.append(float(nl * c.size * LINE_H))
+        elif not row:
+            # measure_h, not measure: intrinsic height answers "how tall
+            # would this like to be with no width to wrap against", which
+            # for anything CONTAINING wrapped text is one line short per
+            # wrap. The line above catches a wrapped Text that is a direct
+            # child; a wrapped Text one Column deeper was measured at a
+            # single line, so whatever followed its container was laid out
+            # over the top of it -- the View Settings dialog's Done button
+            # sat on the note above it.
+            sizes.append(clamp_main(c, measure_h(c, inner_cross)))
         else:
-            mw, mh = measure(c)
-            sizes.append(clamp_main(c, float(mw if row else mh)))
+            sizes.append(clamp_main(c, float(measure(c)[0])))
 
     leftover = inner_main - sum(s for s in sizes if s is not None)
     for i, c in enumerate(box.children):

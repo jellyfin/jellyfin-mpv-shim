@@ -41,8 +41,16 @@ DEFAULT_MEM_MB = 128
 THUMB_POOL_HOSTS = 4
 
 
-def make_key(item_id, image_type, tag, width, height=None):
-    raw = "%s:%s:%s:%s:%s" % (item_id, image_type, tag, width, height)
+def make_key(item_id, image_type, tag, width, height=None, fit=""):
+    """Identity of one cached bitmap.
+
+    ``fit`` distinguishes two crops of the same source at the same size --
+    the server can be asked to fill the box or to fit inside it, and the two
+    are different pictures. Empty by default so every existing key (and every
+    file already on disk under one) is unchanged.
+    """
+    raw = "%s:%s:%s:%s:%s%s" % (item_id, image_type, tag, width, height,
+                                (":" + fit) if fit else "")
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
 

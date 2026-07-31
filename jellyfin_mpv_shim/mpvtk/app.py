@@ -244,6 +244,12 @@ class MpvtkApp:
     #: attach) still have them.
     strict_builds = False
 
+    #: The artwork-repaint throttle's state, class-level for the same reason:
+    #: the run loop reads both on its very first pass, so an instance that
+    #: skipped __init__ would raise before it ever drew anything.
+    _dirty_soon = False
+    _last_render = 0.0
+
     def __init__(self, backend="jsonipc", geometry="1280x720",
                  mpv_handle=None, ext=None):
         if mpv_handle is not None:
@@ -296,6 +302,10 @@ class MpvtkApp:
         self.strict_builds = bool(os.environ.get("JMS_STRICT_BUILDS"))
         self._metrics = None
         self._dirty = False
+        # A repaint asked for by artwork arriving, which is worth drawing but
+        # not worth dropping everything for. See invalidate(soon=True).
+        self._dirty_soon = False
+        self._last_render = 0.0
         self._build = None
         self._debug_state = None
         self._debug_evt = threading.Event()
@@ -326,11 +336,31 @@ class MpvtkApp:
             return
         self._queue.put(("evt", evt))
 
-    def invalidate(self):
+    #: Minimum gap between renders driven by ``invalidate(soon=True)``.
+    #: A library grid asks for a hundred thumbnails at once and six decode
+    #: workers deliver them one at a time, each one waking the loop -- 43
+    #: full builds for one screenful, every one of them laying out the same
+    #: hundred tiles to change the picture on a few. At this interval the
+    #: same batch costs a handful, and no poster waits longer than a frame
+    #: or two beyond its decode.
+    ART_RENDER_INTERVAL = 0.15
+
+    def invalidate(self, soon=False):
         """Request a re-render. Thread-safe: callable from background
         workers (thumbnail pool, download progress, playback timers) —
-        wakes the loop instead of waiting for the next renderer event."""
-        self._dirty = True
+        wakes the loop instead of waiting for the next renderer event.
+
+        ``soon`` marks a repaint that only makes a picture appear -- artwork
+        landing from the decode pool. Those are throttled to
+        ``ART_RENDER_INTERVAL`` and coalesced, because they arrive in
+        hundreds and each one costs a full build of the whole screen. Any
+        ordinary invalidate still renders on the next pass, and takes the
+        pending artwork with it.
+        """
+        if soon:
+            self._dirty_soon = True
+        else:
+            self._dirty = True
         self._queue.put(("wake", None))
 
     @property
@@ -461,7 +491,9 @@ class MpvtkApp:
         # invalidate() (thumbnails.py set_notify) against a build that drains
         # them at the top, so the window was being hit constantly.
         self._dirty = False
+        self._dirty_soon = False
         t0 = time.perf_counter()
+        self._last_render = t0
         try:
             tree = self._build(self.logical_size)
         except Exception as exc:
@@ -628,6 +660,28 @@ class MpvtkApp:
         except Exception:
             log.exception("mpvtk handler for %s failed", evt)
 
+    def _art_due_in(self):
+        """Seconds until a pending artwork repaint may run, or None when
+        there is none waiting."""
+        if not self._dirty_soon:
+            return None
+        return max(0.0, self.ART_RENDER_INTERVAL
+                   - (time.perf_counter() - self._last_render))
+
+    def _wait_for(self):
+        """How long the loop may block on its queue."""
+        due = self._art_due_in()
+        return 0.5 if due is None else min(0.5, due)
+
+    def _render_if_due(self):
+        """Render if anything asked for one and it is allowed to run now."""
+        if self._dirty:
+            self._render()
+            return
+        due = self._art_due_in()
+        if due is not None and due <= 0:
+            self._render()
+
     def run(self, build):
         """Blocks until mpv quits (window closed / quit())."""
         self._build = build
@@ -638,8 +692,13 @@ class MpvtkApp:
         try:
             while True:
                 try:
-                    kind, evt = self._queue.get(timeout=0.5)
+                    # Wake early enough to serve a throttled artwork repaint
+                    # when it comes due: the pool goes quiet between batches,
+                    # and a poster that has already decoded should not wait
+                    # on the next unrelated event to be drawn.
+                    kind, evt = self._queue.get(timeout=self._wait_for())
                 except queue.Empty:
+                    self._render_if_due()
                     continue
                 except KeyboardInterrupt:
                     break
@@ -661,8 +720,7 @@ class MpvtkApp:
                         self._dispatch(evt)
                 if quitting:
                     break
-                if self._dirty:
-                    self._render()
+                self._render_if_due()
         finally:
             self.backend.stop()
 

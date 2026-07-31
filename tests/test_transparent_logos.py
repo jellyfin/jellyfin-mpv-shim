@@ -372,6 +372,26 @@ class TestTileCompositing(unittest.TestCase):
         self.assertEqual(img.getpixel((g.tile_w // 2, g.tile_h // 2))[:3],
                          (200, 40, 40))
 
+    def test_the_rounded_theme_does_not_crop_a_wide_logo(self):
+        """Cover-crop is right for a poster or a still -- both are frames of
+        a photograph and lose nothing at the edges -- and wrong for a
+        wordmark, where it takes a bite out of the name. A Logo view is a
+        grid of exactly that.
+
+        Drawn as a wide bar of ink with transparent margins: cover-cropping
+        it into the (portrait) tile scales the bar until it spans the width
+        and beyond, so the ink reaches both edges. Contained, the margins
+        survive.
+        """
+        logo = _logo((0, 0, 0), size=(400, 100), margin=10)
+        imageutil.measure_transparency(logo)
+        img, g = self._painted(logo, rounded=True)
+        mid = g.tile_h // 2
+        self.assertGreater(imageutil._luma(img.getpixel((1, mid))), 200,
+                           "the left edge should still be plate, not ink")
+        self.assertGreater(imageutil._luma(img.getpixel((g.tile_w - 2, mid))),
+                           200, "the right edge should still be plate")
+
 
 class TestStripsEndToEnd(unittest.TestCase):
     def test_a_logo_strip_composites_without_error(self):

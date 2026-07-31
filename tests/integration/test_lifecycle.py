@@ -319,6 +319,11 @@ class EndOfQueueTest(unittest.TestCase):
         pm._video = video
         pm.finished_callback(True)
         self.assertIn(("stop",), [tuple(c) for c in pm._player.commands])
+        # The stream release is submitted, not called: it is a blocking round
+        # trip and the browser returns to the library ahead of it (see
+        # ReportingMixin.release_stream). Draining is the assertion that it
+        # was really queued -- without it this passes on a race.
+        self.assertTrue(pm._reporter.drain(5.0), "the release never ran")
         self.assertTrue(video.terminated)
 
     def test_end_of_queue_reports_stopped_once(self):

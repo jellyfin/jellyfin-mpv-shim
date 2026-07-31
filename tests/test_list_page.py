@@ -920,6 +920,17 @@ class ViewImageTypeTest(unittest.TestCase):
         b, _src = self._grid(imageType="banner")
         self.assertEqual(self._tile_w(b), BANNER_GEOM.tile_w)
 
+    def test_poster_insists_where_auto_would_not(self):
+        """A Home Videos library of landscape clips with a few portrait ones
+        has a median that says landscape. Auto follows it; Poster does not."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            LANDSCAPE_GEOM, POSTER_GEOM)
+        wide = (16 / 9,) * 5 + (2 / 3,)
+        auto, _src = self._grid(ratios=wide)
+        self.assertEqual(self._tile_w(auto), LANDSCAPE_GEOM.tile_w)
+        forced, _src2 = self._grid(ratios=wide, imageType="poster")
+        self.assertEqual(self._tile_w(forced), POSTER_GEOM.tile_w)
+
     def test_the_modal_shows_what_is_stored(self):
         """The controls moved off the filter row into a modal -- four
         settings read once and rarely touched did not earn permanent space
@@ -933,6 +944,30 @@ class ViewImageTypeTest(unittest.TestCase):
         for nid in ("vs-imagetype", "vs-showtitle", "vs-showyear",
                     "vs-listview"):
             self.assertIn(nid, got)
+
+    def test_the_buttons_clear_the_note_above_them(self):
+        """The dialog's height came from a width-aware measure and its
+        contents from an intrinsic one, so every wrapped note under a
+        setting was allotted a single line -- and the button row was laid
+        out where that short reckoning put it, with Done sitting on top of
+        the paragraph it should have followed."""
+        b, _src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        nodes, _h = build_scene(b)
+        notes = [n for n in nodes if n["t"] == "text"
+                 and n.get("y", 0) > 0
+                 and "one page of tiles" in str(n.get("text", ""))]
+        self.assertTrue(notes, "the pagination note is not on screen")
+        # The wrapped continuation lines are their own nodes, and it is the
+        # LAST of them the button has to clear.
+        note = notes[0]
+        lines = [n for n in nodes if n["t"] == "text"
+                 and str(n.get("id", "")).startswith(str(note.get("id")))]
+        bottom = max(n["y"] + n.get("h", 0) for n in lines)
+        done = [n for n in nodes if n.get("id") == "vs-done"][0]
+        self.assertGreaterEqual(
+            done["y"], bottom,
+            "Done overlaps the note by %.0fpx" % (bottom - done["y"]))
 
     def test_the_modal_also_carries_pagination(self):
         """Not a view setting of this library's -- it is the application's,
@@ -1038,6 +1073,103 @@ class ViewLabelsAndListTest(unittest.TestCase):
         self.assertNotIn("img", types)
         texts = {n.get("text") for n in nodes}
         self.assertTrue({"Name", "Year", "Length"} <= texts)
+
+    def test_the_list_view_web_writes_is_the_one_we_read(self):
+        """web keeps the list view on the ARTWORK key -- its picker is one
+        dropdown of primary/banner/disc/logo/thumb/list
+        (viewSettings.template.html) -- and this client used to write it to
+        a `viewType` key nothing over there has ever read. A library put in
+        list view from a browser came up here as a grid."""
+        b, _src = self._grid(imageType="list")
+        _n, _h, types = self._scene(b)
+        self.assertNotIn("img", types, "web's list view drew as a grid")
+
+    def test_the_key_this_client_used_to_write_still_reads(self):
+        """Whatever is already stored has to keep working."""
+        b, _src = self._grid(viewType="List")
+        _n, _h, types = self._scene(b)
+        self.assertNotIn("img", types)
+
+    def test_turning_the_list_on_writes_where_web_looks(self):
+        b, src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("imageType", "list")])
+
+    def test_leaving_the_list_is_picking_an_artwork_type(self):
+        """Which is what it is in web: its dropdown has no 'off'."""
+        b, src = self._grid(imageType="list")
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("imageType", "primary")])
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_leaving_a_LEGACY_list_retires_the_key_holding_it_there(self):
+        """The checkbox writes web's key; ``is_list`` also honours the one
+        earlier builds of this client wrote. Writing only the first left a
+        library that was already in list view stuck in it -- the legacy key
+        went on outvoting the save and the box came back ticked, which reads
+        as a dead control."""
+        b, src = self._grid(viewType="List")
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertIn(("viewType", "Poster"),
+                      [s[1:3] for s in src.saved_view_settings],
+                      "the legacy key was left forcing the list")
+        b._dialog = None
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_the_legacy_key_is_retired_by_the_artwork_picker_too(self):
+        """Same door, other handle: picking any artwork type is how you leave
+        the list in web, so it has to leave this one as well."""
+        b, src = self._grid(viewType="List", imageType="primary")
+        page = b._page_for(b.route)
+        page._set_view("imageType", "thumb")
+        self.assertIn(("viewType", "Poster"),
+                      [s[1:3] for s in src.saved_view_settings])
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_retiring_the_legacy_key_survives_a_no_op_artwork_write(self):
+        """The box unticks by writing the imageType the library already had.
+        That write is a no-op and returns early, so the retire cannot ride
+        *behind* it -- nor behind the snapshot _set_view takes of the view,
+        which would put the legacy value straight back."""
+        b, src = self._grid(viewType="List", imageType="primary")
+        page = b._page_for(b.route)
+        page._set_view("imageType", "primary")   # the no-op
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("viewType", "Poster")])
+        self.assertEqual(page._view("viewType"), "Poster")
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types)
+
+    def test_turning_the_list_ON_does_not_write_the_legacy_key(self):
+        """It is a migration, not a setting: nothing writes ``viewType`` any
+        more, and reviving it would put the door back."""
+        b, src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1] for s in src.saved_view_settings],
+                         ["imageType"])
+
+    def test_the_artwork_picker_reads_as_auto_while_listing(self):
+        """There is no artwork being drawn to point at, and choosing an
+        entry is how you leave the list."""
+        b, _src = self._grid(imageType="list")
+        page = b._page_for(b.route)
+        page._open_view_settings()
+        nodes, _h = build_scene(b)
+        picker = [n for n in nodes if n.get("id") == "vs-imagetype"][0]
+        self.assertEqual(picker.get("sel"), 0)
 
     def test_a_long_list_only_materializes_a_screenful(self):
         """"No overlays" was read as "no need to virtualize", and it is only

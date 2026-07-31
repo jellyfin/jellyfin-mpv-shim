@@ -13,10 +13,11 @@ class ActionThread(threading.Thread):
 
         threading.Thread.__init__(self)
 
-    # A queued task can block for a long time by design — stop() reports the
-    # stop to the server, terminate_transcode() is another round trip, and a
-    # server that accepts connections but never answers makes each of those
-    # wait out its timeout. That is worth waiting for, but not forever: an
+    # A queued task can block for a long time by design — a playback start
+    # waits out playback_timeout, and a stop_cmd hook is an os.system() call
+    # with no bound at all. (The server round trips it used to wait on, the
+    # stop report and the transcode release, are both on the session reporter
+    # now.) That is worth waiting for, but not forever: an
     # unbounded join here means the close-the-window path never reaches the
     # rest of the shutdown, and the app sits with no window and no way to
     # quit it. Whatever the task was doing is best-effort teardown.

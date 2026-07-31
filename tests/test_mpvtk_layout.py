@@ -339,6 +339,49 @@ class TestWrappedContentIsScrollable(unittest.TestCase):
         self.assertEqual(by_id(nodes, "sc")["ch"], 400.0)
 
 
+class TestNestedWrappedTextTakesItsRoom(unittest.TestCase):
+    """A Column sized its children by their INTRINSIC height, which for
+    anything containing wrapped text is one line short per wrap. A wrapped
+    Text as a direct child was special-cased; one a Column deeper was not,
+    so whatever followed its container was laid out over the top of it.
+
+    That is the View Settings dialog: a Column of settings (each with its
+    explanatory note) followed by the button row, and Done sat on the note
+    above it.
+    """
+
+    NOTE = ("Show one page of tiles at a time instead of scrolling. "
+            "Applies to every library on this device, and wraps.")
+
+    def _dialog(self, w=440):
+        """The View Settings dialog's own shape: a modal panel whose height
+        comes from a width-aware measure, holding a Column of settings that
+        was laid out with an intrinsic one."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Dialog
+
+        inner = Column([Box(h=20, bg="222222", id="setting"),
+                        Text(self.NOTE, size=13, wrap=True)],
+                       gap=12, align="stretch")
+        panel = Column([Text("View Settings", size=22),
+                        inner,
+                        # bg because a Box with nothing to draw emits no
+                        # node at all -- there would be no "done" to find.
+                        Box([Text("Done")], h=30, bg="333333", id="done")],
+                       pad=24, gap=16, w=w, align="stretch")
+        return Dialog("viewcfg", panel)
+
+    def test_a_container_of_wrapped_text_gets_the_room_it_needs(self):
+        """What the dialog case comes down to. The overlap itself is pinned
+        against the real View Settings dialog (tests/test_list_page.py),
+        because reproducing it needs that panel's exact shape; this is the
+        property underneath -- narrower means more lines means everything
+        after it sits further down."""
+        def done_y(w):
+            nodes, _h = layout(self._dialog(w), 1280, 720)
+            return by_id(nodes, "done")["y"]
+        self.assertGreater(done_y(300), done_y(700))
+
+
 class TestAssWrapStyle(unittest.TestCase):
     """The layout engine breaks text into lines; libass must not then
     apply its own smart wrapping on top. Two wrappers disagreeing by a

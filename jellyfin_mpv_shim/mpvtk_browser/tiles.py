@@ -106,6 +106,72 @@ class TilesMixin:
     #: played into a queue, and a program is not itself playable at all.
     MENU_LIVE = {"TvChannel", "Program"}
 
+    #: Containers the hover play chip offers, on top of MENU_PLAYABLE and
+    #: MENU_LIVE: things whose contents are a queue in the order the grid is
+    #: already showing them.
+    #:
+    #: **A LIBRARY IS NOT ONE.** A CollectionFolder or a UserView can answer
+    #: Play All perfectly well -- the grid header offers exactly that once
+    #: you are inside -- and it is still the wrong thing to put under the
+    #: pointer on the home screen. Those tiles are the doors to the app: the
+    #: gesture people make on them is "take me in", made quickly and often,
+    #: and a play button there is a 1300-film queue one slip away from
+    #: whatever they were actually going to do. Deciding to play a whole
+    #: library should cost the click that gets you in first.
+    CHIP_CONTAINERS = {"BoxSet", "Folder", "PhotoAlbum"}
+
+    def _tile_playable(self, item):
+        """Whether a hovered tile gets a play chip. Cheap and pure: this runs
+        for every tile of every strip that is built."""
+        t = item.get("Type")
+        if t in self.MENU_LIVE or t in self.MENU_PLAYABLE:
+            # Photo is deliberately absent from MENU_PLAYABLE, and should
+            # stay absent here: clicking the picture already shows it.
+            return True
+        # CollectionType is what makes a folder a library -- a plain Folder
+        # inside one has none -- so this is the test for "is this a door".
+        return t in self.CHIP_CONTAINERS and not item.get("CollectionType")
+
+    def _play_tile(self, item):
+        """What the hover chip does. The tile's own click still opens the
+        page -- these are different questions for anything with contents."""
+        server = self.route.get("server") or self.server
+        t = item.get("Type")
+        if t == "Series":
+            # Next Up, not the whole series from episode one: it is what
+            # jellyfin-web's overlay button does on a series card, and the
+            # only reading of "play this show" that does not throw away
+            # where you had got to.
+            self._actions.play_next_up(item.get("Id"), server)
+            return
+        if t in self.CHIP_CONTAINERS:
+            self._play_container(item, server)
+            return
+        self._menu_play(item, server)
+
+    def _play_container(self, item, server):
+        """A collection, a folder or a library: its contents, in the order
+        the grid shows them."""
+        source = self.source
+        parent = item.get("Id")
+        ctype = item.get("CollectionType")
+        ep = self._epoch
+
+        def work():
+            return source.get_play_all_ids(server, parent,
+                                           collection_type=ctype)
+
+        def done(ids):
+            if ids:
+                # pause_stills=False for the same reason Play All has it: the
+                # gesture means "run it", and a queue that opens on a photo
+                # would otherwise sit paused on frame one.
+                self._actions.play_list(ids, server, 0, pause_stills=False)
+            else:
+                self.set_status(_("There is nothing here to play."))
+
+        self.run_async(work, done, ep)
+
     def _live_menu_entries(self, item):
         """Menu for a channel or a guide entry.
 
@@ -158,7 +224,18 @@ class TilesMixin:
                             "favorite"))
             return out
         if t in self.MENU_PLAYABLE:
-            out.append((_("Play"), "play_arrow", "play"))
+            # Two entries where there is a position to resume from, as
+            # jellyfin-web's card menu has: "Play" now means resume (see
+            # _menu_play), so without the second one restarting a
+            # part-watched item from a tile became impossible. Only for the
+            # single-item types -- a container's Play resolves to a queue and
+            # has no one position to carry.
+            pos = (ud.get("PlaybackPositionTicks") or 0) if t in PLAYABLE_TYPES else 0
+            if pos > 0:
+                out.append((_("Resume"), "play_arrow", "play"))
+                out.append((_("Play from Beginning"), "first_page", "restart"))
+            else:
+                out.append((_("Play"), "play_arrow", "play"))
             out.append((_("Add to Queue"), "playlist_add", "queue"))
         if t in self.MENU_WATCHED:
             out.append((_("Mark Unwatched") if watched
@@ -206,6 +283,8 @@ class TilesMixin:
         action = entries[index][2]
         if action == "play":
             self._menu_play(item, server)
+        elif action == "restart":
+            self._menu_play(item, server, resume=False)
         elif action == "queue":
             self._menu_queue(item, server)
         elif action == "watched":
@@ -374,7 +453,7 @@ class TilesMixin:
             return []
         return [iid]
 
-    def _menu_play(self, item, server):
+    def _menu_play(self, item, server, resume=True):
         t = item.get("Type")
         if t in self.MENU_LIVE:
             # What you watch is the channel, never the guide entry — the
@@ -386,7 +465,17 @@ class TilesMixin:
             self._play_list([item.get("Id")], server, audio=True)
             return
         if t in PLAYABLE_TYPES:
-            self._play(item, server)
+            # Resume, like the overlay play button on a jellyfin-web card
+            # (which carries the item's data-positionticks into the start).
+            # A half-watched film under the play chip means "carry on with
+            # this", and starting it at zero threw that away silently --
+            # there was nothing to say the position had been lost. Beginning
+            # is still one menu entry away.
+            offset = None
+            if resume:
+                offset = ((item.get("UserData") or {})
+                          .get("PlaybackPositionTicks")) or None
+            self._play(item, server, offset_ticks=offset)
             return
         # A container: resolve it to its items and play those, rather than
         # navigating (a "Play" that browses instead is just a lie).

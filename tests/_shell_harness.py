@@ -118,16 +118,20 @@ class FakeSource:
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,
                           sort_by="SortName", sort_order="Ascending",
-                          limit=100, filters=None):
+                          limit=100, filters=None, image_type=None,
+                          collection_type=None):
         # Recorded, not swallowed. This took **kw and discarded sort/filters
         # entirely, so every filter, sort, unplayed-toggle and letter-jump
         # test asserted only on the browser's own scratch dict — if the view
         # stopped passing filters= to the source, all of them stayed green
-        # and every filter in the app silently did nothing.
+        # and every filter in the app silently did nothing. image_type is
+        # recorded for the same reason: it is what makes a Banner view show
+        # banners, and a fake that dropped it would hide the whole feature.
         self.queries.append({
             "parent_id": parent_id, "start_index": start_index,
             "sort_by": sort_by, "sort_order": sort_order,
-            "filters": dict(filters or {}),
+            "filters": dict(filters or {}), "image_type": image_type,
+            "collection_type": collection_type,
         })
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
@@ -176,17 +180,22 @@ class FakeSource:
         page = items[start_index:start_index + 20]
         return page, len(items)
 
-    def get_filter_values(self, server_uuid, parent_id=None):
+    def get_filter_values(self, server_uuid, parent_id=None,
+                          collection_type=None):
+        self.filter_value_calls = getattr(self, "filter_value_calls", [])
+        self.filter_value_calls.append((parent_id, collection_type))
         return {"genres": ["Action", "Comedy"], "years": [2020, 2021]}
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         return ["g0", "g5", "g9"]
 
     def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
-                         sort_order="Ascending", filters=None, limit=200):
+                         sort_order="Ascending", filters=None, limit=200,
+                         collection_type=None):
         # Echoes what it was asked with, so a caller that drops the sort or
         # the filters is visible rather than merely untested.
         self.play_all_args = (parent_id, sort_by, sort_order, filters)
+        self.play_all_ctype = collection_type
         return ["g0", "g1", "g2"]
 
     def image_spec(self, item, image_type="Primary", width=280,

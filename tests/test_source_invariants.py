@@ -511,5 +511,78 @@ class TestNoTopLevelMutableClassState(unittest.TestCase):
             "with a reason):\n  " + "\n  ".join(offenders))
 
 
+class TestApiCallsMatchTheClient(unittest.TestCase):
+    """Every keyword we hand the API client is one it declares.
+
+    ``get_channel_listing`` passed ``enable_images=False`` -- a real Jellyfin
+    query parameter, and one jellyfin-web sends -- to a client method with no
+    such argument. Python raises TypeError at the call, so the Live TV channel
+    page died on open, and nothing caught it until someone opened one: the
+    call sits behind a network fetch on a screen with no unit test, and the
+    kwarg reads as correct in the diff.
+
+    A signature check is the only thing that finds this without a server.
+    Calls whose target cannot be resolved statically (``getattr(api, name)``)
+    and calls that splat a dict (``**kwargs``) are skipped -- the point is
+    the literal keywords, which is where the mistake lives.
+    """
+
+    @staticmethod
+    def _api_class():
+        from jellyfin_apiclient_python.api import API
+
+        return API
+
+    @staticmethod
+    def _accepts(fn, keyword):
+        import inspect
+
+        try:
+            sig = inspect.signature(fn)
+        except (TypeError, ValueError):     # pragma: no cover - C callables
+            return True
+        for p in sig.parameters.values():
+            if p.kind is inspect.Parameter.VAR_KEYWORD:
+                return True
+            if p.name == keyword:
+                return True
+        return False
+
+    def test_no_call_passes_a_keyword_the_client_does_not_have(self):
+        api_cls = self._api_class()
+        offenders = []
+        for rel, tree in _parsed():
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                fn = node.func
+                # `api.method(...)` and `self.api.method(...)`: the object is
+                # always spelled `api` where the client is called.
+                if not isinstance(fn, ast.Attribute):
+                    continue
+                owner = fn.value
+                name = (owner.id if isinstance(owner, ast.Name)
+                        else owner.attr if isinstance(owner, ast.Attribute)
+                        else None)
+                if name != "api":
+                    continue
+                method = getattr(api_cls, fn.attr, None)
+                if method is None:
+                    offenders.append("%s:%d api.%s() does not exist"
+                                     % (rel, node.lineno, fn.attr))
+                    continue
+                for kw in node.keywords:
+                    if kw.arg is None:      # **splat, not a literal keyword
+                        continue
+                    if not self._accepts(method, kw.arg):
+                        offenders.append(
+                            "%s:%d api.%s(%s=...)"
+                            % (rel, node.lineno, fn.attr, kw.arg))
+        self.assertEqual(
+            offenders, [],
+            "These calls raise TypeError the moment they run:\n  "
+            + "\n  ".join(offenders))
+
+
 if __name__ == "__main__":
     unittest.main()

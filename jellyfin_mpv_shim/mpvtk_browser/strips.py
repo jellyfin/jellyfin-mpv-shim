@@ -155,6 +155,11 @@ class Tile:
     #: series rule. Separate from ``recording`` because the two questions
     #: differ — a series-covered programme airing now is both.
     record: str = ""
+    #: Draw the artwork WHOLE rather than filling the tile. A wordmark
+    #: standing in for artwork the item does not have -- a logo on a banner
+    #: strip, a banner on a 16:9 card -- loses the name to a cover-crop.
+    #: Set by TileRenderer.poster_for, which knows what the chain resolved to.
+    contain: bool = False
 
 
 class StripStore:
@@ -240,6 +245,7 @@ class StripStore:
             bool(t.recording),
             t.record,
             t.glyph if t.poster is None else "",
+            bool(t.contain),
         )
 
     @staticmethod
@@ -368,7 +374,14 @@ class StripStore:
         ``image`` is a PIL image already at **physical** display size.
         ``lsize`` is the logical (w, h) box it was rasterized for — pass it
         whenever a logical box drove the size, so the Image widget can check
-        the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``."""
+        the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``.
+
+        ``image`` may instead be a zero-argument callable, called only on a
+        miss. For a bitmap that is asked for on most frames and drawn on
+        almost none of them, rasterizing to hand the answer to a cache that
+        already has it is the whole cost — the hovered tile's play chip is
+        re-derived every time its strip is rebuilt, and supersamples a disc
+        at 3x to do it."""
         ck = ("bitmap", self.tag, key)
         with self._lock:
             hit = self._cache.get(ck)
@@ -377,7 +390,7 @@ class StripStore:
                 self.hits += 1
                 return hit
             self.misses += 1
-        src, w, h, v = self._store(image)
+        src, w, h, v = self._store(image() if callable(image) else image)
         from ..mpvtk.scaling import dip
 
         lw, lh = lsize if lsize is not None else (dip(w), dip(h))
@@ -525,7 +538,14 @@ class StripStore:
             # any static analysis. Spelling it Resampling.LANCZOS instead
             # would require Pillow >= 9.1, which this project does not pin.
             lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
-            if rounded:
+            # Two kinds of artwork are never cover-cropped, and they are
+            # asked about differently. `contain` is the CALLER's answer --
+            # the fallback chain resolved to a wordmark this tile was not
+            # shaped for, and cropping it would take the name off both ends.
+            # `plate` is the PICTURE's: anything on a transparent background
+            # is a mark rather than a photograph, which covers the channel
+            # logos nothing declares a type for. Either is enough.
+            if rounded and plate is None and not t.contain:
                 if poster.size != (g.tile_w, g.tile_h):
                     # Cover-crop, like CSS object-fit: cover — scale to FILL
                     # the tile and crop the overflow, so odd-aspect art fills

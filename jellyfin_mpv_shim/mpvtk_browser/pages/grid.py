@@ -37,7 +37,29 @@ SORTS = [
     (_("Parental Rating"), "OfficialRating", "Ascending"),
     (_("Random"), "Random", "Ascending"),
 ]
+
+#: Sorts only some libraries offer, APPENDED to SORTS -- a route stores its
+#: sort as an index into that list, so anything inserted would silently
+#: re-point every route already carrying one.
+#:
+#: "Date Added" on a TV library is when the *series* was created, which for a
+#: show you have followed for three years is three years ago -- so the
+#: library's own "what is new" question has no answer in the base list.
+#: DateLastContentAdded is the newest episode, and is what jellyfin-web
+#: offers there under this label (SortButton.tsx: OptionDateEpisodeAdded).
+#: The name is the server's: DateLastMediaAdded is not in its sort enum, and
+#: an unknown sort is *ignored* rather than refused -- the grid silently
+#: comes back in name order.
+EXTRA_SORTS = {
+    "tvshows": [(_("Date Episode Added"), "DateLastContentAdded",
+                 "Descending")],
+}
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def sorts_for(collection_type):
+    """The sort menu for a library of this kind."""
+    return SORTS + EXTRA_SORTS.get(collection_type or "", [])
 
 #: A view with nothing stored: web's defaults, which are also what the shim
 #: did before any of this existed, so an untouched library is unchanged.
@@ -71,6 +93,17 @@ GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
 log = logging.getLogger("mpvtk_browser.pages.grid")
 
 
+def _image_type_of(view):
+    """The artwork name to ask the server for, given a view-settings dict.
+
+    ``None`` for "Auto", which asks for nothing beyond the browse defaults --
+    the grid is shaped by whatever artwork comes back.
+    """
+    stored = (view or {}).get("imageType")
+    named = view_prefs.shape_for(stored[0] if stored else None)
+    return named[1] if named else None
+
+
 def _fmt_runtime(ticks):
     """``1h 42m`` for a list row, or "" with no runtime."""
     mins = int((ticks or 0) // 600000000)
@@ -94,55 +127,108 @@ class GridPage(Page):
     def load(self, epoch):
         route = self.route
         source = self.ctx.source
+        run = self.ctx.run
+        invalidate = self.ctx.invalidate
         srv = route.get("server") or self.ctx.server
         parent = route["parent_id"]
-        _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        _n, sort_by, sort_order = self._sorts()[route.get("_sort", 0)]
         filters = route.get("_filters") or {}
         collections = bool(route.get("_collections"))
+        ctype = route.get("collection_type")
 
         def work():
+            # The view settings come FIRST, and not because render wants
+            # them: they say which artwork this library is drawn with, and
+            # that has to reach the item query as EnableImageTypes. Read
+            # after the items and a library set to Banner asks for banners
+            # it has already been answered without. It comes off a cached
+            # blob (one document per server), so this is not a round trip
+            # per library.
+            # The route's own copy wins where it has one: a reload triggered
+            # by changing the artwork setting runs while that save is still
+            # in flight, and the server would answer with the value the user
+            # just changed away from -- fetching the wrong tags and drawing
+            # the grid back the way it was. Only a first load asks.
+            view = route.get("_view")
+            if view is None:
+                get_view = getattr(source, "get_view_settings", None)
+                view = (get_view(srv, parent, ctype)
+                        if get_view else dict(_DEFAULT_VIEW))
+            image_type = _image_type_of(view)
             if collections:
                 # Collections are server-wide and recursive (a BoxSet
                 # can gather items from several libraries), so this is a
                 # different query, not a filter on the library.
                 items, total = source.get_movie_collections(
                     srv, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters)
+                    filters=filters, image_type=image_type)
             else:
                 items, total = source.get_library_items(
                     srv, parent, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters)
+                    filters=filters, image_type=image_type,
+                    collection_type=ctype)
+            # Paint the tiles BEFORE asking for the filter pickers. Nothing
+            # on the first frame needs them and they are the slow half of
+            # this load: Items/Filters scans the library server-side, 3.7s
+            # against a real 950-series library here, all of it spent on a
+            # spinner over items that had already arrived. jellyfin-web does
+            # not fetch them with the items at all -- its filter dialog asks
+            # when it is opened.
+            #
+            # Epoch-checked by hand and published mid-flight, exactly as the
+            # home screen's two-stage load is: this write is outside the
+            # run_async gate that protects the returned value, so without the
+            # check, navigating away mid-load would repaint the grid the user
+            # just left. One job rather than two, so nothing is submitted to
+            # the pool from inside a pool worker.
+            if run.epoch == epoch:
+                self._install(items, total, view, sort_by)
+                invalidate()
             vals = route.get("_filtervals")
             if vals is None:
                 try:
-                    vals = source.get_filter_values(srv, parent)
+                    vals = source.get_filter_values(srv, parent,
+                                                    collection_type=ctype)
                 except Exception:
+                    log.debug("filter values unavailable", exc_info=True)
                     vals = {"genres": [], "years": []}
-            # Read here rather than in render: it comes off a cached blob,
-            # but "cached" is not "free" and render runs every frame.
-            get_view = getattr(source, "get_view_settings", None)
-            view = (get_view(srv, parent, route.get("collection_type"))
-                    if get_view else dict(_DEFAULT_VIEW))
             return items, total, vals, view
 
         def done(res):
             items, total, vals, view = res
-            route["_items"], route["_filtervals"] = items, vals
-            route["_view"] = view
-            # Random reshuffles server-side on every request, so page two is
-            # drawn from a different ordering than page one: paging it yields
-            # duplicates and silently skips items. Reporting the first page as
-            # the whole list is what the Tk browser did, and the paginator's
-            # "an empty page ends the list" rule can never fire here because a
-            # reshuffle always returns something.
-            route["_total"] = len(items) if sort_by == "Random" else total
-            # The toggle only makes sense on a movies library, and only
-            # when the source can answer it (the offline catalog can't).
-            route["_collection_capable"] = (
-                route.get("collection_type") == "movies"
-                and hasattr(source, "get_movie_collections"))
+            route["_filtervals"] = vals
+            self._install(items, total, view, sort_by)
 
         self.route_async(work, done, epoch)
+
+    def _install(self, items, total, view, sort_by):
+        """Publish a loaded page onto the route. Called twice -- once when
+        the items land and once when the whole job does -- so it must stay
+        idempotent."""
+        route = self.route
+        route["_items"] = items
+        # Only where the route has none, which is the same rule ``load``
+        # applies when it decides whether to ask the server at all. The two
+        # calls are seconds apart -- the filter pickers are the slow half --
+        # and the grid is on screen and its View settings reachable for all
+        # of it, so re-publishing what the worker read would throw away a
+        # change the user has made in the meantime. It is thrown away
+        # *silently*: the save has already gone to the server, so the screen
+        # would be left disagreeing with what is stored.
+        if route.get("_view") is None:
+            route["_view"] = view
+        # Random reshuffles server-side on every request, so page two is
+        # drawn from a different ordering than page one: paging it yields
+        # duplicates and silently skips items. Reporting the first page as
+        # the whole list is what the Tk browser did, and the paginator's
+        # "an empty page ends the list" rule can never fire here because a
+        # reshuffle always returns something.
+        route["_total"] = len(items) if sort_by == "Random" else total
+        # The toggle only makes sense on a movies library, and only
+        # when the source can answer it (the offline catalog can't).
+        route["_collection_capable"] = (
+            route.get("collection_type") == "movies"
+            and hasattr(self.ctx.source, "get_movie_collections"))
 
     # -- render ------------------------------------------------------------
 
@@ -154,7 +240,7 @@ class GridPage(Page):
         if items is None:
             return chrome.busy()
         header = self._header(items, size[0])
-        if view_prefs.is_list_view(self._view("viewType")):
+        if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             return self._list_view(items, header)
         geom, image_type = self._grid_shape(items)
         labels = (bool(self._view("showTitle")),
@@ -258,7 +344,7 @@ class GridPage(Page):
         if filters.get("year") in years:
             yi = years.index(filters["year"]) + 1
         bar = Row([
-            Dropdown("grid-sort", [s[0] for s in SORTS],
+            Dropdown("grid-sort", [s[0] for s in self._sorts()],
                      selected=route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
             Dropdown("grid-genre", [_("All Genres")] + genres, selected=gi,
@@ -341,20 +427,31 @@ class GridPage(Page):
 
     # -- data ---------------------------------------------------------------
 
+    def _sorts(self):
+        """This route's sort menu. A TV library has one the others do not --
+        see EXTRA_SORTS -- and a route's stored ``_sort`` is an index into
+        whichever list its own screen offers."""
+        return sorts_for(self.route.get("collection_type"))
+
     def _bound_query(self):
-        """``(sort_by, sort_order, filters, person, srv)`` read NOW, on the
-        loop thread. The sort/filters a page is fetched with must be the ones
-        it was asked for, not whatever they are when it lands."""
-        _n, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
+        """``(sort_by, sort_order, filters, person, srv, image_type)`` read
+        NOW, on the loop thread. The sort/filters a page is fetched with must
+        be the ones it was asked for, not whatever they are when it lands --
+        and the artwork it asks the server for must be the one the grid is
+        being drawn with, or page two of a Banner view arrives with no
+        banners."""
+        _n, sort_by, sort_order = self._sorts()[self.route.get("_sort", 0)]
         return (sort_by, sort_order,
                 self.route.get("_filters") or {},
                 self.route.get("person_id"),
-                self.route.get("server") or self.ctx.server)
+                self.route.get("server") or self.ctx.server,
+                _image_type_of(self.route.get("_view")))
 
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
-        sort_by, sort_order, filters, person, srv = bound or self._bound_query()
+        (sort_by, sort_order, filters, person, srv,
+         image_type) = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -368,10 +465,12 @@ class GridPage(Page):
         if self.route.get("_collections"):
             return source.get_movie_collections(
                 srv, start_index=start, sort_by=sort_by,
-                sort_order=sort_order, filters=filters, **kw)
+                sort_order=sort_order, filters=filters,
+                image_type=image_type, **kw)
         return source.get_library_items(
             srv, self.route["parent_id"], start_index=start,
-            sort_by=sort_by, sort_order=sort_order, filters=filters, **kw)
+            sort_by=sort_by, sort_order=sort_order, filters=filters,
+            image_type=image_type, **kw)
 
     def _on_scroll_end(self, offset, maximum):
         route = self.route
@@ -447,7 +546,7 @@ class GridPage(Page):
         """
         return Row([
             Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
-            Dropdown("%s-sort" % self.kind, [s[0] for s in SORTS],
+            Dropdown("%s-sort" % self.kind, [s[0] for s in self._sorts()],
                      selected=self.route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
         ], gap=10, align="center")
@@ -500,14 +599,16 @@ class GridPage(Page):
         """Persist one view setting and redraw with it.
 
         Optimistic, like every other edit here: the grid changes on the next
-        frame and rolls back if the server refuses. No reload -- the items
-        are the same, only how they are drawn changes.
+        frame and rolls back if the server refuses.
         """
         route = self.route
+        if setting == "imageType" and value != view_prefs.LIST_IMAGE_TYPE:
+            self._retire_legacy_list_view()
         view = dict(route.get("_view") or _DEFAULT_VIEW)
         previous, key = view.get(setting) or (None, None)
         if value == previous:
             return
+        was = _image_type_of(route.get("_view"))
         view[setting] = (value, key)
         route["_view"] = view
         # The parked median is only consulted when there is no override, but
@@ -515,7 +616,7 @@ class GridPage(Page):
         # "Primary" measures afresh.
         # The parked median was measured for a different shape.
         route.pop("_grid_shape", None)
-        self.ctx.invalidate()
+        self._redraw_or_refetch(was)
         server = route.get("server") or self.ctx.server
         parent = route.get("parent_id")
         ctype = route.get("collection_type")
@@ -528,15 +629,81 @@ class GridPage(Page):
             save(server, parent, ctype, setting, value, key=key)
 
         def failed(_exc):
+            was_rolled = _image_type_of(route.get("_view"))
             rolled = dict(route.get("_view") or {})
             rolled[setting] = (previous, key)
             route["_view"] = rolled
             route.pop("_grid_shape", None)
             self.ctx.status(_("That view setting could not be saved."))
-            self.ctx.invalidate()
+            self._redraw_or_refetch(was_rolled)
 
         self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
                          on_error=failed)
+
+    def _retire_legacy_list_view(self):
+        """Clear a ``viewType`` an earlier build of this client wrote.
+
+        ``view_prefs.is_list`` still honours that key -- a library put in
+        list view before the setting moved onto web's shared ``imageType``
+        has to keep coming up as a list -- which means nothing that writes
+        only ``imageType`` can take such a library back OUT of the list. The
+        checkbox saved the grid value, the legacy key went on outvoting it,
+        and it came back ticked on the next frame: a control that read as
+        dead.
+
+        Called from the top of :meth:`_set_view`, ahead of *both* the no-op
+        check and the snapshot it takes of ``_view``. Ahead of the check
+        because the box unticks by writing the imageType the library already
+        had, so the write it rides on is very often no write at all; ahead of
+        the snapshot because this sets ``_view`` itself, and a caller holding
+        an older copy puts the legacy value straight back.
+
+        One-way, and deliberately so. Nothing writes ``viewType`` any more,
+        so this is a migration rather than a setting: once the shared key has
+        been asked the question, it is the only one that answers it.
+        """
+        if view_prefs.is_list_view(self._view("viewType")):
+            self._set_view("viewType", view_prefs.GRID_VIEW)
+
+    def _redraw_or_refetch(self, was):
+        """Repaint after a view change -- and re-ask the server when the
+        change was one it needs to hear about.
+
+        Which artwork the tiles are drawn with is part of the QUERY: the
+        server only sends the image tags a request names, so a grid fetched
+        as Auto has no Banner in its ImageTags and switching to Banner can
+        only fall back to the poster it already has. Redrawing was the whole
+        of this, and it is why the setting looked like it did nothing.
+
+        In place rather than through ``_reload``: the items are not stale,
+        only the tags on them, so the grid keeps what it is showing instead
+        of blinking a spinner over it. The reload re-reads the view settings,
+        and now prefers the route's own copy (see :meth:`load`) -- the save
+        is still in flight, so the server would answer with the old value.
+
+        The test is what the QUERY would be, not which setting was picked:
+        Auto and Poster ask for exactly the same artwork and differ only in
+        the shape it is drawn at, so switching between them is a repaint.
+
+        ``nav.load`` rather than ``nav.reload`` for a route that is no longer
+        on screen. The rollback path reaches here from ``on_error``, which is
+        deliberately NOT epoch-gated (see AsyncRunner), so a save that fails
+        after the user has walked away lands on the route they left --
+        and ``reload`` bumps the epoch, which would cancel the in-flight load
+        of whatever IS on screen and strand it on a spinner with nothing left
+        to re-issue it. ``load`` re-runs this route's own loader without
+        touching the epoch or repainting, which is exactly what it is for.
+        """
+        from ..repository import browse_image_types
+
+        now = _image_type_of(self.route.get("_view"))
+        if browse_image_types(was) == browse_image_types(now):
+            self.ctx.invalidate()
+            return
+        if self.ctx.nav.is_current(self.route):
+            self.ctx.nav.reload(self.route)
+        else:
+            self.ctx.nav.load(self.route)
 
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
@@ -684,11 +851,16 @@ class GridPage(Page):
         that plays the first hundred is a worse answer than no button. Same
         as web, which hands its query options straight to playbackManager.
         """
+        ctype = self.route.get("collection_type")
+
         def work(source, srv, parent, bound):
             sort_by, sort_order, filters = bound[0], bound[1], bound[2]
+            # The collection type too: it is part of the grid's query now,
+            # and this button's whole contract is that it asks the same one.
             return source.get_play_all_ids(srv, parent, sort_by=sort_by,
                                            sort_order=sort_order,
-                                           filters=filters)
+                                           filters=filters,
+                                           collection_type=ctype)
 
         self._queue_library(work)
 
@@ -774,16 +946,19 @@ class ListPage(GridPage):
     def _sort_args(self):
         if not self._sortable():
             return None, None
-        _label, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
+        _label, sort_by, sort_order = self._sorts()[
+            self.route.get("_sort", 0)]
         return sort_by, sort_order
 
     def _bound_query(self):
+        # No image type: a list route's shape comes from its spec, not from
+        # a library's view settings (see SHAPES below).
         sort_by, sort_order = self._sort_args()
         return (sort_by, sort_order, self.route.get("_filters") or {}, None,
-                self.route.get("server") or self.ctx.server)
+                self.route.get("server") or self.ctx.server, None)
 
     def _fetch_at(self, start, limit=None, bound=None):
-        sort_by, sort_order, filters, _person, srv = (
+        sort_by, sort_order, filters, _person, srv, _itype = (
             bound or self._bound_query())
         kw = {} if limit is None else {"limit": limit}
         return self.ctx.source.get_list(
@@ -837,7 +1012,7 @@ class PersonPage(GridPage):
         # The repository has taken sort_by/sort_order since it was written;
         # this was the one caller that never passed them, so the dropdown had
         # nowhere to land.
-        _label, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        _label, sort_by, sort_order = self._sorts()[route.get("_sort", 0)]
 
         def work():
             return source.get_person_items(

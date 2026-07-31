@@ -44,4 +44,4 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.10.0", "sc": "detail", "size": 24, "t": "text", "text": "More Like This", "w": 182.5, "x": 16.0, "y": 1223.8}
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "detail-similar", "sc": "detail", "t": "scroll", "w": 160.0, "x": 16.0, "y": 1263.8}
 {"h": 271.0, "id": "r.1.0.10.1.0.0.0", "ih": 271, "iw": 150, "sc": "detail-similar", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 21.0, "y": 1268.8}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "detail-similar-s1", "ring": true, "sc": "detail-similar", "t": "rect", "w": 150, "x": 21.0, "y": 1268.8}
+{"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "detail-similar-s1", "ring": true, "sc": "detail-similar", "t": "rect", "w": 150, "x": 21.0, "y": 1268.8}

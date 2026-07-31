@@ -1826,11 +1826,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         self.update_check.check()
 
+        # Not under the in-window OSC: the warning is mpv OSD text, so it
+        # draws *under* the mpvtk overlay bitmaps, and the key it names goes
+        # to the HUD's gear menu rather than the OSD menu it was written for.
+        # The same information is on the gear menu's quality entry, which
+        # marks the current stream "Transcode".
         if (
             not self._video.parent.is_local
             and self._video.is_transcode
             and not self.warned_about_transcode
             and settings.transcode_warning
+            and getattr(self, "_osc_style_resolved", None) != "mpvtk"
         ):
             self.warned_about_transcode = True
             self._player.show_text(
@@ -1882,14 +1888,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.set_paused(False)
         self._video = None
         self._player.command("stop")
-        local_video.terminate_transcode()
+        # As early as it can be true, and before any of the teardown below:
+        # this is what sends the browser back to the library (and hides the
+        # music bar), and every line after it is bookkeeping the user has no
+        # reason to wait through. It used to come last, so a slow stop report
+        # or a stop_cmd hook was time spent staring at a dead window.
+        self.push_playstate(stopped=True)
+        self.release_stream(local_video)
         if local_video.client is None and hasattr(local_video,
                                                   "record_offline_progress"):
             local_video.record_offline_progress(options.get("PositionTicks"))
         self.send_timeline_stopped(options=options, client=local_video.client)
         self.exec_stop_cmd()
-        # Hide the browser's music bar now that nothing is playing.
-        self.push_playstate(stopped=True)
 
         if self.trickplay:
             self.trickplay.clear()
@@ -2123,15 +2133,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.should_send_timeline = False
             self._video = None
             try:
-                video.terminate_transcode()
-            except Exception:
-                log.debug("terminate_transcode failed at end of queue",
-                          exc_info=True)
-            try:
                 self._player.command("stop")
             except _mpv_errors:
                 self._handle_mpv_disconnect()
+            # Before releasing the stream, not after: this is the browser's
+            # cue to come back, and the release is a blocking round trip that
+            # the library screen has no reason to wait behind.
             self.push_playstate(stopped=True)
+            self.release_stream(video)
         self.pause_ignore = False
 
     @synchronous("_lock")
