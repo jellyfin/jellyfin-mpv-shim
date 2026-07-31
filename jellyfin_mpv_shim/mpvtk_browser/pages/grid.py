@@ -105,11 +105,14 @@ class GridPage(Page):
     def load(self, epoch):
         route = self.route
         source = self.ctx.source
+        run = self.ctx.run
+        invalidate = self.ctx.invalidate
         srv = route.get("server") or self.ctx.server
         parent = route["parent_id"]
         _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
         filters = route.get("_filters") or {}
         collections = bool(route.get("_collections"))
+        ctype = route.get("collection_type")
 
         def work():
             # The view settings come FIRST, and not because render wants
@@ -120,7 +123,7 @@ class GridPage(Page):
             # blob (one document per server), so this is not a round trip
             # per library.
             get_view = getattr(source, "get_view_settings", None)
-            view = (get_view(srv, parent, route.get("collection_type"))
+            view = (get_view(srv, parent, ctype)
                     if get_view else dict(_DEFAULT_VIEW))
             image_type = _image_type_of(view)
             if collections:
@@ -133,33 +136,61 @@ class GridPage(Page):
             else:
                 items, total = source.get_library_items(
                     srv, parent, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters, image_type=image_type)
+                    filters=filters, image_type=image_type,
+                    collection_type=ctype)
+            # Paint the tiles BEFORE asking for the filter pickers. Nothing
+            # on the first frame needs them and they are the slow half of
+            # this load: Items/Filters scans the library server-side, 3.7s
+            # against a real 950-series library here, all of it spent on a
+            # spinner over items that had already arrived. jellyfin-web does
+            # not fetch them with the items at all -- its filter dialog asks
+            # when it is opened.
+            #
+            # Epoch-checked by hand and published mid-flight, exactly as the
+            # home screen's two-stage load is: this write is outside the
+            # run_async gate that protects the returned value, so without the
+            # check, navigating away mid-load would repaint the grid the user
+            # just left. One job rather than two, so nothing is submitted to
+            # the pool from inside a pool worker.
+            if run.epoch == epoch:
+                self._install(items, total, view, sort_by)
+                invalidate()
             vals = route.get("_filtervals")
             if vals is None:
                 try:
-                    vals = source.get_filter_values(srv, parent)
+                    vals = source.get_filter_values(srv, parent,
+                                                    collection_type=ctype)
                 except Exception:
+                    log.debug("filter values unavailable", exc_info=True)
                     vals = {"genres": [], "years": []}
             return items, total, vals, view
 
         def done(res):
             items, total, vals, view = res
-            route["_items"], route["_filtervals"] = items, vals
-            route["_view"] = view
-            # Random reshuffles server-side on every request, so page two is
-            # drawn from a different ordering than page one: paging it yields
-            # duplicates and silently skips items. Reporting the first page as
-            # the whole list is what the Tk browser did, and the paginator's
-            # "an empty page ends the list" rule can never fire here because a
-            # reshuffle always returns something.
-            route["_total"] = len(items) if sort_by == "Random" else total
-            # The toggle only makes sense on a movies library, and only
-            # when the source can answer it (the offline catalog can't).
-            route["_collection_capable"] = (
-                route.get("collection_type") == "movies"
-                and hasattr(source, "get_movie_collections"))
+            route["_filtervals"] = vals
+            self._install(items, total, view, sort_by)
 
         self.route_async(work, done, epoch)
+
+    def _install(self, items, total, view, sort_by):
+        """Publish a loaded page onto the route. Called twice -- once when
+        the items land and once when the whole job does -- so it must stay
+        idempotent."""
+        route = self.route
+        route["_items"] = items
+        route["_view"] = view
+        # Random reshuffles server-side on every request, so page two is
+        # drawn from a different ordering than page one: paging it yields
+        # duplicates and silently skips items. Reporting the first page as
+        # the whole list is what the Tk browser did, and the paginator's
+        # "an empty page ends the list" rule can never fire here because a
+        # reshuffle always returns something.
+        route["_total"] = len(items) if sort_by == "Random" else total
+        # The toggle only makes sense on a movies library, and only
+        # when the source can answer it (the offline catalog can't).
+        route["_collection_capable"] = (
+            route.get("collection_type") == "movies"
+            and hasattr(self.ctx.source, "get_movie_collections"))
 
     # -- render ------------------------------------------------------------
 
@@ -708,11 +739,16 @@ class GridPage(Page):
         that plays the first hundred is a worse answer than no button. Same
         as web, which hands its query options straight to playbackManager.
         """
+        ctype = self.route.get("collection_type")
+
         def work(source, srv, parent, bound):
             sort_by, sort_order, filters = bound[0], bound[1], bound[2]
+            # The collection type too: it is part of the grid's query now,
+            # and this button's whole contract is that it asks the same one.
             return source.get_play_all_ids(srv, parent, sort_by=sort_by,
                                            sort_order=sort_order,
-                                           filters=filters)
+                                           filters=filters,
+                                           collection_type=ctype)
 
         self._queue_library(work)
 
