@@ -695,14 +695,26 @@ eq(hover_events(), "hover_end:tile-a-play",
 
 -- ===================================================== scroll snapping
 --
--- Scrolling glides. It quantizes to row boundaries only while the wheel is
--- being flung -- when drawing every intermediate position gets expensive --
--- or when the user (or an external mpv) forces it on.
+-- Scrolling glides. It quantizes to row boundaries only when the frames a
+-- gesture asks for cost more than the time between them -- or when the user
+-- (or an external mpv) forces it on. Neither half is sufficient alone, and
+-- both of those are tested below, because each is a rule this replaced: a
+-- rate threshold snapped a brisk flick on a machine that draws in 3ms, and
+-- snapping unconditionally (what came before that) charged everyone for a
+-- mitigation almost nobody needed.
 --
--- The observable is where the offset SETTLES. During a gesture the stored
--- offset stays continuous and only the drawing is quantized, so the visible
--- consequence is at the end: a fling releases onto the detent it was
--- already showing, and a nudge is left exactly where the pixels put it.
+-- fake.set_draw_cost is what makes any of it testable. The renderer times
+-- its own frames, so "this machine is slow" is a number a test can state
+-- rather than a symptom it has to imitate.
+--
+-- Two observables, deliberately different things:
+--   * where the offset SETTLES. During a gesture the stored offset stays
+--     continuous and only the drawing is quantized, so the visible
+--     consequence is at the end: a gesture that outran the renderer is
+--     released onto the detent it was already showing, and one that did not
+--     is left exactly where the pixels put it.
+--   * how many frames were PAINTED. The cadence comes from the same
+--     measurement, so an expensive scene draws the same gesture in fewer.
 
 -- Row height. Deliberately NOT a multiple of the 80px wheel step: the step
 -- is itself quantized to divide a row evenly (see on_wheel), so at 100 one
@@ -721,97 +733,183 @@ local function on_row(id)
     return math.abs(off - math.floor(off / SNAP + 0.5) * SNAP) < 0.5
 end
 
---- One wheel notch over the container, `gap` seconds after the last.
-local function notch(gap)
-    fake.advance(gap or 1.0)
-    fake.key("wheel_down")
-end
-
---- Let the release timer run.
+--- Let every pending timer come due: the gesture release, and the frame it
+--- is meant to outlive.
 local function settle()
     fake.advance(1.0)
     fake.fire_timers()
 end
 
-local function reset_wheel()
-    -- A fresh gesture: far enough after the last event that no rate test
-    -- could latch, and with any pending release already fired.
+--- `n` wheel notches `gap` apart, painting after every second one.
+---
+--- Painting DURING the gesture is the point: the renderer has no idea what
+--- a frame costs until it has drawn one, and a still frame is cheaper than
+--- a scrolling one (at rest every overlay re-issue is skipped), so a
+--- gesture is judged on its own first frames rather than on an estimate
+--- from before it began.
+---
+--- Every second notch rather than every one because that is the shape mpv
+--- delivers: the script cannot take an event while it is inside a frame, so
+--- what arrives during one is handed over together afterwards. Painting on
+--- every notch would charge the whole draw to the gap between two events
+--- and make the gesture look slower than the wheel actually is.
+local function fling(n, gap)
+    for i = 1, n do
+        fake.advance(gap)
+        fake.key("wheel_down")
+        if i % 2 == 0 then fake.fire_timers() end
+    end
+end
+
+--- A fresh container over a settled renderer: no inherited offset, no
+--- latched gesture, and -- because the cost estimate is smoothed rather
+--- than reset -- no memory of how expensive the last scenario was.
+local function fresh(id, cost, ch)
+    fake.set_draw_cost(0)
     settle()
-    fake.advance(5.0)
-end
-
---- A fresh container for one scenario, so none of them inherit an offset.
-local function fresh(id)
-    scene({ snapper(id) })
+    for _ = 1, 8 do
+        scene({ snapper(id, ch) })
+        fake.advance(0.2)
+        fake.fire_timers()
+    end
     fake.mouse(10, 10)
-    reset_wheel()
+    fake.advance(5.0)
+    fake.set_draw_cost(cost or 0)
 end
 
--- Two notches a second apart is nudging, not flinging.
-fresh("slow")
-notch(1.0)
-notch(1.0)
+-- A fling on a renderer that keeps up glides. This is the case the rate
+-- rule got wrong: the wheel here is going as fast as any fling, and that on
+-- its own is not a reason to make anyone's scrolling step.
+fresh("quick", 0)
+fling(10, 0.02)
 settle()
-ok(not on_row("slow"), "a slow scroll is left where the pixels put it",
-   string.format("offset %s landed on a row boundary",
-                 tostring(offset("slow"))))
+ok(offset("quick") > 0, "a fling on a fast renderer scrolls")
+ok(not on_row("quick"), "a fling glides when the frames are keeping up",
+   string.format("offset %s was pulled to a row boundary",
+                 tostring(offset("quick"))))
 
--- The same two notches 20ms apart are a fling.
-fresh("fling")
-notch(0.02)
-notch(0.02)
+-- The same fling where a frame costs 50ms cannot have one per notch, and
+-- quantizing is what buys the frames back.
+fresh("dear", 0.05)
+fling(10, 0.02)
 settle()
-ok(offset("fling") > 0, "a fling still scrolls")
-ok(on_row("fling"), "a fling settles on a row boundary",
-   string.format("offset %s is not on one", tostring(offset("fling"))))
+ok(offset("dear") > 0, "a fling on a slow renderer still scrolls")
+ok(on_row("dear"), "a fling settles on a row boundary once frames fall behind",
+   string.format("offset %s is not on one", tostring(offset("dear"))))
 
--- Just under the threshold (state.snap_fps = 15, so 1/15s ~ 67ms) must
--- still glide. This is the case the figure was raised twice for: brisk
--- but ordinary scrolling, which should not step.
-fresh("under")
-notch(0.08)
-notch(0.08)
+-- ...and cost alone is not a reason either. The same 50ms frames, asked for
+-- one a second, are latency rather than stutter: each notch gets a whole
+-- second of budget and there is nothing to save.
+fresh("dear-slow", 0.05)
+fling(4, 1.0)
 settle()
-ok(not on_row("under"), "a scroll below the rate threshold glides",
-   string.format("offset %s snapped", tostring(offset("under"))))
+ok(offset("dear-slow") > 0, "a slow scroll on a slow renderer scrolls")
+ok(not on_row("dear-slow"),
+   "an expensive frame asked for once a second still glides",
+   string.format("offset %s snapped", tostring(offset("dear-slow"))))
 
--- The threshold is a RATE, so a fling that stops is free again: the next
--- slow notch after it must not be dragged to a boundary.
-fresh("again")
-notch(0.02)
-notch(0.02)
+-- The test is per gesture, so a fling that ends hands scrolling back: the
+-- next unhurried notch must not be dragged to a boundary by the last one.
+fresh("again", 0.05)
+fling(10, 0.02)
 settle()
 ok(on_row("again"), "the fling landed aligned")
-notch(1.0)
+fake.advance(1.0)
+fake.key("wheel_down")
 settle()
 ok(not on_row("again"), "scrolling is free again once the fling ends",
    string.format("offset %s snapped", tostring(offset("again"))))
 
+-- And the estimate lets go as readily as it latches: the same fast fling
+-- over the same container, once the frames are cheap again, glides.
+fake.set_draw_cost(0)
+for _ = 1, 8 do
+    scene({ snapper("again") })
+    fake.advance(0.2)
+    fake.fire_timers()
+end
+fake.advance(5.0)
+local before_cheap = offset("again")
+fling(10, 0.02)
+settle()
+ok(offset("again") > before_cheap, "the cheap fling scrolled")
+ok(not on_row("again"), "a scene that got cheap again stops snapping",
+   string.format("offset %s snapped", tostring(offset("again"))))
+
 -- A container with no snap declared has nothing to quantize to, and a
 -- fling over it must not wedge anything.
+fake.set_draw_cost(0)
+settle()
 scene({ vscroll("plainfling", 300, 3000) })
 fake.mouse(10, 10)
-reset_wheel()
-notch(0.02)
-notch(0.02)
+fake.advance(5.0)
+fake.set_draw_cost(0.05)
+fling(10, 0.02)
 settle()
 ok(offset("plainfling") > 0, "a fling over an unsnapped container scrolls",
    string.format("offset stayed at %s", tostring(offset("plainfling"))))
 
 -- force_scroll_snapping (and external mpv) quantize the DRAWING at any
--- rate. The stored offset still glides -- the setting changes what is
--- painted, not where the scroller is -- so a slow scroll under it is left
--- off the boundary exactly as it is without.
+-- cost and any rate. The stored offset still glides -- the setting changes
+-- what is painted, not where the scroller is -- so a slow scroll under it
+-- is left off the boundary exactly as it is without.
 fake.send("mpvtk-wheel", fake.token({ force_snap = true }))
-fresh("forced")
-notch(1.0)
-notch(1.0)
+fresh("forced", 0)
+fling(4, 1.0)
 settle()
 ok(offset("forced") > 0, "forced snapping still scrolls")
 ok(not on_row("forced"), "forced snapping does not move the scroller",
    string.format("offset %s was pulled to a boundary",
                  tostring(offset("forced"))))
 fake.send("mpvtk-wheel", fake.token({ force_snap = false }))
+
+-- ================================================= duration-aware cadence
+--
+-- The other half of the same measurement. Frames are scheduled at what one
+-- costs, not at a rate picked for the worst machine: a gesture over an
+-- expensive scene is painted fewer times, which is what leaves the script
+-- room to take the events still arriving (mpv drops them -- "too many
+-- queued events" -- when it does not).
+
+--- Frames painted while scrolling for `span` seconds of clock.
+---
+--- The pump is finer than any cadence under test, so what is counted is
+--- how often the renderer chose to draw and not how often it was asked.
+local SPAN, DEAR = 1.0, 0.05
+
+local function frames_for(id, cost)
+    -- Content far taller than the gesture can exhaust: a scroller that
+    -- reaches the bottom stops asking to be drawn, and the count would
+    -- become "how long the container is" instead of "how often it drew".
+    fresh(id, cost, 200000)
+    local t0, drawn = fake.clock(), fake.log.draws
+    while fake.clock() - t0 < SPAN do
+        fake.advance(0.005)
+        fake.key("wheel_down")
+        fake.fire_timers()
+    end
+    return fake.log.draws - drawn
+end
+
+local quick_frames = frames_for("pace-quick", 0)
+local dear_frames = frames_for("pace-dear", DEAR)
+ok(quick_frames > 0, "a cheap scene paints while scrolling")
+ok(dear_frames > 0, "an expensive scene still paints while scrolling",
+   "a fling over it painted nothing at all")
+ok(dear_frames < quick_frames,
+   "an expensive scene is painted fewer times for the same gesture",
+   string.format("%d frames vs %d for a cheap one",
+                 dear_frames, quick_frames))
+
+-- The invariant behind the cadence, and the one worth pinning: drawing
+-- never takes more than its declared share of the clock. Scheduling frames
+-- an rcost apart would satisfy "fewer than a cheap scene" too, and leave
+-- the script no room to take the wheel events still coming.
+ok(dear_frames * DEAR <= SPAN * 0.7,
+   "drawing leaves the clock room for the events still arriving",
+   string.format("%d frames x %.0fms fills %.0f%% of a %.0fms gesture",
+                 dear_frames, DEAR * 1000,
+                 dear_frames * DEAR / SPAN * 100, SPAN * 1000))
 
 -- ========================================================== teardown
 

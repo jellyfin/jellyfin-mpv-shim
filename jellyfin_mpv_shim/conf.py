@@ -133,16 +133,18 @@ class Settings(SettingsBase):
     # scrollbar snaps with it) instead of the continuous-pixel behavior above.
     snapped_scrolling: bool = False
     # Quantize the content to row/section boundaries for the whole time the
-    # browser is open, instead of only while the wheel is being flung.
+    # browser is open, instead of only when the renderer measures itself
+    # falling behind.
     #
-    # The renderer already does this for a fast gesture, because a changed
-    # scroll offset re-lays the whole OSD and re-issues every visible
-    # overlay — expensive at 4K, and one IPC round trip per overlay on an
-    # external mpv. Below that rate it scrolls freely, which is smoother and
-    # costs nothing on any normal setup. This forces the mitigation on for
-    # the cases the rate test does not catch (a slow machine, a huge
-    # surface, a remote X display). It is always on with an external mpv,
-    # where the IPC cost applies to every frame regardless of rate.
+    # It already does this for a gesture asking for frames faster than it
+    # can draw them, because a changed scroll offset re-lays the whole OSD
+    # and re-issues every visible overlay — expensive at 4K, and dearer
+    # again on an external mpv. Anything that keeps up scrolls freely, which
+    # is smoother and costs nothing. This forces the mitigation on for what
+    # the measurement cannot see: it times the Lua side of a frame, and
+    # libass laying the result out at output resolution happens on the VO
+    # thread afterwards. It is always on with an external mpv, where the
+    # per-overlay cost applies to every frame regardless of rate.
     force_scroll_snapping: bool = False
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to

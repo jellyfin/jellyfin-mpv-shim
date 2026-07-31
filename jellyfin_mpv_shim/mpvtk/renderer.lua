@@ -42,19 +42,19 @@ local unpack = unpack or table.unpack  -- Lua 5.1 / 5.2+ compat
 
 local osd = mp.create_osd_overlay('ass-events')
 
+-- Finest cadence the renderer ever aims for. It only ever *slows* from
+-- here, and only by measurement — see active_tick and state.render_duty.
 local TICK = 0.03
--- Coarser cadence while a wheel gesture is live. Each render marks the whole
--- OSD dirty; at 4K that recomposite plus the scene push can eat most of a
--- 33fps budget, and firing them back-to-back starves the script's own event
--- queue (mpv drops events: "too many queued events") and races the display
--- (tearing). Capping to ~22fps during a fling leaves the core room to present
--- cleanly and the queue room to drain, at no cost to a settled screen.
-local SCROLL_TICK = 0.045
+-- ...and the slowest. Backing off is the response to a frame that costs
+-- too much, but a single pathological measurement must not be able to turn
+-- the UI into a slideshow, and past ~7fps the backoff is worse than the
+-- stutter it is treating.
+local RENDER_PACE_MAX = 0.15
 -- How long after the last wheel event we still consider a gesture "live".
-local SCROLL_TICK_WINDOW = 0.3
--- (The wheel-event rate above which the display quantizes lives on `state`
--- as snap_fps, with the rest of the snap state — this chunk is at Lua's
--- 200-local ceiling, so a new file-scope local costs someone else theirs.)
+local GESTURE_WINDOW = 0.3
+-- (What a frame costs and how much of its slot it may spend live on `state`
+-- as rcost/render_duty, with the rest of the snap state — this chunk is at
+-- Lua's 200-local ceiling, so a new file-scope local costs someone theirs.)
 local WHEEL_STEP = 80
 local MAX_OVERLAYS = 63
 
@@ -115,36 +115,63 @@ local state = {
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
     -- force_scroll_snapping (mpvtk-wheel), and always on for an external
-    -- mpv, where every overlay re-issue is an IPC round trip.
+    -- mpv, where an image is a file mpv opens and mmaps rather than an
+    -- address in this process, so re-issuing one is dear at any rate.
     force_snap = false,
-    -- Wheel-event rate above which the display quantizes to row/section
-    -- boundaries: two events closer together than 1/snap_fps are a fling
-    -- rather than a nudge.
+    -- What one render actually costs, in seconds: a smoothed measurement
+    -- taken around render() in request_render. Everything the renderer does
+    -- about being slow is derived from this and nothing else — how fast it
+    -- schedules frames (active_tick) and, from that, whether scrolling
+    -- quantizes to row boundaries (on_wheel).
     --
-    -- The cost being managed is per *changed* frame. A changed offset
-    -- re-lays the whole OSD at output resolution and re-issues every
-    -- visible overlay — out of process that is one IPC round trip each, up
-    -- to MAX_OVERLAYS of them. Quantizing makes consecutive frames
-    -- identical, so the re-issues are skipped by the argstr check in
-    -- renumber_overlays and libass has nothing new to lay out.
+    -- What it captures: the layout pass, building the ASS string, and every
+    -- overlay-add — which is where the resolution-dependent cost lives,
+    -- because a changed scroll offset re-issues every visible bitmap, up to
+    -- MAX_OVERLAYS of them, and an external mpv mmaps a file for each. What
+    -- it does not capture is libass laying the finished string out, which
+    -- happens on the VO thread after this returns. So this is a lower bound
+    -- on the true frame cost, and the thresholds below are set knowing that.
     --
-    -- But that only matters when the frames are actually coming. Someone
-    -- nudging the wheel a few notches produces two or three changed frames
-    -- a second, which is affordable at any resolution on any backend.
-    -- Quantizing for them bought nothing and made every scroll in the
-    -- application step instead of glide, which is what this threshold
-    -- exists to stop.
+    -- It is also measured from whatever the renderer last drew, and a
+    -- *scrolling* frame is dearer than a still one: at rest the overlay
+    -- re-issues are all skipped by the argstr check in flush_overlays. So a
+    -- gesture is judged on its own first frames rather than on an estimate
+    -- from before it started, and a fling takes a frame or two to be
+    -- recognized as one. That latency is the reason the release below is
+    -- time-based rather than symmetric with the latch.
+    rcost = 0,
+    -- The share of the wall clock the renderer may spend drawing, which is
+    -- what sets the cadence: frames are scheduled rcost/render_duty apart,
+    -- so the rest of each slot is left for the script to take the input
+    -- still arriving. That margin is the whole point — mpv drops events
+    -- ("too many queued events") when a script's callbacks run back to
+    -- back, and a wheel gesture is exactly when both are happening at once.
     --
-    -- Tuned by hand, upward, twice: 5 and then 10 both still caught
-    -- ordinary scrolling. A wheel flicked hard enough to need the
-    -- mitigation emits notches far faster than 15/s, so the cost of
-    -- setting it high is small — a fling takes an extra frame or two to
-    -- latch — while the cost of setting it low is that everyone's normal
-    -- scrolling steps instead of gliding, which is the whole thing this
-    -- exists to avoid.
-    snap_fps = 15,
-    -- Display quantization for the gesture in progress: latched by the rate
-    -- test in on_wheel, released SCROLL_TICK_WINDOW after the last event.
+    -- 0.6 leaves two thirds again as long as the frame itself. Nearer 1
+    -- would be pacing in name only: rendering already spaces itself by its
+    -- own duration, so a duty of 0.9 asks for barely a tenth more room than
+    -- doing nothing would give.
+    render_duty = 0.6,
+    -- The cadence below which a glide is worse than a step, and so the
+    -- point at which a scroll quantizes to row boundaries. Quantizing makes
+    -- consecutive frames *identical*, which is what lets the overlay
+    -- re-issues be skipped and leaves libass nothing new to lay out; it is
+    -- the cheap way out of a frame budget, and it costs the smooth glide of
+    -- ordinary scrolling.
+    --
+    -- So it is asked for only when the sustainable cadence (active_tick, ie
+    -- what rcost affords) is slower than BOTH this and the rate the gesture
+    -- is asking for. A machine holding 30fps glides, because a glide at
+    -- 30fps looks better than a step at 30fps. One that has fallen to 20
+    -- steps, because by then the glide is a series of lurches and the step
+    -- at least lands somewhere deliberate.
+    --
+    -- 0.045 is where the field report came from: this was a flat 22fps
+    -- ceiling on every wheel gesture, everywhere, and the reason it existed
+    -- was a 4K screen that could not hold it.
+    snap_pace = 0.045,
+    -- Display quantization for the gesture in progress: latched by the cost
+    -- test in on_wheel, released GESTURE_WINDOW after the last event.
     snap_live = false,
     wheel_prev = nil,       -- time of the previous wheel event (rate measure)
     snap_timer = nil,
@@ -434,21 +461,34 @@ end
 
 local render  -- fwd
 
--- The minimum spacing between renders right now: coarser while a wheel
--- gesture is live (see SCROLL_TICK), the normal cadence otherwise.
+-- The minimum spacing between renders right now, start to start.
+--
+-- Derived from what a frame measurably costs rather than from what is
+-- happening: scrolling does not slow the cadence down, being slow does.
+-- This used to drop to a flat 22fps for the duration of any wheel gesture,
+-- which was the right treatment aimed at the wrong patient — a fling on a
+-- machine that draws a frame in 3ms was never the problem, and it paid for
+-- the mitigation anyway.
 local function active_tick()
-    local lock = state.wheel_lock
-    if lock and mp.get_time() - lock.t < SCROLL_TICK_WINDOW then
-        return SCROLL_TICK
-    end
-    return TICK
+    local pace = state.rcost / state.render_duty
+    if pace < TICK then return TICK end
+    if pace > RENDER_PACE_MAX then return RENDER_PACE_MAX end
+    return pace
 end
 
 local function request_render()
     if state.tick_timer == nil then
         state.tick_timer = mp.add_timeout(0, function()
-            state.tick_last = mp.get_time()
+            local t0 = mp.get_time()
+            state.tick_last = t0
             render()
+            -- Smoothed so one dear frame — the first after a scene push
+            -- issues every overlay — does not pace the next second, and so
+            -- the estimate still follows a page that genuinely got heavier
+            -- within a few frames. Both directions matter: this decides
+            -- when scrolling stops gliding, so it has to let go as readily
+            -- as it latches.
+            state.rcost = state.rcost * 0.6 + (mp.get_time() - t0) * 0.4
         end)
     end
     if not state.tick_timer:is_enabled() then
@@ -492,7 +532,8 @@ local function snap_round(node, off)
     -- Whether the display quantizes at all right now. Three ways in, and
     -- the middle one is the reason this test exists:
     --   * force_snap — the user's opt-in, and the default on external mpv;
-    --   * snap_live — a fling is in progress (see on_wheel);
+    --   * snap_live — this gesture is outrunning the renderer (see
+    --     on_wheel);
     --   * snapped — snapped_scrolling, where the stored offset already sits
     --     on a detent so rounding is a no-op, but gating it off would be a
     --     lie about what that mode does.
@@ -2008,10 +2049,11 @@ render = function()
     if state.hud then
         -- input-diagnostics overlay (toggle: F12)
         local lw = state.last_wheel or {}
-        local tnode = { w = 560, h = 24, size = 16, align = 'right' }
-        draw_text(ass, tnode, state.w - 570, 4, nil,
+        local tnode = { w = 640, h = 24, size = 16, align = 'right' }
+        draw_text(ass, tnode, state.w - 650, 4, nil,
             string.format(
-                'wheel:%d s:%.2f tgt:%s off:%s snap:%s | mouse:%d,%d hover:%s',
+                'wheel:%d s:%.2f tgt:%s off:%s snap:%s ' ..
+                'draw:%dms/%dms | mouse:%d,%d hover:%s',
                 state.wheel_count or 0, lw.scale or 0,
                 tostring(lw.target), tostring(lw.off),
                 -- 'F' forced (setting or external mpv), 'g' this gesture,
@@ -2019,6 +2061,14 @@ render = function()
                 -- scrolling reads '-', so it is worth being able to see.
                 state.force_snap and 'F'
                     or (state.snap_live and 'g' or '-'),
+                -- What a frame costs and the cadence that buys it. These
+                -- two decide everything above: a machine that reads
+                -- draw:3ms/30ms will never quantize, and one that reads
+                -- draw:50ms/62ms always will. Reading them is how you tell
+                -- "the renderer is slow here" from "the wheel is not
+                -- arriving", which look identical from the outside.
+                math.floor(state.rcost * 1000 + 0.5),
+                math.floor(active_tick() * 1000 + 0.5),
                 state.mouse.x or -1, state.mouse.y or -1,
                 tostring(state.mouse.hover)),
             'ffcc66')
@@ -2953,19 +3003,35 @@ local WHEEL_LOCK_S = 2.0
 local function on_wheel(dir, axis, e)
     phud_touch()
     state.wheel_count = (state.wheel_count or 0) + 1
-    -- Latch display quantization for a fast gesture (see state.snap_fps).
+    -- Latch display quantization when this gesture is asking for frames
+    -- faster than they can be drawn.
+    --
+    -- active_tick() is the cadence the measured frame cost affords; the
+    -- slot is how often this gesture wants one, floored at snap_pace
+    -- because below that cadence a glide has stopped being smooth whatever
+    -- the wheel is doing. Falling behind is one being larger than the
+    -- other, and it takes both: a fling on a machine that draws in 3ms
+    -- keeps up and glides, which is most scrolling on most setups, and a
+    -- slow nudge on one that takes 80ms is given the whole gap and also
+    -- glides, because a frame that lands late but alone is latency, not
+    -- stutter.
+    --
     -- Measured across wheel events globally rather than per container: a
     -- fling is a property of the input device, and a gesture that crosses
     -- from one scroller to another is still one flick of one wheel.
     --
-    -- A single fast interval latches it, because the release below is
-    -- time-based. Requiring a sustained rate instead would spend the first
-    -- half of every fling doing the expensive thing.
+    -- A single overrun latches it, because the release below is
+    -- time-based. Requiring a sustained overrun instead would spend the
+    -- first half of every fling doing the expensive thing.
     local wnow = mp.get_time()
     local wprev = state.wheel_prev
     state.wheel_prev = wnow
-    if wprev and (wnow - wprev) * state.snap_fps <= 1 then
-        state.snap_live = true
+    if wprev then
+        local slot = wnow - wprev
+        if slot < state.snap_pace then slot = state.snap_pace end
+        if active_tick() > slot then
+            state.snap_live = true
+        end
     end
     if state.snap_live then
         -- Drop back to free scrolling once the gesture is over, moving the
@@ -2982,7 +3048,7 @@ local function on_wheel(dir, axis, e)
         if state.snap_timer then
             state.snap_timer:kill()
         end
-        state.snap_timer = mp.add_timeout(SCROLL_TICK_WINDOW, function()
+        state.snap_timer = mp.add_timeout(GESTURE_WINDOW, function()
             state.snap_timer = nil
             if not state.snap_live then return end
             local lock = state.wheel_lock

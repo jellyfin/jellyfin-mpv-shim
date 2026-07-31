@@ -265,11 +265,11 @@ NOTES = {
                            "on if you prefer the older stepped scrolling."),
     "force_scroll_snapping": _("Force scroll snapping (mitigates lag). "
                                "Scrolling normally glides, and only snaps to "
-                               "rows while the wheel is being flung, which is "
-                               "when drawing every position gets expensive. "
-                               "Turn this on if scrolling still stutters — on "
-                               "a very large display, or a slow or remote "
-                               "one. Always on with an external MPV."),
+                               "rows when the browser measures itself drawing "
+                               "slower than the scroll is asking for. Turn "
+                               "this on if scrolling still stutters — on a "
+                               "very large display, or a slow or remote one. "
+                               "Always on with an external MPV."),
     # Deliberately says nothing about the pypresence dependency: the Windows
     # build bundles it, so naming a package most users will never have to
     # think about only invites questions. The dynamic note in

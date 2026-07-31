@@ -102,7 +102,7 @@ class TestRendererLua(unittest.TestCase):
         "gave up.\n\n"
         "Options, cheapest first:\n"
         "  * put single-use helpers inside their one caller;\n"
-        "  * hang new tunables off the `state` table (snap_fps does this);\n"
+        "  * hang new tunables off the `state` table (rcost and render_duty do);\n"
         "  * group a family of related constants into one table local.\n\n"
         "tests/test_renderer_lua.py::test_there_is_a_local_budget_left\n"
         "reports how much room is left before this happens again.")

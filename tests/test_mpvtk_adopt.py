@@ -62,9 +62,9 @@ class TestAdoptBackend(unittest.TestCase):
         return json.loads(payload[2])
 
     def test_scroll_snapping_is_forced_out_of_process(self):
-        """Out of process every overlay re-issue is a JSON IPC round trip,
-        and a scroll wants dozens per frame — so the renderer's rate-based
-        gate is the wrong test there: the cost is high at any rate.
+        """Out of process an image is a file mpv opens and mmaps rather than
+        an address in this process, and a scrolling frame re-issues every
+        visible one — so the cost is high there at any rate.
 
         Decided here rather than by importing player.py into the toolkit;
         in_process is the backend's own answer to the same question."""

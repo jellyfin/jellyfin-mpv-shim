@@ -879,14 +879,15 @@ class Scroll(Element):
     boundary. The internal offset stays continuous, so virtualization and
     paging are unaffected — only what's drawn snaps.
 
-    **It is a capability, not a mode.** The renderer applies it only while
-    the wheel is being flung (above ``SCROLL_SNAP_FPS``), or when the user
-    forces it on, or on an external mpv — see ``snap_engaged`` in
-    renderer.lua. Ordinary scrolling glides. Declaring ``snap`` therefore
-    costs nothing on a screen nobody flings, and the quantization is there
-    when the frames get expensive: a changed offset re-lays the whole OSD at
-    output resolution and re-issues every visible overlay, which out of
-    process is one IPC round trip each.
+    **It is a capability, not a mode.** The renderer applies it only when a
+    gesture is asking for frames faster than it can measurably draw them, or
+    when the user forces it on, or on an external mpv — see ``snap_round``
+    and ``state.rcost`` in renderer.lua. Ordinary scrolling glides.
+    Declaring ``snap`` therefore costs nothing on a machine that keeps up,
+    and the quantization is there for one that does not: a changed offset
+    re-lays the whole OSD at output resolution and re-issues every visible
+    overlay, and quantizing is what makes consecutive frames identical so
+    both are skipped.
 
     ``snaps`` is the same idea for **unequal** breakpoints: an explicit list
     of logical offsets (e.g. the content-y of each home-screen section

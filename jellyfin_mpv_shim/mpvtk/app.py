@@ -416,12 +416,19 @@ class MpvtkApp:
         Sent on ready and again whenever the Library Browser settings change.
 
         ``force_snap`` is the user's setting OR'd with "this is an external
-        mpv". Out of process, every overlay re-issue is a JSON IPC round
-        trip and a scroll can want dozens per frame, so the renderer's
-        rate-based gate is the wrong test there — the cost is high at *any*
-        rate. ``self.in_process`` is the backend's own answer to that
-        (mirroring ``player.is_using_ext_mpv``), which is why this is
-        decided here rather than by importing player into the toolkit.
+        mpv". Out of process an image reaches mpv as a *file* it opens and
+        mmaps, rather than the ``&<address>`` into shared memory MemoryStore
+        hands it (see rawimage.py), and a scrolling frame re-issues every
+        visible overlay — so the per-overlay cost is high there whatever the
+        wheel is doing. ``self.in_process`` is the backend's own answer to
+        which one this is (mirroring ``player.is_using_ext_mpv``), which is
+        why it is decided here rather than by importing player into the
+        toolkit.
+
+        That cost now lands *inside* what the renderer times, so its own
+        measurement should reach the same conclusion unaided. This stays
+        belt-and-braces until someone has confirmed that on a real external
+        mpv; if it holds, this clause is the thing to delete.
         """
         from ..conf import settings
 
