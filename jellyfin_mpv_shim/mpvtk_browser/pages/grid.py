@@ -231,7 +231,7 @@ class GridPage(Page):
         if items is None:
             return chrome.busy()
         header = self._header(items, size[0])
-        if view_prefs.is_list_view(self._view("viewType")):
+        if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             return self._list_view(items, header)
         geom, image_type = self._grid_shape(items)
         labels = (bool(self._view("showTitle")),

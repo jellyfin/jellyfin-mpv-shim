@@ -368,6 +368,9 @@ class DialogsMixin:
         """
         from . import view_prefs
 
+        def _is_list(read):
+            return view_prefs.is_list(read("imageType"), read("viewType"))
+
         def build():
             image_types = [
                 ("primary", _("Auto")), ("poster", _("Poster")),
@@ -376,7 +379,13 @@ class DialogsMixin:
                 ("disc", _("Disc")),
             ]
             values = [v for v, _l in image_types]
+            # While the list view is on, imageType IS "list" -- there is no
+            # artwork being drawn to point at, so the picker falls back to
+            # Auto and choosing any entry writes it, which is what leaves
+            # the list.
             stored = current("imageType")
+            if _is_list(current):
+                stored = view_prefs.GRID_IMAGE_TYPE
             body = [
                 self._picker(
                     _("Artwork"), "vs-imagetype",
@@ -395,14 +404,18 @@ class DialogsMixin:
                          id="vs-showyear",
                          on_toggle=lambda: on_set(
                              "showYear", not current("showYear"))),
-                Checkbox(_("List instead of a grid"),
-                         view_prefs.is_list_view(current("viewType")),
+                # Stored as an ARTWORK value, which is where web keeps it:
+                # its own picker is one dropdown of primary/banner/disc/
+                # logo/thumb/list. Two controls here because "draw this as a
+                # table" is a different question from "which picture", but
+                # they write the one key, so leaving the list is picking an
+                # artwork type -- which is exactly what it is in web.
+                Checkbox(_("List instead of a grid"), _is_list(current),
                          id="vs-listview",
                          on_toggle=lambda: on_set(
-                             "viewType",
-                             view_prefs.GRID_VIEW
-                             if view_prefs.is_list_view(current("viewType"))
-                             else view_prefs.LIST_VIEW)),
+                             "imageType",
+                             view_prefs.GRID_IMAGE_TYPE if _is_list(current)
+                             else view_prefs.LIST_IMAGE_TYPE)),
                 Text(_("These are stored on your server and shared with "
                        "Jellyfin Web."), size=13, color=theme.SUBTLE_FG,
                      wrap=True),

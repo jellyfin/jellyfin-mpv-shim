@@ -1050,6 +1050,51 @@ class ViewLabelsAndListTest(unittest.TestCase):
         texts = {n.get("text") for n in nodes}
         self.assertTrue({"Name", "Year", "Length"} <= texts)
 
+    def test_the_list_view_web_writes_is_the_one_we_read(self):
+        """web keeps the list view on the ARTWORK key -- its picker is one
+        dropdown of primary/banner/disc/logo/thumb/list
+        (viewSettings.template.html) -- and this client used to write it to
+        a `viewType` key nothing over there has ever read. A library put in
+        list view from a browser came up here as a grid."""
+        b, _src = self._grid(imageType="list")
+        _n, _h, types = self._scene(b)
+        self.assertNotIn("img", types, "web's list view drew as a grid")
+
+    def test_the_key_this_client_used_to_write_still_reads(self):
+        """Whatever is already stored has to keep working."""
+        b, _src = self._grid(viewType="List")
+        _n, _h, types = self._scene(b)
+        self.assertNotIn("img", types)
+
+    def test_turning_the_list_on_writes_where_web_looks(self):
+        b, src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("imageType", "list")])
+
+    def test_leaving_the_list_is_picking_an_artwork_type(self):
+        """Which is what it is in web: its dropdown has no 'off'."""
+        b, src = self._grid(imageType="list")
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("imageType", "primary")])
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_the_artwork_picker_reads_as_auto_while_listing(self):
+        """There is no artwork being drawn to point at, and choosing an
+        entry is how you leave the list."""
+        b, _src = self._grid(imageType="list")
+        page = b._page_for(b.route)
+        page._open_view_settings()
+        nodes, _h = build_scene(b)
+        picker = [n for n in nodes if n.get("id") == "vs-imagetype"][0]
+        self.assertEqual(picker.get("sel"), 0)
+
     def test_a_long_list_only_materializes_a_screenful(self):
         """"No overlays" was read as "no need to virtualize", and it is only
         half the cost: a row is still a Row, two margin Spacers and three
