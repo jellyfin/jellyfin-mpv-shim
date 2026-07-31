@@ -90,11 +90,9 @@ class DisplayTabMixin:
 
         def done(prefs):
             route["_display_prefs"] = prefs
-            route["_display_loading"] = False
             self.invalidate()
 
         def failed(_exc):
-            route["_display_loading"] = False
             # Not the defaults: offering editable toggles we never read lets
             # the user "keep" a value that was never loaded and then save
             # that guess over their real one.
@@ -103,7 +101,18 @@ class DisplayTabMixin:
             self.set_status(_("Could not load your display settings."))
             self.invalidate()
 
-        self.run_async(work, done, ep, on_error=failed)
+        def clear_guard():
+            route["_display_loading"] = False
+
+        # `always`, not a line in each of done/failed: on_done is
+        # epoch-gated, so a fetch superseded by a background reconnect
+        # (set_source bumps the epoch) or by leaving and coming back runs
+        # NEITHER of them — and a guard left set means this tab never
+        # fetches again. The render path then short-circuits on it every
+        # frame: a permanent spinner with no error and no retry, escapable
+        # only by switching tabs, which the user has no reason to guess.
+        # Same shape and same reason as pagination.py's clear_guard.
+        self.run_async(work, done, ep, on_error=failed, always=clear_guard)
 
     def _retry_display(self, route):
         route.pop("_display_error", None)

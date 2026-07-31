@@ -871,6 +871,41 @@ class TestDisplayTab(unittest.TestCase):
         self.assertNotIn("display-episode-images", ids(nodes))
         self.assertNotIn("display-retry", ids(nodes))
 
+    def test_a_superseded_fetch_does_not_strand_the_tab(self):
+        """`on_done` is epoch-gated, so a fetch overtaken by a background
+        reconnect (set_source bumps the epoch) or by leaving and coming
+        back runs NEITHER callback. With the loading guard cleared only in
+        those two, it stayed set — and the tab then short-circuits on it
+        every frame: a permanent spinner, no error, no retry, escapable
+        only by switching tabs.
+
+        Driven by bumping the epoch mid-fetch, which is what actually
+        happens, rather than by poking the flag.
+        """
+        src = FakeSource()
+        b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+
+        def get_user_prefs(_server, refresh=False):
+            b._bump_epoch()          # a reconnect lands while we are out
+            return {"episode_images": False}
+
+        src.get_user_prefs = get_user_prefs
+        src.save_user_prefs = lambda *a: None
+        b._open_settings()
+        b.route["_tab"] = "display"
+        build_scene(b)
+        self.assertFalse(b.route.get("_display_loading"),
+                         "the tab is stuck on a spinner for good")
+        # ...and the next visit actually re-fetches rather than returning
+        # early on the stale guard.
+        reads = []
+        src.get_user_prefs = lambda _s, refresh=False: (
+            reads.append(refresh) or {"episode_images": True})
+        build_scene(b)
+        self.assertEqual(reads, [True])
+
     def test_leaving_the_tab_drops_the_cached_read(self):
         """Same rule as the home layout: a cached copy goes stale the moment
         the user touches Jellyfin Web."""

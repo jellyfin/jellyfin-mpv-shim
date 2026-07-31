@@ -111,11 +111,9 @@ class HomeTabMixin:
 
         def done(layout):
             route["_home_layout"] = layout
-            route["_home_loading"] = False
             self.invalidate()
 
         def failed(_exc):
-            route["_home_loading"] = False
             # Not the defaults: offering an editable layout we never read
             # would let the user "keep" settings that were never loaded and
             # then save that guess over their real one.
@@ -124,7 +122,13 @@ class HomeTabMixin:
             self.set_status(_("Could not load the home screen layout."))
             self.invalidate()
 
-        self.run_async(work, done, ep, on_error=failed)
+        def clear_guard():
+            route["_home_loading"] = False
+
+        # `always`: on_done is epoch-gated, so a superseded fetch runs
+        # neither callback and leaves this tab spinning for good. See the
+        # display tab's twin for the full reasoning.
+        self.run_async(work, done, ep, on_error=failed, always=clear_guard)
     def _retry_home_layout(self, route):
         route.pop("_home_error", None)
         self.status = ""
