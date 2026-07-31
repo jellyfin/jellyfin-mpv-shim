@@ -921,13 +921,20 @@ class TileRenderer:
         # and the last one is clipped.
         return max(1, int(
             (self.body_w(w) + geom.gap) // (geom.tile_w + geom.gap)))
-    def item_list(self, rows, prefix, on_click, scroll_id=None):
+    def item_list(self, rows, prefix, on_click, scroll_id=None, head_h=0):
         """A library as a plain table -- jellyfin-web's List view type.
 
         Deliberately without an art column, unlike ``track_list``: the point
         of choosing this view is that the artwork was not helping, and it is
-        also what makes it cheap. No strips and no overlays, so a library of
-        thousands costs nothing to draw and needs no virtualization.
+        also what makes it cheap — no strips, and no overlays to spend.
+
+        **Virtualized all the same.** "No overlays" was read as "no need to
+        virtualize", and it is only half the cost: a row is still a Row, two
+        margin Spacers and three cell Boxes to build, lay out and serialize,
+        on the loop thread, every repaint. Infinite scroll grows this list
+        without bound and List view is the one people pick *because* the
+        library is large — at 2000 rows that measured ~8k nodes, 85ms and
+        1.4MB per push, repeated every 120px of scroll.
         """
         columns = [{"label": _("Name"), "flex": 4},
                    {"label": _("Year"), "w": 80},
@@ -942,8 +949,17 @@ class TileRenderer:
                 "on_context": (lambda x, y, it=row.get("item"):
                                self.on_context(it, x, y)),
             })
+        # Same window track_list computes, and for the same reason minus
+        # the overlays. Only when the caller names its scroll container:
+        # without one there is no live offset to window against.
+        virtual = None
+        if scroll_id is not None and self.art._size is not None:
+            virtual = {
+                "offset": max(0.0, self.scroll.offset(scroll_id) - head_h),
+                "height": float(self.art._size[1]),
+            }
         return Table(columns, table_rows, row_h=TRACK_ROW_H,
-                     id=(scroll_id or prefix) + "-table")
+                     id=(scroll_id or prefix) + "-table", virtual=virtual)
 
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,

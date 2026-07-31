@@ -417,7 +417,12 @@ class GridPage(Page):
         table = self.ctx.art.tiles.item_list(
             rows, "grid", on_click=lambda i: self.ctx.art.tiles.on_open(
                 items[i]),
-            scroll_id="grid")
+            scroll_id="grid",
+            # What sits above the table inside the same Column, so the
+            # window is computed against the table's own rows rather than
+            # against the page. header_offset knows this Column's pad and
+            # gap because it is the one the grid uses.
+            head_h=self.ctx.art.tiles.header_offset(header))
         return VScroll(
             Column(header + [table], pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                    align="stretch"), id="grid", flex=1,

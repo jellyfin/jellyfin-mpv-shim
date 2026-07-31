@@ -980,6 +980,33 @@ class ViewLabelsAndListTest(unittest.TestCase):
         texts = {n.get("text") for n in nodes}
         self.assertTrue({"Name", "Year", "Length"} <= texts)
 
+    def test_a_long_list_only_materializes_a_screenful(self):
+        """"No overlays" was read as "no need to virtualize", and it is only
+        half the cost: a row is still a Row, two margin Spacers and three
+        cell Boxes to build, lay out and serialize on the loop thread every
+        repaint. Infinite scroll grows the list without bound, and this is
+        the view people choose *because* the library is large.
+
+        Asserted on node count rather than on timing so it cannot go flaky
+        on a slow machine — the nodes are what the cost is made of.
+        """
+        b, _src = self._grid(viewType="List")
+        # What a user who kept scrolling has: infinite scroll appends into
+        # `_items`, so the route holds every page they walked past. Set
+        # directly because loading 2000 through the pager would be testing
+        # the pager.
+        b.route["_items"] = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie",
+             "ProductionYear": 2000, "RunTimeTicks": 60 * 600000000}
+            for i in range(2000)]
+        nodes, _h, _t = self._scene(b)
+        self.assertLess(len(nodes), 1500,
+                        "the whole list was built: %d nodes" % len(nodes))
+        # ...and what IS built is the top of the list, where the scroll is.
+        texts = {n.get("text") for n in nodes}
+        self.assertIn("Item 0", texts)
+        self.assertNotIn("Item 1999", texts)
+
     def test_the_list_shows_the_year_and_runtime(self):
         b, _src = self._grid(viewType="List")
         nodes, _h, _t = self._scene(b)
