@@ -98,6 +98,59 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         self.assertEqual(TileRenderer._banner_fetch_w(self._r(), 0), 0)
         self.assertEqual(TileRenderer._banner_fetch_w(self._r(), -5), 0)
 
+    def _asked_for(self, width=1280):
+        """Drive the real backdrop_node and record what it asks the server
+        for. `thumbs=None` stops _request_image before any fetch, which is
+        all this needs — the URL is built first."""
+        from types import SimpleNamespace
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        asked = {}
+
+        class _Source:
+            @staticmethod
+            def backdrop_spec(_item):
+                return ("m1", "tag9")
+
+            @staticmethod
+            def backdrop_url(_server, _item, width=None, height=None,
+                             fill=False):
+                asked.update(width=width, height=height, fill=fill)
+                return "http://srv/bd.jpg"
+
+        r = self._r()
+        r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
+        r._posters, r._requested, r._img_retry = {}, set(), {}
+        box = TileRenderer.banner_box(r, width)
+        TileRenderer.backdrop_node(r, {"Id": "m1"}, box, "detail-bd")
+        return asked, box
+
+    def test_the_banner_is_fetched_at_the_banners_aspect(self):
+        """`fill=True` is fillWidth+fillHeight: the server CROPS to the shape
+        asked for. Asking for a square hands back the centre square of a
+        16:9 backdrop, and compose_banner's cover then blows that up to the
+        full width — every detail header zoomed ~1.8x, for 2.7x the pixels,
+        in the commit whose point was making banners cheaper.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        asked, _box = self._asked_for()
+        self.assertTrue(asked["fill"], "without fill the server squashes")
+        self.assertLess(asked["height"], asked["width"], "asked for a square")
+        r = self._r()
+        self.assertAlmostEqual(asked["height"] / asked["width"],
+                               TileRenderer.BANNER_RATIO, delta=0.01)
+
+    def test_the_fetched_height_still_covers_the_drawn_banner(self):
+        """The other half: a crop that came back shorter than the box would
+        have to be upscaled to cover it."""
+        for width in (700, 1024, 1280, 1600):
+            with self.subTest(width=width):
+                asked, box = self._asked_for(width)
+                from jellyfin_mpv_shim.mpvtk import scaling
+                self.assertGreaterEqual(asked["height"],
+                                        scaling.raster(*box)[1])
+
     def test_the_aspect_ratio_survives(self):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
         r = self._r()

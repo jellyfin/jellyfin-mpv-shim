@@ -1490,7 +1490,34 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         falls back to putting the token in the url. mpv has had
         ``http-header-fields`` for over a decade so this should not happen,
         but the cost of being wrong is that nothing plays at all.
+
+        **The clear at the top is load-bearing.** ``http-header-fields`` is
+        a global, persistent mpv option and mpv is not re-created between
+        queue items, so a header installed for one item is still installed
+        for the next — including a next item we deliberately *refuse* to
+        set it for. That refusal is this guard's entire purpose, and
+        without the clear it defeated itself: auto-advance from a normal
+        item to one whose subtitle lives on a third-party host, and mpv
+        sent the previous item's ``Authorization`` to that host while the
+        log said it had not. Clearing here rather than on each ``return
+        False`` is the point — every exit path past this line leaves mpv
+        holding nothing, including the ones nobody has written yet.
         """
+        if not self._mpv_alive:
+            # mpv is DOWN — idle-quit, a crash, a window the user closed —
+            # and _play_media re-creates it moments from now, in
+            # _ensure_mpv, which runs after this. Touching the dead handle
+            # from here is not an exception to catch: libmpv's property
+            # write on a destroyed handle takes the process with it, and
+            # the try/except below cannot see that coming. The re-opened
+            # mpv holds no header of ours in any case, so the honest
+            # answer is this method's documented fallback — let the url
+            # carry the token, and the next start install the header.
+            return False
+        try:
+            self._player.http_header_fields = []
+        except Exception:
+            log.debug("could not clear http-header-fields", exc_info=True)
         client = getattr(video, "client", None)
         if client is None:
             return False

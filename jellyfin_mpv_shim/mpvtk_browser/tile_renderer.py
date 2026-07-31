@@ -528,16 +528,26 @@ class TileRenderer:
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
-            # Request at the *source* aspect and crop to the banner below, so
-            # a shallow banner doesn't ask the server for a squashed image --
-            # and at a quantised width, so dragging the window edge does not
-            # ask for a new one every pixel.
+            # Request at the BANNER's aspect, at a quantised width so that
+            # dragging the window edge does not ask for a new image every
+            # pixel.
+            #
+            # The height is not incidental. `fill=True` is fillWidth +
+            # fillHeight, i.e. the server *crops* to the shape asked for
+            # (it does not squash), and compose_banner's scale_to_cover
+            # then centre-crops to the same shape — so asking for the
+            # banner's own aspect is the identical picture for a third of
+            # the pixels. Asking for a square instead, as this briefly
+            # did, hands back the centre square of a 16:9 backdrop, which
+            # cover then blows up to the full width: every header zoomed
+            # ~1.8x, in the commit whose point was making banners cheaper.
             fetch_w = self._banner_fetch_w(pbox[0])
-            fetch_key = make_key(owner_id, "Backdrop", tag, fetch_w, fetch_w)
+            fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
+            fetch_key = make_key(owner_id, "Backdrop", tag, fetch_w, fetch_h)
             url = self.art.source.backdrop_url(self.art.server, item,
-                                               width=fetch_w, height=fetch_w,
+                                               width=fetch_w, height=fetch_h,
                                                fill=True)
-            img = self._request_image(fetch_key, url, (fetch_w, fetch_w))
+            img = self._request_image(fetch_key, url, (fetch_w, fetch_h))
             if img is not None:
                 b = self.art.strips.bitmap(key, components.compose_banner(
                     img, pbox, title, meta, context), lsize=box)

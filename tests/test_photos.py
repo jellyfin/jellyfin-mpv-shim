@@ -222,6 +222,10 @@ class AuthHeaderTest(unittest.TestCase):
 
         pm = PlayerManager.__new__(PlayerManager)
         pm._player = type("P", (), {})()
+        # A live mpv: the method declines outright on a dead handle, because
+        # writing a property to a destroyed libmpv segfaults rather than
+        # raising (see the guard in _apply_auth_headers).
+        pm._mpv_alive = True
         return pm
 
     def _video(self, token="T0KEN", raises=False):
@@ -293,6 +297,74 @@ class AuthHeaderTest(unittest.TestCase):
         self.assertEqual(len(sent), 1)
         self.assertTrue(sent[0].startswith("Authorization: MediaBrowser "))
         self.assertIn('Token="T0KEN"', sent[0])
+
+    def test_a_refusal_leaves_mpv_holding_nothing(self):
+        """The guard's whole purpose, and what it silently failed to do.
+
+        ``http-header-fields`` is a global, persistent option and mpv is not
+        re-created between queue items, so the assertion that matters is not
+        "did we return False" but "what is mpv left holding". Play something
+        normally, auto-advance to an item whose subtitle is on a third-party
+        host, and the refusal used to log, fall back to a token in the URL
+        — and let mpv send the *previous* item's Authorization to that host
+        anyway. Nothing failed; the evidence was in someone else's log.
+        """
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm()
+        self.assertTrue(
+            PlayerManager._apply_auth_headers(pm, self._video()))
+        self.assertTrue(pm._player.http_header_fields, "no header to leak")
+        video = self._with_subs("https://opensubtitles.example/x.srt")
+        self.assertFalse(PlayerManager._apply_auth_headers(pm, video))
+        self.assertEqual(pm._player.http_header_fields, [],
+                         "mpv still holds the previous item's token")
+
+    def test_a_dead_mpv_is_not_touched_at_all(self):
+        """`play()` runs this BEFORE `_play_media`, and `_ensure_mpv` — the
+        re-open after an idle-quit or a crash — is inside `_play_media`. So
+        the handle here can be a destroyed one, and libmpv answers a
+        property write on one of those with a segfault, not an exception:
+        the try/except around it cannot help. The integration matrix's
+        idle-quit-and-reopen test crashed the interpreter on exactly this.
+        """
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm()
+        pm._mpv_alive = False
+        touched = []
+
+        class _Dead:
+            def __setattr__(self, name, value):
+                touched.append(name)
+
+        pm._player = _Dead()
+        self.assertFalse(
+            PlayerManager._apply_auth_headers(pm, self._video()),
+            "claimed a header a dead mpv never took")
+        self.assertEqual(touched, [], "wrote to a destroyed mpv handle")
+
+    def test_every_refusal_path_clears_it(self):
+        """Swept rather than spot-checked: the clear is at the top for
+        exactly this reason, so a refusal added later cannot reintroduce
+        the leak by forgetting to clear on its way out."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        refusals = {
+            "no client": lambda: type("V", (), {"client": None})(),
+            "no token": lambda: self._video(token=""),
+            "header raises": lambda: self._video(raises=True),
+            "foreign subtitle host":
+                lambda: self._with_subs("https://elsewhere.example/x.srt"),
+        }
+        for why, make in refusals.items():
+            pm = self._pm()
+            PlayerManager._apply_auth_headers(pm, self._video())
+            self.assertFalse(
+                PlayerManager._apply_auth_headers(pm, make()),
+                "%s should have been refused" % why)
+            self.assertEqual(pm._player.http_header_fields, [],
+                             "a token survived the %r refusal" % why)
 
     def test_a_client_with_no_token_is_not_claimed_as_authenticated(self):
         """Claiming success would strip a token off a URL that needs one."""
