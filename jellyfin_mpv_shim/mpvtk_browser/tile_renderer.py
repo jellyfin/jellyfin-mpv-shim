@@ -937,9 +937,14 @@ class TileRenderer:
                                      min(geom.tile_w, geom.tile_h)
                                      * CHIP_FRACTION))
                    * (CHIP_HOT_SCALE if hot else 1.0))
-        img = _play_chip_bitmap(size, hot=hot)
-        bm = self.art.strips.bitmap(("play-chip", px(size), hot), img,
-                                    lsize=(size, size))
+        # Lazily: the chip is re-derived on every build of the strip it sits
+        # on, and there are only ever two of them per size. Handing the store
+        # a finished 3x supersample to throw away is the whole cost of a
+        # hover repaint.
+        bm = self.art.strips.bitmap(
+            ("play-chip", px(size), hot),
+            lambda: _play_chip_bitmap(size, hot=hot),
+            lsize=(size, size))
         dx = region["x"] + (geom.tile_w - size) / 2
         dy = region["y"] + (geom.tile_h - size) / 2
         return Image(bm["src"], bm["iw"], bm["ih"], v=bm.get("v", 0),

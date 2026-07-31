@@ -374,7 +374,14 @@ class StripStore:
         ``image`` is a PIL image already at **physical** display size.
         ``lsize`` is the logical (w, h) box it was rasterized for — pass it
         whenever a logical box drove the size, so the Image widget can check
-        the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``."""
+        the two agree. Returns ``{"src", "iw", "ih", "lw", "lh", "v"}``.
+
+        ``image`` may instead be a zero-argument callable, called only on a
+        miss. For a bitmap that is asked for on most frames and drawn on
+        almost none of them, rasterizing to hand the answer to a cache that
+        already has it is the whole cost — the hovered tile's play chip is
+        re-derived every time its strip is rebuilt, and supersamples a disc
+        at 3x to do it."""
         ck = ("bitmap", self.tag, key)
         with self._lock:
             hit = self._cache.get(ck)
@@ -383,7 +390,7 @@ class StripStore:
                 self.hits += 1
                 return hit
             self.misses += 1
-        src, w, h, v = self._store(image)
+        src, w, h, v = self._store(image() if callable(image) else image)
         from ..mpvtk.scaling import dip
 
         lw, lh = lsize if lsize is not None else (dip(w), dip(h))

@@ -256,5 +256,74 @@ class ChipTest(unittest.TestCase):
                          [["g0", "g1", "g2"]])
 
 
+class ChipRasterCostTest(unittest.TestCase):
+    """The chip is re-derived on every build of the strip it sits on, and
+    there are only ever two of them per size (lit and not). Rasterizing to
+    hand the answer to a cache that already has it is the whole cost of a
+    hover repaint -- and it is a 3x supersampled disc, on the loop thread."""
+
+    def _hovered(self):
+        src = FakeSource()
+        src.grid_items = [{"Id": "g0", "Name": "Film", "Type": "Movie",
+                           "PrimaryImageAspectRatio": 2 / 3}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        tid = [n for n in ids(build_scene(b)[0])
+               if n.startswith("grid-") and n.endswith("g0")][0]
+        _nodes, handlers = build_scene(b)
+        handlers[tid]["hover"]("")
+        return b, tid
+
+    def test_repainting_a_hovered_tile_does_not_re_raster_the_chip(self):
+        from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+
+        b, tid = self._hovered()
+        build_scene(b)                      # first build: one miss, cached
+        calls = []
+        real = tile_renderer._play_chip_bitmap
+
+        def counted(size, hot=False):
+            calls.append((size, hot))
+            return real(size, hot=hot)
+
+        tile_renderer._play_chip_bitmap = counted
+        try:
+            for _ in range(5):
+                build_scene(b)
+        finally:
+            tile_renderer._play_chip_bitmap = real
+        self.assertEqual(calls, [], "the chip was rasterized %d times for a "
+                                    "bitmap the store already had"
+                                    % len(calls))
+        self.assertIn(tid + "-play", ids(build_scene(b)[0]),
+                      "and it stopped being drawn")
+
+    def test_a_state_it_has_not_seen_is_still_rastered(self):
+        """Lazy, not skipped: the lit chip is a different bitmap under its
+        own key and has to be made the first time the pointer reaches it."""
+        from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+
+        b, tid = self._hovered()
+        build_scene(b)
+        calls = []
+        real = tile_renderer._play_chip_bitmap
+
+        def counted(size, hot=False):
+            calls.append((size, hot))
+            return real(size, hot=hot)
+
+        tile_renderer._play_chip_bitmap = counted
+        try:
+            _n, handlers = build_scene(b)
+            handlers[tid + "-play"]["hover"]("")
+            build_scene(b)
+        finally:
+            tile_renderer._play_chip_bitmap = real
+        self.assertEqual([hot for _s, hot in calls], [True])
+
+
 if __name__ == "__main__":
     unittest.main()
